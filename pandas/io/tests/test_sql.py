@@ -1,3 +1,20 @@
+"""SQL io tests
+
+The SQL tests are broken down in different classes:
+
+- `PandasSQLTest`: base class with common methods for all test classes
+- Tests for the public API (only tests with sqlite3)
+    - `_TestSQLApi` base class
+    - `TestSQLApi`: test the public API with sqlalchemy engine
+    - `TesySQLLegacyApi`: test the public API with DBAPI connection
+- Tests for the different SQL flavors (flavor specific type conversions)
+    - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
+      common methods, the different tested flavors (sqlite3, MySQL, PostgreSQL)
+      derive from the base class
+    - Tests for the legacy mode (`TestSQLiteLegacy` and `TestMySQLLegacy`)
+
+"""
+
 from __future__ import print_function
 import unittest
 import sqlite3
@@ -8,7 +25,7 @@ import nose
 import numpy as np
 
 from pandas import DataFrame, Series, MultiIndex
-from pandas.compat import range, lrange, iteritems
+from pandas.compat import range
 #from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
@@ -24,11 +41,11 @@ except ImportError:
 SQL_STRINGS = {
     'create_iris': {
         'sqlite': """CREATE TABLE iris (
-                `SepalLength` REAL,
-                `SepalWidth` REAL,
-                `PetalLength` REAL,
-                `PetalWidth` REAL,
-                `Name` TEXT
+                "SepalLength" REAL,
+                "SepalWidth" REAL,
+                "PetalLength" REAL,
+                "PetalWidth" REAL,
+                "Name" TEXT
             )""",
         'mysql': """CREATE TABLE iris (
                 `SepalLength` DOUBLE,
@@ -52,14 +69,14 @@ SQL_STRINGS = {
     },
     'create_test_types': {
         'sqlite': """CREATE TABLE types_test_data (
-                    `TextCol` TEXT,
-                    `DateCol` TEXT,
-                    `IntDateCol` INTEGER,
-                    `FloatCol` REAL,
-                    `IntCol` INTEGER,
-                    `BoolCol` INTEGER,
-                    `IntColWithNull` INTEGER,
-                    `BoolColWithNull` INTEGER
+                    "TextCol" TEXT,
+                    "DateCol" TEXT,
+                    "IntDateCol" INTEGER,
+                    "FloatCol" REAL,
+                    "IntCol" INTEGER,
+                    "BoolCol" INTEGER,
+                    "IntColWithNull" INTEGER,
+                    "BoolColWithNull" INTEGER
                 )""",
         'mysql': """CREATE TABLE types_test_data (
                     `TextCol` TEXT,
@@ -118,9 +135,9 @@ SQL_STRINGS = {
 
 
 class PandasSQLTest(unittest.TestCase):
+    """
+    Base class with common private methods for SQLAlchemy and fallback cases.
 
-    """Base class with common private methods for
-    SQLAlchemy and fallback cases.
     """
 
     def drop_table(self, table_name):
@@ -285,10 +302,18 @@ class PandasSQLTest(unittest.TestCase):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
 
+#------------------------------------------------------------------------------
+#--- Testing the public API
+
 class _TestSQLApi(PandasSQLTest):
 
-    """Test the public API as it would be used
-    directly, including legacy names
+    """
+    Base class to test the public API.
+
+    From this two classes are derived to run these tests for both the
+    sqlalchemy mode (`TestSQLApi`) and the legacy mode (`TestSQLLegacyApi`).
+    These tests are run with sqlite3. Specific tests for the different
+    sql flavours are included in `_TestSQLAlchemy`.
 
     Notes:
     flavor can always be passed even in SQLAlchemy mode,
@@ -311,7 +336,6 @@ class _TestSQLApi(PandasSQLTest):
         self._check_iris_loaded_frame(iris_frame)
 
     def test_legacy_read_frame(self):
-        """Test legacy name read_frame"""
         iris_frame = sql.read_frame(
             "SELECT * FROM iris", self.conn, flavor='sqlite')
         self._check_iris_loaded_frame(iris_frame)
@@ -337,7 +361,8 @@ class _TestSQLApi(PandasSQLTest):
         sql.to_sql(self.test_frame1, 'test_frame3',
                    self.conn, flavor='sqlite', if_exists='replace')
         self.assertTrue(
-            sql.has_table('test_frame3', self.conn, flavor='sqlite'), 'Table not written to DB')
+            sql.has_table('test_frame3', self.conn, flavor='sqlite'),
+            'Table not written to DB')
 
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows('test_frame3')
@@ -353,7 +378,8 @@ class _TestSQLApi(PandasSQLTest):
         sql.to_sql(self.test_frame1, 'test_frame4',
                    self.conn, flavor='sqlite', if_exists='append')
         self.assertTrue(
-            sql.has_table('test_frame4', self.conn, flavor='sqlite'), 'Table not written to DB')
+            sql.has_table('test_frame4', self.conn, flavor='sqlite'),
+            'Table not written to DB')
 
         num_entries = 2 * len(self.test_frame1)
         num_rows = self._count_rows('test_frame4')
@@ -374,12 +400,13 @@ class _TestSQLApi(PandasSQLTest):
                           'test_panel', self.conn, flavor='sqlite')
 
     def test_legacy_write_frame(self):
-        """Test legacy write frame name.
-        Assume that functionality is already tested above so just do quick check that it basically works"""
-        sql.write_frame(
-            self.test_frame1, 'test_frame_legacy', self.conn, flavor='sqlite')
+        # Assume that functionality is already tested above so just do
+        # quick check that it basically works
+        sql.write_frame(self.test_frame1, 'test_frame_legacy', self.conn,
+                        flavor='sqlite')
         self.assertTrue(
-            sql.has_table('test_frame_legacy', self.conn, flavor='sqlite'), 'Table not written to DB')
+            sql.has_table('test_frame_legacy', self.conn, flavor='sqlite'),
+            'Table not written to DB')
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
@@ -410,7 +437,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
-        """ Test date parsing in read_sql """
+        # Test date parsing in read_sq
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 flavor='sqlite')
@@ -444,19 +471,17 @@ class _TestSQLApi(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_date_and_index(self):
-        """ Test case where same column appears in parse_date and index_col"""
+        # Test case where same column appears in parse_date and index_col
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 flavor='sqlite', index_col='DateCol',
                                 parse_dates=['DateCol', 'IntDateCol'])
 
-        self.assertTrue(
-            issubclass(df.index.dtype.type, np.datetime64),
-            "DateCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.index.dtype.type, np.datetime64),
+                        "DateCol loaded with incorrect type")
 
-        self.assertTrue(
-            issubclass(df.IntDateCol.dtype.type, np.datetime64),
-            "IntDateCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
+                        "IntDateCol loaded with incorrect type")
 
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
@@ -491,7 +516,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_to_sql_index_label_multiindex(self):
         temp_frame = DataFrame({'col1': range(4)},
             index=MultiIndex.from_product([('A0', 'A1'), ('B0', 'B1')]))
-        
+
         # no index name, defaults to 'level_0' and 'level_1'
         sql.to_sql(temp_frame, 'test_index_label', self.conn)
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
@@ -527,8 +552,12 @@ class _TestSQLApi(PandasSQLTest):
 
 
 class TestSQLApi(_TestSQLApi):
+    """
+    Test the public API as it would be used directly
 
-    """Test the public API as it would be used directly
+    Tests for `read_sql_table` are included here, as this is specific for the
+    sqlalchemy mode.
+
     """
     flavor = 'sqlite'
 
@@ -574,15 +603,16 @@ class TestSQLApi(_TestSQLApi):
         tm.assert_frame_equal(iris_frame1, iris_frame2,
                               "read_sql and read_sql_query have not the same"
                               " result with a query")
-        
+
         iris_frame1 = sql.read_sql_table('iris', self.conn)
         iris_frame2 = sql.read_sql('iris', self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
 
 class TestSQLLegacyApi(_TestSQLApi):
+    """
+    Test the public legacy API
 
-    """Test the public legacy API
     """
     flavor = 'sqlite'
 
@@ -600,35 +630,21 @@ class TestSQLLegacyApi(_TestSQLApi):
         self.test_frame2 = DataFrame(data, columns=columns)
 
     def test_sql_open_close(self):
-        """
-        Test if the IO in the database still work if the connection
-        is closed between the writing and reading (as in many real
-        situations).
-        """
+        # Test if the IO in the database still work if the connection closed
+        # between the writing and reading (as in many real situations).
 
         self._load_test2_data()
 
         with tm.ensure_clean() as name:
 
             conn = self.connect(name)
-
-            sql.to_sql(
-                self.test_frame2,
-                "test_frame2_legacy",
-                conn,
-                flavor="sqlite",
-                index=False,
-            )
-
+            sql.to_sql(self.test_frame2, "test_frame2_legacy", conn,
+                       flavor="sqlite", index=False)
             conn.close()
+
             conn = self.connect(name)
-
-            result = sql.read_sql_query(
-                "SELECT * FROM test_frame2_legacy;",
-                conn,
-                flavor="sqlite",
-            )
-
+            result = sql.read_sql_query("SELECT * FROM test_frame2_legacy;",
+                                        conn, flavor="sqlite")
             conn.close()
 
         tm.assert_frame_equal(self.test_frame2, result)
@@ -641,19 +657,55 @@ class TestSQLLegacyApi(_TestSQLApi):
         tm.assert_frame_equal(iris_frame1, iris_frame2,
                               "read_sql and read_sql_query have not the same"
                               " result with a query")
-        
+
         self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn,
                           flavor=self.flavor)
 
 
+#------------------------------------------------------------------------------
+#--- Database flavor specific tests
+
 class _TestSQLAlchemy(PandasSQLTest):
     """
-    Base class for testing the sqlalchemy backend. Subclasses for specific
-    database types are created below.
-    Assume that sqlalchemy takes case of the DB specifics
-    """
+    Base class for testing the sqlalchemy backend.
 
-    def test_read_sql(self):
+    Subclasses for specific database types are created below. Tests that
+    deviate for each flavor are overwritten there.
+
+    """
+    flavor = None
+
+    def setUp(self):
+        self.setup_import()
+        self.setup_driver()
+        self.setup_connect()
+
+        self._load_iris_data()
+        self._load_raw_sql()
+        self._load_test1_data()
+
+    def setup_import(self):
+        # Skip this test if SQLAlchemy not available
+        if not SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('SQLAlchemy not installed')
+
+    def setup_driver(self):
+        raise NotImplementedError()
+
+    def connect(self):
+        raise NotImplementedError()
+
+    def setup_connect(self):
+        try:
+            self.conn = self.connect()
+            self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+        except sqlalchemy.exc.OperationalError:
+            raise nose.SkipTest("Can't connect to {0} server".format(self.flavor))
+
+    def tearDown(self):
+        raise NotImplementedError()
+
+    def test_aread_sql(self):
         self._read_sql_iris()
 
     def test_read_sql_parameter(self):
@@ -744,22 +796,22 @@ class _TestSQLAlchemy(PandasSQLTest):
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
-        self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
+                        "DateCol loaded with incorrect type")
 
     def test_date_parsing(self):
         # No Parsing
         df = sql.read_sql_table("types_test_data", self.conn)
 
-        df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates=['DateCol'])
-        self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+        df = sql.read_sql_table("types_test_data", self.conn,
+                                parse_dates=['DateCol'])
+        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
+                        "DateCol loaded with incorrect type")
 
-        df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+        df = sql.read_sql_table("types_test_data", self.conn,
+                                parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
+        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
+                        "DateCol loaded with incorrect type")
 
         df = sql.read_sql_table("types_test_data", self.conn, parse_dates={
                             'DateCol': {'format': '%Y-%m-%d %H:%M:%S'}})
@@ -794,27 +846,23 @@ class _TestSQLAlchemy(PandasSQLTest):
         tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
 
 
-class TestSQLAlchemy(_TestSQLAlchemy):
+class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
     Test the sqlalchemy backend against an in-memory sqlite database.
+
     """
     flavor = 'sqlite'
 
     def connect(self):
         return sqlalchemy.create_engine('sqlite:///:memory:')
 
-    def setUp(self):
-        # Skip this test if SQLAlchemy not available
-        if not SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('SQLAlchemy not installed')
+    def setup_driver(self):
+        # sqlite3 is built-in
+        pass
 
-        self.conn = self.connect()
-        self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-
-        self._load_iris_data()
-        self._load_raw_sql()
-
-        self._load_test1_data()
+    def tearDown(self):
+        # in memory so tables should not be removed explicitly
+        pass
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
@@ -842,13 +890,82 @@ class TestSQLAlchemy(_TestSQLAlchemy):
                          "DateCol loaded with incorrect type")
 
 
-# --- Test SQLITE fallback
-class TestSQLite(PandasSQLTest):
+class TestMySQLAlchemy(_TestSQLAlchemy):
+    """
+    Test the sqlalchemy backend against an MySQL database.
 
-    '''
-    Test the sqlalchemy backend against an in-memory sqlite database.
-    Assume that sqlalchemy takes case of the DB specifics
-    '''
+    """
+    flavor = 'mysql'
+
+    def connect(self):
+        return sqlalchemy.create_engine(
+            'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
+
+    def setup_driver(self):
+        try:
+            import pymysql
+            self.driver = 'pymysql'
+        except ImportError:
+            raise nose.SkipTest('pymysql not installed')
+
+    def tearDown(self):
+        c = self.conn.execute('SHOW TABLES')
+        for table in c.fetchall():
+            self.conn.execute('DROP TABLE %s' % table[0])
+
+    def test_default_type_conversion(self):
+        df = sql.read_sql_table("types_test_data", self.conn)
+
+        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
+                        "FloatCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
+                        "IntCol loaded with incorrect type")
+        # MySQL has no real BOOL type (it's an alias for TINYINT)
+        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
+                        "BoolCol loaded with incorrect type")
+
+        # Int column with NA values stays as float
+        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
+                        "IntColWithNull loaded with incorrect type")
+        # Bool column with NA = int column with NA values => becomes float
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
+                        "BoolColWithNull loaded with incorrect type")
+
+
+class TestPostgreSQLAlchemy(_TestSQLAlchemy):
+    """
+    Test the sqlalchemy backend against an PostgreSQL database.
+
+    """
+    flavor = 'postgresql'
+
+    def connect(self):
+        return sqlalchemy.create_engine(
+            'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
+
+    def setup_driver(self):
+        try:
+            import psycopg2
+            self.driver = 'psycopg2'
+        except ImportError:
+            raise nose.SkipTest('psycopg2 not installed')
+
+    def tearDown(self):
+        c = self.conn.execute(
+            "SELECT table_name FROM information_schema.tables"
+            " WHERE table_schema = 'public'")
+        for table in c.fetchall():
+            self.conn.execute("DROP TABLE %s" % table[0])
+
+
+#------------------------------------------------------------------------------
+#--- Test Sqlite / MySQL fallback
+
+class TestSQLiteLegacy(PandasSQLTest):
+    """
+    Test the legacy mode against an in-memory sqlite database.
+
+    """
     flavor = 'sqlite'
 
     def connect(self):
@@ -898,13 +1015,13 @@ class TestSQLite(PandasSQLTest):
 
         self.pandasSQL.to_sql(temp_frame, 'drop_test_frame')
 
-        self.assertTrue(self.pandasSQL.has_table(
-            'drop_test_frame'), 'Table not written to DB')
+        self.assertTrue(self.pandasSQL.has_table('drop_test_frame'),
+                        'Table not written to DB')
 
         self.pandasSQL.drop_table('drop_test_frame')
 
-        self.assertFalse(self.pandasSQL.has_table(
-            'drop_test_frame'), 'Table not deleted from DB')
+        self.assertFalse(self.pandasSQL.has_table('drop_test_frame'),
+                         'Table not deleted from DB')
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -916,7 +1033,11 @@ class TestSQLite(PandasSQLTest):
         self._tquery()
 
 
-class TestMySQL(TestSQLite):
+class TestMySQLLegacy(TestSQLiteLegacy):
+    """
+    Test the legacy mode against a MySQL database.
+
+    """
     flavor = 'mysql'
 
     def drop_table(self, table_name):
@@ -959,93 +1080,6 @@ class TestMySQL(TestSQLite):
         self.conn.commit()
         self.conn.close()
 
-
-class TestMySQLAlchemy(_TestSQLAlchemy):
-    flavor = 'mysql'
-
-    def connect(self):
-        return sqlalchemy.create_engine(
-            'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
-
-    def setUp(self):
-        if not SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('SQLAlchemy not installed')
-
-        try:
-            import pymysql
-            self.driver = 'pymysql'
-        except ImportError:
-            raise nose.SkipTest('pymysql not installed')
-
-        try:
-            self.conn = self.connect()
-            self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-        except sqlalchemy.exc.OperationalError:
-            raise nose.SkipTest("Can't connect to MySQL server")
-
-        self._load_iris_data()
-        self._load_raw_sql()
-
-        self._load_test1_data()
-
-    def tearDown(self):
-        c = self.conn.execute('SHOW TABLES')
-        for table in c.fetchall():
-            self.conn.execute('DROP TABLE %s' % table[0])
-
-    def test_default_type_conversion(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
-
-        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
-                        "FloatCol loaded with incorrect type")
-        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
-                        "IntCol loaded with incorrect type")
-        # MySQL has no real BOOL type (it's an alias for TINYINT)
-        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
-                        "BoolCol loaded with incorrect type")
-
-        # Int column with NA values stays as float
-        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
-                        "IntColWithNull loaded with incorrect type")
-        # Bool column with NA = int column with NA values => becomes float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
-                        "BoolColWithNull loaded with incorrect type")
-
-
-class TestPostgreSQLAlchemy(_TestSQLAlchemy):
-    flavor = 'postgresql'
-
-    def connect(self):
-        return sqlalchemy.create_engine(
-            'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
-
-    def setUp(self):
-        if not SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('SQLAlchemy not installed')
-
-        try:
-            import psycopg2
-            self.driver = 'psycopg2'
-        except ImportError:
-            raise nose.SkipTest('psycopg2 not installed')
-
-        try:
-            self.conn = self.connect()
-            self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-        except sqlalchemy.exc.OperationalError:
-            raise nose.SkipTest("Can't connect to PostgreSQL server")
-
-        self._load_iris_data()
-        self._load_raw_sql()
-
-        self._load_test1_data()
-
-    def tearDown(self):
-        c = self.conn.execute(
-            "SELECT table_name FROM information_schema.tables"
-            " WHERE table_schema = 'public'")
-        for table in c.fetchall():
-            self.conn.execute("DROP TABLE %s" % table[0])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
