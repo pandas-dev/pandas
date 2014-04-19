@@ -2365,6 +2365,37 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         check_comparators(self.ts, 5)
         check_comparators(self.ts, self.ts + 1)
 
+    def test_align_eq(self):
+
+        # GH 1134
+        # eq should align!
+
+        # needs alignment
+        s1 = Series([1,2], ['a','b'])
+        s2 = Series([2,3], ['b','c'])
+        result1 = s1 == s2
+        result2 = s2 == s1
+        index = s1.index+s2.index
+        expected = s1.reindex(index) == s2.reindex(index)
+        assert_series_equal(result1,expected)
+        assert_series_equal(result2,expected)
+
+        # differs in order
+        s1 = Series(index=["A", "B", "C"], data=[1,2,3])
+        s2 = Series(index=["C", "B", "A"], data=[3,2,1])
+        result1 = s1 == s2
+        result2 = s2 == s1
+        index = s1.index+s2.index
+        expected = s1.reindex(index) == s2.reindex(index)
+        assert_series_equal(result1,expected)
+        assert_series_equal(result2,expected)
+
+        s1 = Series([10,20,30,40,50,60],index=[6,7,8,9,10,15],name='series')
+        s2 = Series([10,20,30,40,50,60],index=[6,7,8,9,10,15])
+        result = s1 == s2
+        expected = Series(True,index=[6,7,8,9,10,15])
+        assert_series_equal(result,expected)
+
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})
@@ -3224,15 +3255,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = left != np.nan
         expected = Series([True, True, True])
         assert_series_equal(result, expected)
-
-    def test_comparison_different_length(self):
-        a = Series(['a', 'b', 'c'])
-        b = Series(['b', 'a'])
-        self.assertRaises(ValueError, a.__lt__, b)
-
-        a = Series([1, 2])
-        b = Series([2, 3, 4])
-        self.assertRaises(ValueError, a.__eq__, b)
 
     def test_comparison_label_based(self):
 

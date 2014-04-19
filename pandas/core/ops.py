@@ -537,13 +537,18 @@ def _comp_method_SERIES(op, name, str_rep=None, masker=False):
     def wrapper(self, other):
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
-            if len(self) != len(other):
-                raise ValueError('Series lengths must match to compare')
-            return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
+            if self.index.equals(other):
+                s1, s2 = self, other
+                index = self.index
+            else:
+                index = self.index + other.index
+                s1 = self.reindex(index)
+                s2 = other.reindex(index)
+            return self._constructor(na_op(s1.values, s2.values),
+                                     index=index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (pa.Array, pd.Series)):
+        elif isinstance(other, pa.Array):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
