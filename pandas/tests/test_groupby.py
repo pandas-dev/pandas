@@ -2914,7 +2914,7 @@ class TestGroupBy(tm.TestCase):
         # TimeGrouper requires a sorted index
         # also verifies that the resultant index has the correct name
         import datetime as DT
-        df = DataFrame({
+        df_original = DataFrame({
             'Buyer': 'Carl Carl Carl Carl Joe Carl'.split(),
             'Quantity': [18,3,5,1,9,3],
             'Date' : [
@@ -2925,29 +2925,34 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,12,0),
                 DT.datetime(2013,9,2,14,0),
                 ]})
-        df = df.set_index(['Date'])
+        
+        # GH 6908 change target column's order
+        df_reordered = df_original.sort(columns='Quantity')
 
-        expected = DataFrame({ 'Quantity' : np.nan },
-                             index=date_range('20130901 13:00:00','20131205 13:00:00',
-                                              freq='5D',name='Date',closed='left'))
-        expected.iloc[[0,6,18],0] = np.array([24.,6.,9.],dtype='float64')
+        for df in [df_original, df_reordered]:
+            df = df.set_index(['Date'])
 
-        result1 = df.resample('5D',how=sum)
-        assert_frame_equal(result1, expected)
+            expected = DataFrame({ 'Quantity' : np.nan },
+                                 index=date_range('20130901 13:00:00','20131205 13:00:00',
+                                                  freq='5D',name='Date',closed='left'))
+            expected.iloc[[0,6,18],0] = np.array([24.,6.,9.],dtype='float64')
 
-        df_sorted = df.sort_index()
-        result2 = df_sorted.groupby(pd.TimeGrouper(freq='5D')).sum()
-        assert_frame_equal(result2, expected)
+            result1 = df.resample('5D',how=sum)
+            assert_frame_equal(result1, expected)
 
-        result3 = df.groupby(pd.TimeGrouper(freq='5D')).sum()
-        assert_frame_equal(result3, expected)
+            df_sorted = df.sort_index()
+            result2 = df_sorted.groupby(pd.TimeGrouper(freq='5D')).sum()
+            assert_frame_equal(result2, expected)
+
+            result3 = df.groupby(pd.TimeGrouper(freq='5D')).sum()
+            assert_frame_equal(result3, expected)
 
     def test_groupby_with_timegrouper_methods(self):
         # GH 3881
         # make sure API of timegrouper conforms
 
         import datetime as DT
-        df = pd.DataFrame({
+        df_original = pd.DataFrame({
             'Branch' : 'A A A A A B'.split(),
             'Buyer': 'Carl Mark Carl Joe Joe Carl'.split(),
             'Quantity': [1,3,5,8,9,3],
@@ -2960,13 +2965,16 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,14,0),
                 ]})
 
-        df = df.set_index('Date', drop=False)
-        g = df.groupby(pd.TimeGrouper('6M'))
-        self.assertTrue(g.group_keys)
-        self.assertTrue(isinstance(g.grouper,pd.core.groupby.BinGrouper))
-        groups = g.groups
-        self.assertTrue(isinstance(groups,dict))
-        self.assertTrue(len(groups) == 3)
+        df_sorted = df_original.sort(columns='Quantity', ascending=False)
+
+        for df in [df_original, df_sorted]:
+            df = df.set_index('Date', drop=False)
+            g = df.groupby(pd.TimeGrouper('6M'))
+            self.assertTrue(g.group_keys)
+            self.assertTrue(isinstance(g.grouper,pd.core.groupby.BinGrouper))
+            groups = g.groups
+            self.assertTrue(isinstance(groups,dict))
+            self.assertTrue(len(groups) == 3)
 
     def test_timegrouper_with_reg_groups(self):
 
@@ -2975,7 +2983,7 @@ class TestGroupBy(tm.TestCase):
 
         import datetime as DT
 
-        df = DataFrame({
+        df_original = DataFrame({
             'Branch' : 'A A A A A A A B'.split(),
             'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
             'Quantity': [1,3,5,1,8,1,9,3],
@@ -2990,32 +2998,34 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,14,0),
                 ]}).set_index('Date')
 
-        expected = DataFrame({
-            'Buyer': 'Carl Joe Mark'.split(),
-            'Quantity': [10,18,3],
-            'Date' : [
-                DT.datetime(2013,12,31,0,0),
-                DT.datetime(2013,12,31,0,0),
-                DT.datetime(2013,12,31,0,0),
-                ]}).set_index(['Date','Buyer'])
+        df_sorted = df_original.sort(columns='Quantity', ascending=False)
 
-        result = df.groupby([pd.Grouper(freq='A'),'Buyer']).sum()
-        assert_frame_equal(result,expected)
+        for df in [df_original, df_sorted]:
+            expected = DataFrame({
+                'Buyer': 'Carl Joe Mark'.split(),
+                'Quantity': [10,18,3],
+                'Date' : [
+                    DT.datetime(2013,12,31,0,0),
+                    DT.datetime(2013,12,31,0,0),
+                    DT.datetime(2013,12,31,0,0),
+                    ]}).set_index(['Date','Buyer'])
 
-        expected = DataFrame({
-            'Buyer': 'Carl Mark Carl Joe'.split(),
-            'Quantity': [1,3,9,18],
-            'Date' : [
-                DT.datetime(2013,1,1,0,0),
-                DT.datetime(2013,1,1,0,0),
-                DT.datetime(2013,7,1,0,0),
-                DT.datetime(2013,7,1,0,0),
-                ]}).set_index(['Date','Buyer'])
+            result = df.groupby([pd.Grouper(freq='A'),'Buyer']).sum()
+            assert_frame_equal(result,expected)
 
-        result = df.groupby([pd.Grouper(freq='6MS'),'Buyer']).sum()
-        assert_frame_equal(result,expected)
+            expected = DataFrame({
+                'Buyer': 'Carl Mark Carl Joe'.split(),
+                'Quantity': [1,3,9,18],
+                'Date' : [
+                    DT.datetime(2013,1,1,0,0),
+                    DT.datetime(2013,1,1,0,0),
+                    DT.datetime(2013,7,1,0,0),
+                    DT.datetime(2013,7,1,0,0),
+                    ]}).set_index(['Date','Buyer'])
+            result = df.groupby([pd.Grouper(freq='6MS'),'Buyer']).sum()
+            assert_frame_equal(result,expected)
 
-        df = DataFrame({
+        df_original = DataFrame({
             'Branch' : 'A A A A A A A B'.split(),
             'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
             'Quantity': [1,3,5,1,8,1,9,3],
@@ -3030,81 +3040,105 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,10,2,14,0),
                 ]}).set_index('Date')
 
-        expected = DataFrame({
-            'Buyer': 'Carl Joe Mark Carl Joe'.split(),
-            'Quantity': [6,8,3,4,10],
-            'Date' : [
-                DT.datetime(2013,10,1,0,0),
-                DT.datetime(2013,10,1,0,0),
-                DT.datetime(2013,10,1,0,0),
-                DT.datetime(2013,10,2,0,0),
-                DT.datetime(2013,10,2,0,0),
-                ]}).set_index(['Date','Buyer'])
+        df_sorted = df_original.sort(columns='Quantity', ascending=False)
+        for df in [df_original, df_sorted]:
 
-        result = df.groupby([pd.Grouper(freq='1D'),'Buyer']).sum()
-        assert_frame_equal(result,expected)
+            expected = DataFrame({
+                'Buyer': 'Carl Joe Mark Carl Joe'.split(),
+                'Quantity': [6,8,3,4,10],
+                'Date' : [
+                    DT.datetime(2013,10,1,0,0),
+                    DT.datetime(2013,10,1,0,0),
+                    DT.datetime(2013,10,1,0,0),
+                    DT.datetime(2013,10,2,0,0),
+                    DT.datetime(2013,10,2,0,0),
+                    ]}).set_index(['Date','Buyer'])
 
-        result = df.groupby([pd.Grouper(freq='1M'),'Buyer']).sum()
-        expected = DataFrame({
-            'Buyer': 'Carl Joe Mark'.split(),
-            'Quantity': [10,18,3],
-            'Date' : [
-                DT.datetime(2013,10,31,0,0),
-                DT.datetime(2013,10,31,0,0),
-                DT.datetime(2013,10,31,0,0),
-                ]}).set_index(['Date','Buyer'])
-        assert_frame_equal(result,expected)
+            result = df.groupby([pd.Grouper(freq='1D'),'Buyer']).sum()
+            assert_frame_equal(result,expected)
 
-        # passing the name
-        df = df.reset_index()
-        result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
-        assert_frame_equal(result,expected)
+            result = df.groupby([pd.Grouper(freq='1M'),'Buyer']).sum()
+            expected = DataFrame({
+                'Buyer': 'Carl Joe Mark'.split(),
+                'Quantity': [10,18,3],
+                'Date' : [
+                    DT.datetime(2013,10,31,0,0),
+                    DT.datetime(2013,10,31,0,0),
+                    DT.datetime(2013,10,31,0,0),
+                    ]}).set_index(['Date','Buyer'])
+            assert_frame_equal(result,expected)
 
-        self.assertRaises(KeyError, lambda : df.groupby([pd.Grouper(freq='1M',key='foo'),'Buyer']).sum())
+            # passing the name
+            df = df.reset_index()
+            result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
+            assert_frame_equal(result,expected)
 
-        # passing the level
-        df = df.set_index('Date')
-        result = df.groupby([pd.Grouper(freq='1M',level='Date'),'Buyer']).sum()
-        assert_frame_equal(result,expected)
-        result = df.groupby([pd.Grouper(freq='1M',level=0),'Buyer']).sum()
-        assert_frame_equal(result,expected)
+            self.assertRaises(KeyError, lambda : df.groupby([pd.Grouper(freq='1M',key='foo'),'Buyer']).sum())
 
-        self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',level='foo'),'Buyer']).sum())
+            # passing the level
+            df = df.set_index('Date')
+            result = df.groupby([pd.Grouper(freq='1M',level='Date'),'Buyer']).sum()
+            assert_frame_equal(result,expected)
+            result = df.groupby([pd.Grouper(freq='1M',level=0),'Buyer']).sum()
+            assert_frame_equal(result,expected)
 
-        # multi names
-        df = df.copy()
-        df['Date'] = df.index + pd.offsets.MonthEnd(2)
-        result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
-        expected = DataFrame({
-            'Buyer': 'Carl Joe Mark'.split(),
-            'Quantity': [10,18,3],
-            'Date' : [
-                DT.datetime(2013,11,30,0,0),
-                DT.datetime(2013,11,30,0,0),
-                DT.datetime(2013,11,30,0,0),
-                ]}).set_index(['Date','Buyer'])
-        assert_frame_equal(result,expected)
+            self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',level='foo'),'Buyer']).sum())
 
-        # error as we have both a level and a name!
-        self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',key='Date',level='Date'),'Buyer']).sum())
+            # multi names
+            df = df.copy()
+            df['Date'] = df.index + pd.offsets.MonthEnd(2)
+            result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
+            expected = DataFrame({
+                'Buyer': 'Carl Joe Mark'.split(),
+                'Quantity': [10,18,3],
+                'Date' : [
+                    DT.datetime(2013,11,30,0,0),
+                    DT.datetime(2013,11,30,0,0),
+                    DT.datetime(2013,11,30,0,0),
+                    ]}).set_index(['Date','Buyer'])
+            assert_frame_equal(result,expected)
+
+            # error as we have both a level and a name!
+            self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',key='Date',level='Date'),'Buyer']).sum())
 
 
-        # single groupers
-        expected = DataFrame({ 'Quantity' : [31],
-                               'Date' : [DT.datetime(2013,10,31,0,0)] }).set_index('Date')
-        result = df.groupby(pd.Grouper(freq='1M')).sum()
-        assert_frame_equal(result, expected)
+            # single groupers
+            expected = DataFrame({ 'Quantity' : [31],
+                                   'Date' : [DT.datetime(2013,10,31,0,0)] }).set_index('Date')
+            result = df.groupby(pd.Grouper(freq='1M')).sum()
+            assert_frame_equal(result, expected)
 
-        result = df.groupby([pd.Grouper(freq='1M')]).sum()
-        assert_frame_equal(result, expected)
+            result = df.groupby([pd.Grouper(freq='1M')]).sum()
+            assert_frame_equal(result, expected)
 
-        expected = DataFrame({ 'Quantity' : [31],
-                               'Date' : [DT.datetime(2013,11,30,0,0)] }).set_index('Date')
-        result = df.groupby(pd.Grouper(freq='1M',key='Date')).sum()
-        assert_frame_equal(result, expected)
+            expected = DataFrame({ 'Quantity' : [31],
+                                   'Date' : [DT.datetime(2013,11,30,0,0)] }).set_index('Date')
+            result = df.groupby(pd.Grouper(freq='1M',key='Date')).sum()
+            assert_frame_equal(result, expected)
 
-        result = df.groupby([pd.Grouper(freq='1M',key='Date')]).sum()
-        assert_frame_equal(result, expected)
+            result = df.groupby([pd.Grouper(freq='1M',key='Date')]).sum()
+            assert_frame_equal(result, expected)
+
+        # GH 6764 multiple grouping with/without sort
+        df = DataFrame({
+            'date' : pd.to_datetime([
+                '20121002','20121007','20130130','20130202','20130305','20121002',
+                '20121207','20130130','20130202','20130305','20130202','20130305']),
+            'user_id' : [1,1,1,1,1,3,3,3,5,5,5,5],
+            'whole_cost' : [1790,364,280,259,201,623,90,312,359,301,359,801],
+            'cost1' : [12,15,10,24,39,1,0,90,45,34,1,12] }).set_index('date')
+
+        for freq in ['D', 'M', 'A', 'Q-APR']:
+            expected = df.groupby('user_id')['whole_cost'].resample(
+                                  freq, how='sum').dropna().reorder_levels(
+                                  ['date','user_id']).sortlevel().astype('int64')
+            expected.name = 'whole_cost'
+
+            result1 = df.sort_index().groupby([pd.TimeGrouper(freq=freq), 'user_id'])['whole_cost'].sum()
+            assert_series_equal(result1, expected)
+
+            result2 = df.groupby([pd.TimeGrouper(freq=freq), 'user_id'])['whole_cost'].sum()
+            assert_series_equal(result2, expected)
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
