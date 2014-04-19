@@ -264,19 +264,24 @@ It takes a number of arguments
 
 - ``data``: A DataFrame object
 - ``values``: a column or a list of columns to aggregate
-- ``rows``: list of columns to group by on the table rows
-- ``cols``: list of columns to group by on the table columns
+- ``index``: a column, Grouper, array which has the same length as data, or list of them.
+  Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
+- ``columns``: a column, Grouper, array which has the same length as data, or list of them. 
+  Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
 - ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
 
 Consider a data set like this:
 
 .. ipython:: python
 
+   import datetime
    df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 6,
                    'B' : ['A', 'B', 'C'] * 8,
                    'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
                    'D' : np.random.randn(24),
-                   'E' : np.random.randn(24)})
+                   'E' : np.random.randn(24),
+                   'F' : [datetime.datetime(2013, i, 1) for i in range(1, 13)] +
+                         [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
    df
 
 We can produce pivot tables from this data very easily:
@@ -295,6 +300,12 @@ hierarchy in the columns:
 .. ipython:: python
 
    pivot_table(df, index=['A', 'B'], columns=['C'])
+
+Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail of ``Grouper``, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
+
+.. ipython:: python
+
+   pivot_table(df, values='D', index=Grouper(freq='M', key='F'), columns='C')
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
