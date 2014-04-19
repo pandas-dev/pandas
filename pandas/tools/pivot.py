@@ -4,6 +4,7 @@ import warnings
 
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex
+from pandas.core.groupby import Grouper
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
@@ -25,10 +26,12 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    index : list of column names or arrays to group on
-        Keys to group on the x-axis of the pivot table
-    columns : list of column names or arrays to group on
-        Keys to group on the y-axis of the pivot table
+    index : a column, Grouper, array which has the same length as data, or list of them.
+        Keys to group by on the pivot table index.
+        If an array is passed, it is being used as the same manner as column values.
+    columns : a column, Grouper, array which has the same length as data, or list of them.
+        Keys to group by on the pivot table column.
+        If an array is passed, it is being used as the same manner as column values.
     aggfunc : function, default numpy.mean, or list of functions
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
@@ -98,6 +101,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     if values_passed:
         to_filter = []
         for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
             try:
                 if x in data:
                     to_filter.append(x)
@@ -297,7 +302,7 @@ def _generate_marginal_results_without_values(table, data, rows, cols, aggfunc):
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Series))
+    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Series, Grouper))
           or hasattr(by, '__call__')):
         by = [by]
     else:

@@ -286,6 +286,7 @@ Improvements to existing features
   :func:`read_csv`/:func:`read_table` if no other C-unsupported options
   specified (:issue:`6607`)
 - ``read_excel`` can now read milliseconds in Excel dates and times with xlrd >= 0.9.3. (:issue:`5945`)
+- ``pivot_table`` can now accept ``Grouper`` by ``index`` and ``columns`` keywords (:issue:`6913`)
 
 .. _release.bug_fixes-0.14.0:
 
