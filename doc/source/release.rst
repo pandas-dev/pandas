@@ -399,6 +399,7 @@ Bug Fixes
 - Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
 - Bug in `Series.__unicode__` when `max_rows` is `None` and the Series has more than 1000 rows. (:issue:`6863`)
 - Bug in ``groupby.get_group`` where a datetlike wasn't always accepted (:issue:`5267`)
+- Bug in ``groupBy.get_group`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`6914`)
 - Bug in ``DatetimeIndex.tz_localize`` and ``DatetimeIndex.tz_convert`` affects to NaT (:issue:`5546`)
 - Bug in arithmetic operations affecting to NaT (:issue:`6873`)
 - Bug in ``Series.str.extract`` where the resulting ``Series`` from a single
