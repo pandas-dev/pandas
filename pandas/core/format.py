@@ -1194,6 +1194,14 @@ class CSVFormatter(object):
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if not (has_aliases or self.header):
             return
+        if has_aliases:
+            if len(header) != len(cols):
+                raise ValueError(('Writing %d cols but got %d aliases'
+                                  % (len(cols), len(header))))
+            else:
+                write_cols = header
+        else:
+            write_cols = cols
 
         if self.index:
             # should write something for index label
@@ -1219,22 +1227,8 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
-            if has_aliases:
-                if len(header) != len(cols):
-                    raise ValueError(('Writing %d cols but got %d aliases'
-                                      % (len(cols), len(header))))
-                else:
-                    write_cols = header
-            else:
-                write_cols = cols
-
-            if not has_mi_columns:
-                encoded_labels += list(write_cols)
-
-        else:
-
-            if not has_mi_columns:
-                encoded_labels += list(cols)
+        if not has_mi_columns:
+            encoded_labels += list(write_cols)
 
         # write out the mi
         if has_mi_columns:
