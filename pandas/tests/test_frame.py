@@ -5836,6 +5836,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = read_csv(path)
             assert_frame_equal(df,result)
 
+    def test_to_csv_headers(self):
+        # GH6186, the presence or absence of `index` incorrectly
+        # causes to_csv to have different header semantics.
+        pname = '__tmp_to_csv_headers__'
+        from_df = DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        to_df  = DataFrame([[1, 2], [3, 4]], columns=['X', 'Y'])
+        with ensure_clean(pname) as path:
+            from_df.to_csv(path, header=['X', 'Y'])
+            recons = DataFrame.from_csv(path)
+            assert_frame_equal(to_df, recons)
+
+            from_df.to_csv(path, index=False, header=['X', 'Y'])
+            recons = DataFrame.from_csv(path)
+            recons.reset_index(inplace=True)
+            assert_frame_equal(to_df, recons)
+
     def test_to_csv_multiindex(self):
 
         pname = '__tmp_to_csv_multiindex__'
