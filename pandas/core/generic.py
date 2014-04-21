@@ -3455,10 +3455,8 @@ class NDFrame(PandasObject):
 
         return np.abs(self)
 
-    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
-                   **kwds):
-        """
-        Percent change over given number of periods
+    _shared_docs['pct_change'] = """
+        Percent change over given number of periods.
 
         Parameters
         ----------
@@ -3473,14 +3471,27 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        chg : same type as caller
+        chg : %(klass)s
+
+        Notes
+        -----
+
+        By default, the percentage change is calculated along the stat
+        axis: 0, or ``Index``, for ``DataFrame`` and 1, or ``minor`` for
+        ``Panel``. You can change this with the ``axis`` keyword argument.
         """
+
+    @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwds):
         # TODO: Not sure if above is correct - need someone to confirm.
+        axis = self._get_axis_number(kwds.pop('axis', self._stat_axis_name))
         if fill_method is None:
             data = self
         else:
             data = self.fillna(method=fill_method, limit=limit)
-        rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
+
+        rs = data.div(data.shift(periods, freq=freq, axis=axis, **kwds)) - 1
         if freq is None:
             mask = com.isnull(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)

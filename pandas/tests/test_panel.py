@@ -1684,6 +1684,60 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         no_freq = panel.ix[:, [0, 5, 7], :]
         self.assertRaises(ValueError, no_freq.tshift)
 
+    def test_pct_change(self):
+        df1 = DataFrame({'c1': [1, 2, 5], 'c2': [3, 4, 6]})
+        df2 = df1 + 1
+        df3 = DataFrame({'c1': [3, 4, 7], 'c2': [5, 6, 8]})
+        wp = Panel({'i1': df1, 'i2': df2, 'i3': df3})
+        # major, 1
+        result = wp.pct_change()  # axis='major'
+        expected = Panel({'i1': df1.pct_change(),
+                          'i2': df2.pct_change(),
+                          'i3': df3.pct_change()})
+        assert_panel_equal(result, expected)
+        result = wp.pct_change(axis=1)
+        assert_panel_equal(result, expected)
+        # major, 2
+        result = wp.pct_change(periods=2)
+        expected = Panel({'i1': df1.pct_change(2),
+                          'i2': df2.pct_change(2),
+                          'i3': df3.pct_change(2)})
+        assert_panel_equal(result, expected)
+        # minor, 1
+        result = wp.pct_change(axis='minor')
+        expected = Panel({'i1': df1.pct_change(axis=1),
+                          'i2': df2.pct_change(axis=1),
+                          'i3': df3.pct_change(axis=1)})
+        assert_panel_equal(result, expected)
+        result = wp.pct_change(axis=2)
+        assert_panel_equal(result, expected)
+        # minor, 2
+        result = wp.pct_change(periods=2, axis='minor')
+        expected = Panel({'i1': df1.pct_change(periods=2, axis=1),
+                          'i2': df2.pct_change(periods=2, axis=1),
+                          'i3': df3.pct_change(periods=2, axis=1)})
+        assert_panel_equal(result, expected)
+        # items, 1
+        result = wp.pct_change(axis='items')
+        expected = Panel({'i1': DataFrame({'c1': [np.nan, np.nan, np.nan],
+                                           'c2': [np.nan, np.nan, np.nan]}),
+                          'i2': DataFrame({'c1': [1, 0.5, .2],
+                                           'c2': [1./3, 0.25, 1./6]}),
+                          'i3': DataFrame({'c1': [.5, 1./3, 1./6],
+                                           'c2': [.25, .2, 1./7]})})
+        assert_panel_equal(result, expected)
+        result = wp.pct_change(axis=0)
+        assert_panel_equal(result, expected)
+        # items, 2
+        result = wp.pct_change(periods=2, axis='items')
+        expected = Panel({'i1': DataFrame({'c1': [np.nan, np.nan, np.nan],
+                                           'c2': [np.nan, np.nan, np.nan]}),
+                          'i2': DataFrame({'c1': [np.nan, np.nan, np.nan],
+                                           'c2': [np.nan, np.nan, np.nan]}),
+                          'i3': DataFrame({'c1': [2, 1, .4],
+                                           'c2': [2./3, .5, 1./3]})})
+        assert_panel_equal(result, expected)
+
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)],
                                      names=['first', 'second'])
