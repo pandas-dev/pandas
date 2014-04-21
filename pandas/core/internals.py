@@ -2861,9 +2861,7 @@ class BlockManager(PandasObject):
 
         new_blocks = []
         if len(self.blocks) > 1:
-            if not copy:
-                raise Exception('cannot get view of mixed-type or '
-                                'non-consolidated DataFrame')
+            # we must copy here as we are mixed type
             for blk in self.blocks:
                 newb = make_block(blk.values[slicer],
                                   blk.items,
@@ -2884,18 +2882,16 @@ class BlockManager(PandasObject):
 
         return self.__class__(new_blocks, new_axes)
 
-    def fast_xs(self, loc, copy=False):
+    def fast_xs(self, loc):
         """
         get a cross sectional for a given location in the
         items ; handle dups
 
-        return the result and a flag if a copy was actually made
+        return the result, is *could* be a view in the case of a
+        single block
         """
         if len(self.blocks) == 1:
-            result = self.blocks[0].values[:, loc]
-            if copy:
-                result = result.copy()
-            return result, copy
+            return self.blocks[0].values[:, loc]
 
         items = self.items
 
@@ -2904,7 +2900,7 @@ class BlockManager(PandasObject):
             result = self._interleave(items)
             if self.ndim == 2:
                 result = result.T
-            return result[loc], True
+            return result[loc]
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
@@ -2915,7 +2911,7 @@ class BlockManager(PandasObject):
                 i = items.get_loc(item)
                 result[i] = blk._try_coerce_result(blk.iget((j, loc)))
 
-        return result, True
+        return result
 
     def consolidate(self):
         """
@@ -3829,12 +3825,12 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
-    def fast_xs(self, loc, copy=False):
+    def fast_xs(self, loc):
         """
         fast path for getting a cross-section
+        return a view of the data
         """
-        result = self._block.values[loc]
-        return result, False
+        return self._block.values[loc]
 
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """

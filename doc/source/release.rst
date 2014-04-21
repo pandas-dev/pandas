@@ -181,6 +181,10 @@ API Changes
 - ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
   of ``np.datetime64`` objects (:issue:`6810`)
 
+- Remove the ``copy`` keyword from ``DataFrame.xs``,``Panel.major_xs``,``Panel.minor_xs``. A view will be
+  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
+  ALWAYS return a view. (:issue:`6894`)
+
 Deprecations
 ~~~~~~~~~~~~
 

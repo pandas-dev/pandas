@@ -1240,7 +1240,7 @@ class NDFrame(PandasObject):
 
         return result
 
-    def xs(self, key, axis=0, level=None, copy=True, drop_level=True):
+    def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the Series/DataFrame.
         Defaults to cross-section on the rows (axis=0).
@@ -1254,7 +1254,7 @@ class NDFrame(PandasObject):
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
             which levels are used. Levels can be referred by label or position.
-        copy : boolean, default True
+        copy : boolean [deprecated]
             Whether to make a copy of the data
         drop_level : boolean, default True
             If False, returns object with same levels as self.
@@ -1276,14 +1276,6 @@ class NDFrame(PandasObject):
         b    9
         c    3
         Name: C
-        >>> s = df.xs('a', copy=False)
-        >>> s['A'] = 100
-        >>> df
-             A  B  C
-        a  100  5  2
-        b    4  0  9
-        c    9  7  3
-
 
         >>> df
                             A  B  C  D
@@ -1310,15 +1302,23 @@ class NDFrame(PandasObject):
         -------
         xs : Series or DataFrame
 
+        Notes
+        -----
+        xs is only for getting, not setting values.
+
+        MultiIndex Slicers is a generic way to get/set values on any level or levels
+        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+
         """
+        if copy is not None:
+            warnings.warn("copy keyword is deprecated, "
+                          "default is to return a copy or a view if possible")
+
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
             loc, new_ax = labels.get_loc_level(key, level=level,
                                                drop_level=drop_level)
-
-            if not copy and not isinstance(loc, slice):
-                raise ValueError('Cannot retrieve view (copy=False)')
 
             # convert to a label indexer if needed
             if isinstance(loc, slice):
@@ -1336,10 +1336,7 @@ class NDFrame(PandasObject):
             return result
 
         if axis == 1:
-            data = self[key]
-            if copy:
-                data = data.copy()
-            return data
+            return self[key]
 
         self._consolidate_inplace()
 
@@ -1362,7 +1359,7 @@ class NDFrame(PandasObject):
 
         if np.isscalar(loc):
             from pandas import Series
-            new_values, copy = self._data.fast_xs(loc, copy=copy)
+            new_values = self._data.fast_xs(loc)
 
             # may need to box a datelike-scalar
             #

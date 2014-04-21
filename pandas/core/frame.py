@@ -1564,7 +1564,7 @@ class DataFrame(NDFrame):
     def icol(self, i):
         return self._ixs(i, axis=1)
 
-    def _ixs(self, i, axis=0, copy=False):
+    def _ixs(self, i, axis=0):
         """
         i : int, slice, or sequence of integers
         axis : int
@@ -1588,7 +1588,10 @@ class DataFrame(NDFrame):
                     result = self.take(i, axis=axis)
                     copy=True
                 else:
-                    new_values, copy = self._data.fast_xs(i, copy=copy)
+                    new_values = self._data.fast_xs(i)
+
+                    # if we are a copy, mark as such
+                    copy = isinstance(new_values,np.ndarray) and new_values.base is None
                     result = Series(new_values, index=self.columns,
                                     name=self.index[i], dtype=new_values.dtype)
                 result._set_is_copy(self, copy=copy)
