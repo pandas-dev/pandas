@@ -452,19 +452,15 @@ class CheckIndexing(object):
         expected = self.panel4d['l1']
         assert_panel_equal(l1, expected)
 
-        # not view by default
-        l1.values[:] = np.nan
-        self.assert_(not np.isnan(self.panel4d['l1'].values).all())
-
-        # but can get view
-        l1_view = self.panel4d.xs('l1', axis=0, copy=False)
+        # view if possible
+        l1_view = self.panel4d.xs('l1', axis=0)
         l1_view.values[:] = np.nan
         self.assert_(np.isnan(self.panel4d['l1'].values).all())
 
         # mixed-type
         self.panel4d['strings'] = 'foo'
-        self.assertRaises(Exception, self.panel4d.xs, 'D', axis=2,
-                          copy=False)
+        result = self.panel4d.xs('D', axis=3)
+        self.assertIsNotNone(result.is_copy)
 
     def test_getitem_fancy_labels(self):
         panel4d = self.panel4d

@@ -76,17 +76,14 @@ class _NDFrameIndexer(object):
             # but will fail when the index is not present
             # see GH5667
             try:
-                return self.obj._xs(label, axis=axis, copy=False)
+                return self.obj._xs(label, axis=axis)
             except:
                 return self.obj[label]
         elif (isinstance(label, tuple) and
                 isinstance(label[axis], slice)):
             raise IndexingError('no slices here, handle elsewhere')
 
-        try:
-            return self.obj._xs(label, axis=axis, copy=False)
-        except Exception:
-            return self.obj._xs(label, axis=axis, copy=True)
+        return self.obj._xs(label, axis=axis)
 
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)

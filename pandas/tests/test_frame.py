@@ -8371,12 +8371,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = self.frame['A']
         assert_series_equal(series, expected)
 
-        # no view by default
-        series[:] = 5
-        self.assert_((expected != 5).all())
-
-        # view
-        series = self.frame.xs('A', axis=1, copy=False)
+        # view is returned if possible
+        series = self.frame.xs('A', axis=1)
         series[:] = 5
         self.assert_((expected == 5).all())
 
@@ -11888,25 +11884,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_almost_equal(expected, self.frame.values)
 
     def test_xs_view(self):
+        """
+        in 0.14 this will return a view if possible
+        a copy otherwise, but this is numpy dependent
+        """
+
         dm = DataFrame(np.arange(20.).reshape(4, 5),
                        index=lrange(4), columns=lrange(5))
 
-        dm.xs(2, copy=False)[:] = 5
-        self.assert_((dm.xs(2) == 5).all())
-
         dm.xs(2)[:] = 10
-        self.assert_((dm.xs(2) == 5).all())
-
-        # prior to chained assignment (GH5390)
-        # this would raise, but now just returns a copy (and sets is_copy)
-        # TODO (?): deal with mixed-type fiasco?
-        # with assertRaisesRegexp(TypeError, 'cannot get view of mixed-type'):
-        #    self.mixed_frame.xs(self.mixed_frame.index[2], copy=False)
-
-        # unconsolidated
-        dm['foo'] = 6.
-        dm.xs(3, copy=False)[:] = 10
-        self.assert_((dm.xs(3) == 10).all())
+        self.assert_((dm.xs(2) == 10).all())
 
     def test_boolean_indexing(self):
         idx = lrange(3)
