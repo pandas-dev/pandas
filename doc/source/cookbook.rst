@@ -201,8 +201,8 @@ The :ref:`grouping <groupby>` docs.
          u'beyer': [99L, 102L, 103L, 103L, 88L, 100L]},
         index=[u'Last Gunfighter', u'Last Gunfighter', u'Last Gunfighter',
                u'Paynter', u'Paynter', u'Paynter']); df
-   
-   df['beyer_shifted'] = df.groupby(level=0)['beyer'].apply(lambda grp: grp.shift(1))
+
+   df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
    df
 
 Expanding Data
