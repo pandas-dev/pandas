@@ -191,6 +191,19 @@ The :ref:`grouping <groupby>` docs.
 `Create a value counts column and reassign back to the DataFrame
 <http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
 
+`Shift groups of the values in a column based on the index
+<http://stackoverflow.com/q/23198053/190597>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+        {u'line_race': [10L, 10L, 8L, 10L, 10L, 8L],
+         u'beyer': [99L, 102L, 103L, 103L, 88L, 100L]},
+        index=[u'Last Gunfighter', u'Last Gunfighter', u'Last Gunfighter',
+               u'Paynter', u'Paynter', u'Paynter']); df
+   
+   df['beyer_shifted'] = df.groupby(level=0)['beyer'].apply(lambda grp: grp.shift(1))
+   df
 
 Expanding Data
 ~~~~~~~~~~~~~~
