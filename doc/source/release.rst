@@ -381,6 +381,8 @@ Bug Fixes
 - Bug in arithmetic operations affecting to NaT (:issue:`6873`)
 - Bug in ``Series.str.extract`` where the resulting ``Series`` from a single
   group match wasn't renamed to the group name
+- Bug in ``DataFrame.to_csv`` where setting `index` to `False` ignored the
+  `header` kwarg (:issue:`6186`)
 
 pandas 0.13.1
 -------------
