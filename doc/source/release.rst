@@ -391,6 +391,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_csv`` where setting `index` to `False` ignored the
   `header` kwarg (:issue:`6186`)
 - Bug in `DataFrame.plot` and `Series.plot` legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
+- Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`)
 
 pandas 0.13.1
 -------------
