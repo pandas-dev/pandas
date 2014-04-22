@@ -398,6 +398,11 @@ Deprecations
      In [4]: Series(1,np.arange(5.))[3.0]
      Out[4]: 1
 
+- :meth:`Panel.shift` now has a function signature that matches :meth:`DataFrame.shift`.
+  The old positional argument ``lags`` has been changed to a keyword argument
+  ``periods`` with a default value of 1. A ``FutureWarning`` is raised if the
+  old argument ``lags`` is used by name. (:issue:`6910`)
+
 .. _whatsnew_0140.enhancements:
 
 Enhancements
