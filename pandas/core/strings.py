@@ -763,8 +763,10 @@ def str_wrap(arr, width, **kwargs):
     Examples
     --------
 
-    >>> str_wrap(Series(['line to be wrapped', 'another line to be wrapped']), width=12)
-    Series(['line to be\nwrapped', 'another\nline to be\nwrapped'])
+    >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
+    >>> s.str.wrap(12)
+    0             line to be\nwrapped
+    1    another line\nto be\nwrapped
     """
     textwrap_args = {'width': width, 'expand_tabs': False, 'replace_whitespace': True,
                      'drop_whitespace': True, 'break_long_words': False,
