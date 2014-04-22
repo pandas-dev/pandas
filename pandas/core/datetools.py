@@ -10,14 +10,20 @@ businessDay = bday
 try:
     cday = CDay()
     customBusinessDay = CustomBusinessDay()
+    customBusinessMonthEnd = CBMonthEnd()
+    customBusinessMonthBegin = CBMonthBegin()
 except NotImplementedError:
     cday = None
     customBusinessDay = None
+    customBusinessMonthEnd = None
+    customBusinessMonthBegin = None
 monthEnd = MonthEnd()
 yearEnd = YearEnd()
 yearBegin = YearBegin()
 bmonthEnd = BMonthEnd()
-businessMonthEnd = bmonthEnd
+bmonthBegin = BMonthBegin()
+cbmonthEnd = customBusinessMonthEnd
+cbmonthBegin = customBusinessMonthBegin
 bquarterEnd = BQuarterEnd()
 quarterEnd = QuarterEnd()
 byearEnd = BYearEnd()

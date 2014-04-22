@@ -432,6 +432,8 @@ frequency increment. Specific offset logic like "month", "business day", or
     MonthBegin, "calendar month begin"
     BMonthEnd, "business month end"
     BMonthBegin, "business month begin"
+    CBMonthEnd, "custom business month end"
+    CBMonthBegin, "custom business month begin"
     QuarterEnd, "calendar quarter end"
     QuarterBegin, "calendar quarter begin"
     BQuarterEnd, "business quarter end"
@@ -558,6 +560,20 @@ As of v0.14 holiday calendars can be used to provide the list of holidays.  See 
     # Tuesday after MLK Day (Monday is skipped because it's a holiday)
     dt + bday_us
 
+Monthly offsets that respect a certain holiday calendar can be defined
+in the usual way.
+
+.. ipython:: python
+
+    from pandas.tseries.offsets import CustomBusinessMonthBegin
+    bmth_us = CustomBusinessMonthBegin(calendar=USFederalHolidayCalendar())
+    # Skip new years
+    dt = datetime(2013, 12, 17)
+    dt + bmth_us
+   
+    # Define date index with custom offset
+    from pandas import DatetimeIndex
+    DatetimeIndex(start='20100101',end='20120101',freq=bmth_us)
 
 .. note::
 
@@ -601,8 +617,10 @@ frequencies. We will refer to these aliases as *offset aliases*
     "W", "weekly frequency"
     "M", "month end frequency"
     "BM", "business month end frequency"
+    "CBM", "custom business month end frequency"
     "MS", "month start frequency"
     "BMS", "business month start frequency"
+    "CBMS", "custom business month start frequency"
     "Q", "quarter end frequency"
     "BQ", "business quarter endfrequency"
     "QS", "quarter start frequency"
