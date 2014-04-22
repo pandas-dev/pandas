@@ -1064,18 +1064,18 @@ class _Concatenator(object):
             new_data = com._concat_compat([x.get_values() for x in self.objs])
             name = com._consensus_name_attr(self.objs)
             new_data = self._post_merge(new_data)
-            return Series(new_data, index=self.new_axes[0], name=name)
+            return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
         elif self._is_series:
             data = dict(zip(range(len(self.objs)), self.objs))
             index, columns = self.new_axes
             tmpdf = DataFrame(data, index=index)
             if columns is not None:
                 tmpdf.columns = columns
-            return tmpdf
+            return tmpdf.__finalize__(self, method='concat')
         else:
             new_data = self._get_concatenated_data()
             new_data = self._post_merge(new_data)
-            return self.objs[0]._from_axes(new_data, self.new_axes)
+            return self.objs[0]._from_axes(new_data, self.new_axes).__finalize__(self, method='concat')
 
     def _post_merge(self, data):
         if isinstance(data, BlockManager):
