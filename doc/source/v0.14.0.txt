@@ -151,27 +151,23 @@ API changes
   .. ipython:: python
      :suppress:
 
+     np.random.seed(1234)
      from itertools import product
      tuples = list(product(('a', 'b'), ('c', 'd')))
      mi = MultiIndex.from_tuples(tuples)
      df_multi = DataFrame(np.random.randn(4, 2), index=mi)
-     tuple_ind = pd.Index(tuples)
+     tuple_ind = pd.Index(tuples,tupleize_cols=False)
+     df_multi.index
 
   .. ipython:: python
 
-     df_multi.index
-
-     @suppress
-     df_multi.index = tuple_ind
-
      # Old behavior, casted MultiIndex to an Index
-     df_multi.set_index(df_multi.index)
-
-     @suppress
-     df_multi.index = mi
+     tuple_ind
+     df_multi.set_index(tuple_ind)
 
      # New behavior
-     df_multi.set_index(df_multi.index)
+     mi
+     df_multi.set_index(mi)
 
   This also applies when passing multiple indices to ``set_index``:
 
@@ -213,10 +209,6 @@ API changes
 - default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
-
-- Remove the ``copy`` keyword from ``DataFrame.xs``,``Panel.major_xs``,``Panel.minor_xs``. A view will be
-  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
-  ALWAYS return a view. (:issue:`6894`)
 
 .. _whatsnew_0140.sql:
 
@@ -422,6 +414,10 @@ Deprecations
   old argument ``lags`` is used by name. (:issue:`6910`)
 - The ``order`` keyword argument of :func:`factorize` will be removed. (:issue:`6926`).
 
+- Remove the ``copy`` keyword from :meth:`DataFrame.xs`, :meth:`Panel.major_xs`, :meth:`Panel.minor_xs`. A view will be
+  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
+  ALWAYS return a view. (:issue:`6894`)
+
 .. _whatsnew_0140.enhancements:
 
 Enhancements
@@ -483,7 +479,7 @@ Enhancements
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:``rolling_max`` defaults to max,
   :func:``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
-- ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`) 
+- ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 
 Performance
 ~~~~~~~~~~~
