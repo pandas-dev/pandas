@@ -952,19 +952,19 @@ class TestStringMethods(tm.TestCase):
                          u('ab ab ab ab '), u('ab ab ab ab a'),
                          u('\t')])
 
-        # expected values match R's stringr library
-        xp = Series([u('hello world'), u('hello\nworld!'),
+        # expected values
+        xp = Series([u('hello world'), u('hello world!'),
                      u('hello\nworld!!'), u('abcdefabcde'),
-                     u('abcdefabcdef'), u('abcdefabcdefa'),
+                     u('abcdefabcdef'), u('abcdefabcdef\na'),
                      u('ab ab ab ab'), u('ab ab ab ab\na'),
                      u('')])
 
-        rs = values.str.wrap(11)
+        rs = values.str.wrap(12, break_long_words=True)
         assert_series_equal(rs, xp)
 
         # test with pre and post whitespace (non-unicode), NaN, and non-ascii Unicode
         values = Series(['  pre  ', np.nan, u('\xac\u20ac\U00008000 abadcafe')])
-        xp = Series(['  pre', NA, u('\xac\u20ac\U00008000\nabadcafe')])
+        xp = Series(['  pre', NA, u('\xac\u20ac\U00008000 ab\nadcafe')])
         rs = values.str.wrap(6)
         assert_series_equal(rs, xp)
 
