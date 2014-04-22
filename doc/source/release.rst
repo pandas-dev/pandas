@@ -181,10 +181,6 @@ API Changes
 - ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
   of ``np.datetime64`` objects (:issue:`6810`)
 
-- Remove the ``copy`` keyword from ``DataFrame.xs``,``Panel.major_xs``,``Panel.minor_xs``. A view will be
-  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
-  ALWAYS return a view. (:issue:`6894`)
-
 Deprecations
 ~~~~~~~~~~~~
 
@@ -212,6 +208,10 @@ Deprecations
   old argument ``lags`` is used by name. (:issue:`6910`)
 
 - The ``order`` keyword argument of :func:`factorize` will be removed. (:issue:`6926`).
+
+- Remove the ``copy`` keyword from :meth:`DataFrame.xs`, :meth:`Panel.major_xs`, :meth:`Panel.minor_xs`. A view will be
+  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
+  ALWAYS return a view. (:issue:`6894`)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
