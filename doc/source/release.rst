@@ -206,6 +206,8 @@ Deprecations
   ``periods`` with a default value of 1. A ``FutureWarning`` is raised if the
   old argument ``lags`` is used by name. (:issue:`6910`)
 
+- The ``order`` keyword argument of :func:`factorize` will be removed. (:issue:`6926`).
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
