@@ -22,7 +22,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.tools.util import cartesian_product
 from pandas import compat
-from pandas.util.decorators import deprecate, Appender, Substitution
+from pandas.util.decorators import (deprecate, Appender, Substitution,
+                                    deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.nanops as nanops
@@ -1150,7 +1151,8 @@ class Panel(NDFrame):
 
         return self._wrap_result(result, axis)
 
-    def shift(self, lags, freq=None, axis='major'):
+    @deprecate_kwarg(old_arg_name='lags', new_arg_name='periods')
+    def shift(self, periods=1, freq=None, axis='major'):
         """
         Shift major or minor axis by specified number of leads/lags.
 
@@ -1164,12 +1166,12 @@ class Panel(NDFrame):
         shifted : Panel
         """
         if freq:
-            return self.tshift(lags, freq, axis=axis)
+            return self.tshift(periods, freq, axis=axis)
 
         if axis == 'items':
             raise ValueError('Invalid axis')
 
-        return super(Panel, self).shift(lags, freq=freq, axis=axis)
+        return super(Panel, self).shift(periods, freq=freq, axis=axis)
 
     def tshift(self, periods=1, freq=None, axis='major', **kwds):
         return super(Panel, self).tshift(periods, freq, axis, **kwds)

@@ -3489,7 +3489,8 @@ class NDFrame(PandasObject):
         else:
             data = self.fillna(method=fill_method, limit=limit)
 
-        rs = data.div(data.shift(periods, freq=freq, axis=axis, **kwds)) - 1
+        rs = (data.div(data.shift(periods=periods, freq=freq,
+                                  axis=axis, **kwds)) - 1)
         if freq is None:
             mask = com.isnull(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)

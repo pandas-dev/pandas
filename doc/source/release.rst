@@ -201,6 +201,11 @@ Deprecations
 - Indexers will warn ``FutureWarning`` when used with a scalar indexer and
   a non-floating point Index (:issue:`4892`)
 
+- :meth:`Panel.shift` now has a function signature that matches :meth:`DataFrame.shift`.
+  The old positional argument ``lags`` has been changed to a keyword argument
+  ``periods`` with a default value of 1. A ``FutureWarning`` is raised if the
+  old argument ``lags`` is used by name. (:issue:`6910`)
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
