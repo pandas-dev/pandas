@@ -784,8 +784,10 @@ class MPLPlot(object):
     """
     _default_rot = 0
 
-    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog']
-    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False}
+    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog', 
+                       'mark_right']
+    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
+                      'mark_right': True}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
@@ -823,6 +825,8 @@ class MPLPlot(object):
 
         self.grid = grid
         self.legend = legend
+        self.legend_handles = []
+        self.legend_labels = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -919,6 +923,7 @@ class MPLPlot(object):
         self._setup_subplots()
         self._make_plot()
         self._add_table()
+        self._make_legend()
         self._post_plot_logic()
         self._adorn_subplots()
 
@@ -1077,6 +1082,57 @@ class MPLPlot(object):
         else:
             return None
 
+    def _add_legend_handle(self, handle, label, index=None):
+        if not label is None:
+            if self.mark_right and index is not None:
+                if self.on_right(index):
+                    label = label + ' (right)'
+            self.legend_handles.append(handle)
+            self.legend_labels.append(label)
+
+    def _make_legend(self):
+        ax, leg = self._get_ax_legend(self.axes[0])
+
+        handles = []
+        labels = []
+        title = ''
+
+        if not self.subplots:
+            if not leg is None:
+                title = leg.get_title().get_text()
+                handles = leg.legendHandles
+                labels = [x.get_text() for x in leg.get_texts()]
+
+            if self.legend:
+                if self.legend == 'reverse':
+                    self.legend_handles = reversed(self.legend_handles)
+                    self.legend_labels = reversed(self.legend_labels)
+
+                handles += self.legend_handles
+                labels += self.legend_labels
+                if not self.legend_title is None:
+                    title = self.legend_title
+
+            if len(handles) > 0:
+                ax.legend(handles, labels, loc='best', title=title)
+
+        elif self.subplots and self.legend:
+            for ax in self.axes:
+                ax.legend(loc='best')
+
+
+    def _get_ax_legend(self, ax):
+        leg = ax.get_legend()
+        other_ax = (getattr(ax, 'right_ax', None) or
+                    getattr(ax, 'left_ax', None))
+        other_leg = None
+        if other_ax is not None:
+            other_leg = other_ax.get_legend()
+        if leg is None and other_leg is not None:
+            leg = other_leg
+            ax = other_ax
+        return ax, leg
+
     @cache_readonly
     def plt(self):
         import matplotlib.pyplot as plt
@@ -1205,12 +1261,6 @@ class MPLPlot(object):
         if has_color and (style is None or re.match('[a-z]+', style) is None):
             kwds['color'] = colors[i % len(colors)]
 
-    def _get_marked_label(self, label, col_num):
-        if self.on_right(col_num):
-            return label + ' (right)'
-        else:
-            return label
-
     def _parse_errorbars(self, error_dim='y', **kwds):
         '''
         Look for error keyword arguments and return the actual errorbar data
@@ -1330,22 +1380,9 @@ class KdePlot(MPLPlot):
             else:
                 args = (ax, ind, y, style)
 
-            plotf(*args, **kwds)
-            ax.grid(self.grid)
+            newlines = plotf(*args, **kwds)
+            self._add_legend_handle(newlines[0], label)
 
-    def _post_plot_logic(self):
-        if self.legend:
-            for ax in self.axes:
-                ax.legend(loc='best')
-            leg = self.axes[0].get_legend()
-            if leg is not None:
-                lines = leg.get_lines()
-                labels = [x.get_text() for x in leg.get_texts()]
-
-                if self.legend == 'reverse':
-                    lines = reversed(lines)
-                    labels = reversed(labels)
-                ax.legend(lines, labels, loc='best', title=self.legend_title)
 
 class ScatterPlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
@@ -1364,7 +1401,15 @@ class ScatterPlot(MPLPlot):
     def _make_plot(self):
         x, y, data = self.x, self.y, self.data
         ax = self.axes[0]
-        ax.scatter(data[x].values, data[y].values, **self.kwds)
+
+        if self.legend and hasattr(self, 'label'):
+            label = self.label
+        else:
+            label = None
+        scatter = ax.scatter(data[x].values, data[y].values, label=label,
+                             **self.kwds)
+
+        self._add_legend_handle(scatter, label)
 
     def _post_plot_logic(self):
         ax = self.axes[0]
@@ -1422,7 +1467,6 @@ class HexBinPlot(MPLPlot):
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
-        self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
         self.x_compat = plot_params['x_compat']
         if 'x_compat' in self.kwds:
@@ -1483,7 +1527,6 @@ class LinePlot(MPLPlot):
         else:
             from pandas.core.frame import DataFrame
             lines = []
-            labels = []
             x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
@@ -1519,21 +1562,15 @@ class LinePlot(MPLPlot):
                 else:
                     args = (ax, x, y)
 
-                newline = plotf(*args, **kwds)[0]
-                lines.append(newline)
+                newlines = plotf(*args, **kwds)
 
-                if self.mark_right:
-                    labels.append(self._get_marked_label(label, i))
-                else:
-                    labels.append(label)
+                self._add_legend_handle(newlines[0], label, index=i)
 
-                ax.grid(self.grid)
+                lines.append(newlines[0])
 
                 if self._is_datetype():
                     left, right = _get_xlim(lines)
                     ax.set_xlim(left, right)
-
-            self._make_legend(lines, labels)
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
@@ -1543,8 +1580,6 @@ class LinePlot(MPLPlot):
         colors = self._get_colors()
 
         plotf = self._get_plot_function()
-        lines = []
-        labels = []
 
         def _plot(data, col_num, ax, label, style, **kwds):
 
@@ -1556,13 +1591,7 @@ class LinePlot(MPLPlot):
                 newlines = tsplot(data, plotf, ax=ax, label=label,
                                     **kwds)
 
-            ax.grid(self.grid)
-            lines.append(newlines[0])
-
-            if self.mark_right:
-                labels.append(self._get_marked_label(label, col_num))
-            else:
-                labels.append(label)
+            self._add_legend_handle(newlines[0], label, index=col_num)
 
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]
@@ -1596,37 +1625,6 @@ class LinePlot(MPLPlot):
                         kwds['yerr'] = yerr[i]
 
                 _plot(data[col], i, ax, label, style, **kwds)
-
-        self._make_legend(lines, labels)
-
-    def _make_legend(self, lines, labels):
-        ax, leg = self._get_ax_legend(self.axes[0])
-
-        if not self.subplots:
-            if leg is not None:
-                ext_lines = leg.get_lines()
-                ext_labels = [x.get_text() for x in leg.get_texts()]
-                ext_lines.extend(lines)
-                ext_labels.extend(labels)
-                ax.legend(ext_lines, ext_labels, loc='best',
-                          title=self.legend_title)
-            elif self.legend:
-                if self.legend == 'reverse':
-                    lines = reversed(lines)
-                    labels = reversed(labels)
-                ax.legend(lines, labels, loc='best', title=self.legend_title)
-
-    def _get_ax_legend(self, ax):
-        leg = ax.get_legend()
-        other_ax = (getattr(ax, 'right_ax', None) or
-                    getattr(ax, 'left_ax', None))
-        other_leg = None
-        if other_ax is not None:
-            other_leg = other_ax.get_legend()
-        if leg is None and other_leg is not None:
-            leg = other_leg
-            ax = other_ax
-        return ax, leg
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -1679,16 +1677,12 @@ class LinePlot(MPLPlot):
             if index_name is not None:
                 ax.set_xlabel(index_name)
 
-        if self.subplots and self.legend:
-            for ax in self.axes:
-                ax.legend(loc='best')
 
 class BarPlot(MPLPlot):
 
     _default_rot = {'bar': 90, 'barh': 0}
 
     def __init__(self, data, **kwargs):
-        self.mark_right = kwargs.pop('mark_right', True)
         self.stacked = kwargs.pop('stacked', False)
 
         self.bar_width = kwargs.pop('width', 0.5)
@@ -1739,8 +1733,6 @@ class BarPlot(MPLPlot):
 
         colors = self._get_colors()
         ncolors = len(colors)
-        rects = []
-        labels = []
 
         bar_f = self.bar_f
 
@@ -1778,8 +1770,8 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 w = self.bar_width / 2
-                rect = bar_f(ax, self.ax_pos + w, y,  self.bar_width,
-                             start=start, **kwds)
+                rect = bar_f(ax, self.ax_pos + w, y, self.bar_width,
+                             start=start, label=label, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1793,19 +1785,8 @@ class BarPlot(MPLPlot):
                 w = self.bar_width / K
                 rect = bar_f(ax, self.ax_pos + (i + 1.5) * w, y, w,
                              start=start, label=label, **kwds)
-            rects.append(rect)
-            if self.mark_right:
-                labels.append(self._get_marked_label(label, i))
-            else:
-                labels.append(label)
 
-        if self.legend and not self.subplots:
-            patches = [r[0] for r in rects]
-            if self.legend == 'reverse':
-                patches = reversed(patches)
-                labels = reversed(labels)
-            self.axes[0].legend(patches, labels, loc='best',
-                                title=self.legend_title)
+            self._add_legend_handle(rect, label, index=i)
 
     def _post_plot_logic(self):
         for ax in self.axes:

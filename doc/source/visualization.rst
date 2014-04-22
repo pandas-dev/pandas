@@ -66,7 +66,7 @@ for controlling the look of the plot:
 .. ipython:: python
 
    @savefig series_plot_basic2.png
-   plt.figure(); ts.plot(style='k--', label='Series'); plt.legend()
+   plt.figure(); ts.plot(style='k--', label='Series');
 
 On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
 
@@ -76,7 +76,7 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
    df = df.cumsum()
 
    @savefig frame_plot_basic.png
-   plt.figure(); df.plot(); plt.legend(loc='best')
+   plt.figure(); df.plot();
 
 You may set the ``legend`` argument to ``False`` to hide the legend, which is
 shown by default.
@@ -91,7 +91,7 @@ Some other options are available, like plotting each Series on a different axis:
 .. ipython:: python
 
    @savefig frame_plot_subplots.png
-   df.plot(subplots=True, figsize=(6, 6)); plt.legend(loc='best')
+   df.plot(subplots=True, figsize=(6, 6));
 
 You may pass ``logy`` to get a log-scale Y axis.
 
