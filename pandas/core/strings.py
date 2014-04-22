@@ -724,11 +724,11 @@ def str_wrap(arr, width, **kwargs):
 
     Parameters
     ----------
-    Same keyword parameters as textwrap.TextWrapper
+    Same keyword parameters and defaults as :class:`textwrap.TextWrapper`
     width : int
         Maximum line-width
     expand_tabs : bool, optional
-        If true, tab characters will be expanded to spaces (default: False)
+        If true, tab characters will be expanded to spaces (default: True)
     replace_whitespace : bool, optional
         If true, each whitespace character (as defined by string.whitespace) remaining
         after tab expansion will be replaced by a single space (default: True)
@@ -744,7 +744,7 @@ def str_wrap(arr, width, **kwargs):
         in compound words, as it is customary in English. If false, only whitespaces
         will be considered as potentially good places for line breaks, but you need
         to set break_long_words to false if you want truly insecable words.
-        (default: False)
+        (default: True)
 
     Returns
     -------
@@ -752,13 +752,15 @@ def str_wrap(arr, width, **kwargs):
 
     Notes
     -----
-    Internally, this method uses a textwrap.TextWrapper instance configured to match R's stringr
-    library str_wrap function. Unless overwritten using kwargs, the instance has expand_tabs=False,
-    replace_whitespace=True, drop_whitespace=True, break_long_words=False, and
-    break_on_hyphens=False. R's stringr function treats width as exclusive (less than width) while
-    Python's textwrap module treats width as inclusive (less than or equal to width). str_wrap follows
-    Python's textwrap module and uses the inclusive definition. When adapting R code, add 1 to
-    the width.
+    Internally, this method uses a :class:`textwrap.TextWrapper` instance with default
+    settings. To achieve behavior matching R's stringr library str_wrap function, use
+    the arguments:
+
+        expand_tabs = False
+        replace_whitespace = True
+        drop_whitespace = True
+        break_long_words = False
+        break_on_hyphens = False
 
     Examples
     --------
@@ -768,13 +770,9 @@ def str_wrap(arr, width, **kwargs):
     0             line to be\nwrapped
     1    another line\nto be\nwrapped
     """
-    textwrap_args = {'width': width, 'expand_tabs': False, 'replace_whitespace': True,
-                     'drop_whitespace': True, 'break_long_words': False,
-                     'break_on_hyphens': False}
+    kwargs['width'] = width
 
-    textwrap_args.update(kwargs)
-
-    tw = textwrap.TextWrapper(**textwrap_args)
+    tw = textwrap.TextWrapper(**kwargs)
 
     return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
