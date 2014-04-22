@@ -1,4 +1,3 @@
-import sys
 from datetime import date, datetime, timedelta
 from pandas.compat import range
 from pandas import compat
@@ -306,17 +305,8 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class BusinessDay(SingleConstructorOffset):
-    """
-    DateOffset subclass representing possibly n business days
-    """
-    _prefix = 'B'
-
-    def __init__(self, n=1, **kwds):
-        self.n = int(n)
-        self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self.normalize = kwds.get('normalize', False)
+class BusinessMixin(object):
+    """ mixin to business types to provide related functions """
 
     # TODO: Combine this with DateOffset by defining a whitelisted set of
     # attributes on each object rather than the existing behavior of iterating
@@ -344,6 +334,18 @@ class BusinessDay(SingleConstructorOffset):
             out += ': ' + ', '.join(attrs)
         out += '>'
         return out
+
+class BusinessDay(BusinessMixin, SingleConstructorOffset):
+    """
+    DateOffset subclass representing possibly n business days
+    """
+    _prefix = 'B'
+
+    def __init__(self, n=1, **kwds):
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', False)
 
     @property
     def freqstr(self):
@@ -706,7 +708,7 @@ class BusinessMonthBegin(MonthOffset):
 
 
 
-class CustomBusinessMonthEnd(MonthOffset):
+class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     """
     **EXPERIMENTAL** DateOffset of one custom business month
 
@@ -736,7 +738,6 @@ class CustomBusinessMonthEnd(MonthOffset):
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', False)
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        holidays = kwds.get('holidays', [])
         self.cbday = CustomBusinessDay(n=self.n,**kwds)
         self.m_offset = MonthEnd()
 
@@ -762,13 +763,7 @@ class CustomBusinessMonthEnd(MonthOffset):
         result = self.cbday.rollback(new)
         return as_timestamp(result)
         
-    def __repr__(self):
-        if sys.version_info.major < 3:
-            return BusinessDay.__repr__.__func__(self)
-        else:
-            return BusinessDay.__repr__(self)
-
-class CustomBusinessMonthBegin(MonthOffset):
+class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
     **EXPERIMENTAL** DateOffset of one custom business month
 
@@ -798,7 +793,6 @@ class CustomBusinessMonthBegin(MonthOffset):
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', False)
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        holidays = kwds.get('holidays', [])
         self.cbday = CustomBusinessDay(n=self.n,**kwds)
         self.m_offset = MonthBegin()
 
@@ -823,13 +817,6 @@ class CustomBusinessMonthBegin(MonthOffset):
         new = cur_mbegin + n * MonthBegin()
         result = self.cbday.rollforward(new)
         return as_timestamp(result)
-
-        
-    def __repr__(self):
-        if sys.version_info.major < 3:
-            return BusinessDay.__repr__.__func__(self)
-        else:
-            return BusinessDay.__repr__(self)
 
 class Week(DateOffset):
     """
