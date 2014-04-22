@@ -720,19 +720,19 @@ def str_wrap(arr, width, **kwargs):
     Same keyword parameters as textwrap.TextWrapper
     width : int
         Maximum line-width
-    expand_tabs: bool, optional
+    expand_tabs : bool, optional
         If true, tab characters will be expanded to spaces (default: False)
-    replace_whitespace: bool, optional
+    replace_whitespace : bool, optional
         If true, each whitespace character (as defined by string.whitespace) remaining
         after tab expansion will be replaced by a single space (default: True)
-    drop_whitespace: bool, optional
+    drop_whitespace : bool, optional
         If true, whitespace that, after wrapping, happens to end up at the beginning
         or end of a line is dropped (default: True)
-    break_long_words: bool, optional
+    break_long_words : bool, optional
         If true, then words longer than width will be broken in order to ensure that
         no lines are longer than width. If it is false, long words will not be broken,
         and some lines may be longer than width. (default: True)
-    break_on_hyphens: bool, optional
+    break_on_hyphens : bool, optional
         If true, wrapping will occur preferably on whitespace and right after hyphens
         in compound words, as it is customary in English. If false, only whitespaces
         will be considered as potentially good places for line breaks, but you need
