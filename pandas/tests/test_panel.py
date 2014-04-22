@@ -824,6 +824,20 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.panel.minor_axis.name = None
         self.panel.items.name = None
 
+    def test_panel_warnings(self):
+        with tm.assert_produces_warning(FutureWarning):
+            shifted1 = self.panel.shift(lags=1)
+
+        with tm.assert_produces_warning(False):
+            shifted2 = self.panel.shift(periods=1)
+
+        tm.assert_panel_equal(shifted1, shifted2)
+
+        with tm.assert_produces_warning(False):
+            shifted3 = self.panel.shift()
+
+        tm.assert_panel_equal(shifted1, shifted3)
+
     def test_constructor(self):
         # with BlockManager
         wp = Panel(self.panel._data)
