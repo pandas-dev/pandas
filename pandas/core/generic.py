@@ -1827,8 +1827,9 @@ class NDFrame(PandasObject):
             types of propagation actions based on this
 
         """
-        for name in self._metadata:
-            object.__setattr__(self, name, getattr(other, name, None))
+        if isinstance(other, NDFrame):
+            for name in self._metadata:
+                object.__setattr__(self, name, getattr(other, name, None))
         return self
 
     def __getattr__(self, name):
