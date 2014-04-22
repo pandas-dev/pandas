@@ -11,6 +11,7 @@ import pandas.algos as algos
 import pandas.hashtable as htable
 import pandas.compat as compat
 from pandas.compat import filter, string_types
+from pandas.util.decorators import deprecate_kwarg
 
 def match(to_match, values, na_sentinel=-1):
     """
@@ -104,7 +105,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         Sequence
     sort : boolean, default False
         Sort by values
-    order :
+    order : deprecated
     na_sentinel: int, default -1
         Value to mark "not found"
 
@@ -115,6 +116,10 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
     """
+    if order is not None:
+        warn("order is deprecated."
+             "See https://github.com/pydata/pandas/issues/6926", FutureWarning)
+
     from pandas.tseries.period import PeriodIndex
     vals = np.asarray(values)
     is_datetime = com.is_datetime64_dtype(vals)

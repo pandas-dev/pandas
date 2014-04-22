@@ -47,6 +47,12 @@ class TestMatch(tm.TestCase):
 class TestFactorize(tm.TestCase):
     _multiprocess_can_split_ = True
 
+    def test_warn(self):
+
+        s = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            algos.factorize(s, order='A')
+
     def test_basic(self):
 
         labels, uniques = algos.factorize(['a', 'b', 'b', 'a',
