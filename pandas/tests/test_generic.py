@@ -440,6 +440,32 @@ class TestSeries(tm.TestCase, Generic):
         result = ts.resample('1T',how=lambda x: x.sum())
         self.check_metadata(ts,result)
 
+        _metadata = Series._metadata
+        _finalize = Series.__finalize__
+        Series._metadata = ['name','filename']
+        o.filename = 'foo'
+        o2.filename = 'bar'
+
+        def finalize(self, other, method=None, **kwargs):
+            for name in self._metadata:
+                if method == 'concat' and name == 'filename':
+                    value = '+'.join([ getattr(o,name) for o in other.objs if getattr(o,name,None) ])
+                    object.__setattr__(self, name, value)
+                else:
+                    object.__setattr__(self, name, getattr(other, name, None))
+
+            return self
+
+        Series.__finalize__ = finalize
+
+        result = pd.concat([o, o2])
+        self.assertEquals(result.filename,'foo+bar')
+        self.assertIsNone(result.name)
+
+        # reset
+        Series._metadata = _metadata
+        Series.__finalize__ = _finalize
+
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
 
@@ -894,6 +920,28 @@ class TestDataFrame(tm.TestCase, Generic):
         result = df1.merge(df2, left_on=['a'], right_on=['c'], how='inner')
         self.assertEquals(result.filename,'fname1.csv|fname2.csv')
 
+        # concat
+        # GH 6927
+        DataFrame._metadata = ['filename']
+        df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list('ab'))
+        df1.filename = 'foo'
+
+        def finalize(self, other, method=None, **kwargs):
+            for name in self._metadata:
+                if method == 'concat':
+                    value = '+'.join([ getattr(o,name) for o in other.objs if getattr(o,name,None) ])
+                    object.__setattr__(self, name, value)
+                else:
+                    object.__setattr__(self, name, getattr(other, name, None))
+
+            return self
+
+        DataFrame.__finalize__ = finalize
+
+        result = pd.concat([df1, df1])
+        self.assertEquals(result.filename,'foo+foo')
+
+        # reset
         DataFrame._metadata = _metadata
         DataFrame.__finalize__ = _finalize
 
