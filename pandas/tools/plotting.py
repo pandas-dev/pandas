@@ -2263,7 +2263,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
 
 def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
-               sharey=False, figsize=None, layout=None, **kwds):
+               sharey=False, figsize=None, layout=None, bins=10, **kwds):
     """
     Draw histogram of the DataFrame's series using matplotlib / pylab.
 
@@ -2290,6 +2290,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     figsize : tuple
         The size of the figure to create in inches by default
     layout: (optional) a tuple (rows, columns) for the layout of the histograms
+    bins: integer, default 10
+        Number of histogram bins to be used 
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
@@ -2302,7 +2304,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     if by is not None:
         axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
-                            sharex=sharex, sharey=sharey, layout=layout,
+                            sharex=sharex, sharey=sharey, layout=layout, bins=bins,
                             **kwds)
 
         for ax in axes.ravel():
@@ -2363,7 +2365,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
-                xrot=None, ylabelsize=None, yrot=None, figsize=None, **kwds):
+                xrot=None, ylabelsize=None, yrot=None, figsize=None, bins=10, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
@@ -2385,6 +2387,8 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         rotation of y axis labels
     figsize : tuple, default None
         figure size in inches by default
+    bins: integer, default 10
+        Number of histogram bins to be used 
     kwds : keywords
         To be passed to the actual plotting function
 
@@ -2411,7 +2415,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
             raise AssertionError('passed axis not bound to passed figure')
         values = self.dropna().values
 
-        ax.hist(values, **kwds)
+        ax.hist(values, bins=bins, **kwds)
         ax.grid(grid)
         axes = np.array([ax])
     else:
@@ -2420,7 +2424,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                              "'by' argument, since a new 'Figure' instance "
                              "will be created")
         axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
-                            **kwds)
+                            bins=bins, **kwds)
 
     for ax in axes.ravel():
         if xlabelsize is not None:

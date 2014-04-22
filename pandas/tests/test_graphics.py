@@ -110,6 +110,7 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(self.ts.hist, grid=False)
         _check_plot_works(self.ts.hist, figsize=(8, 10))
         _check_plot_works(self.ts.hist, by=self.ts.index.month)
+        _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
 
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1)
@@ -908,6 +909,9 @@ class TestDataFramePlots(tm.TestCase):
 
         # handle figsize arg
         _check_plot_works(df.hist, figsize=(8, 10))
+
+        # check bins argument
+        _check_plot_works(df.hist, bins=5)
 
         # make sure xlabelsize and xrot are handled
         ser = df[0]
