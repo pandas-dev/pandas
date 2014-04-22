@@ -195,7 +195,7 @@ class _MergeOperation(object):
                                       copy=self.copy)
 
         result_data = join_op.get_result()
-        result = DataFrame(result_data)
+        result = DataFrame(result_data).__finalize__(self, method='merge')
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 

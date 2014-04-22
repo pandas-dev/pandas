@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import operator
 import nose
-
+import copy
 import numpy as np
 from numpy import nan
 import pandas as pd
@@ -865,6 +865,37 @@ class TestDataFrame(tm.TestCase, Generic):
                        index=date_range('20130101',periods=1000,freq='s'))
         result = df.resample('1T')
         self.check_metadata(df,result)
+
+        # merging with override
+        # GH 6923
+        _metadata = DataFrame._metadata
+        _finalize = DataFrame.__finalize__
+
+        np.random.seed(10)
+        df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=['a', 'b'])
+        df2 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=['c', 'd'])
+        DataFrame._metadata = ['filename']
+        df1.filename = 'fname1.csv'
+        df2.filename = 'fname2.csv'
+
+        def finalize(self, other, method=None, **kwargs):
+
+            for name in self._metadata:
+                if method == 'merge':
+                    left, right = other.left, other.right
+                    value = getattr(left, name, '') + '|' + getattr(right, name, '')
+                    object.__setattr__(self, name, value)
+                else:
+                    object.__setattr__(self, name, getattr(other, name, ''))
+
+            return self
+
+        DataFrame.__finalize__ = finalize
+        result = df1.merge(df2, left_on=['a'], right_on=['c'], how='inner')
+        self.assertEquals(result.filename,'fname1.csv|fname2.csv')
+
+        DataFrame._metadata = _metadata
+        DataFrame.__finalize__ = _finalize
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
