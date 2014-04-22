@@ -78,7 +78,7 @@ SQL
 
 .. autosummary::
    :toctree: generated/
-    
+
    read_sql_table
    read_sql_query
    read_sql

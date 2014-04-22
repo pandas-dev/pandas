@@ -214,6 +214,10 @@ API changes
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 
+- Remove the ``copy`` keyword from ``DataFrame.xs``,``Panel.major_xs``,``Panel.minor_xs``. A view will be
+  returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
+  ALWAYS return a view. (:issue:`6894`)
+
 .. _whatsnew_0140.sql:
 
 SQL

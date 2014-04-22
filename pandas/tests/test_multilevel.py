@@ -444,9 +444,15 @@ class TestMultiLevel(tm.TestCase):
         expected = df[1:2]
         expected.index = expected.index.droplevel(2)
         assert_frame_equal(result, expected)
-        # can't produce a view of a multiindex with a level without copying
-        with assertRaisesRegexp(ValueError, 'Cannot retrieve view'):
-            self.frame.xs('two', level='second', copy=False)
+
+        # this is a copy in 0.14
+        result = self.frame.xs('two', level='second')
+
+        # setting this will give a SettingWithCopyError
+        # as we are trying to write a view
+        def f(x):
+            x[:] = 10
+        self.assertRaises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -461,8 +467,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
-        with assertRaisesRegexp(ValueError, 'Cannot retrieve view'):
-            df.xs(('a', 4), level=['one', 'four'], copy=False)
+
+        # this is a copy in 0.14
+        result = df.xs(('a', 4), level=['one', 'four'])
+
+        # setting this will give a SettingWithCopyError
+        # as we are trying to write a view
+        def f(x):
+            x[:] = 10
+        self.assertRaises(com.SettingWithCopyError, f, result)
 
         # GH2107
         dates = lrange(20111201, 20111205)

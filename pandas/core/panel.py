@@ -688,7 +688,7 @@ class Panel(NDFrame):
 
         return self._constructor(result_values, items, major, minor)
 
-    def major_xs(self, key, copy=True):
+    def major_xs(self, key, copy=None):
         """
         Return slice of panel along major axis
 
@@ -696,17 +696,29 @@ class Panel(NDFrame):
         ----------
         key : object
             Major axis label
-        copy : boolean, default True
-            Copy data
+        copy : boolean [deprecated]
+            Whether to make a copy of the data
 
         Returns
         -------
         y : DataFrame
             index -> minor axis, columns -> items
-        """
-        return self.xs(key, axis=self._AXIS_LEN - 2, copy=copy)
 
-    def minor_xs(self, key, copy=True):
+        Notes
+        -----
+        major_xs is only for getting, not setting values.
+
+        MultiIndex Slicers is a generic way to get/set values on any level or levels
+        it is a superset of major_xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+
+        """
+        if copy is not None:
+            warnings.warn("copy keyword is deprecated, "
+                          "default is to return a copy or a view if possible")
+
+        return self.xs(key, axis=self._AXIS_LEN - 2)
+
+    def minor_xs(self, key, copy=None):
         """
         Return slice of panel along minor axis
 
@@ -714,17 +726,29 @@ class Panel(NDFrame):
         ----------
         key : object
             Minor axis label
-        copy : boolean, default True
-            Copy data
+        copy : boolean [deprecated]
+            Whether to make a copy of the data
 
         Returns
         -------
         y : DataFrame
             index -> major axis, columns -> items
-        """
-        return self.xs(key, axis=self._AXIS_LEN - 1, copy=copy)
 
-    def xs(self, key, axis=1, copy=True):
+        Notes
+        -----
+        minor_xs is only for getting, not setting values.
+
+        MultiIndex Slicers is a generic way to get/set values on any level or levels
+        it is a superset of minor_xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+
+        """
+        if copy is not None:
+            warnings.warn("copy keyword is deprecated, "
+                          "default is to return a copy or a view if possible")
+
+        return self.xs(key, axis=self._AXIS_LEN - 1)
+
+    def xs(self, key, axis=1, copy=None):
         """
         Return slice of panel along selected axis
 
@@ -733,24 +757,36 @@ class Panel(NDFrame):
         key : object
             Label
         axis : {'items', 'major', 'minor}, default 1/'major'
-        copy : boolean, default True
-            Copy data
+        copy : boolean [deprecated]
+            Whether to make a copy of the data
 
         Returns
         -------
         y : ndim(self)-1
+
+        Notes
+        -----
+        xs is only for getting, not setting values.
+
+        MultiIndex Slicers is a generic way to get/set values on any level or levels
+        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+
         """
+        if copy is not None:
+            warnings.warn("copy keyword is deprecated, "
+                          "default is to return a copy or a view if possible")
+
         axis = self._get_axis_number(axis)
         if axis == 0:
-            data = self[key]
-            if copy:
-                data = data.copy()
-            return data
+            return self[key]
 
         self._consolidate_inplace()
         axis_number = self._get_axis_number(axis)
-        new_data = self._data.xs(key, axis=axis_number, copy=copy)
-        return self._construct_return_type(new_data)
+        new_data = self._data.xs(key, axis=axis_number, copy=False)
+        result = self._construct_return_type(new_data)
+        copy = new_data.is_mixed_type
+        result._set_is_copy(self, copy=copy)
+        return result
 
     _xs = xs
 

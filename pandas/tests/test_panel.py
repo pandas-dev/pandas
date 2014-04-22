@@ -536,19 +536,15 @@ class CheckIndexing(object):
         expected = self.panel['ItemA']
         assert_frame_equal(itemA, expected)
 
-        # not view by default
-        itemA.values[:] = np.nan
-        self.assert_(not np.isnan(self.panel['ItemA'].values).all())
-
-        # but can get view
-        itemA_view = self.panel.xs('ItemA', axis=0, copy=False)
+        # get a view by default
+        itemA_view = self.panel.xs('ItemA', axis=0)
         itemA_view.values[:] = np.nan
         self.assert_(np.isnan(self.panel['ItemA'].values).all())
 
-        # mixed-type
+        # mixed-type yields a copy
         self.panel['strings'] = 'foo'
-        self.assertRaises(Exception, self.panel.xs, 'D', axis=2,
-                          copy=False)
+        result = self.panel.xs('D', axis=2)
+        self.assertIsNotNone(result.is_copy)
 
     def test_getitem_fancy_labels(self):
         p = self.panel
