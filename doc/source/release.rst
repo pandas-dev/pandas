@@ -175,6 +175,7 @@ API Changes
 - Replace ``pandas.compat.scipy.scoreatpercentile`` with ``numpy.percentile`` (:issue:`6810`)
 - ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
   of ``np.datetime64`` objects (:issue:`6810`)
+- change ``AssertionError`` to ``TypeError`` for invalid types passed to ``concat`` (:issue:`6583`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -400,6 +401,7 @@ Bug Fixes
   `header` kwarg (:issue:`6186`)
 - Bug in `DataFrame.plot` and `Series.plot` legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
 - Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`, :issue:`6927`)
+- accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
 
 pandas 0.13.1
 -------------

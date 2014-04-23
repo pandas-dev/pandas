@@ -209,6 +209,8 @@ API changes
 - default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
+- accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
+  from 0.13.1
 
 .. _whatsnew_0140.sql:
 

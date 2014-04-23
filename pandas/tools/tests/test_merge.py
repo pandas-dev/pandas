@@ -16,7 +16,7 @@ from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands,
                                  makeCustomDataframe as mkdf,
                                  assertRaisesRegexp)
-from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table
+from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table, read_csv
 import pandas.algos as algos
 import pandas.util.testing as tm
 
@@ -2048,10 +2048,26 @@ class TestConcatenate(tm.TestCase):
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
         df2 = mkdf(10, 2)
-        self.assertRaises(AssertionError, concat, df1, df2)
+        self.assertRaises(TypeError, concat, df1, df2)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5,5)) for _ in range(3))
+
+        # text reader ok
+        # GH6583
+        data = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+qux,12,13,14,15
+foo2,12,13,14,15
+bar2,12,13,14,15
+"""
+
+        reader = read_csv(StringIO(data), chunksize=1)
+        result = concat(reader, ignore_index=True)
+        expected = read_csv(StringIO(data))
+        assert_frame_equal(result,expected)
 
 class TestOrderedMerge(tm.TestCase):
 
