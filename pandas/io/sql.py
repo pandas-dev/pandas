@@ -716,7 +716,7 @@ class PandasSQLAlchemy(PandasSQL):
             meta = MetaData(self.engine)
             meta.reflect(self.engine)
 
-        self.meta = meta
+        self._meta = meta
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy engine"""
@@ -761,6 +761,12 @@ class PandasSQLAlchemy(PandasSQL):
             name, self, frame=frame, index=index, if_exists=if_exists,
             index_label=index_label)
         table.insert()
+
+    @property
+    def meta(self):
+        self._meta.clear()
+        self._meta.reflect()
+        return self._meta
 
     @property
     def tables(self):
