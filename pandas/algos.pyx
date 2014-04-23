@@ -7,6 +7,7 @@ cimport cython
 import_array()
 
 cdef float64_t FP_ERR = 1e-13
+cdef float64_t REL_TOL = 1e-07
 
 cimport util
 
@@ -132,6 +133,18 @@ cdef _take_2d_object(ndarray[object, ndim=2] values,
     return result
 
 
+cdef inline bint float64_are_diff(float64_t left, float64_t right):
+    cdef double abs_diff, allowed
+    if right == MAXfloat64 or right == -MAXfloat64:
+        if left == right:
+            return False
+        else:
+            return True
+    else:
+        abs_diff = fabs(left - right)
+        allowed = REL_TOL * fabs(right)
+        return abs_diff > allowed
+
 def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
                     na_option='keep', pct=False):
     """
@@ -186,7 +199,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
             ranks[argsorted[i]] = nan
             continue
         count += 1.0
-        if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
+        if i == n - 1 or float64_are_diff(sorted_data[i + 1], val):
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = sum_ranks / dups
@@ -345,7 +358,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
                 ranks[i, argsorted[i, j]] = nan
                 continue
             count += 1.0
-            if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
+            if j == k - 1 or float64_are_diff(values[i, j + 1], val):
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = sum_ranks / dups
