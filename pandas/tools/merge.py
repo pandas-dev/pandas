@@ -20,6 +20,7 @@ from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.core.common import (PandasError, ABCSeries,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 is_integer_dtype, isnull)
+from pandas.io.parsers import TextFileReader
 
 import pandas.core.common as com
 
@@ -938,10 +939,10 @@ class _Concatenator(object):
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False):
-        if not isinstance(objs, (list,tuple,types.GeneratorType,dict)):
-            raise AssertionError('first argument must be a list-like of pandas '
-                                 'objects, you passed an object of type '
-                                 '"{0}"'.format(type(objs).__name__))
+        if not isinstance(objs, (list,tuple,types.GeneratorType,dict,TextFileReader)):
+            raise TypeError('first argument must be a list-like of pandas '
+                            'objects, you passed an object of type '
+                            '"{0}"'.format(type(objs).__name__))
 
         if join == 'outer':
             self.intersect = False
