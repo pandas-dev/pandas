@@ -13501,7 +13501,7 @@ class TestDataFrameQueryStrings(object):
         6   "page 3 load"   2/1/2014 1:02:01
         6   "page 3 exit"   2/1/2014 1:02:31
         """
-        df = pd.read_csv(StringIO(raw), sep=r'\s{2,}',
+        df = pd.read_csv(StringIO(raw), sep=r'\s{2,}', engine='python',
                          parse_dates=['timestamp'])
         expected = df[df.event == '"page 1 load"']
         res = df.query("""'"page 1 load"' in event""", parser=parser,

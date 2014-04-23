@@ -176,6 +176,8 @@ API Changes
 - ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
   of ``np.datetime64`` objects (:issue:`6810`)
 - change ``AssertionError`` to ``TypeError`` for invalid types passed to ``concat`` (:issue:`6583`)
+- Add :class:`~pandas.io.parsers.ParserWarning` class for fallback and option
+  validation warnings in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -280,6 +282,9 @@ Improvements to existing features
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:``rolling_max`` defaults to max,
   :func:``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
 - ``pd.stats.moments.rolling_var`` now uses Welford's method for increased numerical stability (:issue:`6817`)
+- Translate ``sep='\s+'`` to ``delim_whitespace=True`` in
+  :func:`read_csv`/:func:`read_table` if no other C-unsupported options
+  specified (:issue:`6607`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -402,6 +407,17 @@ Bug Fixes
 - Bug in `DataFrame.plot` and `Series.plot` legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
 - Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`, :issue:`6927`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
+- Raise :class:`ValueError` when ``sep`` specified with
+  ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
+  (:issue:`6607`)
+- Raise :class:`ValueError` when `engine='c'` specified with unsupported
+  options (:issue:`6607`)
+- Raise :class:`ValueError` when fallback to python parser causes options to be
+  ignored (:issue:`6607`)
+- Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
+  parser when no options are ignored (:issue:`6607`)
+- Bug in C parser with leading whitespace (:issue:`3374`)
+- Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
 
 pandas 0.13.1
 -------------
