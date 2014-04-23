@@ -535,10 +535,7 @@ cdef class TextReader:
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
-                if sys.getfilesystemencoding() is None:
-                    source = source.encode('utf-8')
-                else:
-                    source = source.encode(sys.getfilesystemencoding())
+                source = source.encode(sys.getfilesystemencoding() or 'utf-8') 
 
             if self.memory_map:
                 ptr = new_mmap(source)
