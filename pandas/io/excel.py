@@ -18,6 +18,7 @@ from pandas.core.common import pprint_thing
 import pandas.compat as compat
 import pandas.core.common as com
 from warnings import warn
+from distutils.version import LooseVersion
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -250,11 +251,19 @@ class ExcelFile(object):
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, chunksize=None, convert_float=True,
                      **kwds):
-        from xlrd import (xldate_as_tuple, XL_CELL_DATE,
+        import xlrd
+        from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
                           XL_CELL_NUMBER)
 
-        datemode = self.book.datemode
+        epoch1904 = self.book.datemode
+
+        # xlrd >= 0.9.3 can return datetime objects directly.
+        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
+            xlrd_0_9_3 = True
+        else:
+            xlrd_0_9_3 = False
+
         if isinstance(sheetname, compat.string_types):
             sheet = self.book.sheet_by_name(sheetname)
         else:  # assume an integer if not a string
@@ -271,12 +280,29 @@ class ExcelFile(object):
 
                 if parse_cols is None or should_parse[j]:
                     if typ == XL_CELL_DATE:
-                        dt = xldate_as_tuple(value, datemode)
-                        # how to produce this first case?
-                        if dt[0] < datetime.MINYEAR:  # pragma: no cover
-                            value = datetime.time(*dt[3:])
+                        if xlrd_0_9_3:
+                            # Use the newer xlrd datetime handling.
+                            value = xldate.xldate_as_datetime(value, epoch1904)
+
+                            # Excel doesn't distinguish between dates and time,
+                            # so we treat dates on the epoch as times only.
+                            # Also, Excel supports 1900 and 1904 epochs.
+                            year = (value.timetuple())[0:3]
+                            if ((not epoch1904 and year == (1899, 12, 31))
+                                    or (epoch1904 and year == (1904, 1, 1))):
+                                    value = datetime.time(value.hour,
+                                                          value.minute,
+                                                          value.second,
+                                                          value.microsecond)
                         else:
-                            value = datetime.datetime(*dt)
+                            # Use the xlrd <= 0.9.2 date handling.
+                            dt = xldate.xldate_as_tuple(value, epoch1904)
+
+                            if dt[0] < datetime.MINYEAR:
+                                value = datetime.time(*dt[3:])
+                            else:
+                                value = datetime.datetime(*dt)
+
                     elif typ == XL_CELL_ERROR:
                         value = np.nan
                     elif typ == XL_CELL_BOOLEAN:
@@ -727,8 +753,9 @@ class _XlsxWriter(ExcelWriter):
         import xlsxwriter
 
         super(_XlsxWriter, self).__init__(path, engine=engine,
-            date_format=date_format, datetime_format=datetime_format,
-            **engine_kwargs)
+                                          date_format=date_format,
+                                          datetime_format=datetime_format,
+                                          **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 
