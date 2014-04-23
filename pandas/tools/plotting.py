@@ -2342,7 +2342,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ax = axes[i / cols, i % cols]
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
-        ax.hist(data[col].dropna().values, **kwds)
+        ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
 
