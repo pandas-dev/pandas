@@ -2203,6 +2203,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             q = tds.quantile(.25)
             self.assertEqual(q, pd.to_timedelta('24:00:00'))
 
+    def test_quantile_multi(self):
+        from numpy import percentile
+
+        qs = [.1, .9]
+        result = self.ts.quantile(qs)
+        expected = pd.Series([percentile(self.ts.valid(), 10),
+                              percentile(self.ts.valid(), 90)],
+                             index=qs)
+        assert_series_equal(result, expected)
+
+        dts = self.ts.index.to_series()
+        result = dts.quantile((.2, .2))
+        assert_series_equal(result, Series([Timestamp('2000-01-10 19:12:00'),
+                                            Timestamp('2000-01-10 19:12:00')],
+                                           index=[.2, .2]))
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()

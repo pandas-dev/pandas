@@ -4145,22 +4145,41 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True):
         """
         Return values at the given quantile over requested axis, a la
-        scoreatpercentile in scipy.stats
+        numpy.percentile.
 
         Parameters
         ----------
-        q : quantile, default 0.5 (50% quantile)
-            0 <= q <= 1
+        q : float or array-like, default 0.5 (50% quantile)
+            0 <= q <= 1, the quantile(s) to compute
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
         Returns
         -------
-        quantiles : Series
-        """
-        per = q * 100
+        quantiles : Series or DataFrame
+            If ``q`` is an array, a DataFrame will be returned where the
+            index is ``q``, the columns are the columns of self, and the
+            values are the quantiles.
+            If ``q`` is a float, a Series will be returned where the
+            index is the columns of self and the values are the quantiles.
 
-        def f(arr):
+        Examples
+        --------
+
+        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+                          columns=['a', 'b'])
+        >>> df.quantile(.1)
+        a    1.3
+        b    3.7
+        dtype: float64
+        >>> df.quantile([.1, .5])
+               a     b
+        0.1  1.3   3.7
+        0.5  2.5  55.0
+        """
+        per = np.asarray(q) * 100
+
+        def f(arr, per):
             arr = arr.values
             if arr.dtype != np.float_:
                 arr = arr.astype(float)
@@ -4171,7 +4190,12 @@ class DataFrame(NDFrame):
                 return _quantile(arr, per)
 
         data = self._get_numeric_data() if numeric_only else self
-        return data.apply(f, axis=axis)
+        if com.is_list_like(per):
+            from pandas.tools.merge import concat
+            return concat([data.apply(f, axis=axis, args=(x,)) for x in per],
+                          axis=1, keys=per/100.).T
+        else:
+            return data.apply(f, axis=axis, args=(per,))
 
     def rank(self, axis=0, numeric_only=None, method='average',
              na_option='keep', ascending=True, pct=False):
