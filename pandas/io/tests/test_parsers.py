@@ -1822,6 +1822,10 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             self.assertEquals(len(result), 50)
 
+    def test_read_csv_example_in_windows_filesystem(self):
+        path = tm.get_data_path(u'日本語ファイル名テスト_read_csv_in_win_filesystem.csv')
+        self.read_csv(path)
+
     def test_converters_corner_with_nas(self):
         # skip aberration observed on Win64 Python 3.2.2
         if hash(np.int64(-1)) != -2:
