@@ -127,6 +127,12 @@ class TestSeriesPlots(tm.TestCase):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @slow
+    def test_hist_bins(self):
+        df = DataFrame(np.random.randn(10, 2))
+        ax = df.hist(bins=2)[0][0]
+        self.assertEqual(len(ax.patches), 2)
+
+    @slow
     def test_hist_layout(self):
         n = 10
         gender = tm.choice(['Male', 'Female'], size=n)
