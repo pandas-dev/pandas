@@ -1823,7 +1823,7 @@ A,B,C
             self.assertEquals(len(result), 50)
 
     def test_read_csv_example_in_windows_filesystem(self):
-        path = tm.get_data_path(u'日本語ファイル名テスト_read_csv_in_win_filesystem.csv')
+        path = tm.get_data_path(u('日本語ファイル名テスト_read_csv_in_win_filesystem.csv'))
         self.read_csv(path)
 
     def test_converters_corner_with_nas(self):
