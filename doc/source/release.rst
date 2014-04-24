@@ -422,6 +422,7 @@ Bug Fixes
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
 - Bug in ``DataFrame.apply`` with functions that used *args or **kwargs and returned
   an empty result (:issue:`6952`)
+- Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
 
 pandas 0.13.1
 -------------
