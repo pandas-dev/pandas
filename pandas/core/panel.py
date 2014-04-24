@@ -1154,7 +1154,8 @@ class Panel(NDFrame):
     @deprecate_kwarg(old_arg_name='lags', new_arg_name='periods')
     def shift(self, periods=1, freq=None, axis='major'):
         """
-        Shift major or minor axis by specified number of leads/lags.
+        Shift major or minor axis by specified number of leads/lags. Drops
+        periods right now compared with DataFrame.shift
 
         Parameters
         ----------
@@ -1171,7 +1172,7 @@ class Panel(NDFrame):
         if axis == 'items':
             raise ValueError('Invalid axis')
 
-        return super(Panel, self).shift(periods, freq=freq, axis=axis)
+        return super(Panel, self).slice_shift(periods, axis=axis)
 
     def tshift(self, periods=1, freq=None, axis='major', **kwds):
         return super(Panel, self).tshift(periods, freq, axis, **kwds)
