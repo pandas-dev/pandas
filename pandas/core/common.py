@@ -280,7 +280,7 @@ def notnull(obj):
     res = isnull(obj)
     if np.isscalar(res):
         return not res
-    return -res
+    return ~res
 
 def _is_null_datelike_scalar(other):
     """ test whether the object is a null datelike, e.g. Nat
