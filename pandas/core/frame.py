@@ -3313,7 +3313,7 @@ class DataFrame(NDFrame):
             f = func
 
         if len(self.columns) == 0 and len(self.index) == 0:
-            return self._apply_empty_result(func, axis, reduce)
+            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
 
         if isinstance(f, np.ufunc):
             results = f(self.values)
@@ -3322,7 +3322,8 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    return self._apply_empty_result(func, axis, reduce)
+                    return self._apply_empty_result(func, axis, reduce, *args,
+                                                    **kwds)
 
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
@@ -3333,11 +3334,12 @@ class DataFrame(NDFrame):
             else:
                 return self._apply_broadcast(f, axis)
 
-    def _apply_empty_result(self, func, axis, reduce):
+    def _apply_empty_result(self, func, axis, reduce, *args, **kwds):
         if reduce is None:
             reduce = False
             try:
-                reduce = not isinstance(func(_EMPTY_SERIES), Series)
+                reduce = not isinstance(func(_EMPTY_SERIES, *args, **kwds),
+                                        Series)
             except Exception:
                 pass
 
