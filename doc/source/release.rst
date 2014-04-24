@@ -436,6 +436,8 @@ Bug Fixes
   an empty result (:issue:`6952`)
 - Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
 - Moved ``Panel.shift`` to ``NDFrame.slice_shift`` and fixed to respect multiple dtypes. (:issue:`6959`)
+- Bug in enabling ``subplots=True`` in ``DataFrame.plot`` only has single column raises ``TypeError``, and ``Series.plot`` raises ``AttributeError`` (:issue:`6951`)
+- Bug in ``DataFrame.plot`` draws unnecessary axes when enabling ``subplots`` and ``kind=scatter`` (:issue:`6951`)
 
 pandas 0.13.1
 -------------
