@@ -229,6 +229,10 @@ Deprecations
   returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
   ALWAYS return a view. (:issue:`6894`)
 
+- The :func:`parallel_coordinates` function now takes argument ``color``
+  instead of ``colors``. A ``FutureWarning`` is raised  to alert that
+  the old ``colors`` argument will not be supported in a future release
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

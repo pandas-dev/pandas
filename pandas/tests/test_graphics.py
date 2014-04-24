@@ -1220,11 +1220,26 @@ class TestDataFramePlots(tm.TestCase):
     def test_andrews_curves(self):
         from pandas import read_csv
         from pandas.tools.plotting import andrews_curves
-
+        from matplotlib import cm
+        
         path = os.path.join(curpath(), 'data', 'iris.csv')
         df = read_csv(path)
 
         _check_plot_works(andrews_curves, df, 'Name')
+        _check_plot_works(andrews_curves, df, 'Name',
+                          color=('#556270', '#4ECDC4', '#C7F464'))
+        _check_plot_works(andrews_curves, df, 'Name',
+                          color=['dodgerblue', 'aquamarine', 'seagreen'])
+        _check_plot_works(andrews_curves, df, 'Name', colormap=cm.jet)
+
+        colors = ['b', 'g', 'r']
+        df = DataFrame({"A": [1, 2, 3],
+                        "B": [1, 2, 3],
+                        "C": [1, 2, 3],
+                        "Name": colors})
+        ax = andrews_curves(df, 'Name', color=colors)
+        legend_colors = [l.get_color() for l in ax.legend().get_lines()]
+        self.assertEqual(colors, legend_colors)
 
     @slow
     def test_parallel_coordinates(self):
@@ -1235,13 +1250,9 @@ class TestDataFramePlots(tm.TestCase):
         df = read_csv(path)
         _check_plot_works(parallel_coordinates, df, 'Name')
         _check_plot_works(parallel_coordinates, df, 'Name',
-                          colors=('#556270', '#4ECDC4', '#C7F464'))
+                          color=('#556270', '#4ECDC4', '#C7F464'))
         _check_plot_works(parallel_coordinates, df, 'Name',
-                          colors=['dodgerblue', 'aquamarine', 'seagreen'])
-        _check_plot_works(parallel_coordinates, df, 'Name',
-                          colors=('#556270', '#4ECDC4', '#C7F464'))
-        _check_plot_works(parallel_coordinates, df, 'Name',
-                          colors=['dodgerblue', 'aquamarine', 'seagreen'])
+                          color=['dodgerblue', 'aquamarine', 'seagreen'])
         _check_plot_works(parallel_coordinates, df, 'Name', colormap=cm.jet)
 
         df = read_csv(path, header=None, skiprows=1, names=[1, 2, 4, 8,
@@ -1249,6 +1260,15 @@ class TestDataFramePlots(tm.TestCase):
         _check_plot_works(parallel_coordinates, df, 'Name', use_columns=True)
         _check_plot_works(parallel_coordinates, df, 'Name',
                           xticks=[1, 5, 25, 125])
+        
+        colors = ['b', 'g', 'r']
+        df = DataFrame({"A": [1, 2, 3],
+                        "B": [1, 2, 3],
+                        "C": [1, 2, 3],
+                        "Name": colors})
+        ax = parallel_coordinates(df, 'Name', color=colors)
+        legend_colors = [l.get_color() for l in ax.legend().get_lines()]
+        self.assertEqual(colors, legend_colors)
 
     @slow
     def test_radviz(self):
@@ -1259,7 +1279,23 @@ class TestDataFramePlots(tm.TestCase):
         path = os.path.join(curpath(), 'data', 'iris.csv')
         df = read_csv(path)
         _check_plot_works(radviz, df, 'Name')
+        _check_plot_works(radviz, df, 'Name',
+                          color=('#556270', '#4ECDC4', '#C7F464'))
+        _check_plot_works(radviz, df, 'Name',
+                          color=['dodgerblue', 'aquamarine', 'seagreen'])
         _check_plot_works(radviz, df, 'Name', colormap=cm.jet)
+
+        colors = [[0., 0., 1., 1.],
+                  [0., 0.5, 1., 1.],
+                  [1., 0., 0., 1.]]
+        df = DataFrame({"A": [1, 2, 3],
+                        "B": [2, 1, 3],
+                        "C": [3, 2, 1],
+                        "Name": ['b', 'g', 'r']})
+        ax = radviz(df, 'Name', color=colors)
+        legend_colors = [c.get_facecolor().squeeze().tolist()
+                         for c in ax.collections]
+        self.assertEqual(colors, legend_colors)
 
     @slow
     def test_plot_int_columns(self):
