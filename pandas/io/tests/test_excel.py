@@ -1,8 +1,9 @@
 # pylint: disable=E1101
 
 from pandas.compat import u, range, map
-from datetime import datetime, date
+from datetime import datetime, date, time
 import os
+from distutils.version import LooseVersion
 
 import nose
 
@@ -360,6 +361,49 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
                            convert_float=False)
         tm.assert_frame_equal(actual, no_convert_float)
 
+    def test_reader_seconds(self):
+        # Test reading times with and without milliseconds. GH5945.
+        _skip_if_no_xlrd()
+        import xlrd
+
+        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
+            # Xlrd >= 0.9.3 can handle Excel milliseconds.
+            expected = DataFrame.from_items([("Time",
+                                              [time(1, 2, 3),
+                                               time(2, 45, 56, 100000),
+                                               time(4, 29, 49, 200000),
+                                               time(6, 13, 42, 300000),
+                                               time(7, 57, 35, 400000),
+                                               time(9, 41, 28, 500000),
+                                               time(11, 25, 21, 600000),
+                                               time(13, 9, 14, 700000),
+                                               time(14, 53, 7, 800000),
+                                               time(16, 37, 0, 900000),
+                                               time(18, 20, 54)])])
+        else:
+            # Xlrd < 0.9.3 rounds Excel milliseconds.
+            expected = DataFrame.from_items([("Time",
+                                              [time(1, 2, 3),
+                                               time(2, 45, 56),
+                                               time(4, 29, 49),
+                                               time(6, 13, 42),
+                                               time(7, 57, 35),
+                                               time(9, 41, 29),
+                                               time(11, 25, 22),
+                                               time(13, 9, 15),
+                                               time(14, 53, 8),
+                                               time(16, 37, 1),
+                                               time(18, 20, 54)])])
+
+        epoch_1900 = os.path.join(self.dirpath, 'times_1900.xls')
+        epoch_1904 = os.path.join(self.dirpath, 'times_1904.xls')
+
+        actual = read_excel(epoch_1900, 'Sheet1')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = read_excel(epoch_1904, 'Sheet1')
+        tm.assert_frame_equal(actual, expected)
+
 
 class ExcelWriterBase(SharedItems):
     # Base class for test cases to run with different Excel writers.
@@ -400,7 +444,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             with tm.assert_produces_warning(FutureWarning):
                 self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-    
+
             with tm.assert_produces_warning(False):
                 self.frame.to_excel(path, 'test1', columns=['A', 'B'])
 
@@ -832,9 +876,9 @@ class ExcelWriterBase(SharedItems):
                         index=[u('A\u0192'), 'B'], columns=[u('X\u0193'), 'Y', 'Z'])
 
         with ensure_clean(filename) as filename:
-            df.to_excel(filename, sheet_name = 'TestSheet', encoding='utf8')
-            result = read_excel(filename, 'TestSheet', encoding = 'utf8')
-            tm.assert_frame_equal(result,df)
+            df.to_excel(filename, sheet_name='TestSheet', encoding='utf8')
+            result = read_excel(filename, 'TestSheet', encoding='utf8')
+            tm.assert_frame_equal(result, df)
 
 
     def test_to_excel_unicode_filename(self):

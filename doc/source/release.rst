@@ -285,6 +285,7 @@ Improvements to existing features
 - Translate ``sep='\s+'`` to ``delim_whitespace=True`` in
   :func:`read_csv`/:func:`read_table` if no other C-unsupported options
   specified (:issue:`6607`)
+- ``read_excel`` can now read milliseconds in Excel dates and times with xlrd >= 0.9.3. (:issue:`5945`)
 
 .. _release.bug_fixes-0.14.0:
 
