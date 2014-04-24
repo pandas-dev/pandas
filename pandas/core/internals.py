@@ -1049,7 +1049,7 @@ class FloatBlock(FloatOrComplexBlock):
         mask = isnull(values)
         values[mask] = na_rep
         if float_format:
-            imask = (-mask).ravel()
+            imask = (~mask).ravel()
             values.flat[imask] = np.array(
                 [float_format % val for val in values.ravel()[imask]])
         return values.tolist()
@@ -1181,7 +1181,7 @@ class TimeDeltaBlock(IntBlock):
         if na_rep is None:
             na_rep = 'NaT'
         rvalues[mask] = na_rep
-        imask = (-mask).ravel()
+        imask = (~mask).ravel()
         rvalues.flat[imask] = np.array([lib.repr_timedelta64(val)
                                         for val in values.ravel()[imask]],
                                        dtype=object)
@@ -1531,7 +1531,7 @@ class DatetimeBlock(Block):
         if na_rep is None:
             na_rep = 'NaT'
         rvalues[mask] = na_rep
-        imask = (-mask).ravel()
+        imask = (~mask).ravel()
 
         if date_format is None:
             date_formatter = lambda x: Timestamp(x)._repr_base

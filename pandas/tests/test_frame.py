@@ -4786,7 +4786,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         _check_bin_op(operator.or_)
         _check_bin_op(operator.xor)
 
-        _check_unary_op(operator.neg)
+        # operator.neg is deprecated in numpy >= 1.9
+        _check_unary_op(operator.inv)
 
     def test_logical_typeerror(self):
         if not compat.PY3:
@@ -11110,7 +11111,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         exp = DataFrame({"a":[ 3.5,  1. ,  3.5,  5. ,  6. ,  7. ,  2. ]})
         assert_frame_equal(df.rank(), exp)
 
-        
+
     def test_rank_na_option(self):
         from pandas.compat.scipy import rankdata
 

@@ -452,7 +452,7 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
 
-            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, ~mask, pa.NA)
 
         result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -746,7 +746,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 if np.prod(xrav.shape):
                     result[mask] = op(xrav, y)
 
-            result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
+            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)
 
         result = com._fill_zeros(result, x, y, name, fill_zeros)
@@ -817,9 +817,9 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 result[mask] = op(np.array(list(xrav[mask])), y)
 
             if op == operator.ne:  # pragma: no cover
-                np.putmask(result, -mask, True)
+                np.putmask(result, ~mask, True)
             else:
-                np.putmask(result, -mask, False)
+                np.putmask(result, ~mask, False)
             result = result.reshape(x.shape)
 
         return result
@@ -911,7 +911,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result = pa.empty(len(x), dtype=x.dtype)
             mask = notnull(x)
             result[mask] = op(x[mask], y)
-            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, ~mask, pa.NA)
 
         result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -947,9 +947,9 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
                 result[mask] = op(np.array(list(xrav[mask])), y)
 
             if op == operator.ne:  # pragma: no cover
-                np.putmask(result, -mask, True)
+                np.putmask(result, ~mask, True)
             else:
-                np.putmask(result, -mask, False)
+                np.putmask(result, ~mask, False)
             result = result.reshape(x.shape)
 
         return result

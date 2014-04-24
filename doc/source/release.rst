@@ -240,6 +240,9 @@ Prior Version Deprecations/Changes
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`6641`)
 
+- Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
+  be deprecated in numpy 1.9 (:issue:`6960`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 

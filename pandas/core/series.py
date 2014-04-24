@@ -961,7 +961,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # inversion
     def __neg__(self):
-        arr = operator.neg(self.values)
+        values = self.values
+        if values.dtype == np.bool_:
+            arr = operator.inv(values)
+        else:
+            arr = operator.neg(values)
         return self._constructor(arr, self.index).__finalize__(self)
 
     def __invert__(self):
@@ -1646,7 +1650,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if mask.any():
             result = Series(
                 -1, index=self.index, name=self.name, dtype='int64')
-            notmask = -mask
+            notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
             return self._constructor(result,
                                      index=self.index).__finalize__(self)
@@ -1767,7 +1771,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         bad = isnull(arr)
 
-        good = -bad
+        good = ~bad
         idx = pa.arange(len(self))
 
         argsorted = _try_kind_sort(arr[good])

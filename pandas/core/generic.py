@@ -606,7 +606,11 @@ class NDFrame(PandasObject):
                     for a in self._AXIS_ORDERS])
 
     def __neg__(self):
-        arr = operator.neg(_values_from_object(self))
+        values = _values_from_object(self)
+        if values.dtype == np.bool_:
+            arr = operator.inv(values)
+        else:
+            arr = operator.neg(values)
         return self._wrap_array(arr, self.axes, copy=False)
 
     def __invert__(self):
@@ -1459,10 +1463,10 @@ class NDFrame(PandasObject):
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
-                indexer = -lib.ismember(axis.get_level_values(level),
+                indexer = ~lib.ismember(axis.get_level_values(level),
                                         set(labels))
             else:
-                indexer = -axis.isin(labels)
+                indexer = ~axis.isin(labels)
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer

@@ -338,7 +338,7 @@ def test_rank():
     from pandas.compat.scipy import rankdata
 
     def _check(arr):
-        mask = -np.isfinite(arr)
+        mask = ~np.isfinite(arr)
         arr = arr.copy()
         result = algos.rank_1d_float64(arr)
         arr[mask] = np.inf

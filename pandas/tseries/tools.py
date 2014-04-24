@@ -334,7 +334,7 @@ def _attempt_YYYYMMDD(arg):
     def calc_with_mask(carg,mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
-        iresult[-mask] = tslib.iNaT
+        iresult[~mask] = tslib.iNaT
         result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)).astype('M8[ns]')
         return result
 

@@ -54,16 +54,19 @@ N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
+# set testing_mode
+testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
+if 'numpy_deprecate' in testing_mode:
+    warnings.simplefilter('always', DeprecationWarning)
+
 class TestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         pd.set_option('chained_assignment','raise')
-        #print("setting up: {0}".format(cls))
 
     @classmethod
     def tearDownClass(cls):
-        #print("tearing down up: {0}".format(cls))
         pass
 
     def assert_numpy_array_equal(self, np_array, assert_equal):

@@ -2997,7 +2997,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = -lib.ismember(self.labels[i], set(values))
+        mask = ~lib.ismember(self.labels[i], set(values))
 
         return self[mask]
 
