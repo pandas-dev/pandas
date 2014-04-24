@@ -314,6 +314,49 @@ class TestNanops(tm.TestCase):
         result = np.nansum(s)
         assert_almost_equal(result, 1)
 
+    def test_overflow(self):
+
+        # GH 6915
+        # overflowing on the smaller int dtypes
+        for dtype in ['int32','int64']:
+            v = np.arange(5000000,dtype=dtype)
+            s = Series(v)
+
+            # no bottleneck
+            result = s.sum(skipna=False)
+            self.assertEqual(int(result),v.sum(dtype='int64'))
+            result = s.min(skipna=False)
+            self.assertEquals(int(result),0)
+            result = s.max(skipna=False)
+            self.assertEquals(int(result),v[-1])
+
+            # use bottleneck if available
+            result = s.sum()
+            self.assertEqual(int(result),v.sum(dtype='int64'))
+            result = s.min()
+            self.assertEquals(int(result),0)
+            result = s.max()
+            self.assertEquals(int(result),v[-1])
+
+        for dtype in ['float32','float64']:
+            v = np.arange(5000000,dtype=dtype)
+            s = Series(v)
+
+            # no bottleneck
+            result = s.sum(skipna=False)
+            self.assertTrue(np.allclose(float(result),v.sum(dtype='float64')))
+            result = s.min(skipna=False)
+            self.assertTrue(np.allclose(float(result),0.0))
+            result = s.max(skipna=False)
+            self.assertTrue(np.allclose(float(result),v[-1]))
+
+            # use bottleneck if available
+            result = s.sum()
+            self.assertTrue(np.allclose(float(result),v.sum(dtype='float64')))
+            result = s.min()
+            self.assertTrue(np.allclose(float(result),0.0))
+            result = s.max()
+            self.assertTrue(np.allclose(float(result),v[-1]))
 
 class SafeForSparse(object):
     pass

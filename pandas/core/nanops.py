@@ -75,7 +75,7 @@ class bottleneck_switch(object):
                         result.fill(0)
                         return result
 
-                if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype):
+                if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype, bn_name):
                     result = bn_func(values, axis=axis, **kwds)
 
                     # prefer to treat inf/-inf as NA, but must compute the func
@@ -92,11 +92,18 @@ class bottleneck_switch(object):
         return f
 
 
-def _bn_ok_dtype(dt):
+def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
-    time_types = np.datetime64, np.timedelta64
-    return dt != np.object_ and not issubclass(dt.type, time_types)
+    if dt != np.object_ and not issubclass(dt.type, (np.datetime64, np.timedelta64)):
 
+        # bottleneck does not properly upcast during the sum
+        # so can overflow
+        if name == 'nansum':
+            if dt != np.bool_ and dt.itemsize < 8:
+                return False
+
+        return True
+    return False
 
 def _has_infs(result):
     if isinstance(result, np.ndarray):
@@ -165,7 +172,18 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
         values = values.copy()
 
     values = _view_if_needed(values)
-    return values, mask, dtype
+
+    # return a platform independent precision dtype
+    dtype_max = dtype
+    if dtype.kind == 'i' and not issubclass(
+        dtype.type, (np.bool, np.datetime64, np.timedelta64)):
+        dtype_max = np.int64
+    elif dtype.kind in ['b'] or issubclass(dtype.type, np.bool):
+        dtype_max = np.int64
+    elif dtype.kind in ['f']:
+        dtype_max = np.float64
+
+    return values, mask, dtype, dtype_max
 
 
 def _isfinite(values):
@@ -216,20 +234,20 @@ def _wrap_results(result, dtype):
 
 
 def nanany(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, False, copy=skipna)
+    values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna)
     return values.any(axis)
 
 
 def nanall(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, True, copy=skipna)
+    values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna)
     return values.all(axis)
 
 
 @disallow('M8')
 @bottleneck_switch(zero_value=0)
 def nansum(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, 0)
-    the_sum = values.sum(axis)
+    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
+    the_sum = values.sum(axis,dtype=dtype_max)
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
     return _wrap_results(the_sum, dtype)
@@ -238,8 +256,8 @@ def nansum(values, axis=None, skipna=True):
 @disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, 0)
-    the_sum = _ensure_numeric(values.sum(axis))
+    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
+    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_max))
     count = _get_counts(mask, axis)
 
     if axis is not None:
@@ -257,7 +275,7 @@ def nanmean(values, axis=None, skipna=True):
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
 
-    values, mask, dtype = _get_values(values, skipna)
+    values, mask, dtype, dtype_max = _get_values(values, skipna)
 
     def get_median(x):
         mask = notnull(x)
@@ -325,7 +343,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 @bottleneck_switch()
 def nanmin(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ='+inf')
+    values, mask, dtype, dtype_max = _get_values(values, skipna, fill_value_typ='+inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_ and compat.PY3):
@@ -341,7 +359,7 @@ def nanmin(values, axis=None, skipna=True):
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
             try:
-                result = com.ensure_float(values.sum(axis))
+                result = com.ensure_float(values.sum(axis,dtype=dtype_max))
                 result.fill(np.nan)
             except:
                 result = np.nan
@@ -354,7 +372,7 @@ def nanmin(values, axis=None, skipna=True):
 
 @bottleneck_switch()
 def nanmax(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ='-inf')
+    values, mask, dtype, dtype_max = _get_values(values, skipna, fill_value_typ='-inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_ and compat.PY3):
@@ -371,7 +389,7 @@ def nanmax(values, axis=None, skipna=True):
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
             try:
-                result = com.ensure_float(values.sum(axis))
+                result = com.ensure_float(values.sum(axis, dtype=dtype_max))
                 result.fill(np.nan)
             except:
                 result = np.nan
@@ -386,7 +404,7 @@ def nanargmax(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ='-inf',
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf',
                                       isfinite=True)
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
@@ -397,7 +415,7 @@ def nanargmin(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ='+inf',
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf',
                                       isfinite=True)
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
