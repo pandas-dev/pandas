@@ -248,7 +248,7 @@ def _isnull_ndarraylike_old(obj):
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
     else:
-        result = -np.isfinite(values)
+        result = ~np.isfinite(values)
 
     # box
     if isinstance(obj, ABCSeries):
@@ -280,7 +280,7 @@ def notnull(obj):
     res = isnull(obj)
     if np.isscalar(res):
         return not res
-    return -res
+    return ~res
 
 def _is_null_datelike_scalar(other):
     """ test whether the object is a null datelike, e.g. Nat
@@ -363,7 +363,7 @@ def mask_missing(arr, values_to_mask):
         values_to_mask = np.array(values_to_mask, dtype=object)
 
     na_mask = isnull(values_to_mask)
-    nonna = values_to_mask[-na_mask]
+    nonna = values_to_mask[~na_mask]
 
     mask = None
     for x in nonna:

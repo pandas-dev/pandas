@@ -1698,7 +1698,7 @@ class Grouping(object):
 
                     labels = np.empty(len(inds), dtype=inds.dtype)
                     labels[mask] = ok_labels
-                    labels[-mask] = -1
+                    labels[~mask] = -1
 
                 if len(uniques) < len(level_index):
                     level_index = level_index.take(uniques)

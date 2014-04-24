@@ -329,7 +329,7 @@ def quantile(x, q, interpolation_method='fraction'):
     x = np.asarray(x)
     mask = com.isnull(x)
 
-    x = x[-mask]
+    x = x[~mask]
 
     values = np.sort(x)
 
@@ -339,7 +339,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
         idx = at * (len(values) - 1)
         if idx % 1 == 0:
-            score = values[idx]
+            score = values[int(idx)]
         else:
             if interpolation_method == 'fraction':
                 score = _interpolate(values[int(idx)], values[int(idx) + 1],

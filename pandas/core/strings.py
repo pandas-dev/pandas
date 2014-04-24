@@ -51,7 +51,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
             result = np.empty(n, dtype=object)
             np.putmask(result, na_mask, np.nan)
 
-            notmask = -na_mask
+            notmask = ~na_mask
 
             tuples = zip(*[x[notmask] for x in arrays])
             cats = [sep.join(tup) for tup in tuples]

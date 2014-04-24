@@ -3041,7 +3041,7 @@ class DataFrame(NDFrame):
             this = self[col].values
             that = other[col].values
             if filter_func is not None:
-                mask = -filter_func(this) | isnull(that)
+                mask = ~filter_func(this) | isnull(that)
             else:
                 if raise_conflict:
                     mask_this = notnull(that)

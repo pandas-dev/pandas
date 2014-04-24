@@ -526,7 +526,7 @@ class TestSeries(tm.TestCase, Generic):
 
         expected = s.copy()
         bad = isnull(expected.values)
-        good = -bad
+        good = ~bad
         expected = Series(
             np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad])
 

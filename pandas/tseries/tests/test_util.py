@@ -24,7 +24,7 @@ class TestPivotAnnual(tm.TestCase):
         annual = pivot_annual(ts, 'D')
 
         doy = ts.index.dayofyear
-        doy[(-isleapyear(ts.index.year)) & (doy >= 60)] += 1
+        doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
 
         for i in range(1, 367):
             subset = ts[doy == i]
@@ -47,7 +47,7 @@ class TestPivotAnnual(tm.TestCase):
         grouped = ts_hourly.groupby(ts_hourly.index.year)
         hoy = grouped.apply(lambda x: x.reset_index(drop=True))
         hoy = hoy.index.droplevel(0).values
-        hoy[-isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
+        hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
         hoy += 1
 
         annual = pivot_annual(ts_hourly)
