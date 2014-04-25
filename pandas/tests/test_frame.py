@@ -10994,6 +10994,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                              index=[.1, .9])
         assert_frame_equal(result, expected)
 
+    def test_quantile_datetime(self):
+        df = DataFrame({'a': pd.to_datetime(['2010', '2011']), 'b': [0, 5]})
+
+        # exclude datetime
+        result = df.quantile(.5)
+        expected = Series([2.5], index=['b'])
+
+        # datetime
+        result = df.quantile(.5, numeric_only=False)
+        expected = Series([Timestamp('2010-07-02 12:00:00'), 2.5],
+                          index=['a', 'b'])
+        assert_series_equal(result, expected)
+
+        # datetime w/ multi
+        result = df.quantile([.5], numeric_only=False)
+        expected = DataFrame([[Timestamp('2010-07-02 12:00:00'), 2.5]],
+                             index=[.5], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
     def test_cumsum(self):
         self.tsframe.ix[5:10, 0] = nan
         self.tsframe.ix[10:15, 1] = nan
