@@ -1024,9 +1024,8 @@ class CSVFormatter(object):
 
         # preallocate data 2d list
         self.blocks = self.obj._data.blocks
-        ncols = sum(len(b.items) for b in self.blocks)
+        ncols = sum(b.shape[0] for b in self.blocks)
         self.data = [None] * ncols
-        self.column_map = self.obj._data.get_items_map(use_cached=False)
 
         if chunksize is None:
             chunksize = (100000 / (len(self.cols) or 1)) or 1
@@ -1293,10 +1292,9 @@ class CSVFormatter(object):
                                   float_format=self.float_format,
                                   date_format=self.date_format)
 
-            for i, item in enumerate(b.items):
-
+            for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
-                self.data[self.column_map[b][i]] = d[i]
+                self.data[col_loc] = col
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
                                         float_format=self.float_format,

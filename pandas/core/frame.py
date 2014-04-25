@@ -1043,9 +1043,11 @@ class DataFrame(NDFrame):
 
         new_blocks = []
         for block in selfsorted._data.blocks:
-            newb = block2d_to_blocknd(block.values.T, block.items, shape,
-                                      [major_labels, minor_labels],
-                                      ref_items=selfsorted.columns)
+            newb = block2d_to_blocknd(
+                values=block.values.T,
+                placement=block.mgr_locs, shape=shape,
+                labels=[major_labels, minor_labels],
+                ref_items=selfsorted.columns)
             new_blocks.append(newb)
 
         # preserve names, if any
@@ -1934,7 +1936,9 @@ class DataFrame(NDFrame):
                     raise ValueError('Cannot set a frame with no defined index '
                                      'and a value that cannot be converted to a '
                                      'Series')
-                self._data.set_axis(1, value.index.copy(), check_axis=False)
+
+                self._data = self._data.reindex_axis(value.index.copy(), axis=1,
+                                                     fill_value=np.nan)
 
             # we are a scalar
             # noop
@@ -2039,7 +2043,11 @@ class DataFrame(NDFrame):
 
     @property
     def _series(self):
-        return self._data.get_series_dict()
+        result = {}
+        for idx, item in enumerate(self.columns):
+            result[item] = Series(self._data.iget(idx), index=self.index,
+                                  name=item)
+        return result
 
     def lookup(self, row_labels, col_labels):
         """Label-based "fancy indexing" function for DataFrame.
@@ -2629,16 +2637,14 @@ class DataFrame(NDFrame):
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
 
+        bm_axis = self._get_block_manager_axis(axis)
+        new_data = self._data.take(indexer, axis=bm_axis,
+                                   convert=False, verify=False)
+
         if inplace:
-            if axis == 1:
-                new_data = self._data.reindex_items(
-                    self._data.items[indexer],
-                    copy=False)
-            elif axis == 0:
-                new_data = self._data.take(indexer)
-            self._update_inplace(new_data)
+            return self._update_inplace(new_data)
         else:
-            return self.take(indexer, axis=axis, convert=False, is_copy=False)
+            return self._constructor(new_data).__finalize__(self)
 
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False):
         """
@@ -2673,16 +2679,13 @@ class DataFrame(NDFrame):
             else:
                 return self.take(indexer, axis=axis, convert=False)
 
+        bm_axis = self._get_block_manager_axis(axis)
+        new_data = self._data.take(indexer, axis=bm_axis,
+                                   convert=False, verify=False)
         if inplace:
-            if axis == 1:
-                new_data = self._data.reindex_items(
-                    self._data.items[indexer],
-                    copy=False)
-            elif axis == 0:
-                new_data = self._data.take(indexer)
-            self._update_inplace(new_data)
+            return self._update_inplace(new_data)
         else:
-            return self.take(indexer, axis=axis, convert=False, is_copy=False)
+            return self._constructor(new_data).__finalize__(self)
 
     def swaplevel(self, i, j, axis=0):
         """

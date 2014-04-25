@@ -2196,10 +2196,10 @@ class NDFrameGroupBy(GroupBy):
             yield val, slicer(val)
 
     def _cython_agg_general(self, how, numeric_only=True):
-        new_blocks = self._cython_agg_blocks(how, numeric_only=numeric_only)
-        return self._wrap_agged_blocks(new_blocks)
+        new_items, new_blocks = self._cython_agg_blocks(how, numeric_only=numeric_only)
+        return self._wrap_agged_blocks(new_items, new_blocks)
 
-    def _wrap_agged_blocks(self, blocks):
+    def _wrap_agged_blocks(self, items, blocks):
         obj = self._obj_with_exclusions
 
         new_axes = list(obj._data.axes)
@@ -2209,6 +2209,10 @@ class NDFrameGroupBy(GroupBy):
             new_axes[0], new_axes[1] = new_axes[1], self.grouper.result_index
         else:
             new_axes[self.axis] = self.grouper.result_index
+
+        # Make sure block manager integrity check passes.
+        assert new_axes[0].equals(items)
+        new_axes[0] = items
 
         mgr = BlockManager(blocks, new_axes)
 
@@ -2223,13 +2227,13 @@ class NDFrameGroupBy(GroupBy):
 
         new_blocks = []
 
+        if numeric_only:
+            data = data.get_numeric_data(copy=False)
+
         for block in data.blocks:
             values = block.values
 
             is_numeric = is_numeric_dtype(values.dtype)
-
-            if numeric_only and not is_numeric:
-                continue
 
             if is_numeric:
                 values = com.ensure_float(values)
@@ -2239,13 +2243,13 @@ class NDFrameGroupBy(GroupBy):
             # see if we can cast the block back to the original dtype
             result = block._try_cast_result(result)
 
-            newb = make_block(result, block.items, block.ref_items)
+            newb = make_block(result, placement=block.mgr_locs)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
             raise DataError('No numeric types to aggregate')
 
-        return new_blocks
+        return data.items, new_blocks
 
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
@@ -2837,28 +2841,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result.convert_objects()
 
-    def _wrap_agged_blocks(self, blocks):
-        obj = self._obj_with_exclusions
-
-        if self.axis == 0:
-            agg_labels = obj.columns
-        else:
-            agg_labels = obj.index
-
-        if sum(len(x.items) for x in blocks) == len(agg_labels):
-            output_keys = agg_labels
-        else:
-            all_items = []
-            for b in blocks:
-                all_items.extend(b.items)
-            output_keys = agg_labels[agg_labels.isin(all_items)]
-
-            for blk in blocks:
-                blk.set_ref_items(output_keys, maybe_rename=False)
-
+    def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[1])
-            mgr = BlockManager(blocks, [output_keys, index])
+            mgr = BlockManager(blocks, [items, index])
             result = DataFrame(mgr)
 
             group_levels = self.grouper.get_group_levels()
@@ -2869,7 +2855,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             result = result.consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, [output_keys, index])
+            mgr = BlockManager(blocks, [items, index])
             result = DataFrame(mgr)
 
         if self.axis == 1:

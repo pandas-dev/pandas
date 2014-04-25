@@ -611,7 +611,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         s = dft['foo', 'two']
         dft['foo', 'two'] = s > s.median()
         assert_series_equal(dft['foo', 'two'], s > s.median())
-        tm.assert_isinstance(dft._data.blocks[1].items, MultiIndex)
+        # tm.assert_isinstance(dft._data.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         assert_series_equal(reindexed['foo', 'two'], s > s.median())

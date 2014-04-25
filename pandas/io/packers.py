@@ -356,7 +356,7 @@ def encode(obj):
             return {'typ': 'block_manager',
                     'klass': obj.__class__.__name__,
                     'axes': data.axes,
-                    'blocks': [{'items': b.items,
+                    'blocks': [{'items': data.items.take(b.mgr_locs),
                                 'values': convert(b.values),
                                 'shape': b.values.shape,
                                 'dtype': b.dtype.num,
@@ -481,10 +481,11 @@ def decode(obj):
         axes = obj['axes']
 
         def create_block(b):
-            dtype = dtype_for(b['dtype'])
-            return make_block(unconvert(b['values'], dtype, b['compress'])
-                              .reshape(b['shape']), b['items'], axes[0],
-                              klass=getattr(internals, b['klass']))
+            values = unconvert(b['values'], dtype_for(b['dtype']),
+                               b['compress']).reshape(b['shape'])
+            return make_block(values=values,
+                              klass=getattr(internals, b['klass']),
+                              placement=axes[0].get_indexer(b['items']))
 
         blocks = [create_block(b) for b in obj['blocks']]
         return globals()[obj['klass']](BlockManager(blocks, axes))
