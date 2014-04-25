@@ -3229,48 +3229,92 @@ class TestIndexing(tm.TestCase):
                        tm.makeDateIndex, tm.makePeriodIndex ]:
 
             i = index(5)
+
+            for s in  [ Series(np.arange(len(i)),index=i), DataFrame(np.random.randn(len(i),len(i)),index=i,columns=i) ]:
+                self.assertRaises(FutureWarning, lambda :
+                                  s.iloc[3.0])
+
+                # setting
+                def f():
+                    s.iloc[3.0] = 0
+                self.assertRaises(FutureWarning, f)
+
+            # fallsback to position selection ,series only
             s = Series(np.arange(len(i)),index=i)
-            self.assertRaises(FutureWarning, lambda :
-                              s.iloc[3.0])
+            s[3]
             self.assertRaises(FutureWarning, lambda :
                               s[3.0])
 
-            # this is ok!
-            s[3]
-
         # ints
         i = index(5)
-        s = Series(np.arange(len(i)))
-        self.assertRaises(FutureWarning, lambda :
-                          s.iloc[3.0])
+        for s in [ Series(np.arange(len(i))), DataFrame(np.random.randn(len(i),len(i)),index=i,columns=i) ]:
+            self.assertRaises(FutureWarning, lambda :
+                              s.iloc[3.0])
 
-        # on some arch's this doesn't provide a warning (and thus raise)
-        # and some it does
-        try:
-            s[3.0]
-        except:
-            pass
+            # on some arch's this doesn't provide a warning (and thus raise)
+            # and some it does
+            try:
+                s[3.0]
+            except:
+                pass
+
+            # setting
+            def f():
+                s.iloc[3.0] = 0
+            self.assertRaises(FutureWarning, f)
 
         # floats: these are all ok!
         i = np.arange(5.)
-        s = Series(np.arange(len(i)),index=i)
-        with tm.assert_produces_warning(False):
-            s[3.0]
 
-        with tm.assert_produces_warning(False):
-            s[3]
+        for s in [ Series(np.arange(len(i)),index=i), DataFrame(np.random.randn(len(i),len(i)),index=i,columns=i) ]:
+            with tm.assert_produces_warning(False):
+                s[3.0]
 
-        with tm.assert_produces_warning(False):
-            s.iloc[3.0]
+            with tm.assert_produces_warning(False):
+                s[3]
 
-        with tm.assert_produces_warning(False):
-            s.iloc[3]
+            self.assertRaises(FutureWarning, lambda :
+                              s.iloc[3.0])
 
-        with tm.assert_produces_warning(False):
-            s.loc[3.0]
+            with tm.assert_produces_warning(False):
+                s.iloc[3]
 
-        with tm.assert_produces_warning(False):
-            s.loc[3]
+            with tm.assert_produces_warning(False):
+                s.loc[3.0]
+
+            with tm.assert_produces_warning(False):
+                s.loc[3]
+
+            def f():
+                s.iloc[3.0] = 0
+            self.assertRaises(FutureWarning, f)
+
+        # slices
+        for index in [ tm.makeIntIndex, tm.makeFloatIndex,
+                       tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+
+            index = index(5)
+            for s in [ Series(range(5),index=index), DataFrame(np.random.randn(5,2),index=index) ]:
+
+                # getitem
+                self.assertRaises(FutureWarning, lambda :
+                                  s.iloc[3.0:4])
+                self.assertRaises(FutureWarning, lambda :
+                                  s.iloc[3.0:4.0])
+                self.assertRaises(FutureWarning, lambda :
+                                  s.iloc[3:4.0])
+
+                # setitem
+                def f():
+                    s.iloc[3.0:4] = 0
+                self.assertRaises(FutureWarning, f)
+                def f():
+                    s.iloc[3:4.0] = 0
+                self.assertRaises(FutureWarning, f)
+                def f():
+                    s.iloc[3.0:4.0] = 0
+                self.assertRaises(FutureWarning, f)
 
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
