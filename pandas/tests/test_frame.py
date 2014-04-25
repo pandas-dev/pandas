@@ -10945,6 +10945,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xp = df.median()
         assert_series_equal(rs, xp)
 
+    def test_quantile_multi(self):
+        df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+                       columns=['a', 'b', 'c'])
+        result = df.quantile([.25, .5])
+        expected = DataFrame([[1.5, 1.5, 1.5], [2., 2., 2.]],
+                             index=[.25, .5], columns=['a', 'b', 'c'])
+        assert_frame_equal(result, expected)
+
+        # axis = 1
+        result = df.quantile([.25, .5], axis=1)
+        expected = DataFrame([[1.5, 1.5, 1.5], [2., 2., 2.]],
+                             index=[.25, .5], columns=[0, 1, 2])
+
+        # empty
+        result = DataFrame({'x': [], 'y': []}).quantile([0.1, .9], axis=0)
+        expected = DataFrame({'x': [np.nan, np.nan], 'y': [np.nan, np.nan]},
+                             index=[.1, .9])
+        assert_frame_equal(result, expected)
+
     def test_cumsum(self):
         self.tsframe.ix[5:10, 0] = nan
         self.tsframe.ix[10:15, 1] = nan
@@ -12728,7 +12747,6 @@ class TestDataFrameQueryWithMultiIndex(object):
         df = DataFrame(randn(10, 2), index=index)
         ind = Series(df.index.get_level_values(0).values, index=index)
 
-        #import ipdb; ipdb.set_trace()
         res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
         res2 = df.query('"red" == ilevel_0', parser=parser, engine=engine)
         exp = df[ind == 'red']
