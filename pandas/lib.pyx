@@ -20,6 +20,8 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyObject_SetAttrString)
 
 cdef extern from "Python.h":
+    Py_ssize_t PY_SSIZE_T_MAX
+
     ctypedef struct PySliceObject:
         pass
 
@@ -1411,7 +1413,7 @@ cpdef slice_canonize(slice s):
         return slice(start, stop, step)
 
 
-cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=INT64_MAX):
+cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     """
     Get (start, stop, step, length) tuple for a slice.
 
@@ -1430,7 +1432,7 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=INT64_MAX):
     return start, stop, step, length
 
 
-cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=INT64_MAX) except -1:
+cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
     """
     Get length of a bounded slice.
 
@@ -1484,7 +1486,7 @@ def slice_getitem(slice slc not None, ind):
             return slice(s_start, s_stop, s_step)
 
     else:
-        return np.arange(s_start, s_stop, s_step)[ind]
+        return np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]
 
 
 cdef class BlockPlacement:
@@ -1568,7 +1570,7 @@ cdef class BlockPlacement:
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             self._as_array = np.arange(start, stop, step,
-                                       dtype=np.int_)
+                                       dtype=np.int64)
             self._has_array = True
         return self._as_array
 
