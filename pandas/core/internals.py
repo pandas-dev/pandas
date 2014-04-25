@@ -2033,11 +2033,11 @@ class BlockManager(PandasObject):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return dtypes.take(self._blknos)
+        return com.take_1d(dtypes, self._blknos, allow_fill=False)
 
     def get_ftypes(self):
         ftypes = np.array([blk.ftype for blk in self.blocks])
-        return ftypes.take(self._blknos)
+        return com.take_1d(ftypes, self._blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -2322,7 +2322,8 @@ class BlockManager(PandasObject):
         new_blocks = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = inv_indexer.take(b.mgr_locs.as_array)
+            b.mgr_locs = com.take_1d(inv_indexer, b.mgr_locs.as_array, axis=0,
+                                     allow_fill=False)
             new_blocks.append(b)
 
         new_axes = list(self.axes)
@@ -2666,11 +2667,12 @@ class BlockManager(PandasObject):
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
 
-            new_blknos = np.empty(self.nblocks, dtype=np.int_)
+            new_blknos = np.empty(self.nblocks, dtype=np.int64)
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks -
                                                 len(removed_blknos))
-            self._blknos = new_blknos.take(self._blknos, axis=0)
+            self._blknos = com.take_1d(new_blknos, self._blknos, axis=0,
+                                       allow_fill=False)
             self.blocks = tuple(blk for i, blk in enumerate(self.blocks)
                                 if i not in set(removed_blknos))
 
@@ -3546,19 +3548,19 @@ def _invert_reordering(reordering, minlength=None):
     array([-1,  0, -1,  1, -1,  2])
 
     """
-    reordering = np.asanyarray(reordering)
+    reordering = np.asanyarray(reordering, dtype=np.int64)
     if not com.is_integer_dtype(reordering):
         raise ValueError("Only integer indexers are supported")
 
-    nonneg_indices = reordering[reordering >= 0]
+    nonneg_indices = reordering[reordering >= 0].astype(np.int_)
     counts = np.bincount(nonneg_indices, minlength=minlength)
     has_non_unique = (counts > 1).any()
 
-    dtype = np.dtype(np.object_) if has_non_unique else np.dtype(np.int_)
+    dtype = np.dtype(np.object_) if has_non_unique else np.dtype(np.int64)
     inverted = np.empty_like(counts, dtype=dtype)
     inverted.fill(-1)
 
-    nonneg_positions = np.arange(len(reordering), dtype=np.int_)[reordering >= 0]
+    nonneg_positions = np.arange(len(reordering), dtype=np.int64)[reordering >= 0]
     np.put(inverted, nonneg_indices, nonneg_positions)
 
     if has_non_unique:
@@ -3584,6 +3586,8 @@ def _get_blkno_placements(blknos, blk_count, group=True):
         yield (BlockPlacement, blkno)
 
     """
+
+    blknos = com._ensure_int64(blknos)
 
     # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in lib.get_blkno_indexers(blknos, group):
@@ -4076,7 +4080,7 @@ def _fast_count_smallints(arr):
         # Handle empty arr case separately: numpy 1.6 chokes on that.
         return np.empty((0, 2), dtype=arr.dtype)
     else:
-        counts = np.bincount(arr)
+        counts = np.bincount(arr.astype(np.int_))
         nz = counts.nonzero()[0]
         return np.c_[nz, counts[nz]]
 
@@ -4089,7 +4093,7 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
           slice_or_indexer.dtype == np.bool_):
         return 'mask', slice_or_indexer, slice_or_indexer.sum()
     else:
-        indexer = np.asanyarray(slice_or_indexer, dtype=np.int_)
+        indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
             indexer = _maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)
