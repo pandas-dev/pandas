@@ -52,7 +52,7 @@ def pivot_annual(series, freq=None):
         offset = index.dayofyear - 1
 
         # adjust for leap year
-        offset[(-isleapyear(year)) & (offset >= 59)] += 1
+        offset[(~isleapyear(year)) & (offset >= 59)] += 1
 
         columns = lrange(1, 367)
         # todo: strings like 1/1, 1/25, etc.?
@@ -66,7 +66,7 @@ def pivot_annual(series, freq=None):
         defaulted = grouped.apply(lambda x: x.reset_index(drop=True))
         defaulted.index = defaulted.index.droplevel(0)
         offset = np.asarray(defaulted.index)
-        offset[-isleapyear(year) & (offset >= 1416)] += 24
+        offset[~isleapyear(year) & (offset >= 1416)] += 24
         columns = lrange(1, 8785)
     else:
         raise NotImplementedError(freq)

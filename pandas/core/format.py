@@ -1861,7 +1861,7 @@ def _get_format_timedelta64(values):
     def impl(x):
         if x is None or lib.checknull(x):
             return 'NaT'
-        elif format_short and x == 0:
+        elif format_short and com.is_integer(x) and x.view('int64') == 0:
             return "0 days" if even_days else "00:00:00"
         else:
             return lib.repr_timedelta64(x, format=format)

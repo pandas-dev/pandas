@@ -402,17 +402,17 @@ class Timestamp(_Timestamp):
         if month <= 2:
             year -= 1
             month += 12
-        return (day + 
-                np.fix((153*month - 457)/5) + 
-                365*year + 
-                np.floor(year / 4) - 
-                np.floor(year / 100) + 
-                np.floor(year / 400) + 
-                1721118.5 + 
-                (self.hour + 
-                 self.minute/60.0 + 
-                 self.second/3600.0 + 
-                 self.microsecond/3600.0/1e+6 + 
+        return (day +
+                np.fix((153*month - 457)/5) +
+                365*year +
+                np.floor(year / 4) -
+                np.floor(year / 100) +
+                np.floor(year / 400) +
+                1721118.5 +
+                (self.hour +
+                 self.minute/60.0 +
+                 self.second/3600.0 +
+                 self.microsecond/3600.0/1e+6 +
                  self.nanosecond/3600.0/1e+9
                 )/24.0)
 
@@ -1114,7 +1114,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         continue
                     raise
             elif util.is_datetime64_object(val):
-                if val == np_NaT:
+                if val is np_NaT or val.view('i8') == iNaT:
                     iresult[i] = iNaT
                 else:
                     try:
@@ -1190,7 +1190,11 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         oresult = np.empty(n, dtype=object)
         for i in range(n):
             val = values[i]
-            if util.is_datetime64_object(val):
+
+            # set as nan if is even a datetime NaT
+            if _checknull_with_nat(val) or val is np_NaT:
+                oresult[i] = np.nan
+            elif util.is_datetime64_object(val):
                 oresult[i] = val.item()
             else:
                 oresult[i] = val

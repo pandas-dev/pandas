@@ -152,7 +152,18 @@ def infer_dtype_list(list values):
 
 
 cdef inline bint is_null_datetimelike(v):
-    return util._checknull(v) or (util.is_integer_object(v) and v == iNaT) or v is NaT
+    # determine if we have a null for a timedelta/datetime (or integer versions)x
+    if util._checknull(v):
+        return True
+    elif util.is_timedelta64_object(v):
+        return v.view('int64') == iNaT
+    elif util.is_datetime64_object(v):
+        return v.view('int64') == iNaT
+    elif util.is_integer_object(v):
+        return v == iNaT
+    elif v is NaT:
+        return True
+    return False
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
