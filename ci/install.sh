@@ -54,26 +54,36 @@ time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
 if [ -n "$NUMPY_BUILD" ]; then
     # building numpy
     curdir=$(pwd)
-    echo "building numpy: $curdir"
+
+    echo "cloning numpy"
+
+    rm -Rf /tmp/numpy
+    cd /tmp
 
     # remove the system installed numpy
     pip uninstall numpy -y
 
+    # install cython
+    pip install --find-links http://wheels.astropy.org/ --find-links http://wheels2.astropy.org/ --use-wheel Cython
+
     # clone & install
     git clone --branch $NUMPY_BUILD https://github.com/numpy/numpy.git numpy
     cd numpy
-    time sudo python setup.py install
+    wd=${pwd}
+    time pip install .
+    pip uninstall cython -y
 
     cd $curdir
+    echo "building numpy: $wd"
     numpy_version=$(python -c 'import numpy; print(numpy.__version__)')
-    echo "numpy: $numpy_version"
-else
-    # Force virtualenv to accept system_site_packages
-    rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
+    echo "[$curdir] numpy current: $numpy_version"
 fi
 
-time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
+# Force virtualenv to accept system_site_packages
+rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
+
+time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 # Need to enable for locale testing. The location of the locale file(s) is
 # distro specific. For example, on Arch Linux all of the locales are in a
