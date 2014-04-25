@@ -1270,7 +1270,9 @@ class CheckIndexing(object):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        result = df.iloc[1.0:5]
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.iloc[1.0:5]
+
         expected = df.reindex([2.5, 3.5, 4.5, 5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 4)
@@ -1280,15 +1282,26 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 1)
 
+        # GH 4892, float indexers in iloc are deprecated
+        import warnings
+        warnings.filterwarnings(action='error', category=FutureWarning)
+
         cp = df.copy()
-        cp.iloc[1.0:5] = 0
-        self.assert_((cp.iloc[1.0:5] == 0).values.all())
-        self.assert_((cp.iloc[0:1] == df.iloc[0:1]).values.all())
+        def f():
+            cp.iloc[1.0:5] = 0
+        self.assertRaises(FutureWarning, f)
+        def f():
+            result = cp.iloc[1.0:5] == 0
+        self.assertRaises(FutureWarning, f)
+        self.assertTrue(result.values.all())
+        self.assertTrue((cp.iloc[0:1] == df.iloc[0:1]).values.all())
+
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
 
         cp = df.copy()
         cp.iloc[4:5] = 0
-        self.assert_((cp.iloc[4:5] == 0).values.all())
-        self.assert_((cp.iloc[0:4] == df.iloc[0:4]).values.all())
+        self.assertTrue((cp.iloc[4:5] == 0).values.all())
+        self.assertTrue((cp.iloc[0:4] == df.iloc[0:4]).values.all())
 
         # float slicing
         result = df.ix[1.0:5]
@@ -1313,7 +1326,8 @@ class CheckIndexing(object):
 
         cp = df.copy()
         cp.ix[1.0:5.0] = 0
-        self.assert_((cp.ix[1.0:5.0] == 0).values.all())
+        result = cp.ix[1.0:5.0]
+        self.assertTrue((result == 0).values.all())
 
     def test_setitem_single_column_mixed(self):
         df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
