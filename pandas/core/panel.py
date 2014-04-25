@@ -1147,7 +1147,7 @@ class Panel(NDFrame):
 
         values = self.values
         mask = np.isfinite(values)
-        result = mask.sum(axis=i)
+        result = mask.sum(axis=i,dtype='int64')
 
         return self._wrap_result(result, axis)
 
