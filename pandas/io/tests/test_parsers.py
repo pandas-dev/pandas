@@ -1823,8 +1823,8 @@ A,B,C
             self.assertEquals(len(result), 50)
 
     def test_read_csv_example_in_windows_filesystem(self):
-        path = b'\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe3\x83\x95\xe3\x82\xa1\xe3\x82\xa4\xe3\x83\xab\xe5\x90\x8d\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88_read_csv_in_win_filesystem.csv'
-        path = tm.get_data_path(path.decode())
+        buf = b'\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe3\x83\x95\xe3\x82\xa1\xe3\x82\xa4\xe3\x83\xab\xe5\x90\x8d\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88_read_csv_in_win_filesystem.csv'
+        path = tm.get_data_path(buf.decode('utf-8')
         self.read_csv(path)
 
     def test_converters_corner_with_nas(self):
