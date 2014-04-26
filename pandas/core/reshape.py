@@ -1017,7 +1017,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
         dummy_mat[cat.labels == -1] = 0
 
     if prefix is not None:
-        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, str(v))
+        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, v)
                       for v in levels]
     else:
         dummy_cols = levels
