@@ -11,6 +11,7 @@
    np.random.seed(123456)
    from pandas import *
    options.display.max_rows=15
+   options.display.mpl_style='default'
    import pandas as pd
    randn = np.random.randn
    randint = np.random.randint
