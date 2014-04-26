@@ -347,6 +347,24 @@ The :ref:`Plotting <visualization>` docs.
 `Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
 <http://pandas-xlsxwriter-charts.readthedocs.org/en/latest/introduction.html>`__
 
+`Boxplot for each quartile of a stratifying variable
+<http://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {u'stratifying_var': np.random.uniform(0, 100, 20),
+         u'price': np.random.normal(100, 5, 20)}
+    )
+    df[u'quartiles'] = pd.qcut(
+        df[u'stratifying_var'],
+        4,
+        labels=[u'0-25%', u'25-50%', u'50-75%', u'75-100%']
+    )
+
+    @savefig quartile_boxplot.png
+    df.boxplot(column=u'price', by=u'quartiles')
+
 
 Data In/Out
 -----------
