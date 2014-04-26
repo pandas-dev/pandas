@@ -451,6 +451,7 @@ Bug Fixes
 - Bug in ``DataFrame.plot`` draws unnecessary axes when enabling ``subplots`` and ``kind=scatter`` (:issue:`6951`)
 - Bug in ``read_csv`` from a filesystem with non-utf-8 encoding (:issue:`6807`)
 - Bug in ``iloc`` when setting / aligning (:issue:``6766`)
+- Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 
 pandas 0.13.1
 -------------
