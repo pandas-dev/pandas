@@ -340,7 +340,7 @@ class TestPivotTable(tm.TestCase):
                       datetime.datetime(2013, 10, 1), datetime.datetime(2013, 10, 2),
                       datetime.datetime(2013, 12, 2), datetime.datetime(2013, 12, 2),]}).set_index('Date')
 
-        expected = DataFrame(np.array([10, 18, 3]).reshape(1, 3),
+        expected = DataFrame(np.array([10, 18, 3],dtype='int64').reshape(1, 3),
                              index=[datetime.datetime(2013, 12, 31)], 
                              columns='Carl Joe Mark'.split())
         expected.index.name = 'Date'
