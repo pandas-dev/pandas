@@ -501,6 +501,8 @@ Performance
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
 - Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
+- Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
+- Improved performance of compatible pickles (:issue:`6899`)
 
 Experimental
 ~~~~~~~~~~~~
