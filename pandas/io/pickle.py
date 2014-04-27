@@ -34,16 +34,28 @@ def read_pickle(path):
     """
 
     def try_read(path, encoding=None):
+        # try with cPickle
         # try with current pickle, if we have a Type Error then
         # try with the compat pickle to handle subclass changes
         # pass encoding only if its not None as py2 doesn't handle
         # the param
+
+        # cpickle
+        # GH 6899
         try:
             with open(path, 'rb') as fh:
-                return pc.load(fh, encoding=encoding, compat=False)
+                return pkl.load(fh)
         except:
-            with open(path, 'rb') as fh:
-                return pc.load(fh, encoding=encoding, compat=True)
+
+            # reg/patched pickle
+            try:
+                with open(path, 'rb') as fh:
+                    return pc.load(fh, encoding=encoding, compat=False)
+
+            # compat pickle
+            except:
+                with open(path, 'rb') as fh:
+                    return pc.load(fh, encoding=encoding, compat=True)
 
     try:
         return try_read(path)
