@@ -178,6 +178,8 @@ API Changes
 - change ``AssertionError`` to ``TypeError`` for invalid types passed to ``concat`` (:issue:`6583`)
 - Add :class:`~pandas.io.parsers.ParserWarning` class for fallback and option
   validation warnings in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
+- Raise a ``TypeError`` when ``DataFrame`` is passed an iterator as the
+  ``data`` argument (:issue:`5357`)
 
 Deprecations
 ~~~~~~~~~~~~
