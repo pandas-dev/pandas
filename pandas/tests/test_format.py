@@ -104,8 +104,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         fmt.set_eng_float_format(accuracy=0)
         repr(self.frame)
-
-        fmt.reset_option('^display.')
+        self.reset_display_options()
 
     def test_repr_tuples(self):
         buf = StringIO()
@@ -1034,7 +1033,7 @@ class TestDataFrameFormatting(tm.TestCase):
         assert(df_s == expected)
 
     def test_to_string_float_formatting(self):
-        fmt.reset_option('^display.')
+        self.reset_display_options()
         fmt.set_option('display.precision', 6, 'display.column_space',
                        12, 'display.notebook_repr_html', False)
 
@@ -1065,7 +1064,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     '1     0.253')
         assert(df_s == expected)
 
-        fmt.reset_option('^display.')
+        self.reset_display_options()
         self.assertEqual(get_option("display.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
@@ -1157,7 +1156,7 @@ c  10  11  12  13  14\
         self.assertEqual(rs, xp)
 
     def test_to_string_left_justify_cols(self):
-        fmt.reset_option('^display.')
+        self.reset_display_options()
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
         expected = ('   x       \n'
@@ -1166,7 +1165,7 @@ c  10  11  12  13  14\
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
-        fmt.reset_option('^display.')
+        self.reset_display_options()
         df = DataFrame({'A': [np.nan, -1, -2.1234, 3, 4],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
@@ -1434,14 +1433,14 @@ c  10  11  12  13  14\
         fmt.set_option('display.notebook_repr_html', False)
         self.frame._repr_html_()
 
-        fmt.reset_option('^display.')
+        self.reset_display_options()
 
         df = DataFrame([[1, 2], [3, 4]])
         self.assertTrue('2 rows' in df._repr_html_())
         fmt.set_option('display.show_dimensions', False)
         self.assertFalse('2 rows' in df._repr_html_())
 
-        fmt.reset_option('^display.')
+        self.reset_display_options()
 
     def test_repr_html_wide(self):
         row = lambda l, k: [tm.rands(k) for _ in range(l)]
@@ -1580,7 +1579,7 @@ c  10  11  12  13  14\
         repstr = self.frame._repr_html_()
         self.assertIn('class', repstr)  # info fallback
 
-        fmt.reset_option('^display.')
+        self.reset_display_options()
 
     def test_to_html_with_classes(self):
         df = pandas.DataFrame()
@@ -2092,7 +2091,7 @@ class TestEngFormatter(tm.TestCase):
                     '3    1E+06')
         self.assertEqual(result, expected)
 
-        fmt.reset_option('^display.')
+        self.reset_display_options()
 
     def compare(self, formatter, input, output):
         formatted_input = formatter(input)

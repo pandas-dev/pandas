@@ -140,7 +140,7 @@ def _describe_option(pat='', _print_desc=True):
         return s
 
 
-def _reset_option(pat):
+def _reset_option(pat, silent=False):
 
     keys = _select_options(pat)
 
@@ -154,7 +154,7 @@ def _reset_option(pat):
                          'value')
 
     for k in keys:
-        _set_option(k, _registered_options[k].defval)
+        _set_option(k, _registered_options[k].defval, silent=silent)
 
 
 def get_default_val(pat):
@@ -361,7 +361,7 @@ class option_context(object):
     def __exit__(self, *args):
         if self.undo:
             for pat, val in self.undo:
-                _set_option(pat, val)
+                _set_option(pat, val, silent=True)
 
 
 def register_option(key, defval, doc='', validator=None, cb=None):
@@ -567,6 +567,7 @@ def _warn_if_deprecated(key):
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
+            print(d.msg)
             warnings.warn(d.msg, DeprecationWarning)
         else:
             msg = "'%s' is deprecated" % key

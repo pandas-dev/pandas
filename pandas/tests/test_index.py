@@ -2145,7 +2145,7 @@ class TestMultiIndex(tm.TestCase):
         result = self.index.format()
         self.assertEqual(result[1], 'foo  two')
 
-        pd.reset_option("^display\.")
+        self.reset_display_options()
 
         warnings.filters = warn_filters
 
