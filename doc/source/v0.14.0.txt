@@ -370,7 +370,7 @@ Deprecations
   will not be supported in a future release (:issue:`6645`)
 
 - Indexers will warn ``FutureWarning`` when used with a scalar indexer and
-  a non-floating point Index (:issue:`4892`)
+  a non-floating point Index (:issue:`4892`, :issue:`6960`)
 
   .. code-block:: python
 
@@ -379,16 +379,24 @@ Deprecations
              pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
      Out[1]: 1
 
-     In [5]: Series(1,np.arange(5)).iloc[3.0]
+     In [2]: Series(1,np.arange(5)).iloc[3.0]
              pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
-     Out[5]: 1
+     Out[2]: 1
+
+     In [3]: Series(1,np.arange(5)).iloc[3.0:4]
+             pandas/core/index.py:527: FutureWarning: slice indexers when using iloc should be integers and not floating point
+     Out[3]:
+             3    1
+             dtype: int64
 
      # these are Float64Indexes, so integer or floating point is acceptable
-     In [3]: Series(1,np.arange(5.))[3]
-     Out[3]: 1
-
-     In [4]: Series(1,np.arange(5.))[3.0]
+     In [4]: Series(1,np.arange(5.))[3]
      Out[4]: 1
+
+     In [5]: Series(1,np.arange(5.))[3.0]
+     Out[6]: 1
+
+- Numpy 1.9 compat w.r.t. deprecation warnings (:issue:`6960`)
 
 - :meth:`Panel.shift` now has a function signature that matches :meth:`DataFrame.shift`.
   The old positional argument ``lags`` has been changed to a keyword argument
@@ -463,13 +471,13 @@ Enhancements
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:``rolling_max`` defaults to max,
   :func:``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
 - ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
-- :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of 
+- :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.
 - ``pivot_table`` can now accept ``Grouper`` by ``index`` and ``columns`` keywords (:issue:`6913`)
 
   .. ipython:: python
 
-    import datetime 
+    import datetime
     df = DataFrame({
       'Branch' : 'A A A A A B'.split(),
       'Buyer': 'Carl Mark Carl Carl Joe Joe'.split(),

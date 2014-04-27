@@ -200,7 +200,9 @@ Deprecations
   will not be supported in a future release (:issue:`6645`)
 
 - Indexers will warn ``FutureWarning`` when used with a scalar indexer and
-  a non-floating point Index (:issue:`4892`)
+  a non-floating point Index (:issue:`4892`, :issue:`6960`)
+
+- Numpy 1.9 compat w.r.t. deprecation warnings (:issue:`6960`)
 
 - :meth:`Panel.shift` now has a function signature that matches :meth:`DataFrame.shift`.
   The old positional argument ``lags`` has been changed to a keyword argument

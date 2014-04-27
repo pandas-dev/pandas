@@ -4355,7 +4355,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         fmt.set_option('display.show_dimensions', False)
         self.assertFalse("2 rows x 2 columns" in repr(df))
 
-        fmt.reset_option('^display\.')
+        self.reset_display_options()
 
     @slow
     def test_repr_big(self):
@@ -4391,7 +4391,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
         repr(self.frame)
 
-        fmt.reset_option('^display\.')
+        self.reset_display_options()
 
         warnings.filters = warn_filters
 
