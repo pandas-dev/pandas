@@ -55,9 +55,10 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(self.ts.plot, style='.', loglog=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.iseries.plot)
-        _check_plot_works(self.series[:5].plot, kind='bar')
-        _check_plot_works(self.series[:5].plot, kind='line')
-        _check_plot_works(self.series[:5].plot, kind='barh')
+
+        for kind in plotting._common_kinds:
+            _check_plot_works(self.series[:5].plot, kind=kind)
+
         _check_plot_works(self.series[:10].plot, kind='barh')
         _check_plot_works(Series(randn(10)).plot, kind='bar', color='black')
 
@@ -250,25 +251,19 @@ class TestSeriesPlots(tm.TestCase):
 
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
-
-        for kind in kinds:
+        for kind in plotting._common_kinds:
             with tm.assertRaises(TypeError):
                 s.plot(kind=kind)
 
     @slow
     def test_valid_object_plot(self):
         s = Series(lrange(10), dtype=object)
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
-
-        for kind in kinds:
+        for kind in plotting._common_kinds:
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
-
-        for kind in kinds:
+        for kind in plotting._common_kinds:
             with tm.assertRaises(TypeError):
                 s.plot(kind=kind)
 
@@ -1247,19 +1242,17 @@ class TestDataFramePlots(tm.TestCase):
         assert_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
     def test_all_invalid_plot_data(self):
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
         df = DataFrame(list('abcd'))
-        for kind in kinds:
+        for kind in plotting._common_kinds:
             with tm.assertRaises(TypeError):
                 df.plot(kind=kind)
 
     @slow
     def test_partially_invalid_plot_data(self):
         with tm.RNGContext(42):
-            kinds = 'line', 'bar', 'barh', 'kde', 'density'
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
-            for kind in kinds:
+            for kind in plotting._common_kinds:
                 with tm.assertRaises(TypeError):
                     df.plot(kind=kind)
 
