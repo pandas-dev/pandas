@@ -565,6 +565,11 @@ class _TestSQLApi(PandasSQLTest):
         sql.to_sql(df, "test_frame_integer_col_names", self.conn,
                    if_exists='replace')
 
+    def test_get_schema(self):
+        create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite',
+                                    con=self.conn)
+        self.assert_('CREATE' in create_sql)
+
 
 class TestSQLApi(_TestSQLApi):
     """
@@ -683,6 +688,11 @@ class TestSQLLegacyApi(_TestSQLApi):
         with tm.assert_produces_warning():
             sql.to_sql(df, "test_frame3_legacy", self.conn,
                        flavor="sqlite", index=False)
+
+    def test_get_schema2(self):
+        # without providing a connection object (available for backwards comp)
+        create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite')
+        self.assert_('CREATE' in create_sql)
 
 
 #------------------------------------------------------------------------------

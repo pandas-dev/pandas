@@ -484,7 +484,8 @@ class PandasSQLTable(PandasObject):
         return self.pd_sql.has_table(self.name)
 
     def sql_schema(self):
-        return str(self.table.compile())
+        from sqlalchemy.schema import CreateTable
+        return str(CreateTable(self.table))
 
     def create(self):
         self.table.create()
@@ -782,7 +783,7 @@ class PandasSQLAlchemy(PandasSQL):
 
     def _create_sql_schema(self, frame, table_name):
         table = PandasSQLTable(table_name, self, frame=frame)
-        return str(table.compile())
+        return str(table.sql_schema())
 
 
 # ---- SQL without SQLAlchemy ---
@@ -1028,27 +1029,78 @@ class PandasSQLLegacy(PandasSQL):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
+    def _create_sql_schema(self, frame, table_name):
+        table = PandasSQLTableLegacy(table_name, self, frame=frame)
+        return str(table.sql_schema())
 
-# legacy names, with depreciation warnings and copied docs
-def get_schema(frame, name, con, flavor='sqlite'):
+
+def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
     """
     Get the SQL db table schema for the given frame
 
     Parameters
     ----------
-    frame: DataFrame
-    name: name of SQL table
-    con: an open SQL database connection object
-    engine: an SQLAlchemy engine - replaces connection and flavor
-    flavor: {'sqlite', 'mysql'}, default 'sqlite'
+    frame : DataFrame
+    name : name of SQL table
+    flavor : {'sqlite', 'mysql'}, default 'sqlite'
+    keys : columns to use a primary key
+    con: an open SQL database connection object or an SQLAlchemy engine
 
     """
-    warnings.warn("get_schema is depreciated", FutureWarning)
+
+    if con is None:
+        return _get_schema_legacy(frame, name, flavor, keys)
 
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     return pandas_sql._create_sql_schema(frame, name)
 
 
+def _get_schema_legacy(frame, name, flavor, keys=None):
+    """Old function from 0.13.1. To keep backwards compatibility.
+    When mysql legacy support is dropped, it should be possible to
+    remove this code
+    """
+
+    def get_sqltype(dtype, flavor):
+        pytype = dtype.type
+        pytype_name = "text"
+        if issubclass(pytype, np.floating):
+            pytype_name = "float"
+        elif issubclass(pytype, np.integer):
+            pytype_name = "int"
+        elif issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            pytype_name = "datetime"
+        elif pytype is datetime.date:
+            pytype_name = "date"
+        elif issubclass(pytype, np.bool_):
+            pytype_name = "bool"
+
+        return _SQL_TYPES[pytype_name][flavor]
+
+    lookup_type = lambda dtype: get_sqltype(dtype, flavor)
+
+    column_types = lzip(frame.dtypes.index, map(lookup_type, frame.dtypes))
+    if flavor == 'sqlite':
+        columns = ',\n  '.join('[%s] %s' % x for x in column_types)
+    else:
+        columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+
+    keystr = ''
+    if keys is not None:
+        if isinstance(keys, string_types):
+            keys = (keys,)
+        keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
+    template = """CREATE TABLE %(name)s (
+                  %(columns)s
+                  %(keystr)s
+                  );"""
+    create_statement = template % {'name': name, 'columns': columns,
+                                   'keystr': keystr}
+    return create_statement
+
+
+# legacy names, with depreciation warnings and copied docs
 
 def read_frame(*args, **kwargs):
     """DEPRECIATED - use read_sql
