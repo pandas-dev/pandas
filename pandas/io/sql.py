@@ -130,7 +130,7 @@ def tquery(sql, con, cur=None, params=None, flavor='sqlite'):
     """
     warnings.warn(
         "tquery is depreciated, and will be removed in future versions",
-        DeprecationWarning)
+        FutureWarning)
 
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     args = _convert_params(sql, params)
@@ -163,7 +163,7 @@ def uquery(sql, con, cur=None, params=None, engine=None, flavor='sqlite'):
     """
     warnings.warn(
         "uquery is depreciated, and will be removed in future versions",
-        DeprecationWarning)
+        FutureWarning)
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.uquery(*args)
@@ -212,7 +212,7 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
-    
+
 
     """
     pandas_sql = PandasSQLAlchemy(con, meta=meta)
@@ -322,8 +322,8 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     Notes
     -----
     This function is a convenience wrapper around ``read_sql_table`` and
-    ``read_sql_query`` (and for backward compatibility) and will delegate 
-    to the specific function depending on the provided input (database 
+    ``read_sql_query`` (and for backward compatibility) and will delegate
+    to the specific function depending on the provided input (database
     table name or sql query).
 
     See also
@@ -423,13 +423,12 @@ def pandasSQL_builder(con, flavor=None, meta=None):
         if isinstance(con, sqlalchemy.engine.Engine):
             return PandasSQLAlchemy(con, meta=meta)
         else:
-            warnings.warn(
-                """Not an SQLAlchemy engine,
-                  attempting to use as legacy DBAPI connection""")
+            warnings.warn("Not an SQLAlchemy engine, "
+                          "attempting to use as legacy DBAPI connection")
             if flavor is None:
                 raise ValueError(
-                    """PandasSQL must be created with an SQLAlchemy engine
-                    or a DBAPI2 connection and SQL flavour""")
+                    "PandasSQL must be created with an SQLAlchemy engine "
+                    "or a DBAPI2 connection and SQL flavor")
             else:
                 return PandasSQLLegacy(con, flavor)
 
@@ -1006,7 +1005,7 @@ class PandasSQLLegacy(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
-        
+
         """
         table = PandasSQLTableLegacy(
             name, self, frame=frame, index=index, if_exists=if_exists,
@@ -1041,20 +1040,20 @@ def get_schema(frame, name, con, flavor='sqlite'):
     name: name of SQL table
     con: an open SQL database connection object
     engine: an SQLAlchemy engine - replaces connection and flavor
-    flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
+    flavor: {'sqlite', 'mysql'}, default 'sqlite'
 
     """
-    warnings.warn(
-        "get_schema is depreciated", DeprecationWarning)
+    warnings.warn("get_schema is depreciated", FutureWarning)
+
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     return pandas_sql._create_sql_schema(frame, name)
+
 
 
 def read_frame(*args, **kwargs):
     """DEPRECIATED - use read_sql
     """
-    warnings.warn(
-        "read_frame is depreciated, use read_sql", DeprecationWarning)
+    warnings.warn("read_frame is depreciated, use read_sql", FutureWarning)
     return read_sql(*args, **kwargs)
 
 
@@ -1092,7 +1091,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     pandas.DataFrame.to_sql
 
     """
-    warnings.warn("write_frame is depreciated, use to_sql", DeprecationWarning)
+    warnings.warn("write_frame is depreciated, use to_sql", FutureWarning)
 
     # for backwards compatibility, set index=False when not specified
     index = kwargs.pop('index', False)

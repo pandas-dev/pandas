@@ -336,8 +336,9 @@ class _TestSQLApi(PandasSQLTest):
         self._check_iris_loaded_frame(iris_frame)
 
     def test_legacy_read_frame(self):
-        iris_frame = sql.read_frame(
-            "SELECT * FROM iris", self.conn, flavor='sqlite')
+        with tm.assert_produces_warning(FutureWarning):
+            iris_frame = sql.read_frame(
+                "SELECT * FROM iris", self.conn, flavor='sqlite')
         self._check_iris_loaded_frame(iris_frame)
 
     def test_to_sql(self):
@@ -402,8 +403,10 @@ class _TestSQLApi(PandasSQLTest):
     def test_legacy_write_frame(self):
         # Assume that functionality is already tested above so just do
         # quick check that it basically works
-        sql.write_frame(self.test_frame1, 'test_frame_legacy', self.conn,
-                        flavor='sqlite')
+        with tm.assert_produces_warning(FutureWarning):
+            sql.write_frame(self.test_frame1, 'test_frame_legacy', self.conn,
+                            flavor='sqlite')
+
         self.assertTrue(
             sql.has_table('test_frame_legacy', self.conn, flavor='sqlite'),
             'Table not written to DB')
@@ -431,10 +434,17 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_tquery(self):
-        iris_results = sql.tquery(
-            "SELECT * FROM iris", con=self.conn, flavor='sqlite')
+        with tm.assert_produces_warning(FutureWarning):
+            iris_results = sql.tquery(
+                "SELECT * FROM iris", con=self.conn, flavor='sqlite')
         row = iris_results[0]
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+    def test_uquery(self):
+        with tm.assert_produces_warning(FutureWarning):
+            rows = sql.uquery(
+                "SELECT * FROM iris LIMIT 1", con=self.conn, flavor='sqlite')
+        self.assertEqual(rows, -1)
 
     def test_date_parsing(self):
         # Test date parsing in read_sq
