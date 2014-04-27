@@ -99,7 +99,7 @@ def _bn_ok_dtype(dt, name):
         # bottleneck does not properly upcast during the sum
         # so can overflow
         if name == 'nansum':
-            if dt != np.bool_ and dt.itemsize < 8:
+            if dt.itemsize < 8:
                 return False
 
         return True
