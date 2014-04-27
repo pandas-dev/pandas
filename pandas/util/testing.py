@@ -69,6 +69,10 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
+    def reset_display_options(self):
+        # reset the display options
+        pd.reset_option('^display.',silent=True)
+
     def assert_numpy_array_equal(self, np_array, assert_equal):
         if np.array_equal(np_array, assert_equal):
 	        return
