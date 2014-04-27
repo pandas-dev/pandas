@@ -125,7 +125,7 @@ def tquery(sql, con=None, cur=None, retry=True):
     If only one column selected, then plain list is returned.
 
     To obtain the same result in the future, you can use the following:
-    
+
     >>> execute(sql, con, params).fetchall()
 
     Parameters
@@ -144,7 +144,7 @@ def tquery(sql, con=None, cur=None, retry=True):
         "tquery is depreciated, and will be removed in future versions. "
         "You can use ``execute(...).fetchall()`` instead.",
         FutureWarning)
-    
+
     cur = execute(sql, con, cur=cur)
     result = _safe_fetch(cur)
 
@@ -178,7 +178,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     returns the number of rows affected.  Good for update queries.
 
     To obtain the same result in the future, you can use the following:
-    
+
     >>> execute(sql, con).rowcount
 
     Parameters
@@ -382,7 +382,19 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
 
-    if pandas_sql.has_table(sql):
+    if 'select' in sql.lower():
+        try:
+            if pandas_sql.has_table(sql):
+                return pandas_sql.read_table(
+                    sql, index_col=index_col, coerce_float=coerce_float,
+                    parse_dates=parse_dates, columns=columns)
+        except:
+            pass
+
+        return pandas_sql.read_sql(
+            sql, index_col=index_col, params=params,
+            coerce_float=coerce_float, parse_dates=parse_dates)
+    else:
         if isinstance(pandas_sql, PandasSQLLegacy):
             raise ValueError("Reading a table with read_sql is not supported "
                              "for a DBAPI2 connection. Use an SQLAlchemy "
@@ -390,10 +402,6 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
         return pandas_sql.read_table(
             sql, index_col=index_col, coerce_float=coerce_float,
             parse_dates=parse_dates, columns=columns)
-    else:
-        return pandas_sql.read_sql(
-            sql, index_col=index_col, params=params, coerce_float=coerce_float,
-            parse_dates=parse_dates)
 
 
 def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
@@ -425,6 +433,9 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
         A sequence should be given if the DataFrame uses MultiIndex.
 
     """
+    if if_exists not in ('fail', 'replace', 'append'):
+        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
 
     if isinstance(frame, Series):
@@ -436,7 +447,7 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
                       index_label=index_label)
 
 
-def has_table(table_name, con, meta=None, flavor='sqlite'):
+def has_table(table_name, con, flavor='sqlite'):
     """
     Check if DataBase has named table.
 
@@ -458,6 +469,8 @@ def has_table(table_name, con, meta=None, flavor='sqlite'):
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     return pandas_sql.has_table(table_name)
+
+table_exists = has_table
 
 
 def pandasSQL_builder(con, flavor=None, meta=None):
@@ -518,6 +531,9 @@ class PandasSQLTable(PandasObject):
                     self.table = self.pd_sql.get_table(self.name)
                     if self.table is None:
                         self.table = self._create_table_statement()
+                else:
+                    raise ValueError(
+                        "'{0}' is not valid for if_exists".format(if_exists))
             else:
                 self.table = self._create_table_statement()
                 self.create()
@@ -1133,6 +1149,13 @@ def read_frame(*args, **kwargs):
     return read_sql(*args, **kwargs)
 
 
+def frame_query(*args, **kwargs):
+    """DEPRECIATED - use read_sql
+    """
+    warnings.warn("frame_query is depreciated, use read_sql", FutureWarning)
+    return read_sql(*args, **kwargs)
+
+
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """DEPRECIATED - use to_sql
 
@@ -1177,3 +1200,4 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
 
 # Append wrapped function docstrings
 read_frame.__doc__ += read_sql.__doc__
+frame_query.__doc__ += read_sql.__doc__
