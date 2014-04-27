@@ -3135,6 +3135,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame([[np.nan, 1], [1, 0]])
         assert_frame_equal(df, expected)
 
+    def test_constructor_iterator_failure(self):
+        with assertRaisesRegexp(TypeError, 'iterator'):
+            df = DataFrame(iter([1, 2, 3]))
+
     def test_constructor_column_duplicates(self):
         # it works! #2079
         df = DataFrame([[8, 5]], columns=['a', 'a'])

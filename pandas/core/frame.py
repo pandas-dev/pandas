@@ -253,6 +253,8 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
+        elif isinstance(data, collections.Iterator):
+            raise TypeError("data argument can't be an iterator")
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
