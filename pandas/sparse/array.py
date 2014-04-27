@@ -509,7 +509,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
     length = len(arr)
 
     if np.isnan(fill_value):
-        mask = -np.isnan(arr)
+        mask = ~np.isnan(arr)
     else:
         mask = arr != fill_value
 

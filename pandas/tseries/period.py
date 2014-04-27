@@ -1065,7 +1065,7 @@ class PeriodIndex(Int64Index):
         mask = isnull(self.values)
         values[mask] = na_rep
 
-        imask = -mask
+        imask = ~mask
         values[imask] = np.array([u('%s') % dt for dt in values[imask]])
         return values.tolist()
 

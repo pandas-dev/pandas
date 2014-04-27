@@ -480,10 +480,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
             if is_integer(key):
                 return key
             elif is_float(key):
-                if not self.is_floating():
-                    warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                        type(self).__name__),FutureWarning)
-                return to_int()
+                key = to_int()
+                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                    type(self).__name__),FutureWarning)
+                return key
             return self._convert_indexer_error(key, 'label')
 
         if is_float(key):
@@ -498,17 +498,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """ validate and raise if needed on a slice indexers according to the
         passed in function """
 
-        if not f(key.start):
-            self._convert_indexer_error(key.start, 'slice start value')
-        if not f(key.stop):
-            self._convert_indexer_error(key.stop, 'slice stop value')
-        if not f(key.step):
-            self._convert_indexer_error(key.step, 'slice step value')
-
-    def _convert_slice_indexer_iloc(self, key):
-        """ convert a slice indexer for iloc only """
-        self._validate_slicer(key, lambda v: v is None or is_integer(v))
-        return key
+        for c in ['start','stop','step']:
+            if not f(getattr(key,c)):
+                self._convert_indexer_error(key.start, 'slice {0} value'.format(c))
 
     def _convert_slice_indexer_getitem(self, key, is_index_slice=False):
         """ called from the getitem slicers, determine how to treat the key
@@ -520,6 +512,25 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def _convert_slice_indexer(self, key, typ=None):
         """ convert a slice indexer. disallow floats in the start/stop/step """
 
+        # validate iloc
+        if typ == 'iloc':
+
+            # need to coerce to_int if needed
+            def f(c):
+                v = getattr(key,c)
+                if v is None or is_integer(v):
+                    return v
+
+                # warn if its a convertible float
+                if v == int(v):
+                    warnings.warn("slice indexers when using iloc should be integers "
+                                  "and not floating point",FutureWarning)
+                    return int(v)
+
+                self._convert_indexer_error(v, 'slice {0} value'.format(c))
+
+            return slice(*[ f(c) for c in ['start','stop','step']])
+
         # validate slicers
         def validate(v):
             if v is None or is_integer(v):
@@ -530,7 +541,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
                 return False
 
             return True
-
         self._validate_slicer(key, validate)
 
         # figure out if this is a positional indexer
@@ -543,9 +553,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         is_index_slice = is_int(start) and is_int(stop)
         is_positional = is_index_slice and not self.is_integer()
 
-        if typ == 'iloc':
-            return self._convert_slice_indexer_iloc(key)
-        elif typ == 'getitem':
+        if typ == 'getitem':
             return self._convert_slice_indexer_getitem(
                 key, is_index_slice=is_index_slice)
 
@@ -1980,7 +1988,7 @@ class Float64Index(Index):
         """ convert a slice indexer, by definition these are labels
             unless we are iloc """
         if typ == 'iloc':
-            return self._convert_slice_indexer_iloc(key)
+            return super(Float64Index, self)._convert_slice_indexer(key, typ=typ)
 
         # allow floats here
         self._validate_slicer(
@@ -2385,14 +2393,6 @@ class MultiIndex(Index):
 
     def __len__(self):
         return len(self.labels[0])
-
-    def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer. disallow floats in the start/stop/step """
-
-        if typ == 'iloc':
-            return self._convert_slice_indexer_iloc(key)
-
-        return super(MultiIndex, self)._convert_slice_indexer(key, typ=typ)
 
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
@@ -2997,7 +2997,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = -lib.ismember(self.labels[i], set(values))
+        mask = ~lib.ismember(self.labels[i], set(values))
 
         return self[mask]
 

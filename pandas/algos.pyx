@@ -510,7 +510,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         if not retry:
             raise
 
-        valid_locs = (-mask).nonzero()[0]
+        valid_locs = (~mask).nonzero()[0]
         ranks.put(valid_locs, rank_1d_generic(values.take(valid_locs), 0,
                                               ties_method=ties_method,
                                               ascending=ascending))

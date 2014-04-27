@@ -190,9 +190,9 @@ def _isfinite(values):
     if issubclass(values.dtype.type, (np.timedelta64, np.datetime64)):
         return isnull(values)
     elif isinstance(values.dtype, object):
-        return -np.isfinite(values.astype('float64'))
+        return ~np.isfinite(values.astype('float64'))
 
-    return -np.isfinite(values)
+    return ~np.isfinite(values)
 
 
 def _na_ok_dtype(dtype):

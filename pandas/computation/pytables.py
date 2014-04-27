@@ -33,9 +33,7 @@ class Term(ops.Term):
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, string_types) else cls
         supr_new = StringMixin.__new__
-        if PY3:
-            return supr_new(klass)
-        return supr_new(klass, name, env, side=side, encoding=encoding)
+        return supr_new(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
         super(Term, self).__init__(name, env, side=side, encoding=encoding)

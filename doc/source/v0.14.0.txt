@@ -368,6 +368,8 @@ There are prior version deprecations that are taking effect as of 0.14.0.
   ( `commit 3136390 <https://github.com/pydata/pandas/commit/3136390>`__ )
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
+- Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
+  be deprecated in numpy 1.9 (:issue:`6960`)
 
 .. _whatsnew_0140.deprecations:
 

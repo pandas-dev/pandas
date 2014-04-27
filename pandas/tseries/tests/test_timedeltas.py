@@ -122,8 +122,8 @@ class TestTimedeltas(tm.TestCase):
     def test_nat_converters(self):
         _skip_if_numpy_not_friendly()
 
-        self.assertEqual(to_timedelta('nat',box=False), tslib.iNaT)
-        self.assertEqual(to_timedelta('nan',box=False), tslib.iNaT)
+        self.assertEqual(to_timedelta('nat',box=False).astype('int64'), tslib.iNaT)
+        self.assertEqual(to_timedelta('nan',box=False).astype('int64'), tslib.iNaT)
 
     def test_to_timedelta(self):
         _skip_if_numpy_not_friendly()
@@ -137,7 +137,7 @@ class TestTimedeltas(tm.TestCase):
 
         # empty string
         result = to_timedelta('',box=False)
-        self.assertEqual(result, tslib.iNaT)
+        self.assertEqual(result.astype('int64'), tslib.iNaT)
 
         result = to_timedelta(['', ''])
         self.assert_(isnull(result).all())
@@ -302,10 +302,10 @@ class TestTimedeltas(tm.TestCase):
         assert_series_equal(actual, expected)
 
         actual = pd.to_timedelta(np.nan)
-        self.assertEqual(actual, timedelta_NaT)
+        self.assertEqual(actual.astype('int64'), timedelta_NaT.astype('int64'))
 
         actual = pd.to_timedelta(pd.NaT)
-        self.assertEqual(actual, timedelta_NaT)
+        self.assertEqual(actual.astype('int64'), timedelta_NaT.astype('int64'))
 
     def test_timedelta_ops_with_missing_values(self):
         _skip_if_numpy_not_friendly()

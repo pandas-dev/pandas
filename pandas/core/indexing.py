@@ -7,7 +7,7 @@ import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
-                                ABCSeries, ABCDataFrame, ABCPanel)
+                                ABCSeries, ABCDataFrame, ABCPanel, is_float)
 import pandas.lib as lib
 
 import numpy as np
@@ -1319,6 +1319,7 @@ class _iLocIndexer(_LocationIndexer):
         if not _need_slice(slice_obj):
             return obj
 
+        slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
             return self._slice(slice_obj, axis=axis, typ='iloc')
         else:
@@ -1363,7 +1364,15 @@ class _iLocIndexer(_LocationIndexer):
 
     def _convert_to_indexer(self, obj, axis=0, is_setter=False):
         """ much simpler as we only have to deal with our valid types """
-        if self._has_valid_type(obj, axis):
+
+        # make need to convert a float key
+        if isinstance(obj, slice):
+            return self._convert_slice_indexer(obj, axis)
+
+        elif is_float(obj):
+            return self._convert_scalar_indexer(obj, axis)
+
+        elif self._has_valid_type(obj, axis):
             return obj
 
         raise ValueError("Can only index by location with a [%s]" %
