@@ -27,6 +27,12 @@ users upgrade to this version.
 
 - :ref:`Bug Fixes <release.bug_fixes-0.14.0>`
 
+.. warning::
+
+   In 0.14.0 all ``NDFrame`` based containers have underwent significant internal refactoring.  Before that each block of
+   homogeneous data had its own labels and extra care was necessary to keep those in sync with parent container's labels.
+   As stated, the refactoring is internal and no publicly visible changes should happen.
+
 .. _whatsnew_0140.api:
 
 API changes

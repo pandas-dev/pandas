@@ -295,6 +295,8 @@ Improvements to existing features
 - ``read_excel`` can now read milliseconds in Excel dates and times with xlrd >= 0.9.3. (:issue:`5945`)
 - ``pivot_table`` can now accept ``Grouper`` by ``index`` and ``columns`` keywords (:issue:`6913`)
 - Improved performance of compatible pickles (:issue:`6899`)
+- Refactor Block classes removing `Block.items` attributes to avoid duplication
+  in item handling (:issue:`6745`, :issue:`6988`).
 
 .. _release.bug_fixes-0.14.0:
 
