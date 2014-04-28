@@ -2,6 +2,7 @@ import types
 from functools import wraps
 import numpy as np
 import datetime
+import collections
 
 from pandas.compat import(
     zip, builtins, range, long, lrange, lzip,
@@ -1555,6 +1556,17 @@ class BinGrouper(BaseGrouper):
             result_values.append(res)
 
         return result_keys, result_values, mutated
+
+    @cache_readonly
+    def indices(self):
+        indices = collections.defaultdict(list)
+
+        i = 0
+        for label, bin in zip(self.binlabels, self.bins):
+            if i < bin:
+                indices[label] = list(range(i, bin))
+                i = bin
+        return indices
 
     @cache_readonly
     def ngroups(self):
