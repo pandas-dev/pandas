@@ -36,6 +36,7 @@ sys.path.extend([
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.  sphinxext.
 
 extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.autosummary',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
@@ -63,7 +64,6 @@ with open("index.rst") as f:
 autosummary_generate = False
 
 if any([re.match("\s*api\s*",l) for l in lines]):
-    extensions.append('sphinx.ext.autosummary')
     autosummary_generate = True
 
 ds = []
