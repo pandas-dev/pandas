@@ -3,7 +3,7 @@ language: python
 env:
   global:
   # scatterci API key
-  - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+  #- secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
   # ironcache API key
   - secure: "e4eEFn9nDQc3Xa5BWYkzfX37jaWVq89XidVX+rcCNEr5OlOImvveeXnF1IzbRXznH4Sv0YsLwUd8RGUWOmyCvkONq/VJeqCHWtTMyfaCIdqSyhIP9Odz8r9ahch+Y0XFepBey92AJHmlnTh+2GjCDgIiqq4fzglojnp56Vg1ojA="
   - secure: "CjmYmY5qEu3KrvMtel6zWFEtMq8ORBeS1S1odJHnjQpbwT1KY2YFZRVlLphfyDQXSz6svKUdeRrCNp65baBzs3DQNA8lIuXGIBYFeJxqVGtYAZZs6+TzBPfJJK798sGOj5RshrOJkFG2rdlWNuTq/XphI0JOrN3nPUkRrdQRpAw="
@@ -51,6 +51,7 @@ matrix:
       - JOB_NAME: "27_numpy_master"
       - JOB_TAG=_NUMPY_DEV_master
       - NUMPY_BUILD=master
+      - PANDAS_TESTING_MODE="numpy_deprecate"
     allow_failures:
       - python: 2.7
         env:
@@ -58,6 +59,7 @@ matrix:
         - JOB_NAME: "27_numpy_master"
         - JOB_TAG=_NUMPY_DEV_master
         - NUMPY_BUILD=master
+        - PANDAS_TESTING_MODE="numpy_deprecate"
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
