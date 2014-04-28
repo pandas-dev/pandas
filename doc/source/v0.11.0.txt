@@ -118,6 +118,7 @@ Forcing Date coercion (and setting ``NaT`` when not datelike)
 
 .. ipython:: python
 
+   from datetime import datetime
    s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
                Timestamp('20010104'), '20010105'],dtype='O')
    s.convert_objects(convert_dates='coerce')

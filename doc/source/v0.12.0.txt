@@ -370,6 +370,7 @@ Experimental Features
     .. ipython:: python
 
       from pandas.tseries.offsets import CustomBusinessDay
+      from datetime import datetime
       # As an interesting example, let's look at Egypt where
       # a Friday-Saturday weekend is observed.
       weekmask_egypt = 'Sun Mon Tue Wed Thu'

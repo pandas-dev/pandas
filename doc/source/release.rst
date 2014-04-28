@@ -164,7 +164,7 @@ API Changes
   - ``False``: Do nothing (default).
   - ``True``: Draw a table using the ``DataFrame`` or ``Series`` called ``plot`` method. Data will be transposed to meet matplotlib's default layout.
   - ``DataFrame`` or ``Series``: Draw matplotlib.table using the passed data. The data will be drawn as displayed in print method (not transposed automatically).
-  Also, helper function ``pandas.tools.plotting.table`` is added to create a table from ``DataFrame`` and ``Series``, and add it to an ``matplotlib.Axes``.
+    Also, helper function ``pandas.tools.plotting.table`` is added to create a table from ``DataFrame`` and ``Series``, and add it to an ``matplotlib.Axes``.
 
 - drop unused order argument from ``Series.sort``; args now in the same orders as ``Series.order``;
   add ``na_position`` arg to conform to ``Series.order`` (:issue:`6847`)
@@ -431,7 +431,7 @@ Bug Fixes
 - Bug in C parser with leading whitespace (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
-- Bug in ``DataFrame.apply`` with functions that used *args or **kwargs and returned
+- Bug in ``DataFrame.apply`` with functions that used \*args`` or \*\*kwargs and returned
   an empty result (:issue:`6952`)
 - Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
 
