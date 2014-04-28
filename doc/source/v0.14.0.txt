@@ -29,9 +29,9 @@ users upgrade to this version.
 
 .. warning::
 
-   In 0.14.0 all ``NDFrame`` based containers have underwent significant internal refactoring.  Before that each block of
-   homogeneous data had its own labels and extra care was necessary to keep those in sync with parent container's labels.
-   As stated, the refactoring is internal and no publicly visible changes should happen.
+   In 0.14.0 all ``NDFrame`` based containers have undergone significant internal refactoring. Before that each block of
+   homogeneous data had its own labels and extra care was necessary to keep those in sync with the parent container's labels.
+   This should not have any visible user/API behavior changes (:issue:`6745`)
 
 .. _whatsnew_0140.api:
 
@@ -529,6 +529,7 @@ Performance
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
 - Improved performance of compatible pickles (:issue:`6899`)
+- Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
 
 Experimental
 ~~~~~~~~~~~~

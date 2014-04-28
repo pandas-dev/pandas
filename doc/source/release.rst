@@ -296,6 +296,7 @@ Improvements to existing features
 - Improved performance of compatible pickles (:issue:`6899`)
 - Refactor Block classes removing `Block.items` attributes to avoid duplication
   in item handling (:issue:`6745`, :issue:`6988`).
+- Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
 
 .. _release.bug_fixes-0.14.0:
 
