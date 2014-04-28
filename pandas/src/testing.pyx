@@ -121,8 +121,7 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
             dtype_a = np.dtype(type(a))
             dtype_b = np.dtype(type(b))
             if dtype_a.kind == 'f' and dtype_b == 'f':
-                if dtype_a.itemsize <= 4 or dtype_b.itemsize <= 4:
-                    decimal = 3
+                decimal = 3
 
         if np.isinf(a):
             assert np.isinf(b), "First object is inf, second isn't"
