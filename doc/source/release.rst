@@ -435,6 +435,8 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` with functions that used \*args`` or \*\*kwargs and returned
   an empty result (:issue:`6952`)
 - Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
+- Bug in enabling ``subplots=True`` in ``DataFrame.plot`` only has single column raises ``TypeError``, and ``Series.plot`` raises ``AttributeError`` (:issue:`6951`)
+- Bug in ``DataFrame.plot`` draws unnecessary axes when enabling ``subplots`` and ``kind=scatter`` (:issue:`6951`)
 
 pandas 0.13.1
 -------------

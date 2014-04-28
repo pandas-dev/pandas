@@ -62,6 +62,9 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(self.series[:10].plot, kind='barh')
         _check_plot_works(Series(randn(10)).plot, kind='bar', color='black')
 
+        # GH 6951
+        _check_plot_works(self.ts.plot, subplots=True)
+
     @slow
     def test_plot_figsize_and_title(self):
         # figsize and title
@@ -367,6 +370,11 @@ class TestDataFramePlots(tm.TestCase):
                        index=index)
         _check_plot_works(df.plot, title=u('\u03A3'))
 
+        # GH 6951
+        # Test with single column
+        df = DataFrame({'x': np.random.rand(10)})
+        _check_plot_works(df.plot, kind='bar', subplots=True)
+
     def test_nonnumeric_exclude(self):
         import matplotlib.pyplot as plt
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
@@ -664,6 +672,10 @@ class TestDataFramePlots(tm.TestCase):
             df.plot(x='x', kind='scatter')
         with tm.assertRaises(ValueError):
             df.plot(y='y', kind='scatter')
+
+        # GH 6951
+        axes = df.plot(x='x', y='y', kind='scatter', subplots=True)
+        self.assertEqual(len(axes[0].figure.axes), 1)
 
     @slow
     def test_plot_bar(self):
@@ -1270,6 +1282,11 @@ class TestDataFramePlots(tm.TestCase):
         ax = df.plot(kind='hexbin', x='A', y='B', gridsize=10)
         # TODO: need better way to test. This just does existence.
         self.assertEqual(len(ax.collections), 1)
+
+        # GH 6951
+        axes = df.plot(x='A', y='B', kind='hexbin', subplots=True)
+        # hexbin should have 2 axes, 1 for plotting and another is colorbar
+        self.assertEqual(len(axes[0].figure.axes), 2)
 
     @slow
     def test_hexbin_with_c(self):

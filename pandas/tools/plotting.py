@@ -966,18 +966,13 @@ class MPLPlot(object):
     def _setup_subplots(self):
         if self.subplots:
             nrows, ncols = self._get_layout()
-            if self.ax is None:
-                fig, axes = _subplots(nrows=nrows, ncols=ncols,
-                                      sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize,
-                                      secondary_y=self.secondary_y,
-                                      data=self.data)
-            else:
-                fig, axes = _subplots(nrows=nrows, ncols=ncols,
-                                      sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize, ax=self.ax,
-                                      secondary_y=self.secondary_y,
-                                      data=self.data)
+            fig, axes = _subplots(nrows=nrows, ncols=ncols,
+                                  sharex=self.sharex, sharey=self.sharey,
+                                  figsize=self.figsize, ax=self.ax,
+                                  secondary_y=self.secondary_y,
+                                  data=self.data)
+            if not com.is_list_like(axes):
+                axes = np.array([axes])
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
@@ -1000,7 +995,11 @@ class MPLPlot(object):
         self.axes = axes
 
     def _get_layout(self):
-        return (len(self.data.columns), 1)
+        from pandas.core.frame import DataFrame
+        if isinstance(self.data, DataFrame):
+            return (len(self.data.columns), 1)
+        else:
+            return (1, 1)
 
     def _compute_plot_data(self):
         numeric_data = self.data.convert_objects()._get_numeric_data()
@@ -1403,6 +1402,8 @@ class ScatterPlot(MPLPlot):
         self.x = x
         self.y = y
 
+    def _get_layout(self):
+        return (1, 1)
 
     def _make_plot(self):
         x, y, data = self.x, self.y, self.data
@@ -1441,6 +1442,9 @@ class HexBinPlot(MPLPlot):
         self.x = x
         self.y = y
         self.C = C
+
+    def _get_layout(self):
+        return (1, 1)
 
     def _make_plot(self):
         import matplotlib.pyplot as plt
