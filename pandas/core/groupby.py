@@ -426,7 +426,11 @@ class GroupBy(PandasObject):
                 return Timestamp(key).asm8
             return key
 
-        sample = next(iter(self.indices))
+        if len(self.indices) > 0:
+            sample = next(iter(self.indices))
+        else:
+            sample = None       # Dummy sample
+
         if isinstance(sample, tuple):
             if not isinstance(name, tuple):
                 msg = ("must supply a tuple to get_group with multiple"
