@@ -477,6 +477,7 @@ Bug Fixes
   were being passed to plotting method (:issue:`6956`)
 - Bug in ``Float64Index.isin()`` where containing ``nan`` s would make indices
   claim that they contained all the things (:issue:`7066`).
+- Bug in ``DataFrame.boxplot`` where it failed to use the axis passed as the ``ax`` argument (:issue:`3578`)
 
 pandas 0.13.1
 -------------

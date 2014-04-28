@@ -2760,10 +2760,16 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         columns = data._get_numeric_data().columns - by
     ngroups = len(columns)
 
-    nrows, ncols = _get_layout(ngroups)
-    fig, axes = _subplots(nrows=nrows, ncols=ncols,
-                          sharex=True, sharey=True,
-                          figsize=figsize, ax=ax)
+    if ax is None:
+        nrows, ncols = _get_layout(ngroups)
+        fig, axes = _subplots(nrows=nrows, ncols=ncols,
+                              sharex=True, sharey=True,
+                              figsize=figsize, ax=ax)
+    else:
+        if ngroups > 1:
+            raise ValueError("Using an existing axis is not supported when plotting multiple columns.")
+        fig = ax.get_figure()
+        axes = ax.get_axes()
 
     if isinstance(axes, plt.Axes):
         ravel_axes = [axes]
