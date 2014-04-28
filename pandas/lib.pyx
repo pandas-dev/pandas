@@ -495,6 +495,17 @@ def fast_zip(list ndarrays):
     return result
 
 def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+    """
+    Reverse indexing operation.
+
+    Given `indexer`, make `indexer_inv` of it, such that::
+
+        indexer_inv[indexer[x]] = x
+
+    .. note:: If indexer is not unique, only first occurrence is accounted.
+
+    """
+
     cdef:
         Py_ssize_t i, n = len(indexer)
         ndarray[int64_t] rev_indexer

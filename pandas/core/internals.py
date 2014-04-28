@@ -2316,7 +2316,7 @@ class BlockManager(PandasObject):
 
         # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
-        inv_indexer = _invert_reordering(indexer)
+        inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
         new_items = self.items.take(indexer)
 
         new_blocks = []
@@ -3506,69 +3506,8 @@ def _possibly_compare(a, b, op):
     return res
 
 
-
-
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
-
-
-def _invert_reordering(reordering, minlength=None):
-    """
-    Invert reordering operation.
-
-    Given array `reordering`, make `reordering_inv` of it, such that::
-
-        reordering_inv[reordering[x]] = x
-
-    There are two types of indexers:
-
-    source
-        is when element *s* at position *i* means that values to fill *i-th*
-        item of reindex operation should be taken from *s-th* item of the
-        original (this is what is returned by `pandas.Index.reindex`).
-    destination
-        is when element *d* at position *i* means that values from *i-th* item
-        of source should be used to fill *d-th* item of reindexing operation.
-
-    This function will convert from *source* to *destination* and vice-versa.
-
-    .. note:: trailing ``-1`` may be lost upon conversion (this is what
-              `minlength` is there for).
-
-    .. note:: if *source* indexer is not unique, corresponding *destination*
-              indexer will have ``dtype=object`` and will contain lists.
-
-    Examples:
-
-    >>> _invert_reordering([3, -1, 2, 4, -1])
-    array([-1, -1,  2,  0,  3])
-    >>> _invert_reordering([-1, -1, 0, 2, 3])
-    array([3, -1,  2,  4])
-    >>> _invert_reordering([1,3,5])
-    array([-1,  0, -1,  1, -1,  2])
-
-    """
-    reordering = np.asanyarray(reordering, dtype=np.int64)
-    if not com.is_integer_dtype(reordering):
-        raise ValueError("Only integer indexers are supported")
-
-    nonneg_indices = reordering[reordering >= 0].astype(np.int_)
-    counts = np.bincount(nonneg_indices, minlength=minlength)
-    has_non_unique = (counts > 1).any()
-
-    dtype = np.dtype(np.object_) if has_non_unique else np.dtype(np.int64)
-    inverted = np.empty_like(counts, dtype=dtype)
-    inverted.fill(-1)
-
-    nonneg_positions = np.arange(len(reordering), dtype=np.int64)[reordering >= 0]
-    np.put(inverted, nonneg_indices, nonneg_positions)
-
-    if has_non_unique:
-        nonunique_elements = np.arange(len(counts))[counts > 1]
-        for elt in nonunique_elements:
-            inverted[elt] = nonneg_positions[nonneg_indices == elt].tolist()
-
-    return inverted
 
 
 def _get_blkno_placements(blknos, blk_count, group=True):
