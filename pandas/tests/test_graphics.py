@@ -1083,6 +1083,25 @@ class TestDataFramePlots(tm.TestCase):
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
         _check_plot_works(df.boxplot, by='X')
 
+        # When ax is supplied, existing axes should be used:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        axes = df.boxplot('Col1', by='X', ax=ax)
+        self.assertIs(ax.get_axes(), axes)
+
+        # Multiple columns with an ax argument is not supported
+        fig, ax = plt.subplots()
+        self.assertRaisesRegexp(
+            ValueError, 'existing axis', df.boxplot,
+            column=['Col1', 'Col2'], by='X', ax=ax
+        )
+
+        # When by is None, check that all relevant lines are present in the dict
+        fig, ax = plt.subplots()
+        d = df.boxplot(ax=ax)
+        lines = list(itertools.chain.from_iterable(d.values()))
+        self.assertEqual(len(ax.get_lines()), len(lines))
+
     @slow
     def test_kde(self):
         _skip_if_no_scipy()

@@ -475,6 +475,7 @@ Bug Fixes
   caused possible color/class mismatch (:issue:`6956`)
 - Bug in ``radviz`` and ``andrews_curves`` where multiple values of 'color'
   were being passed to plotting method (:issue:`6956`)
+- Bug in ``DataFrame.boxplot`` where it failed to use the axis passed as the ``ax`` argument (:issue:`3578`)
 
 pandas 0.13.1
 -------------
