@@ -16,13 +16,6 @@ fi
 "$TRAVIS_BUILD_DIR"/ci/build_docs.sh 2>&1 > /tmp/doc.log &
 # doc build log will be shown after tests
 
-# export the testing mode
-if [ -n "$NUMPY_BUILD" ]; then
-
-    export PANDAS_TESTING_MODE="numpy_deprecate"
-
-fi
-
 echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 

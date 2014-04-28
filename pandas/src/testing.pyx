@@ -118,10 +118,7 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
 
         # deal with differing dtypes
         if check_less_precise:
-            dtype_a = np.dtype(type(a))
-            dtype_b = np.dtype(type(b))
-            if dtype_a.kind == 'f' and dtype_b == 'f':
-                decimal = 3
+            decimal = 3
 
         if np.isinf(a):
             assert np.isinf(b), "First object is inf, second isn't"
@@ -132,11 +129,11 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
             if abs(fa) < 1e-5:
                 if not decimal_almost_equal(fa, fb, decimal):
                     assert False, (
-                        '(very low values) expected %.5f but got %.5f' % (b, a)
+                        '(very low values) expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
                     )
             else:
                 if not decimal_almost_equal(1, fb / fa, decimal):
-                    assert False, 'expected %.5f but got %.5f' % (b, a)
+                    assert False, 'expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
 
     else:
         assert a == b, "%r != %r" % (a, b)
