@@ -21,7 +21,8 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_almost_equal,
                                  ensure_clean,
                                  assertRaisesRegexp,
-                                 makeCustomDataframe as mkdf
+                                 makeCustomDataframe as mkdf,
+                                 makeMixedDataFrame
     )
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
@@ -1652,9 +1653,16 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         # negative numbers, #2164
         result = self.panel.shift(-1)
-        expected = Panel(dict((i, f.shift(-1))
+        expected = Panel(dict((i, f.shift(-1)[:-1])
                               for i, f in compat.iteritems(self.panel)))
         assert_panel_equal(result, expected)
+
+        # mixed dtypes #6959
+        data = [('item '+ch, makeMixedDataFrame()) for ch in list('abcde')]
+        data = dict(data)
+        mixed_panel = Panel.from_dict(data, orient='minor')
+        shifted = mixed_panel.shift(1)
+        assert_series_equal(mixed_panel.dtypes, shifted.dtypes)
 
     def test_tshift(self):
         # PeriodIndex
