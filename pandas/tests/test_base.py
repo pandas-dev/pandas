@@ -214,7 +214,7 @@ class TestIndexOps(Ops):
                 # freq must be specified because repeat makes freq ambiguous
                 o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
             else:
-                o = klass(np.repeat(values, range(1, len(o) + 1)))                
+                o = klass(np.repeat(values, range(1, len(o) + 1)))
 
             expected_s = Series(range(10, 0, -1), index=values[::-1], dtype='int64')
             tm.assert_series_equal(o.value_counts(), expected_s)
@@ -246,7 +246,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, PeriodIndex):
                     o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
                 else:
-                    o = klass(np.repeat(values, range(1, len(o) + 1)))   
+                    o = klass(np.repeat(values, range(1, len(o) + 1)))
 
                 if isinstance(o, DatetimeIndex):
                     # DatetimeIndex: nan is casted to Nat and included
@@ -278,7 +278,7 @@ class TestIndexOps(Ops):
             s = klass(s_values)
             expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
             tm.assert_series_equal(s.value_counts(), expected)
-            
+
             self.assert_numpy_array_equal(s.unique(), np.unique(s_values))
             self.assertEquals(s.nunique(), 4)
             # don't sort, have to sort after the fact as not sorting is platform-dep
@@ -410,7 +410,7 @@ class TestDatetimeIndexOps(Ops):
 
     def test_ops_properties(self):
         self.check_ops_properties(['year','month','day','hour','minute','second','weekofyear','week','dayofweek','dayofyear','quarter'])
-        self.check_ops_properties(['date','time','microsecond','nanosecond'], lambda x: isinstance(x,DatetimeIndex))
+        self.check_ops_properties(['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end'], lambda x: isinstance(x,DatetimeIndex))
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'

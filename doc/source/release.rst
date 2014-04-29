@@ -92,8 +92,16 @@ API Changes
   - ``hour,minute,second,weekofyear``
   - ``week,dayofweek,dayofyear,quarter``
   - ``microsecond,nanosecond,qyear``
+  - ``is_month_start,is_month_end``
+  - ``is_quarter_start,is_quarter_end``
+  - ``is_year_start,is_year_end``
   - ``min(),max()``
   - ``pd.infer_freq()``
+
+- Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``,
+  ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex`` / ``Timestamp`` which return a boolean array
+  of whether the timestamp(s) are at the start/end of the month/quarter/year defined by the
+  frequency of the ``DateTimeIndex`` / ``Timestamp`` (:issue:`4565`, :issue:`6998`))
 
 - ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index``
   type (:issue:`6407`, :issue:`6463`)

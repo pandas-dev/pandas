@@ -1143,6 +1143,12 @@ Time/Date Components
    DatetimeIndex.tz
    DatetimeIndex.freq
    DatetimeIndex.freqstr
+   DatetimeIndex.is_month_start
+   DatetimeIndex.is_month_end
+   DatetimeIndex.is_quarter_start
+   DatetimeIndex.is_quarter_end
+   DatetiemIndex.is_year_start
+   DatetimeIndex.is_year_end
 
 Selecting
 ~~~~~~~~~
