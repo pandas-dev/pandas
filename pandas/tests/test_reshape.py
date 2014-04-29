@@ -199,7 +199,7 @@ class TestGetDummies(tm.TestCase):
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
         assert_array_equal(res_just_na.values, exp_just_na.values)
 
-    def test_unicode(self):  # See GH 6634 - get_dummies chokes on unicode values
+    def test_unicode(self):  # See GH 6885 - get_dummies chokes on unicode values
         import unicodedata
         e = 'e'
         eacute = unicodedata.lookup('LATIN SMALL LETTER E WITH ACUTE')
