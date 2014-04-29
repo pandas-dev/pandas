@@ -134,6 +134,14 @@ API Changes
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
 
+<<<<<<< HEAD
+=======
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  will not be supported in a future release (:issue:`5505`)
+
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 - Allow specification of a more complex groupby, via ``pd.Grouper`` (:issue:`3794`)
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
   the index, rather than requiring a list of tuple (:issue:`4370`)
@@ -175,11 +183,14 @@ API Changes
 - Replace ``pandas.compat.scipy.scoreatpercentile`` with ``numpy.percentile`` (:issue:`6810`)
 - ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
   of ``np.datetime64`` objects (:issue:`6810`)
+<<<<<<< HEAD
 - change ``AssertionError`` to ``TypeError`` for invalid types passed to ``concat`` (:issue:`6583`)
 - Add :class:`~pandas.io.parsers.ParserWarning` class for fallback and option
   validation warnings in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
 - Raise a ``TypeError`` when ``DataFrame`` is passed an iterator as the
   ``data`` argument (:issue:`5357`)
+=======
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 Deprecations
 ~~~~~~~~~~~~
@@ -222,6 +233,7 @@ Prior Version Deprecations/Changes
 
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
 
+<<<<<<< HEAD
 - Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`395`)
 
 - Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
@@ -243,6 +255,29 @@ Prior Version Deprecations/Changes
 
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
+=======
+- Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`6641`)
+
+- Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
+  :meth:`DataFrame.to_latex`, and :meth:`DataFrame.to_html`; these function
+  encode in unicode by default (:issue:`6641`)
+
+- Remove ``nanRep`` keyword from :meth:`DataFrame.to_csv` and
+  :meth:`DataFrame.to_string` (:issue:`6641`)
+
+- Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`6641`)
+
+- Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`6641`)
+
+- Remove ``name`` keyword from :func:`get_data_yahoo` and
+  :func:`get_data_google` (:issue:`6641`)
+
+- Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
+  (:issue:`6641`)
+
+- Remove ``time_rule`` from several rolling-moment statistical functions, such
+  as :func:`rolling_sum` (:issue:`6641`)
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 - Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
   be deprecated in numpy 1.9 (:issue:`6960`)
@@ -407,6 +442,7 @@ Bug Fixes
   coverted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
 - Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
+<<<<<<< HEAD
 - Bug in ``DataFrame.replace()`` where changing a dtype through replacement
   would only replace the first occurrence of a value (:issue:`6689`)
 - Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
@@ -436,6 +472,8 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` with functions that used *args or **kwargs and returned
   an empty result (:issue:`6952`)
 - Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
+=======
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 pandas 0.13.1
 -------------

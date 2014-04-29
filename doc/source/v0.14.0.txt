@@ -23,8 +23,6 @@ users upgrade to this version.
 
 - :ref:`Prior Deprecations <whatsnew_0140.prior_deprecations>`
 
-- :ref:`Deprecations <whatsnew_0140.deprecations>`
-
 - :ref:`Bug Fixes <release.bug_fixes-0.14.0>`
 
 .. warning::
@@ -203,6 +201,14 @@ API changes
     df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
     covs = rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
     covs[df.index[-1]]
+<<<<<<< HEAD
+=======
+
+- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
+
+- ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
+
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 - ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
@@ -217,6 +223,13 @@ API changes
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
   from 0.13.1
+
+.. _whatsnew_0140.sql:
+
+SQL
+~~~
+
+.. _whatsnew_0140.slicers:
 
 .. _whatsnew_0140.sql:
 
@@ -336,6 +349,7 @@ You can use a right-hand-side of an alignable object as well.
 
 Plotting
 ~~~~~~~~
+<<<<<<< HEAD
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`), See :ref:`the docs<visualization.hexbin>`.
 - Plotting with Error Bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`), See :ref:`the docs<visualization.errorbars>`.
@@ -352,11 +366,37 @@ Plotting
   Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
 .. _whatsnew_0140.prior_deprecations:
+=======
+
+- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`), See :ref:`the docs<visualization.hexbin>`.
+
+- Plotting with Error Bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`), See :ref:`the docs<visualization.errorbars>`.
+
+- ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``, See :ref:`the docs<visualization.table>`.
+
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for
+  most plot kinds. (:issue:`6014`)
+
+- Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
+
+  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
+
+  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
+
+  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
+
+  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are prior version deprecations that are taking effect as of 0.14.0.
+<<<<<<< HEAD
+=======
+
+- Remove :class:`DateRange` in favor of :class:`DatetimeIndex` (:issue:`6816`)
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 
 - Remove :class:`DateRange` in favor of :class:`DatetimeIndex` (:issue:`6816`)
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
@@ -376,6 +416,8 @@ There are prior version deprecations that are taking effect as of 0.14.0.
   as :func:`rolling_sum` (:issue:`1042`)
 - Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
   be deprecated in numpy 1.9 (:issue:`6960`)
+
+.. _whatsnew_0140.deprecations:
 
 .. _whatsnew_0140.deprecations:
 
@@ -491,6 +533,10 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
+<<<<<<< HEAD
+=======
+- Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
+>>>>>>> 169e53c07f9df0cd18e24e7133564a07621e09b4
 - :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
 - ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
   ``object`` dtype array (:issue:`6471`).
