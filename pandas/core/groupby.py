@@ -673,8 +673,16 @@ class GroupBy(PandasObject):
     def size(self):
         """
         Compute group sizes
+
         """
         return self.grouper.size()
+
+    def count(self):
+        """
+        Number of non-null items in each group.
+
+        """
+        return self._python_agg_general(lambda x: notnull(x).sum())
 
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
@@ -687,12 +695,10 @@ class GroupBy(PandasObject):
 
     def ohlc(self):
         """
-        Compute sum of values, excluding missing values
-
-        For multiple groupings, the result index will be a MultiIndex
+        Deprecated, use .resample(how="ohlc") instead.
 
         """
-        return self._cython_agg_general('ohlc')
+        raise AttributeError('ohlc is deprecated, use resample(how="ohlc").')
 
     def nth(self, n, dropna=None):
         """
@@ -939,6 +945,7 @@ class GroupBy(PandasObject):
                 result, names = self.grouper.aggregate(obj.values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
+            # infer old dytpe
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -947,6 +954,8 @@ class GroupBy(PandasObject):
         return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
+        _dtype = kwargs.pop("_dtype", None)
+
         func = _intercept_function(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -955,7 +964,14 @@ class GroupBy(PandasObject):
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj)
+
+                if _dtype is None:  # infer old dytpe
+                    output[name] = self._try_cast(result, obj)
+                elif _dtype is False:
+                    output[name] = result
+                else:
+                    output[name] = _possibly_downcast_to_dtype(result, _dtype)
+
             except TypeError:
                 continue
 
@@ -2888,16 +2904,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
-
-    def ohlc(self):
-        """
-        Compute sum of values, excluding missing values
-
-        For multiple groupings, the result index will be a MultiIndex
-        """
-        return self._apply_to_column_groupbys(
-            lambda x: x._cython_agg_general('ohlc'))
-
 
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
