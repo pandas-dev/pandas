@@ -389,11 +389,16 @@ index are the group names and whose values are the sizes of each group.
 
 .. note::
 
-   Aggregation functions will **not** return the groups that you are aggregating over
-   if they are named *columns*. The grouped columns will be the **indices** of the returned object.
+   Aggregation functions **will not** return the groups that you are aggregating over
+   if they are named *columns*, when ``as_index=True``, the default. The grouped columns will
+   be the **indices** of the returned object.
+
+   Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
+   named *columns*.
+
    Aggregating functions are ones that reduce the dimension of the returned objects,
    for example: ``mean, sum, size, count, std, var, describe, first, last, min, max``. This is
-   very much like performing a redcing operation on a ``DataFrame`` and getting a ``Series`` back.
+   what happens when you do for example ``DataFrame.sum()`` and get back a ``Series``.
 
 .. _groupby.aggregate.multifunc:
 
@@ -552,7 +557,9 @@ and that the transformed data contains no NAs.
 .. note::
 
    Some functions when applied to a groupby object will automatically transform the input, returning
-   an object of the same shape as the original. For example: ``fillna, ffill, bfill, shift``.
+   an object of the same shape as the original. Passing ``as_index=False`` will not affect these transformation methods.
+
+   For example: ``fillna, ffill, bfill, shift``.
 
    .. ipython:: python
 
@@ -604,6 +611,8 @@ For dataframes with multiple columns, filters should explicitly specify a column
 
    Some functions when applied to a groupby object will act as a **filter** on the input, returning
    a reduced shape of the original (and potentitally eliminating groups), but with the index unchanged.
+   Passing ``as_index=False`` will not affect these transformation methods.
+
    For example: ``head, tail nth``.
 
    .. ipython:: python
