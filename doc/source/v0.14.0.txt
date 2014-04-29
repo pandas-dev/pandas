@@ -21,6 +21,8 @@ users upgrade to this version.
 
 - :ref:`API Changes <whatsnew_0140.api>`
 
+- :ref:`Performance Improvements <whatsnew_0140.performance>`
+
 - :ref:`Prior Deprecations <whatsnew_0140.prior_deprecations>`
 
 - :ref:`Deprecations <whatsnew_0140.deprecations>`
@@ -538,6 +540,8 @@ Enhancements
                 values='Quantity', aggfunc=np.sum)
 
 - str.wrap implemented (:issue:`6999`)
+
+.. _whatsnew_0140.performance:
 
 Performance
 ~~~~~~~~~~~
