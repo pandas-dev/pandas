@@ -362,6 +362,7 @@ Enhancements
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
 - Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
+- str.wrap implemented (:issue:`6999`)
 
 Performance
 ~~~~~~~~~~~
