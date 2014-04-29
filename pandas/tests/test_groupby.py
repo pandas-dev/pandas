@@ -1378,7 +1378,8 @@ class TestGroupBy(tm.TestCase):
         res_not_as_apply = g_not_as.apply(lambda x: x.head(2)).index
 
         # apply doesn't maintain the original ordering
-        exp_not_as_apply = Index([0, 2, 1, 4])
+        # changed in GH5610 as the as_index=False returns a MI here
+        exp_not_as_apply = MultiIndex.from_tuples([(0, 0), (0, 2), (1, 1), (2, 4)])
         exp_as_apply = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
 
         assert_index_equal(res_as_apply, exp_as_apply)
@@ -1994,6 +1995,7 @@ class TestGroupBy(tm.TestCase):
 
         df = DataFrame([[1, 2, 'foo'], [1, nan, 'bar',], [3, nan, 'baz']], columns=['A', 'B','C'])
         g = df.groupby('A')
+        gni = df.groupby('A',as_index=False)
 
         # mad
         expected = DataFrame([[0],[nan]],columns=['B'],index=[1,3])
@@ -2001,10 +2003,18 @@ class TestGroupBy(tm.TestCase):
         result = g.mad()
         assert_frame_equal(result,expected)
 
+        expected = DataFrame([[0.,0.],[0,nan]],columns=['A','B'],index=[0,1])
+        result = gni.mad()
+        assert_frame_equal(result,expected)
+
         # describe
         expected = DataFrame(dict(B = concat([df.loc[[0,1],'B'].describe(),df.loc[[2],'B'].describe()],keys=[1,3])))
         expected.index.names = ['A',None]
         result = g.describe()
+        assert_frame_equal(result,expected)
+
+        expected = concat([df.loc[[0,1],['A','B']].describe(),df.loc[[2],['A','B']].describe()],keys=[0,1])
+        result = gni.describe()
         assert_frame_equal(result,expected)
 
         # any

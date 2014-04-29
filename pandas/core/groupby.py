@@ -456,7 +456,7 @@ class GroupBy(PandasObject):
     def _set_selection_from_grouper(self):
         """ we may need create a selection if we have non-level groupers """
         grp = self.grouper
-        if self._selection is None and getattr(grp,'groupings',None) is not None:
+        if self._selection is None and self.as_index and getattr(grp,'groupings',None) is not None:
             ax = self.obj._info_axis
             groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
             if len(groupers):
@@ -1029,12 +1029,23 @@ class GroupBy(PandasObject):
                 result = result.reindex(ax)
             else:
                 result = result.reindex_axis(ax, axis=self.axis)
-        elif self.group_keys and self.as_index:
-            group_keys = keys
-            group_levels = self.grouper.levels
-            group_names = self.grouper.names
-            result = concat(values, axis=self.axis, keys=group_keys,
-                            levels=group_levels, names=group_names)
+
+        elif self.group_keys:
+
+            if self.as_index:
+
+                # possible MI return case
+                group_keys = keys
+                group_levels = self.grouper.levels
+                group_names = self.grouper.names
+                result = concat(values, axis=self.axis, keys=group_keys,
+                                levels=group_levels, names=group_names)
+            else:
+
+                # GH5610, returns a MI, with the first level being a
+                # range index
+                keys = list(range(len(values)))
+                result = concat(values, axis=self.axis, keys=keys)
         else:
             result = concat(values, axis=self.axis)
 
@@ -2528,6 +2539,7 @@ class NDFrameGroupBy(GroupBy):
         elif hasattr(self.grouper, 'groupings'):
             if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)
+
             else:
                 ping = self.grouper.groupings[0]
                 if len(keys) == ping.ngroups:
@@ -2540,7 +2552,12 @@ class NDFrameGroupBy(GroupBy):
                     # reorder the values
                     values = [values[i] for i in indexer]
                 else:
+
                     key_index = Index(keys, name=key_names[0])
+
+                # don't use the key indexer
+                if not self.as_index:
+                    key_index = None
 
             # make Nones an empty object
             if com._count_not_none(*values) != len(values):
@@ -2611,7 +2628,7 @@ class NDFrameGroupBy(GroupBy):
 
                         # normally use vstack as its faster than concat
                         # and if we have mi-columns
-                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex):
+                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex) or key_index is None:
                             stacked_values = np.vstack([np.asarray(x) for x in values])
                             result = DataFrame(stacked_values,index=key_index,columns=index)
                         else:
