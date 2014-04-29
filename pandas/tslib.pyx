@@ -1,7 +1,7 @@
 # cython: profile=False
 
 cimport numpy as np
-from numpy cimport (int32_t, int64_t, import_array, ndarray,
+from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
@@ -303,6 +303,30 @@ class Timestamp(_Timestamp):
     def asm8(self):
         return np.int64(self.value).view('M8[ns]')
 
+    @property
+    def is_month_start(self):
+        return self._get_start_end_field('is_month_start')
+
+    @property
+    def is_month_end(self):
+        return self._get_start_end_field('is_month_end')
+
+    @property
+    def is_quarter_start(self):
+        return self._get_start_end_field('is_quarter_start')
+
+    @property
+    def is_quarter_end(self):
+        return self._get_start_end_field('is_quarter_end')
+
+    @property
+    def is_year_start(self):
+        return self._get_start_end_field('is_year_start')
+
+    @property
+    def is_year_end(self):
+        return self._get_start_end_field('is_year_end')
+    
     def tz_localize(self, tz):
         """
         Convert naive Timestamp to local time zone
@@ -723,6 +747,12 @@ cdef class _Timestamp(datetime):
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
+        return out[0]
+
+    cpdef _get_start_end_field(self, field):
+        month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12
+        freqstr = self.freqstr if self.freq else None
+        out = get_start_end_field(np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
 
 
@@ -2295,6 +2325,225 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             out[i] = ((out[i] - 1) / 3) + 1
         return out
 
+    raise ValueError("Field %s not supported" % field)
+
+
+@cython.wraparound(False)
+def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=None, int month_kw=12):
+    '''
+    Given an int64-based datetime index return array of indicators
+    of whether timestamps are at the start/end of the month/quarter/year
+    (defined by frequency).
+    '''
+    cdef:
+        _TSObject ts
+        Py_ssize_t i
+        int count = 0
+        bint is_business = 0
+        int end_month = 12
+        int start_month = 1
+        ndarray[int8_t] out
+        ndarray[int32_t, ndim=2] _month_offset
+        bint isleap
+        pandas_datetimestruct dts
+        int mo_off, dom, doy, dow, ldom
+
+    _month_offset = np.array(
+        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
+         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+         dtype=np.int32 )
+
+    count = len(dtindex)
+    out = np.zeros(count, dtype='int8')
+
+    if freqstr:
+        if freqstr == 'C':
+            raise ValueError("Custom business days is not supported by %s" % field)
+        is_business = freqstr[0] == 'B'
+
+        # YearBegin(), BYearBegin() use month = starting month of year
+        # QuarterBegin(), BQuarterBegin() use startingMonth = starting month of year
+        # other offests use month, startingMonth as ending month of year.
+
+        if (freqstr[0:2] in ['MS', 'QS', 'AS']) or (freqstr[1:3] in ['MS', 'QS', 'AS']):
+            end_month = 12 if month_kw == 1 else month_kw - 1
+            start_month = month_kw
+        else:
+            end_month = month_kw
+            start_month = (end_month % 12) + 1
+    else:
+        end_month = 12
+        start_month = 1
+
+    if field == 'is_month_start':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                dom = dts.day
+                dow = ts_dayofweek(ts)
+
+                if (dom == 1 and dow < 5) or (dom <= 3 and dow == 0):
+                    out[i] = 1
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                dom = dts.day
+                
+                if dom == 1:
+                    out[i] = 1
+            return out.view(bool)
+
+    elif field == 'is_month_end':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                isleap = is_leapyear(dts.year)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                dom = dts.day
+                doy = mo_off + dom
+                ldom = _month_offset[isleap, dts.month]
+                dow = ts_dayofweek(ts)
+                
+                if (ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2)):
+                    out[i] = 1
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                isleap = is_leapyear(dts.year)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                dom = dts.day
+                doy = mo_off + dom
+                ldom = _month_offset[isleap, dts.month]
+                
+                if ldom == doy:
+                    out[i] = 1 
+            return out.view(bool)
+
+    elif field == 'is_quarter_start':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                dom = dts.day
+                dow = ts_dayofweek(ts)
+
+                if ((dts.month - start_month) % 3 == 0) and ((dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
+                    out[i] = 1 
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                dom = dts.day
+                
+                if ((dts.month - start_month) % 3 == 0) and dom == 1:
+                    out[i] = 1 
+            return out.view(bool)
+
+    elif field == 'is_quarter_end':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                isleap = is_leapyear(dts.year)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                dom = dts.day
+                doy = mo_off + dom
+                ldom = _month_offset[isleap, dts.month]
+                dow = ts_dayofweek(ts)
+                
+                if ((dts.month - end_month) % 3 == 0) and ((ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2))):
+                    out[i] = 1 
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                isleap = is_leapyear(dts.year)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                dom = dts.day
+                doy = mo_off + dom
+                ldom = _month_offset[isleap, dts.month]
+                
+                if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
+                    out[i] = 1 
+            return out.view(bool)
+
+    elif field == 'is_year_start':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                dom = dts.day
+                dow = ts_dayofweek(ts)
+
+                if (dts.month == start_month) and ((dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
+                    out[i] = 1 
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                dom = dts.day
+
+                if (dts.month == start_month) and dom == 1:
+                    out[i] = 1
+            return out.view(bool)
+
+    elif field == 'is_year_end':
+        if is_business:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                isleap = is_leapyear(dts.year)
+                dom = dts.day
+                mo_off = _month_offset[isleap, dts.month - 1]
+                doy = mo_off + dom
+                dow = ts_dayofweek(ts)
+                ldom = _month_offset[isleap, dts.month]
+
+                if (dts.month == end_month) and ((ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2))):
+                    out[i] = 1 
+            return out.view(bool)
+        else:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                ts = convert_to_tsobject(dtindex[i], None, None)
+                isleap = is_leapyear(dts.year)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                dom = dts.day
+                doy = mo_off + dom
+                ldom = _month_offset[isleap, dts.month]
+
+                if (dts.month == end_month) and (ldom == doy):
+                    out[i] = 1
+            return out.view(bool)
+    
     raise ValueError("Field %s not supported" % field)
 
 

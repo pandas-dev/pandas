@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string)
+    Resolution, get_reso_string, get_offset)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -28,6 +28,7 @@ import pandas.tslib as tslib
 import pandas.algos as _algos
 import pandas.index as _index
 
+from pandas.tslib import isleapyear
 
 def _utc():
     import pytz
@@ -43,7 +44,14 @@ def _field_accessor(name, field, docstring=None):
             utc = _utc()
             if self.tz is not utc:
                 values = self._local_timestamps()
-        return tslib.get_date_field(values, field)
+        if field in ['is_month_start', 'is_month_end',
+                    'is_quarter_start', 'is_quarter_end',
+                    'is_year_start', 'is_year_end']:
+            month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12
+            freqstr = self.freqstr if self.freq else None
+            return tslib.get_start_end_field(values, field, freqstr, month_kw)
+        else:
+            return tslib.get_date_field(values, field)
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
@@ -1439,6 +1447,12 @@ class DatetimeIndex(Int64Index):
     _weekday = _dayofweek
     _dayofyear = _field_accessor('dayofyear', 'doy')
     _quarter = _field_accessor('quarter', 'q')
+    _is_month_start = _field_accessor('is_month_start', 'is_month_start')
+    _is_month_end = _field_accessor('is_month_end', 'is_month_end')
+    _is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start')
+    _is_quarter_end = _field_accessor('is_quarter_end', 'is_quarter_end')
+    _is_year_start = _field_accessor('is_year_start', 'is_year_start')
+    _is_year_end = _field_accessor('is_year_end', 'is_year_end')
 
     @property
     def _time(self):
@@ -1774,6 +1788,7 @@ class DatetimeIndex(Int64Index):
                              self.nanosecond/3600.0/1e+9
                             )/24.0)
 
+
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):
         stride = offset.nanos
@@ -1831,7 +1846,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong
+    Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     name : str, default None

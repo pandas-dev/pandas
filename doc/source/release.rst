@@ -470,6 +470,10 @@ API Changes
 - ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
   ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
   empty (:issue:`6007`).
+- Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``,
+  ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex``/``Timestamp`` which return a boolean array
+  of whether the timestamp(s) are at the start/end of the month/quarter/year defined by the 
+  frequency of the ``DateTimeIndex``/``Timestamp`` (:issue:`4565`, :issue:`6998`))
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
