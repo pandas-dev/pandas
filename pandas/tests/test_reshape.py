@@ -205,7 +205,6 @@ class TestGetDummies(tm.TestCase):
         eacute = unicodedata.lookup('LATIN SMALL LETTER E WITH ACUTE')
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix='letter')
-        print(res)
         exp = DataFrame({'letter_e': {0: 1.0, 1: 0.0, 2: 0.0},
                         u('letter_%s') % eacute: {0: 0.0, 1: 1.0, 2: 1.0}})
         assert_frame_equal(res, exp)
