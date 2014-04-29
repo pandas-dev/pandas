@@ -344,8 +344,9 @@ Aggregation
 -----------
 
 Once the GroupBy object has been created, several methods are available to
-perform a computation on the grouped data. An obvious one is aggregation via
-the ``aggregate`` or equivalently ``agg`` method:
+perform a computation on the grouped data.
+
+An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
 
 .. ipython:: python
 
@@ -382,6 +383,17 @@ index are the group names and whose values are the sizes of each group.
 
    grouped.size()
 
+.. ipython:: python
+
+   grouped.describe()
+
+.. note::
+
+   Aggregation functions will **not** return the groups that you are aggregating over
+   if they are named *columns*. The grouped columns will be the **indices** of the returned object.
+   Aggregating functions are ones that reduce the dimension of the returned objects,
+   for example: ``mean, sum, size, count, std, var, describe, first, last, min, max``. This is
+   very much like performing a redcing operation on a ``DataFrame`` and getting a ``Series`` back.
 
 .. _groupby.aggregate.multifunc:
 
@@ -537,6 +549,15 @@ and that the transformed data contains no NAs.
    grouped_trans.count() # counts after transformation
    grouped_trans.size() # Verify non-NA count equals group size
 
+.. note::
+
+   Some functions when applied to a groupby object will automatically transform the input, returning
+   an object of the same shape as the original. For example: ``fillna, ffill, bfill, shift``.
+
+   .. ipython:: python
+
+      grouped.ffill()
+
 .. _groupby.filter:
 
 Filtration
@@ -578,6 +599,17 @@ For dataframes with multiple columns, filters should explicitly specify a column
 
    dff['C'] = np.arange(8)
    dff.groupby('B').filter(lambda x: len(x['C']) > 2)
+
+.. note::
+
+   Some functions when applied to a groupby object will act as a **filter** on the input, returning
+   a reduced shape of the original (and potentitally eliminating groups), but with the index unchanged.
+   For example: ``head, tail nth``.
+
+   .. ipython:: python
+
+      dff.groupby('B').head(2)
+
 
 .. _groupby.dispatch:
 
@@ -663,6 +695,12 @@ The dimension of the returned result can also change:
     s
     s.apply(f)
 
+
+.. note::
+
+   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to apply.
+   So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
+   the output as well as set the indices.
 
 .. warning::
 
