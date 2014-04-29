@@ -445,6 +445,23 @@ class GroupBy(PandasObject):
             return [self._selection]
         return self._selection
 
+    @cache_readonly
+    def _selected_obj(self):
+
+        if self._selection is None or isinstance(self.obj, Series):
+            return self.obj
+        else:
+            return self.obj[self._selection]
+
+    def _set_selection_from_grouper(self):
+        """ we may need create a selection if we have non-level groupers """
+        grp = self.grouper
+        if self._selection is None and self.as_index and getattr(grp,'groupings',None) is not None:
+            ax = self.obj._info_axis
+            groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
+            if len(groupers):
+                self._selection = (ax-Index(groupers)).tolist()
+
     def _local_dir(self):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
@@ -453,7 +470,6 @@ class GroupBy(PandasObject):
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
-
         if hasattr(self.obj, attr):
             return self._make_wrapper(attr)
 
@@ -471,6 +487,10 @@ class GroupBy(PandasObject):
                    "using the 'apply' method".format(kind, name,
                                                      type(self).__name__))
             raise AttributeError(msg)
+
+        # need to setup the selection
+        # as are not passed directly but in the grouper
+        self._set_selection_from_grouper()
 
         f = getattr(self._selected_obj, name)
         if not isinstance(f, types.MethodType):
@@ -503,7 +523,19 @@ class GroupBy(PandasObject):
             try:
                 return self.apply(curried_with_axis)
             except Exception:
-                return self.apply(curried)
+                try:
+                    return self.apply(curried)
+                except Exception:
+
+                    # related to : GH3688
+                    # try item-by-item
+                    # this can be called recursively, so need to raise ValueError if
+                    # we don't have this method to indicated to aggregate to
+                    # mark this column as an error
+                    try:
+                        return self._aggregate_item_by_item(name, *args, **kwargs)
+                    except (AttributeError):
+                        raise ValueError
 
         return wrapper
 
@@ -624,6 +656,7 @@ class GroupBy(PandasObject):
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
+            self._set_selection_from_grouper()
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
@@ -639,6 +672,7 @@ class GroupBy(PandasObject):
             raise
         except Exception:  # pragma: no cover
 
+            self._set_selection_from_grouper()
             def f(x):
                 if isinstance(x, np.ndarray):
                     x = Series(x)
@@ -655,6 +689,7 @@ class GroupBy(PandasObject):
         if ddof == 1:
             return self._cython_agg_general('std')
         else:
+            self._set_selection_from_grouper()
             f = lambda x: x.std(ddof=ddof)
             return self._python_agg_general(f)
 
@@ -667,14 +702,25 @@ class GroupBy(PandasObject):
         if ddof == 1:
             return self._cython_agg_general('var')
         else:
+            self._set_selection_from_grouper()
             f = lambda x: x.var(ddof=ddof)
             return self._python_agg_general(f)
 
     def size(self):
         """
         Compute group sizes
+
         """
         return self.grouper.size()
+
+    def count(self, axis=0):
+        """
+        Number of non-null items in each group.
+        axis : axis number, default 0
+               the grouping axis
+        """
+        self._set_selection_from_grouper()
+        return self._python_agg_general(lambda x: notnull(x).sum(axis=axis)).astype('int64')
 
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
@@ -685,14 +731,14 @@ class GroupBy(PandasObject):
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
 
+
     def ohlc(self):
         """
         Compute sum of values, excluding missing values
-
         For multiple groupings, the result index will be a MultiIndex
-
         """
-        return self._cython_agg_general('ohlc')
+        return self._apply_to_column_groupbys(
+            lambda x: x._cython_agg_general('ohlc'))
 
     def nth(self, n, dropna=None):
         """
@@ -888,13 +934,6 @@ class GroupBy(PandasObject):
                 cumcounts[v] = arr[len(v)-1::-1]
         return cumcounts
 
-    @cache_readonly
-    def _selected_obj(self):
-        if self._selection is None or isinstance(self.obj, Series):
-            return self.obj
-        else:
-            return self.obj[self._selection]
-
     def _index_with_as_index(self, b):
         """
         Take boolean mask of index to be returned from apply, if as_index=True
@@ -990,12 +1029,23 @@ class GroupBy(PandasObject):
                 result = result.reindex(ax)
             else:
                 result = result.reindex_axis(ax, axis=self.axis)
-        elif self.group_keys and self.as_index:
-            group_keys = keys
-            group_levels = self.grouper.levels
-            group_names = self.grouper.names
-            result = concat(values, axis=self.axis, keys=group_keys,
-                            levels=group_levels, names=group_names)
+
+        elif self.group_keys:
+
+            if self.as_index:
+
+                # possible MI return case
+                group_keys = keys
+                group_levels = self.grouper.levels
+                group_names = self.grouper.names
+                result = concat(values, axis=self.axis, keys=group_keys,
+                                levels=group_levels, names=group_names)
+            else:
+
+                # GH5610, returns a MI, with the first level being a
+                # range index
+                keys = list(range(len(values)))
+                result = concat(values, axis=self.axis, keys=keys)
         else:
             result = concat(values, axis=self.axis)
 
@@ -2187,6 +2237,9 @@ class SeriesGroupBy(GroupBy):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
+    def _apply_to_column_groupbys(self, func):
+        """ return a pass thru """
+        return func(self)
 
 class NDFrameGroupBy(GroupBy):
 
@@ -2486,6 +2539,7 @@ class NDFrameGroupBy(GroupBy):
         elif hasattr(self.grouper, 'groupings'):
             if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)
+
             else:
                 ping = self.grouper.groupings[0]
                 if len(keys) == ping.ngroups:
@@ -2498,7 +2552,12 @@ class NDFrameGroupBy(GroupBy):
                     # reorder the values
                     values = [values[i] for i in indexer]
                 else:
+
                     key_index = Index(keys, name=key_names[0])
+
+                # don't use the key indexer
+                if not self.as_index:
+                    key_index = None
 
             # make Nones an empty object
             if com._count_not_none(*values) != len(values):
@@ -2569,7 +2628,7 @@ class NDFrameGroupBy(GroupBy):
 
                         # normally use vstack as its faster than concat
                         # and if we have mi-columns
-                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex):
+                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex) or key_index is None:
                             stacked_values = np.vstack([np.asarray(x) for x in values])
                             result = DataFrame(stacked_values,index=key_index,columns=index)
                         else:
@@ -2888,16 +2947,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
-
-    def ohlc(self):
-        """
-        Compute sum of values, excluding missing values
-
-        For multiple groupings, the result index will be a MultiIndex
-        """
-        return self._apply_to_column_groupbys(
-            lambda x: x._cython_agg_general('ohlc'))
-
 
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby

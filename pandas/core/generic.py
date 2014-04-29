@@ -611,11 +611,19 @@ class NDFrame(PandasObject):
             arr = operator.inv(values)
         else:
             arr = operator.neg(values)
-        return self._wrap_array(arr, self.axes, copy=False)
+        return self.__array_wrap__(arr)
 
     def __invert__(self):
-        arr = operator.inv(_values_from_object(self))
-        return self._wrap_array(arr, self.axes, copy=False)
+        try:
+            arr = operator.inv(_values_from_object(self))
+            return self.__array_wrap__(arr)
+        except:
+
+            # inv fails with 0 len
+            if not np.prod(self.shape):
+                return self
+
+            raise
 
     def equals(self, other):
         """
@@ -707,15 +715,11 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Array Interface
 
-    def _wrap_array(self, arr, axes, copy=False):
-        d = self._construct_axes_dict_from(self, axes, copy=copy)
-        return self._constructor(arr, **d).__finalize__(self)
-
     def __array__(self, dtype=None):
         return _values_from_object(self)
 
-    def __array_wrap__(self, result):
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+    def __array_wrap__(self, result, copy=False):
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=copy)
         return self._constructor(result, **d).__finalize__(self)
 
     # ideally we would define this to avoid the getattr checks, but

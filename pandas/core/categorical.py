@@ -226,11 +226,13 @@ class Categorical(PandasObject):
         """
         # Hack?
         from pandas.core.frame import DataFrame
-        grouped = DataFrame(self.labels).groupby(0)
-        counts = grouped.count().values.squeeze()
+        counts = DataFrame({
+            'labels' : self.labels,
+            'values' : self.labels }
+                           ).groupby('labels').count().squeeze().values
         freqs = counts / float(counts.sum())
-        return DataFrame.from_dict({
+        return DataFrame({
             'counts': counts,
             'freqs': freqs,
             'levels': self.levels
-        }).set_index('levels')
+            }).set_index('levels')

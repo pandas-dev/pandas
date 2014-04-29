@@ -1378,7 +1378,8 @@ class TestGroupBy(tm.TestCase):
         res_not_as_apply = g_not_as.apply(lambda x: x.head(2)).index
 
         # apply doesn't maintain the original ordering
-        exp_not_as_apply = Index([0, 2, 1, 4])
+        # changed in GH5610 as the as_index=False returns a MI here
+        exp_not_as_apply = MultiIndex.from_tuples([(0, 0), (0, 2), (1, 1), (2, 4)])
         exp_as_apply = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
 
         assert_index_equal(res_as_apply, exp_as_apply)
@@ -1969,6 +1970,64 @@ class TestGroupBy(tm.TestCase):
         result = grouped.size()
         for key, group in grouped:
             self.assertEquals(result[key], len(group))
+
+    def test_count(self):
+
+        # GH5610
+        # count counts non-nulls
+        df = pd.DataFrame([[1, 2, 'foo'], [1, nan, 'bar'], [3, nan, nan]], columns=['A', 'B', 'C'])
+
+        count_as = df.groupby('A').count()
+        count_not_as = df.groupby('A', as_index=False).count()
+
+        expected = DataFrame([[1, 2], [0, 0]], columns=['B', 'C'], index=[1,3])
+        expected.index.name='A'
+        assert_frame_equal(count_not_as, expected.reset_index())
+        assert_frame_equal(count_as, expected)
+
+        count_B = df.groupby('A')['B'].count()
+        assert_series_equal(count_B, expected['B'])
+
+    def test_non_cython_api(self):
+
+        # GH5610
+        # non-cython calls should not include the grouper
+
+        df = DataFrame([[1, 2, 'foo'], [1, nan, 'bar',], [3, nan, 'baz']], columns=['A', 'B','C'])
+        g = df.groupby('A')
+        gni = df.groupby('A',as_index=False)
+
+        # mad
+        expected = DataFrame([[0],[nan]],columns=['B'],index=[1,3])
+        expected.index.name = 'A'
+        result = g.mad()
+        assert_frame_equal(result,expected)
+
+        expected = DataFrame([[0.,0.],[0,nan]],columns=['A','B'],index=[0,1])
+        result = gni.mad()
+        assert_frame_equal(result,expected)
+
+        # describe
+        expected = DataFrame(dict(B = concat([df.loc[[0,1],'B'].describe(),df.loc[[2],'B'].describe()],keys=[1,3])))
+        expected.index.names = ['A',None]
+        result = g.describe()
+        assert_frame_equal(result,expected)
+
+        expected = concat([df.loc[[0,1],['A','B']].describe(),df.loc[[2],['A','B']].describe()],keys=[0,1])
+        result = gni.describe()
+        assert_frame_equal(result,expected)
+
+        # any
+        expected = DataFrame([[True, True],[False, True]],columns=['B','C'],index=[1,3])
+        expected.index.name = 'A'
+        result = g.any()
+        assert_frame_equal(result,expected)
+
+        # idxmax
+        expected = DataFrame([[0],[nan]],columns=['B'],index=[1,3])
+        expected.index.name = 'A'
+        result = g.idxmax()
+        assert_frame_equal(result,expected)
 
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
@@ -2925,7 +2984,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,12,0),
                 DT.datetime(2013,9,2,14,0),
                 ]})
-        
+
         # GH 6908 change target column's order
         df_reordered = df_original.sort(columns='Quantity')
 
@@ -3937,8 +3996,14 @@ class TestGroupBy(tm.TestCase):
         self.assertEqual(len(res), 2)
         tm.close()
 
+        # now works with GH 5610 as gender is excluded
+        res = df.groupby('gender').hist()
+        tm.close()
+
+        df2 = df.copy()
+        df2['gender2'] = df['gender']
         with tm.assertRaisesRegexp(TypeError, '.*str.+float'):
-            gb.hist()
+            df2.groupby('gender').hist()
 
     @slow
     def test_frame_groupby_hist(self):

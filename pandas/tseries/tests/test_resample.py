@@ -1126,9 +1126,9 @@ class TestResamplePeriodIndex(tm.TestCase):
         expected = DataFrame(
             [{'REST_KEY': 14, 'DLY_TRN_QT': 14, 'DLY_SLS_AMT': 14,
               'COOP_DLY_TRN_QT': 14, 'COOP_DLY_SLS_AMT': 14}] * 4,
-            index=index).unstack().swaplevel(1,0).sortlevel()
+            index=index)
         result = df.resample('7D', how='count')
-        assert_series_equal(result,expected)
+        assert_frame_equal(result,expected)
 
         expected = DataFrame(
             [{'REST_KEY': 21, 'DLY_TRN_QT': 1050, 'DLY_SLS_AMT': 700,

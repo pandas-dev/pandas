@@ -110,11 +110,28 @@ API changes
 
   .. ipython:: python
 
-     DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
      g = df.groupby('A')
      g.nth(0)  # can also use negative ints
 
      g.nth(0, dropna='any')  # similar to old behaviour
+
+  groupby will now not return the grouped column for non-cython functions (:issue:`5610`),
+  as its already the index
+
+  .. ipython:: python
+
+     df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
+     g = df.groupby('A')
+     g.count()
+     g.describe()
+
+  passing ``as_index`` will leave the grouped column in-place (this is not change in 0.14.0)
+
+     df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
+     g = df.groupby('A',as_index=False)
+     g.count()
+     g.describe()
 
 - Allow specification of a more complex groupby via ``pd.Grouper``, such as grouping
   by a Time and a string field simultaneously. See :ref:`the docs <groupby.specify>`. (:issue:`3794`)
