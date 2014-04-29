@@ -18,7 +18,7 @@ from numpy.testing import assert_array_equal
 from pandas.core.reshape import (melt, convert_dummies, lreshape, get_dummies,
                                  wide_to_long)
 import pandas.util.testing as tm
-from pandas.compat import StringIO, cPickle, range
+from pandas.compat import StringIO, cPickle, range, u
 
 _multiprocess_can_split_ = True
 
@@ -198,6 +198,16 @@ class TestGetDummies(tm.TestCase):
         res_just_na = get_dummies([nan], dummy_na=True)
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
         assert_array_equal(res_just_na.values, exp_just_na.values)
+
+    def test_unicode(self):  # See GH 6885 - get_dummies chokes on unicode values
+        import unicodedata
+        e = 'e'
+        eacute = unicodedata.lookup('LATIN SMALL LETTER E WITH ACUTE')
+        s = [e, eacute, eacute]
+        res = get_dummies(s, prefix='letter')
+        exp = DataFrame({'letter_e': {0: 1.0, 1: 0.0, 2: 0.0},
+                        u('letter_%s') % eacute: {0: 0.0, 1: 1.0, 2: 1.0}})
+        assert_frame_equal(res, exp)
 
 class TestConvertDummies(tm.TestCase):
     def test_convert_dummies(self):
