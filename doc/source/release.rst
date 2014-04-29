@@ -270,7 +270,6 @@ Improvements to existing features
 Bug Fixes
 ~~~~~~~~~
 
-- Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 - Bug in Series ValueError when index doesn't match data (:issue:`6532`)
 - Prevent segfault due to MultiIndex not being supported in HDFStore table
   format (:issue:`1848`)
@@ -382,6 +381,7 @@ Bug Fixes
 - Bug in arithmetic operations affecting to NaT (:issue:`6873`)
 - Bug in ``Series.str.extract`` where the resulting ``Series`` from a single
   group match wasn't renamed to the group name
+- Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 
 pandas 0.13.1
 -------------
