@@ -445,6 +445,23 @@ class GroupBy(PandasObject):
             return [self._selection]
         return self._selection
 
+    @cache_readonly
+    def _selected_obj(self):
+
+        if self._selection is None or isinstance(self.obj, Series):
+            return self.obj
+        else:
+            return self.obj[self._selection]
+
+    def _set_selection_from_grouper(self):
+        """ we may need create a selection if we have non-level groupers """
+        grp = self.grouper
+        if self._selection is None and getattr(grp,'groupings',None) is not None:
+            ax = self.obj._info_axis
+            groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
+            if len(groupers):
+                self._selection = (ax-Index(groupers)).tolist()
+
     def _local_dir(self):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
@@ -453,7 +470,6 @@ class GroupBy(PandasObject):
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
-
         if hasattr(self.obj, attr):
             return self._make_wrapper(attr)
 
@@ -471,6 +487,10 @@ class GroupBy(PandasObject):
                    "using the 'apply' method".format(kind, name,
                                                      type(self).__name__))
             raise AttributeError(msg)
+
+        # need to setup the selection
+        # as are not passed directly but in the grouper
+        self._set_selection_from_grouper()
 
         f = getattr(self._selected_obj, name)
         if not isinstance(f, types.MethodType):
@@ -503,7 +523,19 @@ class GroupBy(PandasObject):
             try:
                 return self.apply(curried_with_axis)
             except Exception:
-                return self.apply(curried)
+                try:
+                    return self.apply(curried)
+                except Exception:
+
+                    # related to : GH3688
+                    # try item-by-item
+                    # this can be called recursively, so need to raise ValueError if
+                    # we don't have this method to indicated to aggregate to
+                    # mark this column as an error
+                    try:
+                        return self._aggregate_item_by_item(name, *args, **kwargs)
+                    except (AttributeError):
+                        raise ValueError
 
         return wrapper
 
@@ -624,6 +656,7 @@ class GroupBy(PandasObject):
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
+            self._set_selection_from_grouper()
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
@@ -639,6 +672,7 @@ class GroupBy(PandasObject):
             raise
         except Exception:  # pragma: no cover
 
+            self._set_selection_from_grouper()
             def f(x):
                 if isinstance(x, np.ndarray):
                     x = Series(x)
@@ -655,6 +689,7 @@ class GroupBy(PandasObject):
         if ddof == 1:
             return self._cython_agg_general('std')
         else:
+            self._set_selection_from_grouper()
             f = lambda x: x.std(ddof=ddof)
             return self._python_agg_general(f)
 
@@ -667,6 +702,7 @@ class GroupBy(PandasObject):
         if ddof == 1:
             return self._cython_agg_general('var')
         else:
+            self._set_selection_from_grouper()
             f = lambda x: x.var(ddof=ddof)
             return self._python_agg_general(f)
 
@@ -677,12 +713,14 @@ class GroupBy(PandasObject):
         """
         return self.grouper.size()
 
-    def count(self):
+    def count(self, axis=0):
         """
         Number of non-null items in each group.
-
+        axis : axis number, default 0
+               the grouping axis
         """
-        return self._python_agg_general(lambda x: notnull(x).sum())
+        self._set_selection_from_grouper()
+        return self._python_agg_general(lambda x: notnull(x).sum(axis=axis)).astype('int64')
 
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
@@ -693,12 +731,14 @@ class GroupBy(PandasObject):
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
 
+
     def ohlc(self):
         """
-        Deprecated, use .resample(how="ohlc") instead.
-
+        Compute sum of values, excluding missing values
+        For multiple groupings, the result index will be a MultiIndex
         """
-        raise AttributeError('ohlc is deprecated, use resample(how="ohlc").')
+        return self._apply_to_column_groupbys(
+            lambda x: x._cython_agg_general('ohlc'))
 
     def nth(self, n, dropna=None):
         """
@@ -894,13 +934,6 @@ class GroupBy(PandasObject):
                 cumcounts[v] = arr[len(v)-1::-1]
         return cumcounts
 
-    @cache_readonly
-    def _selected_obj(self):
-        if self._selection is None or isinstance(self.obj, Series):
-            return self.obj
-        else:
-            return self.obj[self._selection]
-
     def _index_with_as_index(self, b):
         """
         Take boolean mask of index to be returned from apply, if as_index=True
@@ -945,7 +978,6 @@ class GroupBy(PandasObject):
                 result, names = self.grouper.aggregate(obj.values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
-            # infer old dytpe
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -954,8 +986,6 @@ class GroupBy(PandasObject):
         return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
-        _dtype = kwargs.pop("_dtype", None)
-
         func = _intercept_function(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -964,14 +994,7 @@ class GroupBy(PandasObject):
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-
-                if _dtype is None:  # infer old dytpe
-                    output[name] = self._try_cast(result, obj)
-                elif _dtype is False:
-                    output[name] = result
-                else:
-                    output[name] = _possibly_downcast_to_dtype(result, _dtype)
-
+                output[name] = self._try_cast(result, obj)
             except TypeError:
                 continue
 
@@ -2203,6 +2226,9 @@ class SeriesGroupBy(GroupBy):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
+    def _apply_to_column_groupbys(self, func):
+        """ return a pass thru """
+        return func(self)
 
 class NDFrameGroupBy(GroupBy):
 
