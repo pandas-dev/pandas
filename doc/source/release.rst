@@ -457,6 +457,7 @@ Bug Fixes
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
 - Bug in C parser with leading whitespace (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
+- Bug in python parser with explicit multi-index in row following column header (:issue:`6893`)
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
 - Bug in ``DataFrame.apply`` with functions that used \*args`` or \*\*kwargs and returned
   an empty result (:issue:`6952`)

@@ -1569,7 +1569,7 @@ c,4,5,01/03/2009
 
     def test_read_table_buglet_4x_multiindex(self):
         # GH 6607
-        # Parsing multiindex columns currently causes an error in the C parser.
+        # Parsing multi-level index currently causes an error in the C parser.
         # Temporarily copied to TestPythonParser.
         # Here test that CParserError is raised:
 
@@ -2692,7 +2692,7 @@ also also skip this
     def test_read_table_buglet_4x_multiindex(self):
         # GH 6607
         # This is a copy which should eventually be merged into ParserTests
-        # when the issue with multiindex columns is fixed in the C parser.
+        # when the issue with multi-level index is fixed in the C parser.
 
         text = """                      A       B       C       D        E
 one two three   four
@@ -2703,6 +2703,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # it works!
         df = self.read_table(StringIO(text), sep='\s+')
         self.assertEquals(df.index.names, ('one', 'two', 'three', 'four'))
+
+        # GH 6893
+        data = '      A B C\na b c\n1 3 7 0 3 6\n3 1 4 1 5 9'
+        expected = DataFrame.from_records([(1,3,7,0,3,6), (3,1,4,1,5,9)],
+                columns=list('abcABC'), index=list('abc'))
+        actual = self.read_table(StringIO(data), sep='\s+')
+        tm.assert_frame_equal(actual, expected)
 
 class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
