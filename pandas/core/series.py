@@ -370,12 +370,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ the array interface, return my values """
         return self.values
 
-    def __array_wrap__(self, result):
+    def __array_wrap__(self, result, copy=False):
         """
         Gets called prior to a ufunc (and after)
         """
         return self._constructor(result, index=self.index,
-                                 copy=False).__finalize__(self)
+                                 copy=copy).__finalize__(self)
 
     def __contains__(self, key):
         return key in self.index
@@ -958,19 +958,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     if compat.PY3:  # pragma: no cover
         items = iteritems
-
-    # inversion
-    def __neg__(self):
-        values = self.values
-        if values.dtype == np.bool_:
-            arr = operator.inv(values)
-        else:
-            arr = operator.neg(values)
-        return self._constructor(arr, self.index).__finalize__(self)
-
-    def __invert__(self):
-        arr = operator.inv(self.values)
-        return self._constructor(arr, self.index).__finalize__(self)
 
     #----------------------------------------------------------------------
     # unbox reductions
