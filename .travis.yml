@@ -46,16 +46,32 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "33_nslow"
+    - python: 3.4
+      env:
+      - EXPERIMENTAL=true
+      - NOSE_ARGS="not slow and not disabled"
+      - FULL_DEPS=true
+      - CLIPBOARD=xsel
+      - JOB_NAME: "34_nslow"
     - python: 2.7
       env:
+      - EXPERIMENTAL=true
       - NOSE_ARGS="not slow and not network and not disabled"
       - JOB_NAME: "27_numpy_master"
       - JOB_TAG=_NUMPY_DEV_master
       - NUMPY_BUILD=master
       - PANDAS_TESTING_MODE="numpy_deprecate"
     allow_failures:
+      - python: 3.4
+        env:
+        - EXPERIMENTAL=true
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - JOB_NAME: "34_nslow"
       - python: 2.7
         env:
+        - EXPERIMENTAL=true
         - NOSE_ARGS="not slow and not network and not disabled"
         - JOB_NAME: "27_numpy_master"
         - JOB_TAG=_NUMPY_DEV_master

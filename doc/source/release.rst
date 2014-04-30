@@ -53,6 +53,7 @@ pandas 0.14.0
 New features
 ~~~~~~~~~~~~
 
+- Officially support Python 3.4
 - ``Index`` returns a MultiIndex if passed a list of tuples
   ``DataFrame(dict)`` and ``Series(dict)`` create ``MultiIndex``
   columns and index where applicable (:issue:`4187`)
