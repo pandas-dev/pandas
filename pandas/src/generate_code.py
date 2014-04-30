@@ -3,7 +3,6 @@ from __future__ import print_function
 # don't introduce a pandas/pandas.compat import
 # or we get a bootstrapping problem
 from StringIO import StringIO
-import os
 
 header = """
 cimport numpy as np
@@ -1150,6 +1149,86 @@ def group_var_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                              (ct * ct - ct))
 """
 
+group_count_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[%(c_type)s, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        %(dest_type2)s val
+        ndarray[%(dest_type2)s, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+"""
+
+group_count_bin_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[%(c_type)s, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        %(dest_type2)s val, count
+        ndarray[%(dest_type2)s, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+"""
 # add passing bin edges, instead of labels
 
 
@@ -2251,6 +2330,8 @@ groupbys = [group_last_template,
             group_max_bin_template,
             group_ohlc_template]
 
+groupby_count = [group_count_template, group_count_bin_template]
+
 templates_1d = [map_indices_template,
                 pad_template,
                 backfill_template,
@@ -2272,6 +2353,7 @@ take_templates = [take_1d_template,
                   take_2d_axis1_template,
                   take_2d_multi_template]
 
+
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
         print(header, file=f)
@@ -2288,7 +2370,10 @@ def generate_take_cython_file(path='generated.pyx'):
             print(generate_put_template(template), file=f)
 
         for template in groupbys:
-            print(generate_put_template(template, use_ints = False), file=f)
+            print(generate_put_template(template, use_ints=False), file=f)
+
+        for template in groupby_count:
+            print(generate_put_template(template), file=f)
 
         # for template in templates_1d_datetime:
         #     print >> f, generate_from_template_datetime(template)
@@ -2298,6 +2383,7 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in nobool_1d_templates:
             print(generate_from_template(template, exclude=['bool']), file=f)
+
 
 if __name__ == '__main__':
     generate_take_cython_file()

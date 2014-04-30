@@ -6621,6 +6621,470 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
             out[b, 2] = vlow
             out[b, 3] = vclose
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_float64(ndarray[float64_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[float64_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val
+        ndarray[float64_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_float32(ndarray[float32_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[float32_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float32_t val
+        ndarray[float32_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_int8(ndarray[float32_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[int8_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float32_t val
+        ndarray[float32_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_int16(ndarray[float32_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[int16_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float32_t val
+        ndarray[float32_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_int32(ndarray[float64_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[int32_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val
+        ndarray[float64_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_int64(ndarray[float64_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[int64_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val
+        ndarray[float64_t, ndim=2] nobs = np.zeros_like(out)
+
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[lab, j] += val == val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[float64_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[float32_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float32_t val, count
+        ndarray[float32_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_int8(ndarray[float32_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[int8_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float32_t val, count
+        ndarray[float32_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_int16(ndarray[float32_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[int16_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float32_t val, count
+        ndarray[float32_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_int32(ndarray[float64_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[int32_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_count_bin_int64(ndarray[float64_t, ndim=2] out,
+                             ndarray[int64_t] counts,
+                             ndarray[int64_t, ndim=2] values,
+                             ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] nobs
+
+    nobs = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            nobs[b, j] += val == val
+
+    for i in range(ngroups):
+        for j in range(K):
+            out[i, j] = nobs[i, j]
+
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer_unique_float64(ndarray[float64_t] left,
