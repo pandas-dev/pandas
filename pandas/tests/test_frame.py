@@ -4470,6 +4470,29 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(empty_df.tail(), empty_df)
         assert_frame_equal(empty_df.head(), empty_df)
 
+    def test_left_right(self):
+        assert_frame_equal(self.frame.left(), self.frame.iloc[:, :5])
+        assert_frame_equal(self.frame.right(), self.frame.iloc[:, -5:])
+        assert_frame_equal(self.frame.left(0), self.frame)
+        assert_frame_equal(self.frame.right(0), self.frame)
+        assert_frame_equal(self.frame.left(-1), self.frame.iloc[:, :-1])
+        assert_frame_equal(self.frame.right(-1), self.frame.iloc[:, 1:])
+        assert_frame_equal(self.frame.left(1), self.frame.iloc[:, :1])
+        assert_frame_equal(self.frame.right(1), self.frame.iloc[:, -1:])
+        # with a float index
+        df = self.frame.copy()
+        df.index = np.arange(len(self.frame)) + 0.1
+        assert_frame_equal(df.left(), df.iloc[:, :5])
+        assert_frame_equal(df.right(), df.iloc[:, -5:])
+        assert_frame_equal(df.left(0), df)
+        assert_frame_equal(df.right(0), df)
+        assert_frame_equal(df.left(-1), df.iloc[:, :-1])
+        assert_frame_equal(df.right(-1), df.iloc[:, 1:])
+        #test empty dataframe
+        empty_df = DataFrame()
+        assert_frame_equal(empty_df.right(), empty_df)
+        assert_frame_equal(empty_df.left(), empty_df)
+
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
                        columns=['c', 'b', 'a'])

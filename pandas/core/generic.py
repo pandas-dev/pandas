@@ -1794,24 +1794,6 @@ class NDFrame(PandasObject):
             return self
         return self.iloc[-n:]
 
-    def left(self, n=5):
-        """
-        Return first n columns
-        """
-        l = self.shape[1]
-        if l == 0 or n == 0:
-            return self
-        return self.iloc[:, :n]
-
-    def right(self, n=5):
-        """
-        Return last n columns
-        """
-        l = self.shape[1]
-        if l == 0 or n == 0:
-            return self
-        return self.iloc[:, -n:]
-
     #----------------------------------------------------------------------
     # Attribute access
 
