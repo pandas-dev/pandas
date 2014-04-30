@@ -106,7 +106,7 @@ packers_write_hdf_table = Benchmark("df2.to_hdf(f,'df',table=True)", setup, clea
 
 setup_int_index = """
 import numpy as np
-df.index = np.arange(50000)
+df.index = np.arange(N)
 """
 
 setup = common_setup + """

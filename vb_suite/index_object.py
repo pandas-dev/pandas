@@ -11,7 +11,7 @@ common_setup = """from pandas_vb_common import *
 # intersection, union
 
 setup = common_setup + """
-rng = DatetimeIndex('1/1/2000', periods=10000, offset=datetools.Minute())
+rng = DatetimeIndex(start='1/1/2000', periods=10000, freq=datetools.Minute())
 if rng.dtype == object:
     rng = rng.view(Index)
 else:

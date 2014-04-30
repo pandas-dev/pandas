@@ -87,7 +87,7 @@ stats_rank_average = Benchmark('s.rank()', setup,
 
 stats_rank_pct_average = Benchmark('s.rank(pct=True)', setup,
                                    start_date=datetime(2014, 01, 16))
-stats_rank_pct_average_old = Benchmark('s.rank() / s.size()', setup,
+stats_rank_pct_average_old = Benchmark('s.rank() / len(s)', setup,
                                        start_date=datetime(2014, 01, 16))
 setup = common_setup + """
 values = np.random.randint(0, 100000, size=200000)
