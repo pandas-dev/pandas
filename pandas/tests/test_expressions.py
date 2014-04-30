@@ -357,6 +357,18 @@ class TestExpressions(tm.TestCase):
                 with tm.assertRaisesRegexp(NotImplementedError, err_msg):
                     f(df.a, df.b)
 
+                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                    f(df.a, True)
+
+                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                    f(False, df.a)
+
+                with tm.assertRaisesRegexp(TypeError, err_msg):
+                    f(False, df)
+
+                with tm.assertRaisesRegexp(TypeError, err_msg):
+                    f(df, True)
+
 
 if __name__ == '__main__':
     import nose

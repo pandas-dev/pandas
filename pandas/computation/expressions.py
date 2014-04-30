@@ -158,7 +158,10 @@ def _has_bool_dtype(x):
     try:
         return x.dtype == bool
     except AttributeError:
-        return 'bool' in x.blocks
+        try:
+            return 'bool' in x.blocks
+        except AttributeError:
+            return isinstance(x, (bool, np.bool_))
 
 
 def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('+', '*', '-', '/',

@@ -61,25 +61,25 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
                               default_axis=default_axis, fill_zeros=np.inf),
         # Causes a floating point exception in the tests when numexpr
         # enabled, so for now no speedup
-        mod=arith_method(operator.mod, names('mod'), default_axis=default_axis,
-                         fill_zeros=np.nan),
+        mod=arith_method(operator.mod, names('mod'), op('%'),
+                         default_axis=default_axis, fill_zeros=np.nan),
         pow=arith_method(operator.pow, names('pow'), op('**'),
                          default_axis=default_axis),
         # not entirely sure why this is necessary, but previously was included
         # so it's here to maintain compatibility
-        rmul=arith_method(operator.mul, names('rmul'),
+        rmul=arith_method(operator.mul, names('rmul'), op('*'),
                           default_axis=default_axis),
-        rsub=arith_method(lambda x, y: y - x, names('rsub'),
+        rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-'),
                           default_axis=default_axis),
         rtruediv=arith_method(lambda x, y: operator.truediv(y, x),
-                              names('rtruediv'), truediv=True,
+                              names('rtruediv'), op('/'), truediv=True,
                               fill_zeros=np.inf, default_axis=default_axis),
         rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x),
-                               names('rfloordiv'), default_axis=default_axis,
-                               fill_zeros=np.inf),
-        rpow=arith_method(lambda x, y: y ** x, names('rpow'),
+                               names('rfloordiv'), op('//'),
+                               default_axis=default_axis, fill_zeros=np.inf),
+        rpow=arith_method(lambda x, y: y ** x, names('rpow'), op('**'),
                           default_axis=default_axis),
-        rmod=arith_method(lambda x, y: y % x, names('rmod'),
+        rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%'),
                           default_axis=default_axis),
     )
     new_methods['div'] = new_methods['truediv']
@@ -100,11 +100,11 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
             and_=bool_method(operator.and_, names('and_'), op('&')),
             or_=bool_method(operator.or_, names('or_'), op('|')),
             # For some reason ``^`` wasn't used in original.
-            xor=bool_method(operator.xor, names('xor')),
+            xor=bool_method(operator.xor, names('xor'), op('^')),
             rand_=bool_method(lambda x, y: operator.and_(y, x),
-                              names('rand_')),
-            ror_=bool_method(lambda x, y: operator.or_(y, x), names('ror_')),
-            rxor=bool_method(lambda x, y: operator.xor(y, x), names('rxor'))
+                              names('rand_'), op('&')),
+            ror_=bool_method(lambda x, y: operator.or_(y, x), names('ror_'), op('|')),
+            rxor=bool_method(lambda x, y: operator.xor(y, x), names('rxor'), op('^'))
         ))
 
     new_methods = dict((names(k), v) for k, v in new_methods.items())
@@ -431,7 +431,7 @@ class _TimeOp(object):
         return cls(left, right, name)
 
 
-def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
+def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
                          default_axis=None, **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -506,7 +506,7 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
     return wrapper
 
 
-def _comp_method_SERIES(op, name, str_rep=None, masker=False):
+def _comp_method_SERIES(op, name, str_rep, masker=False):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -578,7 +578,7 @@ def _comp_method_SERIES(op, name, str_rep=None, masker=False):
     return wrapper
 
 
-def _bool_method_SERIES(op, name, str_rep=None):
+def _bool_method_SERIES(op, name, str_rep):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -647,7 +647,7 @@ def _radd_compat(left, right):
     return output
 
 
-def _flex_method_SERIES(op, name, str_rep=None, default_axis=None,
+def _flex_method_SERIES(op, name, str_rep, default_axis=None,
                         fill_zeros=None, **eval_kwargs):
     doc = """
     Binary operator %s with support to substitute a fill_value for missing data
