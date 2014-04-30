@@ -132,6 +132,21 @@ class TestTSPlot(tm.TestCase):
                          Period('1987-1-1', 'D').ordinal)
 
     @slow
+    def test_ts_plot_format_coord(self):
+        def check_format_of_first_point(ax, expected_string):
+            first_line = ax.get_lines()[0]
+            first_x = first_line.get_xdata()[0].ordinal
+            first_y = first_line.get_ydata()[0]
+            self.assertEqual(expected_string, ax.format_coord(first_x, first_y))
+
+        annual = Series(1, index=date_range('2014-01-01', periods=3, freq='A-DEC'))
+        check_format_of_first_point(annual.plot(), 't = 2014  y = 1.000000')
+
+        # note this is added to the annual plot already in existence, and changes its freq field
+        daily = Series(1, index=date_range('2014-01-01', periods=3, freq='D'))
+        check_format_of_first_point(daily.plot(), 't = 2014-01-01  y = 1.000000')
+
+    @slow
     def test_line_plot_period_series(self):
         for s in self.period_ser:
             _check_plot_works(s.plot, s.index.freq)
