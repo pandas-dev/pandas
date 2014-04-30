@@ -18,7 +18,7 @@ frame_reindex_columns = Benchmark(statement, setup)
 #----------------------------------------------------------------------
 
 setup = common_setup + """
-rng = DatetimeIndex('1/1/1970', periods=10000, offset=datetools.Minute())
+rng = DatetimeIndex(start='1/1/1970', periods=10000, freq=datetools.Minute())
 df = DataFrame(np.random.rand(10000, 10), index=rng,
                columns=range(10))
 df['foo'] = 'bar'
@@ -51,7 +51,7 @@ reindex_multi = Benchmark(statement, setup,
 # Pad / backfill
 
 setup = common_setup + """
-rng = DateRange('1/1/2000', periods=100000, offset=datetools.Minute())
+rng = date_range('1/1/2000', periods=100000, freq=datetools.Minute())
 
 ts = Series(np.random.randn(len(rng)), index=rng)
 ts2 = ts[::2]

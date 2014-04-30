@@ -15,7 +15,7 @@ panel = Panel(np.random.randn(100, len(index), 1000))
 panel_shift = Benchmark('panel.shift(1)', setup,
                                start_date=datetime(2012, 1, 12))
 
-panel_shift_minor = Benchmark('panel.shift(1, axis=minor)', setup,
+panel_shift_minor = Benchmark('panel.shift(1, axis="minor")', setup,
                                start_date=datetime(2012, 1, 12))
 
 panel_pct_change_major = Benchmark('panel.pct_change(1, axis="major")', setup,

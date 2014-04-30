@@ -45,15 +45,35 @@ data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
 frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
 
 # dynamically generate benchmarks for every offset
+#
+# get_period_count & get_index_for_offset are there because blindly taking each
+# offset times 1000 can easily go out of Timestamp bounds and raise errors.
 dynamic_benchmarks = {}
 n_steps = [1, 2]
 for offset in offsets.__all__:
     for n in n_steps:
         setup = common_setup + """
-df = DataFrame(np.random.randn(1000,10),index=date_range('1/1/1900',periods=1000,freq={}({})))
+
+def get_period_count(start_date, off):
+    ten_offsets_in_days = ((start_date + off * 10) - start_date).days
+    if ten_offsets_in_days == 0:
+        return 1000
+    else:
+        return min(9 * ((Timestamp.max - start_date).days //
+                        ten_offsets_in_days),
+                   1000)
+
+def get_index_for_offset(off):
+    start_date = Timestamp('1/1/1900')
+    return date_range(start_date,
+                      periods=min(1000, get_period_count(start_date, off)),
+                      freq=off)
+
+idx = get_index_for_offset({}({}))
+df = DataFrame(np.random.randn(len(idx),10), index=idx)
 d = dict([ (col,df[col]) for col in df.columns ])
 """.format(offset, n)
-        key = 'frame_ctor_dtindex_{}({})'.format(offset, n)
+        key = 'frame_ctor_dtindex_{}x{}'.format(offset, n)
         dynamic_benchmarks[key] = Benchmark("DataFrame(d)", setup, name=key)
 
 # Have to stuff them in globals() so vbench detects them

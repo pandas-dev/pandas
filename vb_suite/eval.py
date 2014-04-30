@@ -78,7 +78,6 @@ eval_frame_and_one_thread = \
               name='eval_frame_and_one_thread',
               start_date=datetime(2013, 7, 26))
 
-setup = common_setup
 eval_frame_and_python = \
     Benchmark("pd.eval('(df > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)', engine='python')",
               common_setup, name='eval_frame_and_python',
@@ -102,7 +101,6 @@ eval_frame_chained_cmp_one_thread = \
               name='eval_frame_chained_cmp_one_thread',
               start_date=datetime(2013, 7, 26))
 
-# setup = common_setup
 eval_frame_chained_cmp_python = \
     Benchmark("pd.eval('df < df2 < df3 < df4', engine='python')",
               common_setup, name='eval_frame_chained_cmp_python',
@@ -129,7 +127,7 @@ series_setup = setup + """
 df = DataFrame({'dates': s.values})
 """
 
-query_datetime_series = Benchmark("df.query('dates < ts')",
+query_datetime_series = Benchmark("df.query('dates < @ts')",
                                   series_setup,
                                   start_date=datetime(2013, 9, 27))
 
@@ -137,7 +135,7 @@ index_setup = setup + """
 df = DataFrame({'a': np.random.randn(N)}, index=index)
 """
 
-query_datetime_index = Benchmark("df.query('index < ts')",
+query_datetime_index = Benchmark("df.query('index < @ts')",
                                  index_setup, start_date=datetime(2013, 9, 27))
 
 setup = setup + """
@@ -147,6 +145,6 @@ min_val = df['a'].min()
 max_val = df['a'].max()
 """
 
-query_with_boolean_selection = Benchmark("df.query('(a >= min_val) & (a <= max_val)')",
-                                         index_setup, start_date=datetime(2013, 9, 27))
+query_with_boolean_selection = Benchmark("df.query('(a >= @min_val) & (a <= @max_val)')",
+                                         setup, start_date=datetime(2013, 9, 27))
 
