@@ -385,6 +385,7 @@ class _NDFrameIndexer(object):
                     s._data = s._data.setitem(indexer=pi, value=v)
                     s._maybe_update_cacher(clear=True)
 
+                # reset the sliced object if unique
                 self.obj[item] = s
 
             def can_do_equal_len():
