@@ -9,6 +9,7 @@ users upgrade to this version.
 
 - Highlights include:
 
+  - Officially support Python 3.4
   - SQL interfaces updated to use ``sqlalchemy``, See :ref:`Here<whatsnew_0140.sql>`.
   - MultiIndexing Using Slicers, See :ref:`Here<whatsnew_0140.slicers>`.
   - Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`Here <merging.join_on_mi>`
