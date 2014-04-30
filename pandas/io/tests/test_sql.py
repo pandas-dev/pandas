@@ -296,11 +296,6 @@ class PandasSQLTest(unittest.TestCase):
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
-    def _tquery(self):
-        iris_results = self.pandasSQL.tquery("SELECT * FROM iris")
-        row = iris_results[0]
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
-
 
 #------------------------------------------------------------------------------
 #--- Testing the public API
@@ -432,19 +427,6 @@ class _TestSQLApi(PandasSQLTest):
             "SELECT * FROM iris", con=self.conn, flavor='sqlite')
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
-
-    def test_tquery(self):
-        with tm.assert_produces_warning(FutureWarning):
-            iris_results = sql.tquery(
-                "SELECT * FROM iris", con=self.conn, flavor='sqlite')
-        row = iris_results[0]
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
-
-    def test_uquery(self):
-        with tm.assert_produces_warning(FutureWarning):
-            rows = sql.uquery(
-                "SELECT * FROM iris LIMIT 1", con=self.conn, flavor='sqlite')
-        self.assertEqual(rows, -1)
 
     def test_date_parsing(self):
         # Test date parsing in read_sq
@@ -693,6 +675,17 @@ class TestSQLLegacyApi(_TestSQLApi):
         # without providing a connection object (available for backwards comp)
         create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite')
         self.assert_('CREATE' in create_sql)
+
+    def test_tquery(self):
+        with tm.assert_produces_warning(FutureWarning):
+            iris_results = sql.tquery("SELECT * FROM iris", con=self.conn)
+        row = iris_results[0]
+        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+    def test_uquery(self):
+        with tm.assert_produces_warning(FutureWarning):
+            rows = sql.uquery("SELECT * FROM iris LIMIT 1", con=self.conn)
+        self.assertEqual(rows, -1)
 
 
 #------------------------------------------------------------------------------
@@ -1062,9 +1055,6 @@ class TestSQLiteLegacy(PandasSQLTest):
 
     def test_execute_sql(self):
         self._execute_sql()
-
-    def test_tquery(self):
-        self._tquery()
 
 
 class TestMySQLLegacy(TestSQLiteLegacy):

@@ -6,6 +6,7 @@ from __future__ import print_function, division
 from datetime import datetime, date, timedelta
 
 import warnings
+import traceback
 import itertools
 import re
 import numpy as np
@@ -102,75 +103,122 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
     return pandas_sql.execute(*args)
 
 
-def tquery(sql, con, cur=None, params=None, flavor='sqlite'):
+#------------------------------------------------------------------------------
+#--- Deprecated tquery and uquery
+
+def _safe_fetch(cur):
+    try:
+        result = cur.fetchall()
+        if not isinstance(result, list):
+            result = list(result)
+        return result
+    except Exception as e: # pragma: no cover
+        excName = e.__class__.__name__
+        if excName == 'OperationalError':
+            return []
+
+def tquery(sql, con=None, cur=None, retry=True):
     """
-    Returns list of tuples corresponding to each row in given sql
+    DEPRECATED. Returns list of tuples corresponding to each row in given sql
     query.
 
     If only one column selected, then plain list is returned.
 
+    To obtain the same result in the future, you can use the following:
+    
+    >>> execute(sql, con, params).fetchall()
+
     Parameters
     ----------
     sql: string
         SQL query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+    con: DBAPI2 connection
     cur: depreciated, cursor is obtained from connection
-    params: list or tuple, optional
-        List of parameters to pass to execute method.
-    flavor : string "sqlite", "mysql"
-        Specifies the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2
-        connection.
+
     Returns
     -------
     Results Iterable
+
     """
     warnings.warn(
-        "tquery is depreciated, and will be removed in future versions",
+        "tquery is depreciated, and will be removed in future versions. "
+        "You can use ``execute(...).fetchall()`` instead.",
         FutureWarning)
+    
+    cur = execute(sql, con, cur=cur)
+    result = _safe_fetch(cur)
 
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    args = _convert_params(sql, params)
-    return pandas_sql.tquery(*args)
+    if con is not None:
+        try:
+            cur.close()
+            con.commit()
+        except Exception as e:
+            excName = e.__class__.__name__
+            if excName == 'OperationalError': # pragma: no cover
+                print('Failed to commit, may need to restart interpreter')
+            else:
+                raise
+
+            traceback.print_exc()
+            if retry:
+                return tquery(sql, con=con, retry=False)
+
+    if result and len(result[0]) == 1:
+        # python 3 compat
+        result = list(lzip(*result)[0])
+    elif result is None: # pragma: no cover
+        result = []
+
+    return result
 
 
-def uquery(sql, con, cur=None, params=None, engine=None, flavor='sqlite'):
+def uquery(sql, con=None, cur=None, retry=True, params=None):
     """
-    Does the same thing as tquery, but instead of returning results, it
+    DEPRECATED. Does the same thing as tquery, but instead of returning results, it
     returns the number of rows affected.  Good for update queries.
+
+    To obtain the same result in the future, you can use the following:
+    
+    >>> execute(sql, con).rowcount
 
     Parameters
     ----------
     sql: string
         SQL query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+    con: DBAPI2 connection
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string "sqlite", "mysql"
-        Specifies the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2
-        connection.
+
     Returns
     -------
     Number of affected rows
+
     """
     warnings.warn(
-        "uquery is depreciated, and will be removed in future versions",
+        "uquery is depreciated, and will be removed in future versions. "
+        "You can use ``execute(...).rowcount`` instead.",
         FutureWarning)
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    args = _convert_params(sql, params)
-    return pandas_sql.uquery(*args)
+
+    cur = execute(sql, con, cur=cur, params=params)
+
+    result = cur.rowcount
+    try:
+        con.commit()
+    except Exception as e:
+        excName = e.__class__.__name__
+        if excName != 'OperationalError':
+            raise
+
+        traceback.print_exc()
+        if retry:
+            print('Looks like your connection failed, reconnecting...')
+            return uquery(sql, con, retry=False)
+    return result
 
 
 #------------------------------------------------------------------------------
-# Read and write to DataFrames
+#--- Read and write to DataFrames
 
 def read_sql_table(table_name, con, meta=None, index_col=None,
                    coerce_float=True, parse_dates=None, columns=None):
@@ -722,14 +770,6 @@ class PandasSQLAlchemy(PandasSQL):
         """Simple passthrough to SQLAlchemy engine"""
         return self.engine.execute(*args, **kwargs)
 
-    def tquery(self, *args, **kwargs):
-        result = self.execute(*args, **kwargs)
-        return result.fetchall()
-
-    def uquery(self, *args, **kwargs):
-        result = self.execute(*args, **kwargs)
-        return result.rowcount
-
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None):
 
@@ -953,22 +993,6 @@ class PandasSQLLegacy(PandasSQL):
             ex = DatabaseError("Execution failed on sql: %s" % args[0])
             raise_with_traceback(ex)
 
-    def tquery(self, *args):
-        cur = self.execute(*args)
-        result = self._fetchall_as_list(cur)
-
-        # This makes into tuples
-        if result and len(result[0]) == 1:
-            # python 3 compat
-            result = list(lzip(*result)[0])
-        elif result is None:  # pragma: no cover
-            result = []
-        return result
-
-    def uquery(self, *args):
-        cur = self.execute(*args)
-        return cur.rowcount
-
     def read_sql(self, sql, index_col=None, coerce_float=True, params=None,
                  parse_dates=None):
         args = _convert_params(sql, params)
@@ -1020,7 +1044,7 @@ class PandasSQLLegacy(PandasSQL):
             'mysql': "SHOW TABLES LIKE '%s'" % name}
         query = flavor_map.get(self.flavor)
 
-        return len(self.tquery(query)) > 0
+        return len(self.execute(query).fetchall()) > 0
 
     def get_table(self, table_name):
         return None  # not supported in Legacy mode
