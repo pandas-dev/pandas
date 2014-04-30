@@ -1,3 +1,4 @@
+
 language: python
 
 env:
@@ -60,12 +61,6 @@ matrix:
         - JOB_TAG=_NUMPY_DEV_master
         - NUMPY_BUILD=master
         - PANDAS_TESTING_MODE="numpy_deprecate"
-
-# allow importing from site-packages,
-# so apt-get python-x works for system pythons
-# That's 2.7/3.2 on Ubuntu 12.04
-virtualenv:
-  system_site_packages: true
 
 before_install:
   - echo "before_install"
