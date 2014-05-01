@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.datetools import (
     bday, BDay, cday, CDay, BQuarterEnd, BMonthEnd,
-    CBMonthEnd, CBMonthBegin, 
+    CBMonthEnd, CBMonthBegin,
     BYearEnd, MonthEnd, MonthBegin, BYearBegin,
     QuarterBegin, BQuarterBegin, BMonthBegin, DateOffset, Week,
     YearBegin, YearEnd, Hour, Minute, Second, Day, Micro, Milli, Nano, Easter,
@@ -601,7 +601,7 @@ class TestCustomBusinessMonthEnd(TestBase):
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
-        _skip_if_no_cday()        
+        _skip_if_no_cday()
         self.offset = CBMonthEnd()
         self.offset2 = CBMonthEnd(2)
 
@@ -636,14 +636,14 @@ class TestCustomBusinessMonthEnd(TestBase):
         self.assertRaises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
-        self.assertEqual(self.d - self.offset2, 
+        self.assertEqual(self.d - self.offset2,
                          self.d + CBMonthEnd(-2))
 
     def testRSub(self):
         self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
 
     def testMult1(self):
-        self.assertEqual(self.d + 10 * self.offset, 
+        self.assertEqual(self.d + 10 * self.offset,
                          self.d + CBMonthEnd(10))
 
     def testMult2(self):
@@ -748,10 +748,8 @@ class TestCustomBusinessMonthEnd(TestBase):
         self.assertEqual(dt + bm_offset,datetime(2012,1,30))
         self.assertEqual(dt + 2*bm_offset,datetime(2012,2,27))
 
-    def test_datetimindex(self):
+    def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
-        self.assertEqual(DatetimeIndex(start='2012',end='2013',freq='CBM').tolist()[0],
-        datetime(2012,4,30))
         self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthEnd(calendar=USFederalHolidayCalendar())).tolist()[0],
         datetime(2012,1,31))
 
@@ -762,7 +760,7 @@ class TestCustomBusinessMonthBegin(TestBase):
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
-        _skip_if_no_cday()        
+        _skip_if_no_cday()
         self.offset = CBMonthBegin()
         self.offset2 = CBMonthBegin(2)
 
@@ -797,14 +795,14 @@ class TestCustomBusinessMonthBegin(TestBase):
         self.assertRaises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
-        self.assertEqual(self.d - self.offset2, 
+        self.assertEqual(self.d - self.offset2,
                          self.d + CBMonthBegin(-2))
 
     def testRSub(self):
         self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
 
     def testMult1(self):
-        self.assertEqual(self.d + 10 * self.offset, 
+        self.assertEqual(self.d + 10 * self.offset,
                          self.d + CBMonthBegin(10))
 
     def testMult2(self):
@@ -2871,3 +2869,4 @@ class TestReprNames(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
+                                                                                                                                         
