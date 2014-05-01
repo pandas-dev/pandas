@@ -53,7 +53,7 @@ class DataFrameModel(QAbstractTableModel):
                 return QVariant()
 
     def data(self, index, role=Qt.DisplayRole):
-        if role != Qt.DisplayRole:
+        if role not in (Qt.DisplayRole, Qt.EditRole):
             return QVariant()
 
         if not index.isValid():
