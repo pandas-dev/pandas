@@ -87,25 +87,25 @@ class DataFrameModel(QAbstractTableModel):
         return self.df.shape[1]
 
 
-class DataFrameWidget(QWidget):
+class DataFrameWidget(QTableView):
     ''' a simple widget for using DataFrames in a gui '''
-    def __init__(self, dataFrame, parent=None):
-        super(DataFrameWidget, self).__init__(parent)
+    def __init__(self, dataFrame=None, parent=None):
+        super(DataFrameWidget, self).__init__(parent=parent)
 
         self.dataModel = DataFrameModel()
-        self.dataTable = QTableView()
-        self.dataTable.setModel(self.dataModel)
+        self.setModel(self.dataModel)
+        self.dataFrame = dataFrame
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.dataTable)
-        self.setLayout(layout)
-        # Set DataFrame
-        self.setDataFrame(dataFrame)
+    @property
+    def dataFrame(self):
+        return self.dataModel.df
 
-    def setDataFrame(self, dataFrame):
-        self.dataModel.setDataFrame(dataFrame)
-        self.dataModel.signalUpdate()
-        self.dataTable.resizeColumnsToContents()
+    @dataFrame.setter
+    def dataFrame(self, value):
+        if value is not self.dataFrame:
+            self.dataModel.setDataFrame(value)
+            self.dataModel.signalUpdate()
+            self.resizeColumnsToContents()
 
 #-----------------stand alone test code
 
@@ -124,7 +124,7 @@ class Form(QDialog):
 
         df = testDf()  # make up some data
         widget = DataFrameWidget(df)
-        widget.dataTable.resizeColumnsToContents()
+        widget.resizeColumnsToContents()
 
         layout = QVBoxLayout()
         layout.addWidget(widget)
