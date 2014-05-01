@@ -89,7 +89,7 @@ class DataFrameModel(QAbstractTableModel):
 
 class DataFrameWidget(QTableView):
     ''' a simple widget for using DataFrames in a gui '''
-    def __init__(self, dataFrame=None, parent=None):
+    def __init__(self, parent=None, dataFrame=None):
         super(DataFrameWidget, self).__init__(parent=parent)
 
         self.dataModel = DataFrameModel()
