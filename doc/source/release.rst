@@ -188,7 +188,7 @@ API Changes
   validation warnings in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
 - Raise a ``TypeError`` when ``DataFrame`` is passed an iterator as the
   ``data`` argument (:issue:`5357`)
-- groupby will now not return the grouped column for non-cython functions (:issue:`5610`),
+- groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`),
   as its already the index
 
 Deprecations

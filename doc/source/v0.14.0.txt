@@ -124,7 +124,7 @@ API changes
 
      g.nth(0, dropna='any')  # similar to old behaviour
 
-  groupby will now not return the grouped column for non-cython functions (:issue:`5610`),
+  groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`),
   as its already the index
 
   .. ipython:: python

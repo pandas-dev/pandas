@@ -2029,6 +2029,16 @@ class TestGroupBy(tm.TestCase):
         result = g.idxmax()
         assert_frame_equal(result,expected)
 
+        # cumsum (GH5614)
+        df = DataFrame([[1, 2, np.nan], [1, np.nan, 9], [3, 4, 9]], columns=['A', 'B', 'C'])
+        expected = DataFrame([[2, np.nan], [np.nan, 9], [4, 9]], columns=['B', 'C'])
+        result = df.groupby('A').cumsum()
+        assert_frame_equal(result,expected)
+
+        expected = DataFrame([[1, 2, np.nan], [2, np.nan, 9], [3, 4, 9]], columns=['A', 'B', 'C']).astype('float64')
+        result = df.groupby('A', as_index=False).cumsum()
+        assert_frame_equal(result,expected)
+
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
 
