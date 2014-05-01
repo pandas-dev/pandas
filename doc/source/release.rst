@@ -233,6 +233,10 @@ Deprecations
   instead of ``colors``. A ``FutureWarning`` is raised  to alert that
   the old ``colors`` argument will not be supported in a future release
 
+- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take 
+  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is 
+  raised  if the old ``data`` argument is used by name.
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -464,6 +468,10 @@ Bug Fixes
 - Bug in timeseries-with-frequency plot cursor display (:issue:`5453`)
 - Bug surfaced in groupby.plot when using a ``Float64Index`` (:issue:`7025`)
 - Stopped tests from failing if options data isn't able to be downloaded from Yahoo (:issue:`7034`)
+- Bug in ``parallel_coordinates`` and ``radviz`` where reordering of class column 
+  caused possible color/class mismatch
+- Bug in ``radviz`` and ``andrews_curves`` where multiple values of 'color'
+  were being passed to plotting method
 
 pandas 0.13.1
 -------------

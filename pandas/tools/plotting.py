@@ -354,7 +354,6 @@ def _get_marker_compat(marker):
         return 'o'
     return marker
 
-
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     """RadViz - a multivariate data visualization algorithm
 
@@ -439,7 +438,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     ax.axis('equal')
     return ax
 
-
+@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
@@ -571,6 +570,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     return fig
 
 @deprecate_kwarg(old_arg_name='colors', new_arg_name='color')
+@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
                          **kwds):

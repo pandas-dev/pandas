@@ -382,6 +382,14 @@ Plotting
 
   Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
+- The :func:`parallel_coordinates` function now takes argument ``color``
+  instead of ``colors``. A ``FutureWarning`` is raised  to alert that
+  the old ``colors`` argument will not be supported in a future release
+
+- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take 
+  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is 
+  raised  if the old ``data`` argument is used by name.
+  
 .. _whatsnew_0140.prior_deprecations:
 
 Prior Version Deprecations/Changes

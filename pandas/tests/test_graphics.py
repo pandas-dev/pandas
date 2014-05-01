@@ -1240,6 +1240,9 @@ class TestDataFramePlots(tm.TestCase):
         ax = andrews_curves(df, 'Name', color=colors)
         legend_colors = [l.get_color() for l in ax.legend().get_lines()]
         self.assertEqual(colors, legend_colors)
+        
+        with tm.assert_produces_warning(FutureWarning):
+            andrews_curves(data=df, class_column='Name')
 
     @slow
     def test_parallel_coordinates(self):
@@ -1269,6 +1272,12 @@ class TestDataFramePlots(tm.TestCase):
         ax = parallel_coordinates(df, 'Name', color=colors)
         legend_colors = [l.get_color() for l in ax.legend().get_lines()]
         self.assertEqual(colors, legend_colors)
+        
+        with tm.assert_produces_warning(FutureWarning):
+            parallel_coordinates(df, 'Name', colors=colors)
+        
+        with tm.assert_produces_warning(FutureWarning):
+            parallel_coordinates(data=df, class_column='Name')
 
     @slow
     def test_radviz(self):
