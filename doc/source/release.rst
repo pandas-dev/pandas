@@ -190,6 +190,8 @@ API Changes
   ``data`` argument (:issue:`5357`)
 - groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`),
   as its already the index
+- ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`)
+- Line plot can be stacked by ``stacked=True``. (:issue:`6656`)
 
 Deprecations
 ~~~~~~~~~~~~

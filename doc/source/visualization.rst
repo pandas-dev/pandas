@@ -461,6 +461,40 @@ Finally, there is a helper function ``pandas.tools.plotting.table`` to create a 
 
 **Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documenation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
 
+.. _visualization.area_plot:
+
+Area plot
+~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.14
+
+You can create area plots with ``Series.plot`` and ``DataFrame.plot`` by passing ``kind='area'``. Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
+
+When input data contains `NaN`, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling `plot`.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+   
+   df = DataFrame(rand(10, 4), columns=['a', 'b', 'c', 'd'])
+
+   @savefig area_plot_stacked.png
+   df.plot(kind='area');
+
+To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 unless otherwise specified:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+   
+   @savefig area_plot_unstacked.png
+   df.plot(kind='area', stacked=False);
 
 .. _visualization.scatter_matrix:
 

@@ -1477,6 +1477,10 @@ class HexBinPlot(MPLPlot):
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
+        self.stacked = kwargs.pop('stacked', False)
+        if self.stacked:
+            data = data.fillna(value=0)
+
         MPLPlot.__init__(self, data, **kwargs)
         self.x_compat = plot_params['x_compat']
         if 'x_compat' in self.kwds:
@@ -1529,9 +1533,15 @@ class LinePlot(MPLPlot):
 
         return (freq is not None) and self._is_dynamic_freq(freq)
 
-    def _make_plot(self):
+    def _is_ts_plot(self):
         # this is slightly deceptive
-        if not self.x_compat and self.use_index and self._use_dynamic_x():
+        return not self.x_compat and self.use_index and self._use_dynamic_x()
+
+    def _make_plot(self):
+        self._pos_prior = np.zeros(len(self.data))
+        self._neg_prior = np.zeros(len(self.data))
+        
+        if self._is_ts_plot():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
@@ -1553,55 +1563,75 @@ class LinePlot(MPLPlot):
                     if err_kw in kwds:
                         if isinstance(kwds[err_kw], (DataFrame, dict)):
                             if label in kwds[err_kw].keys():
-                              kwds[err_kw] = kwds[err_kw][label]
+                                kwds[err_kw] = kwds[err_kw][label]
                             else: del kwds[err_kw]
                         elif kwds[err_kw] is not None:
                             kwds[err_kw] = kwds[err_kw][i]
 
                 label = com.pprint_thing(label)  # .encode('utf-8')
-
-                mask = com.isnull(y)
-                if mask.any():
-                    y = np.ma.array(y)
-                    y = np.ma.masked_where(mask, y)
-
                 kwds['label'] = label
+
+                y_values = self._get_stacked_values(y, label)
+
+                if not self.stacked:
+                    mask = com.isnull(y_values)
+                    if mask.any():
+                        y_values = np.ma.array(y_values)
+                        y_values = np.ma.masked_where(mask, y_values)
+
                 # prevent style kwarg from going to errorbar, where it is unsupported
-                if style is not None and plotf.__name__=='plot':
-                    args = (ax, x, y, style)
+                if style is not None and plotf.__name__ != 'errorbar':
+                    args = (ax, x, y_values, style)
                 else:
-                    args = (ax, x, y)
+                    args = (ax, x, y_values)
 
                 newlines = plotf(*args, **kwds)
-
                 self._add_legend_handle(newlines[0], label, index=i)
 
                 lines.append(newlines[0])
 
-                if self._is_datetype():
-                    left, right = _get_xlim(lines)
-                    ax.set_xlim(left, right)
+                if self.stacked and not self.subplots:
+                    if (y >= 0).all():
+                        self._pos_prior += y
+                    elif (y <= 0).all():
+                        self._neg_prior += y
+
+            if self._is_datetype():
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
+
+    def _get_stacked_values(self, y, label):
+        if self.stacked:
+            if (y >= 0).all():
+                return self._pos_prior + y
+            elif (y <= 0).all():
+                return self._neg_prior + y
+            else:
+                raise ValueError('When stacked is True, each column must be either all positive or negative.'
+                                 '{0} contains both positive and negative values'.format(label))
+        else:
+            return y
+
+    def _get_ts_plot_function(self):
+        from pandas.tseries.plotting import tsplot
+        plotf = self._get_plot_function()
+                
+        def _plot(data, ax, label, style, **kwds):
+            # errorbar function does not support style argument
+            if plotf.__name__ == 'errorbar':
+                lines = tsplot(data, plotf, ax=ax, label=label,
+                               **kwds)
+                return lines
+            else:
+                lines = tsplot(data, plotf, ax=ax, label=label,
+                               style=style, **kwds)
+                return lines
+        return _plot
 
     def _make_ts_plot(self, data, **kwargs):
-        from pandas.tseries.plotting import tsplot
         from pandas.core.frame import DataFrame
-
-        kwargs = kwargs.copy()
         colors = self._get_colors()
-
-        plotf = self._get_plot_function()
-
-        def _plot(data, col_num, ax, label, style, **kwds):
-
-            if plotf.__name__=='plot':
-                newlines = tsplot(data, plotf, ax=ax, label=label,
-                                    style=style, **kwds)
-            # errorbar function does not support style argument
-            elif plotf.__name__=='errorbar':
-                newlines = tsplot(data, plotf, ax=ax, label=label,
-                                    **kwds)
-
-            self._add_legend_handle(newlines[0], label, index=col_num)
+        plotf = self._get_ts_plot_function()
 
         it = self._iter_data(data=data, keep_index=True)
         for i, (label, y) in enumerate(it):
@@ -1622,7 +1652,17 @@ class LinePlot(MPLPlot):
                     kwds['yerr'] = yerr[i]
 
             label = com.pprint_thing(label)
-            _plot(y, i, ax, label, style, **kwds)
+
+            y_values = self._get_stacked_values(y, label)
+
+            newlines = plotf(y_values, ax, label, style, **kwds)
+            self._add_legend_handle(newlines[0], label, index=i)
+
+            if self.stacked and not self.subplots:
+                if (y >= 0).all():
+                    self._pos_prior += y
+                elif (y <= 0).all():
+                    self._neg_prior += y
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -1674,6 +1714,76 @@ class LinePlot(MPLPlot):
 
             if index_name is not None:
                 ax.set_xlabel(index_name)
+
+
+class AreaPlot(LinePlot):
+
+    def __init__(self, data, **kwargs):
+        kwargs.setdefault('stacked', True)
+        data = data.fillna(value=0)
+        LinePlot.__init__(self, data, **kwargs)
+
+        if not self.stacked:
+            # use smaller alpha to distinguish overlap
+            self.kwds.setdefault('alpha', 0.5)
+
+    def _get_plot_function(self):
+        if self.logy or self.loglog:
+            raise ValueError("Log-y scales are not supported in area plot")
+        else:
+            f = LinePlot._get_plot_function(self)
+            
+            def plotf(*args, **kwds):
+                lines = f(*args, **kwds)
+
+                # insert fill_between starting point
+                y = args[2]
+                if (y >= 0).all():
+                    start = self._pos_prior
+                elif (y <= 0).all():
+                    start = self._neg_prior
+                else:
+                    start = np.zeros(len(y))
+
+                # get x data from the line
+                # to retrieve x coodinates of tsplot
+                xdata = lines[0].get_data()[0]
+                # remove style
+                args = (args[0], xdata, start, y)
+
+                if not 'color' in kwds:
+                    kwds['color'] = lines[0].get_color()
+
+                self.plt.Axes.fill_between(*args, **kwds)
+                return lines
+            
+        return plotf
+
+    def _add_legend_handle(self, handle, label, index=None):
+        from matplotlib.patches import Rectangle
+        # Because fill_between isn't supported in legend, 
+        # specifically add Rectangle handle here
+        alpha = self.kwds.get('alpha', 0.5)
+        handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
+        LinePlot._add_legend_handle(self, handle, label, index=index)
+
+    def _post_plot_logic(self):
+        LinePlot._post_plot_logic(self)
+
+        if self._is_ts_plot():
+            pass
+        else:
+            if self.xlim is None:
+                for ax in self.axes:
+                    ax.set_xlim(0, len(self.data)-1)
+        
+        if self.ylim is None:
+            if (self.data >= 0).all().all():
+                for ax in self.axes:
+                    ax.set_ylim(0, None)
+            elif (self.data <= 0).all().all():
+                for ax in self.axes:
+                    ax.set_ylim(None, 0)    
 
 
 class BarPlot(MPLPlot):
@@ -1827,14 +1937,15 @@ class HistPlot(MPLPlot):
     pass
 
 # kinds supported by both dataframe and series
-_common_kinds = ['line', 'bar', 'barh', 'kde', 'density']
+_common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area']
 # kinds supported by dataframe
 _dataframe_kinds = ['scatter', 'hexbin']
 _all_kinds = _common_kinds + _dataframe_kinds
 
 _plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot, 
                'kde': KdePlot, 
-               'scatter': ScatterPlot, 'hexbin': HexBinPlot}
+               'scatter': ScatterPlot, 'hexbin': HexBinPlot,
+               'area': AreaPlot}
 
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
@@ -1879,12 +1990,14 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'kde', 'density', 'scatter', 'hexbin'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density', 'area', scatter', 'hexbin'}
+        line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
         kde/density : Kernel Density Estimation plot
-        scatter: scatter plot
-        hexbin: hexbin plot
+        area : area plot
+        scatter : scatter plot
+        hexbin : hexbin plot
     logx : boolean, default False
         Use log scaling on x axis
     logy : boolean, default False
@@ -2002,10 +2115,12 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh', 'kde', 'density'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density', 'area'}
+        line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
         kde/density : Kernel Density Estimation plot
+        area : area plot
     use_index : boolean, default True
         Plot index as axis tick labels
     rot : int, default None
