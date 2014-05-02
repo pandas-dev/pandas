@@ -146,8 +146,14 @@ fi
 
 
 # set the compiler cache to work
-export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-which gcc
+if [ "$IRON_TOKEN" ]; then
+    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
+    gcc=$(which gcc)
+    echo "gcc: $gcc"
+    ccache=$(which ccache)
+    echo "ccache: $ccache"
+    export CC='ccache gcc'
+fi
 
 # build pandas
 time python setup.py sdist

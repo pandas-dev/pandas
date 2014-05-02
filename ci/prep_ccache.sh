@@ -2,13 +2,13 @@
 
 if [ "$IRON_TOKEN" ]; then
 
+    home_dir=$(pwd)
+
     # install the compiler cache
     sudo apt-get $APT_ARGS install ccache p7zip-full
     # iron_cache, pending py3 fixes upstream
     pip install -I --allow-external --allow-insecure git+https://github.com/iron-io/iron_cache_python.git@8a451c7d7e4d16e0c3bedffd0f280d5d9bd4fe59#egg=iron_cache
 
-
-    curdir=$(pwd)
     python ci/ironcache/get.py
     ccache -C
 
@@ -27,7 +27,7 @@ if [ "$IRON_TOKEN" ]; then
     fi
 
     # did the last commit change cython files?
-    cd $curdir
+    cd $home_dir
 
     retval=$(git diff HEAD~3 --numstat | grep -P "pyx|pxd"|wc -l)
     echo "number of cython files changed: $retval"
