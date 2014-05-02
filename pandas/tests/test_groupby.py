@@ -33,6 +33,11 @@ import pandas.util.testing as tm
 import pandas as pd
 from numpy.testing import assert_equal
 
+def _skip_if_mpl_not_installed():
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        raise nose.SkipTest("matplotlib not installed")
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -3976,11 +3981,8 @@ class TestGroupBy(tm.TestCase):
                     getattr(gb, bl)
 
     def test_series_groupby_plotting_nominally_works(self):
-        try:
-            import matplotlib as mpl
-            mpl.use('Agg')
-        except ImportError:
-            raise nose.SkipTest("matplotlib not installed")
+        _skip_if_mpl_not_installed()
+
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
@@ -3991,14 +3993,26 @@ class TestGroupBy(tm.TestCase):
         height.groupby(gender).hist()
         tm.close()
 
+    def test_plotting_with_float_index_works(self):
+        _skip_if_mpl_not_installed()
+
+        # GH 7025
+        df = DataFrame({'def': [1,1,1,2,2,2,3,3,3],
+                        'val': np.random.randn(9)},
+                       index=[1.0,2.0,3.0,1.0,2.0,3.0,1.0,2.0,3.0])
+
+        df.groupby('def')['val'].plot()
+        tm.close()
+        df.groupby('def')['val'].apply(lambda x: x.plot())
+        tm.close()
+
     @slow
     def test_frame_groupby_plot_boxplot(self):
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib as mpl
-            mpl.use('Agg')
-        except ImportError:
-            raise nose.SkipTest("matplotlib not installed")
+        _skip_if_mpl_not_installed()
+
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        mpl.use('Agg')
         tm.close()
 
         n = 10
@@ -4029,12 +4043,10 @@ class TestGroupBy(tm.TestCase):
 
     @slow
     def test_frame_groupby_hist(self):
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib as mpl
-            mpl.use('Agg')
-        except ImportError:
-            raise nose.SkipTest("matplotlib not installed")
+        _skip_if_mpl_not_installed()
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        mpl.use('Agg')
         tm.close()
 
         n = 10

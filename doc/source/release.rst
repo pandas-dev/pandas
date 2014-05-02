@@ -456,6 +456,7 @@ Bug Fixes
 - Bug in ``iloc`` when setting / aligning (:issue:`6766`)
 - Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 - Bug in timeseries-with-frequency plot cursor display (:issue:`5453`)
+- Bug surfaced in groupby.plot when using a ``Float64Index`` (:issue:`7025`)
 
 pandas 0.13.1
 -------------

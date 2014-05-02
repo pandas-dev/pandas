@@ -2047,6 +2047,8 @@ class Float64Index(Index):
                 return len(other) <= 1 and _try_get_item(other) in self
             except TypeError:
                 return False
+        except:
+            return False
 
     def get_loc(self, key):
         if np.isnan(key):
