@@ -4048,6 +4048,39 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ordered = ts.order(ascending=False, na_position='first')
         assert_almost_equal(expected, ordered.valid().values)
 
+    def test_nsmallest_nlargest(self):
+        # float, int, datetime64 (use i8), timedelts64 (same),
+        # object that are numbers, object that are strings
+
+        s_list = [Series([3, 2, 1, 2, 5]),
+                  Series([3., 2., 1., 2., 5.]),
+                  Series([3., 2, 1, 2, 5], dtype='object'),
+                  Series([3., 2, 1, 2, '5'], dtype='object'),
+                  Series(pd.to_datetime(['2003', '2002', '2001', '2002', '2005']))]
+
+        for s in s_list:
+
+            assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
+            assert_series_equal(s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
+
+            assert_series_equal(s.nlargest(3), s.iloc[[4, 0, 1]])
+            assert_series_equal(s.nlargest(3, take_last=True), s.iloc[[4, 0, 3]])
+
+            empty = s.iloc[0:0]
+            assert_series_equal(s.nsmallest(0), empty)
+            assert_series_equal(s.nsmallest(-1), empty)
+            assert_series_equal(s.nlargest(0), empty)
+            assert_series_equal(s.nlargest(-1), empty)
+
+            assert_series_equal(s.nsmallest(len(s)), s.order())
+            assert_series_equal(s.nsmallest(len(s) + 1), s.order())
+            assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
+            assert_series_equal(s.nlargest(len(s) + 1), s.iloc[[4, 0, 1, 3, 2]])
+
+        s = Series([3., np.nan, 1, 2, 5])
+        assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])
+        assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
+
     def test_rank(self):
         from pandas.compat.scipy import rankdata
 

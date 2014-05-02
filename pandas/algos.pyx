@@ -765,10 +765,41 @@ def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
         if k < i: m = j
     return a[k]
 
+kth_smallest_float64 = kth_smallest
+
 cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     cdef:
         Py_ssize_t i,j,l,m
         double_t x, t
+
+    l = 0
+    m = n-1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
+            if i <= j:
+                t = a[i]
+                a[i] = a[j]
+                a[j] = t
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
+
+def kth_smallest_int64(ndarray[int64_t] a, Py_ssize_t k):
+    cdef:
+        Py_ssize_t i,j,l,m,n
+        int64_t x, t
+
+    n = len(a)
 
     l = 0
     m = n-1

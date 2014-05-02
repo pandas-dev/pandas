@@ -35,7 +35,9 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
+from pandas.tseries.tools import to_datetime
 from pandas import compat
+from pandas import algos as _algos
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
 
@@ -1761,7 +1763,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         good = ~bad
         idx = pa.arange(len(self))
 
-        argsorted = _try_kind_sort(arr[good])
+        def _try_kind_sort(arr, kind='mergesort'):
+            # easier to ask forgiveness than permission
+            try:
+                # if kind==mergesort, it can fail for object dtype
+                return arr.argsort(kind=kind)
+            except TypeError:
+                # stable sort not available for object dtype
+                # uses the argsort default quicksort
+                return arr.argsort(kind='quicksort')
+
+        argsorted = _try_kind_sort(arr[good], kind=kind)
 
         if not ascending:
             argsorted = argsorted[::-1]
@@ -1783,6 +1795,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._update_inplace(result)
         else:
             return result.__finalize__(self)
+
+    def nlargest(self, n=5, take_last=False):
+        '''
+        Returns the largest n rows:
+
+        May be faster than .order(ascending=False).head(n).
+
+        '''
+        # TODO remove need for dropna ?
+        dropped = self.dropna()
+
+        from pandas.tools.util import nlargest
+
+        if dropped.dtype == object:
+            try:
+                dropped = dropped.astype(float)
+            except (NotImplementedError, TypeError):
+                return dropped.order(ascending=False).head(n)
+
+        inds = nlargest(dropped.values, n, take_last)
+        if len(inds) == 0:
+            # TODO remove this special case
+            return dropped[[]]
+        return dropped.iloc[inds]
+
+    def nsmallest(self, n=5, take_last=False):
+        '''
+        Returns the smallest n rows.
+
+        May be faster than .order().head(n).
+
+        '''
+        # TODO remove need for dropna ?
+        dropped = self.dropna()
+
+        from pandas.tools.util import nsmallest
+        try:
+            inds = nsmallest(dropped.values, n, take_last)
+        except NotImplementedError:
+            return dropped.order().head(n)
+
+        if len(inds) == 0:
+            # TODO remove this special case
+            return dropped[[]]
+        return dropped.iloc[inds]
 
     def sortlevel(self, level=0, ascending=True):
         """

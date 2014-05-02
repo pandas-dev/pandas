@@ -128,6 +128,7 @@ API changes
       import pandas.core.common as com
       com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))
       np.array_equal(np.array([0, np.nan]), np.array([0, np.nan]))
+- Add nsmallest and nlargest Series methods (:issue:`3960`)
 
 - ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
   ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
