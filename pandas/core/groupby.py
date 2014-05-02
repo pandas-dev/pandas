@@ -723,7 +723,8 @@ class GroupBy(PandasObject):
                              _convert=True)
 
     _count = _groupby_function('_count', 'count',
-                               lambda x, axis=0: notnull(x).sum(axis=axis))
+                               lambda x, axis=0: notnull(x).sum(axis=axis),
+                               numeric_only=False)
 
     def count(self, axis=0):
         return self._count().astype('int64')
@@ -1387,14 +1388,16 @@ class BaseGrouper(object):
             values = com.ensure_float(values)
             is_numeric = True
         else:
-            if issubclass(values.dtype.type, np.datetime64):
-                raise Exception('Cython not able to handle this case')
-
-            values = values.astype(object)
-            is_numeric = False
+            is_numeric = issubclass(values.dtype.type, (np.datetime64,
+                                                        np.timedelta64))
+            if is_numeric:
+                values = values.view('int64')
+            else:
+                values = values.astype(object)
 
         # will be filled in Cython function
-        result = np.empty(out_shape, dtype=values.dtype)
+        result = np.empty(out_shape,
+                          dtype=np.dtype('f%d' % values.dtype.itemsize))
         result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 

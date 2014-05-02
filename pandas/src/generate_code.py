@@ -33,7 +33,9 @@ from khash cimport *
 ctypedef unsigned char UChar
 
 cimport util
-from util cimport is_array, _checknull, _checknan
+from util cimport is_array, _checknull, _checknan, get_nat
+
+cdef int64_t iNaT = get_nat()
 
 # import datetime C API
 PyDateTime_IMPORT
@@ -1159,15 +1161,14 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
-        %(dest_type2)s val
-        ndarray[%(dest_type2)s, ndim=2] nobs = np.zeros_like(out)
+        Py_ssize_t i, j, lab
+        Py_ssize_t N = values.shape[0], K = values.shape[1]
+        %(c_type)s val
+        ndarray[int64_t, ndim=2] nobs = np.zeros((out.shape[0], out.shape[1]),
+                                                 dtype=np.int64)
 
-
-    if not len(values) == len(labels):
+    if len(values) != len(labels):
        raise AssertionError("len(index) != len(labels)")
-
-    N, K = (<object> values).shape
 
     for i in range(N):
         lab = labels[i]
@@ -1179,7 +1180,7 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
             val = values[i, j]
 
             # not nan
-            nobs[lab, j] += val == val
+            nobs[lab, j] += val == val and val != iNaT
 
     for i in range(len(counts)):
         for j in range(K):
@@ -1198,20 +1199,14 @@ def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        %(dest_type2)s val, count
-        ndarray[%(dest_type2)s, ndim=2] nobs
+        Py_ssize_t i, j, ngroups
+        Py_ssize_t N = values.shape[0], K = values.shape[1], b = 0
+        %(c_type)s val
+        ndarray[int64_t, ndim=2] nobs = np.zeros((out.shape[0], out.shape[1]),
+                                                 dtype=np.int64)
 
-    nobs = np.zeros_like(out)
+    ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
     for i in range(N):
         while b < ngroups - 1 and i >= bins[b]:
             b += 1
@@ -1221,7 +1216,7 @@ def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
             val = values[i, j]
 
             # not nan
-            nobs[b, j] += val == val
+            nobs[b, j] += val == val and val != iNaT
 
     for i in range(ngroups):
         for j in range(K):
@@ -2224,7 +2219,8 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
 #-------------------------------------------------------------------------
 # Generators
 
-def generate_put_template(template, use_ints = True, use_floats = True):
+def generate_put_template(template, use_ints = True, use_floats = True,
+                          use_objects=False):
     floats_list = [
         ('float64', 'float64_t', 'float64_t', 'np.float64'),
         ('float32', 'float32_t', 'float32_t', 'np.float32'),
@@ -2235,11 +2231,14 @@ def generate_put_template(template, use_ints = True, use_floats = True):
         ('int32', 'int32_t', 'float64_t', 'np.float64'),
         ('int64', 'int64_t', 'float64_t', 'np.float64'),
         ]
+    object_list = [('object', 'object', 'float64_t', 'np.float64')]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
     if use_ints:
         function_list.extend(ints_list)
+    if use_objects:
+        function_list.extend(object_list)
 
     output = StringIO()
     for name, c_type, dest_type, dest_dtype in function_list:
@@ -2373,7 +2372,7 @@ def generate_take_cython_file(path='generated.pyx'):
             print(generate_put_template(template, use_ints=False), file=f)
 
         for template in groupby_count:
-            print(generate_put_template(template), file=f)
+            print(generate_put_template(template, use_objects=True), file=f)
 
         # for template in templates_1d_datetime:
         #     print >> f, generate_from_template_datetime(template)

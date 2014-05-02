@@ -1451,7 +1451,6 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(g_not_as[['B']].head(1), df_as.loc[[0,2], ['B']])
         assert_frame_equal(g_not_as[['A', 'B']].head(1), df_as.loc[[0,2]])
 
-
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year,
@@ -1628,6 +1627,21 @@ class TestGroupBy(tm.TestCase):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
         self.assertRaises(DataError, frame[['b']].groupby(frame['a']).mean)
+
+    def test_cython_agg_nothing_to_agg_with_dates(self):
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': ['foo', 'bar'] * 25,
+                           'dates': pd.date_range('now', periods=50,
+                                                  freq='T')})
+        with tm.assertRaisesRegexp(DataError, "No numeric types to aggregate"):
+            frame.groupby('b').dates.mean()
+
+    def test_groupby_timedelta_cython_count(self):
+        df = DataFrame({'g': list('ab' * 2),
+                        'delt': np.arange(4).astype('timedelta64[ns]')})
+        expected = Series([2, 2], index=['a', 'b'], name='delt')
+        result = df.groupby('g').delt.count()
+        tm.assert_series_equal(expected, result)
 
     def test_cython_agg_frame_columns(self):
         # #2113
@@ -1992,7 +2006,8 @@ class TestGroupBy(tm.TestCase):
 
         # GH5610
         # count counts non-nulls
-        df = pd.DataFrame([[1, 2, 'foo'], [1, nan, 'bar'], [3, nan, nan]], columns=['A', 'B', 'C'])
+        df = pd.DataFrame([[1, 2, 'foo'], [1, nan, 'bar'], [3, nan, nan]],
+                          columns=['A', 'B', 'C'])
 
         count_as = df.groupby('A').count()
         count_not_as = df.groupby('A', as_index=False).count()
@@ -2004,6 +2019,19 @@ class TestGroupBy(tm.TestCase):
 
         count_B = df.groupby('A')['B'].count()
         assert_series_equal(count_B, expected['B'])
+
+    def test_count_object(self):
+        df = pd.DataFrame({'a': ['a'] * 3 + ['b'] * 3,
+                           'c': [2] * 3 + [3] * 3})
+        result = df.groupby('c').a.count()
+        expected = pd.Series([3, 3], index=[2, 3], name='a')
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({'a': ['a', np.nan, np.nan] + ['b'] * 3,
+                           'c': [2] * 3 + [3] * 3})
+        result = df.groupby('c').a.count()
+        expected = pd.Series([1, 3], index=[2, 3], name='a')
+        tm.assert_series_equal(result, expected)
 
     def test_non_cython_api(self):
 
@@ -2353,7 +2381,6 @@ class TestGroupBy(tm.TestCase):
         g = df.groupby(['by1','by2'])
         result = g[['v1','v2']].mean()
         assert_frame_equal(result,expected)
-
 
     def test_groupby_dtype_inference_empty(self):
         # GH 6733
@@ -3325,7 +3352,6 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(expected, g.cumcount())
         assert_series_equal(expected, sg.cumcount())
 
-
     def test_filter_series(self):
         import pandas as pd
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
@@ -4167,6 +4193,14 @@ class TestGroupBy(tm.TestCase):
             items2, kind='mergesort', ascending=False, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         assert_equal(result, expected)
+
+    def test_datetime_count(self):
+        df = DataFrame({'a': [1,2,3] * 2,
+                        'dates': pd.date_range('now', periods=6, freq='T')})
+        result = df.groupby('a').dates.count()
+        expected = Series([2, 2, 2], index=Index([1, 2, 3], name='a'),
+                          name='dates')
+        tm.assert_series_equal(result, expected)
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
