@@ -61,7 +61,7 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
                               default_axis=default_axis, fill_zeros=np.inf),
         # Causes a floating point exception in the tests when numexpr
         # enabled, so for now no speedup
-        mod=arith_method(operator.mod, names('mod'), op('%'),
+        mod=arith_method(operator.mod, names('mod'), None,
                          default_axis=default_axis, fill_zeros=np.nan),
         pow=arith_method(operator.pow, names('pow'), op('**'),
                          default_axis=default_axis),
