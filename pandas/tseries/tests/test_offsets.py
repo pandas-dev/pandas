@@ -595,15 +595,54 @@ class TestCustomBusinessDay(TestBase):
         dt = datetime(2014, 1, 17)
         assertEq(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
-class TestCustomBusinessMonthEnd(TestBase):
+class CustomBusinessMonthBase(object):
     _multiprocess_can_split_ = True
 
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
         _skip_if_no_cday()
-        self.offset = CBMonthEnd()
-        self.offset2 = CBMonthEnd(2)
+        self.offset = self._object()
+        self.offset2 = self._object(2)
+
+    def testEQ(self):
+        self.assertEqual(self.offset2, self.offset2)
+
+    def test_mul(self):
+        pass
+
+    def test_hash(self):
+        self.assertEqual(hash(self.offset2), hash(self.offset2))
+
+    def testRAdd(self):
+        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
+
+    def testSub(self):
+        off = self.offset2
+        self.assertRaises(Exception, off.__sub__, self.d)
+        self.assertEqual(2 * off - off, off)
+
+        self.assertEqual(self.d - self.offset2,
+                         self.d + self._object(-2))
+
+    def testRSub(self):
+        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
+
+    def testMult1(self):
+        self.assertEqual(self.d + 10 * self.offset,
+                         self.d + self._object(10))
+
+    def testMult2(self):
+        self.assertEqual(self.d + (-5 * self._object(-10)),
+                         self.d + self._object(50))
+
+    def test_offsets_compare_equal(self):
+        offset1 = self._object()
+        offset2 = self._object()
+        self.assertFalse(offset1 != offset2)
+
+class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, TestBase):
+    _object = CBMonthEnd
 
     def test_different_normalize_equals(self):
         # equivalent in this special case
@@ -616,39 +655,8 @@ class TestCustomBusinessMonthEnd(TestBase):
         assert repr(self.offset) == '<CustomBusinessMonthEnd>'
         assert repr(self.offset2) == '<2 * CustomBusinessMonthEnds>'
 
-    def testEQ(self):
-        self.assertEqual(self.offset2, self.offset2)
-
-    def test_mul(self):
-        pass
-
-    def test_hash(self):
-        self.assertEqual(hash(self.offset2), hash(self.offset2))
-
     def testCall(self):
         self.assertEqual(self.offset2(self.d), datetime(2008, 2, 29))
-
-    def testRAdd(self):
-        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
-
-    def testSub(self):
-        off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
-        self.assertEqual(2 * off - off, off)
-
-        self.assertEqual(self.d - self.offset2,
-                         self.d + CBMonthEnd(-2))
-
-    def testRSub(self):
-        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
-
-    def testMult1(self):
-        self.assertEqual(self.d + 10 * self.offset,
-                         self.d + CBMonthEnd(10))
-
-    def testMult2(self):
-        self.assertEqual(self.d + (-5 * CBMonthEnd(-10)),
-                         self.d + CBMonthEnd(50))
 
     def testRollback1(self):
         self.assertEqual(
@@ -734,11 +742,6 @@ class TestCustomBusinessMonthEnd(TestBase):
         xp = datetime(2012, 5, 31)
         self.assertEqual(rs, xp)
 
-    def test_offsets_compare_equal(self):
-        offset1 = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        self.assertFalse(offset1 != offset2)
-
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ['2012-01-31', datetime(2012, 2, 28),
@@ -753,16 +756,8 @@ class TestCustomBusinessMonthEnd(TestBase):
         self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthEnd(calendar=USFederalHolidayCalendar())).tolist()[0],
         datetime(2012,1,31))
 
-
-class TestCustomBusinessMonthBegin(TestBase):
-    _multiprocess_can_split_ = True
-
-    def setUp(self):
-        self.d = datetime(2008, 1, 1)
-
-        _skip_if_no_cday()
-        self.offset = CBMonthBegin()
-        self.offset2 = CBMonthBegin(2)
+class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, TestBase):
+    _object = CBMonthBegin
 
     def test_different_normalize_equals(self):
         # equivalent in this special case
@@ -775,39 +770,8 @@ class TestCustomBusinessMonthBegin(TestBase):
         assert repr(self.offset) == '<CustomBusinessMonthBegin>'
         assert repr(self.offset2) == '<2 * CustomBusinessMonthBegins>'
 
-    def testEQ(self):
-        self.assertEqual(self.offset2, self.offset2)
-
-    def test_mul(self):
-        pass
-
-    def test_hash(self):
-        self.assertEqual(hash(self.offset2), hash(self.offset2))
-
     def testCall(self):
         self.assertEqual(self.offset2(self.d), datetime(2008, 3, 3))
-
-    def testRAdd(self):
-        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
-
-    def testSub(self):
-        off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
-        self.assertEqual(2 * off - off, off)
-
-        self.assertEqual(self.d - self.offset2,
-                         self.d + CBMonthBegin(-2))
-
-    def testRSub(self):
-        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
-
-    def testMult1(self):
-        self.assertEqual(self.d + 10 * self.offset,
-                         self.d + CBMonthBegin(10))
-
-    def testMult2(self):
-        self.assertEqual(self.d + (-5 * CBMonthBegin(-10)),
-                         self.d + CBMonthBegin(50))
 
     def testRollback1(self):
         self.assertEqual(
@@ -893,11 +857,6 @@ class TestCustomBusinessMonthBegin(TestBase):
         xp = datetime(2012, 6, 1)
         self.assertEqual(rs, xp)
 
-    def test_offsets_compare_equal(self):
-        offset1 = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        self.assertFalse(offset1 != offset2)
-
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ['2012-02-01', datetime(2012, 2, 2),
@@ -907,12 +866,9 @@ class TestCustomBusinessMonthBegin(TestBase):
         self.assertEqual(dt + bm_offset,datetime(2012,1,2))
         self.assertEqual(dt + 2*bm_offset,datetime(2012,2,3))
 
-    def test_datetimindex(self):
-        self.assertEqual(DatetimeIndex(start='2012',end='2013',freq='CBMS').tolist()[0],
-                         datetime(2012,5,1))
+    def test_datetimeindex(self):
         self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthBegin(calendar=USFederalHolidayCalendar())).tolist()[0],
         datetime(2012,1,3))
-
 
 
 def assertOnOffset(offset, date, expected):
