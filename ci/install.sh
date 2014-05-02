@@ -32,6 +32,7 @@ python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
 home_dir=$(pwd)
+echo "home_dir: [$home_dir]"
 
 # known working
 # pip==1.5.1
@@ -100,15 +101,14 @@ if [ -n "$NUMPY_BUILD" ]; then
     time pip install .
     pip uninstall cython -y
 
-    cd $curdir
+    cd $home_dir
     numpy_version=$(python -c 'import numpy; print(numpy.__version__)')
-    echo "[$curdir] numpy current: $numpy_version"
+    echo "[$home_dir] numpy current: $numpy_version"
 fi
 
 # Force virtualenv to accept system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
-cd $home_dir
 time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 # Need to enable for locale testing. The location of the locale file(s) is
