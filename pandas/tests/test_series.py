@@ -5302,6 +5302,23 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         unstacked = s.unstack(0)
         assert_frame_equal(unstacked, expected)
 
+    def test_sortlevel(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
+        s = Series([1, 2], mi)
+        backwards = s.iloc[[1, 0]]
+
+        res = s.sortlevel('A')
+        assert_series_equal(backwards, res)
+
+        res = s.sortlevel(['A', 'B'])
+        assert_series_equal(backwards, res)
+
+        res = s.sortlevel('A', sort_remaining=False)
+        assert_series_equal(s, res)
+
+        res = s.sortlevel(['A', 'B'], sort_remaining=False)
+        assert_series_equal(s, res)
+
     def test_head_tail(self):
         assert_series_equal(self.series.head(), self.series[:5])
         assert_series_equal(self.series.tail(), self.series[-5:])

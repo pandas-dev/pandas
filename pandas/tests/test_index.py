@@ -2420,6 +2420,11 @@ class TestMultiIndex(tm.TestCase):
         sorted_idx, _ = index.sortlevel(1, ascending=False)
         self.assert_(sorted_idx.equals(expected[::-1]))
 
+    def test_sortlevel_not_sort_remaining(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
+        sorted_idx, _ = mi.sortlevel('A', sort_remaining=False)
+        self.assert_(sorted_idx.equals(mi))
+
     def test_sortlevel_deterministic(self):
         tuples = [('bar', 'one'), ('foo', 'two'), ('qux', 'two'),
                   ('foo', 'one'), ('baz', 'two'), ('qux', 'one')]

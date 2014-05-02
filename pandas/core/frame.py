@@ -2648,7 +2648,8 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False):
+    def sortlevel(self, level=0, axis=0, ascending=True,
+                  inplace=False, sort_remaining=True):
         """
         Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
@@ -2661,6 +2662,8 @@ class DataFrame(NDFrame):
         ascending : boolean, default True
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
+        sort_remaining : boolean, default True
+            Sort by the other levels too.
 
         Returns
         -------
@@ -2671,7 +2674,8 @@ class DataFrame(NDFrame):
         if not isinstance(the_axis, MultiIndex):
             raise TypeError('can only sort by level with a hierarchical index')
 
-        new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
+        new_axis, indexer = the_axis.sortlevel(level, ascending=ascending,
+                                               sort_remaining=sort_remaining)
 
         if self._is_mixed_type and not inplace:
             ax = 'index' if axis == 0 else 'columns'
