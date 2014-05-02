@@ -145,13 +145,15 @@ if [ -n "$FULL_DEPS" ]; then
 fi
 
 
-# build and install pandas
+# set the compiler cache to work
+export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
+which gcc
+
+# build pandas
 time python setup.py sdist
 pip uninstall cython -y
 
-export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-which gcc
-ccache -z
+# install pandas
 time pip install $(find dist | grep gz | head -n 1)
 
 # restore cython (if not numpy building)
