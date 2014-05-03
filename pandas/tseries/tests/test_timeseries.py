@@ -1515,22 +1515,22 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(result, expected)
         
         d = datetime(2008,12,28)
-        result = Timestamp(d).week
+        result = Timestamp(d).week_common
         expected = 52 # Common interpretation
         self.assertEqual(result, expected)
 
         d = datetime(2009,12,31)
-        result = Timestamp(d).week
+        result = Timestamp(d).week_common
         expected = 53 # Common interpretation
         self.assertEqual(result, expected)
 
         d = datetime(2010,1,1)
-        result = Timestamp(d).week
+        result = Timestamp(d).week_common
         expected = 1 # Common interpretation
         self.assertEqual(result, expected)
 
         d = datetime(2010,1,3)
-        result = Timestamp(d).week
+        result = Timestamp(d).week_common
         expected = 1 # Common interpretation
         self.assertEqual(result, expected)
 
