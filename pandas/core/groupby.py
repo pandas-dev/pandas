@@ -1922,9 +1922,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     try:
         if from_idx and from_col:
-            to_exclude = set(obj.index.names) - from_idx
-            obj = obj.reset_index()
+            # check the drop part...
+            obj = obj.reset_index(level=list(from_idx)).reset_index(drop=True)
             group_axis = obj._get_axis(axis)
+
         if isinstance(obj, DataFrame):
             all_in_columns = all(g in obj.columns for g in keys)
         else:
@@ -1946,11 +1947,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     groupings = []
     exclusions = []
-
-    if from_col and from_idx:
-        # don't include those just there becaues of the reset_index
-        if to_exclude:
-            exclusions += list(to_exclude)
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
         name = None
