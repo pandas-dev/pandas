@@ -740,42 +740,6 @@ def autocorrelation_plot(series, ax=None, **kwds):
     return ax
 
 
-def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
-                 layout=None, sharex=False, sharey=False, rot=90, grid=True,
-                 **kwargs):
-    """
-    Grouped histogram
-
-    Parameters
-    ----------
-    data: Series/DataFrame
-    column: object, optional
-    by: object, optional
-    ax: axes, optional
-    bins: int, default 50
-    figsize: tuple, optional
-    layout: optional
-    sharex: boolean, default False
-    sharey: boolean, default False
-    rot: int, default 90
-    grid: bool, default True
-    kwargs: dict, keyword arguments passed to matplotlib.Axes.hist
-
-    Returns
-    -------
-    axes: collection of Matplotlib Axes
-    """
-    def plot_group(group, ax):
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
-
-    fig, axes = _grouped_plot(plot_group, data, column=column,
-                              by=by, sharex=sharex, sharey=sharey,
-                              figsize=figsize, layout=layout, rot=rot)
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
-                        hspace=0.5, wspace=0.3)
-    return axes
-
-
 class MPLPlot(object):
     """
     Base class for assembling a pandas plot using matplotlib
@@ -2294,7 +2258,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, **kwds):
+            rot=0, grid=True, figsize=None, layout=None, **kwds):
     """
     Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
@@ -2311,6 +2275,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     rot : label rotation angle
     figsize : A tuple (width, height) in inches
     grid : Setting this to True will show the grid
+    layout : tuple (optional)
+        (rows, columns) for the layout of the plot
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
@@ -2355,16 +2321,16 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             columns = [column]
 
     if by is not None:
-        if not isinstance(by, (list, tuple)):
-            by = [by]
-
         fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
                                             by=by, grid=grid, figsize=figsize,
-                                            ax=ax)
+                                            ax=ax, layout=layout)
 
         # Return axes in multiplot case, maybe revisit later # 985
         ret = axes
     else:
+        if layout is not None:
+            raise ValueError("The 'layout' keyword is not supported when "
+                             "'by' is None")
         if ax is None:
             ax = _gca()
         fig = ax.get_figure()
@@ -2489,13 +2455,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
-    if column is not None:
-        if not isinstance(column, (list, np.ndarray)):
-            column = [column]
-        data = data[column]
-
     if by is not None:
-        axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
+        axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid, figsize=figsize,
                             sharex=sharex, sharey=sharey, layout=layout, bins=bins,
                             **kwds)
 
@@ -2511,27 +2472,18 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
         return axes
 
-    n = len(data.columns)
+    if column is not None:
+        if not isinstance(column, (list, np.ndarray)):
+            column = [column]
+        data = data[column]
+    naxes = len(data.columns)
 
-    if layout is not None:
-        if not isinstance(layout, (tuple, list)) or len(layout) != 2:
-            raise ValueError('Layout must be a tuple of (rows, columns)')
-
-        rows, cols = layout
-        if rows * cols < n:
-            raise ValueError('Layout of %sx%s is incompatible with %s columns' % (rows, cols, n))
-    else:
-        rows, cols = 1, 1
-        while rows * cols < n:
-            if cols > rows:
-                rows += 1
-            else:
-                cols += 1
-    fig, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
+    nrows, ncols = _get_layout(naxes, layout=layout)
+    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize)
 
     for i, col in enumerate(com._try_sort(data.columns)):
-        ax = axes[i / cols, i % cols]
+        ax = axes[i / ncols, i % ncols]
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
@@ -2546,10 +2498,6 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
             plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
         if yrot is not None:
             plt.setp(ax.get_yticklabels(), rotation=yrot)
-
-    for j in range(i + 1, rows * cols):
-        ax = axes[j / cols, j % cols]
-        ax.set_visible(False)
 
     fig.subplots_adjust(wspace=0.3, hspace=0.3)
 
@@ -2633,8 +2581,44 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     return axes
 
 
+def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
+                 layout=None, sharex=False, sharey=False, rot=90, grid=True,
+                 **kwargs):
+    """
+    Grouped histogram
+
+    Parameters
+    ----------
+    data: Series/DataFrame
+    column: object, optional
+    by: object, optional
+    ax: axes, optional
+    bins: int, default 50
+    figsize: tuple, optional
+    layout: optional
+    sharex: boolean, default False
+    sharey: boolean, default False
+    rot: int, default 90
+    grid: bool, default True
+    kwargs: dict, keyword arguments passed to matplotlib.Axes.hist
+
+    Returns
+    -------
+    axes: collection of Matplotlib Axes
+    """
+    def plot_group(group, ax):
+        ax.hist(group.dropna().values, bins=bins, **kwargs)
+
+    fig, axes = _grouped_plot(plot_group, data, column=column,
+                              by=by, sharex=sharex, sharey=sharey,
+                              figsize=figsize, layout=layout, rot=rot)
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
+                        hspace=0.5, wspace=0.3)
+    return axes
+
+
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
-                          rot=0, grid=True, figsize=None, **kwds):
+                          rot=0, grid=True, figsize=None, layout=None, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2650,6 +2634,8 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     rot : label rotation angle
     grid : Setting this to True will show the grid
     figsize : A tuple (width, height) in inches
+    layout : tuple (optional)
+        (rows, columns) for the layout of the plot
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
@@ -2676,15 +2662,16 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
     if subplots is True:
-        nrows, ncols = _get_layout(len(grouped))
-        _, axes = _subplots(nrows=nrows, ncols=ncols, squeeze=False,
+        naxes = len(grouped)
+        nrows, ncols = _get_layout(naxes, layout=layout)
+        _, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
                             sharex=False, sharey=True)
-        axes = axes.reshape(-1) if len(grouped) > 1 else axes
+        axes = _flatten(axes)
 
         ret = {}
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
-                              rot=rot, grid=grid, figsize=figsize, **kwds)
+                              rot=rot, grid=grid, **kwds)
             ax.set_title(com.pprint_thing(key))
             ret[key] = d
     else:
@@ -2698,7 +2685,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
             else:
                 df = frames[0]
         ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
-                         grid=grid, figsize=figsize, **kwds)
+                         grid=grid, figsize=figsize, layout=layout, **kwds)
     return ret
 
 
@@ -2706,7 +2693,6 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
     from pandas.core.frame import DataFrame
-    import matplotlib.pyplot as plt
 
     # allow to specify mpl default with 'default'
     if figsize is None or figsize == 'default':
@@ -2716,29 +2702,16 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
     if column is not None:
         grouped = grouped[column]
 
-    ngroups = len(grouped)
-    nrows, ncols = layout or _get_layout(ngroups)
-
-    if nrows * ncols < ngroups:
-        raise ValueError("Number of plots in 'layout' must greater than or "
-                         "equal to the number " "of groups in 'by'")
-
+    naxes = len(grouped)
+    nrows, ncols = _get_layout(naxes, layout=layout)
     if figsize is None:
         # our favorite default beating matplotlib's idea of the
         # default size
         figsize = (10, 5)
-    fig, axes = _subplots(nrows=nrows, ncols=ncols, figsize=figsize,
-                          sharex=sharex, sharey=sharey, ax=ax)
+    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
+                          figsize=figsize, sharex=sharex, sharey=sharey, ax=ax)
 
-    if isinstance(axes, plt.Axes):
-        ravel_axes = [axes]
-    else:
-        ravel_axes = []
-        for row in axes:
-            if isinstance(row, plt.Axes):
-                ravel_axes.append(row)
-            else:
-                ravel_axes.extend(row)
+    ravel_axes = _flatten(axes)
 
     for i, (key, group) in enumerate(grouped):
         ax = ravel_axes[i]
@@ -2752,34 +2725,26 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
-                            figsize=None, ax=None, **kwargs):
-    import matplotlib.pyplot as plt
-
+                            figsize=None, ax=None, layout=None, **kwargs):
     grouped = data.groupby(by)
     if columns is None:
+        if not isinstance(by, (list, tuple)):
+            by = [by]
         columns = data._get_numeric_data().columns - by
-    ngroups = len(columns)
+    naxes = len(columns)
 
     if ax is None:
-        nrows, ncols = _get_layout(ngroups)
-        fig, axes = _subplots(nrows=nrows, ncols=ncols,
+        nrows, ncols = _get_layout(naxes, layout=layout)
+        fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
                               sharex=True, sharey=True,
                               figsize=figsize, ax=ax)
     else:
-        if ngroups > 1:
+        if naxes > 1:
             raise ValueError("Using an existing axis is not supported when plotting multiple columns.")
         fig = ax.get_figure()
         axes = ax.get_axes()
 
-    if isinstance(axes, plt.Axes):
-        ravel_axes = [axes]
-    else:
-        ravel_axes = []
-        for row in axes:
-            if isinstance(row, plt.Axes):
-                ravel_axes.append(row)
-            else:
-                ravel_axes.extend(row)
+    ravel_axes = _flatten(axes)
 
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
@@ -2836,7 +2801,18 @@ def table(ax, data, rowLabels=None, colLabels=None,
     return table
 
 
-def _get_layout(nplots):
+def _get_layout(nplots, layout=None):
+    if layout is not None:
+        if not isinstance(layout, (tuple, list)) or len(layout) != 2:
+            raise ValueError('Layout must be a tuple of (rows, columns)')
+
+        nrows, ncols = layout
+        if nrows * ncols < nplots:
+            raise ValueError('Layout of %sx%s must be larger than required size %s' %
+                (nrows, ncols, nplots))
+
+        return layout
+
     if nplots == 1:
         return (1, 1)
     elif nplots == 2:
@@ -2856,7 +2832,7 @@ def _get_layout(nplots):
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
 
 
-def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
+def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=True,
               subplot_kw=None, ax=None, secondary_y=False, data=None,
               **fig_kw):
     """Create a figure with a set of subplots already made.
@@ -2871,6 +2847,9 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     ncols : int
       Number of columns of the subplot grid.  Defaults to 1.
+
+    naxes : int
+      Number of required axes. Exceeded axes are set invisible. Default is nrows * ncols.
 
     sharex : bool
       If True, the X axis will be shared amongst all subplots.
@@ -2949,6 +2928,12 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     # Create empty object array to hold all axes.  It's easiest to make it 1-d
     # so we can just append subplots upon creation, and then
     nplots = nrows * ncols
+
+    if naxes is None:
+        naxes = nrows * ncols
+    elif nplots < naxes:
+        raise ValueError("naxes {0} is larger than layour size defined by nrows * ncols".format(naxes))
+
     axarr = np.empty(nplots, dtype=object)
 
     def on_right(i):
@@ -2998,6 +2983,10 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
                     [label.set_visible(
                         False) for label in ax.get_yticklabels()]
 
+    if naxes != nplots:
+        for ax in axarr[naxes:]:
+            ax.set_visible(False)
+            
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
         # though discarding unneeded dimensions that equal 1.  If we only have
@@ -3011,6 +3000,14 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         axes = axarr.reshape(nrows, ncols)
 
     return fig, axes
+
+
+def _flatten(axes):
+    if not com.is_list_like(axes):
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = axes.ravel()
+    return axes
 
 
 def _get_xlim(lines):

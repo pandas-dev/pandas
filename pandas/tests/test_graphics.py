@@ -13,6 +13,7 @@ from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 from pandas.compat import range, lrange, StringIO, lmap, lzip, u, zip
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
+import pandas.core.common as com
 from pandas.core.config import set_option
 
 
@@ -1837,6 +1838,19 @@ class TestDataFramePlots(tm.TestCase):
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(tm.TestCase):
+
+    def setUp(self):
+        n = 100
+        with tm.RNGContext(42):
+            gender = tm.choice(['Male', 'Female'], size=n)
+            classroom = tm.choice(['A', 'B', 'C'], size=n)
+
+            self.hist_df = DataFrame({'gender': gender,
+                            'classroom': classroom,
+                            'height': random.normal(66, 4, size=n),
+                            'weight': random.normal(161, 32, size=n),
+                            'category': random.randint(4, size=n)})
+
     def tearDown(self):
         tm.close()
 
@@ -1924,39 +1938,117 @@ class TestDataFrameGroupByPlots(tm.TestCase):
         with tm.assertRaises(AttributeError):
             plotting.grouped_hist(df.A, by=df.C, foo='bar')
 
+    def _check_axes_shape(self, axes, axes_num=None, layout=None, figsize=(8.0, 6.0)):
+        """
+        Check expected number of axes is drawn in expected layout
+
+        Parameters
+        ----------
+        axes : matplotlib Axes object, or its list-like
+        axes_num : number
+            expected number of axes. Unnecessary axes should be set to invisible.
+        layout :  tuple
+            expected layout
+        figsize : tuple
+            expected figsize. default is matplotlib default
+        """
+        visible_axes = self._flatten_visible(axes)
+
+        if axes_num is not None:
+            self.assertEqual(len(visible_axes), axes_num)
+            for ax in visible_axes:
+                # check something drawn on visible axes
+                self.assert_(len(ax.get_children()) > 0)
+
+        if layout is not None:
+            if isinstance(axes, list):
+                self.assertEqual((len(axes), ), layout)
+            elif isinstance(axes, np.ndarray):
+                self.assertEqual(axes.shape, layout)
+            else:
+                # in case of AxesSubplot
+                self.assertEqual((1, ), layout)
+
+        self.assert_numpy_array_equal(np.round(visible_axes[0].figure.get_size_inches()),
+                                      np.array(figsize))
+
+    def _flatten_visible(self, axes):
+        axes = plotting._flatten(axes)
+        axes = [ax for ax in axes if ax.get_visible()]
+        return axes
+
+    @slow
+    def test_grouped_box_layout(self):
+        import matplotlib.pyplot as plt
+        df = self.hist_df
+
+        self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'], by=df.gender,
+                          layout=(1, 1))
+        self.assertRaises(ValueError, df.boxplot, column=['height', 'weight', 'category'],
+                          layout=(2, 1))
+
+        box = _check_plot_works(df.groupby('gender').boxplot, column='height')
+        self._check_axes_shape(plt.gcf().axes, axes_num=2)
+
+        box = _check_plot_works(df.groupby('category').boxplot, column='height')
+        self._check_axes_shape(plt.gcf().axes, axes_num=4)
+
+        # GH 6769
+        box = _check_plot_works(df.groupby('classroom').boxplot, column='height')
+        self._check_axes_shape(plt.gcf().axes, axes_num=3)
+
+        box = df.boxplot(column=['height', 'weight', 'category'], by='gender')
+        self._check_axes_shape(plt.gcf().axes, axes_num=3)
+
+        box = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'])
+        self._check_axes_shape(plt.gcf().axes, axes_num=3)
+
+        box = _check_plot_works(df.groupby('category').boxplot, column='height', layout=(3, 2))
+        self._check_axes_shape(plt.gcf().axes, axes_num=4)
+
+        box = df.boxplot(column=['height', 'weight', 'category'], by='gender', layout=(4, 1))
+        self._check_axes_shape(plt.gcf().axes, axes_num=3)
+
+        box = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'], layout=(1, 4))
+        self._check_axes_shape(plt.gcf().axes, axes_num=3)
+
     @slow
     def test_grouped_hist_layout(self):
-        import matplotlib.pyplot as plt
-        n = 100
-        gender = tm.choice(['Male', 'Female'], size=n)
-        df = DataFrame({'gender': gender,
-                        'height': random.normal(66, 4, size=n),
-                        'weight': random.normal(161, 32, size=n),
-                        'category': random.randint(4, size=n)})
+
+        df = self.hist_df
         self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
                           layout=(1, 1))
-        self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
-                          layout=(1,))
         self.assertRaises(ValueError, df.hist, column='height', by=df.category,
                           layout=(1, 3))
-        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
-                          layout=(2, 1))
-        self.assertEqual(df.hist(column='height', by=df.gender,
-                                 layout=(2, 1)).shape, (2,))
-        tm.close()
-        self.assertEqual(df.hist(column='height', by=df.category,
-                                 layout=(4, 1)).shape, (4,))
-        tm.close()
-        self.assertEqual(df.hist(column='height', by=df.category,
-                                 layout=(4, 2)).shape, (4, 2))
+
+        axes = _check_plot_works(df.hist, column='height', by=df.gender, layout=(2, 1))
+        self._check_axes_shape(axes, axes_num=2, layout=(2, ), figsize=(10, 5))
+
+        axes = _check_plot_works(df.hist, column='height', by=df.category, layout=(4, 1))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, ), figsize=(10, 5))
+
+        axes = _check_plot_works(df.hist, column='height', by=df.category,
+                                 layout=(4, 2), figsize=(12, 8))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
+
+        # GH 6769
+        axes = _check_plot_works(df.hist, column='height', by='classroom', layout=(2, 2))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+
+        # without column
+        axes = _check_plot_works(df.hist, by='classroom')
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+
+        axes = _check_plot_works(df.hist, by='gender', layout=(3, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(3, 5), figsize=(10, 5))
+
+        axes = _check_plot_works(df.hist, column=['height', 'weight', 'category'])
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
 
     @slow
     def test_axis_share_x(self):
+        df = self.hist_df
         # GH4089
-        n = 100
-        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
-                        'height': random.normal(66, 4, size=n),
-                        'weight': random.normal(161, 32, size=n)})
         ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True)
 
         # share x
@@ -1969,10 +2061,7 @@ class TestDataFrameGroupByPlots(tm.TestCase):
 
     @slow
     def test_axis_share_y(self):
-        n = 100
-        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
-                        'height': random.normal(66, 4, size=n),
-                        'weight': random.normal(161, 32, size=n)})
+        df = self.hist_df
         ax1, ax2 = df.hist(column='height', by=df.gender, sharey=True)
 
         # share y
@@ -1985,10 +2074,7 @@ class TestDataFrameGroupByPlots(tm.TestCase):
 
     @slow
     def test_axis_share_xy(self):
-        n = 100
-        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
-                        'height': random.normal(66, 4, size=n),
-                        'weight': random.normal(161, 32, size=n)})
+        df = self.hist_df
         ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True,
                            sharey=True)
 
