@@ -21,7 +21,7 @@ if [ "$IRON_TOKEN" ]; then
     "$TRAVIS_BUILD_DIR"/pandas/msgpack.cpp  \
     |  7za a -si $HOME/ccache.7z
 
-    split -b 500000 -d $HOME/ccache.7z ccache.
+    split -b 500000 -d $HOME/ccache.7z $HOME/ccache.
 
     python ci/ironcache/put.py
 fi;
