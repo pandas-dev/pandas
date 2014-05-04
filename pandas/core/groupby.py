@@ -1917,8 +1917,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, Series, np.ndarray))
                         for g in keys)
+    # sugar for df.reset_index().groupby(['a', 'b']) where b was in index_names
+    from_col, from_idx, from_both = _from_index_and_columns(obj, keys)
 
     try:
+        if from_idx and from_col:
+            to_exclude = set(obj.index.names) - from_idx
+            obj = obj.reset_index()
+            group_axis = obj._get_axis(axis)
         if isinstance(obj, DataFrame):
             all_in_columns = all(g in obj.columns for g in keys)
         else:
@@ -1940,6 +1946,12 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     groupings = []
     exclusions = []
+
+    if from_col and from_idx:
+        # don't include those just there becaues of the reset_index
+        if to_exclude:
+            exclusions += list(to_exclude)
+
     for i, (gpr, level) in enumerate(zip(keys, levels)):
         name = None
         try:
@@ -1967,6 +1979,29 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     grouper = BaseGrouper(group_axis, groupings, sort=sort)
 
     return grouper, exclusions, obj
+
+
+def _from_index_and_columns(obj, keys):
+    """
+    keys is already listlike
+    """
+    if not all(isinstance(g, compat.string_types) for g in keys):
+        # TODO: Handle mix of callables and strings.
+        return None, None, None
+    ks = set(keys)
+    from_idx = ks & set(obj.index.names)
+    from_col = ks & set(obj.columns)
+
+    # check for ambiguity:
+    from_both = from_idx & from_col
+    if from_both:
+        from warnings import warn
+        msg = ("Found {0} in both the columns and index labels. "
+               "Grouping by the columns".format(from_both))
+        warn(msg)
+
+    # don't need to do anything if the only ones from either are in both
+    return from_col, from_idx - from_both, from_both
 
 
 def _is_label_like(val):
