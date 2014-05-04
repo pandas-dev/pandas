@@ -11,7 +11,8 @@ from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
-                                 _nargsort, _lexsort_indexer)
+                                 _nargsort, _lexsort_indexer,
+                                 _from_index_and_columns)
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -4167,6 +4168,34 @@ class TestGroupBy(tm.TestCase):
             items2, kind='mergesort', ascending=False, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         assert_equal(result, expected)
+
+    def test_from_index_and_columns(self):
+        # allowing by to spread across index and col names GH #5677
+        df = DataFrame([[1, 2, 3, 4]], columns=['c1', 'c2', 'i1', 'i2'])
+        df = df.set_index(['i1', 'i2'])
+
+        keys = ['c1']
+        from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set([]))
+        self.assertEqual(from_both, set([]))
+
+        keys = ['c1', 'i1']
+        from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set(['i1']))
+        self.assertEqual(from_both, set([]))
+
+        df.index.names = ['i1', 'c1']
+        keys = ['c1', 'i1']
+        with tm.assert_produces_warning(UserWarning):
+            from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set(['i1']))
+        self.assertEqual(from_both, set(['c1']))
+
+        res = _from_index_and_columns(df['c1'], 'i1')
+        self.assertEqual(res, (None, None, None))
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()

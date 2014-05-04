@@ -1985,7 +1985,9 @@ def _from_index_and_columns(obj, keys):
     """
     keys is already listlike
     """
-    if not all(isinstance(g, compat.string_types) for g in keys):
+    not_all_string = not all(isinstance(g, compat.string_types) for g in keys)
+    not_df = not isinstance(obj, DataFrame)
+    if not_all_string or not_df:
         # TODO: Handle mix of callables and strings.
         return None, None, None
     ks = set(keys)
