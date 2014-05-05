@@ -588,6 +588,80 @@ given by column ``z``. The bins are aggregated with numpy's ``max`` function.
 
 See the `matplotlib hexbin documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
 
+.. _visualization.pie:
+
+Pie plot
+~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.14
+
+You can create pie plot with ``DataFrame.plot`` or ``Series.plot`` with ``kind='pie'``.
+If data includes ``NaN``, it will be automatically filled by 0.
+If data contains negative value, ``ValueError`` will be raised.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+   
+   series = Series(3 * rand(4), index=['a', 'b', 'c', 'd'], name='series')
+
+   @savefig series_pie_plot.png
+   series.plot(kind='pie')
+
+Note that pie plot with ``DataFrame`` requires either to specify target column by ``y``
+argument or ``subplots=True``. When ``y`` is specified, pie plot of selected column 
+will be drawn. If ``subplots=True`` is specified, pie plots for each columns are drawn as subplots.
+Legend will be drawn in each pie plots by default, specify ``legend=False`` to hide it.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+   
+   df = DataFrame(3 * rand(4, 2), index=['a', 'b', 'c', 'd'], columns=['x', 'y'])
+
+   @savefig df_pie_plot.png
+   df.plot(kind='pie', subplots=True) 
+
+You can use ``labels`` and ``colors`` keywords to specify labels and colors of each wedges
+(Cannot use ``label`` and ``color``, because of matplotlib's specification).
+If you want to hide wedge labels, specify ``labels=None``. 
+If ``fontsize`` is specified, the value will be applied to wedge labels.
+Also, other keywords supported by :func:`matplotlib.pyplot.pie` can be used.
+
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+   
+   @savefig series_pie_plot_options.png
+   series.plot(kind='pie', labels=['AA', 'BB', 'CC', 'DD'], colors=['r', 'g', 'b', 'c'],
+               autopct='%.2f', fontsize=20)
+
+If you pass values which sum total is less than 1.0, matplotlib draws semicircle.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+   
+   series = Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
+
+   @savefig series_pie_plot_semi.png
+   series.plot(kind='pie') 
+
+See the `matplotlib pie documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+
 .. _visualization.andrews_curves:
 
 Andrews Curves

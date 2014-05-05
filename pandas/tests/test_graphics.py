@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import nose
+import itertools
 import os
 import string
 from distutils.version import LooseVersion
@@ -137,6 +138,63 @@ class TestSeriesPlots(tm.TestCase):
         xp = datetime(1999, 1, 1).toordinal()
         ax.set_xlim('1/1/1999', '1/1/2001')
         self.assertEqual(xp, ax.get_xlim()[0])
+
+    @slow
+    def test_pie_series(self):
+        # if sum of values is less than 1.0, pie handle them as rate and draw semicircle.
+        series = Series(np.random.randint(1, 5),
+                        index=['a', 'b', 'c', 'd', 'e'], name='YLABEL')
+        ax = _check_plot_works(series.plot, kind='pie')
+        for t, expected in zip(ax.texts, series.index):
+            self.assertEqual(t.get_text(), expected)
+        self.assertEqual(ax.get_ylabel(), 'YLABEL')
+
+        # without wedge labels
+        ax = _check_plot_works(series.plot, kind='pie', labels=None)
+        for t, expected in zip(ax.texts, [''] * 5):
+            self.assertEqual(t.get_text(), expected)
+
+        # with less colors than elements
+        color_args = ['r', 'g', 'b']
+        ax = _check_plot_works(series.plot, kind='pie', colors=color_args)
+
+        import matplotlib.colors as colors
+        conv = colors.colorConverter
+        color_expected = ['r', 'g', 'b', 'r', 'g']
+        for p, expected in zip(ax.patches, color_expected):
+            self.assertEqual(p.get_facecolor(), conv.to_rgba(expected))
+
+        # with labels and colors
+        labels = ['A', 'B', 'C', 'D', 'E']
+        color_args = ['r', 'g', 'b', 'c', 'm']
+        ax = _check_plot_works(series.plot, kind='pie', labels=labels, colors=color_args)
+
+        for t, expected in zip(ax.texts, labels):
+            self.assertEqual(t.get_text(), expected)
+        for p, expected in zip(ax.patches, color_args):
+            self.assertEqual(p.get_facecolor(), conv.to_rgba(expected))
+
+        # with autopct and fontsize
+        ax = _check_plot_works(series.plot, kind='pie', colors=color_args,
+                               autopct='%.2f', fontsize=7)
+        pcts = ['{0:.2f}'.format(s * 100) for s in series.values / float(series.sum())]
+        iters = [iter(series.index), iter(pcts)]
+        expected_texts = list(it.next() for it in itertools.cycle(iters))
+        for t, expected in zip(ax.texts, expected_texts):
+            self.assertEqual(t.get_text(), expected)
+            self.assertEqual(t.get_fontsize(), 7)
+
+        # includes negative value
+        with tm.assertRaises(ValueError):
+            series = Series([1, 2, 0, 4, -1], index=['a', 'b', 'c', 'd', 'e'])
+            series.plot(kind='pie')
+
+        # includes nan
+        series = Series([1, 2, np.nan, 4],
+                        index=['a', 'b', 'c', 'd'], name='YLABEL')
+        ax = _check_plot_works(series.plot, kind='pie')
+        for t, expected in zip(ax.texts, series.index):
+            self.assertEqual(t.get_text(), expected)
 
     @slow
     def test_hist(self):
@@ -1511,6 +1569,39 @@ class TestDataFramePlots(tm.TestCase):
             df.plot(kind='hexbin', x='A', y='B', cmap='YlGn',
                          colormap='BuGn')
 
+    @slow
+    def test_pie_df(self):
+        df = DataFrame(np.random.rand(5, 3), columns=['X', 'Y', 'Z'],
+                       index=['a', 'b', 'c', 'd', 'e'])
+        with tm.assertRaises(ValueError):
+            df.plot(kind='pie')
+
+        ax = _check_plot_works(df.plot, kind='pie', y='Y')
+        for t, expected in zip(ax.texts, df.index):
+            self.assertEqual(t.get_text(), expected)
+
+        axes = _check_plot_works(df.plot, kind='pie', subplots=True)
+        self.assertEqual(len(axes), len(df.columns))
+        for ax in axes:
+            for t, expected in zip(ax.texts, df.index):
+                self.assertEqual(t.get_text(), expected)
+        for ax, ylabel in zip(axes, df.columns):
+            self.assertEqual(ax.get_ylabel(), ylabel)
+
+        labels = ['A', 'B', 'C', 'D', 'E']
+        color_args = ['r', 'g', 'b', 'c', 'm']
+        axes = _check_plot_works(df.plot, kind='pie', subplots=True,
+                                 labels=labels, colors=color_args)
+        self.assertEqual(len(axes), len(df.columns))
+
+        import matplotlib.colors as colors
+        conv = colors.colorConverter
+        for ax in axes:
+            for t, expected in zip(ax.texts, labels):
+                self.assertEqual(t.get_text(), expected)
+            for p, expected in zip(ax.patches, color_args):
+                self.assertEqual(p.get_facecolor(), conv.to_rgba(expected))
+
     def test_errorbar_plot(self):
 
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
@@ -1918,6 +2009,7 @@ def _check_plot_works(f, *args, **kwargs):
             plt.savefig(path)
     finally:
         tm.close(fig)
+
     return ret
 
 

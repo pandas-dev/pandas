@@ -277,6 +277,7 @@ latex_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'statsmodels': ('http://statsmodels.sourceforge.net/devel/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
     'python': ('http://docs.python.org/', None)
 }
 import glob

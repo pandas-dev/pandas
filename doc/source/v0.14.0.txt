@@ -366,7 +366,8 @@ Plotting
 ~~~~~~~~
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`), See :ref:`the docs<visualization.hexbin>`.
-- ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`)
+- ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`), See :ref:`the docs<visualization.area>`
+- Pie plots from ``Series.plot`` and ``DataFrame.plot`` with ``kind='pie'`` (:issue:`6976`), See :ref:`the docs<visualization.pie>`.
 - Plotting with Error Bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`, :issue:`6834`), See :ref:`the docs<visualization.errorbars>`.
 - ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``, See :ref:`the docs<visualization.table>`.
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
