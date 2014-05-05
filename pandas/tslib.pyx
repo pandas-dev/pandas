@@ -462,6 +462,12 @@ class NaTType(_NaT):
     def __hash__(self):
         return iNaT
 
+    def __int__(self):
+        return NPY_NAT
+
+    def __long__(self):
+        return NPY_NAT
+
     def weekday(self):
         return -1
 

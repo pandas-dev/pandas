@@ -568,6 +568,8 @@ Performance
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
 - Improved performance of compatible pickles (:issue:`6899`)
 - Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
+- ``GroupBy.count()`` is now implemented in Cython and is much faster for large
+  numbers of groups (:issue:`7016`).
 
 Experimental
 ~~~~~~~~~~~~

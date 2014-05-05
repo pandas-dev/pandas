@@ -5,7 +5,7 @@ import datetime
 import collections
 
 from pandas.compat import(
-    zip, builtins, range, long, lrange, lzip,
+    zip, builtins, range, long, lzip,
     OrderedDict, callable
 )
 from pandas import compat
@@ -713,15 +713,6 @@ class GroupBy(PandasObject):
         """
         return self.grouper.size()
 
-    def count(self, axis=0):
-        """
-        Number of non-null items in each group.
-        axis : axis number, default 0
-               the grouping axis
-        """
-        self._set_selection_from_grouper()
-        return self._python_agg_general(lambda x: notnull(x).sum(axis=axis)).astype('int64')
-
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
     min = _groupby_function('min', 'min', np.min, numeric_only=False)
@@ -731,6 +722,12 @@ class GroupBy(PandasObject):
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
 
+    _count = _groupby_function('_count', 'count',
+                               lambda x, axis=0: notnull(x).sum(axis=axis),
+                               numeric_only=False)
+
+    def count(self, axis=0):
+        return self._count().astype('int64')
 
     def ohlc(self):
         """
@@ -1318,10 +1315,11 @@ class BaseGrouper(object):
             'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
         },
         'last': 'group_last',
+        'count': 'group_count',
     }
 
     _cython_transforms = {
-        'std': np.sqrt
+        'std': np.sqrt,
     }
 
     _cython_arity = {
@@ -1390,14 +1388,16 @@ class BaseGrouper(object):
             values = com.ensure_float(values)
             is_numeric = True
         else:
-            if issubclass(values.dtype.type, np.datetime64):
-                raise Exception('Cython not able to handle this case')
-
-            values = values.astype(object)
-            is_numeric = False
+            is_numeric = issubclass(values.dtype.type, (np.datetime64,
+                                                        np.timedelta64))
+            if is_numeric:
+                values = values.view('int64')
+            else:
+                values = values.astype(object)
 
         # will be filled in Cython function
-        result = np.empty(out_shape, dtype=values.dtype)
+        result = np.empty(out_shape,
+                          dtype=np.dtype('f%d' % values.dtype.itemsize))
         result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -1405,10 +1405,10 @@ class BaseGrouper(object):
 
         if self._filter_empty_groups:
             if result.ndim == 2:
-                if is_numeric:
+                try:
                     result = lib.row_bool_subset(
                         result, (counts > 0).view(np.uint8))
-                else:
+                except ValueError:
                     result = lib.row_bool_subset_object(
                         result, (counts > 0).view(np.uint8))
             else:
@@ -1442,6 +1442,7 @@ class BaseGrouper(object):
                 chunk = chunk.squeeze()
                 agg_func(result[:, :, i], counts, chunk, comp_ids)
         else:
+            #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
             agg_func(result, counts, values, comp_ids)
 
         return trans_func(result)
@@ -1651,6 +1652,7 @@ class BinGrouper(BaseGrouper):
             'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
         },
         'last': 'group_last_bin',
+        'count': 'group_count_bin',
     }
 
     _name_functions = {
