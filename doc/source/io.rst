@@ -2875,7 +2875,7 @@ again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use
 Compression
 ~~~~~~~~~~~
 
-``PyTables`` allows the stored data to be compressed. Tthis applies to
+``PyTables`` allows the stored data to be compressed. This applies to
 all kinds of stores, not just tables.
 
    - Pass ``complevel=int`` for a compression level (1-9, with 0 being no
