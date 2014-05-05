@@ -313,6 +313,8 @@ Improvements to existing features
   in item handling (:issue:`6745`, :issue:`6988`).
 - Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
+- ``GroupBy.count()`` is now implemented in Cython and is much faster for large
+  numbers of groups (:issue:`7016`).
 
 .. _release.bug_fixes-0.14.0:
 
