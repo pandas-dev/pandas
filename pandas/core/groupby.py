@@ -1405,10 +1405,10 @@ class BaseGrouper(object):
 
         if self._filter_empty_groups:
             if result.ndim == 2:
-                if is_numeric:
+                try:
                     result = lib.row_bool_subset(
                         result, (counts > 0).view(np.uint8))
-                else:
+                except ValueError:
                     result = lib.row_bool_subset_object(
                         result, (counts > 0).view(np.uint8))
             else:
@@ -1442,6 +1442,7 @@ class BaseGrouper(object):
                 chunk = chunk.squeeze()
                 agg_func(result[:, :, i], counts, chunk, comp_ids)
         else:
+            #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
             agg_func(result, counts, values, comp_ids)
 
         return trans_func(result)

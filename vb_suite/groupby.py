@@ -146,7 +146,8 @@ df = DataFrame({'key1': np.random.randint(0, 500, size=n),
 """
 
 groupby_multi_count = Benchmark("df.groupby(['key1', 'key2']).count()",
-                                setup, start_date=datetime(2014, 5, 5))
+                                setup, name='groupby_multi_count',
+                                start_date=datetime(2014, 5, 5))
 #----------------------------------------------------------------------
 # Series.value_counts
 
@@ -180,11 +181,11 @@ ind1 = np.random.randint(0, 3, size=100000)
 ind2 = np.random.randint(0, 2, size=100000)
 
 df = DataFrame({'key1': fac1.take(ind1),
-                'key2': fac2.take(ind2),
-                'key3': fac2.take(ind2),
-                'value1' : np.random.randn(100000),
-                'value2' : np.random.randn(100000),
-                'value3' : np.random.randn(100000)})
+'key2': fac2.take(ind2),
+'key3': fac2.take(ind2),
+'value1' : np.random.randn(100000),
+'value2' : np.random.randn(100000),
+'value3' : np.random.randn(100000)})
 """
 
 stmt = "df.pivot_table(rows='key1', cols=['key2', 'key3'])"
@@ -221,13 +222,13 @@ groupby_first = Benchmark('data.groupby(labels).first()', setup,
                           start_date=datetime(2012, 5, 1))
 
 groupby_first_float32 = Benchmark('data2.groupby(labels).first()', setup,
-                          start_date=datetime(2013, 1, 1))
+                                  start_date=datetime(2013, 1, 1))
 
 groupby_last = Benchmark('data.groupby(labels).last()', setup,
                          start_date=datetime(2012, 5, 1))
 
 groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
-                         start_date=datetime(2013, 1, 1))
+                                 start_date=datetime(2013, 1, 1))
 
 
 #----------------------------------------------------------------------
@@ -285,9 +286,9 @@ N = 10000
 labels = np.random.randint(0, 2000, size=N)
 labels2 = np.random.randint(0, 3, size=N)
 df = DataFrame({'key': labels,
-                'key2': labels2,
-                'value1': randn(N),
-                'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
+'key2': labels2,
+'value1': randn(N),
+'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
 def f(g):
     return 1
 """
