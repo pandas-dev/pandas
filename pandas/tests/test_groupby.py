@@ -166,18 +166,27 @@ class TestGroupBy(tm.TestCase):
         # tests for first / last / nth
         grouped = self.df.groupby('A')
         first = grouped.first()
-        expected = self.df.ix[[1, 0], ['B', 'C', 'D']]
-        expected.index = ['bar', 'foo']
-        assert_frame_equal(first, expected, check_names=False)
+        expected = self.df.ix[[1, 0], ['B','C','D']]
+        expected.index = Index(['bar', 'foo'],name='A')
+        expected = expected.sort_index()
+        assert_frame_equal(first, expected)
+
+        nth = grouped.nth(0)
+        assert_frame_equal(nth, expected)
 
         last = grouped.last()
-        expected = self.df.ix[[5, 7], ['B', 'C', 'D']]
-        expected.index = ['bar', 'foo']
-        assert_frame_equal(last, expected, check_names=False)
+        expected = self.df.ix[[5, 7], ['B','C','D']]
+        expected.index = Index(['bar', 'foo'],name='A')
+        assert_frame_equal(last, expected)
+
+        nth = grouped.nth(-1)
+        assert_frame_equal(nth, expected)
 
         nth = grouped.nth(1)
-        expected = self.df.iloc[[2, 3]]
-        assert_frame_equal(nth, expected, check_names=False)
+        expected = self.df.ix[[2, 3],['B','C','D']].copy()
+        expected.index = Index(['foo', 'bar'],name='A')
+        expected = expected.sort_index()
+        assert_frame_equal(nth, expected)
 
         # it works!
         grouped['B'].first()
@@ -189,6 +198,17 @@ class TestGroupBy(tm.TestCase):
         self.assert_(com.isnull(grouped['B'].last()['foo']))
         self.assert_(com.isnull(grouped['B'].nth(0)[0]))  # not sure what this is testing
 
+        # v0.14.0 whatsnew
+        df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+        g = df.groupby('A')
+        result = g.first()
+        expected = df.iloc[[1,2]].set_index('A')
+        assert_frame_equal(result, expected)
+
+        expected = df.iloc[[1,2]].set_index('A')
+        result = g.nth(0,dropna='any')
+        assert_frame_equal(result, expected)
+
     def test_first_last_nth_dtypes(self):
 
         df = self.df_mixed_floats.copy()
@@ -199,17 +219,21 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby('A')
         first = grouped.first()
         expected = df.ix[[1, 0], ['B', 'C', 'D', 'E', 'F']]
-        expected.index = ['bar', 'foo']
-        assert_frame_equal(first, expected, check_names=False)
+        expected.index = Index(['bar', 'foo'], name='A')
+        expected = expected.sort_index()
+        assert_frame_equal(first, expected)
 
         last = grouped.last()
         expected = df.ix[[5, 7], ['B', 'C', 'D', 'E', 'F']]
-        expected.index = ['bar', 'foo']
-        assert_frame_equal(last, expected, check_names=False)
+        expected.index = Index(['bar', 'foo'], name='A')
+        expected = expected.sort_index()
+        assert_frame_equal(last, expected)
 
         nth = grouped.nth(1)
-        expected = df.iloc[[2, 3]]
-        assert_frame_equal(nth, expected, check_names=False)
+        expected = df.ix[[3, 2],['B', 'C', 'D', 'E', 'F']]
+        expected.index = Index(['bar', 'foo'], name='A')
+        expected = expected.sort_index()
+        assert_frame_equal(nth, expected)
 
         # GH 2763, first/last shifting dtypes
         idx = lrange(10)
@@ -223,15 +247,15 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
         g = df.groupby('A')
 
-        assert_frame_equal(g.nth(0), df.iloc[[0, 2]])
-        assert_frame_equal(g.nth(1), df.iloc[[1]])
-        assert_frame_equal(g.nth(2), df.loc[[]])
-        assert_frame_equal(g.nth(-1), df.iloc[[1, 2]])
-        assert_frame_equal(g.nth(-2), df.iloc[[0]])
-        assert_frame_equal(g.nth(-3), df.loc[[]])
+        assert_frame_equal(g.nth(0), df.iloc[[0, 2]].set_index('A'))
+        assert_frame_equal(g.nth(1), df.iloc[[1]].set_index('A'))
+        assert_frame_equal(g.nth(2), df.loc[[],['B']])
+        assert_frame_equal(g.nth(-1), df.iloc[[1, 2]].set_index('A'))
+        assert_frame_equal(g.nth(-2), df.iloc[[0]].set_index('A'))
+        assert_frame_equal(g.nth(-3), df.loc[[],['B']])
         assert_series_equal(g.B.nth(0), df.B.iloc[[0, 2]])
         assert_series_equal(g.B.nth(1), df.B.iloc[[1]])
-        assert_frame_equal(g[['B']].nth(0), df.ix[[0, 2], ['B']])
+        assert_frame_equal(g[['B']].nth(0), df.ix[[0, 2], ['A', 'B']].set_index('A'))
 
         exp = df.set_index('A')
         assert_frame_equal(g.nth(0, dropna='any'), exp.iloc[[1, 2]])

@@ -397,7 +397,7 @@ index are the group names and whose values are the sizes of each group.
    named *columns*.
 
    Aggregating functions are ones that reduce the dimension of the returned objects,
-   for example: ``mean, sum, size, count, std, var, describe, first, last, min, max``. This is
+   for example: ``mean, sum, size, count, std, var, describe, first, last, nth, min, max``. This is
    what happens when you do for example ``DataFrame.sum()`` and get back a ``Series``.
 
 .. _groupby.aggregate.multifunc:
@@ -613,7 +613,7 @@ For dataframes with multiple columns, filters should explicitly specify a column
    a reduced shape of the original (and potentitally eliminating groups), but with the index unchanged.
    Passing ``as_index=False`` will not affect these transformation methods.
 
-   For example: ``head, tail nth``.
+   For example: ``head, tail``.
 
    .. ipython:: python
 
