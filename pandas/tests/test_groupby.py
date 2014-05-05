@@ -11,7 +11,8 @@ from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
-                                 _nargsort, _lexsort_indexer)
+                                 _nargsort, _lexsort_indexer,
+                                 _from_index_and_columns)
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -4167,6 +4168,56 @@ class TestGroupBy(tm.TestCase):
             items2, kind='mergesort', ascending=False, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         assert_equal(result, expected)
+
+    def test_by_index_cols(self):
+        df = DataFrame([[1, 2, 'x', 'a', 'a'],
+                        [2, 3, 'x', 'a', 'b'],
+                        [3, 4, 'x', 'b', 'a'],
+                        [4, 5, 'y', 'b', 'b']],
+                       columns=['c1', 'c2', 'g1', 'i1', 'i2'])
+        df = df.set_index(['i1', 'i2'])
+        df.index.set_names(['i1', 'g1'], inplace=True)
+        result = df.groupby(by=['g1', 'i1']).mean()
+        idx = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'b')],
+                                     names=['g1', 'i1'])
+        expected = DataFrame([[1.5, 2.5], [1, 4], [1, 5]],
+                             index=idx, columns=['c1', 'c2'])
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.groupby('g1').mean()
+        expected = DataFrame([[2, 3], [4, 5]],
+                             index=['x', 'y'], columns=['c1', 'c2'])
+        expected.index.set_names(['g1'], inplace=True)
+        assert_frame_equal(result, expected)
+
+    def test_from_index_and_columns(self):
+        # allowing by to spread across index and col names GH #5677
+        df = DataFrame([[1, 2, 3, 4]], columns=['c1', 'c2', 'i1', 'i2'])
+        df = df.set_index(['i1', 'i2'])
+
+        keys = ['c1']
+        from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set([]))
+        self.assertEqual(from_both, set([]))
+
+        keys = ['c1', 'i1']
+        from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set(['i1']))
+        self.assertEqual(from_both, set([]))
+
+        df.index.names = ['i1', 'c1']
+        keys = ['c1', 'i1']
+        with tm.assert_produces_warning(FutureWarning):
+            from_col, from_idx, from_both = _from_index_and_columns(df, keys)
+        self.assertEqual(from_col, set(['c1']))
+        self.assertEqual(from_idx, set(['i1']))
+        self.assertEqual(from_both, set(['c1']))
+
+        res = _from_index_and_columns(df['c1'], 'i1')
+        self.assertEqual(res, (None, None, None))
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
