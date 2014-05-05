@@ -38,6 +38,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
+    precision : int
+        The precision at which to store and display the bins labels
+    include_lowest : bool
+        Whether the first interval should be left-inclusive or not.
 
     Returns
     -------
@@ -121,6 +125,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
+    precision : int
+        The precision at which to store and display the bins labels
 
     Returns
     -------
