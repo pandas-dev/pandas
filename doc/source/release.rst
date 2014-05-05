@@ -312,6 +312,11 @@ Improvements to existing features
   in item handling (:issue:`6745`, :issue:`6988`).
 - Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
+- Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
+  parameter. (:issue:`4878`)
+- Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
+- Added ``inferred_freq_offset`` as property on ``DatetimeIndex`` to provide the actual 
+  Offset object rather than the string representation (:issue:`5082`).
 
 .. _release.bug_fixes-0.14.0:
 
@@ -459,6 +464,7 @@ Bug Fixes
 - Bug in timeseries-with-frequency plot cursor display (:issue:`5453`)
 - Bug surfaced in groupby.plot when using a ``Float64Index`` (:issue:`7025`)
 - Stopped tests from failing if options data isn't able to be downloaded from Yahoo (:issue:`7034`)
+- Bug in not correctly treating 'QS', 'BQS', 'BQ', 'Y' as frquency aliases (:issue:`5028`).
 
 pandas 0.13.1
 -------------

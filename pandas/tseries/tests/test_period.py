@@ -14,7 +14,7 @@ from pandas import Timestamp
 from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
-from pandas.tseries.tools import to_datetime
+from pandas.tseries.tools import to_datetime, _try_parse_qtr_time_string
 import pandas.tseries.period as pmod
 
 import pandas.core.datetools as datetools
@@ -29,6 +29,7 @@ from pandas.util.testing import(assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 from pandas import compat
 from numpy.testing import assert_array_equal
+from pandas.tseries.offsets import FY5253Quarter, WeekDay, Week, Day
 
 
 class TestPeriodProperties(tm.TestCase):
@@ -1698,6 +1699,11 @@ class TestPeriodIndex(tm.TestCase):
         expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, ..., 2013Q3]\nlength: 3"
         assert_equal(repr(val), expected)
 
+    def test_period_weeklies(self):
+        p1 = Period('2006-12-31', 'W')
+        p2 = Period('2006-12-31', '1w')
+        assert_equal(p1.freq, p2.freq)
+
     def test_period_index_unicode(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 9)
@@ -1861,21 +1867,21 @@ class TestPeriodIndex(tm.TestCase):
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'Q-DEC')
+            self.assertEqual(prng.freqstr, 'Q-DEC')
 
     def test_to_period_annualish(self):
         offsets = ['BA', 'AS', 'BAS']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'A-DEC')
+            self.assertEqual(prng.freqstr, 'A-DEC')
 
     def test_to_period_monthish(self):
         offsets = ['MS', 'EOM', 'BM']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'M')
+            self.assertEqual(prng.freqstr, 'M')
 
     def test_no_multiples(self):
         self.assertRaises(ValueError, period_range, '1989Q3', periods=10,
@@ -2169,11 +2175,44 @@ class TestPeriodIndex(tm.TestCase):
         import pickle
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         new_prng = pickle.loads(pickle.dumps(prng))
-        self.assertEqual(new_prng.freq,'M')
+        self.assertEqual(new_prng.freq, 'M')
 
     def test_slice_keep_name(self):
         idx = period_range('20010101', periods=10, freq='D', name='bob')
         self.assertEqual(idx.name, idx[1:].name)
+
+    def test_period_range_alias(self):
+        self.assertTrue(
+            pd.date_range('1/1/2012', periods=4,
+                        freq=pd.offsets.MonthEnd()).to_period().identical(
+            pd.period_range('1/1/2012', periods=4,
+                        freq=pd.offsets.MonthEnd())))
+
+        # GH 4878
+        self.assertTrue(
+           pd.date_range('1/1/2012', periods=4,
+                    freq=pd.offsets.BusinessMonthEnd()).to_period().identical(
+           pd.period_range('1/1/2012', periods=4,
+                    freq=pd.offsets.BusinessMonthEnd())))
+
+    def test_period_range_alias2(self):
+        self.assertTrue(
+            pd.Series(range(4),
+                index=pd.date_range('1/1/2012', periods=4,
+                    freq=pd.offsets.MonthEnd())).to_period().index.identical(
+            pd.Series(range(4),
+                index=pd.date_range('1/1/2012', periods=4,
+                    freq=pd.offsets.MonthEnd()).to_period()).index))
+
+        # GH 4878
+        self.assertTrue(
+            pd.Series(range(4),
+                index=pd.date_range('1/1/2012', periods=4,
+                    freq=pd.offsets.BusinessMonthEnd())
+                            ).to_period().index.identical(
+            pd.Series(range(4),
+                index=pd.date_range('1/1/2012', periods=4,
+                    freq=pd.offsets.BusinessMonthEnd()).to_period()).index))
 
 
 def _permute(obj):
@@ -2312,6 +2351,294 @@ class TestComparisons(tm.TestCase):
         correctPeriods = [self.january1, self.february, self.march]
         self.assertEqual(sorted(periods), correctPeriods)
 
+
+class TestFY5253QuarterPeriods(tm.TestCase):
+    def test_get_period_ordinal(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(offset.get_period_ordinal(
+                                    datetime(2013, 10, 27)), 2013 * 4 + 3)
+        self.assertEqual(offset.get_period_ordinal(
+                                    datetime(2013, 12, 28)), 2013 * 4 + 3)
+        self.assertEqual(offset.get_period_ordinal(
+                                    datetime(2013, 12, 29)), 2014 * 4 + 0)
+
+        offset_n = FY5253Quarter(weekday=WeekDay.TUE, startingMonth=12,
+                      variation="nearest", qtr_with_extra_week=4)
+
+        self.assertEqual(offset_n.get_period_ordinal(datetime(2013, 1, 2)),
+                         offset_n.get_period_ordinal(datetime(2013, 1, 30)))
+
+        self.assertEqual(offset_n.get_period_ordinal(datetime(2013, 1, 1)) + 1,
+                         offset_n.get_period_ordinal(datetime(2013, 1, 2)))
+
+    def test_period_format(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(offset.period_format(2013 * 4 + 3), "2013Q4")
+        self.assertEqual(offset.period_format(2014 * 4 + 0), "2014Q1")
+
+    def test_get_end_dt(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(offset.get_end_dt(
+                offset.get_period_ordinal(datetime(2013, 12, 27))),
+            datetime(2013, 12, 28))
+        self.assertEqual(offset.get_end_dt(
+                offset.get_period_ordinal(datetime(2013, 12, 28))),
+            datetime(2013, 12, 28))
+        self.assertEqual(offset.get_end_dt(
+            offset.get_period_ordinal(datetime(2013, 12, 28))),
+            datetime(2013, 12, 28))
+        self.assertEqual(offset.get_end_dt(
+            offset.get_period_ordinal(datetime(2013, 12, 29))),
+            datetime(2014, 3, 29))
+
+    def test_get_start_dt(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(offset.get_start_dt(
+                    offset.get_period_ordinal(datetime(2013, 9, 29))),
+            datetime(2013, 9, 29))
+        self.assertEqual(offset.get_start_dt(
+                    offset.get_period_ordinal(datetime(2013, 12, 27))),
+            datetime(2013, 9, 29))
+        self.assertEqual(offset.get_start_dt(
+                    offset.get_period_ordinal(datetime(2013, 12, 28))),
+            datetime(2013, 9, 29))
+        self.assertEqual(offset.get_start_dt(
+                    offset.get_period_ordinal(datetime(2013, 12, 28))),
+            datetime(2013, 9, 29))
+        self.assertEqual(offset.get_start_dt(
+                    offset.get_period_ordinal(datetime(2013, 12, 29))),
+            datetime(2013, 12, 29))
+
+    def test_period_str(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(str(Period("2013-12-27", freq=offset)), "2013Q4")
+        self.assertEqual(str(Period("2013-12-28", freq=offset)), "2013Q4")
+        self.assertEqual(str(Period("2013-12-29", freq=offset)), "2014Q1")
+        self.assertEqual(str(Period("2013-9-29", freq=offset)), "2013Q4")
+        self.assertEqual(str(Period("2013-9-28", freq=offset)), "2013Q3")
+
+        offset_n = FY5253Quarter(weekday=WeekDay.TUE, startingMonth=12,
+                      variation="nearest", qtr_with_extra_week=4)
+        self.assertEqual(str(Period("2013-01-01", freq=offset_n)), "2012Q4")
+        self.assertEqual(str(Period("2013-01-03", freq=offset_n)), "2013Q1")
+        self.assertEqual(str(Period("2013-01-02", freq=offset_n)), "2013Q1")
+
+        offset_sun = FY5253Quarter(weekday=WeekDay.SUN, startingMonth=12,
+                      variation="nearest", qtr_with_extra_week=4)
+        self.assertEqual(str(Period("2011-1-2", freq=offset_sun)), "2010Q4")
+        self.assertEqual(str(Period("2011-1-3", freq=offset_sun)), "2011Q1")
+        self.assertEqual(str(Period("2011-4-3", freq=offset_sun)), "2011Q1")
+        self.assertEqual(str(Period("2011-4-4", freq=offset_sun)), "2011Q2")
+        self.assertEqual(str(Period("2011-7-3", freq=offset_sun)), "2011Q2")
+        self.assertEqual(str(Period("2011-7-4", freq=offset_sun)), "2011Q3")
+        self.assertEqual(str(Period("2003-9-28", freq=offset_sun)), "2003Q3")
+        self.assertEqual(str(Period("2003-9-29", freq=offset_sun)), "2003Q4")
+        self.assertEqual(str(Period("2004-9-26", freq=offset_sun)), "2004Q3")
+        self.assertEqual(str(Period("2004-9-27", freq=offset_sun)), "2004Q4")
+        self.assertEqual(str(Period("2005-1-2", freq=offset_sun)), "2004Q4")
+        self.assertEqual(str(Period("2005-1-3", freq=offset_sun)), "2005Q1")
+
+    def test_period_str_parsing(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        self.assertEqual(_try_parse_qtr_time_string("2013Q4"), (2013, 4))
+        self.assertEqual(_try_parse_qtr_time_string("2013q4"), (2013, 4))
+        self.assertEqual(_try_parse_qtr_time_string("13Q4"), (2013, 4))
+        self.assertEqual(_try_parse_qtr_time_string("1Q14"), (2014, 1))
+
+        self.assertEqual(
+            str(Period(offset.parse_time_string("2013Q4"),
+                       freq=offset)), "2013Q4")
+
+        self.assertEqual(offset.get_period_ordinal(
+                            offset.parse_time_string("2013Q4")), 2013 * 4 + 3)
+
+        self.assertEqual(offset.period_format(
+                            offset.get_period_ordinal(
+                                offset.parse_time_string("2013Q4"))), "2013Q4")
+
+    def test_period_asfreq1(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+        period = Period("2013-12-27", freq=offset)
+
+        week_offset = Week(weekday=WeekDay.SAT)
+        self.assertEqual(str(period.asfreq(freq=week_offset, how="E")),
+                         "2013-12-22/2013-12-28")
+        self.assertEqual(str(period.asfreq(freq=week_offset, how="S")),
+                         "2013-09-29/2013-10-05")
+
+        day = Day()
+        self.assertEqual(str(period.asfreq(freq=day, how="E")),
+                         "2013-12-28")
+
+        self.assertEqual(str(period.asfreq(freq=day, how="S")),
+                         "2013-09-29")
+
+    def test_period_asfreq2(self):
+        qtr_offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+        week_offset = Week(weekday=WeekDay.SAT)
+
+        period = Period("2013-12-22/2013-12-28", freq=week_offset)
+
+        self.assertEqual(str(period.asfreq(freq=qtr_offset, how="E")),
+                         "2013Q4")
+        self.assertEqual(str(period.asfreq(freq=qtr_offset, how="S")),
+                         "2013Q4")
+
+    def test_period_range(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+#         prange = period_range('2013Q1', periods=2, freq=offset)
+        prange = period_range(datetime(2013, 1, 15), periods=2, freq=offset)
+
+        self.assertEqual(len(prange), 2)
+        self.assertEqual(prange.freq, offset.periodstr)
+        self.assertEqual(str(prange[0]), '2013Q1')
+        self.assertEqual(str(prange[1]), '2013Q2')
+
+    def test_period_range_from_ts(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        drange = date_range(datetime(2013, 1, 15), periods=2, freq=offset)
+        prange = drange.to_period()
+
+        self.assertEqual(len(prange), 2)
+        self.assertEqual(prange.freq, offset.periodstr)
+        self.assertEqual(str(prange[0]), '2013Q1')
+        self.assertEqual(str(prange[1]), '2013Q2')
+
+    def test_periodindex_asfreq(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        prange = period_range(datetime(2013, 1, 15), periods=2, freq=offset)
+
+        week_offset = Week(weekday=WeekDay.SAT)
+
+        week_end = prange.asfreq(freq=week_offset, how="E")
+        self.assertEqual(len(week_end), 2)
+        self.assertEqual(week_end.freq, week_offset.periodstr)
+        self.assertEqual(str(week_end[0]), '2013-03-24/2013-03-30')
+        self.assertEqual(str(week_end[1]), '2013-06-23/2013-06-29')
+
+        week_start = prange.asfreq(freq=week_offset, how="S")
+        self.assertEqual(len(week_start), 2)
+        self.assertEqual(week_start.freq, week_offset.periodstr)
+        self.assertEqual(str(week_start[0]), '2012-12-30/2013-01-05')
+        self.assertEqual(str(week_start[1]), '2013-03-31/2013-04-06')
+
+        day = Day()
+        day_end = prange.asfreq(freq=day, how="E")
+        self.assertEqual(len(day_end), 2)
+        self.assertEqual(day_end.freq, day.periodstr)
+        self.assertEqual(str(day_end[0]), '2013-03-30')
+        self.assertEqual(str(day_end[1]), '2013-06-29')
+
+        day_start = prange.asfreq(freq=day, how="S")
+        self.assertEqual(len(day_start), 2)
+        self.assertEqual(day_start.freq, day.periodstr)
+        self.assertEqual(str(day_start[0]), '2012-12-30')
+        self.assertEqual(str(day_start[1]), '2013-03-31')
+
+    def test_resample_to_weekly(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        prange = period_range(datetime(2013, 1, 15), periods=2, freq=offset)
+
+        df = DataFrame({"A": [1, 2]}, index=prange)
+        resampled = df.resample(Week(weekday=WeekDay.SAT), fill_method="ffill")
+        self.assertEquals(len(resampled), 2 * 13)
+        self.assertEquals(str(resampled.index[0]), '2012-12-30/2013-01-05')
+        self.assertEquals(str(resampled.index[-1]), '2013-06-23/2013-06-29')
+
+        tm.assert_frame_equal(resampled,
+                              df.resample("W-SAT", fill_method="ffill"))
+
+        assertRaisesRegexp(ValueError,
+                           "cannot be resampled to",
+                           df.resample,
+                           "W-MON", fill_method="ffill")
+
+    def test_resample_to_daily(self):
+        offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        prange = period_range(datetime(2013, 1, 15), periods=2, freq=offset)
+
+        df = DataFrame({"A": [1, 2]}, index=prange)
+        resampled = df.resample(Day(), fill_method="ffill")
+        self.assertEquals(len(resampled), 2 * 7 * 13)
+        self.assertEquals(str(resampled.index[0]), '2012-12-30')
+        self.assertEquals(str(resampled.index[-1]), '2013-06-29')
+
+        tm.assert_frame_equal(resampled,
+                              df.resample("D", fill_method="ffill"))
+
+    def test_resample_from_weekly(self):
+        offset_fyq = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+        freq_week = Week(weekday=WeekDay.SAT)
+
+        prange = period_range(datetime(2013, 1, 5),
+                              periods=2 * 13,
+                              freq=freq_week)
+
+        df = DataFrame({"A": [1] * 13 + [2] * 13}, index=prange)
+        resampled = df.resample(offset_fyq, fill_method="mean")
+
+        self.assertEquals(len(resampled), 2)
+        self.assertEquals(str(resampled.index[0]), '2013Q1')
+        self.assertEquals(str(resampled.index[-1]), '2013Q2')
+        self.assertEquals(resampled["A"][0], 1)
+        self.assertEquals(resampled["A"]["2013Q1"], 1)
+        self.assertEquals(resampled["A"][1], 2)
+        self.assertEquals(resampled["A"]["2013Q2"], 2)
+
+        offset_fyq2 = FY5253Quarter(weekday=WeekDay.MON, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        assertRaisesRegexp(ValueError,
+                           "cannot be resampled to",
+                           df.resample, offset_fyq2, fill_method="ffill")
+
+    def test_resample_from_daily(self):
+        offset_fyq = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,
+                      variation="last", qtr_with_extra_week=4)
+
+        prange = period_range(datetime(2012, 12, 30),
+                              periods=2 * 7 * 13,
+                              freq=Day())
+
+        df = DataFrame({"A": [1] * 13 * 7 + [2] * 13 * 7}, index=prange)
+        resampled = df.resample(offset_fyq, fill_method="mean")
+
+        self.assertEquals(len(resampled), 2)
+        self.assertEquals(str(resampled.index[0]), '2013Q1')
+        self.assertEquals(str(resampled.index[-1]), '2013Q2')
+        self.assertEquals(resampled["A"][0], 1)
+        self.assertEquals(resampled["A"][1], 2)
+
+    def test_freq_to_period(self):
+        r = pd.date_range('01-Jan-2012', periods=8, freq='QS')
+        x = r.to_period()
+        self.assert_("freq='Q-DEC'" in str(x))
+        self.assert_("freq: Q-DEC" in repr(x))
 
 if __name__ == '__main__':
     import nose

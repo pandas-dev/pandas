@@ -3,7 +3,7 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.tseries.tools import to_datetime
+from pandas.tseries.tools import to_datetime, _try_parse_qtr_time_string
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -58,6 +58,54 @@ class ApplyTypeError(TypeError):
 
 class CacheableOffset(object):
     _cacheable = True
+
+
+class _NonCythonPeriod(object):
+    """
+    This class represents the base class for Offsets for which Period logic is
+    not implemented in Cython. This allows fully Python defined Offsets with
+    Period support.
+    All subclasses are expected to implement get_start_dt, get_end_dt,
+    period_format, get_period_ordinal, is_superperiod and is_subperiod.
+    """
+
+    def get_start_dt(self, ordinal):
+        raise NotImplementedError("get_start_dt")
+
+    def get_end_dt(self, ordinal):
+        raise NotImplementedError("get_end_dt")
+
+    def period_format(self, ordinal, fmt=None):
+        raise NotImplementedError("period_format")
+
+    def get_period_ordinal(self, dt):
+        raise NotImplementedError("get_period_ordinal")
+
+    def dt64arr_to_periodarr(self, data, tz):
+        f = np.vectorize(lambda x: self.get_period_ordinal(Timestamp(x)))
+        return f(data.view('i8'))
+
+    def period_asfreq_arr(self, values, freq, end):
+        from pandas.tseries.period import Period
+        f = np.vectorize(lambda x:
+            Period(value=self.period_asfreq_value(x, end), freq=freq).ordinal)
+        return f(values.view('i8'))
+
+    def period_fromfreq_arr(self, values, freq_int_from, end):
+        from pandas.tseries.period import _change_period_freq
+        offset = 0 if end else 1
+        f = np.vectorize(lambda x:
+                _change_period_freq(x, freq_int_from, self).ordinal - offset)
+        return f(values.view('i8'))
+
+    def period_asfreq_value(self, ordinal, end):
+        return self.get_end_dt(ordinal) if end else self.get_start_dt(ordinal)
+
+    def is_superperiod(self, target):
+        raise NotImplementedError("is_superperiod")
+
+    def is_subperiod(self, target):
+        raise NotImplementedError("is_subperiod")
 
 
 class DateOffset(object):
@@ -294,6 +342,19 @@ class DateOffset(object):
             fstr = code
 
         return fstr
+
+    @property
+    def periodstr(self):
+        """
+        The string representation for the Period defined by this offset.
+        This may differ from freqstr which defines a freq. For example Month vs.
+        start of Month.
+        """
+        from pandas.tseries.frequencies import _get_standard_period_freq_impl
+        return _get_standard_period_freq_impl(self)
+
+    def parse_time_string(self, arg):
+        return None
 
 
 class SingleConstructorOffset(DateOffset):
@@ -1654,14 +1715,14 @@ class FY5253(DateOffset):
                          _int_to_weekday[self.weekday])
 
     @classmethod
-    def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
-        if varion_code == "N":
+    def _parse_suffix(cls, variation_code, startingMonth_code, weekday_code):
+        if variation_code == "N":
             variation = "nearest"
-        elif varion_code == "L":
+        elif variation_code == "L":
             variation = "last"
         else:
             raise ValueError(
-                "Unable to parse varion_code: %s" % (varion_code,))
+                    "Unable to parse variation_code: %s" % (variation_code,))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
@@ -1677,7 +1738,7 @@ class FY5253(DateOffset):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(DateOffset):
+class FY5253Quarter(_NonCythonPeriod, DateOffset):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -1828,6 +1889,85 @@ class FY5253Quarter(DateOffset):
     def _from_name(cls, *args):
         return cls(**dict(FY5253._parse_suffix(*args[:-1]),
                           qtr_with_extra_week=int(args[-1])))
+        
+    def _get_ordinal_from_y_q(self, fy, fq):
+        """Take zero indexed fq"""
+        return fy * 4 + fq
+    
+    def get_period_ordinal(self, dt):
+        year_end = self._offset.get_year_end(dt)
+        year_end_year = year_end.year
+        
+        if dt <= year_end:
+            if year_end.month < self._offset.startingMonth:
+                year_end_year -= 1
+            fy = year_end_year
+        else:
+            fy = year_end_year + 1
+            year_end = year_end + self._offset
+            
+        fq = 4
+        while dt <= year_end:
+            year_end = year_end - self
+            fq -= 1
+        
+        return self._get_ordinal_from_y_q(fy, fq)
+    
+    @property
+    def periodstr(self):
+        return self.rule_code
+    
+    def period_format(self, ordinal, fmt=None):
+        fy = ordinal // 4
+        fq = (ordinal % 4) + 1
+        
+        return "%dQ%d" % (fy, fq)
+    
+    def parse_time_string(self, arg):
+        qtr_parsed = _try_parse_qtr_time_string(arg)
+        if qtr_parsed is None:
+            return None
+        else:
+            fy, fq = qtr_parsed
+            return self.get_end_dt(self._get_ordinal_from_y_q(fy, fq - 1))
+
+    def get_start_dt(self, ordinal):
+        fy = ordinal // 4
+        fq = (ordinal % 4) + 1
+
+        year_end = self._offset.get_year_end(datetime(fy, 1, 1))
+        countdown = 4-fq+1
+        while countdown:
+            countdown -= 1
+            year_end = year_end-self
+            
+        return year_end + relativedelta(days=1)
+         
+    def get_end_dt(self, ordinal):
+        fy = ordinal // 4
+        fq = (ordinal % 4) + 1
+                
+        year_end = self._offset.get_year_end(datetime(fy, 1, 1))
+        countdown = 4-fq
+        while countdown:
+            countdown -= 1
+            year_end = year_end-self
+        
+        return year_end
+    
+    def is_superperiod(self, target):
+        if not isinstance(target, DateOffset):
+            from pandas.tseries.frequencies import get_offset
+            target = get_offset(target)
+            
+        if type(target) == Week:
+            return target.weekday == self._offset.weekday
+        elif type(target) == Day:
+            return True
+        
+    def is_subperiod(self, target):
+        #TODO Return True for FY5253 after FY5253 handles periods methods
+        return False
 
 class Easter(DateOffset):
     '''

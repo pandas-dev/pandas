@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string, get_offset)
+    Resolution, get_reso_string, get_offset, infer_freqstr)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -792,8 +792,8 @@ class DatetimeIndex(Int64Index):
             msg = "You must pass a freq argument as current index has none."
             raise ValueError(msg)
 
-        if freq is None:
-            freq = get_period_alias(self.freqstr)
+        if freq is None: # No reason no convert to str; keep w/e freq is
+            freq = self.freq
 
         return PeriodIndex(self.values, freq=freq, tz=self.tz)
 
@@ -1424,6 +1424,13 @@ class DatetimeIndex(Int64Index):
     def inferred_freq(self):
         try:
             return infer_freq(self)
+        except ValueError:
+            return None
+
+    @cache_readonly
+    def inferred_freqstr(self):
+        try:
+            return infer_freqstr(self)
         except ValueError:
             return None
 

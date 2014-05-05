@@ -295,6 +295,7 @@ class TimeGrouper(Grouper):
     def _resample_periods(self):
         # assumes set_grouper(obj) already called
         axlabels = self.ax
+        source_freq = axlabels.freq
         obj = self.obj
 
         if len(axlabels) == 0:
@@ -309,7 +310,7 @@ class TimeGrouper(Grouper):
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
 
-        if is_subperiod(axlabels.freq, self.freq) or self.how is not None:
+        if is_subperiod(source_freq, self.freq) or self.how is not None:
             # Downsampling
             rng = np.arange(memb.values[0], memb.values[-1] + 1)
             bins = memb.searchsorted(rng, side='right')
@@ -317,7 +318,7 @@ class TimeGrouper(Grouper):
 
             grouped = obj.groupby(grouper, axis=self.axis)
             return grouped.aggregate(self._agg_method)
-        elif is_superperiod(axlabels.freq, self.freq):
+        elif is_superperiod(source_freq, self.freq):
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,
                                        limit=self.limit)
@@ -325,7 +326,7 @@ class TimeGrouper(Grouper):
 
         else:
             raise ValueError('Frequency %s cannot be resampled to %s'
-                             % (axlabels.freq, self.freq))
+                             % (source_freq, self.freq))
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):
