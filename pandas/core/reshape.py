@@ -18,6 +18,7 @@ import pandas.core.common as com
 import pandas.algos as algos
 
 from pandas.core.index import Index, MultiIndex
+from pandas.tseries.period import PeriodIndex
 
 
 class _Unstacker(object):
@@ -81,8 +82,11 @@ class _Unstacker(object):
         labels = index.labels
 
         def _make_index(lev, lab):
-            i = lev.__class__(_make_index_array_level(lev.values, lab))
-            i.name = lev.name
+            if isinstance(lev, PeriodIndex):
+                i = lev.copy()
+            else:
+                i = lev.__class__(_make_index_array_level(lev.values, lab))
+                i.name = lev.name
             return i
 
         self.new_index_levels = [_make_index(lev, lab)
