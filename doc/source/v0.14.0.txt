@@ -591,6 +591,15 @@ Enhancements
 
 - str.wrap implemented (:issue:`6999`)
 
+- `PeriodIndex` fully supports partial string indexing like `DatetimeIndex` (:issue:`7043`)
+
+  .. ipython:: python
+  
+     prng = period_range('2013-01-01 09:00', periods=100, freq='H')
+     ps = Series(np.random.randn(len(prng)), index=prng)
+     ps
+     ps['2013-01-02']
+
 .. _whatsnew_0140.performance:
 
 Performance
