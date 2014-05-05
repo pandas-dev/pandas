@@ -1760,14 +1760,13 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def delete(self, loc):
         """
-        Make new Index with passed location deleted
+        Make new Index with passed location(-s) deleted
 
         Returns
         -------
         new_index : Index
         """
-        arr = np.delete(self.values, loc)
-        return Index(arr)
+        return np.delete(self, loc)
 
     def insert(self, loc, item):
         """
