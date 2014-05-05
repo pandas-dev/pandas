@@ -1995,8 +1995,8 @@ def _from_index_and_columns(obj, keys):
     if from_both:
         from warnings import warn
         msg = ("Found {0} in both the columns and index labels. "
-               "Grouping by the columns".format(from_both))
-        warn(msg)
+               "Grouping by the columns".format(from_both),)
+        warn(msg, FutureWarning)
 
     # don't need to do anything if the only ones from either are in both
     return from_col, from_idx - from_both, from_both

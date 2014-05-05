@@ -4171,17 +4171,24 @@ class TestGroupBy(tm.TestCase):
 
     def test_by_index_cols(self):
         df = DataFrame([[1, 2, 'x', 'a', 'a'],
-                        [1, 3, 'x', 'a', 'b'],
-                        [1, 4, 'x', 'b', 'a'],
-                        [1, 5, 'y', 'b', 'b']],
+                        [2, 3, 'x', 'a', 'b'],
+                        [3, 4, 'x', 'b', 'a'],
+                        [4, 5, 'y', 'b', 'b']],
                        columns=['c1', 'c2', 'g1', 'i1', 'i2'])
         df = df.set_index(['i1', 'i2'])
-        df.index.names = ['i1', 'g1']
+        df.index.set_names(['i1', 'g1'], inplace=True)
         result = df.groupby(by=['g1', 'i1']).mean()
         idx = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'b')],
                                      names=['g1', 'i1'])
-        expected = DataFrame([[1, 2.5], [1, 4], [1, 5]],
+        expected = DataFrame([[1.5, 2.5], [1, 4], [1, 5]],
                              index=idx, columns=['c1', 'c2'])
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.groupby('g1').mean()
+        expected = DataFrame([[2, 3], [4, 5]],
+                             index=['x', 'y'], columns=['c1', 'c2'])
+        expected.index.set_names(['g1'], inplace=True)
         assert_frame_equal(result, expected)
 
     def test_from_index_and_columns(self):
@@ -4203,7 +4210,7 @@ class TestGroupBy(tm.TestCase):
 
         df.index.names = ['i1', 'c1']
         keys = ['c1', 'i1']
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             from_col, from_idx, from_both = _from_index_and_columns(df, keys)
         self.assertEqual(from_col, set(['c1']))
         self.assertEqual(from_idx, set(['i1']))
