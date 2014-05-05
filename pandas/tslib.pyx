@@ -292,6 +292,12 @@ class Timestamp(_Timestamp):
     weekofyear = week
 
     @property
+    def week_common(self):
+        return self._get_field('woy_common')
+
+    weekofyear_common = week_common
+
+    @property
     def quarter(self):
         return self._get_field('q')
 
@@ -2314,6 +2320,16 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     woy = 1
 
             out[i] = woy
+        return out
+
+    elif field == 'woy_common':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+            
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            isleap = is_leapyear(dts.year)
+            doy    = _month_offset[isleap, dts.month-1] + dts.day
+            out[i] = (np.floor(doy / 7) + 1).astype('int')
         return out
 
     elif field == 'q':

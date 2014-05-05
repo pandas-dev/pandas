@@ -65,6 +65,7 @@ New features
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
 - Added error bar support to the ``.plot`` method of ``DataFrame`` and ``Series`` (:issue:`3796`, :issue:`6834`)
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
+- Added ``week_common`` and ``weekofyear_common`` as properties of ``DatetimeIndex`` objects (:issue:`6936`)
 
 API Changes
 ~~~~~~~~~~~

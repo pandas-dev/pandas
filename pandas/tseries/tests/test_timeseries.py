@@ -1509,6 +1509,31 @@ class TestTimeSeries(tm.TestCase):
         expected = 53 # ISO standard
         self.assertEqual(result, expected)
 
+        d = datetime(2013,12,31)
+        result = Timestamp(d).week_common
+        expected = 53 # Common interpretation
+        self.assertEqual(result, expected)
+        
+        d = datetime(2008,12,28)
+        result = Timestamp(d).week_common
+        expected = 52 # Common interpretation
+        self.assertEqual(result, expected)
+
+        d = datetime(2009,12,31)
+        result = Timestamp(d).week_common
+        expected = 53 # Common interpretation
+        self.assertEqual(result, expected)
+
+        d = datetime(2010,1,1)
+        result = Timestamp(d).week_common
+        expected = 1 # Common interpretation
+        self.assertEqual(result, expected)
+
+        d = datetime(2010,1,3)
+        result = Timestamp(d).week_common
+        expected = 1 # Common interpretation
+        self.assertEqual(result, expected)
+
         result = np.array([Timestamp(datetime(*args)).week for args in
                            [(2000,1,1),(2000,1,2),(2005,1,1),(2005,1,2)]])
         self.assertTrue((result == [52, 52, 53, 53]).all())
