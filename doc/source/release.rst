@@ -124,8 +124,9 @@ API Changes
 
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`)
-- Slicing and advanced/boolean indexing operations on ``Index`` classes will no
-  longer change type of the resulting index (:issue:`6440`).
+- Slicing and advanced/boolean indexing operations on ``Index`` classes as well
+  as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change type of the
+  resulting index (:issue:`6440`, :issue:`7040`)
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples (:issue:`6459`).
 - Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
 
