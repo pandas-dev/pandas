@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
@@ -354,19 +354,22 @@ def _get_marker_compat(marker):
         return 'o'
     return marker
 
-
-def radviz(frame, class_column, ax=None, colormap=None, **kwds):
+def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     """RadViz - a multivariate data visualization algorithm
 
     Parameters:
     -----------
-    frame: DataFrame object
-    class_column: Column name that contains information about class membership
+    frame: DataFrame
+    class_column: str
+        Column name containing class names
     ax: Matplotlib axis object, optional
+    color: list or tuple, optional
+        Colors to use for the different classes
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    kwds: Matplotlib scatter method keyword arguments, optional
+    kwds: keywords
+        Options to pass to matplotlib scatter plotting method
 
     Returns:
     --------
@@ -380,44 +383,42 @@ def radviz(frame, class_column, ax=None, colormap=None, **kwds):
         b = max(series)
         return (series - a) / (b - a)
 
-    column_names = [column_name for column_name in frame.columns
-                    if column_name != class_column]
-
-    df = frame[column_names].apply(normalize)
+    n = len(frame)
+    classes = frame[class_column].drop_duplicates()
+    class_col = frame[class_column]
+    df = frame.drop(class_column, axis=1).apply(normalize)
 
     if ax is None:
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
-    classes = set(frame[class_column])
     to_plot = {}
-
     colors = _get_standard_colors(num_colors=len(classes), colormap=colormap,
-                                  color_type='random', color=kwds.get('color'))
+                                  color_type='random', color=color)
 
-    for class_ in classes:
-        to_plot[class_] = [[], []]
+    for kls in classes:
+        to_plot[kls] = [[], []]
 
     n = len(frame.columns) - 1
     s = np.array([(np.cos(t), np.sin(t))
                   for t in [2.0 * np.pi * (i / float(n))
                             for i in range(n)]])
 
-    for i in range(len(frame)):
-        row = df.irow(i).values
+    for i in range(n):
+        row = df.iloc[i].values
         row_ = np.repeat(np.expand_dims(row, axis=1), 2, axis=1)
         y = (s * row_).sum(axis=0) / row.sum()
-        class_name = frame[class_column].iget(i)
-        to_plot[class_name][0].append(y[0])
-        to_plot[class_name][1].append(y[1])
+        kls = class_col.iat[i]
+        to_plot[kls][0].append(y[0])
+        to_plot[kls][1].append(y[1])
 
-    for i, class_ in enumerate(classes):
-        ax.scatter(to_plot[class_][0], to_plot[class_][1], color=colors[i],
-                   label=com.pprint_thing(class_), **kwds)
+    for i, kls in enumerate(classes):
+        ax.scatter(to_plot[kls][0], to_plot[kls][1], color=colors[i],
+                   label=com.pprint_thing(kls), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
 
-    for xy, name in zip(s, column_names):
+    for xy, name in zip(s, df.columns):
 
         ax.add_patch(patches.Circle(xy, radius=0.025, facecolor='gray'))
 
@@ -437,21 +438,24 @@ def radviz(frame, class_column, ax=None, colormap=None, **kwds):
     ax.axis('equal')
     return ax
 
-
-def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
-                   **kwds):
+@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
+def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
+                   colormap=None, **kwds):
     """
     Parameters:
     -----------
-    data : DataFrame
+    frame : DataFrame
         Data to be plotted, preferably normalized to (0.0, 1.0)
     class_column : Name of the column containing class names
     ax : matplotlib axes object, default None
     samples : Number of points to plot in each curve
+    color: list or tuple, optional
+        Colors to use for the different classes
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    kwds : Optional plotting arguments to be passed to matplotlib
+    kwds: keywords
+        Options to pass to matplotlib plotting method
 
     Returns:
     --------
@@ -475,30 +479,31 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
             return result
         return f
 
-    n = len(data)
-    class_col = data[class_column]
-    uniq_class = class_col.drop_duplicates()
-    columns = [data[col] for col in data.columns if (col != class_column)]
+    n = len(frame)
+    class_col = frame[class_column]
+    classes = frame[class_column].drop_duplicates()
+    df = frame.drop(class_column, axis=1)
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
     used_legends = set([])
 
-    colors = _get_standard_colors(num_colors=len(uniq_class), colormap=colormap,
-                                  color_type='random', color=kwds.get('color'))
-    col_dict = dict([(klass, col) for klass, col in zip(uniq_class, colors)])
+    color_values = _get_standard_colors(num_colors=len(classes),
+                                        colormap=colormap, color_type='random',
+                                        color=color)
+    colors = dict(zip(classes, color_values))
     if ax is None:
         ax = plt.gca(xlim=(-pi, pi))
     for i in range(n):
-        row = [columns[c][i] for c in range(len(columns))]
+        row = df.iloc[i].values
         f = function(row)
         y = [f(t) for t in x]
-        label = None
-        if com.pprint_thing(class_col[i]) not in used_legends:
-            label = com.pprint_thing(class_col[i])
+        kls = class_col.iat[i]
+        label = com.pprint_thing(kls)
+        if label not in used_legends:
             used_legends.add(label)
-            ax.plot(x, y, color=col_dict[class_col[i]], label=label, **kwds)
+            ax.plot(x, y, color=colors[kls], label=label, **kwds)
         else:
-            ax.plot(x, y, color=col_dict[class_col[i]], **kwds)
-
+            ax.plot(x, y, color=colors[kls], **kwds)
+    
     ax.legend(loc='upper right')
     ax.grid()
     return ax
@@ -564,22 +569,23 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         plt.setp(axis.get_yticklabels(), fontsize=8)
     return fig
 
-
-def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
-                         use_columns=False, xticks=None, colormap=None, **kwds):
+@deprecate_kwarg(old_arg_name='colors', new_arg_name='color')
+@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
+def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
+                         use_columns=False, xticks=None, colormap=None,
+                         **kwds):
     """Parallel coordinates plotting.
 
     Parameters
     ----------
-    data: DataFrame
-        A DataFrame containing data to be plotted
+    frame: DataFrame
     class_column: str
         Column name containing class names
     cols: list, optional
         A list of column names to use
     ax: matplotlib.axis, optional
         matplotlib axis object
-    colors: list or tuple, optional
+    color: list or tuple, optional
         Colors to use for the different classes
     use_columns: bool, optional
         If true, columns will be used as xticks
@@ -587,8 +593,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
         A list of values to use for xticks
     colormap: str or matplotlib colormap, default None
         Colormap to use for line colors.
-    kwds: list, optional
-        A list of keywords for matplotlib plot method
+    kwds: keywords
+        Options to pass to matplotlib plotting method
 
     Returns
     -------
@@ -600,20 +606,19 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     >>> from pandas.tools.plotting import parallel_coordinates
     >>> from matplotlib import pyplot as plt
     >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
-    >>> parallel_coordinates(df, 'Name', colors=('#556270', '#4ECDC4', '#C7F464'))
+    >>> parallel_coordinates(df, 'Name', color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
     import matplotlib.pyplot as plt
 
-
-    n = len(data)
-    classes = set(data[class_column])
-    class_col = data[class_column]
+    n = len(frame)
+    classes = frame[class_column].drop_duplicates()
+    class_col = frame[class_column]
 
     if cols is None:
-        df = data.drop(class_column, axis=1)
+        df = frame.drop(class_column, axis=1)
     else:
-        df = data[cols]
+        df = frame[cols]
 
     used_legends = set([])
 
@@ -638,19 +643,17 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
 
     color_values = _get_standard_colors(num_colors=len(classes),
                                         colormap=colormap, color_type='random',
-                                        color=colors)
+                                        color=color)
 
     colors = dict(zip(classes, color_values))
 
     for i in range(n):
-        row = df.irow(i).values
-        y = row
-        kls = class_col.iget_value(i)
-        if com.pprint_thing(kls) not in used_legends:
-            label = com.pprint_thing(kls)
+        y = df.iloc[i].values
+        kls = class_col.iat[i]
+        label = com.pprint_thing(kls)
+        if label not in used_legends:
             used_legends.add(label)
-            ax.plot(x, y, color=colors[kls],
-                    label=label, **kwds)
+            ax.plot(x, y, color=colors[kls], label=label, **kwds)
         else:
             ax.plot(x, y, color=colors[kls], **kwds)
 
