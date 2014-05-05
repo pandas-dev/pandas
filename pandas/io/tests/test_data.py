@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pandas.io import data as web
-from pandas.io.data import DataReader, SymbolWarning
+from pandas.io.data import DataReader, SymbolWarning, RemoteDataError
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 import pandas.util.testing as tm
@@ -252,8 +252,8 @@ class TestYahooOptions(tm.TestCase):
     def test_get_options_data(self):
         try:
             calls, puts = self.aapl.get_options_data(expiry=self.expiry)
-        except IndexError:
-            warnings.warn("IndexError thrown no tables found")
+        except RemoteDataError as e:
+            nose.SkipTest(e)
         else:
             assert len(calls)>1
             assert len(puts)>1
@@ -269,8 +269,8 @@ class TestYahooOptions(tm.TestCase):
         try:
             calls, puts = self.aapl.get_near_stock_price(call=True, put=True,
                                                         expiry=self.expiry)
-        except IndexError:
-            warnings.warn("IndexError thrown no tables found")
+        except RemoteDataError as e:
+            nose.SkipTest(e)
         else:
             self.assertEqual(len(calls), 5)
             self.assertEqual(len(puts), 5)
@@ -279,8 +279,8 @@ class TestYahooOptions(tm.TestCase):
     def test_get_call_data(self):
         try:
             calls = self.aapl.get_call_data(expiry=self.expiry)
-        except IndexError:
-            warnings.warn("IndexError thrown no tables found")
+        except RemoteDataError as e:
+            nose.SkipTest(e)
         else:
             assert len(calls)>1
 
@@ -288,8 +288,8 @@ class TestYahooOptions(tm.TestCase):
     def test_get_put_data(self):
         try:
             puts = self.aapl.get_put_data(expiry=self.expiry)
-        except IndexError:
-            warnings.warn("IndexError thrown no tables found")
+        except RemoteDataError as e:
+            nose.SkipTest(e)
         else:
             assert len(puts)>1
 
@@ -321,8 +321,8 @@ class TestOptionsWarnings(tm.TestCase):
             print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_options_data(month=self.month, year=self.year)
-            except IndexError:
-                warnings.warn("IndexError thrown no tables found")
+            except RemoteDataError as e:
+                nose.SkipTest(e)
 
     @network
     def test_get_near_stock_price_warning(self):
@@ -333,8 +333,8 @@ class TestOptionsWarnings(tm.TestCase):
                                                                     put=True,
                                                                     month=self.month,
                                                                     year=self.year)
-            except IndexError:
-                warnings.warn("IndexError thrown no tables found")
+            except RemoteDataError as e:
+                nose.SkipTest(e)
 
     @network
     def test_get_call_data_warning(self):
@@ -342,8 +342,8 @@ class TestOptionsWarnings(tm.TestCase):
             print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_call_data(month=self.month, year=self.year)
-            except IndexError:
-                warnings.warn("IndexError thrown no tables found")
+            except RemoteDataError as e:
+                nose.SkipTest(e)
 
     @network
     def test_get_put_data_warning(self):
@@ -351,8 +351,8 @@ class TestOptionsWarnings(tm.TestCase):
             print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_put_data(month=self.month, year=self.year)
-            except IndexError:
-                warnings.warn("IndexError thrown no tables found")
+            except RemoteDataError as e:
+                nose.SkipTest(e)
 
 
 class TestDataReader(tm.TestCase):
