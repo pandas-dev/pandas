@@ -82,11 +82,10 @@ class _Unstacker(object):
         labels = index.labels
 
         def _make_index(lev, lab):
-            if isinstance(lev, PeriodIndex):
-                i = lev.copy()
-            else:
-                i = lev.__class__(_make_index_array_level(lev.values, lab))
-                i.name = lev.name
+            values = _make_index_array_level(lev.values, lab)
+            i = lev._simple_new(values, lev.name, 
+                                freq=getattr(lev, 'freq', None),
+                                tz=getattr(lev, 'tz', None))
             return i
 
         self.new_index_levels = [_make_index(lev, lab)

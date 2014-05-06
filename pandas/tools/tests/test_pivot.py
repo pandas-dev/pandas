@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 from numpy.testing import assert_equal
 
-import pandas
+import pandas as pd
 from pandas import DataFrame, Series, Index, MultiIndex, Grouper
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
@@ -181,6 +181,42 @@ class TestPivotTable(tm.TestCase):
                              columns = Index(['C1','C2','C3','C4'],name='b'))
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_tz(self):
+        # GH 5878
+        df = DataFrame({'dt1': [datetime.datetime(2013, 1, 1, 9, 0),
+                                   datetime.datetime(2013, 1, 2, 9, 0),
+                                   datetime.datetime(2013, 1, 1, 9, 0),
+                                   datetime.datetime(2013, 1, 2, 9, 0)],
+                           'dt2': [datetime.datetime(2014, 1, 1, 9, 0),
+                                   datetime.datetime(2014, 1, 1, 9, 0),
+                                   datetime.datetime(2014, 1, 2, 9, 0),
+                                   datetime.datetime(2014, 1, 2, 9, 0)],
+                           'data1': range(4), 'data2': range(4)})
+
+        df['dt1'] = df['dt1'].apply(lambda d: pd.Timestamp(d, tz='US/Pacific'))
+        df['dt2'] = df['dt2'].apply(lambda d: pd.Timestamp(d, tz='Asia/Tokyo'))
+
+        exp_col1 = Index(['data1', 'data1', 'data2', 'data2'])
+        exp_col2 = pd.DatetimeIndex(['2014/01/01 09:00', '2014/01/02 09:00'] * 2,
+                                    name='dt2', tz='Asia/Tokyo')
+        exp_col = pd.MultiIndex.from_arrays([exp_col1, exp_col2])
+        expected = DataFrame([[0, 2, 0, 2], [1, 3, 1, 3]],
+                             index=pd.DatetimeIndex(['2013/01/01 09:00', '2013/01/02 09:00'],
+                                                    name='dt1', tz='US/Pacific'),
+                             columns=exp_col)
+
+        pv =  df.pivot(index='dt1', columns='dt2')
+        tm.assert_frame_equal(pv, expected)
+
+        expected = DataFrame([[0, 2], [1, 3]],
+                     index=pd.DatetimeIndex(['2013/01/01 09:00', '2013/01/02 09:00'],
+                                            name='dt1', tz='US/Pacific'),
+                     columns=pd.DatetimeIndex(['2014/01/01 09:00', '2014/01/02 09:00'],
+                                            name='dt2', tz='Asia/Tokyo'))
+
+        pv =  df.pivot(index='dt1', columns='dt2', values='data1')
+        tm.assert_frame_equal(pv, expected)
+
     def test_margins(self):
         def _check_output(res, col, index=['A', 'B'], columns=['C']):
             cmarg = res['All'][:-1]
@@ -235,7 +271,7 @@ class TestPivotTable(tm.TestCase):
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
                             [d + datetime.timedelta(i) for i in range(20)], [1.0]))
-        df = pandas.DataFrame(data)
+        df = DataFrame(data)
         table = df.pivot_table(values=4, index=[0, 1, 3], columns=[2])
 
         df2 = df.rename(columns=str)
@@ -286,7 +322,7 @@ class TestPivotTable(tm.TestCase):
         iproduct = np.random.randint(0, len(products), n)
         items['Index'] = products['Index'][iproduct]
         items['Symbol'] = products['Symbol'][iproduct]
-        dr = pandas.date_range(datetime.date(2000, 1, 1), datetime.date(2010, 12, 31))
+        dr = pd.date_range(datetime.date(2000, 1, 1), datetime.date(2010, 12, 31))
         dates = dr[np.random.randint(0, len(dr), n)]
         items['Year'] = dates.year
         items['Month'] = dates.month

@@ -1989,6 +1989,78 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(idx.levels[0].equals(expected1))
         self.assert_(idx.levels[1].equals(idx2))
 
+    def test_set_index_datetime(self):
+        # GH 3950
+        df = pd.DataFrame({'label':['a', 'a', 'a', 'b', 'b', 'b'],
+                           'datetime':['2011-07-19 07:00:00', '2011-07-19 08:00:00',
+                                       '2011-07-19 09:00:00', '2011-07-19 07:00:00',
+                                       '2011-07-19 08:00:00', '2011-07-19 09:00:00'],
+                           'value':range(6)})
+        df.index = pd.to_datetime(df.pop('datetime'), utc=True)
+        df.index = df.index.tz_localize('UTC').tz_convert('US/Pacific')
+
+        expected = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00', '2011-07-19 09:00:00'])
+        expected = expected.tz_localize('UTC').tz_convert('US/Pacific')
+
+        df = df.set_index('label', append=True)
+        self.assert_(df.index.levels[0].equals(expected))
+        self.assert_(df.index.levels[1].equals(pd.Index(['a', 'b'])))
+
+        df = df.swaplevel(0, 1)
+        self.assert_(df.index.levels[0].equals(pd.Index(['a', 'b'])))
+        self.assert_(df.index.levels[1].equals(expected))
+
+
+        df = DataFrame(np.random.random(6))
+        idx1 = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00',
+                                 '2011-07-19 09:00:00', '2011-07-19 07:00:00',
+                                 '2011-07-19 08:00:00', '2011-07-19 09:00:00'], tz='US/Eastern')
+        idx2 = pd.DatetimeIndex(['2012-04-01 09:00', '2012-04-01 09:00', '2012-04-01 09:00',
+                                 '2012-04-02 09:00', '2012-04-02 09:00', '2012-04-02 09:00'],
+                                tz='US/Eastern')
+        idx3 = pd.date_range('2011-01-01 09:00', periods=6, tz='Asia/Tokyo')
+
+        df = df.set_index(idx1)
+        df = df.set_index(idx2, append=True)
+        df = df.set_index(idx3, append=True)
+
+        expected1 = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00',
+                                     '2011-07-19 09:00:00'], tz='US/Eastern')
+        expected2 = pd.DatetimeIndex(['2012-04-01 09:00', '2012-04-02 09:00'], tz='US/Eastern')
+
+        self.assert_(df.index.levels[0].equals(expected1))
+        self.assert_(df.index.levels[1].equals(expected2))
+        self.assert_(df.index.levels[2].equals(idx3))
+
+        # GH 7092
+        self.assert_(df.index.get_level_values(0).equals(idx1))
+        self.assert_(df.index.get_level_values(1).equals(idx2))
+        self.assert_(df.index.get_level_values(2).equals(idx3))
+
+    def test_set_index_period(self):
+        # GH 6631
+        df = DataFrame(np.random.random(6))
+        idx1 = pd.period_range('2011-01-01', periods=3, freq='M')
+        idx1 = idx1.append(idx1)
+        idx2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
+        idx2 = idx2.append(idx2).append(idx2)
+        idx3 = pd.period_range('2005', periods=6, freq='Y')
+
+        df = df.set_index(idx1)
+        df = df.set_index(idx2, append=True)
+        df = df.set_index(idx3, append=True)
+
+        expected1 = pd.period_range('2011-01-01', periods=3, freq='M')
+        expected2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
+
+        self.assert_(df.index.levels[0].equals(expected1))
+        self.assert_(df.index.levels[1].equals(expected2))
+        self.assert_(df.index.levels[2].equals(idx3))
+        
+        self.assert_(df.index.get_level_values(0).equals(idx1))
+        self.assert_(df.index.get_level_values(1).equals(idx2))
+        self.assert_(df.index.get_level_values(2).equals(idx3))
+
 
 if __name__ == '__main__':
 

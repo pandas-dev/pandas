@@ -114,9 +114,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         # no class inference!
         if fastpath:
-            subarr = data.view(cls)
-            subarr.name = name
-            return subarr
+            return cls._simple_new(data, name)
 
         from pandas.tseries.period import PeriodIndex
         if isinstance(data, (np.ndarray, ABCSeries)):
@@ -184,6 +182,12 @@ class Index(IndexOpsMixin, FrozenNDArray):
         # could also have a _set_name, but I don't think it's really necessary
         subarr._set_names([name])
         return subarr
+
+    @classmethod
+    def _simple_new(cls, values, name, **kwargs):
+        result = values.view(cls)
+        result.name = name
+        return result
 
     def is_(self, other):
         """
@@ -2588,11 +2592,12 @@ class MultiIndex(Index):
         values : ndarray
         """
         num = self._get_level_number(level)
-        unique_vals = self.levels[num]  # .values
+        unique = self.levels[num]  # .values
         labels = self.labels[num]
-        values = Index(com.take_1d(unique_vals.values, labels,
-                                   fill_value=unique_vals._na_value))
-        values.name = self.names[num]
+        filled = com.take_1d(unique.values, labels, fill_value=unique._na_value)
+        values = unique._simple_new(filled, self.names[num], 
+                                    freq=getattr(unique, 'freq', None),
+                                    tz=getattr(unique, 'tz', None))
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,

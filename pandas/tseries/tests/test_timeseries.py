@@ -2510,6 +2510,17 @@ class TestDatetime64(tm.TestCase):
         self.assertEquals(df.index[0], stamp)
         self.assertEquals(df.reset_index()['Date'][0], stamp)
 
+    def test_dti_set_index_reindex(self):
+        # GH 6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range('2011/01/01', periods=6, freq='M', tz='US/Eastern')
+        idx2 = date_range('2013', periods=6, freq='A', tz='Asia/Tokyo')
+
+        df = df.set_index(idx1)
+        self.assert_(df.index.equals(idx1))
+        df = df.reindex(idx2)
+        self.assert_(df.index.equals(idx2))
+
     def test_datetimeindex_union_join_empty(self):
         dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
         empty = Index([])
