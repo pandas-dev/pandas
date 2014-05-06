@@ -320,6 +320,8 @@ From a list of dicts
    DataFrame(data2, index=['first', 'second'])
    DataFrame(data2, columns=['a', 'b'])
 
+.. _basics.dataframe.from_dict_of_tuples:
+
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 

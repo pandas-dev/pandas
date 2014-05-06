@@ -56,7 +56,7 @@ New features
 - Officially support Python 3.4
 - ``Index`` returns a MultiIndex if passed a list of tuples
   ``DataFrame(dict)`` and ``Series(dict)`` create ``MultiIndex``
-  columns and index where applicable (:issue:`4187`)
+  columns and index where applicable (:issue:`3323`)
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 - Pie plots from ``Series.plot`` and ``DataFrame.plot`` with ``kind='pie'`` (:issue:`6976`)
 - Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
@@ -194,6 +194,15 @@ API Changes
   as its already the index
 - ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`)
 - Line plot can be stacked by ``stacked=True``. (:issue:`6656`)
+- Raise ``ValueError`` when ``sep`` specified with
+  ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
+  (:issue:`6607`)
+- Raise ``ValueError`` when ``engine='c'`` specified with unsupported
+  options (:issue:`6607`)
+- Raise ``ValueError`` when fallback to python parser causes options to be
+  ignored (:issue:`6607`)
+- Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
+  parser when no options are ignored (:issue:`6607`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -231,11 +240,11 @@ Deprecations
 
 - The :func:`parallel_coordinates` function now takes argument ``color``
   instead of ``colors``. A ``FutureWarning`` is raised  to alert that
-  the old ``colors`` argument will not be supported in a future release
+  the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
-- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take 
-  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is 
-  raised  if the old ``data`` argument is used by name.
+- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
+  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
+  raised  if the old ``data`` argument is used by name. (:issue:`6956`)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -266,7 +275,7 @@ Prior Version Deprecations/Changes
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
 
-- Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
+- Removed neg ``-`` boolean operations on numpy arrays in favor of inv ``~``, as this is going to
   be deprecated in numpy 1.9 (:issue:`6960`)
 
 Experimental Features
@@ -276,7 +285,7 @@ Experimental Features
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
+- pd.read_clipboard will, if the keyword ``sep`` is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
 - pd.expanding_apply and pd.rolling_apply now take args and kwargs that are passed on to
   the func (:issue:`6289`)
@@ -335,22 +344,22 @@ Bug Fixes
 - Bug in ``pd.DataFrame.sort_index`` where mergesort wasn't stable when ``ascending=False`` (:issue:`6399`)
 - Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeroes (:issue:`6391`)
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
-- Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
+- Inconsistent tz parsing ``Timestamp`` / ``to_datetime`` for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)
 - Bug in ``.xs`` with a Series multiindex (:issue:`6258`, :issue:`5684`)
 - Bug in conversion of a string types to a DatetimeIndex with a specified frequency (:issue:`6273`, :issue:`6274`)
 - Bug in ``eval`` where type-promotion failed for large expressions (:issue:`6205`)
-- Bug in interpolate with inplace=True (:issue:`6281`)
+- Bug in interpolate with ``inplace=True`` (:issue:`6281`)
 - ``HDFStore.remove`` now handles start and stop (:issue:`6177`)
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
-- ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
+- ``HDFStore.select_as_coordinates`` and ``select_column`` works with a ``where`` clause that results in filters (:issue:`6177`)
 - Regression in join of non_unique_indexes (:issue:`6329`)
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
-- Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex would return invalid results. (:issue:`4161`)
+- Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex that would return invalid results. (:issue:`4161`)
 - Bug in index name propogation in TimeGrouper/resample (:issue:`4161`)
 - TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
 - Bug in multiple grouping with a TimeGrouper depending on target column order (:issue:`6764`)
@@ -358,17 +367,17 @@ Bug Fixes
   (:issue:`6351`)
 - Bug correctly handle placements of ``-inf`` in Panels when dividing by integer 0 (:issue:`6178`)
 - ``DataFrame.shift`` with ``axis=1`` was raising (:issue:`6371`)
-- Disabled clipboard tests until release time (run locally with ``nosetests -A disabled`` (:issue:`6048`).
+- Disabled clipboard tests until release time (run locally with ``nosetests -A disabled``) (:issue:`6048`).
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
 - ``str.match`` ignored the na flag (:issue:`6609`).
-- Bug in take with duplicate columns not consolidated (:issue:`6240`)
+- Bug in take with duplicate columns that were not consolidated (:issue:`6240`)
 - Bug in interpolate changing dtypes (:issue:`6290`)
 - Bug in Series.get, was using a buggy access method (:issue:`6383`)
 - Bug in hdfstore queries of the form ``where=[('date', '>=', datetime(2013,1,1)), ('date', '<=', datetime(2014,1,1))]`` (:issue:`6313`)
-- Bug in DataFrame.dropna with duplicate indices (:issue:`6355`)
+- Bug in ``DataFrame.dropna`` with duplicate indices (:issue:`6355`)
 - Regression in chained getitem indexing with embedded list-like from 0.12 (:issue:`6394`)
-- ``Float64Index`` with nans not comparing correctly
+- ``Float64Index`` with nans not comparing correctly (:issue:`6401`)
 - ``eval``/``query`` expressions with strings containing the ``@`` character
   will now work (:issue:`6366`).
 - Bug in ``Series.reindex`` when specifying a ``method`` with some nan values was inconsistent (noted on a resample) (:issue:`6418`)
@@ -390,28 +399,28 @@ Bug Fixes
   fail (:issue:`6445`).
 - Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
 - Bug that caused _ref_locs corruption when slice indexing across columns axis of a DataFrame (:issue:`6525`)
-- Regression from 0.13 in the treatmenet of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
+- Regression from 0.13 in the treatment of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
 - ``.names`` attribute of MultiIndexes passed to ``set_index`` are now preserved (:issue:`6459`).
 - Bug in setitem with a duplicate index and an alignable rhs (:issue:`6541`)
-- Bug in setitem with loc on mixed integer Indexes (:issue:`6546`)
+- Bug in setitem with ``.loc`` on mixed integer Indexes (:issue:`6546`)
 - Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
-- Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
+- Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could be exported using the
   wrong data types and missing values (:issue:`6335`)
-- StataWriter replaces missing values in string columns by empty string (:issue:`6802`)
-- Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
+- ``StataWriter`` replaces missing values in string columns by empty string (:issue:`6802`)
+- Inconsistent types in ``Timestamp`` addition/subtraction (:issue:`6543`)
 - Bug in preserving frequency across Timestamp addition/subtraction (:issue:`4547`)
-- Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
-- Series.quantile raising on an ``object`` dtype (:issue:`6555`)
+- Bug in empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
+- ``Series.quantile`` raising on an ``object`` dtype (:issue:`6555`)
 - Bug in ``.xs`` with a ``nan`` in level when dropped (:issue:`6574`)
-- Bug in fillna with method = 'bfill/ffill' and ``datetime64[ns]`` dtype (:issue:`6587`)
+- Bug in fillna with ``method='bfill/ffill'`` and ``datetime64[ns]`` dtype (:issue:`6587`)
 - Bug in sql writing with mixed dtypes possibly leading to data loss (:issue:`6509`)
-- Bug in popping from a Series (:issue:`6600`)
-- Bug in ``iloc`` indexing when positional indexer matched Int64Index of corresponding axis no reordering happened (:issue:`6612`)
+- Bug in ``Series.pop`` (:issue:`6600`)
+- Bug in ``iloc`` indexing when positional indexer matched ``Int64Index`` of the corresponding axis and no reordering happened (:issue:`6612`)
 - Bug in ``fillna`` with ``limit`` and ``value`` specified
 - Bug in ``DataFrame.to_stata`` when columns have non-string names (:issue:`4558`)
 - Bug in compat with ``np.compress``, surfaced in (:issue:`6658`)
 - Bug in binary operations with a rhs of a Series not aligning (:issue:`6681`)
-- Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores 'with_index' keyword argument (:issue:`6685`)
+- Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores ``with_index`` keyword argument (:issue:`6685`)
 - Bug in resample with extra bins when using an evenly divisible frequency (:issue:`4076`)
 - Bug in consistency of groupby aggregation when passing a custom function (:issue:`6715`)
 - Bug in resample when ``how=None`` resample freq is the same as the axis frequency (:issue:`5955`)
@@ -430,31 +439,22 @@ Bug Fixes
 - Bug in ``DataFrame._reduce`` where non bool-like (0/1) integers were being
   coverted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
-- Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
+- Bug in adding ``np.timedelta64`` to ``DatetimeIndex`` with timezone outputs incorrect results (:issue:`6818`)
 - Bug in ``DataFrame.replace()`` where changing a dtype through replacement
   would only replace the first occurrence of a value (:issue:`6689`)
 - Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
-- Bug in `Series.__unicode__` when `max_rows` is `None` and the Series has more than 1000 rows. (:issue:`6863`)
+- Bug in ``Series.__unicode__`` when ``max_rows=None`` and the Series has more than 1000 rows. (:issue:`6863`)
 - Bug in ``groupby.get_group`` where a datetlike wasn't always accepted (:issue:`5267`)
 - Bug in ``groupBy.get_group`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`6914`)
-- Bug in ``DatetimeIndex.tz_localize`` and ``DatetimeIndex.tz_convert`` affects to NaT (:issue:`5546`)
-- Bug in arithmetic operations affecting to NaT (:issue:`6873`)
+- Bug in ``DatetimeIndex.tz_localize`` and ``DatetimeIndex.tz_convert`` converting ``NaT`` incorrectly (:issue:`5546`)
+- Bug in arithmetic operations affecting ``NaT`` (:issue:`6873`)
 - Bug in ``Series.str.extract`` where the resulting ``Series`` from a single
   group match wasn't renamed to the group name
-- Bug in ``DataFrame.to_csv`` where setting `index` to `False` ignored the
-  `header` kwarg (:issue:`6186`)
-- Bug in `DataFrame.plot` and `Series.plot` legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
+- Bug in ``DataFrame.to_csv`` where setting ``index=False`` ignored the
+  ``header`` kwarg (:issue:`6186`)
+- Bug in ``DataFrame.plot`` and ``Series.plot``, where the legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
 - Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`, :issue:`6927`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
-- Raise :class:`ValueError` when ``sep`` specified with
-  ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
-  (:issue:`6607`)
-- Raise :class:`ValueError` when `engine='c'` specified with unsupported
-  options (:issue:`6607`)
-- Raise :class:`ValueError` when fallback to python parser causes options to be
-  ignored (:issue:`6607`)
-- Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
-  parser when no options are ignored (:issue:`6607`)
 - Bug in C parser with leading whitespace (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
@@ -468,12 +468,12 @@ Bug Fixes
 - Bug in ``iloc`` when setting / aligning (:issue:`6766`)
 - Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 - Bug in timeseries-with-frequency plot cursor display (:issue:`5453`)
-- Bug surfaced in groupby.plot when using a ``Float64Index`` (:issue:`7025`)
+- Bug surfaced in ``groupby.plot`` when using a ``Float64Index`` (:issue:`7025`)
 - Stopped tests from failing if options data isn't able to be downloaded from Yahoo (:issue:`7034`)
-- Bug in ``parallel_coordinates`` and ``radviz`` where reordering of class column 
-  caused possible color/class mismatch
+- Bug in ``parallel_coordinates`` and ``radviz`` where reordering of class column
+  caused possible color/class mismatch (:issue:`6956`)
 - Bug in ``radviz`` and ``andrews_curves`` where multiple values of 'color'
-  were being passed to plotting method
+  were being passed to plotting method (:issue:`6956`)
 
 pandas 0.13.1
 -------------

@@ -66,7 +66,7 @@ API changes
      IndexError: single positional indexer is out-of-bounds
 
 
-- The ``DataFrame.interpolate()`` ``downcast`` keyword default has been changed from ``infer`` to
+- The :meth:`DataFrame.interpolate` keyword ``downcast`` default has been changed from ``infer`` to
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 - When converting a dataframe to HTML it used to return `Empty DataFrame`. This special case has
   been removed, instead a header with the column names is returned (:issue:`6062`).
@@ -366,13 +366,13 @@ Plotting
 ~~~~~~~~
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`), See :ref:`the docs<visualization.hexbin>`.
-- ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`), See :ref:`the docs<visualization.area>`
+- ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`), See :ref:`the docs<visualization.area_plot>`
 - Pie plots from ``Series.plot`` and ``DataFrame.plot`` with ``kind='pie'`` (:issue:`6976`), See :ref:`the docs<visualization.pie>`.
 - Plotting with Error Bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`, :issue:`6834`), See :ref:`the docs<visualization.errorbars>`.
 - ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``, See :ref:`the docs<visualization.table>`.
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
   most plot kinds. (:issue:`6014`)
-- Line plot and area plot can be stacked by ``stacked=True`` (:issue:`6656`) 
+- Line plot and area plot can be stacked by ``stacked=True`` (:issue:`6656`)
 
 - Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
 
@@ -384,12 +384,12 @@ Plotting
 
 - The :func:`parallel_coordinates` function now takes argument ``color``
   instead of ``colors``. A ``FutureWarning`` is raised  to alert that
-  the old ``colors`` argument will not be supported in a future release
+  the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
-- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take 
-  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is 
-  raised  if the old ``data`` argument is used by name.
-  
+- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
+  positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
+  raised  if the old ``data`` argument is used by name. (:issue:`6956`)
+
 .. _whatsnew_0140.prior_deprecations:
 
 Prior Version Deprecations/Changes
@@ -413,7 +413,7 @@ There are prior version deprecations that are taking effect as of 0.14.0.
   ( `commit 3136390 <https://github.com/pydata/pandas/commit/3136390>`__ )
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
-- Removed neg (-) boolean operations on numpy arrays in favor of inv (~), as this is going to
+- Removed neg ``-`` boolean operations on numpy arrays in favor of inv ``~``, as this is going to
   be deprecated in numpy 1.9 (:issue:`6960`)
 
 .. _whatsnew_0140.deprecations:
@@ -480,7 +480,7 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
-- DataFrame and Series will create a MultiIndex object if passed a tuples dict (:issue:`4187`)
+- DataFrame and Series will create a MultiIndex object if passed a tuples dict, See :ref:`the docs<basics.dataframe.from_dict_of_tuples>` (:issue:`3323`)
 
   .. ipython:: python
 
@@ -493,7 +493,7 @@ Enhancements
                 ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
 
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
-- ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
+- ``pd.read_clipboard`` will, if the keyword ``sep`` is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
 
@@ -526,18 +526,18 @@ Enhancements
 - Added a ``to_julian_date`` function to ``TimeStamp`` and ``DatetimeIndex``
   to convert to the Julian Date used primarily in astronomy. (:issue:`4041`)
 - ``DataFrame.to_stata`` will now check data for compatibility with Stata data types
-  and will upcast when needed.  When it isn't possibly to losslessly upcast, a warning
-  is raised (:issue:`6327`)
+  and will upcast when needed.  When it is not possible to losslessly upcast, a warning
+  is issued (:issue:`6327`)
 - ``DataFrame.to_stata`` and ``StataWriter`` will accept keyword arguments time_stamp
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
-- :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
+- :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with the ``CustomBusinessDay`` offset (:issue:`6719`)
 - ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
   ``object`` dtype array (:issue:`6471`).
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
-- Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:``rolling_max`` defaults to max,
-  :func:``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
+- Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:`rolling_max` defaults to max,
+  :func:`rolling_min` defaults to min, and all others default to mean (:issue:`6297`)
 - ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 - :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.
