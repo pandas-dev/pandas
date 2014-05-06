@@ -17,15 +17,6 @@
    options.display.max_rows = 15
    from pandas.compat import lrange
 
-.. note::
-
-   All calls to ``np.random`` are seeded with 123456.
-
-.. note::
-
-   See :ref:`ecosystem <ecosystem.visualization>` for visualization libraries
-   that go beyond the basics included in pandas.
-
 ********
 Plotting
 ********
@@ -46,6 +37,14 @@ All the plots in the documentation are rendered with this option set to the
 .. ipython:: python
 
    pd.options.display.mpl_style = 'default'
+
+We provide the basics in pandas to easily create decent looking plots.
+See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
+libraries that go beyond the basics documented here.
+
+.. note::
+
+   All calls to ``np.random`` are seeded with 123456.
 
 .. _visualization.basic:
 
@@ -361,7 +360,7 @@ too dense to plot each point individually.
 .. ipython:: python
 
    df = DataFrame(randn(1000, 2), columns=['a', 'b'])
-   df['b'] = df['b'] = df['b'] + np.arange(1000)
+   df['b'] = df['b'] + np.arange(1000)
 
    @savefig hexbin_plot.png
    df.plot(kind='hexbin', x='a', y='b', gridsize=25)
@@ -512,6 +511,9 @@ You can create a scatter plot matrix using the
    scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
 .. _visualization.kde:
+
+Density Plot
+~~~~~~~~~~~~
 
 .. versionadded:: 0.8.0
 
