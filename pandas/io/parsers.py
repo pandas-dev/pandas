@@ -1383,7 +1383,7 @@ class PythonParser(ParserBase):
         # multiple date column thing turning into a real spaghetti factory
         if not self._has_complex_date_col:
             (index_names,
-             self.orig_names, columns_) = self._get_index_name(self.columns)
+             self.orig_names, self.columns) = self._get_index_name(self.columns)
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
@@ -1811,8 +1811,9 @@ class PythonParser(ParserBase):
                         columns.insert(0, c)
 
                     # Update list of original names to include all indices.
-                    self.num_original_columns = len(next_line)
-                    return line, columns, orig_names
+                    orig_names = list(columns)
+                    self.num_original_columns = len(columns)
+                    return line, orig_names, columns
 
         if implicit_first_cols > 0:
             # Case 1
@@ -1824,7 +1825,7 @@ class PythonParser(ParserBase):
 
         else:
             # Case 2
-            (index_name, columns,
+            (index_name, columns_,
              self.index_col) = _clean_index_names(columns, self.index_col)
 
         return index_name, orig_names, columns
