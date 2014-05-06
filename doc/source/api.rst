@@ -335,6 +335,7 @@ Computations / Descriptive Stats
    Series.cumsum
    Series.describe
    Series.diff
+   Series.factorize
    Series.kurt
    Series.mad
    Series.max
@@ -1040,6 +1041,7 @@ Modifying and Computations
    Index.diff
    Index.drop
    Index.equals
+   Index.factorize
    Index.identical
    Index.insert
    Index.order

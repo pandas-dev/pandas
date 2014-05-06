@@ -10,6 +10,7 @@ import numpy as np
 from pandas.core.categorical import Categorical
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.frame import DataFrame
+from pandas.tseries.period import PeriodIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com
 
@@ -179,6 +180,37 @@ class TestCategorical(tm.TestCase):
         expected = ("Categorical([], Levels (0): "
                     "Index([], dtype=object)")
         self.assertEqual(repr(factor), expected)
+
+    def test_periodindex(self):
+        idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
+                               '2014-03', '2014-03'], freq='M')
+        cat1 = Categorical.from_array(idx1)
+
+        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
+        
+        self.assert_numpy_array_equal(cat1.labels, exp_arr)
+        self.assert_(cat1.levels.equals(exp_idx))
+
+        idx2 = PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
+                               '2014-03', '2014-01'], freq='M')
+        cat2 = Categorical.from_array(idx2)
+
+        exp_arr = np.array([2, 2, 1, 0, 2, 0])
+
+        self.assert_numpy_array_equal(cat2.labels, exp_arr)
+        self.assert_(cat2.levels.equals(exp_idx))
+
+        idx3 = PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09',
+                            '2013-08', '2013-07', '2013-05'], freq='M')
+        cat3 = Categorical.from_array(idx3)
+
+        exp_arr = np.array([6, 5, 4, 3, 2, 1, 0])
+        exp_idx = PeriodIndex(['2013-05', '2013-07', '2013-08', '2013-09',
+                               '2013-10', '2013-11', '2013-12'], freq='M')
+
+        self.assert_numpy_array_equal(cat3.labels, exp_arr)
+        self.assert_(cat3.levels.equals(exp_idx))
 
 
 if __name__ == '__main__':

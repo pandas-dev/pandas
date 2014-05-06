@@ -2189,6 +2189,51 @@ class TestDatetimeIndex(tm.TestCase):
                                        'PeriodIndex-ed objects'):
                 df.columns.join(s.index, how=join)
 
+    def test_factorize(self):
+        idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02',
+                              '2014-02', '2014-03', '2014-03'])
+
+        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
+        
+        arr, idx = idx1.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        arr, idx = idx1.factorize(sort=True)
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        # tz must be preserved
+        idx1 = idx1.tz_localize('Asia/Tokyo')
+        exp_idx = exp_idx.tz_localize('Asia/Tokyo')
+
+        arr, idx = idx1.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        idx2 = pd.DatetimeIndex(['2014-03', '2014-03', '2014-02', '2014-01',
+                               '2014-03', '2014-01'])
+
+        exp_arr = np.array([2, 2, 1, 0, 2, 0])        
+        exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
+        arr, idx = idx2.factorize(sort=True)
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        exp_arr = np.array([0, 0, 1, 2, 0, 2])
+        exp_idx = DatetimeIndex(['2014-03', '2014-02', '2014-01'])
+        arr, idx = idx2.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        # freq must be preserved
+        idx3 = date_range('2000-01', periods=4, freq='M', tz='Asia/Tokyo')
+        exp_arr = np.array([0, 1, 2, 3])
+        arr, idx = idx3.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(idx3))
+
 
 class TestDatetime64(tm.TestCase):
     """

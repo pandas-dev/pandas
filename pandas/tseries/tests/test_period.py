@@ -2175,6 +2175,35 @@ class TestPeriodIndex(tm.TestCase):
         idx = period_range('20010101', periods=10, freq='D', name='bob')
         self.assertEqual(idx.name, idx[1:].name)
 
+    def test_factorize(self):
+        idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
+                       '2014-03', '2014-03'], freq='M')
+
+        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
+        
+        arr, idx = idx1.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        arr, idx = idx1.factorize(sort=True)
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        idx2 = pd.PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
+                               '2014-03', '2014-01'], freq='M')
+
+        exp_arr = np.array([2, 2, 1, 0, 2, 0])        
+        arr, idx = idx2.factorize(sort=True)
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
+        exp_arr = np.array([0, 0, 1, 2, 0, 2])
+        exp_idx = PeriodIndex(['2014-03', '2014-02', '2014-01'], freq='M')
+        arr, idx = idx2.factorize()
+        self.assert_numpy_array_equal(arr, exp_arr)
+        self.assert_(idx.equals(exp_idx))
+
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

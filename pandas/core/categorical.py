@@ -80,8 +80,11 @@ class Categorical(PandasObject):
         if levels is None:
             if name is None:
                 name = getattr(labels, 'name', None)
-            if isinstance(labels, Index) and hasattr(labels, 'factorize'):
-                labels, levels = labels.factorize()
+            if hasattr(labels, 'factorize'):
+                try:
+                    labels, levels = labels.factorize(sort=True)
+                except TypeError:
+                    labels, levels = labels.factorize(sort=False)
             else:
                 try:
                     labels, levels = factorize(labels, sort=True)
@@ -103,16 +106,7 @@ class Categorical(PandasObject):
             Can be an Index or array-like. The levels are assumed to be
             the unique values of `data`.
         """
-        if isinstance(data, Index) and hasattr(data, 'factorize'):
-            labels, levels = data.factorize()
-        else:
-            try:
-                labels, levels = factorize(data, sort=True)
-            except TypeError:
-                labels, levels = factorize(data, sort=False)
-
-        return Categorical(labels, levels,
-                           name=getattr(data, 'name', None))
+        return Categorical(data)
 
     _levels = None
 
