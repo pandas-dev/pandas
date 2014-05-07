@@ -1159,9 +1159,6 @@ class TestXSQLite(tm.TestCase):
 
     def test_write_row_by_row(self):
 
-        #FIXME: for now skip test
-        raise nose.SkipTest('execute not supporting cursor object')
-
         frame = tm.makeTimeDataFrame()
         frame.ix[0, 0] = np.nan
         create_sql = sql.get_schema(frame, 'test', 'sqlite')
@@ -1435,9 +1432,6 @@ class TestXMySQL(tm.TestCase):
         self._check_roundtrip(frame)
 
     def test_write_row_by_row(self):
-
-        #FIXME: for now skip test
-        raise nose.SkipTest('execute not supporting cursor object')
 
         _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()

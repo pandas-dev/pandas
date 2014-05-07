@@ -98,7 +98,10 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
     -------
     Results Iterable
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    if cur is None:
+        pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    else:
+        pandas_sql = pandasSQL_builder(cur, flavor=flavor, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -473,11 +476,13 @@ def has_table(table_name, con, flavor='sqlite'):
 table_exists = has_table
 
 
-def pandasSQL_builder(con, flavor=None, meta=None):
+def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
     """
+    # When support for DBAPI connections is removed,
+    # is_cursor should not be necessary.
     try:
         import sqlalchemy
 
@@ -491,14 +496,14 @@ def pandasSQL_builder(con, flavor=None, meta=None):
                     "PandasSQL must be created with an SQLAlchemy engine "
                     "or a DBAPI2 connection and SQL flavor")
             else:
-                return PandasSQLLegacy(con, flavor)
+                return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
     except ImportError:
         warnings.warn("SQLAlchemy not installed, using legacy mode")
         if flavor is None:
             raise SQLAlchemyRequired
         else:
-            return PandasSQLLegacy(con, flavor)
+            return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
 
 class PandasSQLTable(PandasObject):
@@ -983,7 +988,8 @@ class PandasSQLTableLegacy(PandasSQLTable):
 
 class PandasSQLLegacy(PandasSQL):
 
-    def __init__(self, con, flavor):
+    def __init__(self, con, flavor, is_cursor=False):
+        self.is_cursor = is_cursor
         self.con = con
         if flavor not in ['sqlite', 'mysql']:
             raise NotImplementedError
@@ -991,8 +997,11 @@ class PandasSQLLegacy(PandasSQL):
             self.flavor = flavor
 
     def execute(self, *args, **kwargs):
-        try:
+        if self.is_cursor:
+            cur = self.con
+        else:
             cur = self.con.cursor()
+        try:
             if kwargs:
                 cur.execute(*args, **kwargs)
             else:
