@@ -475,6 +475,8 @@ Bug Fixes
   caused possible color/class mismatch (:issue:`6956`)
 - Bug in ``radviz`` and ``andrews_curves`` where multiple values of 'color'
   were being passed to plotting method (:issue:`6956`)
+- Bug in ``Float64Index.isin()`` where containing ``nan`` s would make indices
+  claim that they contained all the things (:issue:`7066`).
 
 pandas 0.13.1
 -------------

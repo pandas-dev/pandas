@@ -913,6 +913,12 @@ class TestFloat64Index(tm.TestCase):
         i = Float64Index([1.0, 2.0, np.nan])
         self.assertTrue(1.0 in i)
 
+    def test_doesnt_contain_all_the_things(self):
+        i = Float64Index([np.nan])
+        self.assertFalse(i.isin([0]).item())
+        self.assertFalse(i.isin([1]).item())
+        self.assertTrue(i.isin([np.nan]).item())
+
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True

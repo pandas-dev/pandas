@@ -2096,7 +2096,8 @@ class Float64Index(Index):
         """
         value_set = set(values)
         return lib.ismember_nans(self._array_values(), value_set,
-                                 self._hasnans)
+                                 isnull(list(value_set)).any())
+
 
 class MultiIndex(Index):
 
