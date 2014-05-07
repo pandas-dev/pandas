@@ -118,11 +118,12 @@ The ``kind`` keyword argument of :meth:`~DataFrame.plot` accepts
 a handful of values for plots other than the default Line plot.
 These include:
 
-* :ref:`'bar' <visualization.barplot>` or ``'barh'`` for bar plots,
-* :ref:`'kde' <visualization.kde>` or ``'density'`` for density plots,
-* :ref:`'area' <visualization.area_plot>` for area plots,
-* :ref:`'scatter' <visualization.scatter_matrix>` for scatter plots, and
-* :ref:`'hexbin' <visualization.hexbin>` for hexagonal bin plots.
+* :ref:`'bar' <visualization.barplot>` or :ref:`'barh' <visualization.barplot>` for bar plots
+* :ref:`'kde' <visualization.kde>` or ``'density'`` for density plots
+* :ref:`'area' <visualization.area_plot>` for area plots
+* :ref:`'scatter' <visualization.scatter_matrix>` for scatter plots
+* :ref:`'hexbin' <visualization.hexbin>` for hexagonal bin plots
+* :ref:`'pie' <visualization.pie>` for pie plots
 
 In addition to these ``kind`` s, there are  the :ref:`DataFrame.hist() <visualization.hist>`,
 and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate interface.
@@ -132,12 +133,12 @@ that take a :class:`Series` or :class:`DataFrame` as an argument. These
 include
 
 * :ref:`Scatter Matrix <visualization.scatter_matrix>`
-* :ref:`Andrews Curves <visualization.andrews_curves>`,
-* :ref:`Parallel Coordinates <visualization.parallel_coordinates>`,
-* :ref:`Lag Plot <visualization.lag>`,
-* :ref:`Autocorrelation Plot <visualization.autocorrelation>`,
-* :ref:`Bootstrap Plot <visualization.bootstrap>`, and
-* :ref:`RadViz <visualization.radviz>`.
+* :ref:`Andrews Curves <visualization.andrews_curves>`
+* :ref:`Parallel Coordinates <visualization.parallel_coordinates>`
+* :ref:`Lag Plot <visualization.lag>`
+* :ref:`Autocorrelation Plot <visualization.autocorrelation>`
+* :ref:`Bootstrap Plot <visualization.bootstrap>`
+* :ref:`RadViz <visualization.radviz>`
 
 Plots may also be adorned with :ref:`errorbars <visualization.errorbars>`
 or :ref:`tables <visualization.table>`.
@@ -713,8 +714,8 @@ layout and formatting of the returned plot:
 For each kind of plot (e.g. `line`, `bar`, `scatter`) any additional arguments
 keywords are passed alogn to the corresponding matplotlib function
 (:meth:`ax.plot() <matplotlib.axes.Axes.plot>`,
-:meth: `ax.bar() <matplotlib.axes.Axes.bar>`,
-:meth: `ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used
+:meth:`ax.bar() <matplotlib.axes.Axes.bar>`,
+:meth:`ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used
 to control additional styling, beyond what pandas provides.
 
 Controlling the Legend
