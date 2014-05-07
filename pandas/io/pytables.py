@@ -809,6 +809,8 @@ class HDFStore(StringMixin):
             This will force Table format, append the input data to the
             existing.
         encoding : default None, provide an encoding for strings
+        dropna   : boolean, default True, do not write an ALL nan row to
+            the store settable by the option 'io.hdf.dropna_table'
         """
         if format is None:
             format = get_option("io.hdf.default_format") or 'fixed'
