@@ -6,6 +6,7 @@ from __future__ import print_function, division
 from datetime import datetime, date, timedelta
 
 import warnings
+import traceback
 import itertools
 import re
 import numpy as np
@@ -97,80 +98,130 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
     -------
     Results Iterable
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    if cur is None:
+        pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    else:
+        pandas_sql = pandasSQL_builder(cur, flavor=flavor, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
 
-def tquery(sql, con, cur=None, params=None, flavor='sqlite'):
+#------------------------------------------------------------------------------
+#--- Deprecated tquery and uquery
+
+def _safe_fetch(cur):
+    try:
+        result = cur.fetchall()
+        if not isinstance(result, list):
+            result = list(result)
+        return result
+    except Exception as e: # pragma: no cover
+        excName = e.__class__.__name__
+        if excName == 'OperationalError':
+            return []
+
+def tquery(sql, con=None, cur=None, retry=True):
     """
-    Returns list of tuples corresponding to each row in given sql
+    DEPRECATED. Returns list of tuples corresponding to each row in given sql
     query.
 
     If only one column selected, then plain list is returned.
 
+    To obtain the same result in the future, you can use the following:
+
+    >>> execute(sql, con, params).fetchall()
+
     Parameters
     ----------
     sql: string
         SQL query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+    con: DBAPI2 connection
     cur: depreciated, cursor is obtained from connection
-    params: list or tuple, optional
-        List of parameters to pass to execute method.
-    flavor : string "sqlite", "mysql"
-        Specifies the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2
-        connection.
+
     Returns
     -------
     Results Iterable
+
     """
     warnings.warn(
-        "tquery is depreciated, and will be removed in future versions",
-        DeprecationWarning)
+        "tquery is depreciated, and will be removed in future versions. "
+        "You can use ``execute(...).fetchall()`` instead.",
+        FutureWarning)
 
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    args = _convert_params(sql, params)
-    return pandas_sql.tquery(*args)
+    cur = execute(sql, con, cur=cur)
+    result = _safe_fetch(cur)
+
+    if con is not None:
+        try:
+            cur.close()
+            con.commit()
+        except Exception as e:
+            excName = e.__class__.__name__
+            if excName == 'OperationalError': # pragma: no cover
+                print('Failed to commit, may need to restart interpreter')
+            else:
+                raise
+
+            traceback.print_exc()
+            if retry:
+                return tquery(sql, con=con, retry=False)
+
+    if result and len(result[0]) == 1:
+        # python 3 compat
+        result = list(lzip(*result)[0])
+    elif result is None: # pragma: no cover
+        result = []
+
+    return result
 
 
-def uquery(sql, con, cur=None, params=None, engine=None, flavor='sqlite'):
+def uquery(sql, con=None, cur=None, retry=True, params=None):
     """
-    Does the same thing as tquery, but instead of returning results, it
+    DEPRECATED. Does the same thing as tquery, but instead of returning results, it
     returns the number of rows affected.  Good for update queries.
+
+    To obtain the same result in the future, you can use the following:
+
+    >>> execute(sql, con).rowcount
 
     Parameters
     ----------
     sql: string
         SQL query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+    con: DBAPI2 connection
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string "sqlite", "mysql"
-        Specifies the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2
-        connection.
+
     Returns
     -------
     Number of affected rows
+
     """
     warnings.warn(
-        "uquery is depreciated, and will be removed in future versions",
-        DeprecationWarning)
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    args = _convert_params(sql, params)
-    return pandas_sql.uquery(*args)
+        "uquery is depreciated, and will be removed in future versions. "
+        "You can use ``execute(...).rowcount`` instead.",
+        FutureWarning)
+
+    cur = execute(sql, con, cur=cur, params=params)
+
+    result = cur.rowcount
+    try:
+        con.commit()
+    except Exception as e:
+        excName = e.__class__.__name__
+        if excName != 'OperationalError':
+            raise
+
+        traceback.print_exc()
+        if retry:
+            print('Looks like your connection failed, reconnecting...')
+            return uquery(sql, con, retry=False)
+    return result
 
 
 #------------------------------------------------------------------------------
-# Read and write to DataFrames
+#--- Read and write to DataFrames
 
 def read_sql_table(table_name, con, meta=None, index_col=None,
                    coerce_float=True, parse_dates=None, columns=None):
@@ -212,7 +263,7 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
-    
+
 
     """
     pandas_sql = PandasSQLAlchemy(con, meta=meta)
@@ -322,8 +373,8 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     Notes
     -----
     This function is a convenience wrapper around ``read_sql_table`` and
-    ``read_sql_query`` (and for backward compatibility) and will delegate 
-    to the specific function depending on the provided input (database 
+    ``read_sql_query`` (and for backward compatibility) and will delegate
+    to the specific function depending on the provided input (database
     table name or sql query).
 
     See also
@@ -334,7 +385,19 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
 
-    if pandas_sql.has_table(sql):
+    if 'select' in sql.lower():
+        try:
+            if pandas_sql.has_table(sql):
+                return pandas_sql.read_table(
+                    sql, index_col=index_col, coerce_float=coerce_float,
+                    parse_dates=parse_dates, columns=columns)
+        except:
+            pass
+
+        return pandas_sql.read_sql(
+            sql, index_col=index_col, params=params,
+            coerce_float=coerce_float, parse_dates=parse_dates)
+    else:
         if isinstance(pandas_sql, PandasSQLLegacy):
             raise ValueError("Reading a table with read_sql is not supported "
                              "for a DBAPI2 connection. Use an SQLAlchemy "
@@ -342,10 +405,6 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
         return pandas_sql.read_table(
             sql, index_col=index_col, coerce_float=coerce_float,
             parse_dates=parse_dates, columns=columns)
-    else:
-        return pandas_sql.read_sql(
-            sql, index_col=index_col, params=params, coerce_float=coerce_float,
-            parse_dates=parse_dates)
 
 
 def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
@@ -377,6 +436,9 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
         A sequence should be given if the DataFrame uses MultiIndex.
 
     """
+    if if_exists not in ('fail', 'replace', 'append'):
+        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
 
     if isinstance(frame, Series):
@@ -388,7 +450,7 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
                       index_label=index_label)
 
 
-def has_table(table_name, con, meta=None, flavor='sqlite'):
+def has_table(table_name, con, flavor='sqlite'):
     """
     Check if DataBase has named table.
 
@@ -411,34 +473,37 @@ def has_table(table_name, con, meta=None, flavor='sqlite'):
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     return pandas_sql.has_table(table_name)
 
+table_exists = has_table
 
-def pandasSQL_builder(con, flavor=None, meta=None):
+
+def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
     """
+    # When support for DBAPI connections is removed,
+    # is_cursor should not be necessary.
     try:
         import sqlalchemy
 
         if isinstance(con, sqlalchemy.engine.Engine):
             return PandasSQLAlchemy(con, meta=meta)
         else:
-            warnings.warn(
-                """Not an SQLAlchemy engine,
-                  attempting to use as legacy DBAPI connection""")
+            warnings.warn("Not an SQLAlchemy engine, "
+                          "attempting to use as legacy DBAPI connection")
             if flavor is None:
                 raise ValueError(
-                    """PandasSQL must be created with an SQLAlchemy engine
-                    or a DBAPI2 connection and SQL flavour""")
+                    "PandasSQL must be created with an SQLAlchemy engine "
+                    "or a DBAPI2 connection and SQL flavor")
             else:
-                return PandasSQLLegacy(con, flavor)
+                return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
     except ImportError:
         warnings.warn("SQLAlchemy not installed, using legacy mode")
         if flavor is None:
             raise SQLAlchemyRequired
         else:
-            return PandasSQLLegacy(con, flavor)
+            return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
 
 class PandasSQLTable(PandasObject):
@@ -471,6 +536,9 @@ class PandasSQLTable(PandasObject):
                     self.table = self.pd_sql.get_table(self.name)
                     if self.table is None:
                         self.table = self._create_table_statement()
+                else:
+                    raise ValueError(
+                        "'{0}' is not valid for if_exists".format(if_exists))
             else:
                 self.table = self._create_table_statement()
                 self.create()
@@ -485,7 +553,8 @@ class PandasSQLTable(PandasObject):
         return self.pd_sql.has_table(self.name)
 
     def sql_schema(self):
-        return str(self.table.compile())
+        from sqlalchemy.schema import CreateTable
+        return str(CreateTable(self.table))
 
     def create(self):
         self.table.create()
@@ -722,14 +791,6 @@ class PandasSQLAlchemy(PandasSQL):
         """Simple passthrough to SQLAlchemy engine"""
         return self.engine.execute(*args, **kwargs)
 
-    def tquery(self, *args, **kwargs):
-        result = self.execute(*args, **kwargs)
-        return result.fetchall()
-
-    def uquery(self, *args, **kwargs):
-        result = self.execute(*args, **kwargs)
-        return result.rowcount
-
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None):
 
@@ -783,7 +844,7 @@ class PandasSQLAlchemy(PandasSQL):
 
     def _create_sql_schema(self, frame, table_name):
         table = PandasSQLTable(table_name, self, frame=frame)
-        return str(table.compile())
+        return str(table.sql_schema())
 
 
 # ---- SQL without SQLAlchemy ---
@@ -927,7 +988,8 @@ class PandasSQLTableLegacy(PandasSQLTable):
 
 class PandasSQLLegacy(PandasSQL):
 
-    def __init__(self, con, flavor):
+    def __init__(self, con, flavor, is_cursor=False):
+        self.is_cursor = is_cursor
         self.con = con
         if flavor not in ['sqlite', 'mysql']:
             raise NotImplementedError
@@ -935,8 +997,11 @@ class PandasSQLLegacy(PandasSQL):
             self.flavor = flavor
 
     def execute(self, *args, **kwargs):
-        try:
+        if self.is_cursor:
+            cur = self.con
+        else:
             cur = self.con.cursor()
+        try:
             if kwargs:
                 cur.execute(*args, **kwargs)
             else:
@@ -952,22 +1017,6 @@ class PandasSQLLegacy(PandasSQL):
 
             ex = DatabaseError("Execution failed on sql: %s" % args[0])
             raise_with_traceback(ex)
-
-    def tquery(self, *args):
-        cur = self.execute(*args)
-        result = self._fetchall_as_list(cur)
-
-        # This makes into tuples
-        if result and len(result[0]) == 1:
-            # python 3 compat
-            result = list(lzip(*result)[0])
-        elif result is None:  # pragma: no cover
-            result = []
-        return result
-
-    def uquery(self, *args):
-        cur = self.execute(*args)
-        return cur.rowcount
 
     def read_sql(self, sql, index_col=None, coerce_float=True, params=None,
                  parse_dates=None):
@@ -1006,7 +1055,7 @@ class PandasSQLLegacy(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
-        
+
         """
         table = PandasSQLTableLegacy(
             name, self, frame=frame, index=index, if_exists=if_exists,
@@ -1020,7 +1069,7 @@ class PandasSQLLegacy(PandasSQL):
             'mysql': "SHOW TABLES LIKE '%s'" % name}
         query = flavor_map.get(self.flavor)
 
-        return len(self.tquery(query)) > 0
+        return len(self.execute(query).fetchall()) > 0
 
     def get_table(self, table_name):
         return None  # not supported in Legacy mode
@@ -1029,32 +1078,90 @@ class PandasSQLLegacy(PandasSQL):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
+    def _create_sql_schema(self, frame, table_name):
+        table = PandasSQLTableLegacy(table_name, self, frame=frame)
+        return str(table.sql_schema())
 
-# legacy names, with depreciation warnings and copied docs
-def get_schema(frame, name, con, flavor='sqlite'):
+
+def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
     """
     Get the SQL db table schema for the given frame
 
     Parameters
     ----------
-    frame: DataFrame
-    name: name of SQL table
-    con: an open SQL database connection object
-    engine: an SQLAlchemy engine - replaces connection and flavor
-    flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
+    frame : DataFrame
+    name : name of SQL table
+    flavor : {'sqlite', 'mysql'}, default 'sqlite'
+    keys : columns to use a primary key
+    con: an open SQL database connection object or an SQLAlchemy engine
 
     """
-    warnings.warn(
-        "get_schema is depreciated", DeprecationWarning)
+
+    if con is None:
+        return _get_schema_legacy(frame, name, flavor, keys)
+
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     return pandas_sql._create_sql_schema(frame, name)
 
 
+def _get_schema_legacy(frame, name, flavor, keys=None):
+    """Old function from 0.13.1. To keep backwards compatibility.
+    When mysql legacy support is dropped, it should be possible to
+    remove this code
+    """
+
+    def get_sqltype(dtype, flavor):
+        pytype = dtype.type
+        pytype_name = "text"
+        if issubclass(pytype, np.floating):
+            pytype_name = "float"
+        elif issubclass(pytype, np.integer):
+            pytype_name = "int"
+        elif issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            pytype_name = "datetime"
+        elif pytype is datetime.date:
+            pytype_name = "date"
+        elif issubclass(pytype, np.bool_):
+            pytype_name = "bool"
+
+        return _SQL_TYPES[pytype_name][flavor]
+
+    lookup_type = lambda dtype: get_sqltype(dtype, flavor)
+
+    column_types = lzip(frame.dtypes.index, map(lookup_type, frame.dtypes))
+    if flavor == 'sqlite':
+        columns = ',\n  '.join('[%s] %s' % x for x in column_types)
+    else:
+        columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+
+    keystr = ''
+    if keys is not None:
+        if isinstance(keys, string_types):
+            keys = (keys,)
+        keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
+    template = """CREATE TABLE %(name)s (
+                  %(columns)s
+                  %(keystr)s
+                  );"""
+    create_statement = template % {'name': name, 'columns': columns,
+                                   'keystr': keystr}
+    return create_statement
+
+
+# legacy names, with depreciation warnings and copied docs
+
 def read_frame(*args, **kwargs):
     """DEPRECIATED - use read_sql
     """
-    warnings.warn(
-        "read_frame is depreciated, use read_sql", DeprecationWarning)
+    warnings.warn("read_frame is depreciated, use read_sql", FutureWarning)
+    return read_sql(*args, **kwargs)
+
+
+def frame_query(*args, **kwargs):
+    """DEPRECIATED - use read_sql
+    """
+    warnings.warn("frame_query is depreciated, use read_sql", FutureWarning)
     return read_sql(*args, **kwargs)
 
 
@@ -1092,7 +1199,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     pandas.DataFrame.to_sql
 
     """
-    warnings.warn("write_frame is depreciated, use to_sql", DeprecationWarning)
+    warnings.warn("write_frame is depreciated, use to_sql", FutureWarning)
 
     # for backwards compatibility, set index=False when not specified
     index = kwargs.pop('index', False)
@@ -1102,3 +1209,4 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
 
 # Append wrapped function docstrings
 read_frame.__doc__ += read_sql.__doc__
+frame_query.__doc__ += read_sql.__doc__
