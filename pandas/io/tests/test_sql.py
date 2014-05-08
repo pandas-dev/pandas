@@ -29,9 +29,9 @@ import numpy as np
 from datetime import datetime
 
 from pandas import DataFrame, Series, Index, MultiIndex, isnull
-from pandas import to_timedelta
+from pandas import date_range, to_datetime, to_timedelta
 import pandas.compat as compat
-from pandas.compat import StringIO, range, lrange
+from pandas.compat import StringIO, range, lrange, string_types
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
@@ -870,6 +870,29 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
 
+    def test_datetime(self):
+        if self.driver == 'pymysql':
+             raise nose.SkipTest('writing datetime not working with pymysql')
+
+        df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
+                        'B': np.arange(3.0)})
+        df.to_sql('test_datetime', self.conn)
+
+        # with read_table -> type information from schema used
+        result = sql.read_sql_table('test_datetime', self.conn)
+        result = result.drop('index', axis=1)
+        tm.assert_frame_equal(result, df)
+
+        # with read_sql -> no type information -> sqlite has no native
+        result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
+        result = result.drop('index', axis=1)
+        if self.flavor == 'sqlite':
+            self.assertTrue(isinstance(result.loc[0, 'A'], string_types))
+            result['A'] = to_datetime(result['A'])
+            tm.assert_frame_equal(result, df)
+        else:
+            tm.assert_frame_equal(result, df)
+
     def test_mixed_dtype_insert(self):
         # see GH6509
         s1 = Series(2**25 + 1,dtype=np.int32)
@@ -895,7 +918,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
     def setup_driver(self):
         # sqlite3 is built-in
-        pass
+        self.driver = None
 
     def tearDown(self):
         # in memory so tables should not be removed explicitly
