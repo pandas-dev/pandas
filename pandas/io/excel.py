@@ -661,7 +661,7 @@ class _XlwtWriter(ExcelWriter):
             num_format_str = None
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = self.datetime_format
-            if isinstance(cell.val, datetime.date):
+            elif isinstance(cell.val, datetime.date):
                 num_format_str = self.date_format
 
             stylekey = json.dumps(cell.style)
@@ -782,7 +782,7 @@ class _XlsxWriter(ExcelWriter):
             num_format_str = None
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = self.datetime_format
-            if isinstance(cell.val, datetime.date):
+            elif isinstance(cell.val, datetime.date):
                 num_format_str = self.date_format
 
             stylekey = json.dumps(cell.style)
