@@ -919,6 +919,19 @@ class TestFloat64Index(tm.TestCase):
         self.assertFalse(i.isin([1]).item())
         self.assertTrue(i.isin([np.nan]).item())
 
+    def test_nan_multiple_containment(self):
+        i = Float64Index([1.0, np.nan])
+        np.testing.assert_array_equal(i.isin([1.0]), np.array([True, False]))
+        np.testing.assert_array_equal(i.isin([2.0, np.pi]),
+                                      np.array([False, False]))
+        np.testing.assert_array_equal(i.isin([np.nan]),
+                                      np.array([False, True]))
+        np.testing.assert_array_equal(i.isin([1.0, np.nan]),
+                                      np.array([True, True]))
+        i = Float64Index([1.0, 2.0])
+        np.testing.assert_array_equal(i.isin([np.nan]),
+                                      np.array([False, False]))
+
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
