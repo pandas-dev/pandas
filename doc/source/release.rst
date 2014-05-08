@@ -479,6 +479,9 @@ Bug Fixes
   claim that they contained all the things (:issue:`7066`).
 - Bug in ``DataFrame.boxplot`` where it failed to use the axis passed as the ``ax`` argument (:issue:`3578`)
 - Bug in the ``XlsxWriter`` and ``XlwtWriter`` implementations that resulted in datetime columns being formatted without the time (:issue:`7075`)
+  were being passed to plotting method
+- :func:`read_fwf` treats ``None`` in ``colspec`` like regular python slices. It now reads from the beginning
+  or until the end of the line when ``colspec`` contains a ``None`` (previously raised a ``TypeError``)
 
 pandas 0.13.1
 -------------

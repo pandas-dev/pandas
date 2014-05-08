@@ -2232,10 +2232,11 @@ class FixedWidthReader(object):
                             "input was a %r" % type(colspecs).__name__)
 
         for colspec in self.colspecs:
+
             if not (isinstance(colspec, (tuple, list)) and
                     len(colspec) == 2 and
-                    isinstance(colspec[0], (int, np.integer)) and
-                    isinstance(colspec[1], (int, np.integer))):
+                    isinstance(colspec[0], (int, np.integer, type(None))) and
+                    isinstance(colspec[1], (int, np.integer, type(None)))):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 

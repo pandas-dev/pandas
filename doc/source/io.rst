@@ -809,6 +809,8 @@ two extra parameters:
     String value 'infer' can be used to instruct the parser to try detecting
     the column specifications from the first 100 rows of the data. Default
     behaviour, if not specified, is to infer.
+    As with regular python slices, you can slice to the end of the line
+    with ``None``, e.g. ``colspecs = [(0, 1), (1, None)]``.
   - ``widths``: A list of field widths which can be used instead of 'colspecs'
     if the intervals are contiguous.
 
