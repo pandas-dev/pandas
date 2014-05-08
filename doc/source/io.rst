@@ -3159,9 +3159,9 @@ your database.
 
 .. versionadded:: 0.14.0
 
-
-If SQLAlchemy is not installed a legacy fallback is provided for sqlite and mysql.
-These legacy modes require Python database adapters which respect the `Python
+If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
+for mysql for backwards compatibility, but this is deprecated).
+This mode requires a Python database adapter which respect the `Python
 DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
@@ -3335,9 +3335,14 @@ Engine connection examples
   engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
 
-Legacy
-~~~~~~
-To use the sqlite support without SQLAlchemy, you can create connections like so:
+Sqlite fallback
+~~~~~~~~~~~~~~~
+
+The use of sqlite is supported without using SQLAlchemy.
+This mode requires a Python database adapter which respect the `Python
+DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+
+You can create connections like so:
 
 .. code-block:: python
 
@@ -3345,14 +3350,13 @@ To use the sqlite support without SQLAlchemy, you can create connections like so
    from pandas.io import sql
    cnx = sqlite3.connect(':memory:')
 
-And then issue the following queries, remembering to also specify the flavor of SQL
-you are using.
+And then issue the following queries:
 
 .. code-block:: python
 
-   data.to_sql('data', cnx,  flavor='sqlite')
+   data.to_sql('data', cnx)
 
-   sql.read_sql("SELECT * FROM data", cnx, flavor='sqlite')
+   sql.read_sql("SELECT * FROM data", cnx)
 
 
 .. _io.bigquery:

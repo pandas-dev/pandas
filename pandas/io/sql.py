@@ -76,7 +76,7 @@ def _parse_date_columns(data_frame, parse_dates):
     return data_frame
 
 
-def execute(sql, con, cur=None, params=None, flavor='sqlite'):
+def execute(sql, con, cur=None, params=None):
     """
     Execute the given SQL query using the provided connection object.
 
@@ -84,24 +84,22 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
     ----------
     sql : string
         Query to be executed
-    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object, a supported SQL flavor must also be provided
+        If a DBAPI2 object, only sqlite3 is supported.
     cur : depreciated, cursor is obtained from connection
     params : list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string "sqlite", "mysql"
-        Specifies the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2 connection.
+
     Returns
     -------
     Results Iterable
     """
     if cur is None:
-        pandas_sql = pandasSQL_builder(con, flavor=flavor)
+        pandas_sql = pandasSQL_builder(con)
     else:
-        pandas_sql = pandasSQL_builder(cur, flavor=flavor, is_cursor=True)
+        pandas_sql = pandasSQL_builder(cur, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -235,7 +233,7 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
     table_name : string
         Name of SQL table in database
     con : SQLAlchemy engine
-        Legacy mode not supported
+        Sqlite DBAPI conncection mode not supported
     meta : SQLAlchemy meta, optional
         If omitted MetaData is reflected from engine
     index_col : string, optional
@@ -277,8 +275,8 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
         raise ValueError("Table %s not found" % table_name, con)
 
 
-def read_sql_query(sql, con, index_col=None, flavor='sqlite',
-                   coerce_float=True, params=None, parse_dates=None):
+def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
+                   parse_dates=None):
     """Read SQL query into a DataFrame.
 
     Returns a DataFrame corresponding to the result set of the query
@@ -289,15 +287,12 @@ def read_sql_query(sql, con, index_col=None, flavor='sqlite',
     ----------
     sql : string
         SQL query to be executed
-    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+        If a DBAPI2 object, only sqlite3 is supported.
     index_col : string, optional
         column name to use for the returned DataFrame object.
-    flavor : string, {'sqlite', 'mysql'}
-        The flavor of SQL to use. Ignored when using
-        SQLAlchemy engine. Required when using DBAPI2 connection.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
@@ -324,7 +319,7 @@ def read_sql_query(sql, con, index_col=None, flavor='sqlite',
     read_sql
 
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_sql(
         sql, index_col=index_col, params=params, coerce_float=coerce_float,
         parse_dates=parse_dates)
@@ -342,12 +337,13 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+        If a DBAPI2 object, only sqlite3 is supported.
     index_col : string, optional
         column name to use for the returned DataFrame object.
     flavor : string, {'sqlite', 'mysql'}
         The flavor of SQL to use. Ignored when using
         SQLAlchemy engine. Required when using DBAPI2 connection.
+        'mysql' is still supported, but will be removed in future versions.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
@@ -417,13 +413,14 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
     frame : DataFrame
     name : string
         Name of SQL table
-    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+        If a DBAPI2 object, only sqlite3 is supported.
     flavor : {'sqlite', 'mysql'}, default 'sqlite'
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
         Required when using DBAPI2 connection.
+        'mysql' is still supported, but will be removed in future versions.
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
@@ -458,13 +455,14 @@ def has_table(table_name, con, flavor='sqlite'):
     ----------
     table_name: string
         Name of SQL table
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con: SQLAlchemy engine or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object is given, a supported SQL flavor name must also be provided
+        If a DBAPI2 object, only sqlite3 is supported.
     flavor: {'sqlite', 'mysql'}, default 'sqlite'
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
         Required when using DBAPI2 connection.
+        'mysql' is still supported, but will be removed in future versions.
 
     Returns
     -------
@@ -475,6 +473,10 @@ def has_table(table_name, con, flavor='sqlite'):
 
 table_exists = has_table
 
+
+_MYSQL_WARNING = ("The 'mysql' flavor with DBAPI connection is deprecated "
+                  "and will be removed in future versions. "
+                  "MySQL will be further supported with SQLAlchemy engines.")
 
 def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
     """
@@ -489,21 +491,14 @@ def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
         if isinstance(con, sqlalchemy.engine.Engine):
             return PandasSQLAlchemy(con, meta=meta)
         else:
-            warnings.warn("Not an SQLAlchemy engine, "
-                          "attempting to use as legacy DBAPI connection")
-            if flavor is None:
-                raise ValueError(
-                    "PandasSQL must be created with an SQLAlchemy engine "
-                    "or a DBAPI2 connection and SQL flavor")
-            else:
-                return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
+            if flavor == 'mysql':
+                warnings.warn(_MYSQL_WARNING, FutureWarning)
+            return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
     except ImportError:
-        warnings.warn("SQLAlchemy not installed, using legacy mode")
-        if flavor is None:
-            raise SQLAlchemyRequired
-        else:
-            return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
+        if flavor == 'mysql':
+            warnings.warn(_MYSQL_WARNING, FutureWarning)
+        return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
 
 class PandasSQLTable(PandasObject):
@@ -893,7 +888,7 @@ _SQL_SYMB = {
 }
 
 
-_SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed."
+_SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed. "
                        "In pandas versions < 0.14, spaces were converted to "
                        "underscores.")
 
@@ -991,6 +986,8 @@ class PandasSQLLegacy(PandasSQL):
     def __init__(self, con, flavor, is_cursor=False):
         self.is_cursor = is_cursor
         self.con = con
+        if flavor is None:
+            flavor = 'sqlite'
         if flavor not in ['sqlite', 'mysql']:
             raise NotImplementedError
         else:
@@ -1098,6 +1095,8 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
     """
 
     if con is None:
+        if flavor == 'mysql':
+            warnings.warn(_MYSQL_WARNING, FutureWarning)
         return _get_schema_legacy(frame, name, flavor, keys)
 
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)

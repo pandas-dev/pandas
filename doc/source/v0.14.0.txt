@@ -475,6 +475,9 @@ Deprecations
   returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
   ALWAYS return a view. (:issue:`6894`)
 
+- The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
+  MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
 .. _whatsnew_0140.enhancements:
 
 Enhancements
