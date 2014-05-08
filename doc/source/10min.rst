@@ -83,7 +83,6 @@ will be completed:
 
    @verbatim
    In [1]: df2.<TAB>
-
    df2.A                  df2.boxplot
    df2.abs                df2.C
    df2.add                df2.clip
