@@ -730,7 +730,10 @@ class PandasSQLTable(PandasObject):
             except:
                 return DateTime
         if com.is_timedelta64_dtype(arr_or_dtype):
-            return Interval
+            warnings.warn("the 'timedelta' type is not supported, and will be "
+                          "written as integer values (ns frequency) to the "
+                          "database.", UserWarning)
+            return Integer
         elif com.is_float_dtype(arr_or_dtype):
             return Float
         elif com.is_integer_dtype(arr_or_dtype):
@@ -973,6 +976,11 @@ class PandasSQLTableLegacy(PandasSQLTable):
         pytype_name = "text"
         if issubclass(pytype, np.floating):
             pytype_name = "float"
+        elif com.is_timedelta64_dtype(pytype):
+            warnings.warn("the 'timedelta' type is not supported, and will be "
+                          "written as integer values (ns frequency) to the "
+                          "database.", UserWarning)
+            pytype_name = "int"
         elif issubclass(pytype, np.integer):
             pytype_name = "int"
         elif issubclass(pytype, np.datetime64) or pytype is datetime:

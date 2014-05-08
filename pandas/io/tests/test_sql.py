@@ -29,12 +29,14 @@ import numpy as np
 from datetime import datetime
 
 from pandas import DataFrame, Series, Index, MultiIndex, isnull
+from pandas import to_timedelta
 import pandas.compat as compat
 from pandas.compat import StringIO, range, lrange
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
+from pandas import _np_version_under1p7
 
 
 try:
@@ -480,6 +482,17 @@ class _TestSQLApi(PandasSQLTest):
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
 
+    def test_timedelta(self):
+        # see #6921
+        if _np_version_under1p7:
+            raise nose.SkipTest("test only valid in numpy >= 1.7")
+
+        df = to_timedelta(Series(['00:00:01', '00:00:03'], name='foo')).to_frame()
+        with tm.assert_produces_warning(UserWarning):
+            df.to_sql('test_timedelta', self.conn)
+        result = sql.read_sql_query('SELECT * FROM test_timedelta', self.conn)
+        tm.assert_series_equal(result['foo'], df['foo'].astype('int64'))              
+        
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
 
