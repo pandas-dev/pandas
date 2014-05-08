@@ -133,7 +133,7 @@ offsets[np.random.rand(n) > 0.5] = np.timedelta64('nat')
 value2 = np.random.randn(n)
 value2[np.random.rand(n) > 0.5] = np.nan
 
-obj = pd.util.testing.choice(['a', 'b'], size=n).astype(object)
+obj = tm.choice(list('ab'), size=n).astype(object)
 obj[np.random.randn(n) > 0.5] = np.nan
 
 df = DataFrame({'key1': np.random.randint(0, 500, size=n),
@@ -141,6 +141,7 @@ df = DataFrame({'key1': np.random.randint(0, 500, size=n),
                 'dates': dates,
                 'value2' : value2,
                 'value3' : np.random.randn(n),
+                'ints': np.random.randint(0, 1000, size=n),
                 'obj': obj,
                 'offsets': offsets})
 """
@@ -148,6 +149,19 @@ df = DataFrame({'key1': np.random.randint(0, 500, size=n),
 groupby_multi_count = Benchmark("df.groupby(['key1', 'key2']).count()",
                                 setup, name='groupby_multi_count',
                                 start_date=datetime(2014, 5, 5))
+
+setup = common_setup + """
+n = 10000
+
+df = DataFrame({'key1': randint(0, 500, size=n),
+                'key2': randint(0, 100, size=n),
+                'ints': randint(0, 1000, size=n),
+                'ints2': randint(0, 1000, size=n)})
+"""
+
+groupby_int_count = Benchmark("df.groupby(['key1', 'key2']).count()",
+                              setup, name='groupby_int_count',
+                              start_date=datetime(2014, 5, 6))
 #----------------------------------------------------------------------
 # Series.value_counts
 

@@ -722,8 +722,7 @@ class GroupBy(PandasObject):
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
 
-    _count = _groupby_function('_count', 'count',
-                               lambda x, axis=0: notnull(x).sum(axis=axis),
+    _count = _groupby_function('_count', 'count', lambda x, axis=0: x.size(),
                                numeric_only=False)
 
     def count(self, axis=0):

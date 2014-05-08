@@ -2219,18 +2219,21 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
 #-------------------------------------------------------------------------
 # Generators
 
-def generate_put_template(template, use_ints = True, use_floats = True,
-                          use_objects=False):
+def generate_put_template(template, use_ints=True, use_floats=True,
+                          use_objects=False, use_datelikes=False):
     floats_list = [
         ('float64', 'float64_t', 'float64_t', 'np.float64'),
         ('float32', 'float32_t', 'float32_t', 'np.float32'),
-        ]
+    ]
     ints_list = [
         ('int8',  'int8_t',  'float32_t', 'np.float32'),
         ('int16', 'int16_t', 'float32_t', 'np.float32'),
         ('int32', 'int32_t', 'float64_t', 'np.float64'),
         ('int64', 'int64_t', 'float64_t', 'np.float64'),
-        ]
+    ]
+    date_like_list = [
+        ('int64', 'int64_t', 'float64_t', 'np.float64'),
+    ]
     object_list = [('object', 'object', 'float64_t', 'np.float64')]
     function_list = []
     if use_floats:
@@ -2239,14 +2242,16 @@ def generate_put_template(template, use_ints = True, use_floats = True,
         function_list.extend(ints_list)
     if use_objects:
         function_list.extend(object_list)
+    if use_datelikes:
+        function_list.extend(date_like_list)
 
     output = StringIO()
     for name, c_type, dest_type, dest_dtype in function_list:
-        func = template % {'name' : name,
-                           'c_type' : c_type,
-                           'dest_type' : dest_type.replace('_t', ''),
-                           'dest_type2' : dest_type,
-                           'dest_dtype' : dest_dtype}
+        func = template % {'name': name,
+                           'c_type': c_type,
+                           'dest_type': dest_type.replace('_t', ''),
+                           'dest_type2': dest_type,
+                           'dest_dtype': dest_dtype}
         output.write(func)
     return output.getvalue()
 
@@ -2372,7 +2377,9 @@ def generate_take_cython_file(path='generated.pyx'):
             print(generate_put_template(template, use_ints=False), file=f)
 
         for template in groupby_count:
-            print(generate_put_template(template, use_objects=True), file=f)
+            print(generate_put_template(template, use_ints=False,
+                                        use_datelikes=True, use_objects=True),
+                  file=f)
 
         # for template in templates_1d_datetime:
         #     print >> f, generate_from_template_datetime(template)
