@@ -2666,9 +2666,10 @@ class TestIndexing(tm.TestCase):
         df.index = index
 
         # setting via chained assignment
-        def f():
-            df.loc[0]['z'].iloc[0] = 1.
-        self.assertRaises(com.SettingWithCopyError, f)
+        # but actually works, since everything is a view
+        df.loc[0]['z'].iloc[0] = 1.
+        result = df.loc[(0,0),'z']
+        self.assertEqual(result, 1)
 
         # correct setting
         df.loc[(0,0),'z'] = 2
@@ -2709,6 +2710,28 @@ class TestIndexing(tm.TestCase):
 
             self.assertEqual(df.ix[0,'c'], 0.0)
             self.assertEqual(df.ix[7,'c'], 1.0)
+
+        # GH 7084
+        # not updating cache on series setting with slices
+        out = DataFrame({'A': [0, 0, 0]}, index=date_range('5/7/2014', '5/9/2014'))
+        df = DataFrame({'C': ['A', 'A', 'A'], 'D': [100, 200, 300]})
+
+        #loop through df to update out
+        six = Timestamp('5/7/2014')
+        eix = Timestamp('5/9/2014')
+        for ix, row in df.iterrows():
+            out[row['C']][six:eix] = out[row['C']][six:eix] + row['D']
+
+        expected = DataFrame({'A': [600, 600, 600]}, index=date_range('5/7/2014', '5/9/2014'))
+        assert_frame_equal(out, expected)
+        assert_series_equal(out['A'], expected['A'])
+
+        out = DataFrame({'A': [0, 0, 0]}, index=date_range('5/7/2014', '5/9/2014'))
+        for ix, row in df.iterrows():
+            out.loc[six:eix,row['C']] += row['D']
+
+        assert_frame_equal(out, expected)
+        assert_series_equal(out['A'], expected['A'])
 
     def test_setitem_chained_setfault(self):
 

@@ -1091,6 +1091,11 @@ class NDFrame(PandasObject):
         cacher = getattr(self, '_cacher', None)
         return cacher is not None
 
+    @property
+    def _is_view(self):
+        """ boolean : return if I am a view of another array """
+        return self._data.is_view
+
     def _maybe_update_cacher(self, clear=False):
         """ see if we need to update our parent cacher
             if clear, then clear our cache """
@@ -1372,7 +1377,9 @@ class NDFrame(PandasObject):
             result = self[loc]
             result.index = new_index
 
-        result._set_is_copy(self)
+        # this could be a view
+        # but only in a single-dtyped view slicable case
+        result._set_is_copy(self, copy=not result._is_view)
         return result
 
     _xs = xs

@@ -693,6 +693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Series):
             key = key.values
         self._data = self._data.setitem(indexer=key, value=value)
+        self._maybe_update_cacher()
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
