@@ -646,6 +646,59 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([1., 1., 3.], index=date_range('1/1/2000', periods=3))
         assert_series_equal(result, expected)
 
+    def test_describe(self):
+        _ = self.series.describe()
+        _ = self.ts.describe()
+
+    def test_describe_percentiles(self):
+        with tm.assert_produces_warning(FutureWarning):
+            desc = self.series.describe(percentile_width=50)
+        assert '75%' in desc.index
+        assert '25%' in desc.index
+
+        with tm.assert_produces_warning(FutureWarning):
+            desc = self.series.describe(percentile_width=95)
+        assert '97.5%' in desc.index
+        assert '2.5%' in desc.index
+
+    def test_describe_objects(self):
+        s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
+        result = s.describe()
+        expected = Series({'count': 7, 'unique': 4,
+                           'top': 'a', 'freq': 3}, index=result.index)
+        assert_series_equal(result, expected)
+
+        dt = list(self.ts.index)
+        dt.append(dt[0])
+        ser = Series(dt)
+        rs = ser.describe()
+        min_date = min(dt)
+        max_date = max(dt)
+        xp = Series({'count': len(dt),
+                     'unique': len(self.ts.index),
+                     'first': min_date, 'last': max_date, 'freq': 2,
+                     'top': min_date}, index=rs.index)
+        assert_series_equal(rs, xp)
+
+    def test_describe_empty(self):
+        result = pd.Series().describe()
+
+        self.assertEqual(result['count'], 0)
+        self.assert_(result.drop('count').isnull().all())
+
+        nanSeries = Series([np.nan])
+        nanSeries.name = 'NaN'
+        result = nanSeries.describe()
+        self.assertEqual(result['count'], 0)
+        self.assert_(result.drop('count').isnull().all())
+
+    def test_describe_none(self):
+        noneSeries = Series([None])
+        noneSeries.name = 'None'
+        assert_series_equal(noneSeries.describe(),
+                            Series([0, 0], index=['count', 'unique']))
+
+
 class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: assert_frame_equal(x,y)
@@ -707,7 +760,6 @@ class TestDataFrame(tm.TestCase, Generic):
         result = df['A'].interpolate(downcast='infer')
         expected = Series([1, 2, 3, 4])
         assert_series_equal(result, expected)
-
 
     def test_interp_nan_idx(self):
         df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
@@ -858,6 +910,115 @@ class TestDataFrame(tm.TestCase, Generic):
         # all good
         result = df[['B', 'D']].interpolate(downcast=None)
         assert_frame_equal(result, df[['B', 'D']])
+
+    def test_describe(self):
+        desc = tm.makeDataFrame().describe()
+        desc = tm.makeMixedDataFrame().describe()
+        desc = tm.makeTimeDataFrame().describe()
+
+    def test_describe_percentiles(self):
+        with tm.assert_produces_warning(FutureWarning):
+            desc = tm.makeDataFrame().describe(percentile_width=50)
+        assert '75%' in desc.index
+        assert '25%' in desc.index
+
+        with tm.assert_produces_warning(FutureWarning):
+            desc = tm.makeDataFrame().describe(percentile_width=95)
+        assert '97.5%' in desc.index
+        assert '2.5%' in desc.index
+
+    def test_describe_quantiles_both(self):
+        with tm.assertRaises(ValueError):
+            tm.makeDataFrame().describe(percentile_width=50,
+                                        percentiles=[25, 75])
+
+    def test_describe_percentiles_percent_or_raw(self):
+        df = tm.makeDataFrame()
+        with tm.assertRaises(ValueError):
+            df.describe(percentiles=[10, 50, 100])
+
+    def test_describe_percentiles_equivalence(self):
+        df = tm.makeDataFrame()
+        d1 = df.describe()
+        d2 = df.describe(percentiles=[.25, .75])
+        assert_frame_equal(d1, d2)
+
+    def test_describe_percentiles_insert_median(self):
+        df = tm.makeDataFrame()
+        d1 = df.describe(percentiles=[.25, .75])
+        d2 = df.describe(percentiles=[.25, .5, .75])
+        assert_frame_equal(d1, d2)
+
+        # none above
+        d1 = df.describe(percentiles=[.25, .45])
+        d2 = df.describe(percentiles=[.25, .45, .5])
+        assert_frame_equal(d1, d2)
+
+        # none below
+        d1 = df.describe(percentiles=[.75, 1])
+        d2 = df.describe(percentiles=[.5, .75, 1])
+        assert_frame_equal(d1, d2)
+
+    def test_describe_no_numeric(self):
+        df = DataFrame({'A': ['foo', 'foo', 'bar'] * 8,
+                        'B': ['a', 'b', 'c', 'd'] * 6})
+        desc = df.describe()
+        expected = DataFrame(dict((k, v.describe())
+                                  for k, v in compat.iteritems(df)),
+                             columns=df.columns)
+        assert_frame_equal(desc, expected)
+
+        ts = tm.makeTimeSeries()
+        df = DataFrame({'time': ts.index})
+        desc = df.describe()
+        self.assertEqual(desc.time['first'], min(ts.index))
+
+    def test_describe_empty_int_columns(self):
+        df = DataFrame([[0, 1], [1, 2]])
+        desc = df[df[0] < 0].describe()  # works
+        assert_series_equal(desc.xs('count'),
+                            Series([0, 0], dtype=float, name='count'))
+        self.assert_(isnull(desc.ix[1:]).all().all())
+
+    def test_describe_objects(self):
+        df = DataFrame({"C1": ['a', 'a', 'c'], "C2": ['d', 'd', 'f']})
+        result = df.describe()
+        expected = DataFrame({"C1": [3, 2, 'a', 2], "C2": [3, 2, 'd', 2]},
+                             index=['count', 'unique', 'top', 'freq'])
+        assert_frame_equal(result, expected)
+
+        df = DataFrame({"C1": pd.date_range('2010-01-01', periods=4, freq='D')})
+        result = df.describe()
+        expected = DataFrame({"C1": [4, 4, pd.Timestamp('2010-01-01'),
+                                     pd.Timestamp('2010-01-04'),
+                                     pd.Timestamp('2010-01-01'), 1]},
+                             index=['count', 'unique', 'first', 'last', 'top',
+                                    'freq'])
+        assert_frame_equal(result, expected)
+
+        # mix time and str
+        df['C2'] = ['a', 'a', 'b', 'c']
+        result = df.describe()
+        # when mix of dateimte / obj the index gets reordered.
+        expected['C2'] = [4, 3, np.nan, np.nan, 'a', 2]
+        assert_frame_equal(result, expected)
+
+        # just str
+        expected = DataFrame({'C2': [4, 3, 'a', 2]},
+                             index=['count', 'unique', 'top', 'freq'])
+        result = df[['C2']].describe()
+
+        # mix of time, str, numeric
+        df['C3'] = [2, 4, 6, 8]
+        result = df.describe()
+        expected = DataFrame({"C3": [4., 5., 2.5819889, 2., 3.5, 5., 6.5, 8.]},
+                             index=['count', 'mean', 'std', 'min', '25%',
+                                    '50%', '75%', 'max'])
+        assert_frame_equal(result, expected)
+        assert_frame_equal(df.describe(), df[['C3']].describe())
+
+        assert_frame_equal(df[['C1', 'C3']].describe(), df[['C3']].describe())
+        assert_frame_equal(df[['C2', 'C3']].describe(), df[['C3']].describe())
 
     def test_no_order(self):
         _skip_if_no_scipy()
@@ -1053,6 +1214,9 @@ class TestNDFrame(tm.TestCase):
         df2 = df1.set_index(['floats'], append=True)
         self.assert_(df3.equals(df2))
 
+    def test_describe_raises(self):
+        with tm.assertRaises(NotImplementedError):
+            tm.makePanel().describe()
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

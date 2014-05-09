@@ -196,6 +196,8 @@ API changes
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
   from 0.13.1
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
+- ``describe`` on a DataFrame with a mix of Timestamp and string like objects returns a different Index (:issue:`7088`).
+  Previously the index was unintentionally sorted.
 
 .. _whatsnew_0140.display:
 
@@ -509,6 +511,10 @@ Deprecations
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
 
+- The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
+  Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
+  default output is unchanged.
+
 .. _whatsnew_0140.enhancements:
 
 Enhancements
@@ -575,6 +581,7 @@ Enhancements
 - ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 - :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.
+- :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)
 - ``pivot_table`` can now accept ``Grouper`` by ``index`` and ``columns`` keywords (:issue:`6913`)
 
   .. ipython:: python

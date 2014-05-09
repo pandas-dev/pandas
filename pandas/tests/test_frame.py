@@ -11224,40 +11224,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
-    def test_describe(self):
-        desc = self.tsframe.describe()
-        desc = self.mixed_frame.describe()
-        desc = self.frame.describe()
-
-    def test_describe_percentiles(self):
-        desc = self.frame.describe(percentile_width=50)
-        assert '75%' in desc.index
-        assert '25%' in desc.index
-
-        desc = self.frame.describe(percentile_width=95)
-        assert '97.5%' in desc.index
-        assert '2.5%' in desc.index
-
-    def test_describe_no_numeric(self):
-        df = DataFrame({'A': ['foo', 'foo', 'bar'] * 8,
-                        'B': ['a', 'b', 'c', 'd'] * 6})
-        desc = df.describe()
-        expected = DataFrame(dict((k, v.describe())
-                                  for k, v in compat.iteritems(df)),
-                             columns=df.columns)
-        assert_frame_equal(desc, expected)
-
-        df = DataFrame({'time': self.tsframe.index})
-        desc = df.describe()
-        assert(desc.time['first'] == min(self.tsframe.index))
-
-    def test_describe_empty_int_columns(self):
-        df = DataFrame([[0, 1], [1, 2]])
-        desc = df[df[0] < 0].describe()  # works
-        assert_series_equal(desc.xs('count'),
-                            Series([0, 0], dtype=float, name='count'))
-        self.assert_(isnull(desc.ix[1:]).all().all())
-
     def test_axis_aliases(self):
 
         f = self.frame
