@@ -482,6 +482,8 @@ Bug Fixes
   were being passed to plotting method
 - :func:`read_fwf` treats ``None`` in ``colspec`` like regular python slices. It now reads from the beginning
   or until the end of the line when ``colspec`` contains a ``None`` (previously raised a ``TypeError``)
+- Bug in cache coherence with chained indexing and slicing; add ``_is_view`` property to ``NDFrame`` to correctly predict
+  views; mark ``is_copy`` on ``xs` only if its an actual copy (and not a view) (:issue:`7084`)
 
 pandas 0.13.1
 -------------

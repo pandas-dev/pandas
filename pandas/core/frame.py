@@ -1632,7 +1632,7 @@ class DataFrame(NDFrame):
                     name=label, fastpath=True)
 
                 # this is a cached value, mark it so
-                result._set_as_cached(i, self)
+                result._set_as_cached(label, self)
 
                 return result
 
