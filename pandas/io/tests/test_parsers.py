@@ -2326,6 +2326,33 @@ c   1   2   3   4
                                    'Each column specification must be.+'):
             read_fwf(StringIO(self.data1), [('a', 1)])
 
+    def test_fwf_colspecs_None(self):
+        # GH 7079
+        data = """\
+123456
+456789
+"""
+        colspecs = [(0, 3), (3, None)]
+        result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+        expected = DataFrame([[123, 456], [456, 789]])
+        tm.assert_frame_equal(result, expected)
+
+        colspecs = [(None, 3), (3, 6)]
+        result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+        expected = DataFrame([[123, 456], [456, 789]])
+        tm.assert_frame_equal(result, expected)
+
+        colspecs = [(0, None), (3, None)]
+        result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+        expected = DataFrame([[123456, 456], [456789, 789]])
+        tm.assert_frame_equal(result, expected)
+
+        colspecs = [(None, None), (3, 6)]
+        result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+        expected = DataFrame([[123456, 456], [456789, 789]])
+        tm.assert_frame_equal(result, expected)
+
+
     def test_fwf_regression(self):
         # GH 3594
         #### turns out 'T060' is parsable as a datetime slice!
