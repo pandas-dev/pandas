@@ -1390,16 +1390,19 @@ class BaseGrouper(object):
         if is_numeric_dtype(values.dtype):
             values = com.ensure_float(values)
             is_numeric = True
+            out_dtype = 'f%d' % values.dtype.itemsize
         else:
             is_numeric = issubclass(values.dtype.type, (np.datetime64,
                                                         np.timedelta64))
+            out_dtype = 'float64'
             if is_numeric:
                 values = values.view('int64')
             else:
                 values = values.astype(object)
 
         # will be filled in Cython function
-        result = np.empty(out_shape, dtype='f%d' % values.dtype.itemsize)
+        result = np.empty(out_shape, dtype=out_dtype)
+
         result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
