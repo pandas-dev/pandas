@@ -1973,13 +1973,6 @@ A,B,C
                                header=0)
         tm.assert_frame_equal(result, expected)
 
-    def test_integer_overflow_bug(self):
-        # #2601
-        data = "65248E10 11\n55555E55 22\n"
-
-        result = self.read_csv(StringIO(data), header=None, sep=' ')
-        self.assertTrue(result[0].dtype == np.float64)
-
     def test_int64_min_issues(self):
         # #2599
         data = 'A,B\n0,0\n0,'
@@ -2141,6 +2134,10 @@ a,b,c
         expected = DataFrame({'a':[1,4,7], 'b':[2,5,8], 'c': [3,6,9]})
         tm.assert_frame_equal(result, expected)
 
+    def test_nrows_and_chunksize_raises_notimplemented(self):
+        data = 'a b c'
+        self.assertRaises(NotImplementedError, self.read_csv, StringIO(data),
+                     nrows=10, chunksize=5)
 
 
 class TestPythonParser(ParserTests, tm.TestCase):
