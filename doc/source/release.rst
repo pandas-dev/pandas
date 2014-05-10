@@ -484,6 +484,7 @@ Bug Fixes
   or until the end of the line when ``colspec`` contains a ``None`` (previously raised a ``TypeError``)
 - Bug in cache coherence with chained indexing and slicing; add ``_is_view`` property to ``NDFrame`` to correctly predict
   views; mark ``is_copy`` on ``xs` only if its an actual copy (and not a view) (:issue:`7084`)
+- Bug in DatetimeIndex creation from string ndarray with ``dayfirst=True`` (:issue:`5917`)
 
 pandas 0.13.1
 -------------

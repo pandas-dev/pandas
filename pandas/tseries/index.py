@@ -250,20 +250,29 @@ class DatetimeIndex(Int64Index):
             else:
                 subarr = data.view(_NS_DTYPE)
         else:
-            try:
-                subarr = tools.to_datetime(data, box=False)
+            if isinstance(data, ABCSeries):
+                values = data.values
+            else:
+                values = data
 
-                # make sure that we have a index/ndarray like (and not a Series)
-                if isinstance(subarr, ABCSeries):
-                    subarr = subarr.values
+            if lib.is_string_array(values):
+                subarr = _str_to_dt_array(values, freq, dayfirst=dayfirst,
+                                        yearfirst=yearfirst)          
+            else:
+                try:
+                    subarr = tools.to_datetime(data, box=False)
 
-            except ValueError:
-                # tz aware
-                subarr = tools.to_datetime(data, box=False, utc=True)
+                    # make sure that we have a index/ndarray like (and not a Series)
+                    if isinstance(subarr, ABCSeries):
+                        subarr = subarr.values
 
-            if not np.issubdtype(subarr.dtype, np.datetime64):
-                raise ValueError('Unable to convert %s to datetime dtype'
-                                 % str(data))
+                except ValueError:
+                    # tz aware
+                    subarr = tools.to_datetime(data, box=False, utc=True)
+
+                if not np.issubdtype(subarr.dtype, np.datetime64):
+                    raise ValueError('Unable to convert %s to datetime dtype'
+                                     % str(data))
 
         if isinstance(subarr, DatetimeIndex):
             if tz is None:

@@ -2415,6 +2415,25 @@ class TestDatetime64(tm.TestCase):
         self.assertEquals(len(idx1), len(idx2))
         self.assertEquals(idx1.offset, idx2.offset)
 
+    def test_dayfirst(self):
+        # GH 5917
+        arr = ['10/02/2014', '11/02/2014', '12/02/2014']
+        expected = DatetimeIndex([datetime(2014, 2, 10),
+                                  datetime(2014, 2, 11),
+                                  datetime(2014, 2, 12)])
+        idx1 = DatetimeIndex(arr, dayfirst=True)
+        idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
+        idx3 = to_datetime(arr, dayfirst=True)
+        idx4 = to_datetime(np.array(arr), dayfirst=True)
+        idx5 = DatetimeIndex(Index(arr), dayfirst=True)
+        idx6 = DatetimeIndex(Series(arr), dayfirst=True)        
+        self.assert_(expected.equals(idx1))
+        self.assert_(expected.equals(idx2))
+        self.assert_(expected.equals(idx3))
+        self.assert_(expected.equals(idx4))
+        self.assert_(expected.equals(idx5))
+        self.assert_(expected.equals(idx6))
+
     def test_dti_snap(self):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
