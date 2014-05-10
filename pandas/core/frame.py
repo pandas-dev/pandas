@@ -4188,23 +4188,43 @@ class DataFrame(NDFrame):
         """
         per = np.asarray(q) * 100
 
+        if not com.is_list_like(per):
+            per = [per]
+            q = [q]
+            squeeze = True
+        else:
+            squeeze = False
+
         def f(arr, per):
-            arr = arr.values
-            if arr.dtype != np.float_:
-                arr = arr.astype(float)
-            arr = arr[notnull(arr)]
-            if len(arr) == 0:
+            if arr._is_datelike_mixed_type:
+                values = _values_from_object(arr).view('i8')
+            else:
+                values = arr.astype(float)
+            values = values[notnull(values)]
+            if len(values) == 0:
                 return NA
             else:
-                return _quantile(arr, per)
+                return _quantile(values, per)
 
         data = self._get_numeric_data() if numeric_only else self
-        if com.is_list_like(per):
-            from pandas.tools.merge import concat
-            return concat([data.apply(f, axis=axis, args=(x,)) for x in per],
-                          axis=1, keys=per/100.).T
-        else:
-            return data.apply(f, axis=axis, args=(per,))
+
+        # need to know which cols are timestamp going in so that we can
+        # map timestamp over them after getting the quantile.
+        is_dt_col = data.dtypes.map(com.is_datetime64_dtype)
+        is_dt_col = is_dt_col[is_dt_col].index
+
+        quantiles = [[f(vals, x) for x in per]
+                     for (_, vals) in data.iteritems()]
+        result = DataFrame(quantiles, index=data._info_axis, columns=q).T
+        if len(is_dt_col) > 0:
+            result[is_dt_col] = result[is_dt_col].applymap(lib.Timestamp)
+        if squeeze:
+            if result.shape == (1, 1):
+                result = result.T.iloc[:, 0]  # don't want scalar
+            else:
+                result = result.T.squeeze()
+            result.name = None  # For groupby, so it can set an index name
+        return result
 
     def rank(self, axis=0, numeric_only=None, method='average',
              na_option='keep', ascending=True, pct=False):

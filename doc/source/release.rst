@@ -491,6 +491,7 @@ Bug Fixes
 - Bug in ``unstack`` raises ``ValueError`` when ``MultiIndex`` contains ``PeriodIndex`` (:issue:`4342`)
 - Bug in ``boxplot`` and ``hist`` draws unnecessary axes (:issue:`6769`)
 - Regression in ``groupby.nth()`` for out-of-bounds indexers (:issue:`6621`)
+- Bug in ``quantile`` with datetime values (:issue:`6965`)
 
 pandas 0.13.1
 -------------
