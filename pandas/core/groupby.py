@@ -142,6 +142,11 @@ def _last_compat(x, axis=0):
     else:
         return _last(x)
 
+
+def _count_compat(x, axis=0):
+    return x.size
+
+
 class Grouper(object):
     """
     A Grouper allows the user to specify a groupby instruction for a target object
@@ -721,8 +726,7 @@ class GroupBy(PandasObject):
                               numeric_only=False, _convert=True)
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
-
-    _count = _groupby_function('_count', 'count', lambda x, axis=0: x.size(),
+    _count = _groupby_function('_count', 'count', _count_compat,
                                numeric_only=False)
 
     def count(self, axis=0):
@@ -1386,17 +1390,19 @@ class BaseGrouper(object):
         if is_numeric_dtype(values.dtype):
             values = com.ensure_float(values)
             is_numeric = True
+            out_dtype = 'f%d' % values.dtype.itemsize
         else:
             is_numeric = issubclass(values.dtype.type, (np.datetime64,
                                                         np.timedelta64))
+            out_dtype = 'float64'
             if is_numeric:
                 values = values.view('int64')
             else:
                 values = values.astype(object)
 
         # will be filled in Cython function
-        result = np.empty(out_shape,
-                          dtype=np.dtype('f%d' % values.dtype.itemsize))
+        result = np.empty(out_shape, dtype=out_dtype)
+
         result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -1441,7 +1447,6 @@ class BaseGrouper(object):
                 chunk = chunk.squeeze()
                 agg_func(result[:, :, i], counts, chunk, comp_ids)
         else:
-            #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
             agg_func(result, counts, values, comp_ids)
 
         return trans_func(result)

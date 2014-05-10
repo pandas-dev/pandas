@@ -4214,6 +4214,26 @@ class TestGroupBy(tm.TestCase):
                                                            name='grp'))
         tm.assert_frame_equal(result, expected)
 
+    def test_count_uses_size_on_exception(self):
+        class RaisingObjectException(Exception):
+            pass
+
+        class RaisingObject(object):
+            def __init__(self, msg='I will raise inside Cython'):
+                super(RaisingObject, self).__init__()
+                self.msg = msg
+
+            def __eq__(self, other):
+                # gets called in Cython to check that raising calls the method
+                raise RaisingObjectException(self.msg)
+
+        df = DataFrame({'a': [RaisingObject() for _ in range(4)],
+                        'grp': list('ab' * 2)})
+        result = df.groupby('grp').count()
+        expected = DataFrame({'a': [2, 2]}, index=pd.Index(list('ab'),
+                                                           name='grp'))
+        tm.assert_frame_equal(result, expected)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
