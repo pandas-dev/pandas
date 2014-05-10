@@ -13,6 +13,7 @@ from pandas.core.frame import DataFrame
 from pandas.tseries.period import PeriodIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com
+from pandas.tseries.period import PeriodIndex
 
 import pandas.util.testing as tm
 
@@ -183,7 +184,7 @@ class TestCategorical(tm.TestCase):
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
-                               '2014-03', '2014-03'], freq='M')
+                            '2014-03', '2014-03'], freq='M')
         cat1 = Categorical.from_array(idx1)
 
         exp_arr = np.array([0, 0, 1, 1, 2, 2])
@@ -192,8 +193,9 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(cat1.labels, exp_arr)
         self.assert_(cat1.levels.equals(exp_idx))
 
+
         idx2 = PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
-                               '2014-03', '2014-01'], freq='M')
+                            '2014-03', '2014-01'], freq='M')
         cat2 = Categorical.from_array(idx2)
 
         exp_arr = np.array([2, 2, 1, 0, 2, 0])

@@ -2177,7 +2177,7 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_factorize(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
-                       '2014-03', '2014-03'], freq='M')
+                            '2014-03', '2014-03'], freq='M')
 
         exp_arr = np.array([0, 0, 1, 1, 2, 2])
         exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
