@@ -333,6 +333,7 @@ Improvements to existing features
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - ``GroupBy.count()`` is now implemented in Cython and is much faster for large
   numbers of groups (:issue:`7016`).
+- ``boxplot`` now supports ``layout`` keyword (:issue:`6769`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -488,6 +489,7 @@ Bug Fixes
 - Bug in DatetimeIndex creation from string ndarray with ``dayfirst=True`` (:issue:`5917`)
 - Bug in ``MultiIndex.from_arrays`` created from ``DatetimeIndex`` doesn't preserve ``freq`` and ``tz`` (:issue:`7090`)
 - Bug in ``unstack`` raises ``ValueError`` when ``MultiIndex`` contains ``PeriodIndex`` (:issue:`4342`)
+- Bug in ``boxplot`` and ``hist`` draws unnecessary axes (:issue:`6769`)
 
 pandas 0.13.1
 -------------
