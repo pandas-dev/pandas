@@ -909,6 +909,37 @@ To see the order in which each row appears within its group, use the
 
    df.groupby('A').cumcount(ascending=False)  # kwarg only
 
+Plotting
+~~~~~~~~
+
+Groupby also works with some plotting methods.  For example, suppose we
+suspect that some features in a DataFrame my differ by group, in this case,
+the values in column 1 where the group is "B" are 3 higher on average.
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = DataFrame(np.random.randn(50, 2))
+   df['g'] = np.random.choice(['A', 'B'], size=50)
+   df.loc[df['g'] == 'B', 1] += 3
+
+We can easily visualize this with a boxplot:
+
+..ipython:: python
+
+   @savefig groupby_boxplot.png
+   bp = df.groupby('g').boxplot()
+
+The result of calling ``boxplot`` is a dictionary whose keys are the values
+of our grouping column ``g`` ("A" and "B"). The values of the resulting dictionary
+can be controlled by the ``return_type`` keyword of ``boxplot``.
+See the :ref:`visualization documentation<visualization.box>` for more.
+
+.. warning::
+
+  For historical reasons, ``df.groupby("g").boxplot()`` is not equivalent
+  to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>`.
+
 Examples
 --------
 

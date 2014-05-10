@@ -4857,7 +4857,8 @@ DataFrame.hist = gfx.hist_frame
 
 
 def boxplot(self, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, **kwds):
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
     """
     Make a box plot from DataFrame column/columns optionally grouped
     (stratified) by one or more columns
@@ -4875,17 +4876,32 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
         Rotation for ticks
     grid : boolean, default None (matlab style default)
         Axis grid lines
+    layout : tuple (optional)
+        (rows, columns) for the layout of the plot
+    return_type : bool, default False
+        Whether to return a dict whose values are the lines of the boxplot
+    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
+           function
 
     Returns
     -------
     ax : matplotlib.axes.AxesSubplot
+    lines : dict (optional)
+
+    Notes
+    -----
+    Use ``return_dict=True`` when you want to modify the appearance
+    of the lines. In this case a named tuple is returned.
     """
     import pandas.tools.plotting as plots
     import matplotlib.pyplot as plt
     ax = plots.boxplot(self, column=column, by=by, ax=ax,
-                       fontsize=fontsize, grid=grid, rot=rot, **kwds)
+                       fontsize=fontsize, grid=grid, rot=rot,
+                       figsize=figsize, layout=layout, return_dict=return_dict,
+                       **kwds)
     plt.draw_if_interactive()
     return ax
+
 DataFrame.boxplot = boxplot
 
 ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)

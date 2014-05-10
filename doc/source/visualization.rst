@@ -304,6 +304,42 @@ columns:
 
     plt.close('all')
 
+.. _visualization.box.return:
+
+The return type of ``boxplot`` depends on two keyword arguments: ``by`` and ``return_type``.
+When ``by`` is ``None``:
+
+* if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
+   This is the deafult.
+* if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
+* if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
+   and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
+
+When ``by`` is some column of the DataFrame, a dict of ``return_type`` is returned, where
+the keys are the columns of the DataFrame. The plot has a facet for each column of
+the DataFrame, with a separate box for each value of ``by``.
+
+Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
+is returned, where the keys are the same as the Groupby object. The plot has a
+facet for each key, with each facet containing a box for each column of the
+DataFrame.
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df_box = DataFrame(np.random.randn(50, 2))
+   df_box['g'] = np.random.choice(['A', 'B'], size=50)
+   df_box.loc[df_box['g'] == 'B', 1] += 3
+
+..ipython:: python
+
+   @savefig(boxplot_groupby.png)
+   df_box.boxplot(by='g')
+
+   @savefig groupby_boxplot_vis.png
+   df_box.groupby('g').boxplot()
+
+
 .. _visualization.area_plot:
 
 Area Plot
