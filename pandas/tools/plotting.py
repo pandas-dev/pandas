@@ -2354,10 +2354,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
-        ret = bp
-
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
-    return ret
+    return ax
 
 
 def format_date_labels(ax, rot):
