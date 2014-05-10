@@ -390,6 +390,8 @@ Plotting
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
   raised  if the old ``data`` argument is used by name. (:issue:`6956`)
 
+- ``boxplot`` now supports ``layout`` keyword (:issue:`6769`)
+
 .. _whatsnew_0140.prior_deprecations:
 
 Prior Version Deprecations/Changes
