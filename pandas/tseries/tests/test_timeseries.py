@@ -285,6 +285,28 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         # this is a single date, so will raise
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
+    def test_recreate_from_data(self):
+        if _np_version_under1p7:
+            freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H']
+        else:
+            freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
+
+        for f in freqs:
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
+            idx = DatetimeIndex(org, freq=f)
+            self.assert_(idx.equals(org))
+
+        # unbale to create tz-aware 'A' and 'C' freq
+        if _np_version_under1p7:
+            freqs = ['M', 'Q', 'D', 'B', 'T', 'S', 'L', 'U', 'H']
+        else:
+            freqs = ['M', 'Q', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N']
+
+        for f in freqs:
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f, tz='US/Pacific', periods=1)
+            idx = DatetimeIndex(org, freq=f, tz='US/Pacific')
+            self.assert_(idx.equals(org))
+
 
 def assert_range_equal(left, right):
     assert(left.equals(right))

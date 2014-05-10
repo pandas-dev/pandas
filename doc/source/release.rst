@@ -499,6 +499,7 @@ Bug Fixes
 - Bug in ``MultiIndex.get_level_values`` doesn't preserve ``DatetimeIndex`` and ``PeriodIndex`` attributes (:issue:`7092`)
 - Bug in ``Groupby`` doesn't preserve ``tz`` (:issue:`3950`)
 - Bug in ``PeriodIndex`` partial string slicing (:issue:`6716`)
+- Bug in ``DatetimeIndex`` specifying ``freq`` raises ``ValueError`` when passed value is too short
 
 pandas 0.13.1
 -------------
