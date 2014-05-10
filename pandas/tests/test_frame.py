@@ -3286,7 +3286,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.drop(['a'],axis=1)
         expected = DataFrame([[1],[1],[1]],columns=['bar'])
         check(result,expected)
-        result = df.drop('a',axis=1)
+        result = df.drop('a', axis=1, regex=False)
         check(result,expected)
 
         # describe
@@ -9717,8 +9717,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(len(filtered.columns), 2)
 
         # pass in None
-        with assertRaisesRegexp(TypeError, 'Must pass'):
-            self.frame.filter(items=None)
+        with assertRaisesRegexp(TypeError, 'must not be None'):
+            self.frame.filter(labels=None)
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')

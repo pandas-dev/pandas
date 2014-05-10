@@ -1634,8 +1634,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # single string/tuple-like
         s = Series(range(3),index=list('abc'))
-        self.assertRaises(ValueError, s.drop, 'bc')
-        self.assertRaises(ValueError, s.drop, ('a',))
+        assert_series_equal(s.drop('bc'), s)
+        assert_series_equal(s.drop(('a',)), s.loc[['b', 'c']])
 
         # bad axis
         self.assertRaises(ValueError, s.drop, 'one', axis='columns')
