@@ -319,6 +319,28 @@ class IndexOpsMixin(object):
         """
         return len(self.value_counts())
 
+    def factorize(self, sort=False, na_sentinel=-1):
+        """
+        Encode the object as an enumerated type or categorical variable
+
+        Parameters
+        ----------
+        sort : boolean, default False
+            Sort by values
+        na_sentinel: int, default -1
+            Value to mark "not found"
+
+        Returns
+        -------
+        labels : the indexer to the original array
+        uniques : the unique Index
+        """
+        from pandas.core.algorithms import factorize
+        from pandas.core.index import Index
+        labels, uniques = factorize(self, sort=sort, na_sentinel=na_sentinel)
+        uniques = Index(uniques)
+        return labels, uniques
+
     date = _field_accessor('date','Returns numpy array of datetime.date. The date part of the Timestamps')
     time = _field_accessor('time','Returns numpy array of datetime.time. The time part of the Timestamps')
     year = _field_accessor('year', "The year of the datetime")

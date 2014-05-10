@@ -739,15 +739,6 @@ class PeriodIndex(Int64Index):
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
 
-    def factorize(self):
-        """
-        Specialized factorize that boxes uniques
-        """
-        from pandas.core.algorithms import factorize
-        labels, uniques = factorize(self.values)
-        uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
-        return labels, uniques
-
     @property
     def freqstr(self):
         return self.freq

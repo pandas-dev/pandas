@@ -1899,6 +1899,17 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.set_index(index)
 
+    def test_datetimeindex(self):
+        idx1 = pd.DatetimeIndex(['2013-04-01 9:00', '2013-04-02 9:00', '2013-04-03 9:00'] * 2, tz='Asia/Tokyo')
+        idx2 = pd.date_range('2010/01/01', periods=6, freq='M', tz='US/Eastern')
+        idx = MultiIndex.from_arrays([idx1, idx2])
+
+        expected1 = pd.DatetimeIndex(['2013-04-01 9:00', '2013-04-02 9:00', '2013-04-03 9:00'], tz='Asia/Tokyo')
+
+        self.assert_(idx.levels[0].equals(expected1))
+        self.assert_(idx.levels[1].equals(idx2))
+
+
 if __name__ == '__main__':
 
     import nose

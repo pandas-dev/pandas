@@ -806,6 +806,19 @@ class DatetimeIndex(Int64Index):
 
         return PeriodIndex(self.values, freq=freq, tz=self.tz)
 
+    def factorize(self, sort=False, na_sentinel=-1):
+        """
+        Index.factorize with handling for DatetimeIndex metadata
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        from pandas.core.algorithms import factorize
+        labels, uniques = factorize(self.asi8, sort=sort, na_sentinel=na_sentinel)
+        uniques = DatetimeIndex._simple_new(uniques, name=self.name, freq=self.freq, tz=self.tz)
+        return labels, uniques
+
     def order(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index

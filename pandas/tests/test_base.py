@@ -398,6 +398,48 @@ class TestIndexOps(Ops):
             self.assert_numpy_array_equal(td.unique(), expected)
             self.assertEquals(td.nunique(), 1)
 
+    def test_factorize(self):
+        for o in self.objs:
+            exp_arr = np.array(range(len(o)))
+            labels, uniques = o.factorize()
+
+            self.assert_numpy_array_equal(labels, exp_arr)
+            if isinstance(o, Series):
+                expected = Index(o.values)
+                self.assert_numpy_array_equal(uniques, expected)
+            else:
+                self.assertTrue(uniques.equals(o))
+
+        for o in self.objs:
+            # sort by value, and create duplicates
+            if isinstance(o, Series):
+                o.sort()
+            else:
+                indexer = o.argsort()
+                o = o.take(indexer)
+            n = o[5:].append(o)
+
+            exp_arr = np.array([5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+            labels, uniques = n.factorize(sort=True)
+
+            self.assert_numpy_array_equal(labels, exp_arr)
+            if isinstance(o, Series):
+                expected = Index(o.values)
+                self.assert_numpy_array_equal(uniques, expected)
+            else:
+                self.assertTrue(uniques.equals(o))
+
+            exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4])
+            labels, uniques = n.factorize(sort=False)
+            self.assert_numpy_array_equal(labels, exp_arr)
+
+            if isinstance(o, Series):
+                expected = Index(np.concatenate([o.values[5:10], o.values[:5]]))
+                self.assert_numpy_array_equal(uniques, expected)
+            else:
+                expected = o[5:].append(o[:5])
+                self.assertTrue(uniques.equals(expected))
+
 
 class TestDatetimeIndexOps(Ops):
     _allowed = '_allow_datetime_index_ops'

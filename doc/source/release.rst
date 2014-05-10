@@ -203,6 +203,7 @@ API Changes
   ignored (:issue:`6607`)
 - Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
   parser when no options are ignored (:issue:`6607`)
+- Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -485,6 +486,7 @@ Bug Fixes
 - Bug in cache coherence with chained indexing and slicing; add ``_is_view`` property to ``NDFrame`` to correctly predict
   views; mark ``is_copy`` on ``xs` only if its an actual copy (and not a view) (:issue:`7084`)
 - Bug in DatetimeIndex creation from string ndarray with ``dayfirst=True`` (:issue:`5917`)
+- Bug in ``MultiIndex.from_arrays`` created from ``DatetimeIndex`` doesn't preserve ``freq`` and ``tz`` (:issue:`7090`)
 
 pandas 0.13.1
 -------------

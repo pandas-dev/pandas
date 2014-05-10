@@ -245,6 +245,7 @@ API changes
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
   from 0.13.1
+- Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
 
 .. _whatsnew_0140.sql:
 
