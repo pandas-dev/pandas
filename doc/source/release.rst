@@ -490,6 +490,7 @@ Bug Fixes
 - Bug in ``MultiIndex.from_arrays`` created from ``DatetimeIndex`` doesn't preserve ``freq`` and ``tz`` (:issue:`7090`)
 - Bug in ``unstack`` raises ``ValueError`` when ``MultiIndex`` contains ``PeriodIndex`` (:issue:`4342`)
 - Bug in ``boxplot`` and ``hist`` draws unnecessary axes (:issue:`6769`)
+- Regression in ``groupby.nth()`` for out-of-bounds indexers (:issue:`6621`)
 
 pandas 0.13.1
 -------------

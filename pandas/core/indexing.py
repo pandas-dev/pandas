@@ -891,7 +891,7 @@ class _NDFrameIndexer(object):
                 return self.obj.take(indexer, axis=axis)
 
             # this is not the most robust, but...
-            if (isinstance(labels, MultiIndex) and
+            if (isinstance(labels, MultiIndex) and len(keyarr) and
                     not isinstance(keyarr[0], tuple)):
                 level = 0
             else:
