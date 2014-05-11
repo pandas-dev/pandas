@@ -497,6 +497,7 @@ Bug Fixes
 - Bug in ``quantile`` with datetime values (:issue:`6965`)
 - Bug in ``Dataframe.set_index``, ``reindex`` and ``pivot`` don't preserve ``DatetimeIndex`` and ``PeriodIndex`` attributes (:issue:`3950`, :issue:`5878`, :issue:`6631`)
 - Bug in ``MultiIndex.get_level_values`` doesn't preserve ``DatetimeIndex`` and ``PeriodIndex`` attributes (:issue:`7092`)
+- Bug in ``Groupby`` doesn't preserve ``tz`` (:issue:`3950`)
 
 pandas 0.13.1
 -------------

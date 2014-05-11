@@ -116,11 +116,11 @@ class TestFactorize(tm.TestCase):
         # periods are not 'sorted' as they are converted back into an index
         labels, uniques = algos.factorize(x)
         self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
-        self.assert_numpy_array_equal(uniques, np.array([v1, v2],dtype=object))
+        self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
 
         labels, uniques = algos.factorize(x,sort=True)
         self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
-        self.assert_numpy_array_equal(uniques, np.array([v1, v2],dtype=object))
+        self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True

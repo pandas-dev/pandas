@@ -80,16 +80,10 @@ class Categorical(PandasObject):
         if levels is None:
             if name is None:
                 name = getattr(labels, 'name', None)
-            if hasattr(labels, 'factorize'):
-                try:
-                    labels, levels = labels.factorize(sort=True)
-                except TypeError:
-                    labels, levels = labels.factorize(sort=False)
-            else:
-                try:
-                    labels, levels = factorize(labels, sort=True)
-                except TypeError:
-                    labels, levels = factorize(labels, sort=False)
+            try:
+                labels, levels = factorize(labels, sort=True)
+            except TypeError:
+                labels, levels = factorize(labels, sort=False)
 
         self.labels = labels
         self.levels = levels

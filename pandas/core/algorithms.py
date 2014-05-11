@@ -112,7 +112,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     Returns
     -------
     labels : the indexer to the original array
-    uniques : the unique values
+    uniques : ndarray (1-d) or Index
+        the unique values. Index is returned when passed values is Index or Series
 
     note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
     """
@@ -120,7 +121,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         warn("order is deprecated."
              "See https://github.com/pydata/pandas/issues/6926", FutureWarning)
 
-    from pandas.tseries.period import PeriodIndex
+    from pandas.core.index import Index
+    from pandas.core.series import Series
     vals = np.asarray(values)
     is_datetime = com.is_datetime64_dtype(vals)
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
@@ -159,9 +161,11 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     if is_datetime:
         uniques = uniques.astype('M8[ns]')
-    if isinstance(values, PeriodIndex):
-        uniques = PeriodIndex(ordinal=uniques, freq=values.freq)
-
+    if isinstance(values, Index):
+        uniques = values._simple_new(uniques, None, freq=getattr(values, 'freq', None), 
+                                     tz=getattr(values, 'tz', None))
+    elif isinstance(values, Series):
+        uniques = Index(uniques)
     return labels, uniques
 
 

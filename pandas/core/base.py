@@ -336,10 +336,7 @@ class IndexOpsMixin(object):
         uniques : the unique Index
         """
         from pandas.core.algorithms import factorize
-        from pandas.core.index import Index
-        labels, uniques = factorize(self, sort=sort, na_sentinel=na_sentinel)
-        uniques = Index(uniques)
-        return labels, uniques
+        return factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     date = _field_accessor('date','Returns numpy array of datetime.date. The date part of the Timestamps')
     time = _field_accessor('time','Returns numpy array of datetime.time. The time part of the Timestamps')
