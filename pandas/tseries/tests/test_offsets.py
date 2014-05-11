@@ -185,6 +185,8 @@ class TestCommon(Base):
                           'Milli': Timestamp('2011-01-01 09:00:00.001000'),
                           'Micro': Timestamp('2011-01-01 09:00:00.000001'),
                           'Nano': Timestamp(np.datetime64('2011-01-01T09:00:00.000000001Z'))}
+ 
+        self.timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern']
 
     def test_return_type(self):
         for offset in self.offset_types:
@@ -213,6 +215,24 @@ class TestCommon(Base):
         result = func(Timestamp(dt))
         self.assert_(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
+
+        if isinstance(dt, np.datetime64):
+            # test tz when input is datetime or Timestamp
+            return
+
+        tm._skip_if_no_pytz()
+        import pytz
+        for tz in self.timezones:
+            expected_localize = expected.tz_localize(tz)
+
+            dt_tz = pytz.timezone(tz).localize(dt)
+            result = func(dt_tz)
+            self.assert_(isinstance(result, datetime))
+            self.assertEqual(result, expected_localize)
+
+            result = func(Timestamp(dt, tz=tz))
+            self.assert_(isinstance(result, datetime))
+            self.assertEqual(result, expected_localize)
 
     def _check_nanofunc_works(self, offset, funcname, dt, expected):
         offset = self._get_offset(offset)
@@ -334,9 +354,7 @@ class TestCommon(Base):
                                                  dt, expected, normalize=True)
 
     def test_onOffset(self):
-
         for offset in self.offset_types:
-
             dt = self.expecteds[offset.__name__]
             offset_s = self._get_offset(offset)
             self.assert_(offset_s.onOffset(dt))

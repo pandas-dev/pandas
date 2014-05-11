@@ -209,6 +209,12 @@ def mplskip(cls):
     cls.setUpClass = setUpClass
     return cls
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        import nose
+        raise nose.SkipTest("pytz not installed")
 
 #------------------------------------------------------------------------------
 # locale utilities
