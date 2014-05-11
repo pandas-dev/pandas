@@ -332,7 +332,7 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_read_sql_iris(self):
         iris_frame = sql.read_sql_query(
-            "SELECT * FROM iris", self.conn, flavor='sqlite')
+            "SELECT * FROM iris", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
     def test_legacy_read_frame(self):
@@ -391,8 +391,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_to_sql_series(self):
         s = Series(np.arange(5, dtype='int64'), name='series')
         sql.to_sql(s, "test_series", self.conn, flavor='sqlite', index=False)
-        s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn,
-                                flavor='sqlite')
+        s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
     def test_to_sql_panel(self):
@@ -416,8 +415,7 @@ class _TestSQLApi(PandasSQLTest):
                    con=self.conn, flavor='sqlite')
         result = sql.read_sql_query(
             'SELECT * FROM test_frame_roundtrip',
-            con=self.conn,
-            flavor='sqlite')
+            con=self.conn)
 
         # HACK!
         result.index = self.test_frame1.index
@@ -428,41 +426,38 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = sql.execute(
-            "SELECT * FROM iris", con=self.conn, flavor='sqlite')
+        iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
         # Test date parsing in read_sq
         # No Parsing
-        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite')
+        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         self.assertFalse(
             issubclass(df.DateCol.dtype.type, np.datetime64),
             "DateCol loaded with incorrect type")
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite', parse_dates=['DateCol'])
+                                parse_dates=['DateCol'])
         self.assertTrue(
             issubclass(df.DateCol.dtype.type, np.datetime64),
             "DateCol loaded with incorrect type")
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite',
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
         self.assertTrue(
             issubclass(df.DateCol.dtype.type, np.datetime64),
             "DateCol loaded with incorrect type")
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite', parse_dates=['IntDateCol'])
+                                parse_dates=['IntDateCol'])
 
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite', parse_dates={'IntDateCol': 's'})
+                                parse_dates={'IntDateCol': 's'})
 
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
@@ -471,7 +466,7 @@ class _TestSQLApi(PandasSQLTest):
         # Test case where same column appears in parse_date and index_col
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
-                                flavor='sqlite', index_col='DateCol',
+                                index_col='DateCol',
                                 parse_dates=['DateCol', 'IntDateCol'])
 
         self.assertTrue(issubclass(df.index.dtype.type, np.datetime64),
@@ -651,22 +646,19 @@ class TestSQLLegacyApi(_TestSQLApi):
 
             conn = self.connect(name)
             result = sql.read_sql_query("SELECT * FROM test_frame2_legacy;",
-                                        conn, flavor="sqlite")
+                                        conn)
             conn.close()
 
         tm.assert_frame_equal(self.test_frame2, result)
 
     def test_read_sql_delegate(self):
-        iris_frame1 = sql.read_sql_query(
-            "SELECT * FROM iris", self.conn, flavor=self.flavor)
-        iris_frame2 = sql.read_sql(
-            "SELECT * FROM iris", self.conn, flavor=self.flavor)
+        iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
+        iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2,
                               "read_sql and read_sql_query have not the same"
                               " result with a query")
 
-        self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn,
-                          flavor=self.flavor)
+        self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn)
 
     def test_safe_names_warning(self):
         # GH 6798
@@ -1109,6 +1101,14 @@ class TestMySQLLegacy(TestSQLiteLegacy):
         self.conn.commit()
         self.conn.close()
 
+    def test_a_deprecation(self):
+        with tm.assert_produces_warning(FutureWarning):
+            sql.to_sql(self.test_frame1, 'test_frame1', self.conn,
+                       flavor='mysql')
+        self.assertTrue(
+            sql.has_table('test_frame1', self.conn, flavor='mysql'),
+            'Table not written to DB')
+
 
 #------------------------------------------------------------------------------
 #--- Old tests from 0.13.1 (before refactor using sqlalchemy)
@@ -1277,8 +1277,6 @@ class TestXSQLite(tm.TestCase):
         expected = frame.copy()
         expected.index = Index(lrange(len(frame2))) + 10
         expected.index.name = 'Idx'
-        print(expected.index.names)
-        print(result.index.names)
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):

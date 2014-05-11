@@ -247,6 +247,9 @@ Deprecations
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
   raised  if the old ``data`` argument is used by name. (:issue:`6956`)
 
+- The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
+  MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
