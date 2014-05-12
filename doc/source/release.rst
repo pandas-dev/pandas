@@ -515,6 +515,7 @@ Bug Fixes
 - Bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the `large_repr` set to 'info'
   (:issue:`7105`)
 - Bug in ``DatetimeIndex`` specifying ``freq`` raises ``ValueError`` when passed value is too short (:issue:`7098`)
+- Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
 
 pandas 0.13.1
 -------------

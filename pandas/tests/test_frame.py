@@ -6326,6 +6326,41 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             name = '%d    %d non-null %s' % (i, n, dtype)
             assert name in res
 
+    def test_info_max_cols(self):
+        df = DataFrame(np.random.randn(10, 5))
+        for len_, verbose in [(4, None), (4, False), (9, True)]:
+        # For verbose always      ^ setting  ^ summarize ^ full output
+            with pd.option_context('max_info_columns', 4):
+                buf = StringIO()
+                df.info(buf=buf, verbose=verbose)
+                res = buf.getvalue()
+                self.assertEqual(len(res.split('\n')), len_)
+
+        for len_, verbose in [(9, None), (4, False), (9, True)]:
+
+            # max_cols no exceeded
+            with pd.option_context('max_info_columns', 5):
+                buf = StringIO()
+                df.info(buf=buf, verbose=verbose)
+                res = buf.getvalue()
+                self.assertEqual(len(res.split('\n')), len_)
+
+        for len_, max_cols in [(9, 5), (4, 4)]:
+            # setting truncates
+            with pd.option_context('max_info_columns', 4):
+                buf = StringIO()
+                df.info(buf=buf, max_cols=max_cols)
+                res = buf.getvalue()
+                self.assertEqual(len(res.split('\n')), len_)
+
+            # setting wouldn't truncate
+            with pd.option_context('max_info_columns', 5):
+                buf = StringIO()
+                df.info(buf=buf, max_cols=max_cols)
+                res = buf.getvalue()
+                self.assertEqual(len(res.split('\n')), len_)
+
+
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes

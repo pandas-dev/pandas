@@ -1392,17 +1392,20 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=True, buf=None, max_cols=None):
+    def info(self, verbose=None, buf=None, max_cols=None):
         """
         Concise summary of a DataFrame.
 
         Parameters
         ----------
-        verbose : boolean, default True
-            If False, don't print column count summary
+        verbose : {None, True, False}, optional
+            Whether to print the full summary.
+            None follows the `display.max_info_columns` setting.
+            True or False overrides the `display.max_info_columns` setting.
         buf : writable buffer, defaults to sys.stdout
         max_cols : int, default None
-            Determines whether full summary or short summary is printed
+            Determines whether full summary or short summary is printed.
+            None follows the `display.max_info_columns` setting.
         """
         from pandas.core.format import _put_lines
 
@@ -1429,8 +1432,10 @@ class DataFrame(NDFrame):
         max_rows = get_option('display.max_info_rows', len(self) + 1)
 
         show_counts = ((len(self.columns) <= max_cols) and
-                         (len(self) < max_rows))
-        if verbose:
+                       (len(self) < max_rows))
+        exceeds_info_cols = len(self.columns) > max_cols
+
+        def _verbose_repr():
             lines.append('Data columns (total %d columns):' %
                          len(self.columns))
             space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
@@ -1442,21 +1447,32 @@ class DataFrame(NDFrame):
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError('Columns must equal counts (%d != %d)' %
                                          (len(cols), len(counts)))
-                tmpl =  "%s non-null %s"
+                tmpl = "%s non-null %s"
 
             dtypes = self.dtypes
             for i, col in enumerate(self.columns):
                 dtype = dtypes[col]
                 col = com.pprint_thing(col)
 
-                count= ""
+                count = ""
                 if show_counts:
                     count = counts.iloc[i]
 
                 lines.append(_put_str(col, space) +
                              tmpl % (count, dtype))
-        else:
+
+        def _non_verbose_repr():
             lines.append(self.columns.summary(name='Columns'))
+
+        if verbose:
+            _verbose_repr()
+        elif verbose is False:  # specifically set to False, not nesc None
+            _non_verbose_repr()
+        else:
+            if exceeds_info_cols:
+                _non_verbose_repr()
+            else:
+                _verbose_repr()
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]

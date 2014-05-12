@@ -38,6 +38,12 @@ def has_info_repr(df):
     c2 = r.split('\n')[0].startswith(r"&lt;class")  # _repr_html_
     return c1 or c2
 
+def has_non_verbose_info_repr(df):
+    has_info = has_info_repr(df)
+    r = repr(df)
+    nv = len(r.split('\n')) == 4  # 1. <class>, 2. Index, 3. Columns, 4. dtype
+    return has_info and nv
+
 def has_horizontally_truncated_repr(df):
     r = repr(df)
     return any(l.strip().endswith('...') for l in r.splitlines())
@@ -1572,6 +1578,22 @@ c  10  11  12  13  14\
         assert has_vertically_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
+
+    def test_info_repr_max_cols(self):
+        # GH #6939
+        df = DataFrame(randn(10, 5))
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', 1,
+                            'display.max_info_columns', 4):
+            self.assertTrue(has_non_verbose_info_repr(df))
+
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', 1,
+                            'display.max_info_columns', 5):
+            self.assertFalse(has_non_verbose_info_repr(df))
+
+        # test verbose overrides
+        # fmt.set_option('display.max_info_columns', 4)  # exceeded
 
     def test_info_repr_html(self):
         max_rows = get_option('display.max_rows')

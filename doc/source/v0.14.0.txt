@@ -210,6 +210,7 @@ API changes
      # this now raises for arith ops like ``+``, ``*``, etc.
      NotImplementedError: operator '*' not implemented for bool dtypes
 
+
 .. _whatsnew_0140.display:
 
 Display Changes
@@ -239,6 +240,11 @@ Display Changes
   length of the series (:issue:`7101`)
 - Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
   `large_repr` set to 'info' (:issue:`7105`)
+- The `verbose` keyword in ``DataFrame.info()``, which controls whether to shorten the ``info``
+  representation, is now ``None`` by default. This will follow the global setting in
+  ``display.max_info_columns``. The global setting can be overriden with ``verbose=True`` or
+  ``verbose=False``.
+- Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
 
 .. _whatsnew_0140.groupby:
 
