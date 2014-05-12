@@ -877,7 +877,7 @@ If you want to select the nth not-null method, use the ``dropna`` kwarg. For a D
    g.first()
 
    # nth(-1) is the same as g.last()
-   g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
+   g.nth(-1, dropna='any')  # NaNs denote group exhausted when using dropna
    g.last()
 
    g.B.nth(0, dropna=True)
