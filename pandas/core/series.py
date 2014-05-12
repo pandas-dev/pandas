@@ -1179,7 +1179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        idxmax : Index of minimum of values
+        idxmax : Index of maximum of values
 
         Notes
         -----
