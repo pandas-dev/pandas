@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 from pandas.compat import range, lrange, zip, product
 import numpy as np
 
-from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
+from pandas import (Series, TimeSeries, DataFrame, Panel, Index,
+                    isnull, notnull, Timestamp)
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -103,6 +104,48 @@ class TestResample(tm.TestCase):
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
+
+    def test_resample_how(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00',
+                            freq='min', name='index')
+        s = Series(np.random.randn(14), index=rng)
+        grouplist = np.ones_like(s)
+        grouplist[0] = 0
+        grouplist[1:6] = 1
+        grouplist[6:11] = 2
+        grouplist[11:] = 3
+        args = ['sum', 'mean', 'std', 'sem', 'max', 'min',
+                'median', 'first', 'last', 'ohlc']
+
+        def _ohlc(group):
+            if isnull(group).all():
+                return np.repeat(np.nan, 4)
+            return [group[0], group.max(), group.min(), group[-1]]
+        inds = date_range('1/1/2000', periods=4, freq='5min')
+
+        for arg in args:
+            if arg == 'ohlc':
+                func = _ohlc
+            else:
+                func = arg
+            try:
+                result = s.resample('5min', how=arg,
+                                    closed='right', label='right')
+
+                expected = s.groupby(grouplist).agg(func)
+                self.assertEqual(result.index.name, 'index')
+                if arg == 'ohlc':
+                    expected = DataFrame(expected.values.tolist())
+                    expected.columns = ['open', 'high', 'low', 'close']
+                    expected.index = Index(inds, name='index')
+                    assert_frame_equal(result, expected)
+                else:
+                    expected.index = inds
+                    assert_series_equal(result, expected)
+            except BaseException as exc:
+
+                exc.args += ('how=%s' % arg,)
+                raise
 
     def test_resample_basic_from_daily(self):
         # from daily

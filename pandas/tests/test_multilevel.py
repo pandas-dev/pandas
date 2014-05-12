@@ -1378,7 +1378,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertRaises(KeyError, frame.count, level='x')
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                     'mad', 'std', 'var']
+                     'mad', 'std', 'var', 'sem']
 
     def test_series_group_min_max(self):
         for op, level, skipna in cart_product(self.AGG_FUNCTIONS,

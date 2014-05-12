@@ -73,6 +73,9 @@ Enhancements
 
   See :ref:`the docs <timeseries.timezone>`.
 
+- Implemented ``sem`` (standard error of the mean) operation for ``Series``,
+  ``DataFrame``, ``Panel``, and ``Groupby`` (:issue:`6897`)
+
 .. _whatsnew_0141.performance:
 
 Performance

@@ -308,6 +308,24 @@ def nanmedian(values, axis=None, skipna=True):
     return _wrap_results(get_median(values), dtype) if notempty else np.nan
 
 
+def _get_counts_nanvar(mask, axis, ddof):
+    count = _get_counts(mask, axis)
+
+    d = count-ddof
+
+    # always return NaN, never inf
+    if np.isscalar(count):
+        if count <= ddof:
+            count = np.nan
+            d = np.nan
+    else:
+        mask2 = count <= ddof
+        if mask2.any():
+            np.putmask(d, mask2, np.nan)
+            np.putmask(count, mask2, np.nan)
+    return count, d
+
+
 @disallow('M8')
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
@@ -316,30 +334,27 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
     mask = isnull(values)
 
-    if axis is not None:
-        count = (values.shape[axis] - mask.sum(axis)).astype(float)
-    else:
-        count = float(values.size - mask.sum())
+    count, d = _get_counts_nanvar(mask, axis, ddof)
 
-    d = count-ddof
     if skipna:
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    # always return NaN, never inf
-    if np.isscalar(count):
-        if count <= ddof:
-            count = np.nan
-            d = np.nan
-    else:
-        mask = count <= ddof
-        if mask.any():
-            np.putmask(d, mask, np.nan)
-            np.putmask(count, mask, np.nan)
-
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
     return np.fabs((XX - X ** 2 / count) / d)
+
+
+def nansem(values, axis=None, skipna=True, ddof=1):
+    var = nanvar(values, axis, skipna, ddof=ddof)
+
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+    mask = isnull(values)
+    count, _ = _get_counts_nanvar(mask, axis, ddof)
+
+    return np.sqrt(var)/np.sqrt(count)
+
 
 @bottleneck_switch()
 def nanmin(values, axis=None, skipna=True):

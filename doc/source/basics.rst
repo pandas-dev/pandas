@@ -428,6 +428,7 @@ optional ``level`` parameter which applies only if the object has a
     ``prod``, Product of values
     ``std``, Unbiased standard deviation
     ``var``, Unbiased variance
+    ``sem``, Unbiased standard error of the mean
     ``skew``, Unbiased skewness (3rd moment)
     ``kurt``, Unbiased kurtosis (4th moment)
     ``quantile``, Sample quantile (value at %)

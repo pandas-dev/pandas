@@ -486,7 +486,7 @@ class GroupBy(PandasObject):
                              (type(self).__name__, attr))
 
     def __getitem__(self, key):
-        raise NotImplementedError
+        raise NotImplementedError('Not implemented: %s' % key)
 
     def _make_wrapper(self, name):
         if name not in self._apply_whitelist:
@@ -709,6 +709,14 @@ class GroupBy(PandasObject):
             self._set_selection_from_grouper()
             f = lambda x: x.var(ddof=ddof)
             return self._python_agg_general(f)
+
+    def sem(self, ddof=1):
+        """
+        Compute standard error of the mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self.std(ddof=ddof)/np.sqrt(self.count())
 
     def size(self):
         """
