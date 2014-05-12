@@ -4002,11 +4002,38 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # float, int, datetime64 (use i8), timedelts64 (same),
         # object that are numbers, object that are strings
 
-        s_list = [Series([3, 2, 1, 2, 5]),
-                  Series([3., 2., 1., 2., 5.]),
-                  Series([3., 2, 1, 2, 5], dtype='object'),
-                  Series([3., 2, 1, 2, '5'], dtype='object'),
-                  Series(pd.to_datetime(['2003', '2002', '2001', '2002', '2005']))]
+        base = [3, 2, 1, 2, 5]
+
+        s_list = [
+            Series(base, dtype='int8'),
+            Series(base, dtype='int16'),
+            Series(base, dtype='int32'),
+            Series(base, dtype='int64'),
+            Series(base, dtype='float32'),
+            Series(base, dtype='float64'),
+            Series(base, dtype='uint8'),
+            Series(base, dtype='uint16'),
+            Series(base, dtype='uint32'),
+            Series(base, dtype='uint64'),
+            Series(base).astype('timedelta64[ns]'),
+            Series(pd.to_datetime(['2003', '2002', '2001', '2002', '2005'])),
+        ]
+
+        raising = [
+            Series([3., 2, 1, 2, '5'], dtype='object'),
+            Series([3., 2, 1, 2, 5], dtype='object'),
+            Series([3., 2, 1, 2, 5], dtype='complex256'),
+            Series([3., 2, 1, 2, 5], dtype='complex128'),
+        ]
+
+        for r in raising:
+            dt = r.dtype
+            msg = "Cannot use method 'n(larg|small)est' with dtype %s" % dt
+            args = 2, len(r), 0, -1
+            methods = r.nlargest, r.nsmallest
+            for method, arg in product(methods, args):
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    method(arg)
 
         for s in s_list:
 
@@ -4014,7 +4041,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
 
             assert_series_equal(s.nlargest(3), s.iloc[[4, 0, 1]])
-            assert_series_equal(s.nlargest(3, take_last=True), s.iloc[[4, 0, 3]])
+            assert_series_equal(s.nlargest(3, take_last=True),
+                                s.iloc[[4, 0, 3]])
 
             empty = s.iloc[0:0]
             assert_series_equal(s.nsmallest(0), empty)
@@ -4025,7 +4053,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(s.nsmallest(len(s)), s.order())
             assert_series_equal(s.nsmallest(len(s) + 1), s.order())
             assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
-            assert_series_equal(s.nlargest(len(s) + 1), s.iloc[[4, 0, 1, 3, 2]])
+            assert_series_equal(s.nlargest(len(s) + 1),
+                                s.iloc[[4, 0, 1, 3, 2]])
 
         s = Series([3., np.nan, 1, 2, 5])
         assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])

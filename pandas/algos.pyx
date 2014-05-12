@@ -739,7 +739,8 @@ def _check_minp(win, minp, N):
 # Physical description: 366 p.
 #               Series: Prentice-Hall Series in Automatic Computation
 
-ctypedef fused kth_type:
+
+ctypedef fused numeric:
     int8_t
     int16_t
     int32_t
@@ -754,17 +755,25 @@ ctypedef fused kth_type:
     float64_t
 
 
-cdef void swap_kth(kth_type *a, kth_type *b):
-    cdef kth_type t
+cdef inline Py_ssize_t swap(numeric *a, numeric *b) except -1:
+    cdef numeric t
+
+    # cython doesn't allow pointer dereference so use array syntax
     t = a[0]
     a[0] = b[0]
     b[0] = t
+    return 0
 
 
-cpdef kth_type kth_smallest(kth_type[:] a, Py_ssize_t k):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
     cdef:
-        Py_ssize_t i, j, l = 0, n = a.size, m = n - 1
-        kth_type x
+        Py_ssize_t i, j, l, m, n = a.size
+        numeric x
+
+    l = 0
+    m = n - 1
 
     while l < m:
         x = a[k]
@@ -775,7 +784,7 @@ cpdef kth_type kth_smallest(kth_type[:] a, Py_ssize_t k):
             while a[i] < x: i += 1
             while x < a[j]: j -= 1
             if i <= j:
-                swap_kth(&a[i], &a[j])
+                swap(&a[i], &a[j])
                 i += 1; j -= 1
 
             if i > j: break
@@ -801,7 +810,7 @@ cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
             while a[i] < x: i += 1
             while x < a[j]: j -= 1
             if i <= j:
-                swap_kth(&a[i], &a[j])
+                swap(&a[i], &a[j])
                 i += 1; j -= 1
 
             if i > j: break
@@ -811,7 +820,7 @@ cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     return a[k]
 
 
-cpdef kth_type median(kth_type[:] arr):
+cpdef numeric median(numeric[:] arr):
     '''
     A faster median
     '''

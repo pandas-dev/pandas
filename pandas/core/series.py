@@ -35,6 +35,7 @@ from pandas.compat import zip, u, OrderedDict
 
 import pandas.core.array as pa
 import pandas.core.ops as ops
+from pandas.core.algorithms import select_n
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
@@ -1699,17 +1700,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         good = ~bad
         idx = pa.arange(len(self))
 
-        def _try_kind_sort(arr, kind='mergesort'):
-            # easier to ask forgiveness than permission
-            try:
-                # if kind==mergesort, it can fail for object dtype
-                return arr.argsort(kind=kind)
-            except TypeError:
-                # stable sort not available for object dtype
-                # uses the argsort default quicksort
-                return arr.argsort(kind='quicksort')
-
-        argsorted = _try_kind_sort(arr[good], kind=kind)
+        argsorted = _try_kind_sort(arr[good])
 
         if not ascending:
             argsorted = argsorted[::-1]
@@ -1733,49 +1724,70 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result.__finalize__(self)
 
     def nlargest(self, n=5, take_last=False):
-        '''
-        Returns the largest n rows:
+        """Return the largest `n` elements.
 
-        May be faster than .order(ascending=False).head(n).
+        Parameters
+        ----------
+        n : int
+            Return this many descending sorted values
+        take_last : bool
+            Where there are duplicate values, take the last duplicate
 
-        '''
-        # TODO remove need for dropna ?
-        dropped = self.dropna()
+        Returns
+        -------
+        top_n : Series
+            The n largest values in the Series, in sorted order
 
-        from pandas.tools.util import nlargest
+        Notes
+        -----
+        Faster than ``.order(ascending=False).head(n)`` for small `n` relative
+        to the size of the ``Series`` object.
 
-        if dropped.dtype == object:
-            try:
-                dropped = dropped.astype(float)
-            except (NotImplementedError, TypeError):
-                return dropped.order(ascending=False).head(n)
+        See Also
+        --------
+        Series.nsmallest
 
-        inds = nlargest(dropped.values, n, take_last)
-        if len(inds) == 0:
-            # TODO remove this special case
-            return dropped[[]]
-        return dropped.iloc[inds]
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> s = pd.Series(np.random.randn(1e6))
+        >>> s.nlargest(10)  # only sorts up to the N requested
+        """
+        return select_n(self, n=n, take_last=take_last, method='nlargest')
 
     def nsmallest(self, n=5, take_last=False):
-        '''
-        Returns the smallest n rows.
+        """Return the smallest `n` elements.
 
-        May be faster than .order().head(n).
+        Parameters
+        ----------
+        n : int
+            Return this many ascending sorted values
+        take_last : bool
+            Where there are duplicate values, take the last duplicate
 
-        '''
-        # TODO remove need for dropna ?
-        dropped = self.dropna()
+        Returns
+        -------
+        bottom_n : Series
+            The n smallest values in the Series, in sorted order
 
-        from pandas.tools.util import nsmallest
-        try:
-            inds = nsmallest(dropped.values, n, take_last)
-        except NotImplementedError:
-            return dropped.order().head(n)
+        Notes
+        -----
+        Faster than ``.order().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
 
-        if len(inds) == 0:
-            # TODO remove this special case
-            return dropped[[]]
-        return dropped.iloc[inds]
+        See Also
+        --------
+        Series.nlargest
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> s = pd.Series(np.random.randn(1e6))
+        >>> s.nsmallest(10)  # only sorts up to the N requested
+        """
+        return select_n(self, n=n, take_last=take_last, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
