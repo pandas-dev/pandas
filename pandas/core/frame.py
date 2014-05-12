@@ -2220,7 +2220,7 @@ class DataFrame(NDFrame):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index.get_level_values(i))
             else:
-                arrays.append(np.asarray(self.index))
+                arrays.append(self.index)
 
         to_remove = []
         for col in keys:
@@ -2232,9 +2232,12 @@ class DataFrame(NDFrame):
 
                 level = col.get_level_values(col.nlevels - 1)
                 names.extend(col.names)
-            elif isinstance(col, (Series, Index)):
+            elif isinstance(col, Series):
                 level = col.values
                 names.append(col.name)
+            elif isinstance(col, Index):
+                level = col
+                names.append(col.name)                
             elif isinstance(col, (list, np.ndarray)):
                 level = col
                 names.append(None)

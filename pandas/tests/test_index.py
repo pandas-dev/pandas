@@ -180,6 +180,19 @@ class TestIndex(tm.TestCase):
         assert_array_equal(rs, xp)
         tm.assert_isinstance(rs, PeriodIndex)
 
+    def test_constructor_simple_new(self):
+        idx = Index([1, 2, 3, 4, 5], name='int')
+        result = idx._simple_new(idx, 'int')
+        self.assert_(result.equals(idx))
+
+        idx = Index([1.1, np.nan, 2.2, 3.0], name='float')
+        result = idx._simple_new(idx, 'float')
+        self.assert_(result.equals(idx))
+
+        idx = Index(['A', 'B', 'C', np.nan], name='obj')
+        result = idx._simple_new(idx, 'obj')
+        self.assert_(result.equals(idx))
+
     def test_copy(self):
         i = Index([], name='Foo')
         i_copy = i.copy()

@@ -669,6 +669,13 @@ class PeriodIndex(Int64Index):
 
         return data, freq
 
+    @classmethod
+    def _simple_new(cls, values, name, freq=None, **kwargs):
+        result = values.view(cls)
+        result.name = name
+        result.freq = freq
+        return result
+
     def __contains__(self, key):
         if not isinstance(key, Period) or key.freq != self.freq:
             if isinstance(key, compat.string_types):

@@ -1194,6 +1194,14 @@ class TestPeriodIndex(tm.TestCase):
 
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
+    def test_constructor_simple_new(self):
+        idx = period_range('2007-01', name='p', periods=20, freq='M')
+        result = idx._simple_new(idx, 'p', freq=idx.freq)
+        self.assert_(result.equals(idx))
+
+        result = idx._simple_new(idx.astype('i8'), 'p', freq=idx.freq)
+        self.assert_(result.equals(idx))
+
     def test_is_(self):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
                                            end='12/1/2009')
@@ -1389,6 +1397,17 @@ class TestPeriodIndex(tm.TestCase):
         rs = df.reset_index().set_index('index')
         tm.assert_isinstance(rs.index, PeriodIndex)
         self.assert_(rs.index.equals(rng))
+
+    def test_period_set_index_reindex(self):
+        # GH 6631
+        df = DataFrame(np.random.random(6))
+        idx1 = period_range('2011/01/01', periods=6, freq='M')
+        idx2 = period_range('2013', periods=6, freq='A')
+
+        df = df.set_index(idx1)
+        self.assert_(df.index.equals(idx1))
+        df = df.reindex(idx2)
+        self.assert_(df.index.equals(idx2))
 
     def test_nested_dict_frame_constructor(self):
         rng = period_range('1/1/2000', periods=5)
