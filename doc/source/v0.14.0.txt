@@ -230,10 +230,10 @@ More consistent behaviour for some groupby methods:
 
      df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
      g = df.groupby('A')
-     g.nth(0)  # can also use negative ints
+     g.nth(0)
 
      # this is equivalent to g.first()
-     g.nth(0, dropna='any')  # similar to old behaviour
+     g.nth(0, dropna='any')
 
      # this is equivalent to g.last()
      g.nth(-1, dropna='any')

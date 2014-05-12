@@ -822,8 +822,6 @@ that could be potential groupers.
    df.groupby([pd.Grouper(freq='6M',level='Date'),'Buyer']).sum()
 
 
-.. _groupby.nth:
-
 Taking the first rows of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -854,6 +852,8 @@ This shows the first or last n rows from each group.
         1 0  1  2
         5 2  5  6
 
+.. _groupby.nth:
+
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -864,24 +864,21 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
    df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
    g = df.groupby('A')
 
-   # nth(0) is the same as g.first()
    g.nth(0)
-   g.first()
-
-   # nth(-1) is the same as g.last()
    g.nth(-1)
-   g.last()
-
-   # return the nth item
    g.nth(1)
 
 If you want to select the nth not-null method, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
 
 .. ipython:: python
 
+   # nth(0) is the same as g.first()
    g.nth(0, dropna='any')
+   g.first()
 
+   # nth(-1) is the same as g.last()
    g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
+   g.last()
 
    g.B.nth(0, dropna=True)
 
