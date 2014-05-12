@@ -184,14 +184,15 @@ class TestPivotTable(tm.TestCase):
     def test_pivot_with_tz(self):
         # GH 5878
         df = DataFrame({'dt1': [datetime.datetime(2013, 1, 1, 9, 0),
-                                   datetime.datetime(2013, 1, 2, 9, 0),
-                                   datetime.datetime(2013, 1, 1, 9, 0),
-                                   datetime.datetime(2013, 1, 2, 9, 0)],
-                           'dt2': [datetime.datetime(2014, 1, 1, 9, 0),
-                                   datetime.datetime(2014, 1, 1, 9, 0),
-                                   datetime.datetime(2014, 1, 2, 9, 0),
-                                   datetime.datetime(2014, 1, 2, 9, 0)],
-                           'data1': range(4), 'data2': range(4)})
+                                datetime.datetime(2013, 1, 2, 9, 0),
+                                datetime.datetime(2013, 1, 1, 9, 0),
+                                datetime.datetime(2013, 1, 2, 9, 0)],
+                        'dt2': [datetime.datetime(2014, 1, 1, 9, 0),
+                                datetime.datetime(2014, 1, 1, 9, 0),
+                                datetime.datetime(2014, 1, 2, 9, 0),
+                                datetime.datetime(2014, 1, 2, 9, 0)],
+                        'data1': np.arange(4,dtype='int64'), 
+                        'data2': np.arange(4,dtype='int64')})
 
         df['dt1'] = df['dt1'].apply(lambda d: pd.Timestamp(d, tz='US/Pacific'))
         df['dt2'] = df['dt2'].apply(lambda d: pd.Timestamp(d, tz='Asia/Tokyo'))
