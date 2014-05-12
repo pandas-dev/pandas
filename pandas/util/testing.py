@@ -1119,6 +1119,7 @@ _network_error_messages = (
     'HTTP Error 502: internal error',
     'HTTP Error 502',
     'HTTP Error 503',
+    'HTTP Error 403',
     )
 
 # or this e.errno/e.reason.errno
