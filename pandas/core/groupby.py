@@ -99,6 +99,7 @@ class SpecificationError(GroupByError):
 def _groupby_function(name, alias, npfunc, numeric_only=True,
                       _convert=False):
     def f(self):
+        self._set_selection_from_grouper()
         try:
             return self._cython_agg_general(alias, numeric_only=numeric_only)
         except AssertionError as e:
@@ -356,6 +357,7 @@ class GroupBy(PandasObject):
     _apply_whitelist = _common_apply_whitelist
     _internal_names = ['_cache']
     _internal_names_set = set(_internal_names)
+    _group_selection = None
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -454,6 +456,8 @@ class GroupBy(PandasObject):
     def _selected_obj(self):
 
         if self._selection is None or isinstance(self.obj, Series):
+            if self._group_selection is not None:
+                return self.obj[self._group_selection]
             return self.obj
         else:
             return self.obj[self._selection]
@@ -461,11 +465,11 @@ class GroupBy(PandasObject):
     def _set_selection_from_grouper(self):
         """ we may need create a selection if we have non-level groupers """
         grp = self.grouper
-        if self._selection is None and self.as_index and getattr(grp,'groupings',None) is not None:
+        if self.as_index and getattr(grp,'groupings',None) is not None:
             ax = self.obj._info_axis
             groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
             if len(groupers):
-                self._selection = (ax-Index(groupers)).tolist()
+                self._group_selection = (ax-Index(groupers)).tolist()
 
     def _local_dir(self):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
@@ -776,6 +780,7 @@ class GroupBy(PandasObject):
 
         """
 
+        self._set_selection_from_grouper()
         if not dropna:  # good choice
             m = self.grouper._max_groupsize
             if n >= m or n < -m:
@@ -787,7 +792,21 @@ class GroupBy(PandasObject):
             else:
                 rng[- n - 1] = True
                 is_nth = self._cumcount_array(rng, ascending=False)
-            return self._selected_obj[is_nth]
+
+            result = self._selected_obj[is_nth]
+
+            # the result index
+            if self.as_index:
+                ax = self.obj._info_axis
+                names = self.grouper.names
+                if all([ n in ax for n in names ]):
+                    result.index = Index(self.obj[names][is_nth].values.ravel()).set_names(names)
+                elif self._group_selection is not None:
+                    result.index = self.obj._get_axis(self.axis)[is_nth]
+
+                result = result.sort_index()
+
+            return result
 
         if (isinstance(self._selected_obj, DataFrame)
            and dropna not in ['any', 'all']):
@@ -853,6 +872,7 @@ class GroupBy(PandasObject):
         dtype: int64
 
         """
+        self._set_selection_from_grouper()
         ascending = kwargs.pop('ascending', True)
 
         index = self._selected_obj.index
