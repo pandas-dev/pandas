@@ -400,6 +400,8 @@ index are the group names and whose values are the sizes of each group.
    for example: ``mean, sum, size, count, std, var, describe, first, last, nth, min, max``. This is
    what happens when you do for example ``DataFrame.sum()`` and get back a ``Series``.
 
+   ``nth`` can act as a reducer *or* a filter, see :ref:`here <groupby.nth>`
+
 .. _groupby.aggregate.multifunc:
 
 Applying multiple functions at once
@@ -855,19 +857,25 @@ This shows the first or last n rows from each group.
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use the nth method:
+To select from a DataFrame or Series the nth item, use the nth method. This is a reduction method, and will return a single row (or no row) per group:
 
 .. ipython:: python
 
-   DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+   df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
    g = df.groupby('A')
-   g.nth(0)
 
+   # nth(0) is the same as g.first()
+   g.nth(0)
+   g.first()
+
+   # nth(-1) is the same as g.last()
+   g.nth(-1)
+   g.last()
+
+   # return the nth item
    g.nth(1)
 
-   g.nth(-1)
-
-If you want to select the nth not-null method, use the dropna kwarg. For a DataFrame this should be either 'any' or 'all' just like you would pass to dropna, for a Series this just needs to be truthy.
+If you want to select the nth not-null method, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
 
 .. ipython:: python
 
@@ -877,9 +885,15 @@ If you want to select the nth not-null method, use the dropna kwarg. For a DataF
 
    g.B.nth(0, dropna=True)
 
-.. warning::
+As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
 
-   Before 0.14.0 this method existed but did not work correctly on DataFrames. The API has changed so that it filters by default, but the old behaviour (for Series) can be achieved by passing dropna. An alternative is to dropna before doing the groupby.
+.. ipython:: python
+
+   df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+   g = df.groupby('A',as_index=False)
+
+   g.nth(0)
+   g.nth(-1)
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

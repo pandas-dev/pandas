@@ -221,8 +221,10 @@ More consistent behaviour for some groupby methods:
 
      g[['B']].head(1)
 
-- groupby ``nth`` now filters by default, with optional dropna argument to ignore
-  NaN (to replicate the previous behaviour.), See :ref:`the docs <groupby.nth>`.
+- groupby ``nth`` now reduces by default; filtering can be achieved by passing ``as_index=False``. With an optional ``dropna`` argument to ignore
+  NaN. See :ref:`the docs <groupby.nth>`.
+
+  Reducing
 
   .. ipython:: python
 
@@ -230,7 +232,19 @@ More consistent behaviour for some groupby methods:
      g = df.groupby('A')
      g.nth(0)  # can also use negative ints
 
+     # this is equivalent to g.first()
      g.nth(0, dropna='any')  # similar to old behaviour
+
+     # this is equivalent to g.last()
+     g.nth(-1, dropna='any')
+
+  Filtering
+
+  .. ipython:: python
+
+     gf = df.groupby('A',as_index=False)
+     gf.nth(0)
+     gf.nth(0, dropna='any')
 
 - groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`, :issue:`6732`),
   as its already the index
