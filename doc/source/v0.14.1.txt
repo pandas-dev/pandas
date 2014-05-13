@@ -70,3 +70,4 @@ Bug Fixes
 - Bug in ``DataFrame`` and ``Series`` bar and barh plot raises ``TypeError`` when ``bottom``
   and ``left`` keyword is specified (:issue:`7226`)
 - BUG in ``DataFrame.hist`` raises ``TypeError`` when it contains non numeric column (:issue:`7277`)
+- Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
