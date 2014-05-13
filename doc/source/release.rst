@@ -501,6 +501,8 @@ Bug Fixes
 - Bug in ``MultiIndex.get_level_values`` doesn't preserve ``DatetimeIndex`` and ``PeriodIndex`` attributes (:issue:`7092`)
 - Bug in ``Groupby`` doesn't preserve ``tz`` (:issue:`3950`)
 - Bug in ``PeriodIndex`` partial string slicing (:issue:`6716`)
+- Bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the `large_repr` set to 'info'
+  (:issue:`7105`)
 
 pandas 0.13.1
 -------------

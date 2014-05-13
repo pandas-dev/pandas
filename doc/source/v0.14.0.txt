@@ -204,6 +204,8 @@ Display Changes
 
 - Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
   length of the series (:issue:`7101`)
+- Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
+  `large_repr` set to 'info' (:issue:`7105`)
 
 .. _whatsnew_0140.groupby:
 
