@@ -908,12 +908,12 @@ class PeriodIndex(Int64Index):
                     pos = np.searchsorted(self.values, [ord1, ord2])
                     key = slice(pos[0], pos[1] + 1)
                     return series[key]
-                else:
+                elif grp == freqn:
                     key = Period(asdt, freq=self.freq).ordinal
                     return _maybe_box(self, self._engine.get_value(s, key), series, key)
+                else:
+                    raise KeyError(key)
             except TypeError:
-                pass
-            except KeyError:
                 pass
 
             key = Period(key, self.freq).ordinal
@@ -978,8 +978,10 @@ class PeriodIndex(Int64Index):
             raise ValueError('Partial indexing only valid for '
                              'ordered time series')
 
-        asdt, parsed, reso = parse_time_string(key, self.freq)
-        key = asdt
+        key, parsed, reso = parse_time_string(key, self.freq)
+
+        grp = _freq_mod._infer_period_group(reso)
+        freqn = _freq_mod._period_group(self.freq)
 
         if reso == 'year':
             t1 = Period(year=parsed.year, freq='A')
@@ -988,6 +990,19 @@ class PeriodIndex(Int64Index):
         elif reso == 'quarter':
             q = (parsed.month - 1) // 3 + 1
             t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
+        elif reso == 'day' and grp < freqn:
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        freq='D')
+        elif reso == 'hour' and grp < freqn:
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, freq='H')
+        elif reso == 'minute' and grp < freqn:
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, minute=parsed.minute, freq='T')
+        elif reso == 'second' and grp < freqn:
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, minute=parsed.minute, second=parsed.second,
+                        freq='S')
         else:
             raise KeyError(key)
 

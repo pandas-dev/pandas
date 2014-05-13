@@ -1851,6 +1851,97 @@ class TestPeriodIndex(tm.TestCase):
         exp = s[12:24]
         assert_series_equal(res, exp)
 
+    def test_getitem_day(self):
+        # GH 6716
+        # Confirm DatetimeIndex and PeriodIndex works identically
+        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
+        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
+
+        for idx in [didx, pidx]:
+            # getitem against index should raise ValueError
+            values = ['2014', '2013/02', '2013/01/02',
+                      '2013/02/01 9H', '2013/02/01 09:00']
+            for v in values:
+                with tm.assertRaises(ValueError):
+                    idx[v]
+
+            s = Series(np.random.rand(len(idx)), index=idx)
+            assert_series_equal(s['2013/01'], s[0:31])
+            assert_series_equal(s['2013/02'], s[31:59])
+            assert_series_equal(s['2014'], s[365:])
+
+            invalid = ['2013/02/01 9H', '2013/02/01 09:00']
+            for v in invalid:
+                with tm.assertRaises(KeyError):
+                    s[v]
+
+    def test_range_slice_day(self):
+        # GH 6716
+        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
+        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
+
+        for idx in [didx, pidx]:
+            # slices against index should raise IndexError
+            values = ['2014', '2013/02', '2013/01/02',
+                      '2013/02/01 9H', '2013/02/01 09:00']
+            for v in values:
+                with tm.assertRaises(IndexError):
+                    idx[v:]
+
+            s = Series(np.random.rand(len(idx)), index=idx)
+
+            assert_series_equal(s['2013/01/02':], s[1:])
+            assert_series_equal(s['2013/01/02':'2013/01/05'], s[1:5])
+            assert_series_equal(s['2013/02':], s[31:])
+            assert_series_equal(s['2014':], s[365:])
+
+            invalid = ['2013/02/01 9H', '2013/02/01 09:00']
+            for v in invalid:
+                with tm.assertRaises(IndexError):
+                    idx[v:]
+
+    def test_getitem_seconds(self):
+        # GH 6716
+        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+
+        for idx in [didx, pidx]:
+            # getitem against index should raise ValueError
+            values = ['2014', '2013/02', '2013/01/02',
+                      '2013/02/01 9H', '2013/02/01 09:00']
+            for v in values:
+                with tm.assertRaises(ValueError):
+                    idx[v]
+
+            s = Series(np.random.rand(len(idx)), index=idx)
+
+            assert_series_equal(s['2013/01/01 10:00'], s[3600:3660])
+            assert_series_equal(s['2013/01/01 9H'], s[:3600])
+            for d in ['2013/01/01', '2013/01', '2013']:
+                assert_series_equal(s[d], s)
+
+    def test_range_slice_seconds(self):
+        # GH 6716
+        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+
+        for idx in [didx, pidx]:
+            # slices against index should raise IndexError
+            values = ['2014', '2013/02', '2013/01/02',
+                      '2013/02/01 9H', '2013/02/01 09:00']
+            for v in values:
+                with tm.assertRaises(IndexError):
+                    idx[v:]
+
+            s = Series(np.random.rand(len(idx)), index=idx)
+
+            assert_series_equal(s['2013/01/01 09:05':'2013/01/01 09:10'], s[300:660])
+            assert_series_equal(s['2013/01/01 10:00':'2013/01/01 10:05'], s[3600:3960])
+            assert_series_equal(s['2013/01/01 10H':], s[3600:])
+            assert_series_equal(s[:'2013/01/01 09:30'], s[:1860])
+            for d in ['2013/01/01', '2013/01', '2013']:
+                assert_series_equal(s[d:], s)
+
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
         s = Series(np.random.rand(len(pi)), index=pi).cumsum()

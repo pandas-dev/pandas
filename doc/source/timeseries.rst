@@ -299,8 +299,10 @@ intelligent functionality like selection, slicing, etc.
    ts[:5].index
    ts[::2].index
 
-Partial String Indexing
-~~~~~~~~~~~~~~~~~~~~~~~
+.. _timeseries.partialindexing:
+
+DatetimeIndex Partial String Indexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can pass in dates and strings that parse to dates as indexing parameters:
 
@@ -1092,7 +1094,38 @@ objects:
 
 .. ipython:: python
 
-   Series(randn(len(prng)), prng)
+   ps = Series(randn(len(prng)), prng)
+   ps
+
+PeriodIndex Partial String Indexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can pass in dates and strings to `Series` and `DataFrame` with `PeriodIndex`, as the same manner as `DatetimeIndex`. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
+
+.. ipython:: python
+
+   ps['2011-01']
+
+   ps[datetime(2011, 12, 25):]
+
+   ps['10/31/2011':'12/31/2011']
+
+Passing string represents lower frequency than `PeriodIndex` returns partial sliced data.
+
+.. ipython:: python
+
+   ps['2011']
+
+   dfp = DataFrame(randn(600,1), columns=['A'],
+                   index=period_range('2013-01-01 9:00', periods=600, freq='T'))
+   dfp
+   dfp['2013-01-01 10H']
+
+As the same as `DatetimeIndex`, the endpoints will be included in the result. Below example slices data starting from 10:00 to 11:59. 
+
+.. ipython:: python
+
+   dfp['2013-01-01 10H':'2013-01-01 11H']
 
 Frequency Conversion and Resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
