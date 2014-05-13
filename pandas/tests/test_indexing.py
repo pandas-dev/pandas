@@ -1356,6 +1356,47 @@ class TestIndexing(tm.TestCase):
             df.loc[(slice(None),[1])]
         self.assertRaises(KeyError, f)
 
+        # not lexsorted
+        self.assertEquals(df.index.lexsort_depth,2)
+        df = df.sortlevel(level=1,axis=0)
+        self.assertEquals(df.index.lexsort_depth,0)
+        with tm.assertRaisesRegexp(KeyError, 'MultiIndex Slicing requires the index to be fully lexsorted tuple len \(2\), lexsort depth \(0\)'):
+            df.loc[(slice(None),df.loc[:,('a','bar')]>5),:]
+
+    def test_multiindex_slicers_non_unique(self):
+
+        # GH 7106
+        # non-unique mi index support
+        df = DataFrame(dict(A = ['foo','foo','foo','foo'],
+                            B = ['a','a','a','a'],
+                            C = [1,2,1,3],
+                            D = [1,2,3,4])).set_index(['A','B','C']).sortlevel()
+        self.assertFalse(df.index.is_unique)
+        expected = DataFrame(dict(A = ['foo','foo'],
+                                  B = ['a','a'],
+                                  C = [1,1],
+                                  D = [1,3])).set_index(['A','B','C']).sortlevel()
+        result = df.loc[(slice(None),slice(None),1),:]
+        assert_frame_equal(result, expected)
+
+        # this is equivalent of an xs expression
+        result = df.xs(1,level=2,drop_level=False)
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(dict(A = ['foo','foo','foo','foo'],
+                            B = ['a','a','a','a'],
+                            C = [1,2,1,2],
+                            D = [1,2,3,4])).set_index(['A','B','C']).sortlevel()
+        self.assertFalse(df.index.is_unique)
+        expected = DataFrame(dict(A = ['foo','foo'],
+                                  B = ['a','a'],
+                                  C = [1,1],
+                                  D = [1,3])).set_index(['A','B','C']).sortlevel()
+        result = df.loc[(slice(None),slice(None),1),:]
+        self.assertFalse(result.index.is_unique)
+        assert_frame_equal(result, expected)
+
+
     def test_per_axis_per_level_doc_examples(self):
 
         # test index maker

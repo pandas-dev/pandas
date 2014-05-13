@@ -290,7 +290,7 @@ You can use ``slice(None)`` to select all the contents of *that* level. You do n
 As usual, **both sides** of the slicers are included as this is label indexing.
 
 See :ref:`the docs<indexing.mi_slicers>`
-See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
+See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`, :issue:`7106`)
 
 .. warning::
 

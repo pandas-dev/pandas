@@ -295,7 +295,7 @@ Improvements to existing features
   the func (:issue:`6289`)
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
   (:issue:`6014`)
-- Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
+- Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`, :issue:`7106`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
