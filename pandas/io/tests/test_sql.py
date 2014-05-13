@@ -486,8 +486,8 @@ class _TestSQLApi(PandasSQLTest):
         with tm.assert_produces_warning(UserWarning):
             df.to_sql('test_timedelta', self.conn)
         result = sql.read_sql_query('SELECT * FROM test_timedelta', self.conn)
-        tm.assert_series_equal(result['foo'], df['foo'].astype('int64'))              
-        
+        tm.assert_series_equal(result['foo'], df['foo'].astype('int64'))
+
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
 
@@ -893,6 +893,34 @@ class _TestSQLAlchemy(PandasSQLTest):
         else:
             tm.assert_frame_equal(result, df)
 
+    def test_datetime_NaT(self):
+        # status:
+        # - postgresql: gives error on inserting "0001-255-255T00:00:00"
+        # - sqlite3: works, but reading it with query returns '-001--1--1 -1:-1:-1.-00001'
+
+        if self.driver == 'pymysql':
+            raise nose.SkipTest('writing datetime not working with pymysql')
+        if self.driver == 'psycopg2':
+            raise nose.SkipTest('writing datetime NaT not working with psycopg2')
+
+        df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
+                        'B': np.arange(3.0)})
+        df.loc[1, 'A'] = np.nan
+        df.to_sql('test_datetime', self.conn, index=False)
+
+        # with read_table -> type information from schema used
+        result = sql.read_sql_table('test_datetime', self.conn)
+        tm.assert_frame_equal(result, df)
+
+        # with read_sql -> no type information -> sqlite has no native
+        result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
+        if self.flavor == 'sqlite':
+            self.assertTrue(isinstance(result.loc[0, 'A'], string_types))
+            result['A'] = to_datetime(result['A'], coerce=True)
+            tm.assert_frame_equal(result, df)
+        else:
+            tm.assert_frame_equal(result, df)
+
     def test_mixed_dtype_insert(self):
         # see GH6509
         s1 = Series(2**25 + 1,dtype=np.int32)
@@ -904,6 +932,63 @@ class _TestSQLAlchemy(PandasSQLTest):
         df2 = sql.read_sql_table("test_read_write", self.conn)
 
         tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
+
+    def test_nan_numeric(self):
+        if self.driver == 'pymysql':
+            raise nose.SkipTest('writing NaNs not working with pymysql')
+
+        # NaNs in numeric float column
+        df = DataFrame({'A':[0, 1, 2], 'B':[0.2, np.nan, 5.6]})
+        df.to_sql('test_nan', self.conn, index=False)
+
+        # with read_table
+        result = sql.read_sql_table('test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
+
+        # with read_sql
+        result = sql.read_sql_query('SELECT * FROM test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
+
+    def test_nan_fullcolumn(self):
+        if self.driver == 'pymysql':
+            raise nose.SkipTest('writing NaNs not working with pymysql')
+
+        # full NaN column (numeric float column)
+        df = DataFrame({'A':[0, 1, 2], 'B':[np.nan, np.nan, np.nan]})
+        df.to_sql('test_nan', self.conn, index=False)
+
+        if self.flavor == 'sqlite':
+            df['B'] = df['B'].astype('object')
+            df['B'] = None
+
+        # with read_table
+        result = sql.read_sql_table('test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
+
+        # with read_sql
+        result = sql.read_sql_query('SELECT * FROM test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
+
+    def test_nan_string(self):
+        if self.driver == 'pymysql':
+             raise nose.SkipTest('writing NaNs not working with pymysql')
+
+        # NaNs in string column
+        df = DataFrame({'A':[0, 1, 2], 'B':['a', 'b', np.nan]})
+        df.to_sql('test_nan', self.conn, index=False)
+
+        if self.flavor == 'sqlite':
+            df.loc[2, 'B'] = None
+        elif self.flavor == 'postgresql':
+            df = df.fillna('NaN')
+
+        # with read_table
+        result = sql.read_sql_table('test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
+
+        # with read_sql
+        result = sql.read_sql_query('SELECT * FROM test_nan', self.conn)
+        tm.assert_frame_equal(result, df)
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
