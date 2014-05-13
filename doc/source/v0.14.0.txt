@@ -11,9 +11,10 @@ users upgrade to this version.
 
   - Officially support Python 3.4
   - SQL interfaces updated to use ``sqlalchemy``, See :ref:`Here<whatsnew_0140.sql>`.
+  - Display interface changes, See :ref:`Here<whatsnew_0140.display>`
   - MultiIndexing Using Slicers, See :ref:`Here<whatsnew_0140.slicers>`.
   - Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`Here <merging.join_on_mi>`
-  - More consistency in groupby results and more flexible groupby specifications, see :ref:`Here <groupby.specify>`
+  - More consistency in groupby results and more flexible groupby specifications, See :ref:`Here<whatsnew_0140.groupby>`
   - Holiday calendars are now supported in ``CustomBusinessDay``, see :ref:`Here <timeseries.holiday>`
   - Updated plotting options, See :ref:`Here<whatsnew_0140.plotting>`.
   - Performance doc section on I/O operations, See :ref:`Here <io.perf>`
@@ -21,8 +22,6 @@ users upgrade to this version.
 - :ref:`Other Enhancements <whatsnew_0140.enhancements>`
 
 - :ref:`API Changes <whatsnew_0140.api>`
-
-- :ref:`Groupby API Changes <whatsnew_0140.groupby>`
 
 - :ref:`Performance Improvements <whatsnew_0140.performance>`
 
@@ -197,6 +196,11 @@ API changes
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
   from 0.13.1
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
+
+.. _whatsnew_0140.display:
+
+Display Changes
+~~~~~~~~~~~~~~~
 
 .. _whatsnew_0140.groupby:
 
@@ -594,7 +598,7 @@ Enhancements
 - `PeriodIndex` fully supports partial string indexing like `DatetimeIndex` (:issue:`7043`)
 
   .. ipython:: python
-  
+
      prng = period_range('2013-01-01 09:00', periods=100, freq='H')
      ps = Series(np.random.randn(len(prng)), index=prng)
      ps
