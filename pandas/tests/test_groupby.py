@@ -2905,7 +2905,9 @@ class TestGroupBy(tm.TestCase):
         dates = ['2011-07-19 07:00:00', '2011-07-19 08:00:00', '2011-07-19 09:00:00',
                  '2011-07-19 07:00:00', '2011-07-19 08:00:00', '2011-07-19 09:00:00']
         df = DataFrame({'label': ['a', 'a', 'a', 'b', 'b', 'b'],
-                         'datetime': dates, 'value1': range(6), 'value2': [1, 2] * 3})
+                        'datetime': dates, 
+                        'value1': np.arange(6,dtype='int64'), 
+                        'value2': [1, 2] * 3})
         df['datetime'] = df['datetime'].apply(lambda d: Timestamp(d, tz='US/Pacific'))
 
         exp_idx1 = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 07:00:00',
@@ -2922,7 +2924,9 @@ class TestGroupBy(tm.TestCase):
 
         # by level
         didx = pd.DatetimeIndex(dates, tz='Asia/Tokyo')
-        df = DataFrame({'value1': range(6), 'value2': [1, 2, 3, 1, 2, 3]}, index=didx)
+        df = DataFrame({'value1': np.arange(6,dtype='int64'), 
+                        'value2': [1, 2, 3, 1, 2, 3]}, 
+                       index=didx)
 
         exp_idx = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00',
                                     '2011-07-19 09:00:00'], tz='Asia/Tokyo')
