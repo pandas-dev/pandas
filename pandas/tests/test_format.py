@@ -13,7 +13,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, _np_version_under1p7, Timestamp
+from pandas import DataFrame, Series, Index, _np_version_under1p7, Timestamp, MultiIndex
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -2057,6 +2057,42 @@ class TestSeriesFormatting(tm.TestCase):
         result = repr(df.ix[0])
         self.assertTrue('2012-01-01' in result)
 
+    def test_max_multi_index_display(self):
+        # GH 7101
+
+        # doc example (indexing.rst)
+
+        # multi-index
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = list(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        s = Series(randn(8), index=index)
+
+        with option_context("display.max_rows", 10):
+            self.assertEquals(len(str(s).split('\n')),10)
+        with option_context("display.max_rows", 3):
+            self.assertEquals(len(str(s).split('\n')),5)
+        with option_context("display.max_rows", 2):
+            self.assertEquals(len(str(s).split('\n')),5)
+        with option_context("display.max_rows", 1):
+            self.assertEquals(len(str(s).split('\n')),5)
+        with option_context("display.max_rows", 0):
+            self.assertEquals(len(str(s).split('\n')),10)
+
+        # index
+        s = Series(randn(8), None)
+
+        with option_context("display.max_rows", 10):
+            self.assertEquals(len(str(s).split('\n')),9)
+        with option_context("display.max_rows", 3):
+            self.assertEquals(len(str(s).split('\n')),4)
+        with option_context("display.max_rows", 2):
+            self.assertEquals(len(str(s).split('\n')),4)
+        with option_context("display.max_rows", 1):
+            self.assertEquals(len(str(s).split('\n')),4)
+        with option_context("display.max_rows", 0):
+            self.assertEquals(len(str(s).split('\n')),9)
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True

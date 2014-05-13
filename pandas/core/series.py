@@ -848,7 +848,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Internal function, should always return unicode string
         """
-        num = max_vals // 2
+        if max_vals > 1:
+            num = max_vals // 2
+        else:
+            num = 1
+            max_vals = 2
         head = self.iloc[:num]._get_repr(print_header=True, length=False,
                                          dtype=False, name=False)
         tail = self.iloc[-(max_vals - num):]._get_repr(print_header=False,

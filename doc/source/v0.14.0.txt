@@ -202,6 +202,9 @@ API changes
 Display Changes
 ~~~~~~~~~~~~~~~
 
+- Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
+  length of the series (:issue:`7101`)
+
 .. _whatsnew_0140.groupby:
 
 Groupby API Changes
