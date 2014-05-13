@@ -236,6 +236,12 @@ def _strlen_func():
 
 
 class TableFormatter(object):
+    is_truncated = False
+    show_dimensions = None
+
+    @property
+    def should_show_dimensions(self):
+        return self.show_dimensions is True or (self.show_dimensions == 'truncate' and self.is_truncated)
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
@@ -315,9 +321,9 @@ class DataFrameFormatter(TableFormatter):
         _strlen = _strlen_func()
 
         cols_to_show = self.columns[:self.max_cols]
-        truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
-        truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
-        self.truncated_v = truncate_v
+        self.truncated_h = truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
+        self.truncated_v = truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
+        self.is_truncated = self.truncated_h or self.truncated_v
         if truncate_h:
             cols_to_show = self.columns[:self.max_cols]
         else:
@@ -380,7 +386,7 @@ class DataFrameFormatter(TableFormatter):
 
         self.buf.writelines(text)
 
-        if self.show_dimensions:
+        if self.should_show_dimensions:
             self.buf.write("\n\n[%d rows x %d columns]"
                            % (len(frame), len(frame.columns)))
 
@@ -634,6 +640,8 @@ class HTMLFormatter(TableFormatter):
 
         self.max_rows = max_rows or len(self.fmt.frame)
         self.max_cols = max_cols or len(self.fmt.columns)
+        self.show_dimensions = self.fmt.show_dimensions
+        self.is_truncated = self.max_rows < len(self.fmt.frame) or self.max_cols < len(self.fmt.columns)
 
     def write(self, s, indent=0):
         rs = com.pprint_thing(s)
@@ -709,7 +717,7 @@ class HTMLFormatter(TableFormatter):
         indent = self._write_body(indent)
 
         self.write('</table>', indent)
-        if self.fmt.show_dimensions:
+        if self.should_show_dimensions:
             by = chr(215) if compat.PY3 else unichr(215)  # ×
             self.write(u('<p>%d rows %s %d columns</p>') %
                        (len(frame), by, len(frame.columns)))

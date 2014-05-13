@@ -1197,6 +1197,26 @@ c  10  11  12  13  14\
         s = df.to_string(line_width=80)
         self.assertEqual(max(len(l) for l in s.split('\n')), 80)
 
+    def test_show_dimensions(self):
+        df = pd.DataFrame(123, lrange(10, 15), lrange(30))
+
+        with option_context('display.max_rows', 10, 'display.max_columns', 40, 'display.width',
+                            500, 'display.expand_frame_repr', 'info', 'display.show_dimensions', True):
+            self.assertTrue('5 rows' in str(df))
+            self.assertTrue('5 rows' in df._repr_html_())
+        with option_context('display.max_rows', 10, 'display.max_columns', 40, 'display.width',
+                            500, 'display.expand_frame_repr', 'info', 'display.show_dimensions', False):
+            self.assertFalse('5 rows' in str(df))
+            self.assertFalse('5 rows' in df._repr_html_())
+        with option_context('display.max_rows', 2, 'display.max_columns', 2, 'display.width',
+                            500, 'display.expand_frame_repr', 'info', 'display.show_dimensions', 'truncate'):
+            self.assertTrue('5 rows' in str(df))
+            self.assertTrue('5 rows' in df._repr_html_())
+        with option_context('display.max_rows', 10, 'display.max_columns', 40, 'display.width',
+                            500, 'display.expand_frame_repr', 'info', 'display.show_dimensions', 'truncate'):
+            self.assertFalse('5 rows' in str(df))
+            self.assertFalse('5 rows' in df._repr_html_())
+
     def test_to_html(self):
         # big mixed
         biggie = DataFrame({'A': randn(200),
