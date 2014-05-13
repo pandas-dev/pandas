@@ -202,6 +202,9 @@ API changes
 Display Changes
 ~~~~~~~~~~~~~~~
 
+- Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
+  `large_repr` set to 'info' (:issue:`7105`)
+
 .. _whatsnew_0140.groupby:
 
 Groupby API Changes

@@ -485,7 +485,10 @@ class DataFrame(NDFrame):
         if self._info_repr():
             buf = StringIO(u(""))
             self.info(buf=buf)
-            return '<pre>' + buf.getvalue() + '</pre>'
+            # need to escape the <class>, should be the first line.
+            val = buf.getvalue().replace('<', r'&lt;', 1).replace('>',
+                                                                  r'&gt;', 1)
+            return '<pre>' + val + '</pre>'
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")

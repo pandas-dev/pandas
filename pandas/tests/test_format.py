@@ -34,7 +34,9 @@ def curpath():
 
 def has_info_repr(df):
     r = repr(df)
-    return r.split('\n')[0].startswith("<class")
+    c1 = r.split('\n')[0].startswith("<class")
+    c2 = r.split('\n')[0].startswith(r"&lt;class")  # _repr_html_
+    return c1 or c2
 
 def has_horizontally_truncated_repr(df):
     r = repr(df)
@@ -1555,16 +1557,16 @@ c  10  11  12  13  14\
         # Long
         h, w = max_rows+1, max_cols-1
         df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
-        assert '<class' not in df._repr_html_()
+        assert r'&lt;class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
-            assert '<class' in df._repr_html_()
+            assert r'&lt;class' in df._repr_html_()
 
         # Wide
         h, w = max_rows-1, max_cols+1
         df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert '<class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
-            assert '<class' in df._repr_html_()
+            assert '&lt;class' in df._repr_html_()
 
     def test_fake_qtconsole_repr_html(self):
         def get_ipython():
