@@ -337,6 +337,8 @@ Improvements to existing features
 - ``GroupBy.count()`` is now implemented in Cython and is much faster for large
   numbers of groups (:issue:`7016`).
 - ``boxplot`` now supports ``layout`` keyword (:issue:`6769`)
+- Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
+  length of the series (:issue:`7101`)
 
 .. _release.bug_fixes-0.14.0:
 
