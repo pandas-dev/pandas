@@ -2314,6 +2314,11 @@ class TestPeriodIndex(tm.TestCase):
         self.assert_numpy_array_equal(arr, exp_arr)
         self.assert_(idx.equals(exp_idx))
 
+    def test_recreate_from_data(self):
+        for o in ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'N', 'H']:
+            org = PeriodIndex(start='2001/04/01', freq=o, periods=1)
+            idx = PeriodIndex(org.values, freq=o)
+            self.assert_(idx.equals(org))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
