@@ -55,9 +55,19 @@ K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
-testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
-if 'deprecate' in testing_mode:
-    warnings.simplefilter('always', DeprecationWarning)
+def set_testing_mode():
+    # set the testing mode filters
+    testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
+    if 'deprecate' in testing_mode:
+        warnings.simplefilter('always', DeprecationWarning)
+
+def reset_testing_mode():
+    # reset the testing mode filters
+    testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
+    if 'deprecate' in testing_mode:
+        warnings.simplefilter('ignore', DeprecationWarning)
+
+set_testing_mode()
 
 class TestCase(unittest.TestCase):
 

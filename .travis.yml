@@ -53,7 +53,6 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "34_nslow"
-      - PANDAS_TESTING_MODE="deprecate"
     - python: 2.7
       env:
       - EXPERIMENTAL=true
@@ -70,7 +69,6 @@ matrix:
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - JOB_NAME: "34_nslow"
-        - PANDAS_TESTING_MODE="deprecate"
       - python: 2.7
         env:
         - EXPERIMENTAL=true

@@ -123,6 +123,20 @@ def compat_assert_produces_warning(w,f):
 
 class TestHDFStore(tm.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestHDFStore, cls).setUpClass()
+
+        # Pytables 3.0.0 deprecates lots of things
+        tm.reset_testing_mode()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestHDFStore, cls).tearDownClass()
+
+        # Pytables 3.0.0 deprecates lots of things
+        tm.set_testing_mode()
+
     def setUp(self):
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
