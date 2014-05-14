@@ -1311,6 +1311,21 @@ Some other sorting notes / nuances:
     compatibility with NumPy methods which expect the ``ndarray.sort``
     behavior.
 
+.. versionadded:: 0.14.0
+
+``Series`` has the ``nsmallest`` and ``nlargest`` methods which return the
+smallest or largest :math:`n` values. For a large ``Series`` this can be much
+faster than sorting the entire Series and calling ``head(n)`` on the result.
+
+.. ipython:: python
+
+   s = Series(np.random.permutation(10))
+   s
+   s.order()
+   s.nsmallest(3)
+   s.nlargest(3)
+
+
 Sorting by a multi-index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
