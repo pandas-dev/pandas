@@ -514,6 +514,7 @@ Bug Fixes
 - Bug in ``PeriodIndex`` partial string slicing (:issue:`6716`)
 - Bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the `large_repr` set to 'info'
   (:issue:`7105`)
+- Bug in ``DatetimeIndex`` specifying ``freq`` raises ``ValueError`` when passed value is too short (:issue:`7098`)
 
 pandas 0.13.1
 -------------

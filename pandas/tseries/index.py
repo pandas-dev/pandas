@@ -299,8 +299,10 @@ class DatetimeIndex(Int64Index):
             if freq is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != freq.freqstr:
-                    raise ValueError('Dates do not conform to passed '
-                                     'frequency')
+                    on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz)
+                    if not np.array_equal(subarr.asi8, on_freq.asi8):
+                        raise ValueError('Inferred frequency {0} from passed dates does not'
+                                         'conform to passed frequency {1}'.format(inferred, freq.freqstr))
 
         if freq_infer:
             inferred = subarr.inferred_freq
