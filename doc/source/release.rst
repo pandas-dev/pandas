@@ -206,6 +206,8 @@ API Changes
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
 - :meth:`DataFrame.describe` on a DataFrame with a mix of Timestamp and string like objects
   returns a different Index (:issue:`7088`). Previously the index was unintentionally sorted.
+- arithmetic operations with **only** ``bool`` dtypes now raise an error
+  (:issue:`7011`, :issue:`6762`, :issue:`7015`)
 
 Deprecations
 ~~~~~~~~~~~~

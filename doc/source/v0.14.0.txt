@@ -228,6 +228,18 @@ Display Changes
   length of the series (:issue:`7101`)
 - Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
   `large_repr` set to 'info' (:issue:`7105`)
+- arithmetic operations with **only** ``bool`` dtypes now raise an error
+  (:issue:`7011`, :issue:`6762`, :issue:`7015`)
+
+  .. code-block:: python
+
+     x = pd.Series(np.random.rand(10) > 0.5)
+     y = True
+     x * y
+
+     # this now raises for arith ops like ``+``, ``*``, etc.
+     NotImplementedError: operator '*' not implemented for bool dtypes
+
 
 .. _whatsnew_0140.groupby:
 
