@@ -141,16 +141,16 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
         pd.reset_option("display.chop_threshold") # default None
-        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1\n\n[2 rows x 2 columns]')
+        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
         with option_context("display.chop_threshold", 0.2 ):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0\n\n[2 rows x 2 columns]')
+            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
 
         with option_context("display.chop_threshold", 0.6 ):
-            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0\n\n[2 rows x 2 columns]')
+            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0')
 
         with option_context("display.chop_threshold", None ):
-            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1\n\n[2 rows x 2 columns]')
+            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
     def test_repr_obeys_max_seq_limit(self):
         import pandas.core.common as com
@@ -197,7 +197,8 @@ class TestDataFrameFormatting(tm.TestCase):
         with option_context('mode.sim_interactive', True):
             with option_context('display.max_columns', 10,
                                 'display.width',20,
-                                'display.max_rows', 20):
+                                'display.max_rows', 20,
+                                'display.show_dimensions', True):
                 with option_context('display.expand_frame_repr', True):
                     self.assertFalse(has_truncated_repr(df_small))
                     self.assertFalse(has_expanded_repr(df_small))
@@ -789,7 +790,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertTrue(not "\t" in pp_t("a\tb", escape_chars=("\t",)))
 
     def test_wide_repr(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True, 'display.show_dimensions', True):
             col = lambda l, k: [tm.rands(k) for _ in range(l)]
             max_cols = get_option('display.max_columns')
             df = DataFrame([col(max_cols - 1, 25) for _ in range(10)])
@@ -812,7 +813,7 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
 
-            self.assertEqual(len(rep_str.splitlines()), 22)
+            self.assertEqual(len(rep_str.splitlines()), 20)
 
     def test_wide_repr_named(self):
         with option_context('mode.sim_interactive', True):
@@ -1458,6 +1459,7 @@ c  10  11  12  13  14\
         self.reset_display_options()
 
         df = DataFrame([[1, 2], [3, 4]])
+        fmt.set_option('display.show_dimensions', True)
         self.assertTrue('2 rows' in df._repr_html_())
         fmt.set_option('display.show_dimensions', False)
         self.assertFalse('2 rows' in df._repr_html_())

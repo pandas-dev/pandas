@@ -4354,12 +4354,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2,], [3, 4]])
-        self.assertTrue("2 rows x 2 columns" in repr(df))
+        with pd.option_context('display.show_dimensions', True):
+            self.assertTrue("2 rows x 2 columns" in repr(df))
 
-        fmt.set_option('display.show_dimensions', False)
-        self.assertFalse("2 rows x 2 columns" in repr(df))
+        with pd.option_context('display.show_dimensions', False):
+            self.assertFalse("2 rows x 2 columns" in repr(df))
 
-        self.reset_display_options()
+        with pd.option_context('display.show_dimensions', 'truncate'):
+            self.assertFalse("2 rows x 2 columns" in repr(df))
 
     @slow
     def test_repr_big(self):
