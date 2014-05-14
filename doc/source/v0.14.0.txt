@@ -204,6 +204,26 @@ API changes
 Display Changes
 ~~~~~~~~~~~~~~~
 
+- allow option ``'truncate'`` for ``display.show_dimensions`` to only show the dimensions if the
+  frame is truncated (:issue:`6547`).
+
+  The default for ``display.show_dimensions`` will now be **truncate**! This is consistent with
+  how Series display length.
+
+  .. ipython:: python
+
+     dfd = pd.DataFrame(np.arange(25).reshape(-1,5), index=[0,1,2,3,4], columns=[0,1,2,3,4])
+
+     # show dimensions only if truncated
+     with pd.option_context('display.max_rows', 2, 'display.max_columns', 2,
+                            'display.show_dimensions', 'truncate'):
+        print(dfd)
+
+     # show dimensions only if truncated
+     with pd.option_context('display.max_rows', 10, 'display.max_columns', 40,
+                            'display.show_dimensions', 'truncate'):
+        print(dfd)
+
 - Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
   length of the series (:issue:`7101`)
 - Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the

@@ -120,8 +120,10 @@ pc_expand_repr_doc = """
 """
 
 pc_show_dimensions_doc = """
-: boolean
+: boolean or 'truncate'
     Whether to print out dimensions at the end of DataFrame repr.
+    If 'truncate' is specified, only print out the dimensions if the
+    frame is truncated (e.g. not display all rows and/or columns)
 """
 
 pc_line_width_doc = """
@@ -247,7 +249,8 @@ with cf.config_prefix('display'):
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
-    cf.register_option('show_dimensions', True, pc_show_dimensions_doc)
+    cf.register_option('show_dimensions', True, pc_show_dimensions_doc,
+                       validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,

@@ -346,6 +346,8 @@ Improvements to existing features
 - Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
   length of the series (:issue:`7101`)
 - :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)
+- allow option ``'truncate'`` for ``display.show_dimensions`` to only show the dimensions if the
+  frame is truncated (:issue:`6547`)
 
 .. _release.bug_fixes-0.14.0:
 
