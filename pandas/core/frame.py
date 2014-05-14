@@ -1392,19 +1392,22 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=True, buf=None, max_cols=None):
+    def info(self, verbose=None, buf=None, max_cols=None):
         """
         Concise summary of a DataFrame.
 
         Parameters
         ----------
-        verbose : boolean, default True
+        verbose : boolean, default None
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         max_cols : int, default None
             Determines whether full summary or short summary is printed
         """
         from pandas.core.format import _put_lines
+
+        if verbose is None:
+            verbose = get_option("display.info_verbose")
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout

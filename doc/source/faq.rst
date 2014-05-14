@@ -45,6 +45,11 @@ As of 0.13, these are the relevant options, all under the `display` namespace,
 - large_repr (default 'truncate'): when a :class:`~pandas.DataFrame`
   exceeds max_columns or max_rows, it can be displayed either as a
   truncated table or, with this set to 'info', as a short summary view.
+- info_verbose (default True): When large_repr is set to 'info', the
+  index of a :class:`~pandas.DataFrame` will be displayed as a short
+  summary, while columns are still listed individually. When
+  'info_verbose' is set to False, the columns will be displayed in a
+  short summary view also.
 - max_columns (default 20): max dataframe columns to display.
 - max_rows (default 60): max dataframe rows display.
 - show_dimensions (default True): controls the display of the row/col counts footer.
