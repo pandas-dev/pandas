@@ -1,6 +1,9 @@
+import operator
 from pandas.compat import reduce
 from pandas.core.index import Index
 import numpy as np
+from pandas import algos
+
 
 def match(needles, haystack):
     haystack = Index(haystack)
@@ -17,7 +20,7 @@ def cartesian_product(X):
     --------
     >>> cartesian_product([list('ABC'), [1, 2]])
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
- 	array([1, 2, 1, 2, 1, 2])]
+    array([1, 2, 1, 2, 1, 2])]
 
     '''
 

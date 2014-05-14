@@ -9,9 +9,7 @@ import numpy as np
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
-import pandas.compat as compat
-from pandas.compat import filter, string_types
-from pandas.util.decorators import deprecate_kwarg
+from pandas.compat import string_types
 
 def match(to_match, values, na_sentinel=-1):
     """
@@ -411,6 +409,90 @@ def group_position(*args):
         table[tup] += 1
 
     return result
+
+
+_dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
+
+
+def _finalize_nsmallest(arr, kth_val, n, take_last, narr):
+    ns, = np.nonzero(arr <= kth_val)
+    inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+
+    if take_last:
+        # reverse indices
+        return narr - 1 - inds
+    return inds
+
+
+def nsmallest(arr, n, take_last=False):
+    '''
+    Find the indices of the n smallest values of a numpy array.
+
+    Note: Fails silently with NaN.
+
+    '''
+    if take_last:
+        arr = arr[::-1]
+
+    narr = len(arr)
+    n = min(n, narr)
+
+    sdtype = str(arr.dtype)
+    arr = arr.view(_dtype_map.get(sdtype, sdtype))
+
+    kth_val = algos.kth_smallest(arr.copy(), n - 1)
+    return _finalize_nsmallest(arr, kth_val, n, take_last, narr)
+
+
+def nlargest(arr, n, take_last=False):
+    """
+    Find the indices of the n largest values of a numpy array.
+
+    Note: Fails silently with NaN.
+    """
+    sdtype = str(arr.dtype)
+    arr = arr.view(_dtype_map.get(sdtype, sdtype))
+    return nsmallest(-arr, n, take_last=take_last)
+
+
+def select_n_slow(dropped, n, take_last, method):
+    reverse_it = take_last or method == 'nlargest'
+    ascending = method == 'nsmallest'
+    slc = np.s_[::-1] if reverse_it else np.s_[:]
+    return dropped[slc].order(ascending=ascending).head(n)
+
+
+_select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}
+
+
+def select_n(series, n, take_last, method):
+    """Implement n largest/smallest.
+
+    Parameters
+    ----------
+    n : int
+    take_last : bool
+    method : str, {'nlargest', 'nsmallest'}
+
+    Returns
+    -------
+    nordered : Series
+    """
+    dtype = series.dtype
+    if not issubclass(dtype.type, (np.integer, np.floating, np.datetime64,
+                                   np.timedelta64)):
+        raise TypeError("Cannot use method %r with dtype %s" % (method, dtype))
+
+    if n <= 0:
+        return series[[]]
+
+    dropped = series.dropna()
+
+    if n >= len(series):
+        return select_n_slow(dropped, n, take_last, method)
+
+    inds = _select_methods[method](dropped.values, n, take_last)
+    return dropped.iloc[inds]
 
 
 _rank1d_functions = {

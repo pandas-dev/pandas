@@ -643,6 +643,7 @@ Enhancements
                 values='Quantity', aggfunc=np.sum)
 
 - str.wrap implemented (:issue:`6999`)
+- Add nsmallest and nlargest Series methods (:issue:`3960`)
 
 - `PeriodIndex` fully supports partial string indexing like `DatetimeIndex` (:issue:`7043`)
 

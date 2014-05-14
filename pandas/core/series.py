@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import operator
 import types
 import warnings
 
@@ -15,21 +14,16 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index, _maybe_promote, _maybe_upcast,
-                                _asarray_tuplesafe, is_integer_dtype,
-                                _NS_DTYPE, _TD_DTYPE,
-                                _infer_dtype_from_scalar, is_list_like,
-                                _values_from_object,
+                                _default_index, _maybe_upcast,
+                                _asarray_tuplesafe, _infer_dtype_from_scalar,
+                                is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
-                                _possibly_convert_platform,
-                                _try_sort,
+                                _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name,
                                 _ensure_object, SettingWithCopyError)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
-from pandas.core.indexing import (
-    _check_bool_indexer,
-    _is_index_slice, _maybe_convert_indices)
+from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
@@ -37,16 +31,17 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.compat import zip, lzip, u, OrderedDict
+from pandas.compat import zip, u, OrderedDict
 
 import pandas.core.array as pa
 import pandas.core.ops as ops
+from pandas.core.algorithms import select_n
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, Substitution, cache_readonly
+from pandas.util.decorators import Appender, cache_readonly
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1727,6 +1722,72 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._update_inplace(result)
         else:
             return result.__finalize__(self)
+
+    def nlargest(self, n=5, take_last=False):
+        """Return the largest `n` elements.
+
+        Parameters
+        ----------
+        n : int
+            Return this many descending sorted values
+        take_last : bool
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        top_n : Series
+            The n largest values in the Series, in sorted order
+
+        Notes
+        -----
+        Faster than ``.order(ascending=False).head(n)`` for small `n` relative
+        to the size of the ``Series`` object.
+
+        See Also
+        --------
+        Series.nsmallest
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> s = pd.Series(np.random.randn(1e6))
+        >>> s.nlargest(10)  # only sorts up to the N requested
+        """
+        return select_n(self, n=n, take_last=take_last, method='nlargest')
+
+    def nsmallest(self, n=5, take_last=False):
+        """Return the smallest `n` elements.
+
+        Parameters
+        ----------
+        n : int
+            Return this many ascending sorted values
+        take_last : bool
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        bottom_n : Series
+            The n smallest values in the Series, in sorted order
+
+        Notes
+        -----
+        Faster than ``.order().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
+
+        See Also
+        --------
+        Series.nlargest
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> s = pd.Series(np.random.randn(1e6))
+        >>> s.nsmallest(10)  # only sorts up to the N requested
+        """
+        return select_n(self, n=n, take_last=take_last, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """

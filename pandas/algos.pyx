@@ -21,6 +21,9 @@ from numpy cimport NPY_FLOAT16 as NPY_float16
 from numpy cimport NPY_FLOAT32 as NPY_float32
 from numpy cimport NPY_FLOAT64 as NPY_float64
 
+from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+
 int8 = np.dtype(np.int8)
 int16 = np.dtype(np.int16)
 int32 = np.dtype(np.int32)
@@ -736,16 +739,43 @@ def _check_minp(win, minp, N):
 # Physical description: 366 p.
 #               Series: Prentice-Hall Series in Automatic Computation
 
-def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
-    cdef:
-        Py_ssize_t i,j,l,m,n
-        double_t x, t
 
-    n = len(a)
+ctypedef fused numeric:
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+    uint8_t
+    uint16_t
+    uint32_t
+    uint64_t
+
+    float32_t
+    float64_t
+
+
+cdef inline Py_ssize_t swap(numeric *a, numeric *b) except -1:
+    cdef numeric t
+
+    # cython doesn't allow pointer dereference so use array syntax
+    t = a[0]
+    a[0] = b[0]
+    b[0] = t
+    return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
+    cdef:
+        Py_ssize_t i, j, l, m, n = a.size
+        numeric x
 
     l = 0
-    m = n-1
-    while (l<m):
+    m = n - 1
+
+    while l < m:
         x = a[k]
         i = l
         j = m
@@ -754,9 +784,7 @@ def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
             while a[i] < x: i += 1
             while x < a[j]: j -= 1
             if i <= j:
-                t = a[i]
-                a[i] = a[j]
-                a[j] = t
+                swap(&a[i], &a[j])
                 i += 1; j -= 1
 
             if i > j: break
@@ -764,6 +792,7 @@ def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
         if j < k: l = i
         if k < i: m = j
     return a[k]
+
 
 cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     cdef:
@@ -781,9 +810,7 @@ cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
             while a[i] < x: i += 1
             while x < a[j]: j -= 1
             if i <= j:
-                t = a[i]
-                a[i] = a[j]
-                a[j] = t
+                swap(&a[i], &a[j])
                 i += 1; j -= 1
 
             if i > j: break
@@ -793,22 +820,22 @@ cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     return a[k]
 
 
-def median(ndarray arr):
+cpdef numeric median(numeric[:] arr):
     '''
     A faster median
     '''
-    cdef int n = len(arr)
+    cdef Py_ssize_t n = arr.size
 
-    if len(arr) == 0:
+    if n == 0:
         return np.NaN
 
     arr = arr.copy()
 
     if n % 2:
-        return kth_smallest(arr, n / 2)
+        return kth_smallest(arr, n // 2)
     else:
-        return (kth_smallest(arr, n / 2) +
-                kth_smallest(arr, n / 2 - 1)) / 2
+        return (kth_smallest(arr, n // 2) +
+                kth_smallest(arr, n // 2 - 1)) / 2
 
 
 # -------------- Min, Max subsequence
@@ -2226,7 +2253,7 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
 
 
     if n % 2:
-        result = kth_smallest_c(a, n / 2, n)
+        result = kth_smallest_c( a, n / 2, n)
     else:
         result = (kth_smallest_c(a, n / 2, n) +
                   kth_smallest_c(a, n / 2 - 1, n)) / 2
