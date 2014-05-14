@@ -988,30 +988,31 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(result, expected)
 
         df = DataFrame({"C1": pd.date_range('2010-01-01', periods=4, freq='D')})
+        df.loc[4] = pd.Timestamp('2010-01-04')
         result = df.describe()
-        expected = DataFrame({"C1": [4, 4, pd.Timestamp('2010-01-01'),
+        expected = DataFrame({"C1": [5, 4, pd.Timestamp('2010-01-01'),
                                      pd.Timestamp('2010-01-04'),
-                                     pd.Timestamp('2010-01-01'), 1]},
+                                     pd.Timestamp('2010-01-04'), 2]},
                              index=['count', 'unique', 'first', 'last', 'top',
                                     'freq'])
         assert_frame_equal(result, expected)
 
         # mix time and str
-        df['C2'] = ['a', 'a', 'b', 'c']
+        df['C2'] = ['a', 'a', 'b', 'c', 'a']
         result = df.describe()
         # when mix of dateimte / obj the index gets reordered.
-        expected['C2'] = [4, 3, np.nan, np.nan, 'a', 2]
+        expected['C2'] = [5, 3, np.nan, np.nan, 'a', 3]
         assert_frame_equal(result, expected)
 
         # just str
-        expected = DataFrame({'C2': [4, 3, 'a', 2]},
+        expected = DataFrame({'C2': [5, 3, 'a', 4]},
                              index=['count', 'unique', 'top', 'freq'])
         result = df[['C2']].describe()
 
         # mix of time, str, numeric
-        df['C3'] = [2, 4, 6, 8]
+        df['C3'] = [2, 4, 6, 8, 2]
         result = df.describe()
-        expected = DataFrame({"C3": [4., 5., 2.5819889, 2., 3.5, 5., 6.5, 8.]},
+        expected = DataFrame({"C3": [5., 4.4, 2.607681, 2., 2., 4., 6., 8.]},
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'])
         assert_frame_equal(result, expected)

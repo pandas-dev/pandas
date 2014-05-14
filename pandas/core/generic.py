@@ -3573,22 +3573,18 @@ class NDFrame(PandasObject):
                         [series.max()])
 
         def describe_categorical_1d(data):
-            if data.dtype == object:
-                names = ['count', 'unique']
-                objcounts = data.value_counts()
-                result = [data.count(), len(objcounts)]
-                if result[1] > 0:
+            names = ['count', 'unique']
+            objcounts = data.value_counts()
+            result = [data.count(), len(objcounts)]
+            if result[1] > 0:
+                top, freq = objcounts.index[0], objcounts.iloc[0]
+
+                if data.dtype == object:
                     names += ['top', 'freq']
-                    top, freq = objcounts.index[0], objcounts.iloc[0]
                     result += [top, freq]
 
-            elif issubclass(data.dtype.type, np.datetime64):
-                names = ['count', 'unique']
-                asint = data.dropna().values.view('i8')
-                objcounts = compat.Counter(asint)
-                result = [data.count(), len(objcounts)]
-                if result[1] > 0:
-                    top, freq = objcounts.most_common(1)[0]
+                elif issubclass(data.dtype.type, np.datetime64):
+                    asint = data.dropna().values.view('i8')
                     names += ['first', 'last', 'top', 'freq']
                     result += [lib.Timestamp(asint.min()),
                                lib.Timestamp(asint.max()),
