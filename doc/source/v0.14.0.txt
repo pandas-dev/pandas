@@ -190,7 +190,7 @@ API changes
   to a non-unique item in the ``Index`` (previously raised a ``KeyError``).
 - drop unused order argument from ``Series.sort``; args now in the same orders as ``Series.order``;
   add ``na_position`` arg to conform to ``Series.order`` (:issue:`6847`)
-- default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
+- default sorting algorithm for ``Series.order`` is now ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`), this was a regression
@@ -198,6 +198,17 @@ API changes
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
 - ``describe`` on a DataFrame with a mix of Timestamp and string like objects returns a different Index (:issue:`7088`).
   Previously the index was unintentionally sorted.
+- arithmetic operations with **only** ``bool`` dtypes now raise an error
+  (:issue:`7011`, :issue:`6762`, :issue:`7015`)
+
+  .. code-block:: python
+
+     x = pd.Series(np.random.rand(10) > 0.5)
+     y = True
+     x * y
+
+     # this now raises for arith ops like ``+``, ``*``, etc.
+     NotImplementedError: operator '*' not implemented for bool dtypes
 
 .. _whatsnew_0140.display:
 
@@ -228,18 +239,6 @@ Display Changes
   length of the series (:issue:`7101`)
 - Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
   `large_repr` set to 'info' (:issue:`7105`)
-- arithmetic operations with **only** ``bool`` dtypes now raise an error
-  (:issue:`7011`, :issue:`6762`, :issue:`7015`)
-
-  .. code-block:: python
-
-     x = pd.Series(np.random.rand(10) > 0.5)
-     y = True
-     x * y
-
-     # this now raises for arith ops like ``+``, ``*``, etc.
-     NotImplementedError: operator '*' not implemented for bool dtypes
-
 
 .. _whatsnew_0140.groupby:
 
