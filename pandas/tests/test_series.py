@@ -4022,7 +4022,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         raising = [
             Series([3., 2, 1, 2, '5'], dtype='object'),
             Series([3., 2, 1, 2, 5], dtype='object'),
-            Series([3., 2, 1, 2, 5], dtype='complex256'),
+            # not supported on some archs
+            # Series([3., 2, 1, 2, 5], dtype='complex256'),
             Series([3., 2, 1, 2, 5], dtype='complex128'),
         ]
 
