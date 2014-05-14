@@ -405,10 +405,10 @@ using that handle to read.
 <http://github.com/pydata/pandas/issues/2886>`__
 
 `Dealing with bad lines II
-<http://nipunbatra.wordpress.com/2013/06/06/reading-unclean-data-csv-using-pandas/>`__
+<http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
 
 `Reading CSV with Unix timestamps and converting to local timezone
-<http://nipunbatra.wordpress.com/2013/06/07/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
+<http://nipunbatra.github.io/2013/06/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
 
 `Write a multi-row index CSV without writing duplicates
 <http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
