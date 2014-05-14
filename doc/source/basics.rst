@@ -454,6 +454,7 @@ non-null values:
    series[10:20]  = 5
    series.nunique()
 
+.. _basics.describe:
 
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -471,7 +472,13 @@ course):
     frame.ix[::2] = np.nan
     frame.describe()
 
-.. _basics.describe:
+You can select specific percentiles to include in the output:
+
+.. ipython:: python
+
+    series.describe(percentiles=[.05, .25, .75, .95])
+
+By default, the median is always included.
 
 For a non-numerical Series object, `describe` will give a simple summary of the
 number of unique values and most frequently occurring values:
@@ -481,6 +488,7 @@ number of unique values and most frequently occurring values:
 
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
+
 
 There also is a utility function, ``value_range`` which takes a DataFrame and
 returns a series with the minimum/maximum values in the DataFrame.

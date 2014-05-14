@@ -2219,56 +2219,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                             Timestamp('2000-01-10 19:12:00')],
                                            index=[.2, .2]))
 
-    def test_describe(self):
-        _ = self.series.describe()
-        _ = self.ts.describe()
-
-    def test_describe_percentiles(self):
-        desc = self.series.describe(percentile_width=50)
-        assert '75%' in desc.index
-        assert '25%' in desc.index
-
-        desc = self.series.describe(percentile_width=95)
-        assert '97.5%' in desc.index
-        assert '2.5%' in desc.index
-
-    def test_describe_objects(self):
-        s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
-        result = s.describe()
-        expected = Series({'count': 7, 'unique': 4,
-                           'top': 'a', 'freq': 3}, index=result.index)
-        assert_series_equal(result, expected)
-
-        dt = list(self.ts.index)
-        dt.append(dt[0])
-        ser = Series(dt)
-        rs = ser.describe()
-        min_date = min(dt)
-        max_date = max(dt)
-        xp = Series({'count': len(dt),
-                     'unique': len(self.ts.index),
-                     'first': min_date, 'last': max_date, 'freq': 2,
-                     'top': min_date}, index=rs.index)
-        assert_series_equal(rs, xp)
-
-    def test_describe_empty(self):
-        result = self.empty.describe()
-
-        self.assertEqual(result['count'], 0)
-        self.assert_(result.drop('count').isnull().all())
-
-        nanSeries = Series([np.nan])
-        nanSeries.name = 'NaN'
-        result = nanSeries.describe()
-        self.assertEqual(result['count'], 0)
-        self.assert_(result.drop('count').isnull().all())
-
-    def test_describe_none(self):
-        noneSeries = Series([None])
-        noneSeries.name = 'None'
-        assert_series_equal(noneSeries.describe(),
-                            Series([0, 0], index=['count', 'unique']))
-
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in compat.iteritems(appendedSeries):

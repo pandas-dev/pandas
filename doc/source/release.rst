@@ -204,6 +204,8 @@ API Changes
 - Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
   parser when no options are ignored (:issue:`6607`)
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
+- :meth:`DataFrame.describe` on a DataFrame with a mix of Timestamp and string like objects
+  returns a different Index (:issue:`7088`). Previously the index was unintentionally sorted.
 
 Deprecations
 ~~~~~~~~~~~~
@@ -249,6 +251,10 @@ Deprecations
 
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
+- The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
+  Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
+  default output is unchanged.
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -339,6 +345,7 @@ Improvements to existing features
 - ``boxplot`` now supports ``layout`` keyword (:issue:`6769`)
 - Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
   length of the series (:issue:`7101`)
+- :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)
 
 .. _release.bug_fixes-0.14.0:
 
