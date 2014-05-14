@@ -208,6 +208,7 @@ API Changes
   returns a different Index (:issue:`7088`). Previously the index was unintentionally sorted.
 - arithmetic operations with **only** ``bool`` dtypes now raise an error
   (:issue:`7011`, :issue:`6762`, :issue:`7015`)
+- Density plot can be cumulative to plot cumulative density by ``cumulative=True`` (:issue:`7134`)
 
 Deprecations
 ~~~~~~~~~~~~
