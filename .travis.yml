@@ -53,6 +53,7 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "34_nslow"
+      - PANDAS_TESTING_MODE="deprecate"
     - python: 2.7
       env:
       - EXPERIMENTAL=true
@@ -60,7 +61,7 @@ matrix:
       - JOB_NAME: "27_numpy_master"
       - JOB_TAG=_NUMPY_DEV_master
       - NUMPY_BUILD=master
-      - PANDAS_TESTING_MODE="numpy_deprecate"
+      - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
       - python: 3.4
         env:
@@ -69,6 +70,7 @@ matrix:
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - JOB_NAME: "34_nslow"
+        - PANDAS_TESTING_MODE="deprecate"
       - python: 2.7
         env:
         - EXPERIMENTAL=true
@@ -76,7 +78,7 @@ matrix:
         - JOB_NAME: "27_numpy_master"
         - JOB_TAG=_NUMPY_DEV_master
         - NUMPY_BUILD=master
-        - PANDAS_TESTING_MODE="numpy_deprecate"
+        - PANDAS_TESTING_MODE="deprecate"
 
 before_install:
   - echo "before_install"

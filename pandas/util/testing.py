@@ -56,7 +56,7 @@ _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
 testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
-if 'numpy_deprecate' in testing_mode:
+if 'deprecate' in testing_mode:
     warnings.simplefilter('always', DeprecationWarning)
 
 class TestCase(unittest.TestCase):
