@@ -534,6 +534,13 @@ setting ``kind='kde'``:
    @savefig kde_plot.png
    ser.plot(kind='kde')
 
+You can plot cumulative density by passing ``cumulative=True``.
+
+.. ipython:: python
+
+   @savefig kde_plot_cum.png
+   ser.plot(kind='kde', cumulative=True)
+
 .. _visualization.andrews_curves:
 
 Andrews Curves

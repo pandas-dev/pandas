@@ -1334,15 +1334,16 @@ class MPLPlot(object):
 
 
 class KdePlot(MPLPlot):
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
+    def __init__(self, data, bw_method=None, ind=None,
+                 cumulative=False, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        self.bw_method=bw_method
-        self.ind=ind
+        self.bw_method = bw_method
+        self.ind = ind
+        self.cumulative = cumulative
 
     def _make_plot(self):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
-        from distutils.version import LooseVersion
         plotf = self.plt.Axes.plot
         colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
@@ -1371,6 +1372,11 @@ class KdePlot(MPLPlot):
             ax.set_ylabel("Density")
 
             y = gkde.evaluate(ind)
+
+            if self.cumulative:
+                y = y.cumsum()
+                y = y / y[-1]
+
             kwds = self.kwds.copy()
             kwds['label'] = label
             self._maybe_add_color(colors, kwds, style, i)

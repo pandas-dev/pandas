@@ -592,6 +592,13 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.plot, kind='density', bw_method=.5, ind=linspace(-100,100,20))
         ax = self.ts.plot(kind='kde', logy=True, bw_method=.5, ind=linspace(-100,100,20))
         self._check_ax_scales(ax, yaxis='log')
+        tm.close()
+
+        ax = self.ts.plot(kind='kde', cumulative=True)
+        line = ax.lines[0].get_ydata()
+        print(line)
+        tm.assert_almost_equal(line[0], 0.0)
+        tm.assert_almost_equal(line[-1], 1.0)
 
     @slow
     def test_kde_color(self):

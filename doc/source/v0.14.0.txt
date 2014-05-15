@@ -462,6 +462,8 @@ Plotting
 
 - ``boxplot`` now supports ``layout`` keyword (:issue:`6769`)
 
+- Density plot can be cumulative to plot cumulative density by ``cumulative=True`` (:issue:`7134`)
+
 .. _whatsnew_0140.prior_deprecations:
 
 Prior Version Deprecations/Changes
