@@ -902,6 +902,8 @@ class _TestSQLAlchemy(PandasSQLTest):
             raise nose.SkipTest('writing datetime not working with pymysql')
         if self.driver == 'psycopg2':
             raise nose.SkipTest('writing datetime NaT not working with psycopg2')
+        if self.flavor == 'sqlite':
+            raise nose.SkipTest('reading datetime NaT not working with sqlite')
 
         df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
                         'B': np.arange(3.0)})
