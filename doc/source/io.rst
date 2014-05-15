@@ -3160,7 +3160,8 @@ your database.
 .. versionadded:: 0.14.0
 
 If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
-for mysql for backwards compatibility, but this is deprecated).
+for mysql for backwards compatibility, but this is deprecated and will be
+removed in a future version).
 This mode requires a Python database adapter which respect the `Python
 DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
 
@@ -3190,14 +3191,12 @@ engine. You can use a temporary SQLite database where data are stored in
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are
 connecting to.
-
 For more information on :func:`create_engine` and the URI formatting, see the examples
 below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
 .. ipython:: python
 
    from sqlalchemy import create_engine
-   from pandas.io import sql
    # Create your connection.
    engine = create_engine('sqlite:///:memory:')
 
@@ -3280,8 +3279,6 @@ to pass to :func:`pandas.to_datetime`:
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
 
-In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
-instantiated directly for more manual control over the SQL interaction.
 
 Querying
 ~~~~~~~~
@@ -3310,17 +3307,17 @@ variant appropriate for your database.
 
 .. code-block:: python
 
+   from pandas.io import sql
    sql.execute('SELECT * FROM table_name', engine)
-
    sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, params=[('id', 1, 12.2, True)])
-
-
-In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
-instantiated directly for more manual control over the SQL interaction.
 
 
 Engine connection examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+object from database URI. You only need to create the engine once per database you are
+connecting to.
 
 .. code-block:: python
 
@@ -3341,6 +3338,8 @@ Engine connection examples
   # or absolute, starting with a slash:
   engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
+For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
+
 
 Sqlite fallback
 ~~~~~~~~~~~~~~~
@@ -3354,16 +3353,14 @@ You can create connections like so:
 .. code-block:: python
 
    import sqlite3
-   from pandas.io import sql
-   cnx = sqlite3.connect(':memory:')
+   con = sqlite3.connect(':memory:')
 
 And then issue the following queries:
 
 .. code-block:: python
 
    data.to_sql('data', cnx)
-
-   sql.read_sql("SELECT * FROM data", cnx)
+   pd.read_sql_query("SELECT * FROM data", con)
 
 
 .. _io.bigquery:
