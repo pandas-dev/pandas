@@ -160,8 +160,8 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like the `Enthought Python Distribution
-   <http://enthought.com/products/epd.php>`__ may be worth considering.
+   distribution like `Enthought Canopy
+   <http://enthought.com/products/canopy>`__ may be worth considering.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
