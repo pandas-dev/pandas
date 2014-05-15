@@ -925,7 +925,7 @@ the values in column 1 where the group is "B" are 3 higher on average.
 
 We can easily visualize this with a boxplot:
 
-..ipython:: python
+.. ipython:: python
 
    @savefig groupby_boxplot.png
    bp = df.groupby('g').boxplot()
@@ -938,7 +938,8 @@ See the :ref:`visualization documentation<visualization.box>` for more.
 .. warning::
 
   For historical reasons, ``df.groupby("g").boxplot()`` is not equivalent
-  to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>`.
+  to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>` for
+  an explanation.
 
 Examples
 --------

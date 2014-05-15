@@ -331,14 +331,15 @@ DataFrame.
    df_box['g'] = np.random.choice(['A', 'B'], size=50)
    df_box.loc[df_box['g'] == 'B', 1] += 3
 
-..ipython:: python
+   @savefig boxplot_groupby.png
+   bp = df_box.boxplot(by='g')
 
-   @savefig(boxplot_groupby.png)
-   df_box.boxplot(by='g')
+Compare to:
+
+.. ipython:: python
 
    @savefig groupby_boxplot_vis.png
-   df_box.groupby('g').boxplot()
-
+   bp = df_box.groupby('g').boxplot()
 
 .. _visualization.area_plot:
 
