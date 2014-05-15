@@ -33,20 +33,25 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest("no scipy")
 
+
 @tm.mplskip
 class TestPlotBase(tm.TestCase):
 
     def setUp(self):
+
+        import matplotlib as mpl
+        mpl.rcdefaults()
+
         n = 100
         with tm.RNGContext(42):
             gender = tm.choice(['Male', 'Female'], size=n)
             classroom = tm.choice(['A', 'B', 'C'], size=n)
 
             self.hist_df = DataFrame({'gender': gender,
-                            'classroom': classroom,
-                            'height': random.normal(66, 4, size=n),
-                            'weight': random.normal(161, 32, size=n),
-                            'category': random.randint(4, size=n)})
+                                      'classroom': classroom,
+                                      'height': random.normal(66, 4, size=n),
+                                      'weight': random.normal(161, 32, size=n),
+                                      'category': random.randint(4, size=n)})
 
     def tearDown(self):
         tm.close()
@@ -119,7 +124,6 @@ class TestPlotBase(tm.TestCase):
 
         for patch in collections:
             self.assertEqual(patch.get_visible(), visible)
-
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()
@@ -338,6 +342,8 @@ class TestSeriesPlots(TestPlotBase):
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
+        mpl.rcdefaults()
+
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -706,6 +712,8 @@ class TestDataFramePlots(TestPlotBase):
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
+        mpl.rcdefaults()
+
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
 
         self.tdf = tm.makeTimeDataFrame()
@@ -2100,7 +2108,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=['x', 'y'])
         df_err = DataFrame(np.random.randn(5, 2) / 5,
                            index=range(5), columns=['x', 'y'])
-            
+
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y')
         self._check_has_errorbars(ax, xerr=0, yerr=0)
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', xerr=df_err)
