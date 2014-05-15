@@ -4856,48 +4856,15 @@ DataFrame.plot = gfx.plot_frame
 DataFrame.hist = gfx.hist_frame
 
 
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(self, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, layout=None, return_type=None,
             **kwds):
-    """
-    Make a box plot from DataFrame column/columns optionally grouped
-    (stratified) by one or more columns
-
-    Parameters
-    ----------
-    data : DataFrame
-    column : column names or list of names, or vector
-        Can be any valid input to groupby
-    by : string or sequence
-        Column in the DataFrame to group by
-    ax : matplotlib axis object, default None
-    fontsize : int or string
-    rot : int, default None
-        Rotation for ticks
-    grid : boolean, default None (matlab style default)
-        Axis grid lines
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
-    return_type : bool, default False
-        Whether to return a dict whose values are the lines of the boxplot
-    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
-           function
-
-    Returns
-    -------
-    ax : matplotlib.axes.AxesSubplot
-    lines : dict (optional)
-
-    Notes
-    -----
-    Use ``return_dict=True`` when you want to modify the appearance
-    of the lines. In this case a named tuple is returned.
-    """
     import pandas.tools.plotting as plots
     import matplotlib.pyplot as plt
     ax = plots.boxplot(self, column=column, by=by, ax=ax,
                        fontsize=fontsize, grid=grid, rot=rot,
-                       figsize=figsize, layout=layout, return_dict=return_dict,
+                       figsize=figsize, layout=layout, return_type=return_type,
                        **kwds)
     plt.draw_if_interactive()
     return ax

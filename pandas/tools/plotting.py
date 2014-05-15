@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
@@ -19,6 +20,7 @@ from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
+from pandas.util.decorators import Appender
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -2258,16 +2260,13 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.axes[0]
 
 
-def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, return_type=None,
-            **kwds):
-    """
+_shared_docs['boxplot'] = """
     Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
 
     Parameters
     ----------
-    data : DataFrame or Series
+    data : the pandas object holding the data
     column : column name or list of names, or vector
         Can be any valid input to groupby
     by : string or sequence
@@ -2299,7 +2298,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     Notes
     -----
-    Use ``return_dict=True`` when you want to tweak the appearance
+    Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
     """
@@ -2314,6 +2313,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     valid_types = (None, 'axes', 'dict', 'both')
     if return_type not in valid_types:
         raise ValueError("return_type")
+
 
     from pandas import Series, DataFrame
     if isinstance(data, Series):

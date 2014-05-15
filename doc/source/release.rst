@@ -262,7 +262,7 @@ Deprecations
   default output is unchanged.
 
 - The default return type of :func:`boxplot` will change from a dict to a matpltolib Axes
-  in a future release. You can use the future behavior now by passing ``return_type='dict'``
+  in a future release. You can use the future behavior now by passing ``return_type='axes'``
   to boxplot.
 
 Prior Version Deprecations/Changes
