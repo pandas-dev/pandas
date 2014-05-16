@@ -4856,36 +4856,19 @@ DataFrame.plot = gfx.plot_frame
 DataFrame.hist = gfx.hist_frame
 
 
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(self, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, **kwds):
-    """
-    Make a box plot from DataFrame column/columns optionally grouped
-    (stratified) by one or more columns
-
-    Parameters
-    ----------
-    data : DataFrame
-    column : column names or list of names, or vector
-        Can be any valid input to groupby
-    by : string or sequence
-        Column in the DataFrame to group by
-    ax : matplotlib axis object, default None
-    fontsize : int or string
-    rot : int, default None
-        Rotation for ticks
-    grid : boolean, default None (matlab style default)
-        Axis grid lines
-
-    Returns
-    -------
-    ax : matplotlib.axes.AxesSubplot
-    """
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
     import pandas.tools.plotting as plots
     import matplotlib.pyplot as plt
     ax = plots.boxplot(self, column=column, by=by, ax=ax,
-                       fontsize=fontsize, grid=grid, rot=rot, **kwds)
+                       fontsize=fontsize, grid=grid, rot=rot,
+                       figsize=figsize, layout=layout, return_type=return_type,
+                       **kwds)
     plt.draw_if_interactive()
     return ax
+
 DataFrame.boxplot = boxplot
 
 ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)

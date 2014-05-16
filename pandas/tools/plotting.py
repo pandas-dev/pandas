@@ -3,6 +3,7 @@
 import datetime
 import warnings
 import re
+from collections import namedtuple
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 
@@ -10,6 +11,7 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
@@ -18,6 +20,7 @@ from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
+from pandas.util.decorators import Appender
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -2257,33 +2260,61 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.axes[0]
 
 
-def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, **kwds):
-    """
+_shared_docs['boxplot'] = """
     Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
 
     Parameters
     ----------
-    data : DataFrame or Series
+    data : the pandas object holding the data
     column : column name or list of names, or vector
         Can be any valid input to groupby
     by : string or sequence
         Column in the DataFrame to group by
-    ax : Matplotlib axis object, optional
+    ax : Matplotlib axes object, optional
     fontsize : int or string
     rot : label rotation angle
     figsize : A tuple (width, height) in inches
     grid : Setting this to True will show the grid
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    return_type : {'axes', 'dict', 'both'}, default 'dict'
+        The kind of object to return. 'dict' returns a dictionary
+        whose values are the matplotlib Lines of the boxplot;
+        'axes' returns the matplotlib axes the boxplot is drawn on;
+        'both' returns a namedtuple with the axes and dict.
+
+        When grouping with ``by``, a dict mapping columns to ``return_type``
+        is returned.
+
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
     Returns
     -------
-    ax : matplotlib.axes.AxesSubplot
+    lines : dict
+    ax : matplotlib Axes
+    (ax, lines): namedtuple
+
+    Notes
+    -----
+    Use ``return_type='dict'`` when you want to tweak the appearance
+    of the lines after plotting. In this case a dict containing the Lines
+    making up the boxes, caps, fliers, medians, and whiskers is returned.
     """
+
+
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+def boxplot(data, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
+
+    # validate return_type:
+    valid_types = (None, 'axes', 'dict', 'both')
+    if return_type not in valid_types:
+        raise ValueError("return_type")
+
+
     from pandas import Series, DataFrame
     if isinstance(data, Series):
         data = DataFrame({'x': data})
@@ -2310,6 +2341,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         maybe_color_bp(bp)
+        return bp
 
     colors = _get_colors()
     if column is None:
@@ -2320,13 +2352,23 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             columns = [column]
 
+    BP = namedtuple("Boxplot", ['ax', 'lines'])  # namedtuple to hold results
+
     if by is not None:
-        fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                            by=by, grid=grid, figsize=figsize,
-                                            ax=ax, layout=layout)
+        fig, axes, d = _grouped_plot_by_column(plot_group, data, columns=columns,
+                                               by=by, grid=grid, figsize=figsize,
+                                               ax=ax, layout=layout)
 
         # Return axes in multiplot case, maybe revisit later # 985
-        ret = axes
+        if return_type is None:
+            ret = axes
+        if return_type == 'axes':
+            ret = dict((k, ax) for k, ax in zip(d.keys(), axes))
+        elif return_type == 'dict':
+            ret = d
+        elif return_type == 'both':
+            ret = dict((k, BP(ax=ax, lines=line)) for
+                       (k, line), ax in zip(d.items(), axes))
     else:
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
@@ -2354,7 +2396,20 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
-        ret = bp
+        ret = ax
+
+        if return_type is None:
+            msg = ("\nThe default value for 'return_type' will change to "
+                   "'axes' in a future release.\n To use the future behavior "
+                   "now, set return_type='axes'.\n To keep the previous "
+                   "behavior and silence this warning, set "
+                   "return_type='dict'.")
+            warnings.warn(msg, FutureWarning)
+            return_type = 'dict'
+        if return_type == 'dict':
+            ret = bp
+        elif return_type == 'both':
+            ret = BP(ax=ret, lines=bp)
 
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     return ret
@@ -2692,7 +2747,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
-    from pandas.core.frame import DataFrame
+    from pandas import DataFrame
 
     # allow to specify mpl default with 'default'
     if figsize is None or figsize == 'default':
@@ -2726,6 +2781,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
                             figsize=None, ax=None, layout=None, **kwargs):
+    from pandas.core.frame import DataFrame
+
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
@@ -2746,18 +2803,21 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     ravel_axes = _flatten(axes)
 
+    out_dict = compat.OrderedDict()
+
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
-        plotf(gp_col, ax, **kwargs)
+        re_plotf = plotf(gp_col, ax, **kwargs)
         ax.set_title(col)
         ax.set_xlabel(com.pprint_thing(by))
         ax.grid(grid)
+        out_dict[col] = re_plotf
 
     byline = by[0] if len(by) == 1 else by
     fig.suptitle('Boxplot grouped by %s' % byline)
 
-    return fig, axes
+    return fig, axes, out_dict
 
 
 def table(ax, data, rowLabels=None, colLabels=None,

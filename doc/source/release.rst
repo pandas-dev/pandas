@@ -208,6 +208,9 @@ API Changes
   returns a different Index (:issue:`7088`). Previously the index was unintentionally sorted.
 - arithmetic operations with **only** ``bool`` dtypes now raise an error
   (:issue:`7011`, :issue:`6762`, :issue:`7015`)
+- :meth:`DataFrame.boxplot` has a new keyword argument, `return_type`. It accepts ``'dict'``,
+  ``'axes'``, or ``'both'``, in which case a namedtuple with the matplotlib
+  axes and a dict of matplotlib Lines is returned.
 
 Deprecations
 ~~~~~~~~~~~~
@@ -257,6 +260,10 @@ Deprecations
 - The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
+
+- The default return type of :func:`boxplot` will change from a dict to a matpltolib Axes
+  in a future release. You can use the future behavior now by passing ``return_type='axes'``
+  to boxplot.
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

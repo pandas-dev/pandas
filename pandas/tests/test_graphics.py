@@ -33,20 +33,25 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest("no scipy")
 
+
 @tm.mplskip
 class TestPlotBase(tm.TestCase):
 
     def setUp(self):
+
+        import matplotlib as mpl
+        mpl.rcdefaults()
+
         n = 100
         with tm.RNGContext(42):
             gender = tm.choice(['Male', 'Female'], size=n)
             classroom = tm.choice(['A', 'B', 'C'], size=n)
 
             self.hist_df = DataFrame({'gender': gender,
-                            'classroom': classroom,
-                            'height': random.normal(66, 4, size=n),
-                            'weight': random.normal(161, 32, size=n),
-                            'category': random.randint(4, size=n)})
+                                      'classroom': classroom,
+                                      'height': random.normal(66, 4, size=n),
+                                      'weight': random.normal(161, 32, size=n),
+                                      'category': random.randint(4, size=n)})
 
     def tearDown(self):
         tm.close()
@@ -119,7 +124,6 @@ class TestPlotBase(tm.TestCase):
 
         for patch in collections:
             self.assertEqual(patch.get_visible(), visible)
-
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()
@@ -338,6 +342,8 @@ class TestSeriesPlots(TestPlotBase):
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
+        mpl.rcdefaults()
+
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -706,6 +712,8 @@ class TestDataFramePlots(TestPlotBase):
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
+        mpl.rcdefaults()
+
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
 
         self.tdf = tm.makeTimeDataFrame()
@@ -1309,14 +1317,14 @@ class TestDataFramePlots(TestPlotBase):
         df['indic'] = ['foo', 'bar'] * 3
         df['indic2'] = ['foo', 'bar', 'foo'] * 2
 
-        _check_plot_works(df.boxplot)
-        _check_plot_works(df.boxplot, column=['one', 'two'])
+        _check_plot_works(df.boxplot, return_type='dict')
+        _check_plot_works(df.boxplot, column=['one', 'two'], return_type='dict')
         _check_plot_works(df.boxplot, column=['one', 'two'], by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
-        _check_plot_works(plotting.boxplot, df['one'])
-        _check_plot_works(df.boxplot, notch=1)
+        _check_plot_works(plotting.boxplot, df['one'], return_type='dict')
+        _check_plot_works(df.boxplot, notch=1, return_type='dict')
         _check_plot_works(df.boxplot, by='indic', notch=1)
 
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
@@ -1337,9 +1345,82 @@ class TestDataFramePlots(TestPlotBase):
 
         # When by is None, check that all relevant lines are present in the dict
         fig, ax = self.plt.subplots()
-        d = df.boxplot(ax=ax)
+        d = df.boxplot(ax=ax, return_type='dict')
         lines = list(itertools.chain.from_iterable(d.values()))
         self.assertEqual(len(ax.get_lines()), len(lines))
+
+    @slow
+    def test_boxplot_return_type(self):
+        # API change in https://github.com/pydata/pandas/pull/7096
+        import matplotlib as mpl
+
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['one', 'two', 'three', 'four'])
+        with tm.assertRaises(ValueError):
+            df.boxplot(return_type='NOTATYPE')
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.boxplot()
+        self.assertIsInstance(result, dict)  # change to Axes in future
+
+        with tm.assert_produces_warning(False):
+            result = df.boxplot(return_type='dict')
+        self.assertIsInstance(result, dict)
+
+        with tm.assert_produces_warning(False):
+            result = df.boxplot(return_type='axes')
+        self.assertIsInstance(result, mpl.axes.Axes)
+
+        with tm.assert_produces_warning(False):
+            result = df.boxplot(return_type='both')
+        self.assertIsInstance(result, tuple)
+
+    @slow
+    def test_boxplot_return_type_by(self):
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.randn(10, 2))
+        df['g'] = ['a'] * 5 + ['b'] * 5
+
+        # old style: return_type=None
+        result = df.boxplot(by='g')
+        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(result[0], mpl.axes.Axes)
+
+        result = df.boxplot(by='g', return_type='dict')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result[0], dict)
+
+        result = df.boxplot(by='g', return_type='axes')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result[0], mpl.axes.Axes)
+
+        result = df.boxplot(by='g', return_type='both')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result[0], tuple)
+        self.assertIsInstance(result[0][0], mpl.axes.Axes)
+        self.assertIsInstance(result[0][1], dict)
+
+        # now for groupby
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.groupby('g').boxplot()
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result['a'], dict)
+
+        result = df.groupby('g').boxplot(return_type='dict')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result['a'], dict)
+
+        result = df.groupby('g').boxplot(return_type='axes')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result['a'], mpl.axes.Axes)
+
+        result = df.groupby('g').boxplot(return_type='both')
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result['a'], tuple)
+        self.assertIsInstance(result['a'][0], mpl.axes.Axes)
+        self.assertIsInstance(result['a'][1], dict)
 
     @slow
     def test_kde(self):
@@ -2027,7 +2108,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=['x', 'y'])
         df_err = DataFrame(np.random.randn(5, 2) / 5,
                            index=range(5), columns=['x', 'y'])
-            
+
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y')
         self._check_has_errorbars(ax, xerr=0, yerr=0)
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', xerr=df_err)
@@ -2044,13 +2125,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
     def test_boxplot(self):
-        # unable to check layout because boxplot doesn't return ndarray
-        # axes_num can be checked using gcf().axes
         grouped = self.hist_df.groupby(by='gender')
-        box = _check_plot_works(grouped.boxplot)
+        box = _check_plot_works(grouped.boxplot, return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
 
-        box = _check_plot_works(grouped.boxplot, subplots=False)
+        box = _check_plot_works(grouped.boxplot, subplots=False,
+                                return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
 
         tuples = lzip(string.ascii_letters[:10], range(10))
@@ -2058,17 +2138,19 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                        index=MultiIndex.from_tuples(tuples))
 
         grouped = df.groupby(level=1)
-        box = _check_plot_works(grouped.boxplot)
+        box = _check_plot_works(grouped.boxplot, return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=10)
 
-        box = _check_plot_works(grouped.boxplot, subplots=False)
+        box = _check_plot_works(grouped.boxplot, subplots=False,
+                                return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=10)
 
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        box = _check_plot_works(grouped.boxplot)
+        box = _check_plot_works(grouped.boxplot, return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
-        box = _check_plot_works(grouped.boxplot, subplots=False)
+        box = _check_plot_works(grouped.boxplot, subplots=False,
+                                return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
     def test_series_plot_color_kwargs(self):
@@ -2133,31 +2215,38 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
                           by=df.gender, layout=(1, 1))
         self.assertRaises(ValueError, df.boxplot, column=['height', 'weight', 'category'],
-                          layout=(2, 1))
+                          layout=(2, 1), return_type='dict')
 
-        box = _check_plot_works(df.groupby('gender').boxplot, column='height')
+        box = _check_plot_works(df.groupby('gender').boxplot, column='height',
+                                return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
 
-        box = _check_plot_works(df.groupby('category').boxplot, column='height')
+        box = _check_plot_works(df.groupby('category').boxplot, column='height',
+                                return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4)
 
         # GH 6769
-        box = _check_plot_works(df.groupby('classroom').boxplot, column='height')
+        box = _check_plot_works(df.groupby('classroom').boxplot,
+                                column='height', return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
         box = df.boxplot(column=['height', 'weight', 'category'], by='gender')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
-        box = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'])
+        box = df.groupby('classroom').boxplot(
+            column=['height', 'weight', 'category'], return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
-        box = _check_plot_works(df.groupby('category').boxplot, column='height', layout=(3, 2))
+        box = _check_plot_works(df.groupby('category').boxplot, column='height',
+                                layout=(3, 2), return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4)
 
         box = df.boxplot(column=['height', 'weight', 'category'], by='gender', layout=(4, 1))
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
-        box = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'], layout=(1, 4))
+        box = df.groupby('classroom').boxplot(
+            column=['height', 'weight', 'category'], layout=(1, 4),
+            return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
 
     @slow

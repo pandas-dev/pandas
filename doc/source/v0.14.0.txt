@@ -212,6 +212,10 @@ API changes
      # this now raises for arith ops like ``+``, ``*``, etc.
      NotImplementedError: operator '*' not implemented for bool dtypes
 
+- :meth:`DataFrame.boxplot` has a new keyword argument, `return_type`. It accepts ``'dict'``,
+  ``'axes'``, or ``'both'``, in which case a namedtuple with the matplotlib
+  axes and a dict of matplotlib Lines is returned.
+
 
 .. _whatsnew_0140.display:
 
@@ -573,6 +577,10 @@ Deprecations
 - The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
+
+- The default return type of :func:`boxplot` will change from a dict to a matpltolib Axes
+  in a future release. You can use the future behavior now by passing ``return_type='axes'``
+  to boxplot.
 
 .. _whatsnew_0140.enhancements:
 
