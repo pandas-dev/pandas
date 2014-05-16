@@ -928,10 +928,11 @@ class NDFrame(PandasObject):
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
             library.
-            If a DBAPI2 object is given, a supported SQL flavor must also be provided
+            If a DBAPI2 object, only sqlite3 is supported.
         flavor : {'sqlite', 'mysql'}, default 'sqlite'
             The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-            Required when using DBAPI2 connection.
+            'mysql' is deprecated and will be removed in future versions, but it
+            will be further supported through SQLAlchemy engines.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
