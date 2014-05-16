@@ -56,13 +56,19 @@ def _infer_tzinfo(start, end):
     return tz
 
 
-def _maybe_get_tz(tz):
+def _maybe_get_tz(tz, date=None):
     if isinstance(tz, compat.string_types):
         import pytz
         tz = pytz.timezone(tz)
     if com.is_integer(tz):
         import pytz
         tz = pytz.FixedOffset(tz / 60)
+
+    # localize and get the tz
+    if date is not None and tz is not None:
+        if date.tzinfo is not None and hasattr(tz,'localize'):
+            tz = tz.localize(date.replace(tzinfo=None)).tzinfo
+
     return tz
 
 def _guess_datetime_format(dt_str, dayfirst=False,
