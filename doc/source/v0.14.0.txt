@@ -23,6 +23,8 @@ users upgrade to this version.
 
 - :ref:`API Changes <whatsnew_0140.api>`
 
+- :ref:`Groupby API Changes <whatsnew_0140.groupby>`
+
 - :ref:`Performance Improvements <whatsnew_0140.performance>`
 
 - :ref:`Prior Deprecations <whatsnew_0140.prior_deprecations>`
@@ -215,6 +217,24 @@ API changes
 
 Display Changes
 ~~~~~~~~~~~~~~~
+
+- The default way of printing large DataFrames has changed. DataFrames
+  exceeding ``max_rows`` and/or ``max_columns`` are now displayed in a
+  centrally truncated view, consistent with the printing of a
+  :class:`pandas.Series` (:issue:`5603`). 
+
+  In previous versions, a DataFrame was truncated once the dimension
+  constraints were reached and an ellipse (...) signaled that part of
+  the data was cut off.
+
+  .. image:: _static/trunc_before.png
+      :alt: The previous look of truncate. 
+
+  In the current version, large DataFrames are centrally truncated,
+  showing a preview of head and tail in both dimensions.
+
+  .. image:: _static/trunc_after.png
+     :alt: The new look. 
 
 - allow option ``'truncate'`` for ``display.show_dimensions`` to only show the dimensions if the
   frame is truncated (:issue:`6547`).

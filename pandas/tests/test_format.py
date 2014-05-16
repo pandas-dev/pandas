@@ -1,5 +1,6 @@
 from __future__ import print_function
 # -*- coding: utf-8 -*-
+import re
 
 from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
 import pandas.compat as compat
@@ -45,12 +46,25 @@ def has_non_verbose_info_repr(df):
     return has_info and nv
 
 def has_horizontally_truncated_repr(df):
+    try: # Check header row
+        fst_line = np.array(repr(df).splitlines()[0].split())
+        cand_col = np.where(fst_line=='...')[0][0]
+    except:
+        return False
+    # Make sure each row has this ... in the same place
     r = repr(df)
-    return any(l.strip().endswith('...') for l in r.splitlines())
+    for ix,l in enumerate(r.splitlines()):
+        if not r.split()[cand_col] == '...':
+            return False
+    return True
 
 def has_vertically_truncated_repr(df):
     r = repr(df)
-    return '..' in r.splitlines()[-3]
+    only_dot_row = False
+    for row in r.splitlines():
+        if re.match('^[\.\ ]+$',row):
+            only_dot_row = True
+    return only_dot_row
 
 def has_truncated_repr(df):
     return has_horizontally_truncated_repr(df) or has_vertically_truncated_repr(df)
@@ -381,6 +395,40 @@ class TestDataFrameFormatting(tm.TestCase):
         c20 = len(df.to_string(col_space=20).split("\n")[1])
         c30 = len(df.to_string(col_space=30).split("\n")[1])
         self.assertTrue(c10 < c20 < c30)
+
+    def test_to_string_truncate_indices(self):
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            for column in [ tm.makeStringIndex ]:
+                for h in [10,20]:
+                    for w in [10,20]:
+                        with option_context("display.expand_frame_repr",False):
+                            df = DataFrame(index=index(h), columns=column(w))
+                            with option_context("display.max_rows", 15):
+                                if h == 20:
+                                    self.assertTrue(has_vertically_truncated_repr(df))
+                                else:
+                                    self.assertFalse(has_vertically_truncated_repr(df))
+                            with option_context("display.max_columns", 15):
+                                if w == 20:
+                                    print(df)
+                                    print(repr(df))
+                                    self.assertTrue(has_horizontally_truncated_repr(df))
+                                else:
+                                    self.assertFalse(has_horizontally_truncated_repr(df))
+                            with option_context("display.max_rows", 15,"display.max_columns", 15):
+                                if h == 20 and w == 20:
+                                    self.assertTrue(has_doubly_truncated_repr(df))
+                                else:
+                                    self.assertFalse(has_doubly_truncated_repr(df))
+                            
+    def test_to_string_truncate_multilevel(self):
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        df = pd.DataFrame(index=arrays,columns=arrays)
+        with option_context("display.max_rows", 7,"display.max_columns", 7):
+            self.assertTrue(has_doubly_truncated_repr(df))
+
 
     def test_to_html_with_col_space(self):
         def check_with_width(df, col_space):
@@ -734,6 +782,338 @@ class TestDataFrameFormatting(tm.TestCase):
                            'données2': np.random.randn(5)})
         # it works
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
+
+
+
+
+
+    def test_to_html_truncate(self):
+        index = pd.DatetimeIndex(start='20010101',freq='D',periods=20)
+        df = pd.DataFrame(index=index,columns=range(20))
+        fmt.set_option('display.max_rows',8)
+        fmt.set_option('display.max_columns',4)
+        result = df._repr_html_()
+        expected = '''\
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>...</th>
+      <th>18</th>
+      <th>19</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2001-01-01</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-02</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-03</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-04</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>2001-01-17</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-18</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-19</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>2001-01-20</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>20 rows × 20 columns</p>
+</div>'''
+        if sys.version_info[0] < 3:
+            expected = expected.decode('utf-8')
+        self.assertEqual(result, expected)
+
+    def test_to_html_truncate_multi_index(self):
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        df = pd.DataFrame(index=arrays,columns=arrays)
+        fmt.set_option('display.max_rows',7)
+        fmt.set_option('display.max_columns',7)
+        result = df._repr_html_()
+        expected = '''\
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+      <th colspan="2" halign="left">bar</th>
+      <th>baz</th>
+      <th>...</th>
+      <th>foo</th>
+      <th colspan="2" halign="left">qux</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>one</th>
+      <th>two</th>
+      <th>one</th>
+      <th>...</th>
+      <th>two</th>
+      <th>one</th>
+      <th>two</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="2" valign="top">bar</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>baz</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">qux</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>8 rows × 8 columns</p>
+</div>'''
+        if sys.version_info[0] < 3:
+            expected = expected.decode('utf-8')
+        self.assertEqual(result, expected)
+
+    def test_to_html_truncate_multi_index_sparse_off(self):
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        df = pd.DataFrame(index=arrays,columns=arrays)
+        fmt.set_option('display.max_rows',7)
+        fmt.set_option('display.max_columns',7)
+        fmt.set_option('display.multi_sparse',False)
+        result = df._repr_html_()
+        expected = '''\
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>bar</th>
+      <th>bar</th>
+      <th>baz</th>
+      <th>...</th>
+      <th>foo</th>
+      <th>qux</th>
+      <th>qux</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>one</th>
+      <th>two</th>
+      <th>one</th>
+      <th>...</th>
+      <th>two</th>
+      <th>one</th>
+      <th>two</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>bar</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>bar</th>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>baz</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>qux</th>
+      <th>one</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+    <tr>
+      <th>qux</th>
+      <th>two</th>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td>...</td>
+      <td> NaN</td>
+      <td> NaN</td>
+      <td> NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>8 rows × 8 columns</p>
+</div>'''
+        if sys.version_info[0] < 3:
+            expected = expected.decode('utf-8')
+        self.assertEqual(result, expected)
+
+
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
@@ -1505,14 +1885,14 @@ c  10  11  12  13  14\
         h = max_rows - 1
         df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         reg_repr = df._repr_html_()
-        assert '...' not in reg_repr
-        assert str(40 + h) in reg_repr
+        assert '..' not in reg_repr
+        assert str(41 + max_rows // 2) in reg_repr
 
         h = max_rows + 1
         df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         long_repr = df._repr_html_()
-        assert '...' in long_repr
-        assert str(40 + h) not in long_repr
+        assert '..' in long_repr
+        assert str(41 + max_rows // 2) not in long_repr
         assert u('%d rows ') % h in long_repr
         assert u('2 columns') in long_repr
 
@@ -1521,14 +1901,14 @@ c  10  11  12  13  14\
         h = max_rows - 1
         df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         reg_repr = df._repr_html_()
-        assert '...' not in reg_repr
+        assert '..' not in reg_repr
         assert str(40 + h) in reg_repr
 
         h = max_rows + 1
         df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         long_repr = df._repr_html_()
-        assert '...' in long_repr
-        assert str(40 + h) not in long_repr
+        assert '..' in long_repr
+        assert '31' not in long_repr
         assert u('%d rows ') % h in long_repr
         assert u('2 columns') in long_repr
 
@@ -1575,7 +1955,7 @@ c  10  11  12  13  14\
         # Wide
         h, w = max_rows-1, max_cols+1
         df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
-        assert has_vertically_truncated_repr(df)
+        assert has_horizontally_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
 

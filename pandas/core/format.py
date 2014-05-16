@@ -1,8 +1,10 @@
+
 #coding: utf-8
 from __future__ import print_function
 # pylint: disable=W0141
 
 import sys
+import re
 
 from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, isnull, notnull
@@ -309,38 +311,65 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.columns = frame.columns
 
+        self._chk_truncate()
+
+    def _chk_truncate(self):
+        from pandas.tools.merge import concat
+
+        truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
+        truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
+
+        # Cut the data to the information actually printed
+        max_cols = self.max_cols
+        max_rows = self.max_rows
+        frame = self.frame
+        if truncate_h:
+            if max_cols > 1:
+                col_num = (max_cols // 2)
+                frame = concat( (frame.iloc[:,:col_num],frame.iloc[:,-col_num:]),axis=1 )
+            else:
+                col_num = max_cols
+                frame = frame.iloc[:,:max_cols]
+            self.tr_col_num = col_num
+        if truncate_v:
+            if max_rows > 1:
+                row_num = max_rows // 2
+                frame = concat( (frame.iloc[:row_num,:],frame.iloc[-row_num:,:]) )
+            else:
+                row_num = max_rows
+                frame = frame.iloc[:max_rows,:]
+            self.tr_row_num = row_num
+
+        self.tr_frame = frame
+        self.truncate_h = truncate_h
+        self.truncate_v = truncate_v
+        self.is_truncated = self.truncate_h or self.truncate_v
+
     def _to_str_columns(self):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
+        _strlen = _strlen_func()
+        frame = self.tr_frame
 
         # may include levels names also
-        str_index = self._get_formatted_index()
-        str_columns = self._get_formatted_column_labels()
+        str_index = self._get_formatted_index(frame)
 
-        _strlen = _strlen_func()
-
-        cols_to_show = self.columns[:self.max_cols]
-        self.truncated_h = truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
-        self.truncated_v = truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
-        self.is_truncated = self.truncated_h or self.truncated_v
-        if truncate_h:
-            cols_to_show = self.columns[:self.max_cols]
-        else:
-            cols_to_show = self.columns
+        str_columns = self._get_formatted_column_labels(frame)
 
         if self.header:
             stringified = []
-            for i, c in enumerate(cols_to_show):
-                fmt_values = self._format_col(i)
+            col_headers = frame.columns
+            for i, c in enumerate(frame):
                 cheader = str_columns[i]
-
                 max_colwidth = max(self.col_space or 0,
                                    *(_strlen(x) for x in cheader))
 
+                fmt_values = self._format_col(i)
+                
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=max_colwidth,
-                                               truncated=truncate_v)
+                                               minimum=max_colwidth)
+
 
                 max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
@@ -351,16 +380,47 @@ class DataFrameFormatter(TableFormatter):
 
                 stringified.append(cheader + fmt_values)
         else:
-            stringified = [_make_fixed_width(self._format_col(i), self.justify,
-                                             truncated=truncate_v)
-                           for i, c in enumerate(cols_to_show)]
+            stringified = []
+            for i, c in enumerate(frame):
+                formatter = self._get_formatter(i)
+                fmt_values = self._format_col(i)
+                fmt_values = _make_fixed_width(fmt_values, self.justify)
+
+                stringified.append(fmt_values)
 
         strcols = stringified
         if self.index:
             strcols.insert(0, str_index)
+
+        # Add ... to signal truncated
+        truncate_h = self.truncate_h
+        truncate_v = self.truncate_v
+
         if truncate_h:
-            strcols.append(([''] * len(str_columns[-1]))
-                           + (['...'] * min(len(self.frame), self.max_rows)))
+            col_num = self.tr_col_num
+            col_width = len(strcols[col_num][0])  # infer from column header
+            strcols.insert(col_num + 1, ['...'.center(col_width)] * (len(str_index)))
+        if truncate_v: 
+            n_header_rows = len(str_index) - len(frame)
+            row_num = self.tr_row_num
+            for ix,col in enumerate(strcols):
+                cwidth = len(strcols[ix][row_num])  # infer from above row
+                is_dot_col = False
+                if truncate_h:
+                    is_dot_col = ix == col_num + 1
+                if cwidth > 3 or is_dot_col:
+                    my_str = '...'
+                else:
+                    my_str = '..'
+
+                if ix == 0:
+                    dot_str = my_str.ljust(cwidth)
+                elif is_dot_col:
+                    dot_str = my_str.center(cwidth)
+                else:
+                    dot_str = my_str.rjust(cwidth)
+
+                strcols[ix].insert(row_num + n_header_rows, dot_str)
 
         return strcols
 
@@ -510,9 +570,10 @@ class DataFrameFormatter(TableFormatter):
                             'method')
 
     def _format_col(self, i):
+        frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            (self.frame.iloc[:self.max_rows_displayed, i]).get_values(),
+            (frame.iloc[:, i]).get_values(),
             formatter, float_format=self.float_format, na_rep=self.na_rep,
             space=self.col_space
         )
@@ -533,16 +594,13 @@ class DataFrameFormatter(TableFormatter):
             raise TypeError('buf is not a file name and it has no write '
                             ' method')
 
-    def _get_formatted_column_labels(self):
+    def _get_formatted_column_labels(self,frame):
         from pandas.core.index import _sparsify
 
         def is_numeric_dtype(dtype):
             return issubclass(dtype.type, np.number)
 
-        if self.max_cols:
-            columns = self.columns[:self.max_cols]
-        else:
-            columns = self.columns
+        columns = frame.columns
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
@@ -580,13 +638,10 @@ class DataFrameFormatter(TableFormatter):
     def has_column_names(self):
         return _has_names(self.frame.columns)
 
-    def _get_formatted_index(self):
+    def _get_formatted_index(self,frame):
         # Note: this is only used by to_string(), not by to_html().
-        if self.max_rows:
-            index = self.frame.index[:self.max_rows]
-        else:
-            index = self.frame.index
-        columns = self.frame.columns
+        index = frame.index
+        columns = frame.columns
 
         show_index_names = self.show_index_names and self.has_index_names
         show_col_names = (self.show_index_names and self.has_column_names)
@@ -633,7 +688,7 @@ class HTMLFormatter(TableFormatter):
         self.classes = classes
 
         self.frame = self.fmt.frame
-        self.columns = formatter.columns
+        self.columns = self.fmt.tr_frame.columns
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
@@ -724,6 +779,7 @@ class HTMLFormatter(TableFormatter):
         _put_lines(buf, self.elements)
 
     def _write_header(self, indent):
+        truncate_h = self.fmt.truncate_h
         if not self.fmt.header:
             # write nothing
             return indent
@@ -745,9 +801,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 if self.fmt.index:
                     row.append(self.columns.name or '')
-                row.extend(self.columns[:self.max_cols])
-                if len(self.columns) > self.max_cols:
-                    row.append('')
+                row.extend(self.columns)
             return row
 
         self.write('<thead>', indent)
@@ -758,16 +812,13 @@ class HTMLFormatter(TableFormatter):
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="%d" halign="left"'
 
-            # GH3547
-            sentinel = com.sentinel_factory()
-            levels = self.columns.format(sparsify=sentinel, adjoin=False,
-                                         names=False)
-            # Truncate column names
-            if len(levels[0]) > self.max_cols:
-                levels = [lev[:self.max_cols] for lev in levels]
-                truncated = True
+            if self.fmt.sparsify:
+                # GH3547
+                sentinel = com.sentinel_factory()
             else:
-                truncated = False
+                sentinel = None
+            levels = self.columns.format(sparsify=sentinel,
+                                         adjoin=False, names=False)
 
             level_lengths = _get_level_lengths(levels, sentinel)
 
@@ -778,7 +829,6 @@ class HTMLFormatter(TableFormatter):
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
                                                  else com.pprint_thing(name)]
-
                 tags = {}
                 j = len(row)
                 for i, v in enumerate(values):
@@ -789,15 +839,25 @@ class HTMLFormatter(TableFormatter):
                         continue
                     j += 1
                     row.append(v)
-
-                if truncated:
-                    row.append('')
+                if truncate_h:
+                    if self.fmt.sparsify and lnum == 0:
+                        ins_col = row_levels + self.fmt.tr_col_num - 1
+                        row.insert(ins_col, '...')
+                        
+                        for tag in list(tags.keys()):
+                            if tag >= ins_col:
+                                tags[tag+1] = tags.pop(tag)                                
+                    else:
+                        row.insert(row_levels + self.fmt.tr_col_num, '...')
 
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
             col_row = _column_header()
             align = self.fmt.justify
+
+            if truncate_h:
+                col_row.insert(self.fmt.tr_col_num + 1, '...')
 
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
@@ -820,14 +880,13 @@ class HTMLFormatter(TableFormatter):
         fmt_values = {}
         for i in range(min(len(self.columns), self.max_cols)):
             fmt_values[i] = self.fmt._format_col(i)
-        truncated = (len(self.columns) > self.max_cols)
 
         # write values
         if self.fmt.index:
             if isinstance(self.frame.index, MultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
             else:
-                self._write_regular_rows(fmt_values, indent, truncated)
+                self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(len(self.frame)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
@@ -839,55 +898,62 @@ class HTMLFormatter(TableFormatter):
 
         return indent
 
-    def _write_regular_rows(self, fmt_values, indent, truncated):
-        ncols = min(len(self.columns), self.max_cols)
-        nrows = min(len(self.frame), self.max_rows)
+    def _write_regular_rows(self, fmt_values, indent):
+        truncate_h = self.fmt.truncate_h
+        truncate_v = self.fmt.truncate_v
+
+        ncols = len(self.fmt.tr_frame.columns)
+        nrows = len(self.fmt.tr_frame)
         fmt = self.fmt._get_formatter('__index__')
         if fmt is not None:
-            index_values = self.frame.index[:nrows].map(fmt)
+            index_values = self.fmt.tr_frame.index.map(fmt)
         else:
-            index_values = self.frame.index[:nrows].format()
+            index_values = self.fmt.tr_frame.index.format()
 
         for i in range(nrows):
+            
+            if truncate_v and i == (self.fmt.tr_row_num):
+                str_sep_row = [ '...' for ele in row ]
+                self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
+                              nindex_levels=1)
+    
             row = []
             row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
-            if truncated:
-                row.append('...')
-            self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=1)
 
-        if len(self.frame) > self.max_rows:
-            row = [''] + (['...'] * ncols)
+            if truncate_h:
+                dot_col_ix = self.fmt.tr_col_num + 1
+                row.insert(dot_col_ix, '...')
             self.write_tr(row, indent, self.indent_delta, tags=None,
                           nindex_levels=1)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="%d" valign="top"'
 
-        frame = self.frame
-        ncols = min(len(self.columns), self.max_cols)
-        nrows = min(len(self.frame), self.max_rows)
+        truncate_h = self.fmt.truncate_h
+        truncate_v = self.fmt.truncate_v
+        frame = self.fmt.tr_frame
+        ncols = len(frame.columns)
+        nrows = len(frame)
+        row_levels = self.frame.index.nlevels
 
-        truncate = (len(frame) > self.max_rows)
-
-        idx_values = frame.index[:nrows].format(sparsify=False, adjoin=False,
+        idx_values = frame.index.format(sparsify=False, adjoin=False,
                                                 names=False)
         idx_values = lzip(*idx_values)
 
         if self.fmt.sparsify:
-
             # GH3547
             sentinel = com.sentinel_factory()
-            levels = frame.index[:nrows].format(sparsify=sentinel,
+            levels = frame.index.format(sparsify=sentinel,
                                                 adjoin=False, names=False)
-            # Truncate row names
-            if truncate:
-                levels = [lev[:self.max_rows] for lev in levels]
 
             level_lengths = _get_level_lengths(levels, sentinel)
 
-            for i in range(min(len(frame), self.max_rows)):
+            for i in range(nrows):
+                if truncate_v and i == (self.fmt.tr_row_num):
+                    str_sep_row = [ '...' ]  * (len(row) + sparse_offset)
+                    self.write_tr(str_sep_row, indent, self.indent_delta, tags=None)
+
                 row = []
                 tags = {}
 
@@ -905,6 +971,8 @@ class HTMLFormatter(TableFormatter):
                     row.append(v)
 
                 row.extend(fmt_values[j][i] for j in range(ncols))
+                if truncate_h:
+                    row.insert(row_levels - sparse_offset + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               nindex_levels=len(levels) - sparse_offset)
         else:
@@ -915,14 +983,10 @@ class HTMLFormatter(TableFormatter):
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
+                if truncate_h:
+                    row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
-
-        # Truncation markers (...)
-        if truncate:
-            row = ([''] * frame.index.nlevels) + (['...'] * ncols)
-            self.write_tr(row, indent, self.indent_delta, tags=None)
-
 
 def _get_level_lengths(levels, sentinel=''):
     from itertools import groupby
@@ -1877,8 +1941,7 @@ def _get_format_timedelta64(values):
     return impl
 
 
-def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):
-
+def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0 or justify == 'all':
         return strings
 
@@ -1908,9 +1971,6 @@ def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):
         return justfunc(x, eff_len)
 
     result = [just(x) for x in strings]
-
-    if truncated:
-        result.append(justfunc('...'[:max_len], max_len))
 
     return result
 
