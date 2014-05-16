@@ -317,8 +317,11 @@ class TestTimeZoneSupport(tm.TestCase):
 
         # normalized
         central = dr.tz_convert(tz)
+
+        # compare vs a localized tz
+        comp = tz.localize(dr[0].to_pydatetime().replace(tzinfo=None)).tzinfo
         self.assertIs(central.tz, tz)
-        self.assertIs(central[0].tz, tz)
+        self.assertIs(central[0].tz, comp)
 
         # datetimes with tzinfo set
         dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
@@ -393,9 +396,9 @@ class TestTimeZoneSupport(tm.TestCase):
 
         start = eastern.localize(_start)
         end = eastern.localize(_end)
-        assert(tools._infer_tzinfo(start, end) is eastern)
-        assert(tools._infer_tzinfo(start, None) is eastern)
-        assert(tools._infer_tzinfo(None, end) is eastern)
+        assert(tools._infer_tzinfo(start, end) is eastern.localize(_start).tzinfo)
+        assert(tools._infer_tzinfo(start, None) is eastern.localize(_start).tzinfo)
+        assert(tools._infer_tzinfo(None, end) is eastern.localize(_end).tzinfo)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
@@ -643,8 +646,7 @@ class TestTimeZoneSupport(tm.TestCase):
                            tz='Europe/Berlin')
         ts = Series(index=index, data=index.hour)
         time_pandas = Timestamp('2012-12-24 17:00', tz='Europe/Berlin')
-        time_datetime = datetime(2012, 12, 24, 17, 0,
-                                 tzinfo=pytz.timezone('Europe/Berlin'))
+        time_datetime = pytz.timezone('Europe/Berlin').localize(datetime(2012, 12, 24, 17, 0))
         self.assertEqual(ts[time_pandas], ts[time_datetime])
 
     def test_index_drop_dont_lose_tz(self):
@@ -974,7 +976,7 @@ class TestTimeZones(tm.TestCase):
                 self.assert_(offset.equals(expected))
             offset = dates + timedelta(hours=5)
             self.assert_(offset.equals(expected))
-            
+
     def test_nat(self):
         # GH 5546
         dates = [NaT]

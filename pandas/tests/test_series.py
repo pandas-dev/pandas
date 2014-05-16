@@ -4589,8 +4589,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, ts)
 
         result = ts.copy()
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
+
+        # comparison dates with datetime MUST be localized!
+        date = tz('US/Central').localize(datetime(1990, 1, 1, 3))
+        result[date] = 0
+        result[date] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):

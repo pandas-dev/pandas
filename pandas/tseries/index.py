@@ -257,7 +257,7 @@ class DatetimeIndex(Int64Index):
 
             if lib.is_string_array(values):
                 subarr = _str_to_dt_array(values, freq, dayfirst=dayfirst,
-                                        yearfirst=yearfirst)          
+                                        yearfirst=yearfirst)
             else:
                 try:
                     subarr = tools.to_datetime(data, box=False)
@@ -350,7 +350,9 @@ class DatetimeIndex(Int64Index):
                              'different timezones')
 
         inferred_tz = tools._maybe_get_tz(inferred_tz)
-        tz = tools._maybe_get_tz(tz)
+
+        # these may need to be localized
+        tz = tools._maybe_get_tz(tz, start or end)
 
         if tz is not None and inferred_tz is not None:
             if not inferred_tz == tz:
