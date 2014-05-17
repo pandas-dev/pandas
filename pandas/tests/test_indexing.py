@@ -2261,7 +2261,7 @@ class TestIndexing(tm.TestCase):
                 df.take(mask[1:],convert=False) ])
 
         df = gen_test(900,100)
-        self.assert_(not df.index.is_unique)
+        self.assertFalse(df.index.is_unique)
 
         mask = np.arange(100)
         result = df.loc[mask]
@@ -2269,7 +2269,7 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(result,expected)
 
         df = gen_test(900000,100000)
-        self.assert_(not df.index.is_unique)
+        self.assertFalse(df.index.is_unique)
 
         mask = np.arange(100000)
         result = df.loc[mask]

@@ -966,7 +966,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unstack_period_series(self):
         # GH 4342
-        idx1 = pd.PeriodIndex(['2013-01', '2013-01', '2013-02', '2013-02', 
+        idx1 = pd.PeriodIndex(['2013-01', '2013-01', '2013-02', '2013-02',
                                '2013-03', '2013-03'], freq='M', name='period')
         idx2 = Index(['A', 'B'] * 3, name='str')
         value = [1, 2, 3, 4, 5, 6]
@@ -987,10 +987,10 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected.T)
 
-        idx1 = pd.PeriodIndex(['2013-01', '2013-01', '2013-02', '2013-02', 
+        idx1 = pd.PeriodIndex(['2013-01', '2013-01', '2013-02', '2013-02',
                                '2013-03', '2013-03'], freq='M', name='period1')
 
-        idx2 = pd.PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09', 
+        idx2 = pd.PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09',
                                '2013-08', '2013-07'], freq='M', name='period2')
         idx = pd.MultiIndex.from_arrays([idx1, idx2])
         s = Series(value, index=idx)
@@ -1031,7 +1031,7 @@ Thur,Lunch,Yes,51.51,17"""
         e_cols = pd.MultiIndex.from_arrays(['A A A B B B'.split(), e_2])
         expected = DataFrame([[5, 1, 6, 2, 6, 1], [4, 2, 3, 3, 5, 4]],
                              index=e_1, columns=e_cols)
-   
+
         assert_frame_equal(result1, expected)
         assert_frame_equal(result2, expected)
 
@@ -1158,14 +1158,14 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.frame.copy()
         expected.values[np.isnan(joined.values)] = np.nan
 
-        self.assert_(not np.isnan(joined.values).all())
+        self.assertFalse(np.isnan(joined.values).all())
 
         assert_frame_equal(joined, expected, check_names=False)  # TODO what should join do with names ?
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)
         swapped2 = self.frame['A'].swaplevel('first', 'second')
-        self.assert_(not swapped.index.equals(self.frame.index))
+        self.assertFalse(swapped.index.equals(self.frame.index))
         assert_series_equal(swapped, swapped2)
 
         back = swapped.swaplevel(0, 1)
@@ -1241,12 +1241,12 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 0, 1, 1, 1],
                                    [0, 1, 2, 0, 2, 1]])
-        self.assert_(not index.is_lexsorted())
+        self.assertFalse(index.is_lexsorted())
 
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 1, 0, 1, 1],
                                    [0, 1, 0, 2, 2, 1]])
-        self.assert_(not index.is_lexsorted())
+        self.assertFalse(index.is_lexsorted())
         self.assertEqual(index.lexsort_depth, 0)
 
     def test_frame_getitem_view(self):
@@ -2056,7 +2056,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(df.index.levels[0].equals(expected1))
         self.assert_(df.index.levels[1].equals(expected2))
         self.assert_(df.index.levels[2].equals(idx3))
-        
+
         self.assert_(df.index.get_level_values(0).equals(idx1))
         self.assert_(df.index.get_level_values(1).equals(idx2))
         self.assert_(df.index.get_level_values(2).equals(idx3))

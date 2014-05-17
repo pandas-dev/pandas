@@ -5089,7 +5089,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # DataFrame
         self.assert_(df.eq(df).values.all())
-        self.assert_(not df.ne(df).values.any())
+        self.assertFalse(df.ne(df).values.any())
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             f = getattr(df, op)
             o = getattr(operator, op)
@@ -5149,17 +5149,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # NA
         df.ix[0, 0] = np.nan
         rs = df.eq(df)
-        self.assert_(not rs.ix[0, 0])
+        self.assertFalse(rs.ix[0, 0])
         rs = df.ne(df)
         self.assert_(rs.ix[0, 0])
         rs = df.gt(df)
-        self.assert_(not rs.ix[0, 0])
+        self.assertFalse(rs.ix[0, 0])
         rs = df.lt(df)
-        self.assert_(not rs.ix[0, 0])
+        self.assertFalse(rs.ix[0, 0])
         rs = df.ge(df)
-        self.assert_(not rs.ix[0, 0])
+        self.assertFalse(rs.ix[0, 0])
         rs = df.le(df)
-        self.assert_(not rs.ix[0, 0])
+        self.assertFalse(rs.ix[0, 0])
 
 
 
@@ -5169,14 +5169,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'a': arr})
         df2 = DataFrame({'a': arr2})
         rs = df.gt(df2)
-        self.assert_(not rs.values.any())
+        self.assertFalse(rs.values.any())
         rs = df.ne(df2)
         self.assert_(rs.values.all())
 
         arr3 = np.array([2j, np.nan, None])
         df3 = DataFrame({'a': arr3})
         rs = df3.gt(2j)
-        self.assert_(not rs.values.any())
+        self.assertFalse(rs.values.any())
 
         # corner, dtype=object
         df1 = DataFrame({'col': ['foo', np.nan, 'bar']})
@@ -8400,7 +8400,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         index = self.tsframe.index
         truncated = self.tsframe.truncate(index[5], index[10])
         truncated.values[:] = 5.
-        self.assert_(not (self.tsframe.values[5:11] == 5).any())
+        self.assertFalse((self.tsframe.values[5:11] == 5).any())
 
     def test_xs(self):
         idx = self.frame.index[5]
@@ -10499,13 +10499,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         median = self.frame.median().median()
 
         capped = self.frame.clip_upper(median)
-        self.assert_(not (capped.values > median).any())
+        self.assertFalse((capped.values > median).any())
 
         floored = self.frame.clip_lower(median)
-        self.assert_(not (floored.values < median).any())
+        self.assertFalse((floored.values < median).any())
 
         double = self.frame.clip(upper=median, lower=median)
-        self.assert_(not (double.values != median).any())
+        self.assertFalse((double.values != median).any())
 
     def test_dataframe_clip(self):
 
@@ -10536,7 +10536,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                       ['a', 'b', 'e'])
 
     def test_is_mixed_type(self):
-        self.assert_(not self.frame._is_mixed_type)
+        self.assertFalse(self.frame._is_mixed_type)
         self.assert_(self.mixed_frame._is_mixed_type)
 
     def test_get_numeric_data(self):
@@ -11787,7 +11787,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         cop = DataFrame(self.frame, copy=True)
         cop['A'] = 5
         self.assert_((cop['A'] == 5).all())
-        self.assert_(not (self.frame['A'] == 5).all())
+        self.assertFalse((self.frame['A'] == 5).all())
 
     def test_constructor_ndarray_copy(self):
         df = DataFrame(self.frame.values)
@@ -11797,7 +11797,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         df = DataFrame(self.frame.values, copy=True)
         self.frame.values[6] = 6
-        self.assert_(not (df.values[6] == 6).all())
+        self.assertFalse((df.values[6] == 6).all())
 
     def test_constructor_series_copy(self):
         series = self.frame._series
@@ -11805,7 +11805,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'A': series['A']})
         df['A'][:] = 5
 
-        self.assert_(not (series['A'] == 5).all())
+        self.assertFalse((series['A'] == 5).all())
 
     def test_constructor_compound_dtypes(self):
         # GH 5191
@@ -11938,7 +11938,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_as_matrix_consolidate(self):
         self.frame['E'] = 7.
-        self.assert_(not self.frame._data.is_consolidated())
+        self.assertFalse(self.frame._data.is_consolidated())
         _ = self.frame.as_matrix()
         self.assert_(self.frame._data.is_consolidated())
 
@@ -12365,8 +12365,8 @@ starting,ending,measure
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name == 'any':
-                self.assert_(not r0.any())
-                self.assert_(not r1.any())
+                self.assertFalse(r0.any())
+                self.assertFalse(r1.any())
             else:
                 self.assert_(r0.all())
                 self.assert_(r1.all())

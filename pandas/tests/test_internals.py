@@ -229,17 +229,17 @@ class TestBlock(tm.TestCase):
         newb = self.fblock.copy()
         newb.delete(0)
         assert_almost_equal(newb.mgr_locs, [2, 4])
-        self.assert_((newb.values[0] == 1).all())
+        self.assertTrue((newb.values[0] == 1).all())
 
         newb = self.fblock.copy()
         newb.delete(1)
         assert_almost_equal(newb.mgr_locs, [0, 4])
-        self.assert_((newb.values[1] == 2).all())
+        self.assertTrue((newb.values[1] == 2).all())
 
         newb = self.fblock.copy()
         newb.delete(2)
         assert_almost_equal(newb.mgr_locs, [0, 2])
-        self.assert_((newb.values[1] == 1).all())
+        self.assertTrue((newb.values[1] == 1).all())
 
         newb = self.fblock.copy()
         self.assertRaises(Exception, newb.delete, 3)
@@ -985,6 +985,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-
-
-    
