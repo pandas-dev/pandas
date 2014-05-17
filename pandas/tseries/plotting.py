@@ -75,7 +75,6 @@ def tsplot(series, plotf, **kwargs):
         args.append(style)
 
     lines = plotf(ax, *args, **kwargs)
-    label = kwargs.get('label', None)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
@@ -83,7 +82,10 @@ def tsplot(series, plotf, **kwargs):
     ax.set_xlim(left, right)
 
     # x and y coord info
-    ax.format_coord = lambda t, y: "t = {}  y = {:8f}".format(Period(ordinal=int(t), freq=ax.freq), y)
+    ax.format_coord = lambda t, y: ("t = {0}  "
+                                    "y = {1:8f}".format(Period(ordinal=int(t),
+                                                               freq=ax.freq),
+                                                        y))
 
     return lines
 

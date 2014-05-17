@@ -1364,10 +1364,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # Multiple columns with an ax argument is not supported
         fig, ax = self.plt.subplots()
-        self.assertRaisesRegexp(
-            ValueError, 'existing axis', df.boxplot,
-            column=['Col1', 'Col2'], by='X', ax=ax
-            )
+        with tm.assertRaisesRegexp(ValueError, 'existing axis'):
+            df.boxplot(column=['Col1', 'Col2'], by='X', ax=ax)
 
         # When by is None, check that all relevant lines are present in the dict
         fig, ax = self.plt.subplots()
