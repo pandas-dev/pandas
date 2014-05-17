@@ -861,7 +861,6 @@ def write_csv_rows(list data, list data_index, int nlevels, list cols, object wr
 
     cdef int N, j, i, ncols
     cdef list rows
-    cdef object val
 
     # In crude testing, N>100 yields little marginal improvement
     N=100
@@ -901,6 +900,55 @@ def write_csv_rows(list data, list data_index, int nlevels, list cols, object wr
     if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
         writer.writerows(rows[:((j+1) % N)])
 
+
+from libc.stdio cimport fprintf, FILE, fopen, fclose
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def write_csv_rows_fast(list data, list data_index, list cols, object filename):
+    cdef int N, j, i, ncols
+    # cdef list rows
+    filename_byte_string = filename.encode("UTF-8")
+    cdef char* fname = filename_byte_string
+    cdef float item
+
+    cdef FILE* cfile
+    cfile = fopen(fname, "a")
+    if cfile == NULL:
+        return
+
+    # In crude testing, N>100 yields little marginal improvement
+    N=100
+
+    # pre-allocate  rows
+    ncols = len(cols)
+    # changing nlevels to 1 here, only making this work for nlevel=1
+    # rows = [[None]*(1+ncols) for x in range(N)]
+
+    j = -1
+
+    cdef char* fmt = "%f,"
+    for j in range(len(data_index)):
+        # row = rows[j % N]
+        # row[0] = data_index[j]
+        item = data_index[j]
+        fprintf(cfile, fmt, item)
+        for i in range(ncols):
+            # row[1+i] = data[i][j]
+            item = data[i][j]
+            fprintf(cfile, fmt, item)
+
+        fprintf(cfile, '\n')
+
+        if j >= N-1 and j % N == N-1:
+            # writer.writerows(rows)
+            pass
+
+    if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
+        # writer.writerows(rows[:((j+1) % N)])
+        pass
+
+    fclose(cfile)
 #-------------------------------------------------------------------------------
 # Groupby-related functions
 

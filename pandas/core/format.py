@@ -1165,6 +1165,20 @@ class CSVFormatter(object):
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding
                 self.writer = com.UnicodeWriter(f, **writer_kwargs)
+
+            elif self.engine == 'fast':
+                class Writer(object):
+                    def __init__(self, f):
+                        self.f = f
+
+                    def writerow(self, row):
+                        for elem in row:
+                            self.f.write('{0},'.format(elem))
+                        self.f.write('\n')
+
+                self.writer = Writer(f)
+                close = False
+
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 
@@ -1176,7 +1190,6 @@ class CSVFormatter(object):
                                  index=self.index,
                                  index_label=self.index_label,
                                  date_format=self.date_format)
-
             else:
                 self._save()
 
@@ -1266,6 +1279,9 @@ class CSVFormatter(object):
 
         self._save_header()
 
+        if self.engine == 'fast':
+            self.writer.f.close()
+
         nrows = len(self.data_index)
 
         # write in chunksize bites
@@ -1300,7 +1316,11 @@ class CSVFormatter(object):
                                         float_format=self.float_format,
                                         date_format=self.date_format)
 
-        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        if self.engine == 'fast':
+            lib.write_csv_rows_fast(self.data, ix, self.cols, self.path_or_buf)
+        else:
+            lib.write_csv_rows(self.data, ix, self.nlevels, self.cols,
+                               self.writer)
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",
