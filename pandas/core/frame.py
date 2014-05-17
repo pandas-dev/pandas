@@ -1539,7 +1539,7 @@ class DataFrame(NDFrame):
         value : scalar value
         """
 
-        if takeable is True:
+        if takeable:
             series = self._iget_item_cache(col)
             return series.values[index]
 

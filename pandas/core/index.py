@@ -1713,52 +1713,43 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
 
         is_unique = self.is_unique
-        if start is None:
-            start_slice = 0
-        else:
+
+        def _get_slice(starting_value, offset, search_side, slice_property,
+                       search_value):
+            if search_value is None:
+                return starting_value
+
             try:
-                start_slice = self.get_loc(start)
+                slc = self.get_loc(search_value)
 
                 if not is_unique:
 
                     # get_loc will return a boolean array for non_uniques
                     # if we are not monotonic
-                    if isinstance(start_slice, (ABCSeries, np.ndarray)):
+                    if isinstance(slc, np.ndarray):
                         raise KeyError("cannot peform a slice operation "
                                        "on a non-unique non-monotonic index")
 
-                if isinstance(start_slice, slice):
-                    start_slice = start_slice.start
+                if isinstance(slc, slice):
+                    slc = getattr(slc, slice_property)
+                else:
+                    slc += offset
 
             except KeyError:
                 if self.is_monotonic:
-                    start_slice = self.searchsorted(start, side='left')
+                    if not is_unique:
+                        slc = search_value
+                    else:
+                        slc = self.searchsorted(search_value,
+                                                side=search_side)
                 else:
                     raise
+            return slc
 
-        if end is None:
-            end_slice = len(self)
-        else:
-            try:
-                end_slice = self.get_loc(end)
-
-                if not is_unique:
-
-                    # get_loc will return a boolean array for non_uniques
-                    if isinstance(end_slice, np.ndarray):
-                        raise KeyError("cannot perform a slice operation "
-                                       "on a non-unique non-monotonic index")
-
-                if isinstance(end_slice, slice):
-                    end_slice = end_slice.stop
-                else:
-                    end_slice += 1
-
-            except KeyError:
-                if self.is_monotonic:
-                    end_slice = self.searchsorted(end, side='right')
-                else:
-                    raise
+        start_slice = _get_slice(0, offset=0, search_side='left',
+                                 slice_property='start', search_value=start)
+        end_slice = _get_slice(len(self), offset=1, search_side='right',
+                               slice_property='stop', search_value=end)
 
         return start_slice, end_slice
 
@@ -1994,11 +1985,12 @@ class Float64Index(Index):
         """ convert a slice indexer, by definition these are labels
             unless we are iloc """
         if typ == 'iloc':
-            return super(Float64Index, self)._convert_slice_indexer(key, typ=typ)
+            return super(Float64Index, self)._convert_slice_indexer(key,
+                                                                    typ=typ)
 
         # allow floats here
-        self._validate_slicer(
-            key, lambda v: v is None or is_integer(v) or is_float(v))
+        validator = lambda v: v is None or is_integer(v) or is_float(v)
+        self._validate_slicer(key, validator)
 
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step)
