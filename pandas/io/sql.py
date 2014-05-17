@@ -221,8 +221,8 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
 #------------------------------------------------------------------------------
 #--- Read and write to DataFrames
 
-def read_sql_table(table_name, con, meta=None, index_col=None,
-                   coerce_float=True, parse_dates=None, columns=None):
+def read_sql_table(table_name, con, index_col=None, coerce_float=True,
+                   parse_dates=None, columns=None):
     """Read SQL database table into a DataFrame.
 
     Given a table name and an SQLAlchemy engine, returns a DataFrame.
@@ -234,8 +234,6 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
         Name of SQL table in database
     con : SQLAlchemy engine
         Sqlite DBAPI conncection mode not supported
-    meta : SQLAlchemy meta, optional
-        If omitted MetaData is reflected from engine
     index_col : string, optional
         Column to set as index
     coerce_float : boolean, default True
@@ -264,7 +262,7 @@ def read_sql_table(table_name, con, meta=None, index_col=None,
 
 
     """
-    pandas_sql = PandasSQLAlchemy(con, meta=meta)
+    pandas_sql = PandasSQLAlchemy(con)
     table = pandas_sql.read_table(
         table_name, index_col=index_col, coerce_float=coerce_float,
         parse_dates=parse_dates, columns=columns)
@@ -292,11 +290,10 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     index_col : string, optional
-        column name to use for the returned DataFrame object.
+        Column name to use as index for the returned DataFrame object.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
-    cur : depreciated, cursor is obtained from connection
     params : list, tuple or dict, optional
         List of parameters to pass to execute method.
     parse_dates : list or dict
@@ -325,8 +322,8 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
         parse_dates=parse_dates)
 
 
-def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
-             params=None, parse_dates=None, columns=None):
+def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
+             parse_dates=None, columns=None):
     """
     Read SQL query or database table into a DataFrame.
 
@@ -339,15 +336,10 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     index_col : string, optional
-        column name to use for the returned DataFrame object.
-    flavor : string, {'sqlite', 'mysql'}
-        The flavor of SQL to use. Ignored when using
-        SQLAlchemy engine. Required when using DBAPI2 connection.
-        'mysql' is still supported, but will be removed in future versions.
+        column name to use as index for the returned DataFrame object.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
-    cur : depreciated, cursor is obtained from connection
     params : list, tuple or dict, optional
         List of parameters to pass to execute method.
     parse_dates : list or dict
@@ -360,7 +352,8 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
           Especially useful with databases without native Datetime support,
           such as SQLite
     columns : list
-        List of column names to select from sql table
+        List of column names to select from sql table (only used when reading
+        a table).
 
     Returns
     -------
@@ -379,7 +372,7 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     read_sql_query : Read SQL query into a DataFrame
 
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con)
 
     if 'select' in sql.lower():
         try:
@@ -419,8 +412,8 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : {'sqlite', 'mysql'}, default 'sqlite'
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-        Required when using DBAPI2 connection.
-        'mysql' is still supported, but will be removed in future versions.
+        'mysql' is deprecated and will be removed in future versions, but it
+        will be further supported through SQLAlchemy engines.
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
@@ -461,8 +454,8 @@ def has_table(table_name, con, flavor='sqlite'):
         If a DBAPI2 object, only sqlite3 is supported.
     flavor: {'sqlite', 'mysql'}, default 'sqlite'
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-        Required when using DBAPI2 connection.
-        'mysql' is still supported, but will be removed in future versions.
+        'mysql' is deprecated and will be removed in future versions, but it
+        will be further supported through SQLAlchemy engines.
 
     Returns
     -------
@@ -1090,15 +1083,23 @@ class PandasSQLLegacy(PandasSQL):
 
 def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
     """
-    Get the SQL db table schema for the given frame
+    Get the SQL db table schema for the given frame.
 
     Parameters
     ----------
     frame : DataFrame
-    name : name of SQL table
+    name : string
+        name of SQL table
     flavor : {'sqlite', 'mysql'}, default 'sqlite'
-    keys : columns to use a primary key
+        The flavor of SQL to use. Ignored when using SQLAlchemy engine.
+        'mysql' is deprecated and will be removed in future versions, but it
+        will be further supported through SQLAlchemy engines.
+    keys : string or sequence
+        columns to use a primary key
     con: an open SQL database connection object or an SQLAlchemy engine
+        Using SQLAlchemy makes it possible to use any DB supported by that
+        library.
+        If a DBAPI2 object, only sqlite3 is supported.
 
     """
 

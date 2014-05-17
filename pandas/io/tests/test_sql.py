@@ -340,7 +340,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_legacy_read_frame(self):
         with tm.assert_produces_warning(FutureWarning):
             iris_frame = sql.read_frame(
-                "SELECT * FROM iris", self.conn, flavor='sqlite')
+                "SELECT * FROM iris", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
     def test_to_sql(self):

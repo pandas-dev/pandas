@@ -340,6 +340,71 @@ More consistent behaviour for some groupby methods:
 SQL
 ~~~
 
+The SQL reading and writing functions now support more database flavors
+through SQLAlchemy (:issue:`2717`, :issue:`4163`, :issue:`5950`, :issue:`6292`).
+All databases supported by SQLAlchemy can be used, such
+as PostgreSQL, MySQL, Oracle, Microsoft SQL server (see documentation of
+SQLAlchemy on `included dialects
+<http://sqlalchemy.readthedocs.org/en/latest/dialects/index.html>`_).
+
+The functionality of providing DBAPI connection objects will only be supported
+for sqlite3 in the future. The ``'mysql'`` flavor is deprecated.
+
+The new functions :func:`~pandas.read_sql_query` and :func:`~pandas.read_sql_table`
+are introduced. The function :func:`~pandas.read_sql` is kept as a convenience
+wrapper around the other two and will delegate to specific function depending on
+the provided input (database table name or sql query).
+
+In practice, you have to provide a SQLAlchemy ``engine`` to the sql functions. 
+To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+object from database URI. You only need to create the engine once per database you are
+connecting to. For an in-memory sqlite database:
+
+.. ipython:: python
+
+   from sqlalchemy import create_engine
+   # Create your connection.
+   engine = create_engine('sqlite:///:memory:')
+
+This ``engine`` can then be used to write or read data to/from this database:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1,2,3], 'B': ['a', 'b', 'c']})
+    df.to_sql('db_table', engine, index=False)
+
+You can read data from a database by specifying the table name:
+
+.. ipython:: python
+
+   pd.read_sql_table('db_table', engine)
+
+or by specifying a sql query:
+
+.. ipython:: python
+
+   pd.read_sql_query('SELECT * FROM db_table', engine)
+   
+Some other enhancements to the sql functions include:
+
+- support for writing the index. This can be controlled with the ``index``
+  keyword (default is True).
+- specify the column label to use when writing the index with ``index_label``.
+- specify string columns to parse as datetimes withh the ``parse_dates``
+  keyword in :func:`~pandas.read_sql_query` and :func:`~pandas.read_sql_table`.
+
+.. warning::
+
+    Some of the existing functions or function aliases have been deprecated
+    and will be removed in future versions. This includes: ``tquery``, ``uquery``,
+    ``read_frame``, ``frame_query``, ``write_frame``. 
+
+.. warning::
+
+    The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
+    MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
+
 .. _whatsnew_0140.slicers:
 
 MultiIndexing Using Slicers
@@ -572,6 +637,8 @@ Deprecations
 
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
+  - The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``. 
 
 - The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The

@@ -66,6 +66,8 @@ New features
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
 - Added error bar support to the ``.plot`` method of ``DataFrame`` and ``Series`` (:issue:`3796`, :issue:`6834`)
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
+- The SQL reading and writing functions now support more database flavors
+  through SQLAlchemy (:issue:`2717`, :issue:`4163`, :issue:`5950`, :issue:`6292`).
 
 API Changes
 ~~~~~~~~~~~
@@ -256,6 +258,8 @@ Deprecations
 
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
+
+- The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``.
 
 - The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
