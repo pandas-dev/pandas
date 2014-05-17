@@ -33,6 +33,21 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest("no scipy")
 
+def _skip_if_no_scipy_gaussian_kde():
+    try:
+        import scipy
+        from scipy.stats import gaussian_kde
+    except ImportError:
+        raise nose.SkipTest("scipy version doesn't support gaussian_kde")
+
+def _ok_for_gaussian_kde(kind):
+    if kind in ['kde','density']:
+        try:
+            import scipy
+            from scipy.stats import gaussian_kde
+        except ImportError:
+            return False
+    return True
 
 @tm.mplskip
 class TestPlotBase(tm.TestCase):
@@ -375,6 +390,8 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.iseries.plot)
 
         for kind in ['line', 'bar', 'barh', 'kde']:
+            if not _ok_for_gaussian_kde(kind):
+                continue
             _check_plot_works(self.series[:5].plot, kind=kind)
 
         _check_plot_works(self.series[:10].plot, kind='barh')
@@ -585,6 +602,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_kde(self):
         _skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot, kind='kde')
         _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True)
@@ -593,6 +611,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_kde_kwargs(self):
         _skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
         from numpy import linspace
         _check_plot_works(self.ts.plot, kind='kde', bw_method=.5, ind=linspace(-100,100,20))
         _check_plot_works(self.ts.plot, kind='density', bw_method=.5, ind=linspace(-100,100,20))
@@ -602,6 +621,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_kde_color(self):
         _skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
         ax = self.ts.plot(kind='kde', logy=True, color='r')
         self._check_ax_scales(ax, yaxis='log')
         lines = ax.get_lines()
@@ -631,6 +651,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
         for kind in plotting._common_kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
             with tm.assertRaises(TypeError):
                 s.plot(kind=kind)
 
@@ -638,11 +660,15 @@ class TestSeriesPlots(TestPlotBase):
     def test_valid_object_plot(self):
         s = Series(lrange(10), dtype=object)
         for kind in plotting._common_kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
         for kind in plotting._common_kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
             with tm.assertRaises(TypeError):
                 s.plot(kind=kind)
 
@@ -1341,7 +1367,7 @@ class TestDataFramePlots(TestPlotBase):
         self.assertRaisesRegexp(
             ValueError, 'existing axis', df.boxplot,
             column=['Col1', 'Col2'], by='X', ax=ax
-        )
+            )
 
         # When by is None, check that all relevant lines are present in the dict
         fig, ax = self.plt.subplots()
@@ -1425,6 +1451,7 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_kde(self):
         _skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
         df = DataFrame(randn(100, 4))
         ax = _check_plot_works(df.plot, kind='kde')
         expected = [com.pprint_thing(c) for c in df.columns]
@@ -1533,8 +1560,10 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
-        _check_plot_works(scat, diagonal='kde')
-        _check_plot_works(scat, diagonal='density')
+        if _ok_for_gaussian_kde('kde'):
+            _check_plot_works(scat, diagonal='kde')
+        if _ok_for_gaussian_kde('density'):
+            _check_plot_works(scat, diagonal='density')
         _check_plot_works(scat, diagonal='hist')
         _check_plot_works(scat, range_padding=.1)
 
@@ -1662,6 +1691,9 @@ class TestDataFramePlots(TestPlotBase):
         df4 = DataFrame(rand(3, 3), columns=['j', 'k', 'l'])
 
         for kind in kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
+
             ax = df.plot(kind=kind, legend=True)
             self._check_legend_labels(ax, labels=df.columns)
 
@@ -1734,6 +1766,9 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(rand(3, 3), columns=['a', 'b', 'c'])
 
         for kind in kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
+
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
 
@@ -1844,6 +1879,8 @@ class TestDataFramePlots(TestPlotBase):
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
         for kind in plotting._common_kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
             with tm.assertRaises(TypeError):
                 df.plot(kind=kind)
 
@@ -1853,6 +1890,8 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
             for kind in plotting._common_kinds:
+                if not _ok_for_gaussian_kde(kind):
+                    continue
                 with tm.assertRaises(TypeError):
                     df.plot(kind=kind)
 

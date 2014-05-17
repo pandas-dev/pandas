@@ -24,6 +24,13 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest("scipy not installed")
 
+def _skip_if_no_scipy_gaussian_kde():
+    try:
+        import scipy
+        from scipy.stats import gaussian_kde
+    except ImportError:
+        raise nose.SkipTest("scipy version doesn't support gaussian_kde")
+
 
 @tm.mplskip
 class TestTSPlot(tm.TestCase):
@@ -567,6 +574,7 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_secondary_kde(self):
         _skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
 
         import matplotlib.pyplot as plt
         ser = Series(np.random.randn(10))
