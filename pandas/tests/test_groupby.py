@@ -645,12 +645,12 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby([lambda x: x.year,
                               lambda x: x.month,
                               lambda x: x.day])
-        self.assertEquals(len(grouped), len(df))
+        self.assertEqual(len(grouped), len(df))
 
         grouped = df.groupby([lambda x: x.year,
                               lambda x: x.month])
         expected = len(set([(x.year, x.month) for x in df.index]))
-        self.assertEquals(len(grouped), expected)
+        self.assertEqual(len(grouped), expected)
 
     def test_groups(self):
         grouped = self.df.groupby(['A'])
@@ -1197,7 +1197,7 @@ class TestGroupBy(tm.TestCase):
         groups = {}
         for key, gp in grouped:
             groups[key] = gp
-        self.assertEquals(len(groups), 2)
+        self.assertEqual(len(groups), 2)
 
         # axis = 1
         three_levels = self.three_group.groupby(['A', 'B', 'C']).mean()
@@ -1566,7 +1566,7 @@ class TestGroupBy(tm.TestCase):
         agged = grouped.apply(lambda x: x.mean())
         agged_A = grouped['A'].apply(np.mean)
         assert_series_equal(agged['A'], agged_A)
-        self.assertEquals(agged.index.name, 'first')
+        self.assertEqual(agged.index.name, 'first')
 
     def test_apply_concat_preserve_names(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -1594,13 +1594,13 @@ class TestGroupBy(tm.TestCase):
             return result
 
         result = grouped.apply(desc)
-        self.assertEquals(result.index.names, ('A', 'B', 'stat'))
+        self.assertEqual(result.index.names, ('A', 'B', 'stat'))
 
         result2 = grouped.apply(desc2)
-        self.assertEquals(result2.index.names, ('A', 'B', 'stat'))
+        self.assertEqual(result2.index.names, ('A', 'B', 'stat'))
 
         result3 = grouped.apply(desc3)
-        self.assertEquals(result3.index.names, ('A', 'B', None))
+        self.assertEqual(result3.index.names, ('A', 'B', None))
 
     def test_nonsense_func(self):
         df = DataFrame([0])
@@ -1724,8 +1724,8 @@ class TestGroupBy(tm.TestCase):
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
-        self.assertEquals(result0.index.name, frame.index.names[0])
-        self.assertEquals(result1.index.name, frame.index.names[1])
+        self.assertEqual(result0.index.name, frame.index.names[0])
+        self.assertEqual(result1.index.name, frame.index.names[1])
 
         # groupby level name
         result0 = frame.groupby(level='first').sum()
@@ -1807,7 +1807,7 @@ class TestGroupBy(tm.TestCase):
                    4, 5, 2, 6], name='foo'))
 
         result = a.groupby(level=0).sum()
-        self.assertEquals(result.index.name, a.index.name)
+        self.assertEqual(result.index.name, a.index.name)
 
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
@@ -1845,7 +1845,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
-        self.assertEquals(result.index.names[:2], ('A', 'B'))
+        self.assertEqual(result.index.names[:2], ('A', 'B'))
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -2028,17 +2028,17 @@ class TestGroupBy(tm.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.size()
         for key, group in grouped:
-            self.assertEquals(result[key], len(group))
+            self.assertEqual(result[key], len(group))
 
         grouped = self.df.groupby('A')
         result = grouped.size()
         for key, group in grouped:
-            self.assertEquals(result[key], len(group))
+            self.assertEqual(result[key], len(group))
 
         grouped = self.df.groupby('B')
         result = grouped.size()
         for key, group in grouped:
-            self.assertEquals(result[key], len(group))
+            self.assertEqual(result[key], len(group))
 
     def test_count(self):
 
@@ -2224,7 +2224,7 @@ class TestGroupBy(tm.TestCase):
                     'count': group.count(), 'mean': group.mean()}
 
         result = self.df.groupby(cats).D.apply(get_stats)
-        self.assertEquals(result.index.names[0], 'C')
+        self.assertEqual(result.index.names[0], 'C')
 
     def test_apply_corner_cases(self):
         # #535, can't use sliding iterator
@@ -2283,24 +2283,24 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_series_with_name(self):
         result = self.df.groupby(self.df['A']).mean()
         result2 = self.df.groupby(self.df['A'], as_index=False).mean()
-        self.assertEquals(result.index.name, 'A')
+        self.assertEqual(result.index.name, 'A')
         self.assertIn('A', result2)
 
         result = self.df.groupby([self.df['A'], self.df['B']]).mean()
         result2 = self.df.groupby([self.df['A'], self.df['B']],
                                   as_index=False).mean()
-        self.assertEquals(result.index.names, ('A', 'B'))
+        self.assertEqual(result.index.names, ('A', 'B'))
         self.assertIn('A', result2)
         self.assertIn('B', result2)
 
     def test_seriesgroupby_name_attr(self):
         # GH 6265
         result = self.df.groupby('A')['C']
-        self.assertEquals(result.count().name, 'C')
-        self.assertEquals(result.mean().name, 'C')
+        self.assertEqual(result.count().name, 'C')
+        self.assertEqual(result.mean().name, 'C')
 
         testFunc = lambda x: np.sum(x)*2
-        self.assertEquals(result.agg(testFunc).name, 'C')
+        self.assertEqual(result.agg(testFunc).name, 'C')
 
     def test_groupby_name_propagation(self):
         # GH 6124
@@ -2983,13 +2983,13 @@ class TestGroupBy(tm.TestCase):
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_cython_median(self):
         df = DataFrame(np.random.randn(1000))

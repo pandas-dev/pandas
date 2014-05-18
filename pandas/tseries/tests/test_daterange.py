@@ -107,8 +107,8 @@ class TestDateRange(tm.TestCase):
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,
                          freq=datetools.DateOffset(hours=6))
-        self.assertEquals(len(rng), 50)
-        self.assertEquals(rng[0], datetime(2010, 9, 1, 5))
+        self.assertEqual(len(rng), 50)
+        self.assertEqual(rng[0], datetime(2010, 9, 1, 5))
 
     def test_timezone_comparaison_bug(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
@@ -140,18 +140,18 @@ class TestDateRange(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
-        self.assertEquals(smaller.offset, self.rng.offset)
+        self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
-        self.assertEquals(sliced.offset, datetools.bday * 5)
+        self.assertEqual(sliced.offset, datetools.bday * 5)
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
-        self.assertEquals(len(fancy_indexed), 5)
+        self.assertEqual(len(fancy_indexed), 5)
         tm.assert_isinstance(fancy_indexed, DatetimeIndex)
         self.assertIsNone(fancy_indexed.freq)
 
         # 32-bit vs. 64-bit platforms
-        self.assertEquals(self.rng[4], self.rng[np.int_(4)])
+        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
 
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
@@ -160,20 +160,20 @@ class TestDateRange(tm.TestCase):
 
     def test_shift(self):
         shifted = self.rng.shift(5)
-        self.assertEquals(shifted[0], self.rng[5])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[0], self.rng[5])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(-5)
-        self.assertEquals(shifted[5], self.rng[0])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[5], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(0)
-        self.assertEquals(shifted[0], self.rng[0])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[0], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         rng = date_range(START, END, freq=datetools.bmonthEnd)
         shifted = rng.shift(1, freq=datetools.bday)
-        self.assertEquals(shifted[0], rng[0] + datetools.bday)
+        self.assertEqual(shifted[0], rng[0] + datetools.bday)
 
     def test_pickle_unpickle(self):
         pickled = pickle.dumps(self.rng)
@@ -460,18 +460,18 @@ class TestCustomDateRange(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
-        self.assertEquals(smaller.offset, self.rng.offset)
+        self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
-        self.assertEquals(sliced.offset, datetools.cday * 5)
+        self.assertEqual(sliced.offset, datetools.cday * 5)
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
-        self.assertEquals(len(fancy_indexed), 5)
+        self.assertEqual(len(fancy_indexed), 5)
         tm.assert_isinstance(fancy_indexed, DatetimeIndex)
         self.assertIsNone(fancy_indexed.freq)
 
         # 32-bit vs. 64-bit platforms
-        self.assertEquals(self.rng[4], self.rng[np.int_(4)])
+        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
 
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
@@ -480,20 +480,20 @@ class TestCustomDateRange(tm.TestCase):
 
     def test_shift(self):
         shifted = self.rng.shift(5)
-        self.assertEquals(shifted[0], self.rng[5])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[0], self.rng[5])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(-5)
-        self.assertEquals(shifted[5], self.rng[0])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[5], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(0)
-        self.assertEquals(shifted[0], self.rng[0])
-        self.assertEquals(shifted.offset, self.rng.offset)
+        self.assertEqual(shifted[0], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
 
         rng = date_range(START, END, freq=datetools.bmonthEnd)
         shifted = rng.shift(1, freq=datetools.cday)
-        self.assertEquals(shifted[0], rng[0] + datetools.cday)
+        self.assertEqual(shifted[0], rng[0] + datetools.cday)
 
     def test_pickle_unpickle(self):
         pickled = pickle.dumps(self.rng)

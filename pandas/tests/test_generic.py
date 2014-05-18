@@ -459,7 +459,7 @@ class TestSeries(tm.TestCase, Generic):
         Series.__finalize__ = finalize
 
         result = pd.concat([o, o2])
-        self.assertEquals(result.filename,'foo+bar')
+        self.assertEqual(result.filename,'foo+bar')
         self.assertIsNone(result.name)
 
         # reset
@@ -1080,7 +1080,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
         DataFrame.__finalize__ = finalize
         result = df1.merge(df2, left_on=['a'], right_on=['c'], how='inner')
-        self.assertEquals(result.filename,'fname1.csv|fname2.csv')
+        self.assertEqual(result.filename,'fname1.csv|fname2.csv')
 
         # concat
         # GH 6927
@@ -1101,7 +1101,7 @@ class TestDataFrame(tm.TestCase, Generic):
         DataFrame.__finalize__ = finalize
 
         result = pd.concat([df1, df1])
-        self.assertEquals(result.filename,'foo+foo')
+        self.assertEqual(result.filename,'foo+foo')
 
         # reset
         DataFrame._metadata = _metadata

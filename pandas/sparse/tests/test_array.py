@@ -51,7 +51,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
-        self.assertEquals(res.fill_value, 0)
+        self.assertEqual(res.fill_value, 0)
         assert_almost_equal(res.sp_values, self.zarr.sp_values)
 
     def test_constructor_copy(self):

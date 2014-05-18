@@ -135,7 +135,7 @@ class TestCategorical(tm.TestCase):
         sub = "Index([a, b, c]"
         actual = re.sub(pat, sub, actual)
 
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_big_print(self):
         factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat')
@@ -152,7 +152,7 @@ class TestCategorical(tm.TestCase):
         sub = "Index([a, b, c]"
         actual = re.sub(pat, sub, actual)
 
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_empty_print(self):
         factor = Categorical([], ["a","b","c"], name="cat")

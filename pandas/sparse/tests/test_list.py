@@ -32,11 +32,11 @@ class TestSparseList(unittest.TestCase):
         arr = self.na_data
         splist = SparseList()
         splist.append(arr[:5])
-        self.assertEquals(len(splist), 5)
+        self.assertEqual(len(splist), 5)
         splist.append(arr[5])
-        self.assertEquals(len(splist), 6)
+        self.assertEqual(len(splist), 6)
         splist.append(arr[6:])
-        self.assertEquals(len(splist), 10)
+        self.assertEqual(len(splist), 10)
 
     def test_append_na(self):
         arr = self.na_data
@@ -86,7 +86,7 @@ class TestSparseList(unittest.TestCase):
 
         cp = splist.copy()
         cp.append(arr[6:])
-        self.assertEquals(splist.nchunks, 2)
+        self.assertEqual(splist.nchunks, 2)
         assert_sp_array_equal(cp.to_array(), exp_sparr)
 
     def test_getitem(self):

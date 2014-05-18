@@ -576,7 +576,7 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-            self.assertEquals(result, expected)
+            self.assertEqual(result, expected)
 
             df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
                            columns=index[::2], index=index)
@@ -631,7 +631,7 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-            self.assertEquals(result, expected)
+            self.assertEqual(result, expected)
 
     def test_to_html_multiindex_sparsify(self):
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -680,7 +680,7 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
                        columns=index[::2], index=index)
@@ -733,7 +733,7 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_to_html_index_formatter(self):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
@@ -773,7 +773,7 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_to_html_regression_GH6098(self):
         df = DataFrame({u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
@@ -1152,21 +1152,21 @@ class TestDataFrameFormatting(tm.TestCase):
         if PY3:
             raise nose.SkipTest("doesn't work on Python 3")
 
-        self.assertEquals(pp_t('a') , u('a'))
-        self.assertEquals(pp_t(u('a')) , u('a'))
-        self.assertEquals(pp_t(None) , 'None')
-        self.assertEquals(pp_t(u('\u05d0'), quote_strings=True),
+        self.assertEqual(pp_t('a') , u('a'))
+        self.assertEqual(pp_t(u('a')) , u('a'))
+        self.assertEqual(pp_t(None) , 'None')
+        self.assertEqual(pp_t(u('\u05d0'), quote_strings=True),
                           u("u'\u05d0'"))
-        self.assertEquals(pp_t(u('\u05d0'), quote_strings=False),
+        self.assertEqual(pp_t(u('\u05d0'), quote_strings=False),
                           u('\u05d0'))
-        self.assertEquals(pp_t((u('\u05d0'),
+        self.assertEqual(pp_t((u('\u05d0'),
                                 u('\u05d1')), quote_strings=True),
                           u("(u'\u05d0', u'\u05d1')"))
-        self.assertEquals(pp_t((u('\u05d0'), (u('\u05d1'),
+        self.assertEqual(pp_t((u('\u05d0'), (u('\u05d1'),
                                                   u('\u05d2'))),
                                quote_strings=True),
                           u("(u'\u05d0', (u'\u05d1', u'\u05d2'))"))
-        self.assertEquals(pp_t(('foo', u('\u05d0'), (u('\u05d0'),
+        self.assertEqual(pp_t(('foo', u('\u05d0'), (u('\u05d0'),
                                                          u('\u05d0'))),
                                quote_strings=True),
                           u("(u'foo', u'\u05d0', (u'\u05d0', u'\u05d0'))"))
@@ -2496,29 +2496,29 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series(randn(8), index=index)
 
         with option_context("display.max_rows", 10):
-            self.assertEquals(len(str(s).split('\n')),10)
+            self.assertEqual(len(str(s).split('\n')),10)
         with option_context("display.max_rows", 3):
-            self.assertEquals(len(str(s).split('\n')),5)
+            self.assertEqual(len(str(s).split('\n')),5)
         with option_context("display.max_rows", 2):
-            self.assertEquals(len(str(s).split('\n')),5)
+            self.assertEqual(len(str(s).split('\n')),5)
         with option_context("display.max_rows", 1):
-            self.assertEquals(len(str(s).split('\n')),5)
+            self.assertEqual(len(str(s).split('\n')),5)
         with option_context("display.max_rows", 0):
-            self.assertEquals(len(str(s).split('\n')),10)
+            self.assertEqual(len(str(s).split('\n')),10)
 
         # index
         s = Series(randn(8), None)
 
         with option_context("display.max_rows", 10):
-            self.assertEquals(len(str(s).split('\n')),9)
+            self.assertEqual(len(str(s).split('\n')),9)
         with option_context("display.max_rows", 3):
-            self.assertEquals(len(str(s).split('\n')),4)
+            self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 2):
-            self.assertEquals(len(str(s).split('\n')),4)
+            self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 1):
-            self.assertEquals(len(str(s).split('\n')),4)
+            self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 0):
-            self.assertEquals(len(str(s).split('\n')),9)
+            self.assertEqual(len(str(s).split('\n')),9)
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True

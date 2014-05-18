@@ -366,7 +366,7 @@ class TestIndex(tm.TestCase):
         exp = self.dateIndex[5]
         exp = _to_m8(exp)
 
-        self.assertEquals(exp, arr[5])
+        self.assertEqual(exp, arr[5])
 
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
@@ -548,11 +548,11 @@ class TestIndex(tm.TestCase):
         expected = Index([1, 5])
         result = idx1.sym_diff(idx2)
         self.assertTrue(tm.equalContents(result, expected))
-        self.assertEquals(result.name, 'idx1')
+        self.assertEqual(result.name, 'idx1')
 
         result = idx1.sym_diff(idx2, result_name='new_name')
         self.assertTrue(tm.equalContents(result, expected))
-        self.assertEquals(result.name, 'new_name')
+        self.assertEqual(result.name, 'new_name')
 
         # other isn't iterable
         with tm.assertRaises(TypeError):
@@ -565,7 +565,7 @@ class TestIndex(tm.TestCase):
 
             tm.assert_isinstance(unpickled, Index)
             self.assert_numpy_array_equal(unpickled, index)
-            self.assertEquals(unpickled.name, index.name)
+            self.assertEqual(unpickled.name, index.name)
 
             # tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
@@ -601,19 +601,19 @@ class TestIndex(tm.TestCase):
         index = Index([datetime.now()])
         formatted = index.format()
         expected = [str(index[0])]
-        self.assertEquals(formatted, expected)
+        self.assertEqual(formatted, expected)
 
         # 2845
         index = Index([1, 2.0+3.0j, np.nan])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), u('NaN')]
-        self.assertEquals(formatted, expected)
+        self.assertEqual(formatted, expected)
 
         # is this really allowed?
         index = Index([1, 2.0+3.0j, None])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), u('NaN')]
-        self.assertEquals(formatted, expected)
+        self.assertEqual(formatted, expected)
 
         self.strIndex[:0].format()
 
@@ -631,7 +631,7 @@ class TestIndex(tm.TestCase):
         result = t.format()
         expected = ['2012-02-07 00:00:00', '2012-02-07 23:00:00']
         self.assertEqual(len(result), 2)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_format_none(self):
         values = ['a', 'b', 'c', None]
@@ -677,12 +677,12 @@ class TestIndex(tm.TestCase):
         idx = Index([0, 1, 2, 5, 6, 7, 9, 10])
         n = len(idx)
 
-        self.assertEquals(idx.slice_locs(start=2), (2, n))
-        self.assertEquals(idx.slice_locs(start=3), (3, n))
-        self.assertEquals(idx.slice_locs(3, 8), (3, 6))
-        self.assertEquals(idx.slice_locs(5, 10), (3, n))
-        self.assertEquals(idx.slice_locs(end=8), (0, 6))
-        self.assertEquals(idx.slice_locs(end=9), (0, 7))
+        self.assertEqual(idx.slice_locs(start=2), (2, n))
+        self.assertEqual(idx.slice_locs(start=3), (3, n))
+        self.assertEqual(idx.slice_locs(3, 8), (3, 6))
+        self.assertEqual(idx.slice_locs(5, 10), (3, n))
+        self.assertEqual(idx.slice_locs(end=8), (0, 6))
+        self.assertEqual(idx.slice_locs(end=9), (0, 7))
 
         idx2 = idx[::-1]
         self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
@@ -757,7 +757,7 @@ class TestIndex(tm.TestCase):
                             values[67])
 
         self.dateIndex.set_value(values, date, 10)
-        self.assertEquals(values[67], 10)
+        self.assertEqual(values[67], 10)
 
     def test_isin(self):
         values = ['foo', 'bar']
@@ -1736,7 +1736,7 @@ class TestMultiIndex(tm.TestCase):
             arrays.append(np.asarray(lev).take(lab))
 
         result = MultiIndex.from_arrays(arrays)
-        self.assertEquals(list(result), list(self.index))
+        self.assertEqual(list(result), list(self.index))
 
     def test_from_product(self):
         first = ['foo', 'bar', 'buz']
@@ -1750,7 +1750,7 @@ class TestMultiIndex(tm.TestCase):
         expected = MultiIndex.from_tuples(tuples, names=names)
 
         assert_array_equal(result, expected)
-        self.assertEquals(result.names, names)
+        self.assertEqual(result.names, names)
 
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
@@ -1769,7 +1769,7 @@ class TestMultiIndex(tm.TestCase):
         expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
         self.assert_numpy_array_equal(result, expected)
 
-        self.assertEquals(result.name, 'first')
+        self.assertEqual(result.name, 'first')
 
         result = self.index.get_level_values('first')
         expected = self.index.get_level_values(0)
@@ -1815,7 +1815,7 @@ class TestMultiIndex(tm.TestCase):
                            self.index.reorder_levels, [2, 1, 0])
 
     def test_nlevels(self):
-        self.assertEquals(self.index.nlevels, 2)
+        self.assertEqual(self.index.nlevels, 2)
 
     def test_iter(self):
         result = list(self.index)
@@ -1892,7 +1892,7 @@ class TestMultiIndex(tm.TestCase):
 
     def test_getitem(self):
         # scalar
-        self.assertEquals(self.index[2], ('bar', 'one'))
+        self.assertEqual(self.index[2], ('bar', 'one'))
 
         # slice
         result = self.index[2:5]
@@ -1908,8 +1908,8 @@ class TestMultiIndex(tm.TestCase):
 
     def test_getitem_group_select(self):
         sorted_idx, _ = self.index.sortlevel(0)
-        self.assertEquals(sorted_idx.get_loc('baz'), slice(3, 4))
-        self.assertEquals(sorted_idx.get_loc('foo'), slice(0, 2))
+        self.assertEqual(sorted_idx.get_loc('baz'), slice(3, 4))
+        self.assertEqual(sorted_idx.get_loc('foo'), slice(0, 2))
 
     def test_get_loc(self):
         self.assertEqual(self.index.get_loc(('foo', 'two')), 1)
@@ -2022,16 +2022,16 @@ class TestMultiIndex(tm.TestCase):
         sorted_idx, _ = self.index.sortlevel(0)
 
         result = sorted_idx.slice_locs(('foo', 'two'), ('qux', 'one'))
-        self.assertEquals(result, (1, 5))
+        self.assertEqual(result, (1, 5))
 
         result = sorted_idx.slice_locs(None, ('qux', 'one'))
-        self.assertEquals(result, (0, 5))
+        self.assertEqual(result, (0, 5))
 
         result = sorted_idx.slice_locs(('foo', 'two'), None)
-        self.assertEquals(result, (1, len(sorted_idx)))
+        self.assertEqual(result, (1, len(sorted_idx)))
 
         result = sorted_idx.slice_locs('bar', 'baz')
-        self.assertEquals(result, (2, 4))
+        self.assertEqual(result, (2, 4))
 
     def test_slice_locs_not_contained(self):
         # some searchsorted action
@@ -2042,22 +2042,22 @@ class TestMultiIndex(tm.TestCase):
                            sortorder=0)
 
         result = index.slice_locs((1, 0), (5, 2))
-        self.assertEquals(result, (3, 6))
+        self.assertEqual(result, (3, 6))
 
         result = index.slice_locs(1, 5)
-        self.assertEquals(result, (3, 6))
+        self.assertEqual(result, (3, 6))
 
         result = index.slice_locs((2, 2), (5, 2))
-        self.assertEquals(result, (3, 6))
+        self.assertEqual(result, (3, 6))
 
         result = index.slice_locs(2, 5)
-        self.assertEquals(result, (3, 6))
+        self.assertEqual(result, (3, 6))
 
         result = index.slice_locs((1, 0), (6, 3))
-        self.assertEquals(result, (3, 8))
+        self.assertEqual(result, (3, 8))
 
         result = index.slice_locs(-1, 10)
-        self.assertEquals(result, (0, len(index)))
+        self.assertEqual(result, (0, len(index)))
 
     def test_consistency(self):
         # need to construct an overflow
@@ -2422,7 +2422,7 @@ class TestMultiIndex(tm.TestCase):
                            ' empty list', MultiIndex.from_tuples, [])
 
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
-        self.assertEquals(len(idx), 2)
+        self.assertEqual(len(idx), 2)
 
     def test_argsort(self):
         result = self.index.argsort()

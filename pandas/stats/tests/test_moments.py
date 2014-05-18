@@ -444,7 +444,7 @@ class TestMoments(tm.TestCase):
         tm.assert_isinstance(series_result, Series)
 
         frame_result = func(self.frame, 50)
-        self.assertEquals(type(frame_result), DataFrame)
+        self.assertEqual(type(frame_result), DataFrame)
 
         # check time_rule works
         if has_time_rule:
@@ -565,7 +565,7 @@ class TestMoments(tm.TestCase):
         series_result = func(self.series, com=10)
         tm.assert_isinstance(series_result, Series)
         frame_result = func(self.frame, com=10)
-        self.assertEquals(type(frame_result), DataFrame)
+        self.assertEqual(type(frame_result), DataFrame)
 
     # binary moments
     def test_rolling_cov(self):
@@ -847,7 +847,7 @@ class TestMoments(tm.TestCase):
         series_result = func(self.series)
         tm.assert_isinstance(series_result, Series)
         frame_result = func(self.frame)
-        self.assertEquals(type(frame_result), DataFrame)
+        self.assertEqual(type(frame_result), DataFrame)
 
     def _check_expanding(self, func, static_comp, has_min_periods=True,
                          has_time_rule=True,

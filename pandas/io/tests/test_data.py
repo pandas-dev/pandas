@@ -62,7 +62,7 @@ class TestGoogle(tm.TestCase):
         for locale in self.locales:
             with tm.set_locale(locale):
                 panel = web.DataReader("F", 'google', start, end)
-            self.assertEquals(panel.Close[-1], 13.68)
+            self.assertEqual(panel.Close[-1], 13.68)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
                           'google', start, end)
@@ -88,7 +88,7 @@ class TestGoogle(tm.TestCase):
             ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
             if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
                 hasattr(pan.Close, 'AAPL')):
-                self.assertEquals(ts[0].dayofyear, 96)
+                self.assertEqual(ts[0].dayofyear, 96)
             else:
                 self.assertRaises(AttributeError, lambda: pan.Close)
 
@@ -124,7 +124,7 @@ class TestYahoo(tm.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
 
-        self.assertEquals( web.DataReader("F", 'yahoo', start,
+        self.assertEqual( web.DataReader("F", 'yahoo', start,
                                           end)['Close'][-1], 13.68)
 
     @network
@@ -396,7 +396,7 @@ class TestFred(tm.TestCase):
         end = datetime(2013, 1, 27)
 
         received = web.DataReader("GDP", "fred", start, end)['GDP'].tail(1)[0]
-        self.assertEquals(int(received), 16535)
+        self.assertEqual(int(received), 16535)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT SERIES",
                           'fred', start, end)

@@ -268,10 +268,10 @@ class TestTimedeltas(tm.TestCase):
                        np.timedelta64(10000000000,'ns'),
                        pd.offsets.Second(10)]:
             result = base + offset
-            self.assertEquals(result, expected_add)
+            self.assertEqual(result, expected_add)
 
             result = base - offset
-            self.assertEquals(result, expected_sub)
+            self.assertEqual(result, expected_sub)
 
         base = pd.to_datetime('20130102 09:01:12.123456')
         expected_add = pd.to_datetime('20130103 09:01:22.123456')
@@ -283,10 +283,10 @@ class TestTimedeltas(tm.TestCase):
                        np.timedelta64(1,'D')+np.timedelta64(10,'s'),
                        pd.offsets.Day()+pd.offsets.Second(10)]:
             result = base + offset
-            self.assertEquals(result, expected_add)
+            self.assertEqual(result, expected_add)
 
             result = base - offset
-            self.assertEquals(result, expected_sub)
+            self.assertEqual(result, expected_sub)
 
     def test_to_timedelta_on_missing_values(self):
         _skip_if_numpy_not_friendly()

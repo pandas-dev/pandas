@@ -190,7 +190,7 @@ class TestCParser(tm.TestCase):
                             as_recarray=True)
         header = reader.header
         expected = [['a', 'b', 'c']]
-        self.assertEquals(header, expected)
+        self.assertEqual(header, expected)
 
         recs = reader.read()
         expected = {'a': [1, 4], 'b': [2, 5], 'c': [3, 6]}
@@ -295,7 +295,7 @@ a,b,c
         result = reader.read()
 
         exp = _make_reader().read()
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result[1] == exp[1]).all())
         self.assertTrue((result[2] == exp[2]).all())
 

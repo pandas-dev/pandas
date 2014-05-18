@@ -120,15 +120,15 @@ class TestStringMethods(tm.TestCase):
 
         result = strings.str_cat(one, na_rep='NA')
         exp = 'aabbcNA'
-        self.assertEquals(result, exp)
+        self.assertEqual(result, exp)
 
         result = strings.str_cat(one, na_rep='-')
         exp = 'aabbc-'
-        self.assertEquals(result, exp)
+        self.assertEqual(result, exp)
 
         result = strings.str_cat(one, sep='_', na_rep='NA')
         exp = 'a_a_b_b_c_NA'
-        self.assertEquals(result, exp)
+        self.assertEqual(result, exp)
 
         # Multiple arrays
         result = strings.str_cat(one, [two], na_rep='NA')
@@ -788,7 +788,7 @@ class TestStringMethods(tm.TestCase):
         s = Series(['Wes McKinney', 'Travis  Oliphant'])
 
         result = s.str.split()
-        self.assertEquals(result[1], ['Travis', 'Oliphant'])
+        self.assertEqual(result[1], ['Travis', 'Oliphant'])
 
     def test_split_maxsplit(self):
         # re.split 0, str.split -1
@@ -1088,19 +1088,19 @@ class TestStringMethods(tm.TestCase):
             warnings.simplefilter('always')
             result = data.str.match(pat, flags=re.IGNORECASE)
             assert issubclass(w[-1].category, UserWarning)
-        self.assertEquals(result[0], ('dave', 'google', 'com'))
+        self.assertEqual(result[0], ('dave', 'google', 'com'))
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
-        self.assertEquals(result[0][0], ('dave', 'google', 'com'))
+        self.assertEqual(result[0][0], ('dave', 'google', 'com'))
 
         result = data.str.count(pat, flags=re.IGNORECASE)
-        self.assertEquals(result[0], 1)
+        self.assertEqual(result[0], 1)
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             result = data.str.contains(pat, flags=re.IGNORECASE)
             assert issubclass(w[-1].category, UserWarning)
-        self.assertEquals(result[0], True)
+        self.assertEqual(result[0], True)
 
     def test_encode_decode(self):
         base = Series([u('a'), u('b'), u('a\xe4')])

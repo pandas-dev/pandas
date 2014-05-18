@@ -1582,7 +1582,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             # it works!
             df = self.read_table(StringIO(text), sep='\s+')
-            self.assertEquals(df.index.names, ('one', 'two', 'three', 'four'))
+            self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
 
     def test_read_csv_parse_simple_list(self):
         text = """foo
@@ -1853,12 +1853,12 @@ A,B,C
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
-        self.assertEquals(len(result), 50)
+        self.assertEqual(len(result), 50)
 
         if not compat.PY3:
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
-            self.assertEquals(len(result), 50)
+            self.assertEqual(len(result), 50)
 
     def test_converters_corner_with_nas(self):
         # skip aberration observed on Win64 Python 3.2.2
@@ -1929,7 +1929,7 @@ A,B,C
         got = result[1][1632]
         expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
 
-        self.assertEquals(got, expected)
+        self.assertEqual(got, expected)
 
     def test_trailing_delimiters(self):
         # #2442. grumble grumble
@@ -2072,7 +2072,7 @@ a,b,c
         result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
         exp = self.read_csv(StringIO(data))
 
-        self.assertEquals(len(result.columns), 2)
+        self.assertEqual(len(result.columns), 2)
         self.assertTrue((result['b'] == exp['b']).all())
         self.assertTrue((result['c'] == exp['c']).all())
 
@@ -2729,7 +2729,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # it works!
         df = self.read_table(StringIO(text), sep='\s+')
-        self.assertEquals(df.index.names, ('one', 'two', 'three', 'four'))
+        self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
 
         # GH 6893
         data = '      A B C\na b c\n1 3 7 0 3 6\n3 1 4 1 5 9'
@@ -3117,7 +3117,7 @@ No,No,No"""
         self.assertTrue((result.dtypes == object).all())
 
         result = read_csv(StringIO(data), dtype=object, na_filter=False)
-        self.assertEquals(result['B'][2], '')
+        self.assertEqual(result['B'][2], '')
 
     def test_int64_overflow(self):
         data = """ID
@@ -3174,7 +3174,7 @@ No,No,No"""
 2012-05-12,USD,SBUX,SELL,500"""
 
         result = self.read_csv(StringIO(data))
-        self.assertEquals(result['Date'][1], '2012-05-12')
+        self.assertEqual(result['Date'][1], '2012-05-12')
         self.assertTrue(result['UnitPrice'].isnull().all())
 
     def test_parse_ragged_csv(self):

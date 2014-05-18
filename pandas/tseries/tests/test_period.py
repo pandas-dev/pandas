@@ -37,16 +37,16 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
-        self.assertEquals(p.year, 1969)
-        self.assertEquals(p.quarter, 4)
+        self.assertEqual(p.year, 1969)
+        self.assertEqual(p.quarter, 4)
 
         p = Period(ordinal=-2, freq='Q-DEC')
-        self.assertEquals(p.year, 1969)
-        self.assertEquals(p.quarter, 3)
+        self.assertEqual(p.year, 1969)
+        self.assertEqual(p.quarter, 3)
 
         p = Period(ordinal=-2, freq='M')
-        self.assertEquals(p.year, 1969)
-        self.assertEquals(p.month, 11)
+        self.assertEqual(p.year, 1969)
+        self.assertEqual(p.month, 11)
 
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
@@ -56,7 +56,7 @@ class TestPeriodProperties(tm.TestCase):
             self.assertIn('1989Q3', str(exp))
             stamp = exp.to_timestamp('D', how='end')
             p = Period(stamp, freq=freq)
-            self.assertEquals(p, exp)
+            self.assertEqual(p, exp)
 
     def test_period_cons_annual(self):
         # bugs in scikits.timeseries
@@ -65,7 +65,7 @@ class TestPeriodProperties(tm.TestCase):
             exp = Period('1989', freq=freq)
             stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
             p = Period(stamp, freq=freq)
-            self.assertEquals(p, exp + 1)
+            self.assertEqual(p, exp + 1)
 
     def test_period_cons_weekly(self):
         for num in range(10, 17):
@@ -75,7 +75,7 @@ class TestPeriodProperties(tm.TestCase):
 
                 result = Period(daystr, freq=freq)
                 expected = Period(daystr, freq='D').asfreq(freq)
-                self.assertEquals(result, expected)
+                self.assertEqual(result, expected)
 
     def test_timestamp_tz_arg(self):
         import pytz
@@ -87,90 +87,90 @@ class TestPeriodProperties(tm.TestCase):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
 
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         i1 = Period('2005', freq='A')
         i2 = Period('2005')
         i3 = Period('2005', freq='a')
 
-        self.assertEquals(i1, i2)
-        self.assertEquals(i1, i3)
+        self.assertEqual(i1, i2)
+        self.assertEqual(i1, i3)
 
         i4 = Period('2005', freq='M')
         i5 = Period('2005', freq='m')
 
         self.assertRaises(ValueError, i1.__ne__, i4)
-        self.assertEquals(i4, i5)
+        self.assertEqual(i4, i5)
 
         i1 = Period.now('Q')
         i2 = Period(datetime.now(), freq='Q')
         i3 = Period.now('q')
 
-        self.assertEquals(i1, i2)
-        self.assertEquals(i1, i3)
+        self.assertEqual(i1, i2)
+        self.assertEqual(i1, i3)
 
         # Biz day construction, roll forward if non-weekday
         i1 = Period('3/10/12', freq='B')
         i2 = Period('3/10/12', freq='D')
-        self.assertEquals(i1, i2.asfreq('B'))
+        self.assertEqual(i1, i2.asfreq('B'))
         i2 = Period('3/11/12', freq='D')
-        self.assertEquals(i1, i2.asfreq('B'))
+        self.assertEqual(i1, i2.asfreq('B'))
         i2 = Period('3/12/12', freq='D')
-        self.assertEquals(i1, i2.asfreq('B'))
+        self.assertEqual(i1, i2.asfreq('B'))
 
         i3 = Period('3/10/12', freq='b')
-        self.assertEquals(i1, i3)
+        self.assertEqual(i1, i3)
 
         i1 = Period(year=2005, quarter=1, freq='Q')
         i2 = Period('1/1/2005', freq='Q')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         i1 = Period(year=2005, quarter=3, freq='Q')
         i2 = Period('9/1/2005', freq='Q')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         i1 = Period(year=2005, month=3, day=1, freq='D')
         i2 = Period('3/1/2005', freq='D')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         i3 = Period(year=2005, month=3, day=1, freq='d')
-        self.assertEquals(i1, i3)
+        self.assertEqual(i1, i3)
 
         i1 = Period(year=2012, month=3, day=10, freq='B')
         i2 = Period('3/12/12', freq='B')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         i1 = Period('2005Q1')
         i2 = Period(year=2005, quarter=1, freq='Q')
         i3 = Period('2005q1')
-        self.assertEquals(i1, i2)
-        self.assertEquals(i1, i3)
+        self.assertEqual(i1, i2)
+        self.assertEqual(i1, i3)
 
         i1 = Period('05Q1')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
         lower = Period('05q1')
-        self.assertEquals(i1, lower)
+        self.assertEqual(i1, lower)
 
         i1 = Period('1Q2005')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
         lower = Period('1q2005')
-        self.assertEquals(i1, lower)
+        self.assertEqual(i1, lower)
 
         i1 = Period('1Q05')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
         lower = Period('1q05')
-        self.assertEquals(i1, lower)
+        self.assertEqual(i1, lower)
 
         i1 = Period('4Q1984')
-        self.assertEquals(i1.year, 1984)
+        self.assertEqual(i1.year, 1984)
         lower = Period('4q1984')
-        self.assertEquals(i1, lower)
+        self.assertEqual(i1, lower)
 
         i1 = Period('1982', freq='min')
         i2 = Period('1982', freq='MIN')
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
         i2 = Period('1982', freq=('Min', 1))
-        self.assertEquals(i1, i2)
+        self.assertEqual(i1, i2)
 
         expected = Period('2007-01', freq='M')
         i1 = Period('200701', freq='M')
@@ -211,12 +211,12 @@ class TestPeriodProperties(tm.TestCase):
     def test_millisecond_repr(self):
         p = Period('2000-01-01 12:15:02.123')
 
-        self.assertEquals("Period('2000-01-01 12:15:02.123', 'L')", repr(p))
+        self.assertEqual("Period('2000-01-01 12:15:02.123', 'L')", repr(p))
 
     def test_microsecond_repr(self):
         p = Period('2000-01-01 12:15:02.123567')
 
-        self.assertEquals("Period('2000-01-01 12:15:02.123567', 'U')", repr(p))
+        self.assertEqual("Period('2000-01-01 12:15:02.123567', 'U')", repr(p))
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
@@ -237,12 +237,12 @@ class TestPeriodProperties(tm.TestCase):
         start_ts = p.to_timestamp(how='S')
         aliases = ['s', 'StarT', 'BEGIn']
         for a in aliases:
-            self.assertEquals(start_ts, p.to_timestamp('D', how=a))
+            self.assertEqual(start_ts, p.to_timestamp('D', how=a))
 
         end_ts = p.to_timestamp(how='E')
         aliases = ['e', 'end', 'FINIsH']
         for a in aliases:
-            self.assertEquals(end_ts, p.to_timestamp('D', how=a))
+            self.assertEqual(end_ts, p.to_timestamp('D', how=a))
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
                     'D', 'H', 'Min', 'S']
@@ -253,11 +253,11 @@ class TestPeriodProperties(tm.TestCase):
         for i, fcode in enumerate(from_lst):
             p = Period('1982', freq=fcode)
             result = p.to_timestamp().to_period(fcode)
-            self.assertEquals(result, p)
+            self.assertEqual(result, p)
 
-            self.assertEquals(p.start_time, p.to_timestamp(how='S'))
+            self.assertEqual(p.start_time, p.to_timestamp(how='S'))
 
-            self.assertEquals(p.end_time, _ex(p))
+            self.assertEqual(p.end_time, _ex(p))
 
         # Frequency other than daily
 
@@ -265,23 +265,23 @@ class TestPeriodProperties(tm.TestCase):
 
         result = p.to_timestamp('H', how='end')
         expected = datetime(1985, 12, 31, 23)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         result = p.to_timestamp('T', how='end')
         expected = datetime(1985, 12, 31, 23, 59)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         result = p.to_timestamp(how='end')
         expected = datetime(1985, 12, 31)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         expected = datetime(1985, 1, 1)
         result = p.to_timestamp('H', how='start')
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
         result = p.to_timestamp('T', how='start')
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
         result = p.to_timestamp('S', how='start')
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         assertRaisesRegexp(ValueError, 'Only mult == 1',  p.to_timestamp, '5t')
 
@@ -290,10 +290,10 @@ class TestPeriodProperties(tm.TestCase):
         xp = datetime(2012, 1, 1)
         for f in freq_lst:
             p = Period('2012', freq=f)
-            self.assertEquals(p.start_time, xp)
-        self.assertEquals(Period('2012', freq='B').start_time,
+            self.assertEqual(p.start_time, xp)
+        self.assertEqual(Period('2012', freq='B').start_time,
                           datetime(2012, 1, 2))
-        self.assertEquals(Period('2012', freq='W').start_time,
+        self.assertEqual(Period('2012', freq='W').start_time,
                           datetime(2011, 12, 26))
 
     def test_end_time(self):
@@ -303,29 +303,29 @@ class TestPeriodProperties(tm.TestCase):
             return Timestamp(Timestamp(datetime(*args)).value - 1)
 
         xp = _ex(2013, 1, 1)
-        self.assertEquals(xp, p.end_time)
+        self.assertEqual(xp, p.end_time)
 
         p = Period('2012', freq='Q')
         xp = _ex(2012, 4, 1)
-        self.assertEquals(xp, p.end_time)
+        self.assertEqual(xp, p.end_time)
 
         p = Period('2012', freq='M')
         xp = _ex(2012, 2, 1)
-        self.assertEquals(xp, p.end_time)
+        self.assertEqual(xp, p.end_time)
 
         xp = _ex(2012, 1, 2)
         p = Period('2012', freq='D')
-        self.assertEquals(p.end_time, xp)
+        self.assertEqual(p.end_time, xp)
 
         xp = _ex(2012, 1, 1, 1)
         p = Period('2012', freq='H')
-        self.assertEquals(p.end_time, xp)
+        self.assertEqual(p.end_time, xp)
 
         xp = _ex(2012, 1, 3)
-        self.assertEquals(Period('2012', freq='B').end_time, xp)
+        self.assertEqual(Period('2012', freq='B').end_time, xp)
 
         xp = _ex(2012, 1, 2)
-        self.assertEquals(Period('2012', freq='W').end_time, xp)
+        self.assertEqual(Period('2012', freq='W').end_time, xp)
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
@@ -333,7 +333,7 @@ class TestPeriodProperties(tm.TestCase):
 
         p = Period('2013-1-1', 'W-SAT')
         xp = _ex(2013, 1, 6)
-        self.assertEquals(p.end_time, xp)
+        self.assertEqual(p.end_time, xp)
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
@@ -443,7 +443,7 @@ class TestPeriodProperties(tm.TestCase):
 
         val = pmod.pnow('D')
         exp = Period(dt, freq='D')
-        self.assertEquals(val, exp)
+        self.assertEqual(val, exp)
 
     def test_constructor_corner(self):
         self.assertRaises(ValueError, Period, year=2007, month=1,
@@ -461,7 +461,7 @@ class TestPeriodProperties(tm.TestCase):
 
         result = Period(p, freq='A')
         exp = Period('2007', freq='A')
-        self.assertEquals(result, exp)
+        self.assertEqual(result, exp)
 
     def test_constructor_infer_freq(self):
         p = Period('2007-01-01')
@@ -1244,19 +1244,19 @@ class TestPeriodIndex(tm.TestCase):
         self.assertTrue((result.index.year == 2008).all())
 
         result = ts['2008':'2009']
-        self.assertEquals(len(result), 24)
+        self.assertEqual(len(result), 24)
 
         result = ts['2008-1':'2009-12']
-        self.assertEquals(len(result), 24)
+        self.assertEqual(len(result), 24)
 
         result = ts['2008Q1':'2009Q4']
-        self.assertEquals(len(result), 24)
+        self.assertEqual(len(result), 24)
 
         result = ts[:'2009']
-        self.assertEquals(len(result), 36)
+        self.assertEqual(len(result), 36)
 
         result = ts['2009':]
-        self.assertEquals(len(result), 50 - 24)
+        self.assertEqual(len(result), 50 - 24)
 
         exp = result
         result = ts[24:]
@@ -1301,7 +1301,7 @@ class TestPeriodIndex(tm.TestCase):
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = series.to_timestamp(how='end')
         self.assertTrue(result.index.equals(exp_index))
-        self.assertEquals(result.name, 'foo')
+        self.assertEqual(result.name, 'foo')
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = series.to_timestamp(how='start')
@@ -1335,7 +1335,7 @@ class TestPeriodIndex(tm.TestCase):
                                freq='H')
         result = series.to_timestamp(how='end')
         self.assertTrue(result.index.equals(exp_index))
-        self.assertEquals(result.name, 'foo')
+        self.assertEqual(result.name, 'foo')
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -1350,10 +1350,10 @@ class TestPeriodIndex(tm.TestCase):
     def test_to_timestamp_preserve_name(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009',
                             name='foo')
-        self.assertEquals(index.name, 'foo')
+        self.assertEqual(index.name, 'foo')
 
         conv = index.to_timestamp('D')
-        self.assertEquals(conv.name, 'foo')
+        self.assertEqual(conv.name, 'foo')
 
     def test_to_timestamp_repr_is_code(self):
         zs=[Timestamp('99-04-17 00:00:00',tz='UTC'),
@@ -1361,7 +1361,7 @@ class TestPeriodIndex(tm.TestCase):
         Timestamp('2001-04-17 00:00:00',tz='America/Los_Angeles'),
         Timestamp('2001-04-17 00:00:00',tz=None)]
         for z in zs:
-            self.assertEquals( eval(repr(z)), z)
+            self.assertEqual( eval(repr(z)), z)
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
@@ -1647,55 +1647,55 @@ class TestPeriodIndex(tm.TestCase):
         pi6 = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
         pi7 = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
 
-        self.assertEquals(pi1.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi1.asfreq('Q', 's'), pi2)
-        self.assertEquals(pi1.asfreq('M', 'start'), pi3)
-        self.assertEquals(pi1.asfreq('D', 'StarT'), pi4)
-        self.assertEquals(pi1.asfreq('H', 'beGIN'), pi5)
-        self.assertEquals(pi1.asfreq('Min', 'S'), pi6)
-        self.assertEquals(pi1.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi1.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi1.asfreq('Q', 's'), pi2)
+        self.assertEqual(pi1.asfreq('M', 'start'), pi3)
+        self.assertEqual(pi1.asfreq('D', 'StarT'), pi4)
+        self.assertEqual(pi1.asfreq('H', 'beGIN'), pi5)
+        self.assertEqual(pi1.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi1.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi2.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi2.asfreq('M', 'S'), pi3)
-        self.assertEquals(pi2.asfreq('D', 'S'), pi4)
-        self.assertEquals(pi2.asfreq('H', 'S'), pi5)
-        self.assertEquals(pi2.asfreq('Min', 'S'), pi6)
-        self.assertEquals(pi2.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi2.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi2.asfreq('M', 'S'), pi3)
+        self.assertEqual(pi2.asfreq('D', 'S'), pi4)
+        self.assertEqual(pi2.asfreq('H', 'S'), pi5)
+        self.assertEqual(pi2.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi2.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi3.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi3.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi3.asfreq('D', 'S'), pi4)
-        self.assertEquals(pi3.asfreq('H', 'S'), pi5)
-        self.assertEquals(pi3.asfreq('Min', 'S'), pi6)
-        self.assertEquals(pi3.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi3.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi3.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi3.asfreq('D', 'S'), pi4)
+        self.assertEqual(pi3.asfreq('H', 'S'), pi5)
+        self.assertEqual(pi3.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi3.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi4.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi4.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi4.asfreq('M', 'S'), pi3)
-        self.assertEquals(pi4.asfreq('H', 'S'), pi5)
-        self.assertEquals(pi4.asfreq('Min', 'S'), pi6)
-        self.assertEquals(pi4.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi4.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi4.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi4.asfreq('M', 'S'), pi3)
+        self.assertEqual(pi4.asfreq('H', 'S'), pi5)
+        self.assertEqual(pi4.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi4.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi5.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi5.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi5.asfreq('M', 'S'), pi3)
-        self.assertEquals(pi5.asfreq('D', 'S'), pi4)
-        self.assertEquals(pi5.asfreq('Min', 'S'), pi6)
-        self.assertEquals(pi5.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi5.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi5.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi5.asfreq('M', 'S'), pi3)
+        self.assertEqual(pi5.asfreq('D', 'S'), pi4)
+        self.assertEqual(pi5.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi5.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi6.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi6.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi6.asfreq('M', 'S'), pi3)
-        self.assertEquals(pi6.asfreq('D', 'S'), pi4)
-        self.assertEquals(pi6.asfreq('H', 'S'), pi5)
-        self.assertEquals(pi6.asfreq('S', 'S'), pi7)
+        self.assertEqual(pi6.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi6.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi6.asfreq('M', 'S'), pi3)
+        self.assertEqual(pi6.asfreq('D', 'S'), pi4)
+        self.assertEqual(pi6.asfreq('H', 'S'), pi5)
+        self.assertEqual(pi6.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(pi7.asfreq('A', 'S'), pi1)
-        self.assertEquals(pi7.asfreq('Q', 'S'), pi2)
-        self.assertEquals(pi7.asfreq('M', 'S'), pi3)
-        self.assertEquals(pi7.asfreq('D', 'S'), pi4)
-        self.assertEquals(pi7.asfreq('H', 'S'), pi5)
-        self.assertEquals(pi7.asfreq('Min', 'S'), pi6)
+        self.assertEqual(pi7.asfreq('A', 'S'), pi1)
+        self.assertEqual(pi7.asfreq('Q', 'S'), pi2)
+        self.assertEqual(pi7.asfreq('M', 'S'), pi3)
+        self.assertEqual(pi7.asfreq('D', 'S'), pi4)
+        self.assertEqual(pi7.asfreq('H', 'S'), pi5)
+        self.assertEqual(pi7.asfreq('Min', 'S'), pi6)
 
         self.assertRaises(ValueError, pi7.asfreq, 'T', 'foo')
         self.assertRaises(ValueError, pi1.asfreq, '5t')
@@ -1835,11 +1835,11 @@ class TestPeriodIndex(tm.TestCase):
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq='D')
 
-        self.assertEquals(pi1[0], Period('Jan 2005', freq='M'))
-        self.assertEquals(pi2[0], Period('1/31/2005', freq='D'))
+        self.assertEqual(pi1[0], Period('Jan 2005', freq='M'))
+        self.assertEqual(pi2[0], Period('1/31/2005', freq='D'))
 
-        self.assertEquals(pi1[-1], Period('Nov 2005', freq='M'))
-        self.assertEquals(pi2[-1], Period('11/30/2005', freq='D'))
+        self.assertEqual(pi1[-1], Period('Nov 2005', freq='M'))
+        self.assertEqual(pi2[-1], Period('11/30/2005', freq='D'))
 
     def test_pindex_slice_index(self):
         pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
@@ -2031,24 +2031,24 @@ class TestPeriodIndex(tm.TestCase):
 
     # def test_pindex_multiples(self):
     #     pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
-    #     self.assertEquals(pi[0], Period('1/1/10', '2M'))
-    #     self.assertEquals(pi[1], Period('3/1/10', '2M'))
+    #     self.assertEqual(pi[0], Period('1/1/10', '2M'))
+    #     self.assertEqual(pi[1], Period('3/1/10', '2M'))
 
-    #     self.assertEquals(pi[0].asfreq('6M'), pi[2].asfreq('6M'))
-    #     self.assertEquals(pi[0].asfreq('A'), pi[2].asfreq('A'))
+    #     self.assertEqual(pi[0].asfreq('6M'), pi[2].asfreq('6M'))
+    #     self.assertEqual(pi[0].asfreq('A'), pi[2].asfreq('A'))
 
-    #     self.assertEquals(pi[0].asfreq('M', how='S'),
+    #     self.assertEqual(pi[0].asfreq('M', how='S'),
     #                       Period('Jan 2010', '1M'))
-    #     self.assertEquals(pi[0].asfreq('M', how='E'),
+    #     self.assertEqual(pi[0].asfreq('M', how='E'),
     #                       Period('Feb 2010', '1M'))
-    #     self.assertEquals(pi[1].asfreq('M', how='S'),
+    #     self.assertEqual(pi[1].asfreq('M', how='S'),
     #                       Period('Mar 2010', '1M'))
 
     #     i = Period('1/1/2010 12:05:18', '5S')
-    #     self.assertEquals(i, Period('1/1/2010 12:05:15', '5S'))
+    #     self.assertEqual(i, Period('1/1/2010 12:05:15', '5S'))
 
     #     i = Period('1/1/2010 12:05:18', '5S')
-    #     self.assertEquals(i.asfreq('1S', how='E'),
+    #     self.assertEqual(i.asfreq('1S', how='E'),
     #                       Period('1/1/2010 12:05:19', '1S'))
 
     def test_iteration(self):
@@ -2280,7 +2280,7 @@ class TestPeriodIndex(tm.TestCase):
         index = period_range('1/1/2012', periods=4, freq='D')
 
         result = index.to_datetime()
-        self.assertEquals(result[0], Timestamp('1/1/2012'))
+        self.assertEqual(result[0], Timestamp('1/1/2012'))
 
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
@@ -2306,7 +2306,7 @@ class TestPeriodIndex(tm.TestCase):
         # drops index
         result = pd.concat([s1, s2])
         tm.assert_isinstance(result.index, PeriodIndex)
-        self.assertEquals(result.index[0], s1.index[0])
+        self.assertEqual(result.index[0], s1.index[0])
 
     def test_pickle_freq(self):
         # GH2891
@@ -2423,7 +2423,7 @@ class TestPeriodRepresentation(tm.TestCase):
         for freq in freqs:
             period = Period(ordinal=-1, freq=freq)
             repr(period)
-            self.assertEquals(period.year, 1969)
+            self.assertEqual(period.year, 1969)
 
         period = Period(ordinal=-1, freq='B')
         repr(period)

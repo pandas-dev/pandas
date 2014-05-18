@@ -58,11 +58,11 @@ class CheckNameIntegration(object):
 
     def test_scalarop_preserve_name(self):
         result = self.ts * 2
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_copy_name(self):
         result = self.ts.copy()
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_copy_index_name_checking(self):
         # don't want to be able to modify the index stored elsewhere after
@@ -78,16 +78,16 @@ class CheckNameIntegration(object):
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_binop_maybe_preserve_name(self):
 
         # names match, preserve
         result = self.ts * self.ts
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
         result = self.ts * self.ts[:-2]
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
         # names don't match, don't preserve
         cp = self.ts.copy()
@@ -97,7 +97,7 @@ class CheckNameIntegration(object):
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_combine_first_dt64(self):
         from pandas.tseries.tools import to_datetime
@@ -121,7 +121,7 @@ class CheckNameIntegration(object):
 
         result = s.get(25, 0)
         expected = 0
-        self.assertEquals(result,expected)
+        self.assertEqual(result,expected)
 
         s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
                              45, 51, 39, 55, 43, 54, 52, 51, 54]),
@@ -133,7 +133,7 @@ class CheckNameIntegration(object):
 
         result = s.get(25, 0)
         expected = 43
-        self.assertEquals(result,expected)
+        self.assertEqual(result,expected)
 
     def test_delitem(self):
 
@@ -166,13 +166,13 @@ class CheckNameIntegration(object):
 
     def test_getitem_preserve_name(self):
         result = self.ts[self.ts > 0]
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
         result = self.ts[[0, 2, 4]]
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
         result = self.ts[5:10]
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_getitem_setitem_ellipsis(self):
         s = Series(np.random.randn(10))
@@ -212,7 +212,7 @@ class CheckNameIntegration(object):
                     "       three     9",
                     "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
-        self.assertEquals(repr(s), expected)
+        self.assertEqual(repr(s), expected)
 
     def test_multilevel_preserve_name(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -224,8 +224,8 @@ class CheckNameIntegration(object):
 
         result = s['foo']
         result2 = s.ix['foo']
-        self.assertEquals(result.name, s.name)
-        self.assertEquals(result2.name, s.name)
+        self.assertEqual(result.name, s.name)
+        self.assertEqual(result2.name, s.name)
 
     def test_name_printing(self):
         # test small series
@@ -246,7 +246,7 @@ class CheckNameIntegration(object):
 
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip_name(self.ts)
-        self.assertEquals(unpickled.name, self.ts.name)
+        self.assertEqual(unpickled.name, self.ts.name)
 
     def _pickle_roundtrip_name(self, obj):
 
@@ -257,15 +257,15 @@ class CheckNameIntegration(object):
 
     def test_argsort_preserve_name(self):
         result = self.ts.argsort()
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_sort_index_name(self):
         result = self.ts.sort_index(ascending=False)
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
 
 
 class TestNanops(tm.TestCase):
@@ -326,17 +326,17 @@ class TestNanops(tm.TestCase):
             result = s.sum(skipna=False)
             self.assertEqual(int(result),v.sum(dtype='int64'))
             result = s.min(skipna=False)
-            self.assertEquals(int(result),0)
+            self.assertEqual(int(result),0)
             result = s.max(skipna=False)
-            self.assertEquals(int(result),v[-1])
+            self.assertEqual(int(result),v[-1])
 
             # use bottleneck if available
             result = s.sum()
             self.assertEqual(int(result),v.sum(dtype='int64'))
             result = s.min()
-            self.assertEquals(int(result),0)
+            self.assertEqual(int(result),0)
             result = s.max()
-            self.assertEquals(int(result),v[-1])
+            self.assertEqual(int(result),v[-1])
 
         for dtype in ['float32','float64']:
             v = np.arange(5000000,dtype=dtype)
@@ -411,7 +411,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assertTrue(tm.equalContents(derived.index, self.ts.index))
         # Ensure new index is not created
-        self.assertEquals(id(self.ts.index), id(derived.index))
+        self.assertEqual(id(self.ts.index), id(derived.index))
 
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
@@ -562,10 +562,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_constructor_sanitize(self):
         s = Series(np.array([1., 1., 8.]), dtype='i8')
-        self.assertEquals(s.dtype, np.dtype('i8'))
+        self.assertEqual(s.dtype, np.dtype('i8'))
 
         s = Series(np.array([1., 1., np.nan]), copy=True, dtype='i8')
-        self.assertEquals(s.dtype, np.dtype('f8'))
+        self.assertEqual(s.dtype, np.dtype('f8'))
 
     def test_constructor_pass_none(self):
         s = Series(None, index=lrange(5))
@@ -584,7 +584,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
-        self.assertEquals(s[1], 5)
+        self.assertEqual(s[1], 5)
 
     def test_constructor_dtype_datetime64(self):
         import pandas.tslib as tslib
@@ -1338,8 +1338,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(self.series.ix[mask], self.series[mask])
 
         # ask for index value
-        self.assertEquals(self.ts.ix[d1], self.ts[d1])
-        self.assertEquals(self.ts.ix[d2], self.ts[d2])
+        self.assertEqual(self.ts.ix[d1], self.ts[d1])
+        self.assertEqual(self.ts.ix[d2], self.ts[d2])
 
     def test_ix_getitem_not_monotonic(self):
         d1, d2 = self.ts.index[[5, 15]]
@@ -1429,7 +1429,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             s[mask] = lrange(2, 7)
             expected = Series(lrange(2, 7) + lrange(5, 10), dtype=dtype)
             assert_series_equal(s, expected)
-            self.assertEquals(s.dtype, expected.dtype)
+            self.assertEqual(s.dtype, expected.dtype)
 
         # these are allowed operations, but are upcasted
         for dtype in [np.int64, np.float64]:
@@ -1439,7 +1439,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             s[mask] = values
             expected = Series(values + lrange(5, 10), dtype='float64')
             assert_series_equal(s, expected)
-            self.assertEquals(s.dtype, expected.dtype)
+            self.assertEqual(s.dtype, expected.dtype)
 
         # can't do these as we are forced to change the itemsize of the input
         # to something we cannot
@@ -1455,7 +1455,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s[mask] = lrange(2, 7)
         expected = Series(lrange(2, 7) + lrange(5, 10), dtype='int64')
         assert_series_equal(s, expected)
-        self.assertEquals(s.dtype, expected.dtype)
+        self.assertEqual(s.dtype, expected.dtype)
 
         s = Series(np.arange(10), dtype='int64')
         mask = s > 5
@@ -1663,8 +1663,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # set index value
         self.series.ix[d1] = 4
         self.series.ix[d2] = 6
-        self.assertEquals(self.series[d1], 4)
-        self.assertEquals(self.series[d2], 6)
+        self.assertEqual(self.series[d1], 4)
+        self.assertEqual(self.series[d2], 6)
 
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
@@ -1790,7 +1790,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             repr(s)
         finally:
             sys.stderr = tmp
-        self.assertEquals(buf.getvalue(), '')
+        self.assertEqual(buf.getvalue(), '')
 
     def test_repr_name_iterable_indexable(self):
         s = Series([1, 2, 3], name=np.int64(3))
@@ -5724,11 +5724,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_dropna_preserve_name(self):
         self.ts[:5] = np.nan
         result = self.ts.dropna()
-        self.assertEquals(result.name, self.ts.name)
+        self.assertEqual(result.name, self.ts.name)
         name = self.ts.name
         ts = self.ts.copy()
         ts.dropna(inplace=True)
-        self.assertEquals(ts.name, name)
+        self.assertEqual(ts.name, name)
 
     def test_numpy_unique(self):
         # it works!
