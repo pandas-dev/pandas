@@ -1940,11 +1940,11 @@ class TestDataFramePlots(TestPlotBase):
 
         # Default to BuGn
         ax = df.plot(kind='hexbin', x='A', y='B')
-        self.assertEquals(ax.collections[0].cmap.name, 'BuGn')
+        self.assertEqual(ax.collections[0].cmap.name, 'BuGn')
 
         cm = 'cubehelix'
         ax = df.plot(kind='hexbin', x='A', y='B', colormap=cm)
-        self.assertEquals(ax.collections[0].cmap.name, cm)
+        self.assertEqual(ax.collections[0].cmap.name, cm)
 
     @slow
     def test_no_color_bar(self):
@@ -1958,7 +1958,7 @@ class TestDataFramePlots(TestPlotBase):
         df = self.hexbin_df
 
         ax = df.plot(kind='hexbin', x='A', y='B', cmap='YlGn')
-        self.assertEquals(ax.collections[0].cmap.name, 'YlGn')
+        self.assertEqual(ax.collections[0].cmap.name, 'YlGn')
 
         with tm.assertRaises(TypeError):
             df.plot(kind='hexbin', x='A', y='B', cmap='YlGn',

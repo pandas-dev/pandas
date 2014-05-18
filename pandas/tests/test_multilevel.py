@@ -171,7 +171,7 @@ class TestMultiLevel(tm.TestCase):
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()
-        self.assertEquals(result.index.names, self.frame.index.names)
+        self.assertEqual(result.index.names, self.frame.index.names)
 
     def test_repr_to_string(self):
         repr(self.frame)
@@ -213,7 +213,7 @@ class TestMultiLevel(tm.TestCase):
 
         result = s[2000, 3, 10]
         expected = s[49]
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         # fancy
         result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
@@ -618,13 +618,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_frame_setitem_ix(self):
         self.frame.ix[('bar', 'two'), 'B'] = 5
-        self.assertEquals(self.frame.ix[('bar', 'two'), 'B'], 5)
+        self.assertEqual(self.frame.ix[('bar', 'two'), 'B'], 5)
 
         # with integer labels
         df = self.frame.copy()
         df.columns = lrange(3)
         df.ix[('bar', 'two'), 1] = 7
-        self.assertEquals(df.ix[('bar', 'two'), 1], 7)
+        self.assertEqual(df.ix[('bar', 'two'), 1], 7)
 
     def test_fancy_slice_partial(self):
         result = self.frame.ix['bar':'baz']
@@ -665,7 +665,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             self.frame.reset_index()['A'].sortlevel()
 
         # preserve names
-        self.assertEquals(a_sorted.index.names, self.frame.index.names)
+        self.assertEqual(a_sorted.index.names, self.frame.index.names)
 
         # inplace
         rs = self.frame.copy()
@@ -704,7 +704,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
-        self.assertEquals(len(deleveled.columns), len(self.ymd.columns))
+        self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
         tm.assert_isinstance(deleveled, DataFrame)
@@ -915,11 +915,11 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_stack_unstack_preserve_names(self):
         unstacked = self.frame.unstack()
-        self.assertEquals(unstacked.index.name, 'first')
-        self.assertEquals(unstacked.columns.names, ['exp', 'second'])
+        self.assertEqual(unstacked.index.name, 'first')
+        self.assertEqual(unstacked.columns.names, ['exp', 'second'])
 
         restacked = unstacked.stack()
-        self.assertEquals(restacked.index.names, self.frame.index.names)
+        self.assertEqual(restacked.index.names, self.frame.index.names)
 
     def test_unstack_level_name(self):
         result = self.frame.unstack('second')
@@ -940,7 +940,7 @@ Thur,Lunch,Yes,51.51,17"""
         unstacked = self.ymd.unstack(['year', 'month'])
         expected = self.ymd.unstack('year').unstack('month')
         assert_frame_equal(unstacked, expected)
-        self.assertEquals(unstacked.columns.names,
+        self.assertEqual(unstacked.columns.names,
                           expected.columns.names)
 
         # series
@@ -953,7 +953,7 @@ Thur,Lunch,Yes,51.51,17"""
         restacked = restacked.sortlevel(0)
 
         assert_frame_equal(restacked, self.ymd)
-        self.assertEquals(restacked.index.names, self.ymd.index.names)
+        self.assertEqual(restacked.index.names, self.ymd.index.names)
 
         # GH #451
         unstacked = self.ymd.unstack([1, 2])
@@ -1124,7 +1124,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.random.randn(4, 2), index=index)
 
         result = df.unstack()
-        self.assertEquals(len(result.columns), 4)
+        self.assertEqual(len(result.columns), 4)
 
         recons = result.stack()
         assert_frame_equal(recons, df)
@@ -1438,7 +1438,7 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.groupby([k1, k2]).mean()
 
         assert_frame_equal(result, expected, check_names=False)  # TODO groupby with level_values drops names
-        self.assertEquals(result.index.names, self.ymd.index.names[:2])
+        self.assertEqual(result.index.names, self.ymd.index.names[:2])
 
         result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
         assert_frame_equal(result, result2)
@@ -1456,13 +1456,13 @@ Thur,Lunch,Yes,51.51,17"""
     def test_ix_preserve_names(self):
         result = self.ymd.ix[2000]
         result2 = self.ymd['A'].ix[2000]
-        self.assertEquals(result.index.names, self.ymd.index.names[1:])
-        self.assertEquals(result2.index.names, self.ymd.index.names[1:])
+        self.assertEqual(result.index.names, self.ymd.index.names[1:])
+        self.assertEqual(result2.index.names, self.ymd.index.names[1:])
 
         result = self.ymd.ix[2000, 2]
         result2 = self.ymd['A'].ix[2000, 2]
-        self.assertEquals(result.index.name, self.ymd.index.names[2])
-        self.assertEquals(result2.index.name, self.ymd.index.names[2])
+        self.assertEqual(result.index.name, self.ymd.index.names[2])
+        self.assertEqual(result2.index.name, self.ymd.index.names[2])
 
     def test_partial_set(self):
         # GH #397
@@ -1482,7 +1482,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # this works...for now
         df['A'].ix[14] = 5
-        self.assertEquals(df['A'][14], 5)
+        self.assertEqual(df['A'][14], 5)
 
     def test_unstack_preserve_types(self):
         # GH #403
@@ -1636,12 +1636,12 @@ Thur,Lunch,Yes,51.51,17"""
         result = df['a']
         expected = df['a', '', '']
         assert_series_equal(result, expected)
-        self.assertEquals(result.name, 'a')
+        self.assertEqual(result.name, 'a')
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
         assert_series_equal(result, expected)
-        self.assertEquals(result.name, ('routine1', 'result1'))
+        self.assertEqual(result.name, ('routine1', 'result1'))
 
     def test_mixed_depth_insert(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
@@ -1724,7 +1724,7 @@ Thur,Lunch,Yes,51.51,17"""
         expected = df2.pop(('a', '', ''))
         assert_series_equal(expected, result)
         assert_frame_equal(df1, df2)
-        self.assertEquals(result.name, 'a')
+        self.assertEqual(result.name, 'a')
 
         expected = df1['top']
         df1 = df1.drop(['top'], axis=1)
@@ -1900,9 +1900,9 @@ Thur,Lunch,Yes,51.51,17"""
                    MultiIndex.from_arrays((["a"] * n, np.arange(n))))
 
         # hai it works!
-        self.assertEquals(s[("a", 5)], 5)
-        self.assertEquals(s[("a", 6)], 6)
-        self.assertEquals(s[("a", 7)], 7)
+        self.assertEqual(s[("a", 5)], 5)
+        self.assertEqual(s[("a", 6)], 6)
+        self.assertEqual(s[("a", 7)], 7)
 
         _index._SIZE_CUTOFF = old_cutoff
 
@@ -1954,7 +1954,7 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(dt, index=idx)
 
         result = s.groupby(s.index).first()
-        self.assertEquals(len(result), 3)
+        self.assertEqual(len(result), 3)
 
     def test_duplicate_mi(self):
         # GH 4516

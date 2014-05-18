@@ -292,8 +292,8 @@ class TestBlockManager(tm.TestCase):
 
     def test_attrs(self):
         mgr = create_mgr('a,b,c: f8-1; d,e,f: f8-2')
-        self.assertEquals(mgr.nblocks, 2)
-        self.assertEquals(len(mgr), 6)
+        self.assertEqual(mgr.nblocks, 2)
+        self.assertEqual(len(mgr), 6)
 
     def test_is_mixed_dtype(self):
         self.assertFalse(create_mgr('a,b:f8').is_mixed_type)
@@ -518,11 +518,11 @@ class TestBlockManager(tm.TestCase):
         mgr.set('b', np.array(['2.'] * N, dtype=np.object_))
         mgr.set('foo', np.array(['foo.'] * N, dtype=np.object_))
         new_mgr = mgr.convert(convert_numeric=True)
-        self.assertEquals(new_mgr.get('a').dtype, np.int64)
-        self.assertEquals(new_mgr.get('b').dtype, np.float64)
-        self.assertEquals(new_mgr.get('foo').dtype, np.object_)
-        self.assertEquals(new_mgr.get('f').dtype, np.int64)
-        self.assertEquals(new_mgr.get('g').dtype, np.float64)
+        self.assertEqual(new_mgr.get('a').dtype, np.int64)
+        self.assertEqual(new_mgr.get('b').dtype, np.float64)
+        self.assertEqual(new_mgr.get('foo').dtype, np.object_)
+        self.assertEqual(new_mgr.get('f').dtype, np.int64)
+        self.assertEqual(new_mgr.get('g').dtype, np.float64)
 
         mgr = create_mgr('a,b,foo: object; f: i4; bool: bool; dt: datetime;'
                          'i: i8; g: f8; h: f2')
@@ -530,15 +530,15 @@ class TestBlockManager(tm.TestCase):
         mgr.set('b', np.array(['2.'] * N, dtype=np.object_))
         mgr.set('foo', np.array(['foo.'] * N, dtype=np.object_))
         new_mgr = mgr.convert(convert_numeric=True)
-        self.assertEquals(new_mgr.get('a').dtype, np.int64)
-        self.assertEquals(new_mgr.get('b').dtype, np.float64)
-        self.assertEquals(new_mgr.get('foo').dtype, np.object_)
-        self.assertEquals(new_mgr.get('f').dtype, np.int32)
-        self.assertEquals(new_mgr.get('bool').dtype, np.bool_)
-        self.assertEquals(new_mgr.get('dt').dtype.type, np.datetime64)
-        self.assertEquals(new_mgr.get('i').dtype, np.int64)
-        self.assertEquals(new_mgr.get('g').dtype, np.float64)
-        self.assertEquals(new_mgr.get('h').dtype, np.float16)
+        self.assertEqual(new_mgr.get('a').dtype, np.int64)
+        self.assertEqual(new_mgr.get('b').dtype, np.float64)
+        self.assertEqual(new_mgr.get('foo').dtype, np.object_)
+        self.assertEqual(new_mgr.get('f').dtype, np.int32)
+        self.assertEqual(new_mgr.get('bool').dtype, np.bool_)
+        self.assertEqual(new_mgr.get('dt').dtype.type, np.datetime64)
+        self.assertEqual(new_mgr.get('i').dtype, np.int64)
+        self.assertEqual(new_mgr.get('g').dtype, np.float64)
+        self.assertEqual(new_mgr.get('h').dtype, np.float16)
 
     def test_interleave(self):
         pass
@@ -565,7 +565,7 @@ class TestBlockManager(tm.TestCase):
         self.mgr.set('h', randn(N))
 
         cons = self.mgr.consolidate()
-        self.assertEquals(cons.nblocks, 1)
+        self.assertEqual(cons.nblocks, 1)
         assert_almost_equal(cons.blocks[0].mgr_locs,
                             np.arange(len(cons.items)))
 
@@ -578,7 +578,7 @@ class TestBlockManager(tm.TestCase):
                          'f: bool; g: f8-2')
 
         reindexed = mgr.reindex_axis(['g', 'c', 'a', 'd'], axis=0)
-        self.assertEquals(reindexed.nblocks, 2)
+        self.assertEqual(reindexed.nblocks, 2)
         assert_almost_equal(reindexed.items, ['g', 'c', 'a', 'd'])
         assert_almost_equal(mgr.get('g'), reindexed.get('g'))
         assert_almost_equal(mgr.get('c'), reindexed.get('c'))
@@ -659,7 +659,7 @@ class TestBlockManager(tm.TestCase):
 
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr('f8', num_rows=5)
-        self.assertEquals(mgr.as_matrix().tolist(), [0., 1., 2., 3., 4.])
+        self.assertEqual(mgr.as_matrix().tolist(), [0., 1., 2., 3., 4.])
 
 
 class TestIndexing(object):
@@ -841,12 +841,12 @@ class TestBlockPlacement(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_slice_len(self):
-        self.assertEquals(len(BlockPlacement(slice(0, 4))), 4)
-        self.assertEquals(len(BlockPlacement(slice(0, 4, 2))), 2)
-        self.assertEquals(len(BlockPlacement(slice(0, 3, 2))), 2)
+        self.assertEqual(len(BlockPlacement(slice(0, 4))), 4)
+        self.assertEqual(len(BlockPlacement(slice(0, 4, 2))), 2)
+        self.assertEqual(len(BlockPlacement(slice(0, 3, 2))), 2)
 
-        self.assertEquals(len(BlockPlacement(slice(0, 1, 2))), 1)
-        self.assertEquals(len(BlockPlacement(slice(1, 0, -1))), 1)
+        self.assertEqual(len(BlockPlacement(slice(0, 1, 2))), 1)
+        self.assertEqual(len(BlockPlacement(slice(1, 0, -1))), 1)
 
     def test_zero_step_raises(self):
         self.assertRaises(ValueError, BlockPlacement, slice(1, 1, 0))
@@ -888,7 +888,7 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_array_to_slice_conversion(self):
         def assert_as_slice_equals(arr, slc):
-            self.assertEquals(BlockPlacement(arr).as_slice, slc)
+            self.assertEqual(BlockPlacement(arr).as_slice, slc)
 
         assert_as_slice_equals([0], slice(0, 1, 1))
         assert_as_slice_equals([100], slice(100, 101, 1))
@@ -916,12 +916,12 @@ class TestBlockPlacement(tm.TestCase):
         assert_not_slice_like([1, 1, 1])
 
     def test_slice_iter(self):
-        self.assertEquals(list(BlockPlacement(slice(0, 3))), [0, 1, 2])
-        self.assertEquals(list(BlockPlacement(slice(0, 0))), [])
-        self.assertEquals(list(BlockPlacement(slice(3, 0))), [])
+        self.assertEqual(list(BlockPlacement(slice(0, 3))), [0, 1, 2])
+        self.assertEqual(list(BlockPlacement(slice(0, 0))), [])
+        self.assertEqual(list(BlockPlacement(slice(3, 0))), [])
 
-        self.assertEquals(list(BlockPlacement(slice(3, 0, -1))), [3, 2, 1])
-        self.assertEquals(list(BlockPlacement(slice(3, None, -1))),
+        self.assertEqual(list(BlockPlacement(slice(3, 0, -1))), [3, 2, 1])
+        self.assertEqual(list(BlockPlacement(slice(3, None, -1))),
                           [3, 2, 1, 0])
 
     def test_slice_to_array_conversion(self):
@@ -940,15 +940,15 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_blockplacement_add(self):
         bpl = BlockPlacement(slice(0, 5))
-        self.assertEquals(bpl.add(1).as_slice, slice(1, 6, 1))
-        self.assertEquals(bpl.add(np.arange(5)).as_slice,
+        self.assertEqual(bpl.add(1).as_slice, slice(1, 6, 1))
+        self.assertEqual(bpl.add(np.arange(5)).as_slice,
                           slice(0, 10, 2))
-        self.assertEquals(list(bpl.add(np.arange(5, 0, -1))),
+        self.assertEqual(list(bpl.add(np.arange(5, 0, -1))),
                           [5, 5, 5, 5, 5])
 
     def test_blockplacement_add_int(self):
         def assert_add_equals(val, inc, result):
-            self.assertEquals(list(BlockPlacement(val).add(inc)),
+            self.assertEqual(list(BlockPlacement(val).add(inc)),
                               result)
 
         assert_add_equals(slice(0, 0), 0, [])

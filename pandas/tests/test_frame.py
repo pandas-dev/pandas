@@ -692,13 +692,13 @@ class CheckIndexing(object):
         df = DataFrame(np.random.rand(3, 2), index=index)
 
         s1 = df.ix[52195.1:52196.5]
-        self.assertEquals(len(s1), 2)
+        self.assertEqual(len(s1), 2)
 
         s1 = df.ix[52195.1:52196.6]
-        self.assertEquals(len(s1), 2)
+        self.assertEqual(len(s1), 2)
 
         s1 = df.ix[52195.1:52198.9]
-        self.assertEquals(len(s1), 3)
+        self.assertEqual(len(s1), 3)
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -1944,17 +1944,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_get_axis(self):
         f = self.frame
-        self.assertEquals(f._get_axis_number(0), 0)
-        self.assertEquals(f._get_axis_number(1), 1)
-        self.assertEquals(f._get_axis_number('index'), 0)
-        self.assertEquals(f._get_axis_number('rows'), 0)
-        self.assertEquals(f._get_axis_number('columns'), 1)
+        self.assertEqual(f._get_axis_number(0), 0)
+        self.assertEqual(f._get_axis_number(1), 1)
+        self.assertEqual(f._get_axis_number('index'), 0)
+        self.assertEqual(f._get_axis_number('rows'), 0)
+        self.assertEqual(f._get_axis_number('columns'), 1)
 
-        self.assertEquals(f._get_axis_name(0), 'index')
-        self.assertEquals(f._get_axis_name(1), 'columns')
-        self.assertEquals(f._get_axis_name('index'), 'index')
-        self.assertEquals(f._get_axis_name('rows'), 'index')
-        self.assertEquals(f._get_axis_name('columns'), 'columns')
+        self.assertEqual(f._get_axis_name(0), 'index')
+        self.assertEqual(f._get_axis_name(1), 'columns')
+        self.assertEqual(f._get_axis_name('index'), 'index')
+        self.assertEqual(f._get_axis_name('rows'), 'index')
+        self.assertEqual(f._get_axis_name('columns'), 'columns')
 
         self.assertIs(f._get_axis(0), f.index)
         self.assertIs(f._get_axis(1), f.columns)
@@ -9159,7 +9159,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         renamer = DataFrame(data, index=index)
         renamed = renamer.rename(index={'foo': 'bar', 'bar': 'foo'})
         self.assert_numpy_array_equal(renamed.index, ['bar', 'foo'])
-        self.assertEquals(renamed.index.name, renamer.index.name)
+        self.assertEqual(renamed.index.name, renamer.index.name)
 
         # MultiIndex
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
@@ -9173,8 +9173,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
         self.assert_numpy_array_equal(renamed.index, new_index)
         self.assert_numpy_array_equal(renamed.columns, new_columns)
-        self.assertEquals(renamed.index.names, renamer.index.names)
-        self.assertEquals(renamed.columns.names, renamer.columns.names)
+        self.assertEqual(renamed.index.names, renamer.index.names)
+        self.assertEqual(renamed.columns.names, renamer.columns.names)
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
@@ -10944,8 +10944,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         axis1 = self.empty.sum(1)
         tm.assert_isinstance(axis0, Series)
         tm.assert_isinstance(axis1, Series)
-        self.assertEquals(len(axis0), 0)
-        self.assertEquals(len(axis1), 0)
+        self.assertEqual(len(axis0), 0)
+        self.assertEqual(len(axis1), 0)
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)
@@ -12699,7 +12699,7 @@ starting,ending,measure
         df = pd.util.testing.makeDataFrame()
         df.index.name = 'name'
 
-        self.assertEquals(df.set_index(df.index).index.names, ['name'])
+        self.assertEqual(df.set_index(df.index).index.names, ['name'])
 
         mi = MultiIndex.from_arrays(df[['A', 'B']].T.values, names=['A', 'B'])
         mi2 = MultiIndex.from_arrays(df[['A', 'B', 'A', 'B']].T.values,
@@ -12707,7 +12707,7 @@ starting,ending,measure
 
         df = df.set_index(['A', 'B'])
 
-        self.assertEquals(df.set_index(df.index).index.names, ['A', 'B'])
+        self.assertEqual(df.set_index(df.index).index.names, ['A', 'B'])
 
         # Check that set_index isn't converting a MultiIndex into an Index
         self.assertTrue(isinstance(df.set_index(df.index).index, MultiIndex))

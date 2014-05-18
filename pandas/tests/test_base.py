@@ -280,7 +280,7 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(s.value_counts(), expected)
 
             self.assert_numpy_array_equal(s.unique(), np.unique(s_values))
-            self.assertEquals(s.nunique(), 4)
+            self.assertEqual(s.nunique(), 4)
             # don't sort, have to sort after the fact as not sorting is platform-dep
             hist = s.value_counts(sort=False)
             hist.sort()
@@ -310,7 +310,7 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(res1n, exp1n)
 
             self.assert_numpy_array_equal(s1.unique(), np.array([1, 2, 3]))
-            self.assertEquals(s1.nunique(), 3)
+            self.assertEqual(s1.nunique(), 3)
 
             res4 = s1.value_counts(bins=4)
             exp4 = Series({0.998: 2, 1.5: 1, 2.0: 0, 2.5: 1}, index=[0.998, 2.5, 1.5, 2.0])
@@ -326,13 +326,13 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(s.value_counts(), expected)
 
             self.assert_numpy_array_equal(s.unique(), np.array(['a', 'b', np.nan, 'd'], dtype='O'))
-            self.assertEquals(s.nunique(), 3)
+            self.assertEqual(s.nunique(), 3)
 
             s = klass({})
             expected = Series([], dtype=np.int64)
             tm.assert_series_equal(s.value_counts(), expected)
             self.assert_numpy_array_equal(s.unique(), np.array([]))
-            self.assertEquals(s.nunique(), 0)
+            self.assertEqual(s.nunique(), 0)
 
             # GH 3002, datetime64[ns]
             txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM', 'xxyyzz20100101EGG',
@@ -355,7 +355,7 @@ class TestIndexOps(Ops):
             else:
                 self.assert_numpy_array_equal(s.unique(), expected)
 
-            self.assertEquals(s.nunique(), 3)
+            self.assertEqual(s.nunique(), 3)
 
             # with NaT
             s = df['dt'].copy()
@@ -372,7 +372,7 @@ class TestIndexOps(Ops):
             self.assert_numpy_array_equal(unique[:3], expected)
             self.assertTrue(unique[3] is pd.NaT or unique[3].astype('int64') == pd.tslib.iNaT)
 
-            self.assertEquals(s.nunique(), 4)
+            self.assertEqual(s.nunique(), 4)
 
             # timedelta64[ns]
             td = df.dt - df.dt + timedelta(1)
@@ -386,7 +386,7 @@ class TestIndexOps(Ops):
             # get nanoseconds to compare
             expected = np.array([86400000000000])
             self.assert_numpy_array_equal(td.unique(), expected)
-            self.assertEquals(td.nunique(), 1)
+            self.assertEqual(td.nunique(), 1)
 
             td2 = timedelta(1) + (df.dt - df.dt)
             td2 = klass(td2)
@@ -396,7 +396,7 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(result2, expected_s)
 
             self.assert_numpy_array_equal(td.unique(), expected)
-            self.assertEquals(td.nunique(), 1)
+            self.assertEqual(td.nunique(), 1)
 
     def test_factorize(self):
         for o in self.objs:

@@ -63,7 +63,7 @@ class TestResample(tm.TestCase):
         for f in funcs:
             g._cython_agg_general(f)
 
-        self.assertEquals(g.ngroups, 2593)
+        self.assertEqual(g.ngroups, 2593)
         self.assertTrue(notnull(g.mean()).all())
 
         # construct expected val
@@ -79,8 +79,8 @@ class TestResample(tm.TestCase):
         df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype='float64')
         r = df.groupby(b).agg(np.sum)
 
-        self.assertEquals(len(r.columns), 10)
-        self.assertEquals(len(r.index), 2593)
+        self.assertEqual(len(r.columns), 10)
+        self.assertEqual(len(r.index), 2593)
 
     def test_resample_basic(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
@@ -115,49 +115,49 @@ class TestResample(tm.TestCase):
         # to weekly
         result = s.resample('w-sun', how='last')
 
-        self.assertEquals(len(result), 3)
+        self.assertEqual(len(result), 3)
         self.assertTrue((result.index.dayofweek == [6, 6, 6]).all())
-        self.assertEquals(result.irow(0), s['1/2/2005'])
-        self.assertEquals(result.irow(1), s['1/9/2005'])
-        self.assertEquals(result.irow(2), s.irow(-1))
+        self.assertEqual(result.irow(0), s['1/2/2005'])
+        self.assertEqual(result.irow(1), s['1/9/2005'])
+        self.assertEqual(result.irow(2), s.irow(-1))
 
         result = s.resample('W-MON', how='last')
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [0, 0]).all())
-        self.assertEquals(result.irow(0), s['1/3/2005'])
-        self.assertEquals(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.irow(0), s['1/3/2005'])
+        self.assertEqual(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-TUE', how='last')
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [1, 1]).all())
-        self.assertEquals(result.irow(0), s['1/4/2005'])
-        self.assertEquals(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.irow(0), s['1/4/2005'])
+        self.assertEqual(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-WED', how='last')
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [2, 2]).all())
-        self.assertEquals(result.irow(0), s['1/5/2005'])
-        self.assertEquals(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.irow(0), s['1/5/2005'])
+        self.assertEqual(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-THU', how='last')
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [3, 3]).all())
-        self.assertEquals(result.irow(0), s['1/6/2005'])
-        self.assertEquals(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.irow(0), s['1/6/2005'])
+        self.assertEqual(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-FRI', how='last')
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [4, 4]).all())
-        self.assertEquals(result.irow(0), s['1/7/2005'])
-        self.assertEquals(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.irow(0), s['1/7/2005'])
+        self.assertEqual(result.irow(1), s['1/10/2005'])
 
         # to biz day
         result = s.resample('B', how='last')
-        self.assertEquals(len(result), 7)
+        self.assertEqual(len(result), 7)
         self.assertTrue((result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all())
-        self.assertEquals(result.irow(0), s['1/2/2005'])
-        self.assertEquals(result.irow(1), s['1/3/2005'])
-        self.assertEquals(result.irow(5), s['1/9/2005'])
+        self.assertEqual(result.irow(0), s['1/2/2005'])
+        self.assertEqual(result.irow(1), s['1/3/2005'])
+        self.assertEqual(result.irow(5), s['1/9/2005'])
         self.assertEqual(result.index.name, 'index')
 
     def test_resample_upsampling_picked_but_not_correct(self):
@@ -167,7 +167,7 @@ class TestResample(tm.TestCase):
         series = Series(1, index=dates)
 
         result = series.resample('D')
-        self.assertEquals(result.index[0], dates[0])
+        self.assertEqual(result.index[0], dates[0])
 
         # GH 5955
         # incorrect deciding to upsample when the axis frequency matches the resample frequency
@@ -250,9 +250,9 @@ class TestResample(tm.TestCase):
 
         # to minutely, by padding
         result = s.resample('Min', fill_method='pad')
-        self.assertEquals(len(result), 12961)
-        self.assertEquals(result[0], s[0])
-        self.assertEquals(result[-1], s[-1])
+        self.assertEqual(len(result), 12961)
+        self.assertEqual(result[0], s[0])
+        self.assertEqual(result[-1], s[-1])
 
         self.assertEqual(result.index.name, 'index')
 
@@ -271,20 +271,20 @@ class TestResample(tm.TestCase):
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         result = s.resample('5Min', how='ohlc')
 
-        self.assertEquals(len(result), len(expect))
-        self.assertEquals(len(result.columns), 4)
+        self.assertEqual(len(result), len(expect))
+        self.assertEqual(len(result.columns), 4)
 
         xs = result.irow(-2)
-        self.assertEquals(xs['open'], s[-6])
-        self.assertEquals(xs['high'], s[-6:-1].max())
-        self.assertEquals(xs['low'], s[-6:-1].min())
-        self.assertEquals(xs['close'], s[-2])
+        self.assertEqual(xs['open'], s[-6])
+        self.assertEqual(xs['high'], s[-6:-1].max())
+        self.assertEqual(xs['low'], s[-6:-1].min())
+        self.assertEqual(xs['close'], s[-2])
 
         xs = result.irow(0)
-        self.assertEquals(xs['open'], s[0])
-        self.assertEquals(xs['high'], s[:5].max())
-        self.assertEquals(xs['low'], s[:5].min())
-        self.assertEquals(xs['close'], s[4])
+        self.assertEqual(xs['open'], s[0])
+        self.assertEqual(xs['high'], s[:5].max())
+        self.assertEqual(xs['low'], s[:5].min())
+        self.assertEqual(xs['close'], s[4])
 
     def test_resample_ohlc_dataframe(self):
         df = (pd.DataFrame({'PRICE': {Timestamp('2011-01-06 10:59:05', tz=None): 24990,
@@ -329,7 +329,7 @@ class TestResample(tm.TestCase):
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right')
         result = bs.resample('8H')
-        self.assertEquals(len(result), 22)
+        self.assertEqual(len(result), 22)
         tm.assert_isinstance(result.index.freq, offsets.DateOffset)
         self.assertEqual(result.index.freq, offsets.Hour(8))
 
@@ -385,7 +385,7 @@ class TestResample(tm.TestCase):
         result = ts.resample('M', how='mean')
 
         expected = ts.groupby(lambda x: x.month).mean()
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result), 2)
         assert_almost_equal(result[0], expected[1])
         assert_almost_equal(result[1], expected[2])
 

@@ -250,7 +250,7 @@ class TestTimestampNsOperations(tm.TestCase):
         value = self.timestamp.value
         modified_value = modified_timestamp.value
 
-        self.assertEquals(modified_value - value, expected_value)
+        self.assertEqual(modified_value - value, expected_value)
 
     def test_timedelta_ns_arithmetic(self):
         self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'ns'), -123)

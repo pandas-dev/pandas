@@ -1357,9 +1357,9 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(KeyError, f)
 
         # not lexsorted
-        self.assertEquals(df.index.lexsort_depth,2)
+        self.assertEqual(df.index.lexsort_depth,2)
         df = df.sortlevel(level=1,axis=0)
-        self.assertEquals(df.index.lexsort_depth,0)
+        self.assertEqual(df.index.lexsort_depth,0)
         with tm.assertRaisesRegexp(KeyError, 'MultiIndex Slicing requires the index to be fully lexsorted tuple len \(2\), lexsort depth \(0\)'):
             df.loc[(slice(None),df.loc[:,('a','bar')]>5),:]
 

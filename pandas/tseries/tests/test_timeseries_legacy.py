@@ -83,11 +83,11 @@ class LegacySupport(object):
 
         unpickled = self.frame
 
-        self.assertEquals(type(unpickled.index), DatetimeIndex)
-        self.assertEquals(len(unpickled), 10)
+        self.assertEqual(type(unpickled.index), DatetimeIndex)
+        self.assertEqual(len(unpickled), 10)
         self.assertTrue((unpickled.columns == Int64Index(np.arange(5))).all())
         self.assertTrue((unpickled.index == dtindex).all())
-        self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
+        self.assertEqual(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_series(self):
         from pandas.core.datetools import BDay
@@ -97,10 +97,10 @@ class LegacySupport(object):
         dtindex = DatetimeIndex(start='1/3/2005', end='1/14/2005',
                                 freq=BDay(1))
 
-        self.assertEquals(type(unpickled.index), DatetimeIndex)
-        self.assertEquals(len(unpickled), 10)
+        self.assertEqual(type(unpickled.index), DatetimeIndex)
+        self.assertEqual(len(unpickled), 10)
         self.assertTrue((unpickled.index == dtindex).all())
-        self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
+        self.assertEqual(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_len0_daterange(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
@@ -242,7 +242,7 @@ class LegacySupport(object):
             # test get_legacy_offset_name
             offset = datetools.get_offset(new_freq)
             old_name = datetools.get_legacy_offset_name(offset)
-            self.assertEquals(old_name, old_freq)
+            self.assertEqual(old_name, old_freq)
 
     def test_ms_vs_MS(self):
         left = datetools.get_offset('ms')

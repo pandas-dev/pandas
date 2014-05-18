@@ -159,8 +159,8 @@ class TestHDFStore(tm.TestCase):
                 tbl['a'] = tm.makeDataFrame()
 
             with get_store(self.path) as tbl:
-                self.assertEquals(len(tbl), 1)
-                self.assertEquals(type(tbl['a']), DataFrame)
+                self.assertEqual(len(tbl), 1)
+                self.assertEqual(type(tbl['a']), DataFrame)
         finally:
             safe_remove(self.path)
 
@@ -338,7 +338,7 @@ class TestHDFStore(tm.TestCase):
             store['c'] = tm.makeDataFrame()
             store['d'] = tm.makePanel()
             store['foo/bar'] = tm.makePanel()
-            self.assertEquals(len(store), 5)
+            self.assertEqual(len(store), 5)
             self.assert_(set(
                     store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
 
@@ -494,7 +494,7 @@ class TestHDFStore(tm.TestCase):
             # truncation ok here
             store.open('w')
             self.assertTrue(store.is_open)
-            self.assertEquals(len(store), 0)
+            self.assertEqual(len(store), 0)
             store.close()
             self.assertFalse(store.is_open)
 
@@ -504,7 +504,7 @@ class TestHDFStore(tm.TestCase):
             # reopen as read
             store.open('r')
             self.assertTrue(store.is_open)
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'r')
             store.close()
             self.assertFalse(store.is_open)
@@ -512,7 +512,7 @@ class TestHDFStore(tm.TestCase):
             # reopen as append
             store.open('a')
             self.assertTrue(store.is_open)
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
             self.assertFalse(store.is_open)
@@ -520,7 +520,7 @@ class TestHDFStore(tm.TestCase):
             # reopen as append (again)
             store.open('a')
             self.assertTrue(store.is_open)
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
             self.assertFalse(store.is_open)
@@ -2162,11 +2162,11 @@ class TestHDFStore(tm.TestCase):
             store['a'] = ts
             store['b'] = df
             _maybe_remove(store, 'a')
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
             tm.assert_frame_equal(df, store['b'])
 
             _maybe_remove(store, 'b')
-            self.assertEquals(len(store), 0)
+            self.assertEqual(len(store), 0)
 
             # nonexistence
             self.assertRaises(KeyError, store.remove, 'a_nonexistent_store')
@@ -2176,19 +2176,19 @@ class TestHDFStore(tm.TestCase):
             store['b/foo'] = df
             _maybe_remove(store, 'foo')
             _maybe_remove(store, 'b/foo')
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
 
             store['a'] = ts
             store['b/foo'] = df
             _maybe_remove(store, 'b')
-            self.assertEquals(len(store), 1)
+            self.assertEqual(len(store), 1)
 
             # __delitem__
             store['a'] = ts
             store['b'] = df
             del store['a']
             del store['b']
-            self.assertEquals(len(store), 0)
+            self.assertEqual(len(store), 0)
 
     def test_remove_where(self):
 
@@ -2783,7 +2783,7 @@ class TestHDFStore(tm.TestCase):
             store['frame'] = frame
             recons = store['frame']
             self.assertTrue(recons.index.equals(rng))
-            self.assertEquals(rng.tz, recons.index.tz)
+            self.assertEqual(rng.tz, recons.index.tz)
 
     def test_fixed_offset_tz(self):
         rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
@@ -2793,7 +2793,7 @@ class TestHDFStore(tm.TestCase):
             store['frame'] = frame
             recons = store['frame']
             self.assertTrue(recons.index.equals(rng))
-            self.assertEquals(rng.tz, recons.index.tz)
+            self.assertEqual(rng.tz, recons.index.tz)
 
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -4183,7 +4183,7 @@ class TestHDFStore(tm.TestCase):
             dt = datetime.datetime(2012, 1, 2, 3, 4, 5, 123456)
             series = Series([0], [dt])
             store['a'] = series
-            self.assertEquals(store['a'].index[0], dt)
+            self.assertEqual(store['a'].index[0], dt)
 
     def test_tseries_indices_series(self):
 
@@ -4194,8 +4194,8 @@ class TestHDFStore(tm.TestCase):
             result = store['a']
 
             assert_series_equal(result, ser)
-            self.assertEquals(type(result.index), type(ser.index))
-            self.assertEquals(result.index.freq, ser.index.freq)
+            self.assertEqual(type(result.index), type(ser.index))
+            self.assertEqual(result.index.freq, ser.index.freq)
 
             idx = tm.makePeriodIndex(10)
             ser = Series(np.random.randn(len(idx)), idx)
@@ -4203,8 +4203,8 @@ class TestHDFStore(tm.TestCase):
             result = store['a']
 
             assert_series_equal(result, ser)
-            self.assertEquals(type(result.index), type(ser.index))
-            self.assertEquals(result.index.freq, ser.index.freq)
+            self.assertEqual(type(result.index), type(ser.index))
+            self.assertEqual(result.index.freq, ser.index.freq)
 
     def test_tseries_indices_frame(self):
 
@@ -4215,8 +4215,8 @@ class TestHDFStore(tm.TestCase):
             result = store['a']
 
             assert_frame_equal(result, df)
-            self.assertEquals(type(result.index), type(df.index))
-            self.assertEquals(result.index.freq, df.index.freq)
+            self.assertEqual(type(result.index), type(df.index))
+            self.assertEqual(result.index.freq, df.index.freq)
 
             idx = tm.makePeriodIndex(10)
             df = DataFrame(np.random.randn(len(idx), 3), idx)
@@ -4224,8 +4224,8 @@ class TestHDFStore(tm.TestCase):
             result = store['a']
 
             assert_frame_equal(result, df)
-            self.assertEquals(type(result.index), type(df.index))
-            self.assertEquals(result.index.freq, df.index.freq)
+            self.assertEqual(type(result.index), type(df.index))
+            self.assertEqual(result.index.freq, df.index.freq)
 
     def test_unicode_index(self):
 
