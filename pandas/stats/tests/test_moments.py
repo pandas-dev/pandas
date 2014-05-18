@@ -114,7 +114,7 @@ class TestMoments(tm.TestCase):
         vals = np.empty(10, dtype=float)
         vals.fill(np.nan)
         rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-        self.assert_(np.isnan(rs).all())
+        self.assertTrue(np.isnan(rs).all())
 
         # empty
         vals = np.array([])
@@ -124,7 +124,7 @@ class TestMoments(tm.TestCase):
         # shorter than window
         vals = np.random.randn(5)
         rs = mom.rolling_window(vals, 10, 'boxcar')
-        self.assert_(np.isnan(rs).all())
+        self.assertTrue(np.isnan(rs).all())
         self.assertEqual(len(rs), 5)
 
     def test_cmov_window_frame(self):
@@ -255,7 +255,7 @@ class TestMoments(tm.TestCase):
 
         # it works!
         result = mom.rolling_apply(arr, 10, np.sum)
-        self.assert_(isnull(result).all())
+        self.assertTrue(isnull(result).all())
 
         result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
         assert_almost_equal(result, result)
@@ -275,7 +275,7 @@ class TestMoments(tm.TestCase):
 
         result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                  3, min_periods=2)
-        self.assert_(np.isnan(result[2]))
+        self.assertTrue(np.isnan(result[2]))
 
     def test_rolling_std_neg_sqrt(self):
         # unit test from Bottleneck
@@ -288,10 +288,10 @@ class TestMoments(tm.TestCase):
                       0.00028718669878572767,
                       0.00028718669878572767])
         b = mom.rolling_std(a, window=3)
-        self.assert_(np.isfinite(b[2:]).all())
+        self.assertTrue(np.isfinite(b[2:]).all())
 
         b = mom.ewmstd(a, span=3)
-        self.assert_(np.isfinite(b[2:]).all())
+        self.assertTrue(np.isfinite(b[2:]).all())
 
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var,
@@ -391,16 +391,16 @@ class TestMoments(tm.TestCase):
 
             # min_periods is working correctly
             result = func(arr, 20, min_periods=15)
-            self.assert_(np.isnan(result[23]))
-            self.assert_(not np.isnan(result[24]))
+            self.assertTrue(np.isnan(result[23]))
+            self.assertFalse(np.isnan(result[24]))
 
-            self.assert_(not np.isnan(result[-6]))
-            self.assert_(np.isnan(result[-5]))
+            self.assertFalse(np.isnan(result[-6]))
+            self.assertTrue(np.isnan(result[-5]))
 
             arr2 = randn(20)
             result = func(arr2, 10, min_periods=5)
-            self.assert_(isnull(result[3]))
-            self.assert_(notnull(result[4]))
+            self.assertTrue(isnull(result[3]))
+            self.assertTrue(notnull(result[4]))
 
             # min_periods=0
             result0 = func(arr, 20, min_periods=0)
@@ -420,14 +420,14 @@ class TestMoments(tm.TestCase):
 
             assert_almost_equal(result[1], expected[10])
             if fill_value is None:
-                self.assert_(np.isnan(result[-9:]).all())
+                self.assertTrue(np.isnan(result[-9:]).all())
             else:
-                self.assert_((result[-9:] == 0).all())
+                self.assertTrue((result[-9:] == 0).all())
             if has_min_periods:
-                self.assert_(np.isnan(expected[23]))
-                self.assert_(np.isnan(result[14]))
-                self.assert_(np.isnan(expected[-5]))
-                self.assert_(np.isnan(result[-14]))
+                self.assertTrue(np.isnan(expected[23]))
+                self.assertTrue(np.isnan(result[14]))
+                self.assertTrue(np.isnan(expected[-5]))
+                self.assertTrue(np.isnan(result[-14]))
 
         if test_stable:
             result = func(self.arr + 1e9, window)
@@ -501,7 +501,7 @@ class TestMoments(tm.TestCase):
         arr = np.zeros(1000)
         arr[5] = 1
         result = mom.ewma(arr, span=100, adjust=False).sum()
-        self.assert_(np.abs(result - 1) < 1e-2)
+        self.assertTrue(np.abs(result - 1) < 1e-2)
 
     def test_ewma_nan_handling(self):
         s = Series([1.] + [np.nan] * 5 + [1.])
@@ -678,8 +678,8 @@ class TestMoments(tm.TestCase):
 
         result = func(A, B, 20, min_periods=5)
 
-        self.assert_(np.isnan(result.values[:15]).all())
-        self.assert_(not np.isnan(result.values[15:]).any())
+        self.assertTrue(np.isnan(result.values[:15]).all())
+        self.assertFalse(np.isnan(result.values[15:]).any())
 
         self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 
@@ -827,13 +827,13 @@ class TestMoments(tm.TestCase):
 
             # min_periods is working correctly
             result = func(arr, min_periods=15)
-            self.assert_(np.isnan(result[13]))
-            self.assert_(not np.isnan(result[14]))
+            self.assertTrue(np.isnan(result[13]))
+            self.assertFalse(np.isnan(result[14]))
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
-            self.assert_(isnull(result[3]))
-            self.assert_(notnull(result[4]))
+            self.assertTrue(isnull(result[3]))
+            self.assertTrue(notnull(result[4]))
 
             # min_periods=0
             result0 = func(arr, min_periods=0)

@@ -15,15 +15,15 @@ class TestFactorizer(unittest.TestCase):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
             self.assertEqual(len(set(key)), len(set(expected)))
-            self.assert_(np.array_equal(pd.isnull(key), expected == na_sentinel))
+            self.assertTrue(np.array_equal(pd.isnull(key), expected == na_sentinel))
 
         # nan still maps to na_sentinel when sort=False
         key = np.array([0, np.nan, 1], dtype='O')
-        na_sentinel = -1        
+        na_sentinel = -1
         ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)
         expected = np.array([ 2, -1,  0], dtype='int32')
         self.assertEqual(len(set(key)), len(set(expected)))
-        self.assert_(np.array_equal(pd.isnull(key), expected == na_sentinel))        
+        self.assertTrue(np.array_equal(pd.isnull(key), expected == na_sentinel))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

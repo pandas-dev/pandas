@@ -140,7 +140,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(result.astype('int64'), tslib.iNaT)
 
         result = to_timedelta(['', ''])
-        self.assert_(isnull(result).all())
+        self.assertTrue(isnull(result).all())
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1,'s')]))

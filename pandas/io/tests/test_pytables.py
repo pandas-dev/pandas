@@ -297,16 +297,16 @@ class TestHDFStore(tm.TestCase):
             pandas.set_option('io.hdf.default_format','fixed')
             _maybe_remove(store,'df')
             store.put('df',df)
-            self.assert_(not store.get_storer('df').is_table)
+            self.assertFalse(store.get_storer('df').is_table)
             self.assertRaises(ValueError, store.append, 'df2',df)
 
             pandas.set_option('io.hdf.default_format','table')
             _maybe_remove(store,'df')
             store.put('df',df)
-            self.assert_(store.get_storer('df').is_table)
+            self.assertTrue(store.get_storer('df').is_table)
             _maybe_remove(store,'df2')
             store.append('df2',df)
-            self.assert_(store.get_storer('df').is_table)
+            self.assertTrue(store.get_storer('df').is_table)
 
             pandas.set_option('io.hdf.default_format',None)
 
@@ -317,16 +317,16 @@ class TestHDFStore(tm.TestCase):
             pandas.set_option('io.hdf.default_format','fixed')
             df.to_hdf(path,'df')
             with get_store(path) as store:
-                self.assert_(not store.get_storer('df').is_table)
+                self.assertFalse(store.get_storer('df').is_table)
             self.assertRaises(ValueError, df.to_hdf, path,'df2', append=True)
 
             pandas.set_option('io.hdf.default_format','table')
             df.to_hdf(path,'df3')
             with get_store(path) as store:
-                self.assert_(store.get_storer('df3').is_table)
+                self.assertTrue(store.get_storer('df3').is_table)
             df.to_hdf(path,'df4',append=True)
             with get_store(path) as store:
-                self.assert_(store.get_storer('df4').is_table)
+                self.assertTrue(store.get_storer('df4').is_table)
 
             pandas.set_option('io.hdf.default_format',None)
 
@@ -489,41 +489,41 @@ class TestHDFStore(tm.TestCase):
             # invalid mode change
             self.assertRaises(PossibleDataLossError, store.open, 'w')
             store.close()
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
             # truncation ok here
             store.open('w')
-            self.assert_(store.is_open)
+            self.assertTrue(store.is_open)
             self.assertEquals(len(store), 0)
             store.close()
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
             store = HDFStore(path,mode='a')
             store['a'] = tm.makeTimeSeries()
 
             # reopen as read
             store.open('r')
-            self.assert_(store.is_open)
+            self.assertTrue(store.is_open)
             self.assertEquals(len(store), 1)
             self.assertEqual(store._mode, 'r')
             store.close()
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
             # reopen as append
             store.open('a')
-            self.assert_(store.is_open)
+            self.assertTrue(store.is_open)
             self.assertEquals(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
             # reopen as append (again)
             store.open('a')
-            self.assert_(store.is_open)
+            self.assertTrue(store.is_open)
             self.assertEquals(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
     def test_open_args(self):
 
@@ -2745,7 +2745,7 @@ class TestHDFStore(tm.TestCase):
             df['foo'] = np.random.randn(len(df))
             store['df'] = df
             recons = store['df']
-            self.assert_(recons._data.is_consolidated())
+            self.assertTrue(recons._data.is_consolidated())
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal)
@@ -2782,7 +2782,7 @@ class TestHDFStore(tm.TestCase):
         with ensure_clean_store(self.path) as store:
             store['frame'] = frame
             recons = store['frame']
-            self.assert_(recons.index.equals(rng))
+            self.assertTrue(recons.index.equals(rng))
             self.assertEquals(rng.tz, recons.index.tz)
 
     def test_fixed_offset_tz(self):
@@ -2792,7 +2792,7 @@ class TestHDFStore(tm.TestCase):
         with ensure_clean_store(self.path) as store:
             store['frame'] = frame
             recons = store['frame']
-            self.assert_(recons.index.equals(rng))
+            self.assertTrue(recons.index.equals(rng))
             self.assertEquals(rng.tz, recons.index.tz)
 
     def test_store_hierarchical(self):
@@ -3923,10 +3923,10 @@ class TestHDFStore(tm.TestCase):
             # single
             store = HDFStore(path)
             self.assertNotIn('CLOSED', str(store))
-            self.assert_(store.is_open)
+            self.assertTrue(store.is_open)
             store.close()
             self.assertIn('CLOSED', str(store))
-            self.assert_(not store.is_open)
+            self.assertFalse(store.is_open)
 
         with ensure_clean_path(self.path) as path:
 
@@ -3947,20 +3947,20 @@ class TestHDFStore(tm.TestCase):
 
                 self.assertNotIn('CLOSED', str(store1))
                 self.assertNotIn('CLOSED', str(store2))
-                self.assert_(store1.is_open)
-                self.assert_(store2.is_open)
+                self.assertTrue(store1.is_open)
+                self.assertTrue(store2.is_open)
 
                 store1.close()
                 self.assertIn('CLOSED', str(store1))
-                self.assert_(not store1.is_open)
+                self.assertFalse(store1.is_open)
                 self.assertNotIn('CLOSED', str(store2))
-                self.assert_(store2.is_open)
+                self.assertTrue(store2.is_open)
 
                 store2.close()
                 self.assertIn('CLOSED', str(store1))
                 self.assertIn('CLOSED', str(store2))
-                self.assert_(not store1.is_open)
-                self.assert_(not store2.is_open)
+                self.assertFalse(store1.is_open)
+                self.assertFalse(store2.is_open)
 
                 # nested close
                 store = HDFStore(path,mode='w')
@@ -3970,11 +3970,11 @@ class TestHDFStore(tm.TestCase):
                 store2.append('df2',df)
                 store2.close()
                 self.assertIn('CLOSED', str(store2))
-                self.assert_(not store2.is_open)
+                self.assertFalse(store2.is_open)
 
                 store.close()
                 self.assertIn('CLOSED', str(store))
-                self.assert_(not store.is_open)
+                self.assertFalse(store.is_open)
 
                 # double closing
                 store = HDFStore(path,mode='w')
@@ -3983,11 +3983,11 @@ class TestHDFStore(tm.TestCase):
                 store2 = HDFStore(path)
                 store.close()
                 self.assertIn('CLOSED', str(store))
-                self.assert_(not store.is_open)
+                self.assertFalse(store.is_open)
 
                 store2.close()
                 self.assertIn('CLOSED', str(store2))
-                self.assert_(not store2.is_open)
+                self.assertFalse(store2.is_open)
 
         # ops on a closed store
         with ensure_clean_path(self.path) as path:

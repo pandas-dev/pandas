@@ -295,7 +295,7 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(len(visible_axes), axes_num)
             for ax in visible_axes:
                 # check something drawn on visible axes
-                self.assert_(len(ax.get_children()) > 0)
+                self.assertTrue(len(ax.get_children()) > 0)
 
         if layout is not None:
             if isinstance(axes, list):
@@ -1870,7 +1870,7 @@ class TestDataFramePlots(TestPlotBase):
                        columns=['test'])
         ax = df.plot()
         xticks = ax.lines[0].get_xdata()
-        self.assert_(xticks[0] < xticks[1])
+        self.assertTrue(xticks[0] < xticks[1])
         ydata = ax.lines[0].get_ydata()
         assert_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
@@ -2137,9 +2137,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, table=df)
 
         ax = df.plot()
-        self.assert_(len(ax.tables) == 0)
+        self.assertTrue(len(ax.tables) == 0)
         plotting.table(ax, df.T)
-        self.assert_(len(ax.tables) == 1)
+        self.assertTrue(len(ax.tables) == 1)
 
     def test_errorbar_scatter(self):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=['x', 'y'])

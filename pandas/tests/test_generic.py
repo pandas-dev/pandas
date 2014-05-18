@@ -684,13 +684,13 @@ class TestSeries(tm.TestCase, Generic):
         result = pd.Series().describe()
 
         self.assertEqual(result['count'], 0)
-        self.assert_(result.drop('count').isnull().all())
+        self.assertTrue(result.drop('count').isnull().all())
 
         nanSeries = Series([np.nan])
         nanSeries.name = 'NaN'
         result = nanSeries.describe()
         self.assertEqual(result['count'], 0)
-        self.assert_(result.drop('count').isnull().all())
+        self.assertTrue(result.drop('count').isnull().all())
 
     def test_describe_none(self):
         noneSeries = Series([None])
@@ -978,7 +978,7 @@ class TestDataFrame(tm.TestCase, Generic):
         desc = df[df[0] < 0].describe()  # works
         assert_series_equal(desc.xs('count'),
                             Series([0, 0], dtype=float, name='count'))
-        self.assert_(isnull(desc.ix[1:]).all().all())
+        self.assertTrue(isnull(desc.ix[1:]).all().all())
 
     def test_describe_objects(self):
         df = DataFrame({"C1": ['a', 'a', 'c'], "C2": ['d', 'd', 'f']})
@@ -1145,7 +1145,7 @@ class TestNDFrame(tm.TestCase):
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
         s2 = s1.copy()
-        self.assert_(s1.equals(s2))
+        self.assertTrue(s1.equals(s2))
 
         s1[1] = 99
         self.assertFalse(s1.equals(s2))
@@ -1153,7 +1153,7 @@ class TestNDFrame(tm.TestCase):
         # NaNs compare as equal
         s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
         s2 = s1.copy()
-        self.assert_(s1.equals(s2))
+        self.assertTrue(s1.equals(s2))
 
         s2[0] = 9.9
         self.assertFalse(s1.equals(s2))
@@ -1161,7 +1161,7 @@ class TestNDFrame(tm.TestCase):
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s1 = Series([1, 2, np.nan], index=idx)
         s2 = s1.copy()
-        self.assert_(s1.equals(s2))
+        self.assertTrue(s1.equals(s2))
 
         # Add object dtype column with nans
         index = np.random.random(10)
@@ -1173,12 +1173,12 @@ class TestNDFrame(tm.TestCase):
         df1['bool'] = (np.arange(10) % 3 == 0)
         df1.ix[::2] = nan
         df2 = df1.copy()
-        self.assert_(df1['text'].equals(df2['text']))
-        self.assert_(df1['start'].equals(df2['start']))
-        self.assert_(df1['end'].equals(df2['end']))
-        self.assert_(df1['diff'].equals(df2['diff']))
-        self.assert_(df1['bool'].equals(df2['bool']))
-        self.assert_(df1.equals(df2))
+        self.assertTrue(df1['text'].equals(df2['text']))
+        self.assertTrue(df1['start'].equals(df2['start']))
+        self.assertTrue(df1['end'].equals(df2['end']))
+        self.assertTrue(df1['diff'].equals(df2['diff']))
+        self.assertTrue(df1['bool'].equals(df2['bool']))
+        self.assertTrue(df1.equals(df2))
         self.assertFalse(df1.equals(object))
 
         # different dtype
@@ -1200,12 +1200,12 @@ class TestNDFrame(tm.TestCase):
         index = pd.date_range('2000-1-1', periods=10, freq='T')
         df1 = df1.set_index(index)
         df2 = df1.copy()
-        self.assert_(df1.equals(df2))
+        self.assertTrue(df1.equals(df2))
 
         # MultiIndex
         df3 = df1.set_index(['text'], append=True)
         df2 = df1.set_index(['text'], append=True)
-        self.assert_(df3.equals(df2))
+        self.assertTrue(df3.equals(df2))
 
         df2 = df1.set_index(['floats'], append=True)
         self.assertFalse(df3.equals(df2))
@@ -1213,7 +1213,7 @@ class TestNDFrame(tm.TestCase):
         # NaN in index
         df3 = df1.set_index(['floats'], append=True)
         df2 = df1.set_index(['floats'], append=True)
-        self.assert_(df3.equals(df2))
+        self.assertTrue(df3.equals(df2))
 
     def test_describe_raises(self):
         with tm.assertRaises(NotImplementedError):

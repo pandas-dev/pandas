@@ -217,7 +217,7 @@ class TestYahoo(tm.TestCase):
     def test_get_date_ret_index(self):
         pan = web.get_data_yahoo(['GE', 'INTC', 'IBM'], '1977', '1987',
                                  ret_index=True)
-        self.assert_(hasattr(pan, 'Ret_Index'))
+        self.assertTrue(hasattr(pan, 'Ret_Index'))
         if hasattr(pan, 'Ret_Index') and hasattr(pan.Ret_Index, 'INTC'):
             tstamp = pan.Ret_Index.INTC.first_valid_index()
             result = pan.Ret_Index.ix[tstamp]['INTC']
@@ -358,7 +358,7 @@ class TestOptionsWarnings(tm.TestCase):
 class TestDataReader(tm.TestCase):
     def test_is_s3_url(self):
         from pandas.io.common import _is_s3_url
-        self.assert_(_is_s3_url("s3://pandas/somethingelse.com"))
+        self.assertTrue(_is_s3_url("s3://pandas/somethingelse.com"))
 
     @network
     def test_read_yahoo(self):

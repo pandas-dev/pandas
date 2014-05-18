@@ -2261,20 +2261,20 @@ class TestMultiIndex(tm.TestCase):
     def test_identical(self):
         mi = self.index.copy()
         mi2 = self.index.copy()
-        self.assert_(mi.identical(mi2))
+        self.assertTrue(mi.identical(mi2))
 
         mi = mi.set_names(['new1', 'new2'])
-        self.assert_(mi.equals(mi2))
+        self.assertTrue(mi.equals(mi2))
         self.assertFalse(mi.identical(mi2))
 
         mi2 = mi2.set_names(['new1', 'new2'])
-        self.assert_(mi.identical(mi2))
+        self.assertTrue(mi.identical(mi2))
 
         mi3 = Index(mi.tolist(), names=mi.names)
         mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
-        self.assert_(mi.identical(mi3))
+        self.assertTrue(mi.identical(mi3))
         self.assertFalse(mi.identical(mi4))
-        self.assert_(mi.equals(mi4))
+        self.assertTrue(mi.equals(mi4))
 
     def test_is_(self):
         mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
@@ -2311,7 +2311,7 @@ class TestMultiIndex(tm.TestCase):
         tups = sorted(self.index._tuple_index)
         expected = MultiIndex.from_tuples(tups)
 
-        self.assert_(the_union.equals(expected))
+        self.assertTrue(the_union.equals(expected))
 
         # corner case, pass self or empty thing:
         the_union = self.index.union(self.index)
@@ -2323,7 +2323,7 @@ class TestMultiIndex(tm.TestCase):
         # won't work in python 3
         # tuples = self.index._tuple_index
         # result = self.index[:4] | tuples[4:]
-        # self.assert_(result.equals(tuples))
+        # self.assertTrue(result.equals(tuples))
 
     # not valid for python 3
     # def test_union_with_regular_index(self):
@@ -2334,7 +2334,7 @@ class TestMultiIndex(tm.TestCase):
     #     self.assertIn('B', result)
 
     #     result2 = self.index.union(other)
-    #     self.assert_(result.equals(result2))
+    #     self.assertTrue(result.equals(result2))
 
     def test_intersection(self):
         piece1 = self.index[:5][::-1]
@@ -2343,7 +2343,7 @@ class TestMultiIndex(tm.TestCase):
         the_int = piece1 & piece2
         tups = sorted(self.index[3:5]._tuple_index)
         expected = MultiIndex.from_tuples(tups)
-        self.assert_(the_int.equals(expected))
+        self.assertTrue(the_int.equals(expected))
 
         # corner case, pass self
         the_int = self.index.intersection(self.index)
@@ -2352,12 +2352,12 @@ class TestMultiIndex(tm.TestCase):
         # empty intersection: disjoint
         empty = self.index[:2] & self.index[2:]
         expected = self.index[:0]
-        self.assert_(empty.equals(expected))
+        self.assertTrue(empty.equals(expected))
 
         # can't do in python 3
         # tuples = self.index._tuple_index
         # result = self.index & tuples
-        # self.assert_(result.equals(tuples))
+        # self.assertTrue(result.equals(tuples))
 
     def test_diff(self):
         first = self.index
@@ -2367,25 +2367,25 @@ class TestMultiIndex(tm.TestCase):
                                           names=self.index.names)
 
         tm.assert_isinstance(result, MultiIndex)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: reflexive
         result = self.index - self.index
         expected = self.index[:0]
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: superset
         result = self.index[-3:] - self.index
         expected = self.index[:0]
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: degenerate
         result = self.index[:0] - self.index
         expected = self.index[:0]
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # names not the same
@@ -2404,7 +2404,7 @@ class TestMultiIndex(tm.TestCase):
 
         # name from empty array
         result = first.diff([])
-        self.assert_(first.equals(result))
+        self.assertTrue(first.equals(result))
         self.assertEqual(first.names, result.names)
 
         # name from non-empty array
@@ -2439,23 +2439,23 @@ class TestMultiIndex(tm.TestCase):
 
         sorted_idx, _ = index.sortlevel(0)
         expected = MultiIndex.from_tuples(sorted(tuples))
-        self.assert_(sorted_idx.equals(expected))
+        self.assertTrue(sorted_idx.equals(expected))
 
         sorted_idx, _ = index.sortlevel(0, ascending=False)
-        self.assert_(sorted_idx.equals(expected[::-1]))
+        self.assertTrue(sorted_idx.equals(expected[::-1]))
 
         sorted_idx, _ = index.sortlevel(1)
         by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
         expected = MultiIndex.from_tuples(by1)
-        self.assert_(sorted_idx.equals(expected))
+        self.assertTrue(sorted_idx.equals(expected))
 
         sorted_idx, _ = index.sortlevel(1, ascending=False)
-        self.assert_(sorted_idx.equals(expected[::-1]))
+        self.assertTrue(sorted_idx.equals(expected[::-1]))
 
     def test_sortlevel_not_sort_remaining(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         sorted_idx, _ = mi.sortlevel('A', sort_remaining=False)
-        self.assert_(sorted_idx.equals(mi))
+        self.assertTrue(sorted_idx.equals(mi))
 
     def test_sortlevel_deterministic(self):
         tuples = [('bar', 'one'), ('foo', 'two'), ('qux', 'two'),
@@ -2465,18 +2465,18 @@ class TestMultiIndex(tm.TestCase):
 
         sorted_idx, _ = index.sortlevel(0)
         expected = MultiIndex.from_tuples(sorted(tuples))
-        self.assert_(sorted_idx.equals(expected))
+        self.assertTrue(sorted_idx.equals(expected))
 
         sorted_idx, _ = index.sortlevel(0, ascending=False)
-        self.assert_(sorted_idx.equals(expected[::-1]))
+        self.assertTrue(sorted_idx.equals(expected[::-1]))
 
         sorted_idx, _ = index.sortlevel(1)
         by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
         expected = MultiIndex.from_tuples(by1)
-        self.assert_(sorted_idx.equals(expected))
+        self.assertTrue(sorted_idx.equals(expected))
 
         sorted_idx, _ = index.sortlevel(1, ascending=False)
-        self.assert_(sorted_idx.equals(expected[::-1]))
+        self.assertTrue(sorted_idx.equals(expected[::-1]))
 
     def test_dims(self):
         pass
@@ -2488,12 +2488,12 @@ class TestMultiIndex(tm.TestCase):
         dropped2 = self.index.drop(index)
 
         expected = self.index[[0, 2, 3, 5]]
-        self.assert_(dropped.equals(expected))
-        self.assert_(dropped2.equals(expected))
+        self.assertTrue(dropped.equals(expected))
+        self.assertTrue(dropped2.equals(expected))
 
         dropped = self.index.drop(['bar'])
         expected = self.index[[0, 1, 3, 4, 5]]
-        self.assert_(dropped.equals(expected))
+        self.assertTrue(dropped.equals(expected))
 
         index = MultiIndex.from_tuples([('bar', 'two')])
         self.assertRaises(KeyError, self.index.drop, [('bar', 'two')])
@@ -2502,7 +2502,7 @@ class TestMultiIndex(tm.TestCase):
         # mixed partial / full drop
         dropped = self.index.drop(['foo', ('qux', 'one')])
         expected = self.index[[2, 3, 5]]
-        self.assert_(dropped.equals(expected))
+        self.assertTrue(dropped.equals(expected))
 
     def test_droplevel_with_names(self):
         index = self.index[self.index.get_loc('foo')]
@@ -2521,7 +2521,7 @@ class TestMultiIndex(tm.TestCase):
 
         dropped = index.droplevel('two')
         expected = index.droplevel(1)
-        self.assert_(dropped.equals(expected))
+        self.assertTrue(dropped.equals(expected))
 
     def test_droplevel_multiple(self):
         index = MultiIndex(levels=[Index(lrange(4)),
@@ -2534,12 +2534,12 @@ class TestMultiIndex(tm.TestCase):
 
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
-        self.assert_(dropped.equals(expected))
+        self.assertTrue(dropped.equals(expected))
 
     def test_insert(self):
         # key contained in all levels
         new_index = self.index.insert(0, ('bar', 'two'))
-        self.assert_(new_index.equal_levels(self.index))
+        self.assertTrue(new_index.equal_levels(self.index))
         self.assertEqual(new_index[0], ('bar', 'two'))
 
         # key not contained in all levels
@@ -2565,8 +2565,8 @@ class TestMultiIndex(tm.TestCase):
                                                 return_indexers=True)
 
             exp_level = other.join(self.index.levels[1], how=how)
-            self.assert_(join_index.levels[0].equals(self.index.levels[0]))
-            self.assert_(join_index.levels[1].equals(exp_level))
+            self.assertTrue(join_index.levels[0].equals(self.index.levels[0]))
+            self.assertTrue(join_index.levels[1].equals(exp_level))
 
             # pare down levels
             mask = np.array(
@@ -2579,7 +2579,7 @@ class TestMultiIndex(tm.TestCase):
                     self.index.join(other, how=how, level='second',
                                     return_indexers=True)
 
-                self.assert_(join_index.equals(join_index2))
+                self.assertTrue(join_index.equals(join_index2))
                 self.assert_numpy_array_equal(lidx, lidx2)
                 self.assert_numpy_array_equal(ridx, ridx2)
                 self.assert_numpy_array_equal(join_index2.values, exp_values)
@@ -2628,11 +2628,11 @@ class TestMultiIndex(tm.TestCase):
         exp_index = self.index.join(idx, level='second', how='right')
         exp_index2 = self.index.join(idx, level='second', how='left')
 
-        self.assert_(target.equals(exp_index))
+        self.assertTrue(target.equals(exp_index))
         exp_indexer = np.array([0, 2, 4])
         self.assert_numpy_array_equal(indexer, exp_indexer)
 
-        self.assert_(target2.equals(exp_index2))
+        self.assertTrue(target2.equals(exp_index2))
         exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
         self.assert_numpy_array_equal(indexer2, exp_indexer2)
 
@@ -2645,12 +2645,12 @@ class TestMultiIndex(tm.TestCase):
 
     def test_has_duplicates(self):
         self.assertFalse(self.index.has_duplicates)
-        self.assert_(self.index.append(self.index).has_duplicates)
+        self.assertTrue(self.index.append(self.index).has_duplicates)
 
         index = MultiIndex(levels=[[0, 1], [0, 1, 2]],
                            labels=[[0, 0, 0, 0, 1, 1, 1],
                                    [0, 1, 2, 0, 0, 1, 2]])
-        self.assert_(index.has_duplicates)
+        self.assertTrue(index.has_duplicates)
 
     def test_tolist(self):
         result = self.index.tolist()

@@ -194,9 +194,9 @@ class TestGroupBy(tm.TestCase):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        self.assert_(com.isnull(grouped['B'].first()['foo']))
-        self.assert_(com.isnull(grouped['B'].last()['foo']))
-        self.assert_(com.isnull(grouped['B'].nth(0)[0]))  # not sure what this is testing
+        self.assertTrue(com.isnull(grouped['B'].first()['foo']))
+        self.assertTrue(com.isnull(grouped['B'].last()['foo']))
+        self.assertTrue(com.isnull(grouped['B'].nth(0)[0]))  # not sure what this is testing
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -658,14 +658,14 @@ class TestGroupBy(tm.TestCase):
         self.assertIs(groups, grouped.groups)  # caching works
 
         for k, v in compat.iteritems(grouped.groups):
-            self.assert_((self.df.ix[v]['A'] == k).all())
+            self.assertTrue((self.df.ix[v]['A'] == k).all())
 
         grouped = self.df.groupby(['A', 'B'])
         groups = grouped.groups
         self.assertIs(groups, grouped.groups)  # caching works
         for k, v in compat.iteritems(grouped.groups):
-            self.assert_((self.df.ix[v]['A'] == k[0]).all())
-            self.assert_((self.df.ix[v]['B'] == k[1]).all())
+            self.assertTrue((self.df.ix[v]['A'] == k[0]).all())
+            self.assertTrue((self.df.ix[v]['B'] == k[1]).all())
 
     def test_aggregate_str_func(self):
 
@@ -764,13 +764,13 @@ class TestGroupBy(tm.TestCase):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
 
-        self.assert_(result.index.equals(self.ts.index))
+        self.assertTrue(result.index.equals(self.ts.index))
         for _, gp in grouped:
             assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
-        self.assert_(result.index.equals(self.tsframe.index))
+        self.assertTrue(result.index.equals(self.tsframe.index))
         for _, gp in grouped:
             agged = gp.mean()
             res = result.reindex(gp.index)
@@ -781,8 +781,8 @@ class TestGroupBy(tm.TestCase):
         grouped = self.tsframe.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                        axis=1)
         result = grouped.transform(np.mean)
-        self.assert_(result.index.equals(self.tsframe.index))
-        self.assert_(result.columns.equals(self.tsframe.columns))
+        self.assertTrue(result.index.equals(self.tsframe.index))
+        self.assertTrue(result.columns.equals(self.tsframe.columns))
         for _, gp in grouped:
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)
@@ -857,7 +857,7 @@ class TestGroupBy(tm.TestCase):
             expected = Series([4, 2], index=['bar', 'foo'])
 
             assert_series_equal(agged, expected, check_dtype=False)
-            #self.assert_(issubclass(agged.dtype.type, np.integer))
+            #self.assertTrue(issubclass(agged.dtype.type, np.integer))
 
             # explicity return a float from my function
             def f(x):
@@ -867,7 +867,7 @@ class TestGroupBy(tm.TestCase):
             expected = Series([4, 2], index=['bar', 'foo'])
 
             assert_series_equal(agged, expected, check_dtype=False)
-            self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
+            self.assertTrue(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
     def test_groupby_transform_with_int(self):
 
@@ -1502,7 +1502,7 @@ class TestGroupBy(tm.TestCase):
                                 lambda x: x.day], axis=1)
 
         agged = grouped.agg(lambda x: x.sum(1))
-        self.assert_(agged.index.equals(df.columns))
+        self.assertTrue(agged.index.equals(df.columns))
         assert_almost_equal(df.T.values, agged.values)
 
         agged = grouped.agg(lambda x: x.sum(1))
@@ -1841,7 +1841,7 @@ class TestGroupBy(tm.TestCase):
         result = grouped.apply(f)
 
         tm.assert_isinstance(result, DataFrame)
-        self.assert_(result.index.equals(ts.index))
+        self.assertTrue(result.index.equals(ts.index))
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
@@ -1851,7 +1851,7 @@ class TestGroupBy(tm.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
         expected = grouped.count()['C']
-        self.assert_(result.index.equals(expected.index))
+        self.assertTrue(result.index.equals(expected.index))
         self.assert_numpy_array_equal(result.values, expected.values)
 
     def test_apply_frame_concat_series(self):
@@ -1955,26 +1955,26 @@ class TestGroupBy(tm.TestCase):
                        columns=columns)
 
         result = df.groupby(level=0).mean()
-        self.assert_(result.columns.equals(columns))
+        self.assertTrue(result.columns.equals(columns))
 
         result = df.groupby(level=0, axis=1).mean()
-        self.assert_(result.index.equals(df.index))
+        self.assertTrue(result.index.equals(df.index))
 
         result = df.groupby(level=0).agg(np.mean)
-        self.assert_(result.columns.equals(columns))
+        self.assertTrue(result.columns.equals(columns))
 
         result = df.groupby(level=0).apply(lambda x: x.mean())
-        self.assert_(result.columns.equals(columns))
+        self.assertTrue(result.columns.equals(columns))
 
         result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
-        self.assert_(result.columns.equals(Index(['A', 'B'])))
-        self.assert_(result.index.equals(df.index))
+        self.assertTrue(result.columns.equals(Index(['A', 'B'])))
+        self.assertTrue(result.index.equals(df.index))
 
         # add a nuisance column
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assert_(result.columns.equals(df.columns[:-1]))
+        self.assertTrue(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
         from numpy import percentile
@@ -2343,7 +2343,7 @@ class TestGroupBy(tm.TestCase):
         inds = np.tile(lrange(10), 10)
 
         result = obj.groupby(inds).agg(Series.median)
-        self.assert_(result.isnull().all())
+        self.assertTrue(result.isnull().all())
 
     def test_series_grouper_noncontig_index(self):
         index = Index([tm.rands(10) for _ in range(100)])
@@ -2545,10 +2545,10 @@ class TestGroupBy(tm.TestCase):
         right = rg.sum()['values']
 
         exp_index, _ = left.index.sortlevel(0)
-        self.assert_(left.index.equals(exp_index))
+        self.assertTrue(left.index.equals(exp_index))
 
         exp_index, _ = right.index.sortlevel(0)
-        self.assert_(right.index.equals(exp_index))
+        self.assertTrue(right.index.equals(exp_index))
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D',
                               'E', 'F', 'G', 'H']].values))
@@ -2905,8 +2905,8 @@ class TestGroupBy(tm.TestCase):
         dates = ['2011-07-19 07:00:00', '2011-07-19 08:00:00', '2011-07-19 09:00:00',
                  '2011-07-19 07:00:00', '2011-07-19 08:00:00', '2011-07-19 09:00:00']
         df = DataFrame({'label': ['a', 'a', 'a', 'b', 'b', 'b'],
-                        'datetime': dates, 
-                        'value1': np.arange(6,dtype='int64'), 
+                        'datetime': dates,
+                        'value1': np.arange(6,dtype='int64'),
                         'value2': [1, 2] * 3})
         df['datetime'] = df['datetime'].apply(lambda d: Timestamp(d, tz='US/Pacific'))
 
@@ -2924,8 +2924,8 @@ class TestGroupBy(tm.TestCase):
 
         # by level
         didx = pd.DatetimeIndex(dates, tz='Asia/Tokyo')
-        df = DataFrame({'value1': np.arange(6,dtype='int64'), 
-                        'value2': [1, 2, 3, 1, 2, 3]}, 
+        df = DataFrame({'value1': np.arange(6,dtype='int64'),
+                        'value2': [1, 2, 3, 1, 2, 3]},
                        index=didx)
 
         exp_idx = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00',
@@ -3028,15 +3028,15 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
 
-        self.assert_(issubclass(df[1].dtype.type, np.datetime64))
+        self.assertTrue(issubclass(df[1].dtype.type, np.datetime64))
 
         result = df.groupby(level=0).first()
         got_dt = result[1].dtype
-        self.assert_(issubclass(got_dt.type, np.datetime64))
+        self.assertTrue(issubclass(got_dt.type, np.datetime64))
 
         result = df[1].groupby(level=0).first()
         got_dt = result.dtype
-        self.assert_(issubclass(got_dt.type, np.datetime64))
+        self.assertTrue(issubclass(got_dt.type, np.datetime64))
 
     def test_groupby_max_datetime64(self):
         # GH 5869

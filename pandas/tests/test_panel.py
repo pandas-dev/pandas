@@ -540,7 +540,7 @@ class CheckIndexing(object):
         # get a view by default
         itemA_view = self.panel.xs('ItemA', axis=0)
         itemA_view.values[:] = np.nan
-        self.assert_(np.isnan(self.panel['ItemA'].values).all())
+        self.assertTrue(np.isnan(self.panel['ItemA'].values).all())
 
         # mixed-type yields a copy
         self.panel['strings'] = 'foo'
@@ -717,7 +717,7 @@ class CheckIndexing(object):
         cp = self.panel.copy()
         obj = cp.ix[indexer]
         obj.values[:] = 0
-        self.assert_((obj.values == 0).all())
+        self.assertTrue((obj.values == 0).all())
         comp(cp.ix[indexer].reindex_like(obj), obj)
 
     def test_logical_with_nas(self):
@@ -797,7 +797,7 @@ class CheckIndexing(object):
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
-        self.assert_(com.is_float_dtype(res3['ItemE'].values))
+        self.assertTrue(com.is_float_dtype(res3['ItemE'].values))
         with tm.assertRaisesRegexp(TypeError,
                                    "There must be an argument for each axis"
                                    " plus the value provided"):
@@ -926,13 +926,13 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
             Panel(np.random.randn(10, 2))
 
     def test_consolidate(self):
-        self.assert_(self.panel._data.is_consolidated())
+        self.assertTrue(self.panel._data.is_consolidated())
 
         self.panel['foo'] = 1.
         self.assertFalse(self.panel._data.is_consolidated())
 
         panel = self.panel.consolidate()
-        self.assert_(panel._data.is_consolidated())
+        self.assertTrue(panel._data.is_consolidated())
 
     def test_ctor_dict(self):
         itema = self.panel['ItemA']
@@ -947,12 +947,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         wp = Panel.from_dict(d)
         wp2 = Panel.from_dict(d2)  # nested Dict
         wp3 = Panel.from_dict(d3)
-        self.assert_(wp.major_axis.equals(self.panel.major_axis))
+        self.assertTrue(wp.major_axis.equals(self.panel.major_axis))
         assert_panel_equal(wp, wp2)
 
         # intersect
         wp = Panel.from_dict(d, intersect=True)
-        self.assert_(wp.major_axis.equals(itemb.index[5:]))
+        self.assertTrue(wp.major_axis.equals(itemb.index[5:]))
 
         # use constructor
         assert_panel_equal(Panel(d), Panel.from_dict(d))
@@ -981,7 +981,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         data = dict((k, v.values) for k, v in compat.iteritems(self.panel))
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
-        self.assert_(result.major_axis.equals(exp_major))
+        self.assertTrue(result.major_axis.equals(exp_major))
 
         result = Panel(data, items=self.panel.items,
                        major_axis=self.panel.major_axis,
@@ -1310,7 +1310,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
     def test_fillna(self):
         filled = self.panel.fillna(0)
-        self.assert_(np.isfinite(filled.values).all())
+        self.assertTrue(np.isfinite(filled.values).all())
 
         filled = self.panel.fillna(method='backfill')
         assert_frame_equal(filled['ItemA'],
@@ -1424,7 +1424,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(result, expected)
 
         panel.values[0, 1, 1] = np.nan
-        self.assert_(notnull(result.values[1, 0, 1]))
+        self.assertTrue(notnull(result.values[1, 0, 1]))
 
     def test_to_frame(self):
         # filtered
@@ -1554,7 +1554,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                               [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
 
         panel = df.to_panel()
-        self.assert_(isnull(panel[0].ix[1, [0, 1]]).all())
+        self.assertTrue(isnull(panel[0].ix[1, [0, 1]]).all())
 
     def test_to_panel_duplicates(self):
         # #2441
@@ -1767,8 +1767,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         f2 = wp.ix['a']
         assert_panel_equal(f1, f2)
 
-        self.assert_((f1.items == [1, 2]).all())
-        self.assert_((f2.items == [1, 2]).all())
+        self.assertTrue((f1.items == [1, 2]).all())
+        self.assertTrue((f2.items == [1, 2]).all())
 
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
                                      names=['first', 'second'])
@@ -1779,10 +1779,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         wp = Panel(self.panel._data)
         wp.items = ind
         f1 = wp['a']
-        self.assert_((f1.items == [1, 2]).all())
+        self.assertTrue((f1.items == [1, 2]).all())
 
         f1 = wp[('b', 1)]
-        self.assert_((f1.columns == ['A', 'B', 'C', 'D']).all())
+        self.assertTrue((f1.columns == ['A', 'B', 'C', 'D']).all())
 
     def test_repr_empty(self):
         empty = Panel()
@@ -1797,16 +1797,16 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         renamed = self.panel.rename_axis(mapper, axis=0)
         exp = Index(['foo', 'bar', 'baz'])
-        self.assert_(renamed.items.equals(exp))
+        self.assertTrue(renamed.items.equals(exp))
 
         renamed = self.panel.rename_axis(str.lower, axis=2)
         exp = Index(['a', 'b', 'c', 'd'])
-        self.assert_(renamed.minor_axis.equals(exp))
+        self.assertTrue(renamed.minor_axis.equals(exp))
 
         # don't copy
         renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
         renamed_nocopy['foo'] = 3.
-        self.assert_((self.panel['ItemA'].values == 3).all())
+        self.assertTrue((self.panel['ItemA'].values == 3).all())
 
     def test_get_attr(self):
         assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
@@ -2168,10 +2168,10 @@ class TestLongPanel(tm.TestCase):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sortlevel(level=1)
-        self.assert_(is_sorted(sorted_minor.index.labels[1]))
+        self.assertTrue(is_sorted(sorted_minor.index.labels[1]))
 
         sorted_major = sorted_minor.sortlevel(level=0)
-        self.assert_(is_sorted(sorted_major.index.labels[0]))
+        self.assertTrue(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
         buf = StringIO()

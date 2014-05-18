@@ -64,7 +64,7 @@ class TestResample(tm.TestCase):
             g._cython_agg_general(f)
 
         self.assertEquals(g.ngroups, 2593)
-        self.assert_(notnull(g.mean()).all())
+        self.assertTrue(notnull(g.mean()).all())
 
         # construct expected val
         arr = [1] + [5] * 2592
@@ -116,45 +116,45 @@ class TestResample(tm.TestCase):
         result = s.resample('w-sun', how='last')
 
         self.assertEquals(len(result), 3)
-        self.assert_((result.index.dayofweek == [6, 6, 6]).all())
+        self.assertTrue((result.index.dayofweek == [6, 6, 6]).all())
         self.assertEquals(result.irow(0), s['1/2/2005'])
         self.assertEquals(result.irow(1), s['1/9/2005'])
         self.assertEquals(result.irow(2), s.irow(-1))
 
         result = s.resample('W-MON', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [0, 0]).all())
+        self.assertTrue((result.index.dayofweek == [0, 0]).all())
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-TUE', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [1, 1]).all())
+        self.assertTrue((result.index.dayofweek == [1, 1]).all())
         self.assertEquals(result.irow(0), s['1/4/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-WED', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [2, 2]).all())
+        self.assertTrue((result.index.dayofweek == [2, 2]).all())
         self.assertEquals(result.irow(0), s['1/5/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-THU', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [3, 3]).all())
+        self.assertTrue((result.index.dayofweek == [3, 3]).all())
         self.assertEquals(result.irow(0), s['1/6/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-FRI', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [4, 4]).all())
+        self.assertTrue((result.index.dayofweek == [4, 4]).all())
         self.assertEquals(result.irow(0), s['1/7/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         # to biz day
         result = s.resample('B', how='last')
         self.assertEquals(len(result), 7)
-        self.assert_((result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all())
+        self.assertTrue((result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all())
         self.assertEquals(result.irow(0), s['1/2/2005'])
         self.assertEquals(result.irow(1), s['1/3/2005'])
         self.assertEquals(result.irow(5), s['1/9/2005'])
@@ -369,13 +369,13 @@ class TestResample(tm.TestCase):
         resampled = ts.resample('5min', how='ohlc', closed='right',
                                 label='right')
 
-        self.assert_((resampled.ix['1/1/2000 00:00'] == ts[0]).all())
+        self.assertTrue((resampled.ix['1/1/2000 00:00'] == ts[0]).all())
 
         exp = _ohlc(ts[1:31])
-        self.assert_((resampled.ix['1/1/2000 00:05'] == exp).all())
+        self.assertTrue((resampled.ix['1/1/2000 00:05'] == exp).all())
 
         exp = _ohlc(ts['1/1/2000 5:55:01':])
-        self.assert_((resampled.ix['1/1/2000 6:00:00'] == exp).all())
+        self.assertTrue((resampled.ix['1/1/2000 6:00:00'] == exp).all())
 
     def test_downsample_non_unique(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -492,7 +492,7 @@ class TestResample(tm.TestCase):
         resampled = ts.resample('5min', base=2)
         exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                              freq='5min')
-        self.assert_(resampled.index.equals(exp_rng))
+        self.assertTrue(resampled.index.equals(exp_rng))
 
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
@@ -511,7 +511,7 @@ class TestResample(tm.TestCase):
 
         result = ts.resample('M', kind='period')
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
-        self.assert_(result.index.equals(exp_index))
+        self.assertTrue(result.index.equals(exp_index))
 
     def test_resample_empty(self):
         ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
@@ -593,7 +593,7 @@ class TestResample(tm.TestCase):
 
         result = ts.resample('5t', closed='right', label='left')
         ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
-        self.assert_(result.index.equals(ex_index))
+        self.assertTrue(result.index.equals(ex_index))
 
         len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
         # it works
@@ -955,7 +955,7 @@ class TestResamplePeriodIndex(tm.TestCase):
 
         result = ts.resample('W-THU')
 
-        self.assert_(result.isnull().all())
+        self.assertTrue(result.isnull().all())
 
         result = ts.resample('W-THU', fill_method='ffill')[:-1]
         expected = ts.asfreq('W-THU', method='ffill')
@@ -1027,7 +1027,7 @@ class TestResamplePeriodIndex(tm.TestCase):
 
         ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
 
-        self.assert_(result.index.equals(ex_index))
+        self.assertTrue(result.index.equals(ex_index))
         assert_series_equal(result, exp)
 
     def test_quarterly_resampling(self):

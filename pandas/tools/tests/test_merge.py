@@ -219,8 +219,8 @@ class TestMerge(tm.TestCase):
                          columns=['three'])
         joined = df_a.join(df_b, on='one')
         joined = joined.join(df_c, on='one')
-        self.assert_(np.isnan(joined['two']['c']))
-        self.assert_(np.isnan(joined['three']['c']))
+        self.assertTrue(np.isnan(joined['two']['c']))
+        self.assertTrue(np.isnan(joined['three']['c']))
 
         # merge column not p resent
         self.assertRaises(Exception, target.join, source, on='E')
@@ -270,11 +270,11 @@ class TestMerge(tm.TestCase):
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
             self.assertIn(col, merged)
-            self.assert_(merged[col].isnull().all())
+            self.assertTrue(merged[col].isnull().all())
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
-        self.assert_(merged2.columns.equals(merged.columns))
+        self.assertTrue(merged2.columns.equals(merged.columns))
         self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
@@ -287,7 +287,7 @@ class TestMerge(tm.TestCase):
         expected = expected[expected['value'].notnull()]
         self.assert_numpy_array_equal(joined['key'], expected['key'])
         self.assert_numpy_array_equal(joined['value'], expected['value'])
-        self.assert_(joined.index.equals(expected.index))
+        self.assertTrue(joined.index.equals(expected.index))
 
     def test_join_on_singlekey_list(self):
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -438,7 +438,7 @@ class TestMerge(tm.TestCase):
         expected = expected.drop(['first', 'second'], axis=1)
         expected.index = joined.index
 
-        self.assert_(joined.index.is_monotonic)
+        self.assertTrue(joined.index.is_monotonic)
         assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.ix[:, expected.columns])
@@ -592,10 +592,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=True)
 
         merged['a'] = 6
-        self.assert_((left['a'] == 0).all())
+        self.assertTrue((left['a'] == 0).all())
 
         merged['d'] = 'peekaboo'
-        self.assert_((right['d'] == 'bar').all())
+        self.assertTrue((right['d'] == 'bar').all())
 
     def test_merge_nocopy(self):
         left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
@@ -605,10 +605,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=False)
 
         merged['a'] = 6
-        self.assert_((left['a'] == 6).all())
+        self.assertTrue((left['a'] == 6).all())
 
         merged['d'] = 'peekaboo'
-        self.assert_((right['d'] == 'peekaboo').all())
+        self.assertTrue((right['d'] == 'peekaboo').all())
 
     def test_join_sort(self):
         left = DataFrame({'key': ['foo', 'bar', 'baz', 'foo'],
@@ -643,7 +643,7 @@ class TestMerge(tm.TestCase):
                              columns=['value', 'key', 'rvalue'])
         assert_frame_equal(joined, expected, check_dtype=False)
 
-        self.assert_(joined._data.is_consolidated())
+        self.assertTrue(joined._data.is_consolidated())
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
@@ -655,8 +655,8 @@ class TestMerge(tm.TestCase):
         merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
 
         assert_series_equal(merged['key'], merged2['key'])
-        self.assert_(merged['key'].notnull().all())
-        self.assert_(merged2['key'].notnull().all())
+        self.assertTrue(merged['key'].notnull().all())
+        self.assertTrue(merged2['key'].notnull().all())
 
         left = DataFrame({'value': lrange(5)}, columns=['value'])
         right = DataFrame({'rvalue': lrange(6)})
@@ -761,7 +761,7 @@ class TestMerge(tm.TestCase):
         exp = merge(df, new, on='var3', sort=False)
         assert_frame_equal(result, exp)
 
-        self.assert_((df.var3.unique() == result.var3.unique()).all())
+        self.assertTrue((df.var3.unique() == result.var3.unique()).all())
 
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1" : [0, 1], "i2" : [0, 1]})
@@ -1310,8 +1310,8 @@ class TestConcatenate(tm.TestCase):
         b = df[5:].ix[:, ['strings', 'ints', 'floats']]
 
         appended = a.append(b)
-        self.assert_(isnull(appended['strings'][0:4]).all())
-        self.assert_(isnull(appended['bools'][5:]).all())
+        self.assertTrue(isnull(appended['strings'][0:4]).all())
+        self.assertTrue(isnull(appended['bools'][5:]).all())
 
     def test_append_many(self):
         chunks = [self.frame[:5], self.frame[5:10],
@@ -1323,8 +1323,8 @@ class TestConcatenate(tm.TestCase):
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:])
         tm.assert_frame_equal(result.ix[:, self.frame.columns], self.frame)
-        self.assert_((result['foo'][15:] == 'bar').all())
-        self.assert_(result['foo'][:15].isnull().all())
+        self.assertTrue((result['foo'][15:] == 'bar').all())
+        self.assertTrue(result['foo'][:15].isnull().all())
 
     def test_append_preserve_index_name(self):
         # #980
@@ -1978,8 +1978,8 @@ class TestConcatenate(tm.TestCase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assert_((result.iloc[:10]['time'] == rng).all())
-        self.assert_((result.iloc[10:]['time'] == rng).all())
+        self.assertTrue((result.iloc[:10]['time'] == rng).all())
+        self.assertTrue((result.iloc[10:]['time'] == rng).all())
 
     def test_concat_timedelta64_block(self):
 
@@ -1994,8 +1994,8 @@ class TestConcatenate(tm.TestCase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assert_((result.iloc[:10]['time'] == rng).all())
-        self.assert_((result.iloc[10:]['time'] == rng).all())
+        self.assertTrue((result.iloc[:10]['time'] == rng).all())
+        self.assertTrue((result.iloc[10:]['time'] == rng).all())
 
     def test_concat_keys_with_none(self):
         # #1649
@@ -2133,7 +2133,7 @@ class TestOrderedMerge(tm.TestCase):
         assert_frame_equal(result, result2.ix[:, result.columns])
 
         result = ordered_merge(left, self.right, on='key', left_by='group')
-        self.assert_(result['group'].notnull().all())
+        self.assertTrue(result['group'].notnull().all())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

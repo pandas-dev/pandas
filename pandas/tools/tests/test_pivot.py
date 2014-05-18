@@ -57,7 +57,7 @@ class TestPivotTable(tm.TestCase):
         index = ['A', 'B']
         columns = 'C'
         with tm.assert_produces_warning(FutureWarning):
-            table = pivot_table(self.data, values='D', rows=index, 
+            table = pivot_table(self.data, values='D', rows=index,
                                 cols=columns)
 
         with tm.assert_produces_warning(False):
@@ -191,7 +191,7 @@ class TestPivotTable(tm.TestCase):
                                 datetime.datetime(2014, 1, 1, 9, 0),
                                 datetime.datetime(2014, 1, 2, 9, 0),
                                 datetime.datetime(2014, 1, 2, 9, 0)],
-                        'data1': np.arange(4,dtype='int64'), 
+                        'data1': np.arange(4,dtype='int64'),
                         'data2': np.arange(4,dtype='int64')})
 
         df['dt1'] = df['dt1'].apply(lambda d: pd.Timestamp(d, tz='US/Pacific'))
@@ -336,7 +336,7 @@ class TestPivotTable(tm.TestCase):
                                  columns=['Index', 'Symbol', 'Year'],
                                  aggfunc='mean')
 
-        self.assert_(pivoted.columns.is_monotonic)
+        self.assertTrue(pivoted.columns.is_monotonic)
 
     def test_pivot_complex_aggfunc(self):
         f = {'D': ['std'], 'E': ['sum']}
@@ -378,7 +378,7 @@ class TestPivotTable(tm.TestCase):
                       datetime.datetime(2013, 12, 2), datetime.datetime(2013, 12, 2),]}).set_index('Date')
 
         expected = DataFrame(np.array([10, 18, 3],dtype='int64').reshape(1, 3),
-                             index=[datetime.datetime(2013, 12, 31)], 
+                             index=[datetime.datetime(2013, 12, 31)],
                              columns='Carl Joe Mark'.split())
         expected.index.name = 'Date'
         expected.columns.name = 'Buyer'
@@ -387,12 +387,12 @@ class TestPivotTable(tm.TestCase):
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result,expected)
 
-        result = pivot_table(df, index='Buyer', columns=Grouper(freq='A'), 
+        result = pivot_table(df, index='Buyer', columns=Grouper(freq='A'),
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result,expected.T)
 
         expected = DataFrame(np.array([1, np.nan, 3, 9, 18, np.nan]).reshape(2, 3),
-                             index=[datetime.datetime(2013, 1, 1), datetime.datetime(2013, 7, 1)], 
+                             index=[datetime.datetime(2013, 1, 1), datetime.datetime(2013, 7, 1)],
                              columns='Carl Joe Mark'.split())
         expected.index.name = 'Date'
         expected.columns.name = 'Buyer'
@@ -404,7 +404,7 @@ class TestPivotTable(tm.TestCase):
         result = pivot_table(df, index='Buyer', columns=Grouper(freq='6MS'),
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
- 
+
         # passing the name
         df = df.reset_index()
         result = pivot_table(df, index=Grouper(freq='6MS', key='Date'), columns='Buyer',
@@ -455,11 +455,11 @@ class TestPivotTable(tm.TestCase):
         expected = DataFrame(np.array([np.nan, 3, np.nan, np.nan, 6, np.nan, 1, 9,
                                        np.nan, 9, np.nan, np.nan, np.nan, np.nan, 3, np.nan]).reshape(4, 4),
                              index=[datetime.datetime(2013, 9, 30), datetime.datetime(2013, 10, 31),
-                                    datetime.datetime(2013, 11, 30), datetime.datetime(2013, 12, 31)], 
+                                    datetime.datetime(2013, 11, 30), datetime.datetime(2013, 12, 31)],
                              columns=[datetime.datetime(2013, 9, 30), datetime.datetime(2013, 10, 31),
                                     datetime.datetime(2013, 11, 30), datetime.datetime(2013, 12, 31)])
         expected.index.name = 'Date'
-        expected.columns.name = 'PayDay'        
+        expected.columns.name = 'PayDay'
 
         tm.assert_frame_equal(result, expected)
 
@@ -478,7 +478,7 @@ class TestPivotTable(tm.TestCase):
         expected = DataFrame(np.array([3, np.nan, 6, np.nan, 1, np.nan,
                                        9, np.nan, 9, np.nan, np.nan, 3]).reshape(6, 2),
                              index=idx, columns=['A', 'B'])
-        expected.columns.name = 'Branch'   
+        expected.columns.name = 'Branch'
 
         result = pivot_table(df, index=[Grouper(freq='M', key='Date'),
                              Grouper(freq='M', key='PayDay')], columns=['Branch'],
@@ -486,7 +486,7 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = pivot_table(df, index=['Branch'], columns=[Grouper(freq='M', key='Date'),
-                             Grouper(freq='M', key='PayDay')], 
+                             Grouper(freq='M', key='PayDay')],
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
 

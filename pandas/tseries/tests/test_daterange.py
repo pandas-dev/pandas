@@ -125,13 +125,13 @@ class TestDateRange(tm.TestCase):
         d = self.rng[10]
 
         comp = self.rng > d
-        self.assert_(comp[11])
-        self.assert_(not comp[9])
+        self.assertTrue(comp[11])
+        self.assertFalse(comp[9])
 
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_(cp.equals(self.rng))
+        self.assertTrue(cp.equals(self.rng))
 
     def test_repr(self):
         # only really care that it works
@@ -249,13 +249,13 @@ class TestDateRange(tm.TestCase):
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_union = rng1.union(rng2)
-        self.assert_(the_union.equals(rng))
+        self.assertTrue(the_union.equals(rng))
 
         rng1 = rng[10:]
         rng2 = rng[15:35]
         the_union = rng1.union(rng2)
         expected = rng[10:]
-        self.assert_(the_union.equals(expected))
+        self.assertTrue(the_union.equals(expected))
 
     def test_intersection(self):
         rng = date_range('1/1/2000', periods=50, freq=datetools.Minute())
@@ -263,24 +263,24 @@ class TestDateRange(tm.TestCase):
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
-        self.assert_(the_int.equals(expected))
+        self.assertTrue(the_int.equals(expected))
         tm.assert_isinstance(the_int, DatetimeIndex)
         self.assertEqual(the_int.offset, rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
-        self.assert_(the_int.equals(expected))
+        self.assertTrue(the_int.equals(expected))
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
         expected = DatetimeIndex([])
-        self.assert_(the_int.equals(expected))
+        self.assertTrue(the_int.equals(expected))
 
     def test_intersection_bug(self):
         # GH #771
         a = bdate_range('11/30/2011', '12/31/2011')
         b = bdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assert_(result.equals(b))
+        self.assertTrue(result.equals(b))
 
     def test_summary(self):
         self.rng.summary()
@@ -318,19 +318,19 @@ class TestDateRange(tm.TestCase):
     def test_identical(self):
         t1 = self.rng.copy()
         t2 = self.rng.copy()
-        self.assert_(t1.identical(t2))
+        self.assertTrue(t1.identical(t2))
 
         # name
         t1 = t1.rename('foo')
-        self.assert_(t1.equals(t2))
-        self.assert_(not t1.identical(t2))
+        self.assertTrue(t1.equals(t2))
+        self.assertFalse(t1.identical(t2))
         t2 = t2.rename('foo')
-        self.assert_(t1.identical(t2))
+        self.assertTrue(t1.identical(t2))
 
         # freq
         t2v = Index(t2.values)
-        self.assert_(t1.equals(t2v))
-        self.assert_(not t1.identical(t2v))
+        self.assertTrue(t1.equals(t2v))
+        self.assertFalse(t1.identical(t2v))
 
     def test_daterange_bug_456(self):
         # GH #456
@@ -405,8 +405,8 @@ class TestDateRange(tm.TestCase):
             expected_left = closed[:-1]
             expected_right = closed[1:]
 
-            self.assert_(expected_left.equals(left))
-            self.assert_(expected_right.equals(right))
+            self.assertTrue(expected_left.equals(left))
+            self.assertTrue(expected_right.equals(right))
 
 
 class TestCustomDateRange(tm.TestCase):
@@ -445,13 +445,13 @@ class TestCustomDateRange(tm.TestCase):
         d = self.rng[10]
 
         comp = self.rng > d
-        self.assert_(comp[11])
-        self.assert_(not comp[9])
+        self.assertTrue(comp[11])
+        self.assertFalse(comp[9])
 
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_(cp.equals(self.rng))
+        self.assertTrue(cp.equals(self.rng))
 
     def test_repr(self):
         # only really care that it works
@@ -569,7 +569,7 @@ class TestCustomDateRange(tm.TestCase):
         a = cdate_range('11/30/2011', '12/31/2011')
         b = cdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assert_(result.equals(b))
+        self.assertTrue(result.equals(b))
 
     def test_summary(self):
         self.rng.summary()
@@ -616,26 +616,26 @@ class TestCustomDateRange(tm.TestCase):
     def test_cdaterange(self):
         rng = cdate_range('2013-05-01', periods=3)
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-03'])
-        self.assert_(xp.equals(rng))
+        self.assertTrue(xp.equals(rng))
 
     def test_cdaterange_weekmask(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu')
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
-        self.assert_(xp.equals(rng))
+        self.assertTrue(xp.equals(rng))
 
     def test_cdaterange_holidays(self):
         rng = cdate_range('2013-05-01', periods=3,
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
-        self.assert_(xp.equals(rng))
+        self.assertTrue(xp.equals(rng))
 
     def test_cdaterange_weekmask_and_holidays(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu',
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
-        self.assert_(xp.equals(rng))
+        self.assertTrue(xp.equals(rng))
 
 
 if __name__ == '__main__':

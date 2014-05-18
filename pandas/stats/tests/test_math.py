@@ -53,13 +53,13 @@ class TestMath(tm.TestCase):
         b = Series(np.random.randn(N), self.frame.index)
         result = pmath.solve(self.frame, b)
         expected = ols(y=b, x=self.frame, intercept=False).beta
-        self.assert_(np.allclose(result, expected))
+        self.assertTrue(np.allclose(result, expected))
 
     def test_inv_illformed(self):
         singular = DataFrame(np.array([[1, 1], [2, 2]]))
         rs = pmath.inv(singular)
         expected = np.array([[0.1, 0.2], [0.1, 0.2]])
-        self.assert_(np.allclose(rs, expected))
+        self.assertTrue(np.allclose(rs, expected))
 
 if __name__ == '__main__':
     import nose

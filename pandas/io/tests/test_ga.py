@@ -27,7 +27,7 @@ class TestGoogle(tm.TestCase):
             fh.write('test')
 
         reset_default_token_store()
-        self.assert_(not os.path.exists(auth.DEFAULT_TOKEN_FILE))
+        self.assertFalse(os.path.exists(auth.DEFAULT_TOKEN_FILE))
 
     @slow
     @network

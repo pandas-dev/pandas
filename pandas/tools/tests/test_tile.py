@@ -150,7 +150,7 @@ class TestCut(tm.TestCase):
 
         factor = qcut(arr, [0, .25, .5, .75, 1.])
         expected = qcut(arr, 4)
-        self.assert_(factor.equals(expected))
+        self.assertTrue(factor.equals(expected))
 
     def test_qcut_all_bins_same(self):
         assertRaisesRegexp(ValueError, "edges.*unique", qcut, [0,0,0,0,0,0,0,0,0,0], 3)
@@ -174,7 +174,7 @@ class TestCut(tm.TestCase):
         exp = cut(arr, bins)
         exp.levels = labels
 
-        self.assert_(result.equals(exp))
+        self.assertTrue(result.equals(exp))
 
     def test_qcut_include_lowest(self):
         values = np.arange(10)
@@ -182,14 +182,14 @@ class TestCut(tm.TestCase):
         cats = qcut(values, 4)
 
         ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
-        self.assert_((cats.levels == ex_levels).all())
+        self.assertTrue((cats.levels == ex_levels).all())
 
     def test_qcut_nas(self):
         arr = np.random.randn(100)
         arr[:20] = np.nan
 
         result = qcut(arr, 4)
-        self.assert_(com.isnull(result[:20]).all())
+        self.assertTrue(com.isnull(result[:20]).all())
 
     def test_label_formatting(self):
         self.assertEquals(tmod._trim_zeros('1.000'), '1')

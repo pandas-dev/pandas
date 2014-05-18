@@ -33,7 +33,7 @@ class TestPickle(tm.TestCase):
 
     def compare_element(self, typ, result, expected):
         if isinstance(expected,Index):
-            self.assert_(expected.equals(result))
+            self.assertTrue(expected.equals(result))
             return
 
         if typ.startswith('sp_'):
