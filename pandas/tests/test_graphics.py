@@ -413,7 +413,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot(kind='area', stacked=False)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])       
+        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
         self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
 
     def test_line_area_nan_series(self):
@@ -1023,13 +1023,13 @@ class TestDataFramePlots(TestPlotBase):
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
             lines = ax.get_lines()
-            self.assertEqual(xmin, lines[0].get_data()[0][0])        
-            self.assertEqual(xmax, lines[0].get_data()[0][-1]) 
-            self.assertEqual(ymin, 0) 
+            self.assertEqual(xmin, lines[0].get_data()[0][0])
+            self.assertEqual(xmax, lines[0].get_data()[0][-1])
+            self.assertEqual(ymin, 0)
 
             ax = _check_plot_works(neg_df.plot, kind='area', stacked=stacked)
             ymin, ymax = ax.get_ylim()
-            self.assertEqual(ymax, 0) 
+            self.assertEqual(ymax, 0)
 
     @slow
     def test_bar_colors(self):
@@ -1471,7 +1471,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(100, 3))
         _check_plot_works(df.hist)
         axes = df.hist(grid=False)
-        self.assert_(not axes[1, 1].get_visible())
+        self.assertFalse(axes[1, 1].get_visible())
 
         df = DataFrame(randn(100, 1))
         _check_plot_works(df.hist)
@@ -1576,7 +1576,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_andrews_curves(self):
         from pandas.tools.plotting import andrews_curves
         from matplotlib import cm
-        
+
         df = self.iris
 
         _check_plot_works(andrews_curves, df, 'Name')
@@ -1601,7 +1601,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = andrews_curves(df, 'Name', color=colors)
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
-        
+
         with tm.assert_produces_warning(FutureWarning):
             andrews_curves(data=df, class_column='Name')
 
@@ -1609,7 +1609,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_parallel_coordinates(self):
         from pandas.tools.plotting import parallel_coordinates
         from matplotlib import cm
-        
+
         df = self.iris
 
         _check_plot_works(parallel_coordinates, df, 'Name')
@@ -1634,7 +1634,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = parallel_coordinates(df, 'Name', color=colors)
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
-        
+
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(data=df, class_column='Name')
         with tm.assert_produces_warning(FutureWarning):
@@ -1845,7 +1845,7 @@ class TestDataFramePlots(TestPlotBase):
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
         self._check_colors(poly, facecolors=rgba_colors)
         tm.close()
-        
+
         ax = df.plot(kind='area', colormap=cm.jet)
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
         self._check_colors(ax.get_lines(), linecolors=rgba_colors)
@@ -1920,7 +1920,7 @@ class TestDataFramePlots(TestPlotBase):
         # hexbin should have 2 axes in the figure, 1 for plotting and another is colorbar
         self.assertEqual(len(axes[0].figure.axes), 2)
         # return value is single axes
-        self._check_axes_shape(axes, axes_num=1, layout=(1, )) 
+        self._check_axes_shape(axes, axes_num=1, layout=(1, ))
 
 
     @slow
@@ -2081,7 +2081,7 @@ class TestDataFramePlots(TestPlotBase):
         df_err = DataFrame(d_err)
         for err in [d_err, df_err]:
             ax = _check_plot_works(df.plot, yerr=err)
-            self._check_has_errorbars(ax, xerr=0, yerr=1)            
+            self._check_has_errorbars(ax, xerr=0, yerr=1)
 
     @slow
     def test_errorbar_timeseries(self):

@@ -1148,7 +1148,7 @@ class TestNDFrame(tm.TestCase):
         self.assert_(s1.equals(s2))
 
         s1[1] = 99
-        self.assert_(not s1.equals(s2))
+        self.assertFalse(s1.equals(s2))
 
         # NaNs compare as equal
         s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
@@ -1156,7 +1156,7 @@ class TestNDFrame(tm.TestCase):
         self.assert_(s1.equals(s2))
 
         s2[0] = 9.9
-        self.assert_(not s1.equals(s2))
+        self.assertFalse(s1.equals(s2))
 
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s1 = Series([1, 2, np.nan], index=idx)
@@ -1179,22 +1179,22 @@ class TestNDFrame(tm.TestCase):
         self.assert_(df1['diff'].equals(df2['diff']))
         self.assert_(df1['bool'].equals(df2['bool']))
         self.assert_(df1.equals(df2))
-        self.assert_(not df1.equals(object))
+        self.assertFalse(df1.equals(object))
 
         # different dtype
         different = df1.copy()
         different['floats'] = different['floats'].astype('float32')
-        self.assert_(not df1.equals(different))
+        self.assertFalse(df1.equals(different))
 
         # different index
         different_index = -index
         different = df2.set_index(different_index)
-        self.assert_(not df1.equals(different))
+        self.assertFalse(df1.equals(different))
 
         # different columns
         different = df2.copy()
         different.columns = df2.columns[::-1]
-        self.assert_(not df1.equals(different))
+        self.assertFalse(df1.equals(different))
 
         # DatetimeIndex
         index = pd.date_range('2000-1-1', periods=10, freq='T')
@@ -1208,7 +1208,7 @@ class TestNDFrame(tm.TestCase):
         self.assert_(df3.equals(df2))
 
         df2 = df1.set_index(['floats'], append=True)
-        self.assert_(not df3.equals(df2))
+        self.assertFalse(df3.equals(df2))
 
         # NaN in index
         df3 = df1.set_index(['floats'], append=True)

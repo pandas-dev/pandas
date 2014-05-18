@@ -929,7 +929,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.assert_(self.panel._data.is_consolidated())
 
         self.panel['foo'] = 1.
-        self.assert_(not self.panel._data.is_consolidated())
+        self.assertFalse(self.panel._data.is_consolidated())
 
         panel = self.panel.consolidate()
         self.assert_(panel._data.is_consolidated())

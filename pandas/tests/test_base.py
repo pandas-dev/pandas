@@ -221,7 +221,7 @@ class TestIndexOps(Ops):
 
             if isinstance(o, DatetimeIndex):
                 # DatetimeIndex.unique returns DatetimeIndex
-                self.assert_(o.unique().equals(klass(values)))
+                self.assertTrue(o.unique().equals(klass(values)))
             else:
                 self.assert_numpy_array_equal(o.unique(), values)
 
@@ -262,9 +262,9 @@ class TestIndexOps(Ops):
                 self.assert_numpy_array_equal(result[1:], values[2:])
 
                 if isinstance(o, DatetimeIndex):
-                    self.assert_(result[0] is pd.NaT)
+                    self.assertTrue(result[0] is pd.NaT)
                 else:
-                    self.assert_(pd.isnull(result[0]))
+                    self.assertTrue(pd.isnull(result[0]))
 
                 if isinstance(o, DatetimeIndex):
                     self.assertEqual(o.nunique(), 9)
@@ -351,7 +351,7 @@ class TestIndexOps(Ops):
                                 dtype='datetime64[ns]')
             if isinstance(s, DatetimeIndex):
                 expected = DatetimeIndex(expected)
-                self.assert_(s.unique().equals(expected))
+                self.assertTrue(s.unique().equals(expected))
             else:
                 self.assert_numpy_array_equal(s.unique(), expected)
 

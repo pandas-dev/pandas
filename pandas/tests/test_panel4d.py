@@ -612,7 +612,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         self.assert_(self.panel4d._data.is_consolidated())
 
         self.panel4d['foo'] = 1.
-        self.assert_(not self.panel4d._data.is_consolidated())
+        self.assertFalse(self.panel4d._data.is_consolidated())
 
         panel4d = self.panel4d.consolidate()
         self.assert_(panel4d._data.is_consolidated())
@@ -839,7 +839,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(sorted_panel, self.panel)
 
     def test_fillna(self):
-        self.assert_(not np.isfinite(self.panel4d.values).all())
+        self.assertFalse(np.isfinite(self.panel4d.values).all())
         filled = self.panel4d.fillna(0)
         self.assert_(np.isfinite(filled.values).all())
 
