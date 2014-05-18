@@ -66,11 +66,12 @@ cdef class ObjectVector:
 
     def to_array(self):
         self.ao.resize(self.n)
+        self.m = self.n
         return self.ao
 
     cdef inline append(self, object o):
         if self.n == self.m:
-            self.m = self.m * 2
+            self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m)
             self.data = <PyObject**> self.ao.data
 
@@ -97,11 +98,12 @@ cdef class Int64Vector:
 
     def to_array(self):
         self.ao.resize(self.n)
+        self.m = self.n
         return self.ao
 
     cdef inline append(self, int64_t x):
         if self.n == self.m:
-            self.m = self.m * 2
+            self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m)
             self.data = <int64_t*> self.ao.data
 
@@ -126,11 +128,12 @@ cdef class Float64Vector:
 
     def to_array(self):
         self.ao.resize(self.n)
+        self.m = self.n
         return self.ao
 
     cdef inline append(self, float64_t x):
         if self.n == self.m:
-            self.m = self.m * 2
+            self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m)
             self.data = <float64_t*> self.ao.data
 
