@@ -730,6 +730,12 @@ class PeriodIndex(Int64Index):
         for val in self.values:
             yield Period(ordinal=val, freq=self.freq)
 
+    def searchsorted(self, key, side='left'):
+        if isinstance(key, compat.string_types):
+            key = Period(key, freq=self.freq).ordinal
+
+        return self.values.searchsorted(key, side=side)
+
     @property
     def is_all_dates(self):
         return True

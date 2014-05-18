@@ -1959,6 +1959,23 @@ class TestPeriodIndex(tm.TestCase):
             for d in ['2013/01/01', '2013/01', '2013']:
                 assert_series_equal(s[d:], s)
 
+    def test_range_slice_outofbounds(self):
+        # GH 5407
+        didx = DatetimeIndex(start='2013/10/01', freq='D', periods=10)
+        pidx = PeriodIndex(start='2013/10/01', freq='D', periods=10)
+
+        for idx in [didx, pidx]:
+            df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
+            empty = DataFrame(index=DatetimeIndex([], freq='D'), columns=['units'])
+
+            tm.assert_frame_equal(df['2013/09/01':'2013/09/30'], empty)
+            tm.assert_frame_equal(df['2013/09/30':'2013/10/02'], df.iloc[:2])
+            tm.assert_frame_equal(df['2013/10/01':'2013/10/02'], df.iloc[:2])
+            tm.assert_frame_equal(df['2013/10/02':'2013/09/30'], empty)
+            tm.assert_frame_equal(df['2013/10/15':'2013/10/17'], empty)
+            tm.assert_frame_equal(df['2013/06':'2013/09'], empty)
+            tm.assert_frame_equal(df['2013/11':'2013/12'], empty)
+
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
         s = Series(np.random.rand(len(pi)), index=pi).cumsum()
