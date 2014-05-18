@@ -236,21 +236,21 @@ aaaaa,5"""
         self.assertEqual(result[0].dtype, 'S5')
 
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaaa'], dtype='S5')
-        self.assert_((result[0] == ex_values).all())
+        self.assertTrue((result[0] == ex_values).all())
         self.assertEqual(result[1].dtype, 'i4')
 
         reader = _make_reader(dtype='S4')
         result = reader.read()
         self.assertEqual(result[0].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assert_((result[0] == ex_values).all())
+        self.assertTrue((result[0] == ex_values).all())
         self.assertEqual(result[1].dtype, 'S4')
 
         reader = _make_reader(dtype='S4', as_recarray=True)
         result = reader.read()
         self.assertEqual(result['0'].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assert_((result['0'] == ex_values).all())
+        self.assertTrue((result['0'] == ex_values).all())
         self.assertEqual(result['1'].dtype, 'S4')
 
     def test_pass_dtype(self):

@@ -49,7 +49,7 @@ class TestStringMethods(tm.TestCase):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                self.assert_(isinstance(el, compat.string_types) or isnull(el))
+                self.assertTrue(isinstance(el, compat.string_types) or isnull(el))
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -116,7 +116,7 @@ class TestStringMethods(tm.TestCase):
 
         # single array
         result = strings.str_cat(one)
-        self.assert_(isnull(result))
+        self.assertTrue(isnull(result))
 
         result = strings.str_cat(one, na_rep='NA')
         exp = 'aabbcNA'

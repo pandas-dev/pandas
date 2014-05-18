@@ -85,8 +85,8 @@ class LegacySupport(object):
 
         self.assertEquals(type(unpickled.index), DatetimeIndex)
         self.assertEquals(len(unpickled), 10)
-        self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
-        self.assert_((unpickled.index == dtindex).all())
+        self.assertTrue((unpickled.columns == Int64Index(np.arange(5))).all())
+        self.assertTrue((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_series(self):
@@ -99,7 +99,7 @@ class LegacySupport(object):
 
         self.assertEquals(type(unpickled.index), DatetimeIndex)
         self.assertEquals(len(unpickled), 10)
-        self.assert_((unpickled.index == dtindex).all())
+        self.assertTrue((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_len0_daterange(self):
@@ -110,7 +110,7 @@ class LegacySupport(object):
 
         ex_index = DatetimeIndex([], freq='B')
 
-        self.assert_(result.index.equals(ex_index))
+        self.assertTrue(result.index.equals(ex_index))
         tm.assert_isinstance(result.index.freq, offsets.BDay)
         self.assertEqual(len(result), 0)
 
@@ -141,7 +141,7 @@ class LegacySupport(object):
                                    return_indexers=True)
 
             tm.assert_isinstance(ra, DatetimeIndex)
-            self.assert_(ra.equals(ea))
+            self.assertTrue(ra.equals(ea))
 
             assert_almost_equal(rb, eb)
             assert_almost_equal(rc, ec)
@@ -157,7 +157,7 @@ class LegacySupport(object):
         idx2 = to_datetime(['2012-11-06 15:11:09.006507',
                             '2012-11-06 15:11:09.006507'])
         rs = idx1.join(idx2, how='outer')
-        self.assert_(rs.is_monotonic)
+        self.assertTrue(rs.is_monotonic)
 
     def test_unpickle_daterange(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
@@ -175,24 +175,24 @@ class LegacySupport(object):
         result = index[:5].union(obj_index[5:])
         expected = index
         tm.assert_isinstance(result, DatetimeIndex)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = index[:10].intersection(obj_index[5:])
         expected = index[5:10]
         tm.assert_isinstance(result, DatetimeIndex)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = index[:10] - obj_index[5:]
         expected = index[:5]
         tm.assert_isinstance(result, DatetimeIndex)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
     def test_index_conversion(self):
         index = self.frame.index
         obj_index = index.asobject
 
         conv = DatetimeIndex(obj_index)
-        self.assert_(conv.equals(index))
+        self.assertTrue(conv.equals(index))
 
         self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
 
@@ -213,11 +213,11 @@ class LegacySupport(object):
 
         result = index.union(right)
         expected = Index(np.concatenate([index.asobject, right]))
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = index.intersection(right)
         expected = Index([])
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
     def test_legacy_time_rules(self):
         rules = [('WEEKDAY', 'B'),
@@ -237,7 +237,7 @@ class LegacySupport(object):
         for old_freq, new_freq in rules:
             old_rng = date_range(start, end, freq=old_freq)
             new_rng = date_range(start, end, freq=new_freq)
-            self.assert_(old_rng.equals(new_rng))
+            self.assertTrue(old_rng.equals(new_rng))
 
             # test get_legacy_offset_name
             offset = datetools.get_offset(new_freq)

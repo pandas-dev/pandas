@@ -421,7 +421,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                     self.assertTrue(has_doubly_truncated_repr(df))
                                 else:
                                     self.assertFalse(has_doubly_truncated_repr(df))
-                            
+
     def test_to_string_truncate_multilevel(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
@@ -1190,7 +1190,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 120):
                 wider_repr = repr(df)
-                self.assert_(len(wider_repr) < len(wide_repr))
+                self.assertTrue(len(wider_repr) < len(wide_repr))
 
         reset_option('display.expand_frame_repr')
 
@@ -1216,7 +1216,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assert_(len(wider_repr) < len(wide_repr))
+                self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
                 self.assertIn('DataFrame Index', line)
@@ -1240,7 +1240,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assert_(len(wider_repr) < len(wide_repr))
+                self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
                 self.assertIn('Level 0 Level 1', line)
@@ -1266,7 +1266,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         with option_context('display.width', 150):
             wider_repr = repr(df)
-            self.assert_(len(wider_repr) < len(wide_repr))
+            self.assertTrue(len(wider_repr) < len(wide_repr))
 
         reset_option('display.expand_frame_repr')
 
@@ -1283,7 +1283,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assert_(len(wider_repr) < len(wide_repr))
+                self.assertTrue(len(wider_repr) < len(wide_repr))
 
         reset_option('display.expand_frame_repr')
 
@@ -1521,7 +1521,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_string_int_formatting(self):
         df = DataFrame({'x': [-15, 20, 25, -35]})
-        self.assert_(issubclass(df['x'].dtype.type, np.integer))
+        self.assertTrue(issubclass(df['x'].dtype.type, np.integer))
 
         output = df.to_string()
         expected = ('    x\n'
@@ -2047,9 +2047,9 @@ c  10  11  12  13  14\
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assert_(('+010' in line) or skip)
+                self.assertTrue(('+010' in line) or skip)
             else:
-                self.assert_(('+10' in line) or skip)
+                self.assertTrue(('+10' in line) or skip)
             skip = False
 
     def test_dict_entries(self):

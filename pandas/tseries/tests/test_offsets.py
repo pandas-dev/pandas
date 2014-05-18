@@ -150,11 +150,11 @@ class TestOps(Base):
             self.assertIsInstance(result, Timestamp)
 
             # make sure that we are returning NaT
-            self.assert_(NaT + offset is NaT)
-            self.assert_(offset + NaT is NaT)
+            self.assertTrue(NaT + offset is NaT)
+            self.assertTrue(offset + NaT is NaT)
 
-            self.assert_(NaT - offset is NaT)
-            self.assert_((-offset).apply(NaT) is NaT)
+            self.assertTrue(NaT - offset is NaT)
+            self.assertTrue((-offset).apply(NaT) is NaT)
 
 
 class TestDateOffset(Base):
@@ -891,10 +891,10 @@ class TestWeek(Base):
         assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
 
     def test_isAnchored(self):
-        self.assert_(Week(weekday=0).isAnchored())
-        self.assert_(not Week().isAnchored())
-        self.assert_(not Week(2, weekday=2).isAnchored())
-        self.assert_(not Week(2).isAnchored())
+        self.assertTrue(Week(weekday=0).isAnchored())
+        self.assertFalse(Week().isAnchored())
+        self.assertFalse(Week(2, weekday=2).isAnchored())
+        self.assertFalse(Week(2).isAnchored())
 
     def test_offset(self):
         tests = []
@@ -1343,9 +1343,9 @@ class TestBQuarterBegin(Base):
         self.assertEqual(repr(BQuarterBegin(startingMonth=1)), "<BusinessQuarterBegin: startingMonth=1>")
 
     def test_isAnchored(self):
-        self.assert_(BQuarterBegin(startingMonth=1).isAnchored())
-        self.assert_(BQuarterBegin().isAnchored())
-        self.assert_(not BQuarterBegin(2, startingMonth=1).isAnchored())
+        self.assertTrue(BQuarterBegin(startingMonth=1).isAnchored())
+        self.assertTrue(BQuarterBegin().isAnchored())
+        self.assertFalse(BQuarterBegin(2, startingMonth=1).isAnchored())
 
     def test_offset(self):
         tests = []
@@ -1434,9 +1434,9 @@ class TestBQuarterEnd(Base):
         self.assertEqual(repr(BQuarterEnd(startingMonth=1)), "<BusinessQuarterEnd: startingMonth=1>")
 
     def test_isAnchored(self):
-        self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
-        self.assert_(BQuarterEnd().isAnchored())
-        self.assert_(not BQuarterEnd(2, startingMonth=1).isAnchored())
+        self.assertTrue(BQuarterEnd(startingMonth=1).isAnchored())
+        self.assertTrue(BQuarterEnd().isAnchored())
+        self.assertFalse(BQuarterEnd(2, startingMonth=1).isAnchored())
 
     def test_offset(self):
         tests = []
@@ -1740,9 +1740,9 @@ class TestFY5253NearestEndMonth(Base):
 class TestFY5253LastOfMonthQuarter(Base):
 
     def test_isAnchored(self):
-        self.assert_(makeFY5253LastOfMonthQuarter(startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4).isAnchored())
-        self.assert_(makeFY5253LastOfMonthQuarter(weekday=WeekDay.SAT, startingMonth=3, qtr_with_extra_week=4).isAnchored())
-        self.assert_(not makeFY5253LastOfMonthQuarter(2, startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4).isAnchored())
+        self.assertTrue(makeFY5253LastOfMonthQuarter(startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4).isAnchored())
+        self.assertTrue(makeFY5253LastOfMonthQuarter(weekday=WeekDay.SAT, startingMonth=3, qtr_with_extra_week=4).isAnchored())
+        self.assertFalse(makeFY5253LastOfMonthQuarter(2, startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4).isAnchored())
 
     def test_equality(self):
         self.assertEqual(makeFY5253LastOfMonthQuarter(startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4), makeFY5253LastOfMonthQuarter(startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4))
@@ -1963,9 +1963,9 @@ class TestQuarterBegin(Base):
         self.assertEqual(repr(QuarterBegin(startingMonth=1)),"<QuarterBegin: startingMonth=1>")
 
     def test_isAnchored(self):
-        self.assert_(QuarterBegin(startingMonth=1).isAnchored())
-        self.assert_(QuarterBegin().isAnchored())
-        self.assert_(not QuarterBegin(2, startingMonth=1).isAnchored())
+        self.assertTrue(QuarterBegin(startingMonth=1).isAnchored())
+        self.assertTrue(QuarterBegin().isAnchored())
+        self.assertFalse(QuarterBegin(2, startingMonth=1).isAnchored())
 
     def test_offset(self):
         tests = []
@@ -2039,9 +2039,9 @@ class TestQuarterEnd(Base):
         self.assertEqual(repr(QuarterEnd(startingMonth=1)), "<QuarterEnd: startingMonth=1>")
 
     def test_isAnchored(self):
-        self.assert_(QuarterEnd(startingMonth=1).isAnchored())
-        self.assert_(QuarterEnd().isAnchored())
-        self.assert_(not QuarterEnd(2, startingMonth=1).isAnchored())
+        self.assertTrue(QuarterEnd(startingMonth=1).isAnchored())
+        self.assertTrue(QuarterEnd().isAnchored())
+        self.assertFalse(QuarterEnd(2, startingMonth=1).isAnchored())
 
     def test_offset(self):
         tests = []

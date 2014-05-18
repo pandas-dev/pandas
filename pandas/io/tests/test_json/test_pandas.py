@@ -152,7 +152,7 @@ class TestPandasContainer(tm.TestCase):
             if orient == "records":
                 # index is not captured in this orientation
                 assert_almost_equal(df.values, unser.values)
-                self.assert_(df.columns.equals(unser.columns))
+                self.assertTrue(df.columns.equals(unser.columns))
             elif orient == "values":
                 # index and cols are not captured in this orientation
                 assert_almost_equal(df.values, unser.values)

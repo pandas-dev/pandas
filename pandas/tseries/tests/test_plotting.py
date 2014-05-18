@@ -248,7 +248,7 @@ class TestTSPlot(tm.TestCase):
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 
         sec = 1. / 24 / 60 / 60
-        self.assert_((np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all())
+        self.assertTrue((np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all())
 
         plt.clf()
         fig.add_subplot(111)
@@ -256,7 +256,7 @@ class TestTSPlot(tm.TestCase):
         df2.index = df.index.asobject
         ax = df2.plot()
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
-        self.assert_((np.fabs(diffs[1:] - sec) < 1e-8).all())
+        self.assertTrue((np.fabs(diffs[1:] - sec) < 1e-8).all())
 
     def test_irregular_datetime64_repr_bug(self):
         import matplotlib.pyplot as plt
@@ -475,7 +475,7 @@ class TestTSPlot(tm.TestCase):
         data = l.get_xydata()
         tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        self.assert_(mask[5:25, 1].all())
+        self.assertTrue(mask[5:25, 1].all())
         plt.close(ax.get_figure())
 
         # irregular
@@ -489,7 +489,7 @@ class TestTSPlot(tm.TestCase):
         data = l.get_xydata()
         tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        self.assert_(mask[2:5, 1].all())
+        self.assertTrue(mask[2:5, 1].all())
         plt.close(ax.get_figure())
 
         # non-ts
@@ -503,7 +503,7 @@ class TestTSPlot(tm.TestCase):
         data = l.get_xydata()
         tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        self.assert_(mask[2:5, 1].all())
+        self.assertTrue(mask[2:5, 1].all())
 
     @slow
     def test_gap_upsample(self):
@@ -521,7 +521,7 @@ class TestTSPlot(tm.TestCase):
         data = l.get_xydata()
         tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        self.assert_(mask[5:25, 1].all())
+        self.assertTrue(mask[5:25, 1].all())
 
     @slow
     def test_secondary_y(self):
@@ -545,7 +545,7 @@ class TestTSPlot(tm.TestCase):
 
         ax = ser2.plot()
         ax2 = ser.plot(secondary_y=True).right_ax
-        self.assert_(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
 
     @slow
     def test_secondary_y_ts(self):
@@ -569,7 +569,7 @@ class TestTSPlot(tm.TestCase):
 
         ax = ser2.plot()
         ax2 = ser.plot(secondary_y=True)
-        self.assert_(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
 
     @slow
     def test_secondary_kde(self):
@@ -616,8 +616,8 @@ class TestTSPlot(tm.TestCase):
         lines = ax2.get_lines()
         idx1 = lines[0].get_xdata()
         idx2 = lines[1].get_xdata()
-        self.assert_(idx1.equals(s1.index.to_period('B')))
-        self.assert_(idx2.equals(s2.index.to_period('B')))
+        self.assertTrue(idx1.equals(s1.index.to_period('B')))
+        self.assertTrue(idx2.equals(s2.index.to_period('B')))
         left, right = ax2.get_xlim()
         pidx = s1.index.to_period()
         self.assertEqual(left, pidx[0].ordinal)
@@ -703,7 +703,7 @@ class TestTSPlot(tm.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_from_weekly_resampling(self):
@@ -714,7 +714,7 @@ class TestTSPlot(tm.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_irreg_dtypes(self):

@@ -103,7 +103,7 @@ class TestNumpy(TestPackers):
     def test_numpy_scalar_complex(self):
         x = np.complex64(np.random.rand() + 1j * np.random.rand())
         x_rec = self.encode_decode(x)
-        self.assert_(np.allclose(x, x_rec))
+        self.assertTrue(np.allclose(x, x_rec))
 
     def test_scalar_float(self):
         x = np.random.rand()
@@ -113,7 +113,7 @@ class TestNumpy(TestPackers):
     def test_scalar_complex(self):
         x = np.random.rand() + 1j * np.random.rand()
         x_rec = self.encode_decode(x)
-        self.assert_(np.allclose(x, x_rec))
+        self.assertTrue(np.allclose(x, x_rec))
 
     def test_list_numpy_float(self):
         x = [np.float32(np.random.rand()) for i in range(5)]
@@ -128,7 +128,7 @@ class TestNumpy(TestPackers):
             [np.complex128(np.random.rand() + 1j * np.random.rand())
              for i in range(5)]
         x_rec = self.encode_decode(x)
-        self.assert_(np.allclose(x, x_rec))
+        self.assertTrue(np.allclose(x, x_rec))
 
     def test_list_float(self):
         x = [np.random.rand() for i in range(5)]
@@ -139,7 +139,7 @@ class TestNumpy(TestPackers):
         x = [np.random.rand() for i in range(5)] + \
             [(np.random.rand() + 1j * np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
-        self.assert_(np.allclose(x, x_rec))
+        self.assertTrue(np.allclose(x, x_rec))
 
     def test_dict_float(self):
         x = {'foo': 1.0, 'bar': 2.0}
@@ -244,23 +244,23 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assert_(i.equals(i_rec))
+            self.assertTrue(i.equals(i_rec))
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'),Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assert_(i.equals(i_rec))
+        self.assertTrue(i.equals(i_rec))
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'),Timestamp('20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assert_(i.equals(i_rec))
+        self.assertTrue(i.equals(i_rec))
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assert_(i.equals(i_rec))
+            self.assertTrue(i.equals(i_rec))
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
@@ -269,7 +269,7 @@ class TestIndex(TestPackers):
         self.assertRaises(UnicodeEncodeError, self.encode_decode, i)
 
         #i_rec = self.encode_decode(i)
-        #self.assert_(i.equals(i_rec))
+        #self.assertTrue(i.equals(i_rec))
 
 
 class TestSeries(TestPackers):

@@ -810,8 +810,8 @@ class TestIndexing(tm.TestCase):
 
         # want this to work
         result = df.loc[:,"A":"B"].iloc[0:2,:]
-        self.assert_((result.columns == ['A','B']).all() == True)
-        self.assert_((result.index == ['A','B']).all() == True)
+        self.assertTrue((result.columns == ['A','B']).all() == True)
+        self.assertTrue((result.index == ['A','B']).all() == True)
 
         # mixed type
         result = DataFrame({ 'a' : [Timestamp('20130101')], 'b' : [1] }).iloc[0]
@@ -1696,7 +1696,7 @@ class TestIndexing(tm.TestCase):
         cols = ['b','a']
         result = df[['b','a']].columns
         expected = Index(['b','a','a'])
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         # across dtypes
         df = DataFrame([[1,2,1.,2.,3.,'foo','bar']], columns=list('aaaaaaa'))
@@ -2329,7 +2329,7 @@ class TestIndexing(tm.TestCase):
         df['A'] = df['A'].astype(np.float64)
         result = df.get_dtype_counts().sort_index()
         expected = Series({ 'float64' : 2, 'object' : 1 }).sort_index()
-        self.assert_(df.index.equals(index))
+        self.assertTrue(df.index.equals(index))
 
     def test_dups_loc(self):
 

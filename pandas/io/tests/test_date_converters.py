@@ -39,7 +39,7 @@ class TestConverters(tm.TestCase):
 
     def test_parse_date_time(self):
         result = conv.parse_date_time(self.dates, self.times)
-        self.assert_((result == self.expected).all())
+        self.assertTrue((result == self.expected).all())
 
         data = """\
 date, time, a, b
@@ -66,7 +66,7 @@ date, time, a, b
     def test_parse_date_fields(self):
         result = conv.parse_date_fields(self.years, self.months, self.days)
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
-        self.assert_((result == expected).all())
+        self.assertTrue((result == expected).all())
 
         data = "year, month, day, a\n 2001 , 01 , 10 , 10.\n 2001 , 02 , 1 , 11."
         datecols = {'ymd': [0, 1, 2]}
@@ -79,7 +79,7 @@ date, time, a, b
     def test_datetime_six_col(self):
         result = conv.parse_all_fields(self.years, self.months, self.days,
                                        self.hours, self.minutes, self.seconds)
-        self.assert_((result == self.expected).all())
+        self.assertTrue((result == self.expected).all())
 
         data = """\
 year, month, day, hour, minute, second, a, b

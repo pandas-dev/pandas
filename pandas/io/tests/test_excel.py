@@ -1223,8 +1223,8 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         def check_called(func):
             func()
-            self.assert_(len(called_save) >= 1)
-            self.assert_(len(called_write_cells) >= 1)
+            self.assertTrue(len(called_save) >= 1)
+            self.assertTrue(len(called_write_cells) >= 1)
             del called_save[:]
             del called_write_cells[:]
 

@@ -120,7 +120,7 @@ class UltraJSONTests(TestCase):
         num = -1e-45
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
         num = -1e-145
-        self.assert_(np.allclose(num, ujson.decode(ujson.encode(num))))
+        self.assertTrue(np.allclose(num, ujson.decode(ujson.encode(num))))
 
     def test_encodeDictWithUnicodeKeys(self):
         input = {u("key1"): u("value1"), u("key1"):
@@ -1315,39 +1315,39 @@ class PandasJSONTests(TestCase):
 
         # column indexed
         outp = Index(ujson.decode(ujson.encode(i)))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i), numpy=True))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split")))
         outp = Index(**dec)
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
         self.assertTrue(i.name == outp.name)
 
         dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split"),
                           numpy=True))
         outp = Index(**dec)
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
         self.assertTrue(i.name == outp.name)
 
         outp = Index(ujson.decode(ujson.encode(i, orient="values")))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="values"), numpy=True))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="records")))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="records"), numpy=True))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="index")))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="index"), numpy=True))
-        self.assert_(i.equals(outp))
+        self.assertTrue(i.equals(outp))
 
     def test_datetimeindex(self):
         from pandas.tseries.index import date_range
@@ -1357,7 +1357,7 @@ class PandasJSONTests(TestCase):
         encoded = ujson.encode(rng, date_unit='ns')
         decoded = DatetimeIndex(np.array(ujson.decode(encoded)))
 
-        self.assert_(rng.equals(decoded))
+        self.assertTrue(rng.equals(decoded))
 
         ts = Series(np.random.randn(len(rng)), index=rng)
         decoded = Series(ujson.decode(ujson.encode(ts, date_unit='ns')))

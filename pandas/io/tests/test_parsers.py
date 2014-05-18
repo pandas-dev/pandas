@@ -528,7 +528,7 @@ A,B,C
         try:
             df = self.read_table(
                 StringIO(data), sep=',', header=1, comment='#')
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
@@ -551,7 +551,7 @@ footer
                 df = self.read_table(
                     StringIO(data), sep=',', header=1, comment='#',
                     skip_footer=1)
-                self.assert_(False)
+                self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
@@ -569,7 +569,7 @@ skip
                                  header=1, comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
             df = it.read(5)
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
@@ -588,7 +588,7 @@ skip
                                  skiprows=[2])
             df = it.read(1)
             it.read(2)
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
@@ -607,7 +607,7 @@ skip
                                  skiprows=[2])
             df = it.read(1)
             it.read()
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
@@ -1134,7 +1134,7 @@ bar,4,5,6
 baz,7,8,9
 """
         data = self.read_csv(StringIO(data))
-        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+        self.assertTrue(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
     def test_read_nrows(self):
         df = self.read_csv(StringIO(self.data1), nrows=3)
@@ -1912,7 +1912,7 @@ A,B,C
         result = self.read_csv(fh, converters={'score': convert_score,
                                                'days': convert_days},
                                na_values=['', None])
-        self.assert_(pd.isnull(result['days'][1]))
+        self.assertTrue(pd.isnull(result['days'][1]))
 
         fh = StringIO(csv)
         result2 = self.read_csv(fh, converters={'score': convert_score,
@@ -2177,7 +2177,7 @@ bar|4|5|6
 baz|7|8|9
 """
         data = self.read_csv(StringIO(text), index_col=0, sep=None)
-        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+        self.assertTrue(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
         data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
         tm.assert_frame_equal(data, data2)
@@ -2378,7 +2378,7 @@ c   1   2   3   4
 
         for c in df.columns:
             res = df.loc[:,c]
-            self.assert_(len(res))
+            self.assertTrue(len(res))
 
     def test_fwf_compression(self):
         try:
@@ -2577,7 +2577,7 @@ A,B,C
         try:
             df = self.read_table(
                 StringIO(data), sep=',', header=1, comment='#')
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
@@ -2594,7 +2594,7 @@ footer
             df = self.read_table(
                 StringIO(data), sep=',', header=1, comment='#',
                 skip_footer=1)
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
@@ -2612,7 +2612,7 @@ skip
                                  header=1, comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
             df = it.read(5)
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
@@ -2631,7 +2631,7 @@ skip
                                  skiprows=[2])
             df = it.read(1)
             it.read(2)
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
@@ -2650,7 +2650,7 @@ skip
                                  skiprows=[2])
             df = it.read(1)
             it.read()
-            self.assert_(False)
+            self.assertTrue(False)
         except Exception as inst:
             self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 

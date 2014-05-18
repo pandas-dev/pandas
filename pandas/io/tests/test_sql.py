@@ -563,7 +563,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_get_schema(self):
         create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite',
                                     con=self.conn)
-        self.assert_('CREATE' in create_sql)
+        self.assertTrue('CREATE' in create_sql)
 
 
 class TestSQLApi(_TestSQLApi):
@@ -684,7 +684,7 @@ class TestSQLLegacyApi(_TestSQLApi):
     def test_get_schema2(self):
         # without providing a connection object (available for backwards comp)
         create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite')
-        self.assert_('CREATE' in create_sql)
+        self.assertTrue('CREATE' in create_sql)
 
     def test_tquery(self):
         with tm.assert_produces_warning(FutureWarning):
@@ -1323,12 +1323,12 @@ class TestXSQLite(tm.TestCase):
         for l in lines:
             tokens = l.split(' ')
             if len(tokens) == 2 and tokens[0] == 'A':
-                self.assert_(tokens[1] == 'DATETIME')
+                self.assertTrue(tokens[1] == 'DATETIME')
 
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assert_('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
         cur = self.db.cursor()
         cur.execute(create_sql)
 
@@ -1601,13 +1601,13 @@ class TestXMySQL(tm.TestCase):
         for l in lines:
             tokens = l.split(' ')
             if len(tokens) == 2 and tokens[0] == 'A':
-                self.assert_(tokens[1] == 'DATETIME')
+                self.assertTrue(tokens[1] == 'DATETIME')
 
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assert_('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
         cur = self.db.cursor()
         cur.execute(drop_sql)
         cur.execute(create_sql)

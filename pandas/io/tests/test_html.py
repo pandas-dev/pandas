@@ -383,7 +383,7 @@ class TestReadHtml(tm.TestCase):
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.read_html(url, match='Python',
                                  attrs={'class': 'wikitable'})
-        self.assert_(len(dfs) > 1)
+        self.assertTrue(len(dfs) > 1)
 
     @network
     def test_pythonxy_plugins_table(self):

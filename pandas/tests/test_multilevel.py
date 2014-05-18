@@ -192,7 +192,7 @@ class TestMultiLevel(tm.TestCase):
         df = DataFrame({'value': [0, 1]}, index=index)
 
         lines = repr(df).split('\n')
-        self.assert_(lines[2].startswith('a 0 foo'))
+        self.assertTrue(lines[2].startswith('a 0 foo'))
 
     def test_getitem_simple(self):
         df = self.frame.T
@@ -239,12 +239,12 @@ class TestMultiLevel(tm.TestCase):
         s = self.ymd['A']
 
         s[2000, 3] = np.nan
-        self.assert_(isnull(s.values[42:65]).all())
-        self.assert_(notnull(s.values[:42]).all())
-        self.assert_(notnull(s.values[65:]).all())
+        self.assertTrue(isnull(s.values[42:65]).all())
+        self.assertTrue(notnull(s.values[:42]).all())
+        self.assertTrue(notnull(s.values[65:]).all())
 
         s[2000, 3, 10] = np.nan
-        self.assert_(isnull(s[49]))
+        self.assertTrue(isnull(s[49]))
 
     def test_series_slice_partial(self):
         pass
@@ -283,8 +283,8 @@ class TestMultiLevel(tm.TestCase):
         cp = self.frame.copy()
         cp.ix[:4] = 0
 
-        self.assert_((cp.values[:4] == 0).all())
-        self.assert_((cp.values[4:] != 0).all())
+        self.assertTrue((cp.values[:4] == 0).all())
+        self.assertTrue((cp.values[4:] != 0).all())
 
     def test_frame_getitem_setitem_multislice(self):
         levels = [['t1', 't2'], ['a', 'b', 'c']]
@@ -559,7 +559,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(res, exp)
 
         frame.ix[1:2] = 7
-        self.assert_((frame.ix[1:2] == 7).values.all())
+        self.assertTrue((frame.ix[1:2] == 7).values.all())
 
         series = Series(np.random.randn(len(index)), index=index)
 
@@ -568,7 +568,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(res, exp)
 
         series.ix[1:2] = 7
-        self.assert_((series.ix[1:2] == 7).values.all())
+        self.assertTrue((series.ix[1:2] == 7).values.all())
 
     def test_getitem_int(self):
         levels = [[0, 1], [0, 1, 2]]
@@ -688,7 +688,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # it works!
         result = df.sortlevel(0)
-        self.assert_((result.dtypes.values == df.dtypes.values).all() == True)
+        self.assertTrue((result.dtypes.values == df.dtypes.values).all() == True)
         self.assertTrue(result.index.lexsort_depth == 3)
 
     def test_delevel_infer_dtype(self):
@@ -699,8 +699,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
                        index=index)
         deleveled = df.reset_index()
-        self.assert_(com.is_integer_dtype(deleveled['prm1']))
-        self.assert_(com.is_float_dtype(deleveled['prm2']))
+        self.assertTrue(com.is_integer_dtype(deleveled['prm1']))
+        self.assertTrue(com.is_float_dtype(deleveled['prm2']))
 
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
@@ -1148,7 +1148,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         grouped = df1.groupby(axis=1, level=0)
         result = grouped.sum()
-        self.assert_((result.columns == ['f2', 'f3']).all())
+        self.assertTrue((result.columns == ['f2', 'f3']).all())
 
     def test_join(self):
         a = self.frame.ix[:5, ['A']]
@@ -1170,7 +1170,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         back = swapped.swaplevel(0, 1)
         back2 = swapped.swaplevel('second', 'first')
-        self.assert_(back.index.equals(self.frame.index))
+        self.assertTrue(back.index.equals(self.frame.index))
         assert_series_equal(back, back2)
 
         ft = self.frame.T
@@ -1210,7 +1210,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
         tm.assert_isinstance(df.columns, MultiIndex)
-        self.assert_((df[2000, 1, 10] == df[2000, 1, 7]).all())
+        self.assertTrue((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
         x = Series(data=[1, 2, 3],
@@ -1236,7 +1236,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 0, 1, 1, 1],
                                    [0, 1, 2, 0, 1, 2]])
-        self.assert_(index.is_lexsorted())
+        self.assertTrue(index.is_lexsorted())
 
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 0, 1, 1, 1],
@@ -1255,7 +1255,7 @@ Thur,Lunch,Yes,51.51,17"""
         # this works because we are modifying the underlying array
         # really a no-no
         df['foo'].values[:] = 0
-        self.assert_((df['foo'].values == 0).all())
+        self.assertTrue((df['foo'].values == 0).all())
 
         # but not if it's mixed-type
         df['foo', 'four'] = 'foo'
@@ -1271,7 +1271,7 @@ Thur,Lunch,Yes,51.51,17"""
             df = f()
         except:
             pass
-        self.assert_((df['foo', 'one'] == 0).all())
+        self.assertTrue((df['foo', 'one'] == 0).all())
 
     def test_frame_getitem_not_sorted(self):
         df = self.frame.T
@@ -1376,8 +1376,8 @@ Thur,Lunch,Yes,51.51,17"""
             # for good measure, groupby detail
             level_index = frame._get_axis(axis).levels[level]
 
-            self.assert_(leftside._get_axis(axis).equals(level_index))
-            self.assert_(rightside._get_axis(axis).equals(level_index))
+            self.assertTrue(leftside._get_axis(axis).equals(level_index))
+            self.assertTrue(rightside._get_axis(axis).equals(level_index))
 
             assert_frame_equal(leftside, rightside)
 
@@ -1549,7 +1549,7 @@ Thur,Lunch,Yes,51.51,17"""
         # need to put in some work here
 
         # self.ymd.ix[2000, 0] = 0
-        # self.assert_((self.ymd.ix[2000]['A'] == 0).all())
+        # self.assertTrue((self.ymd.ix[2000]['A'] == 0).all())
 
         # Pretty sure the second (and maybe even the first) is already wrong.
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
@@ -1832,7 +1832,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
         s = Series({(1, 1): 1, (1, 2): 2})
         df['new'] = s
-        self.assert_(df['new'].isnull().all())
+        self.assertTrue(df['new'].isnull().all())
 
     def test_join_segfault(self):
         # 1532
@@ -1848,11 +1848,11 @@ Thur,Lunch,Yes,51.51,17"""
         subset = self.frame.index[[1, 4, 5]]
 
         self.frame.ix[subset] = 99
-        self.assert_((self.frame.ix[subset].values == 99).all())
+        self.assertTrue((self.frame.ix[subset].values == 99).all())
 
         col = self.frame['B']
         col[subset] = 97
-        self.assert_((self.frame.ix[subset, 'B'] == 97).all())
+        self.assertTrue((self.frame.ix[subset, 'B'] == 97).all())
 
     def test_frame_dict_constructor_empty_series(self):
         s1 = Series([1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3),
@@ -1888,7 +1888,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         df.ix[ix, "C"] = '_'
 
-        self.assert_((df.xs((1, 1))['C'] == '_').all())
+        self.assertTrue((df.xs((1, 1))['C'] == '_').all())
 
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
@@ -1986,8 +1986,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         expected1 = pd.DatetimeIndex(['2013-04-01 9:00', '2013-04-02 9:00', '2013-04-03 9:00'], tz='Asia/Tokyo')
 
-        self.assert_(idx.levels[0].equals(expected1))
-        self.assert_(idx.levels[1].equals(idx2))
+        self.assertTrue(idx.levels[0].equals(expected1))
+        self.assertTrue(idx.levels[1].equals(idx2))
 
     def test_set_index_datetime(self):
         # GH 3950
@@ -2003,12 +2003,12 @@ Thur,Lunch,Yes,51.51,17"""
         expected = expected.tz_localize('UTC').tz_convert('US/Pacific')
 
         df = df.set_index('label', append=True)
-        self.assert_(df.index.levels[0].equals(expected))
-        self.assert_(df.index.levels[1].equals(pd.Index(['a', 'b'])))
+        self.assertTrue(df.index.levels[0].equals(expected))
+        self.assertTrue(df.index.levels[1].equals(pd.Index(['a', 'b'])))
 
         df = df.swaplevel(0, 1)
-        self.assert_(df.index.levels[0].equals(pd.Index(['a', 'b'])))
-        self.assert_(df.index.levels[1].equals(expected))
+        self.assertTrue(df.index.levels[0].equals(pd.Index(['a', 'b'])))
+        self.assertTrue(df.index.levels[1].equals(expected))
 
 
         df = DataFrame(np.random.random(6))
@@ -2028,14 +2028,14 @@ Thur,Lunch,Yes,51.51,17"""
                                      '2011-07-19 09:00:00'], tz='US/Eastern')
         expected2 = pd.DatetimeIndex(['2012-04-01 09:00', '2012-04-02 09:00'], tz='US/Eastern')
 
-        self.assert_(df.index.levels[0].equals(expected1))
-        self.assert_(df.index.levels[1].equals(expected2))
-        self.assert_(df.index.levels[2].equals(idx3))
+        self.assertTrue(df.index.levels[0].equals(expected1))
+        self.assertTrue(df.index.levels[1].equals(expected2))
+        self.assertTrue(df.index.levels[2].equals(idx3))
 
         # GH 7092
-        self.assert_(df.index.get_level_values(0).equals(idx1))
-        self.assert_(df.index.get_level_values(1).equals(idx2))
-        self.assert_(df.index.get_level_values(2).equals(idx3))
+        self.assertTrue(df.index.get_level_values(0).equals(idx1))
+        self.assertTrue(df.index.get_level_values(1).equals(idx2))
+        self.assertTrue(df.index.get_level_values(2).equals(idx3))
 
     def test_set_index_period(self):
         # GH 6631
@@ -2053,13 +2053,13 @@ Thur,Lunch,Yes,51.51,17"""
         expected1 = pd.period_range('2011-01-01', periods=3, freq='M')
         expected2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
 
-        self.assert_(df.index.levels[0].equals(expected1))
-        self.assert_(df.index.levels[1].equals(expected2))
-        self.assert_(df.index.levels[2].equals(idx3))
+        self.assertTrue(df.index.levels[0].equals(expected1))
+        self.assertTrue(df.index.levels[1].equals(expected2))
+        self.assertTrue(df.index.levels[2].equals(idx3))
 
-        self.assert_(df.index.get_level_values(0).equals(idx1))
-        self.assert_(df.index.get_level_values(1).equals(idx2))
-        self.assert_(df.index.get_level_values(2).equals(idx3))
+        self.assertTrue(df.index.get_level_values(0).equals(idx1))
+        self.assertTrue(df.index.get_level_values(1).equals(idx2))
+        self.assertTrue(df.index.get_level_values(2).equals(idx3))
 
 
 if __name__ == '__main__':

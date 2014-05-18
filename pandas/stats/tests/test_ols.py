@@ -301,7 +301,7 @@ class TestOLSMisc(tm.TestCase):
         model1 = ols(y=y, x=x, window=20)
         model2 = ols(y=y, x=x_with, window=20, intercept=False)
         assert_frame_equal(model1.beta, model2.beta)
-        self.assert_((model1.r2 != model2.r2).all())
+        self.assertTrue((model1.r2 != model2.r2).all())
 
     def test_summary_many_terms(self):
         x = DataFrame(np.random.randn(100, 20))
@@ -361,7 +361,7 @@ class TestOLSMisc(tm.TestCase):
         model = ols(y=endog, x=exog)
 
         pred = model.y_predict
-        self.assert_(pred.index.equals(exog.index))
+        self.assertTrue(pred.index.equals(exog.index))
 
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
@@ -369,7 +369,7 @@ class TestOLSMisc(tm.TestCase):
 
         y = lp.pop('ItemA')
         model = ols(y=y, x=lp, entity_effects=True, window=20)
-        self.assert_(notnull(model.beta.values).all())
+        self.assertTrue(notnull(model.beta.values).all())
         tm.assert_isinstance(model, PanelOLS)
         model.summary
 

@@ -285,19 +285,19 @@ class TestTimestampNsOperations(tm.TestCase):
                 right + left
 
             # NaT - Timestamp-like (or inverse) returns NaT
-            self.assert_((left - right) is tslib.NaT)
-            self.assert_((right - left) is tslib.NaT)
+            self.assertTrue((left - right) is tslib.NaT)
+            self.assertTrue((right - left) is tslib.NaT)
 
-        # timedelta-like 
+        # timedelta-like
         # offsets are tested in test_offsets.py
         for (left, right) in [(nat, delta)]:
             # NaT + timedelta-like returns NaT
-            self.assert_((left + right) is tslib.NaT)
+            self.assertTrue((left + right) is tslib.NaT)
             # timedelta-like + NaT should raise TypeError
             with tm.assertRaises(TypeError):
                 right + left
 
-            self.assert_((left - right) is tslib.NaT)
+            self.assertTrue((left - right) is tslib.NaT)
             with tm.assertRaises(TypeError):
                 right - left
 
