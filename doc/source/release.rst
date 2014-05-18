@@ -528,6 +528,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` specifying ``freq`` raises ``ValueError`` when passed value is too short (:issue:`7098`)
 - Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
 - Bug ``PeriodIndex`` string slicing with out of bounds values (:issue:`5407`)
+- Fixed a memory error in the hashtable implementation/factorizer on resizing of large tables (:issue:`7157`)
 
 pandas 0.13.1
 -------------

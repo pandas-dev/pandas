@@ -7,6 +7,7 @@ import pandas as pd
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
+import pandas.hashtable as hashtable
 
 class TestMatch(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -121,6 +122,49 @@ class TestFactorize(tm.TestCase):
         labels, uniques = algos.factorize(x,sort=True)
         self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
         self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
+
+    def test_factorize_nan(self):
+        # nan should map to na_sentinel, not reverse_indexer[na_sentinel]
+        # rizer.factorize should not raise an exception if na_sentinel indexes
+        # outside of reverse_indexer
+        key = np.array([1, 2, 1, np.nan], dtype='O')
+        rizer = hashtable.Factorizer(len(key))
+        for na_sentinel in (-1, 20):
+            ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
+            expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
+            self.assertEqual(len(set(key)), len(set(expected)))
+            self.assertTrue(np.array_equal(pd.isnull(key), expected == na_sentinel))
+
+        # nan still maps to na_sentinel when sort=False
+        key = np.array([0, np.nan, 1], dtype='O')
+        na_sentinel = -1
+        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)
+        expected = np.array([ 2, -1,  0], dtype='int32')
+        self.assertEqual(len(set(key)), len(set(expected)))
+        self.assertTrue(np.array_equal(pd.isnull(key), expected == na_sentinel))
+
+    def test_vector_resize(self):
+        # Test for memory errors after internal vector
+        # reallocations (pull request #7157)
+
+        def _test_vector_resize(htable, uniques, dtype, nvals):
+            vals = np.array(np.random.randn(1000), dtype=dtype)
+            # get_labels appends to the vector
+            htable.get_labels(vals[:nvals], uniques, 0, -1)
+            # to_array resizes the vector
+            uniques.to_array()
+            htable.get_labels(vals, uniques, 0, -1)
+
+        test_cases = [
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.Float64HashTable,  hashtable.Float64Vector, 'float64'),
+            (hashtable.Int64HashTable,    hashtable.Int64Vector, 'int64')]
+
+        for (tbl, vect, dtype) in test_cases:
+            # resizing to empty is a special case
+            _test_vector_resize(tbl(), vect(), dtype, 0)
+            _test_vector_resize(tbl(), vect(), dtype, 10)
+
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
