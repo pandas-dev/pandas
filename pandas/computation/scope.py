@@ -2,18 +2,18 @@
 """
 
 import sys
-import operator
 import struct
 import inspect
 import datetime
 import itertools
 import pprint
 
+import numpy as np
+
 import pandas as pd
 from pandas.compat import DeepChainMap, map, StringIO
-from pandas.core import common as com
 from pandas.core.base import StringMixin
-from pandas.computation.ops import UndefinedVariableError, _LOCAL_TAG
+import pandas.computation as compu
 
 
 def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),
@@ -45,14 +45,15 @@ def _raw_hex_id(obj):
     return ''.join(map(_replacer, packed))
 
 
-
 _DEFAULT_GLOBALS = {
     'Timestamp': pd.lib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,
     'list': list,
-    'tuple': tuple
+    'tuple': tuple,
+    'inf': np.inf,
+    'Inf': np.inf,
 }
 
 
@@ -186,7 +187,7 @@ class Scope(StringMixin):
                 # e.g., df[df > 0]
                 return self.temps[key]
             except KeyError:
-                raise UndefinedVariableError(key, is_local)
+                raise compu.ops.UndefinedVariableError(key, is_local)
 
     def swapkey(self, old_key, new_key, new_value=None):
         """Replace a variable name, with a potentially new value.

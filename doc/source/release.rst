@@ -530,6 +530,8 @@ Bug Fixes
 - Bug ``PeriodIndex`` string slicing with out of bounds values (:issue:`5407`)
 - Fixed a memory error in the hashtable implementation/factorizer on resizing of large tables (:issue:`7157`)
 - Bug in ``isnull`` when applied to 0-dimensional object arrays (:issue:`7176`)
+- Bug in ``query``/``eval`` where global constants were not looked up correctly
+  (:issue:`7178`)
 
 pandas 0.13.1
 -------------

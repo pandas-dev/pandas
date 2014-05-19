@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-import functools
 from itertools import product
 from distutils.version import LooseVersion
 
 import nose
-from nose.tools import assert_raises, assert_true, assert_false, assert_equal
+from nose.tools import assert_raises
 
 from numpy.random import randn, rand, randint
 import numpy as np
@@ -887,7 +886,7 @@ class TestAlignment(object):
                 expected = expected2 + df
 
             res = pd.eval('df2 + s + df', engine=engine, parser=parser)
-            assert_equal(res.shape, expected.shape)
+            tm.assert_equal(res.shape, expected.shape)
             assert_frame_equal(res, expected)
 
     @slow
@@ -930,13 +929,13 @@ class TestAlignment(object):
             pd.eval('df + s', engine=engine, parser=parser)
 
             if not is_python_engine:
-                assert_equal(len(w), 1)
+                tm.assert_equal(len(w), 1)
                 msg = str(w[0].message)
                 expected = ("Alignment difference on axis {0} is larger"
                             " than an order of magnitude on term {1!r}, "
                             "by more than {2:.4g}; performance may suffer"
                             "".format(1, 'df', np.log10(s.size - df.shape[1])))
-                assert_equal(msg, expected)
+                tm.assert_equal(msg, expected)
 
     def test_performance_warning_for_poor_alignment(self):
         for engine, parser in ENGINES_PARSERS:
@@ -982,17 +981,17 @@ class TestOperationsNumExprPandas(tm.TestCase):
             else:
                 expec = _eval_single_bin(1, op, 1, self.engine)
                 x = self.eval(ex, engine=self.engine, parser=self.parser)
-                assert_equal(x, expec)
+                tm.assert_equal(x, expec)
 
                 expec = _eval_single_bin(x, op, 1, self.engine)
                 y = self.eval(ex2, local_dict={'x': x}, engine=self.engine,
                               parser=self.parser)
-                assert_equal(y, expec)
+                tm.assert_equal(y, expec)
 
                 expec = _eval_single_bin(1, op, x + 1, self.engine)
                 y = self.eval(ex3, local_dict={'x': x},
                               engine=self.engine, parser=self.parser)
-                assert_equal(y, expec)
+                tm.assert_equal(y, expec)
 
     def test_simple_bool_ops(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
@@ -1024,7 +1023,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_constant(self):
         x = self.eval('1')
-        assert_equal(x, 1)
+        tm.assert_equal(x, 1)
 
     def test_single_variable(self):
         df = DataFrame(randn(10, 2))
@@ -1379,7 +1378,7 @@ class TestScope(object):
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
         lcls2.pop('lcls')
-        assert_equal(lcls, lcls2)
+        tm.assert_equal(lcls, lcls2)
 
     def test_no_new_locals(self):
         for engine, parser in product(_engines, expr._parsers):
@@ -1391,7 +1390,7 @@ class TestScope(object):
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
         gbls2 = globals().copy()
-        assert_equal(gbls, gbls2)
+        tm.assert_equal(gbls, gbls2)
 
     def test_no_new_globals(self):
         for engine, parser in product(_engines, expr._parsers):
@@ -1556,12 +1555,25 @@ def check_bool_ops_fails_on_scalars(gen, lhs, cmp, rhs, engine, parser):
 def test_bool_ops_fails_on_scalars():
     _bool_ops_syms = 'and', 'or'
     dtypes = int, float
-    gen = {int: lambda : np.random.randint(10), float: np.random.randn}
+    gen = {int: lambda: np.random.randint(10), float: np.random.randn}
     for engine, parser, dtype1, cmp, dtype2 in product(_engines, expr._parsers,
                                                        dtypes, _bool_ops_syms,
                                                        dtypes):
         yield (check_bool_ops_fails_on_scalars, gen, gen[dtype1](), cmp,
                gen[dtype2](), engine, parser)
+
+
+def check_inf(engine, parser):
+    tm.skip_if_no_ne(engine)
+    s = 'inf + 1'
+    expected = np.inf
+    result = pd.eval(s, engine=engine, parser=parser)
+    tm.assert_equal(result, expected)
+
+
+def test_inf():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_inf, engine, parser
 
 
 if __name__ == '__main__':
