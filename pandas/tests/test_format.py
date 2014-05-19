@@ -1382,8 +1382,8 @@ class TestDataFrameFormatting(tm.TestCase):
                             header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         self.assertEqual(recons['A'].count(), biggie['A'].count())
-        self.assert_((np.abs(recons['A'].dropna() -
-                             biggie['A'].dropna()) < 0.1).all())
+        self.assertTrue((np.abs(recons['A'].dropna() -
+                                biggie['A'].dropna()) < 0.1).all())
 
         # expected = ['B', 'A']
         # self.assertEqual(header, expected)

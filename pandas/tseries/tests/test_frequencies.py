@@ -217,15 +217,15 @@ class TestFrequencyInference(tm.TestCase):
             self.assertEqual(infer_freq(index), gen.freqstr)
         else:
             inf_freq = infer_freq(index)
-            self.assert_((inf_freq == 'Q-DEC' and
-                          gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
-                                          'Q-MAR'))
-                         or
-                         (inf_freq == 'Q-NOV' and
-                          gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
-                         or
-                         (inf_freq == 'Q-OCT' and
-                          gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+            self.assertTrue((inf_freq == 'Q-DEC' and
+                             gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
+                                             'Q-MAR'))
+                            or
+                            (inf_freq == 'Q-NOV' and
+                             gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
+                            or
+                            (inf_freq == 'Q-OCT' and
+                             gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
 
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
@@ -233,15 +233,15 @@ class TestFrequencyInference(tm.TestCase):
             self.assertEqual(infer_freq(index), gen.freqstr)
         else:
             inf_freq = infer_freq(index)
-            self.assert_((inf_freq == 'Q-DEC' and
-                          gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
-                                          'Q-MAR'))
-                         or
-                         (inf_freq == 'Q-NOV' and
-                          gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
-                         or
-                         (inf_freq == 'Q-OCT' and
-                          gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+            self.assertTrue((inf_freq == 'Q-DEC' and
+                             gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
+                                             'Q-MAR'))
+                            or
+                            (inf_freq == 'Q-NOV' and
+                             gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
+                            or
+                            (inf_freq == 'Q-OCT' and
+                             gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
 
     def test_infer_freq(self):
         rng = period_range('1959Q2', '2009Q3', freq='Q')

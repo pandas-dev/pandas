@@ -177,7 +177,7 @@ class TestArrayToDatetime(tm.TestCase):
                 coerce=False,
                 raise_=True,
             )
-            self.assert_(
+            self.assertTrue(
                 np.array_equal(
                     tslib.array_to_datetime(
                         np.array([invalid_date], dtype='object'), coerce=True

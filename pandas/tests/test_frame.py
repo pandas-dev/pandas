@@ -1601,8 +1601,8 @@ class CheckIndexing(object):
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
-        self.assert_(issubclass(self.frame['E'].dtype.type,
-                                (int, np.integer)))
+        self.assertTrue(issubclass(self.frame['E'].dtype.type,
+                                   (int, np.integer)))
 
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assertTrue(com.is_integer(result))
