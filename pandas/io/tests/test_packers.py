@@ -179,7 +179,7 @@ class TestNumpy(TestPackers):
         x = (np.random.rand(5) + 1j * np.random.rand(5)).astype(np.complex128)
         x_rec = self.encode_decode(x)
         self.assertTrue(all(map(lambda x, y: x == y, x, x_rec)) and
-                     x.dtype == x_rec.dtype)
+                        x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
