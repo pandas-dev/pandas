@@ -339,8 +339,8 @@ class TestHDFStore(tm.TestCase):
             store['d'] = tm.makePanel()
             store['foo/bar'] = tm.makePanel()
             self.assertEqual(len(store), 5)
-            self.assert_(set(
-                    store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
+            self.assertTrue(set(
+                store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
 
     def test_repr(self):
 
@@ -1077,8 +1077,8 @@ class TestHDFStore(tm.TestCase):
 
             def check_indexers(key, indexers):
                 for i, idx in enumerate(indexers):
-                    self.assert_(getattr(getattr(
-                                store.root, key).table.description, idx)._v_pos == i)
+                    self.assertTrue(getattr(getattr(
+                        store.root, key).table.description, idx)._v_pos == i)
 
             # append then change (will take existing schema)
             indexers = ['items', 'major_axis', 'minor_axis']

@@ -149,8 +149,8 @@ class TestNumpy(TestPackers):
     def test_dict_complex(self):
         x = {'foo': 1.0 + 1.0j, 'bar': 2.0 + 2.0j}
         x_rec = self.encode_decode(x)
-        self.assert_(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
-                     all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
+        self.assertTrue(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
+                        all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
 
     def test_dict_numpy_float(self):
         x = {'foo': np.float32(1.0), 'bar': np.float32(2.0)}
@@ -161,8 +161,8 @@ class TestNumpy(TestPackers):
         x = {'foo': np.complex128(
             1.0 + 1.0j), 'bar': np.complex128(2.0 + 2.0j)}
         x_rec = self.encode_decode(x)
-        self.assert_(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
-                     all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
+        self.assertTrue(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
+                        all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
 
 
     def test_numpy_array_float(self):
@@ -178,8 +178,8 @@ class TestNumpy(TestPackers):
     def test_numpy_array_complex(self):
         x = (np.random.rand(5) + 1j * np.random.rand(5)).astype(np.complex128)
         x_rec = self.encode_decode(x)
-        self.assert_(all(map(lambda x, y: x == y, x, x_rec)) and
-                     x.dtype == x_rec.dtype)
+        self.assertTrue(all(map(lambda x, y: x == y, x, x_rec)) and
+                        x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]

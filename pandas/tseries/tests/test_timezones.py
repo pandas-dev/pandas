@@ -840,7 +840,7 @@ class TestTimeZones(tm.TestCase):
         ts1 = Series(np.random.randn(len(rng1)), index=rng1)
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
-        self.assert_(ts_result.index.equals(
+        self.assertTrue(ts_result.index.equals(
             ts1.index.asobject.append(ts2.index.asobject)))
 
         # mixed
@@ -850,7 +850,7 @@ class TestTimeZones(tm.TestCase):
         ts1 = Series(np.random.randn(len(rng1)), index=rng1)
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
-        self.assert_(ts_result.index.equals(
+        self.assertTrue(ts_result.index.equals(
             ts1.index.asobject.append(ts2.index)))
 
     def test_equal_join_ensure_utc(self):

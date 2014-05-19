@@ -1085,8 +1085,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         # ufunc
         applied = self.panel.apply(np.sqrt)
-        self.assert_(assert_almost_equal(applied.values,
-                                         np.sqrt(self.panel.values)))
+        self.assertTrue(assert_almost_equal(applied.values,
+                                            np.sqrt(self.panel.values)))
 
         # ufunc same shape
         result = self.panel.apply(lambda x: x*2, axis='items')
