@@ -1633,8 +1633,12 @@ class TestGroupBy(tm.TestCase):
             result = op(grouped)['C']
             assert_series_equal(result, exp)
 
+        _testit(lambda x: x.count())
         _testit(lambda x: x.sum())
+        _testit(lambda x: x.std())
+        _testit(lambda x: x.var())
         _testit(lambda x: x.mean())
+        _testit(lambda x: x.median())
         _testit(lambda x: x.prod())
         _testit(lambda x: x.min())
         _testit(lambda x: x.max())
@@ -4166,7 +4170,7 @@ class TestGroupBy(tm.TestCase):
             'agg','aggregate','apply','boxplot','filter','first','get_group',
             'groups','hist','indices','last','max','mean','median',
             'min','name','ngroups','nth','ohlc','plot', 'prod',
-            'size','std','sum','transform','var', 'count', 'head', 'describe',
+            'size', 'std', 'sum', 'transform', 'var', 'count', 'head', 'describe',
             'cummax', 'quantile', 'rank', 'cumprod', 'tail',
             'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
             'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
@@ -4305,6 +4309,55 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame({'a': [2, 2]}, index=pd.Index(list('ab'),
                                                            name='grp'))
         tm.assert_frame_equal(result, expected)
+
+    def test__cython_agg_general(self):
+        ops = [('mean', np.mean),
+               ('median', np.median),
+               ('var', np.var),
+               ('add', np.sum),
+               ('prod', np.prod),
+               ('min', np.min),
+               ('max', np.max),
+               ('first', lambda x: x.iloc[0]),
+               ('last', lambda x: x.iloc[-1]),
+               ('count', np.size),
+               ]
+        df = DataFrame(np.random.randn(1000))
+        labels = np.random.randint(0, 50, size=1000).astype(float)
+
+        for op, targop in ops:
+            result = df.groupby(labels)._cython_agg_general(op)
+            expected = df.groupby(labels).agg(targop)
+            try:
+                tm.assert_frame_equal(result, expected)
+            except BaseException as exc:
+                exc.args += ('operation: %s' % op,)
+                raise
+
+    def test_ops_general(self):
+        ops = [('mean', np.mean),
+               ('median', np.median),
+               ('std', np.std),
+               ('var', np.var),
+               ('sum', np.sum),
+               ('prod', np.prod),
+               ('min', np.min),
+               ('max', np.max),
+               ('first', lambda x: x.iloc[0]),
+               ('last', lambda x: x.iloc[-1]),
+               ('count', np.size),
+               ]
+        df = DataFrame(np.random.randn(1000))
+        labels = np.random.randint(0, 50, size=1000).astype(float)
+
+        for op, targop in ops:
+            result = getattr(df.groupby(labels), op)().astype(float)
+            expected = df.groupby(labels).agg(targop)
+            try:
+                tm.assert_frame_equal(result, expected)
+            except BaseException as exc:
+                exc.args += ('operation: %s' % op,)
+                raise
 
 
 def assert_fp_equal(a, b):
