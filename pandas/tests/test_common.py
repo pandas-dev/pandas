@@ -135,6 +135,18 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+
+class TestIsNull(tm.TestCase):
+    def test_0d_array(self):
+        self.assertTrue(isnull(np.array(np.nan)))
+        self.assertFalse(isnull(np.array(0.0)))
+        self.assertFalse(isnull(np.array(0)))
+        # test object dtype
+        self.assertTrue(isnull(np.array(np.nan, dtype=object)))
+        self.assertFalse(isnull(np.array(0.0, dtype=object)))
+        self.assertFalse(isnull(np.array(0, dtype=object)))
+
+
 def test_downcast_conv():
     # test downcasting
 

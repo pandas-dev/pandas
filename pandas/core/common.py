@@ -213,7 +213,7 @@ def _isnull_ndarraylike(obj):
         else:
             result = np.empty(shape, dtype=bool)
             vec = lib.isnullobj(values.ravel())
-            result[:] = vec.reshape(shape)
+            result[...] = vec.reshape(shape)
 
     elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
