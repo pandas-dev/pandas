@@ -108,6 +108,10 @@ You can plot one column versus another using the `x` and `y` keywords in
 
    For more formatting and sytling options, see :ref:`below <visualization.formatting>`.
 
+.. ipython:: python
+    :suppress:
+
+    plt.close('all')
 
 .. _visualization.other:
 
@@ -255,6 +259,7 @@ a uniform random variable on [0,1).
    np.random.seed(123456)
 
 .. ipython:: python
+   :okwarning:
 
    df = DataFrame(rand(10,5))
    plt.figure();
@@ -271,6 +276,7 @@ groupings.  For instance,
    np.random.seed(123456)
 
 .. ipython:: python
+   :okwarning:
 
    df = DataFrame(rand(10,2), columns=['Col1', 'Col2'] )
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
@@ -289,6 +295,7 @@ columns:
    np.random.seed(123456)
 
 .. ipython:: python
+   :okwarning:
 
    df = DataFrame(rand(10,3), columns=['Col1', 'Col2', 'Col3'])
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
@@ -325,6 +332,7 @@ facet for each key, with each facet containing a box for each column of the
 DataFrame.
 
 .. ipython:: python
+   :okwarning:
 
    np.random.seed(1234)
    df_box = DataFrame(np.random.randn(50, 2))
@@ -337,6 +345,7 @@ DataFrame.
 Compare to:
 
 .. ipython:: python
+   :okwarning:
 
    @savefig groupby_boxplot_vis.png
    bp = df_box.groupby('g').boxplot()
@@ -516,6 +525,11 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    series.plot(kind='pie')
 
 See the `matplotlib pie documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+
+.. ipython:: python
+    :suppress:
+
+    plt.close('all')
 
 .. _visualization.tools:
 
