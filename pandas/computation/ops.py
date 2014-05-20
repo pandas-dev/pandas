@@ -14,6 +14,7 @@ from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded, _result_type_many
+from pandas.computation.scope import _DEFAULT_GLOBALS
 
 
 _reductions = 'sum', 'prod'
@@ -48,7 +49,9 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
-        self.is_local = text_type(name).startswith(_LOCAL_TAG)
+        tname = text_type(name)
+        self.is_local = (tname.startswith(_LOCAL_TAG) or
+                         tname in _DEFAULT_GLOBALS)
         self._value = self._resolve_name()
         self.encoding = encoding
 
