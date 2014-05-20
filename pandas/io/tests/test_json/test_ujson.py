@@ -629,11 +629,11 @@ class UltraJSONTests(TestCase):
 
     def test_decodeNumericIntPos(self):
         input = "31337"
-        self.assertEquals (31337, ujson.decode(input))
+        self.assertEqual(31337, ujson.decode(input))
 
     def test_decodeNumericIntNeg(self):
         input = "-31337"
-        self.assertEquals (-31337, ujson.decode(input))
+        self.assertEqual(-31337, ujson.decode(input))
 
     def test_encodeUnicode4BytesUTF8Fail(self):
         _skip_if_python_ver(3)
