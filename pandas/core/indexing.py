@@ -1278,12 +1278,37 @@ class _iLocIndexer(_LocationIndexer):
                                  "an indexable as a mask")
             return True
 
-        return (isinstance(key, slice) or
-                com.is_integer(key) or
-                _is_list_like(key))
+        if isinstance(key, slice):
+            return True
+        elif com.is_integer(key):
+            return self._is_valid_integer(key, axis)
+        elif (_is_list_like(key)):
+            return self._is_valid_list_like(key, axis)
+        return False
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
+
+    def _is_valid_integer(self, key, axis):
+        # return a boolean if we have a valid integer indexer
+
+        ax = self.obj._get_axis(axis)
+        if key > len(ax):
+            raise IndexError("single positional indexer is out-of-bounds")
+        return True
+
+
+    def _is_valid_list_like(self, key, axis):
+        # return a boolean if we are a valid list-like (e.g. that we dont' have out-of-bounds values)
+
+        # coerce the key to not exceed the maximum size of the index
+        arr = np.array(key)
+        ax = self.obj._get_axis(axis)
+        l = len(ax)
+        if len(arr) and (arr.max() >= l or arr.min() <= -l):
+            raise IndexError("positional indexers are out-of-bounds")
+
+        return True
 
     def _getitem_tuple(self, tup):
 
@@ -1339,14 +1364,10 @@ class _iLocIndexer(_LocationIndexer):
         # a single integer or a list of integers
         else:
 
-            ax = self.obj._get_axis(axis)
             if _is_list_like(key):
 
-                # coerce the key to not exceed the maximum size of the index
-                arr = np.array(key)
-                l = len(ax)
-                if len(arr) and (arr.max() >= l or arr.min() <= -l):
-                    raise IndexError("positional indexers are out-of-bounds")
+                # validate list bounds
+                self._is_valid_list_like(key, axis)
 
                 # force an actual list
                 key = list(key)
@@ -1358,8 +1379,8 @@ class _iLocIndexer(_LocationIndexer):
                     raise TypeError("Cannot index by location index with a "
                                     "non-integer key")
 
-                if key > len(ax):
-                    raise IndexError("single positional indexer is out-of-bounds")
+                # validate the location
+                self._is_valid_integer(key, axis)
 
             return self._get_loc(key, axis=axis)
 

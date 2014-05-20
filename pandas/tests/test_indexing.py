@@ -1009,6 +1009,84 @@ class TestIndexing(tm.TestCase):
         # trying to use a label
         self.assertRaises(ValueError, df.iloc.__getitem__, tuple(['j','D']))
 
+    def test_iloc_getitem_panel(self):
+
+        # GH 7189
+        p = Panel(np.arange(4*3*2).reshape(4,3,2),
+                  items=['A','B','C','D'],
+                  major_axis=['a','b','c'],
+                  minor_axis=['one','two'])
+
+        result = p.iloc[1]
+        expected = p.loc['B']
+        assert_frame_equal(result, expected)
+
+        result = p.iloc[1,1]
+        expected = p.loc['B','b']
+        assert_series_equal(result, expected)
+
+        result = p.iloc[1,1,1]
+        expected = p.loc['B','b','two']
+        self.assertEqual(result,expected)
+
+        # slice
+        result = p.iloc[1:3]
+        expected = p.loc[['B','C']]
+        assert_panel_equal(result, expected)
+
+        result = p.iloc[:,0:2]
+        expected = p.loc[:,['a','b']]
+        assert_panel_equal(result, expected)
+
+        # list of integers
+        result = p.iloc[[0,2]]
+        expected = p.loc[['A','C']]
+        assert_panel_equal(result, expected)
+
+        # neg indicies
+        result = p.iloc[[-1,1],[-1,1]]
+        expected = p.loc[['D','B'],['c','b']]
+        assert_panel_equal(result, expected)
+
+        # dups indicies
+        result = p.iloc[[-1,-1,1],[-1,1]]
+        expected = p.loc[['D','D','B'],['c','b']]
+        assert_panel_equal(result, expected)
+
+        # combined
+        result = p.iloc[0,[True,True],[0,1]]
+        expected = p.loc['A',['a','b'],['one','two']]
+        assert_frame_equal(result, expected)
+
+        # out-of-bounds exception
+        self.assertRaises(IndexError, p.iloc.__getitem__, tuple([10,5]))
+        def f():
+            p.iloc[0,[True,True],[0,1,2]]
+        self.assertRaises(IndexError, f)
+
+        # trying to use a label
+        self.assertRaises(ValueError, p.iloc.__getitem__, tuple(['j','D']))
+
+        # GH
+        p = Panel(np.random.rand(4,3,2), items=['A','B','C','D'], major_axis=['U','V','W'], minor_axis=['X','Y'])
+        expected = p['A']
+
+        result = p.iloc[0,:,:]
+        assert_frame_equal(result, expected)
+
+        result = p.iloc[0,[True,True,True],:]
+        assert_frame_equal(result, expected)
+
+        result = p.iloc[0,[True,True,True],[0,1]]
+        assert_frame_equal(result, expected)
+
+        def f():
+            p.iloc[0,[True,True,True],[0,1,2]]
+        self.assertRaises(IndexError, f)
+
+        def f():
+            p.iloc[0,[True,True,True],[2]]
+        self.assertRaises(IndexError, f)
 
     def test_iloc_getitem_doc_issue(self):
 

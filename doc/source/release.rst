@@ -532,6 +532,7 @@ Bug Fixes
 - Bug in ``isnull`` when applied to 0-dimensional object arrays (:issue:`7176`)
 - Bug in ``query``/``eval`` where global constants were not looked up correctly
   (:issue:`7178`)
+- Bug in recognizing out-of-bounds positional list indexers with ``iloc`` and a multi-axis tuple indexer (:issue:`7189`)
 
 pandas 0.13.1
 -------------
