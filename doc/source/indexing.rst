@@ -206,15 +206,19 @@ as an attribute:
    dfa.A
    panel.one
 
-Setting is allowed as well
+You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
+if you try to use attribute access to create a new column, it fails silently, creating a new attribute rather than a
+new column.
 
 .. ipython:: python
 
    sa.a = 5
    sa
-   dfa.A = list(range(len(dfa.index)))
+   dfa.A = list(range(len(dfa.index)))       # ok if A already exists
    dfa
-
+   dfa['A'] = list(range(len(dfa.index)))    # use this form to create a new column                         
+   dfa
+   
 .. warning::
 
    - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
