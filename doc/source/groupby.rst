@@ -926,9 +926,10 @@ the values in column 1 where the group is "B" are 3 higher on average.
 We can easily visualize this with a boxplot:
 
 .. ipython:: python
+   :okwarning:
 
    @savefig groupby_boxplot.png
-   bp = df.groupby('g').boxplot()
+   df.groupby('g').boxplot()
 
 The result of calling ``boxplot`` is a dictionary whose keys are the values
 of our grouping column ``g`` ("A" and "B"). The values of the resulting dictionary

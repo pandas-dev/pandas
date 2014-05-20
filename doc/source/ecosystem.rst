@@ -24,7 +24,7 @@ Statistics and Machine Learning
 -------------------------------
 
 `Statsmodels <http://statsmodels.sourceforge.net>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -44,14 +44,14 @@ Visualization
 -------------
 
 `Vincent <https://github.com/wrobstory/vincent>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
 (that in turn, leverages `d3 <http://d3js.org/>`__) to create plots . It has great support
 for pandas data objects.
 
 `yhat/ggplot <https://github.com/yhat/ggplot>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
@@ -71,7 +71,7 @@ and `matplotlib <http://matplotlib.org>`__ to provide easy plotting of data whic
 more advanced types of plots then those offered by pandas.
 
 `Bokeh <http://bokeh.pydata.org>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Bokeh is a Python interactive visualization library for large datasets that natively uses
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
