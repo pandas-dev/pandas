@@ -333,11 +333,7 @@ class _NDFrameIndexer(object):
                 obj = self.obj[item]
                 index = obj.index
                 idx = indexer[:info_axis][0]
-                try:
-                    if idx in index:
-                        idx = index.get_loc(idx)
-                except:
-                    pass
+
                 plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
                 lplane_indexer = _length_of_indexer(plane_indexer[0], index)
 
