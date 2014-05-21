@@ -533,6 +533,7 @@ Bug Fixes
 - Bug in ``query``/``eval`` where global constants were not looked up correctly
   (:issue:`7178`)
 - Bug in recognizing out-of-bounds positional list indexers with ``iloc`` and a multi-axis tuple indexer (:issue:`7189`)
+- Bug in setitem with a single value, multi-index and integer indices (:issue:`7190`)
 
 pandas 0.13.1
 -------------

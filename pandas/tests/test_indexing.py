@@ -607,6 +607,17 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame({'a' : [0.5,-0.5,-1.5], 'b' : [0,1,2] })
         assert_frame_equal(df,expected)
 
+    def test_loc_setitem_multiindex(self):
+
+        # GH7190
+        index = pd.MultiIndex.from_product([np.arange(0,100), np.arange(0, 80)], names=['time', 'firm'])
+        df = DataFrame(np.nan,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
+        t, n = 0, 2
+
+        df.loc[(t,n),'X'] = 0
+        result = df.loc[(t,n),'X']
+        self.assertEqual(result, 0)
+
     def test_loc_setitem_dups(self):
 
         # GH 6541
