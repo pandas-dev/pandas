@@ -2256,7 +2256,7 @@ class DataFrame(NDFrame):
                 names.append(col.name)
             elif isinstance(col, Index):
                 level = col
-                names.append(col.name)                
+                names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 level = col
                 names.append(None)

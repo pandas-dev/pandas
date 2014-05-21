@@ -89,12 +89,18 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
+def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True, reversed=False,
                       **eval_kwargs):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
         try:
+
+            # we were originally called by a reversed op
+            # method
+            if reversed:
+                a,b = b,a
+
             a_value = getattr(a, "values", a)
             b_value = getattr(b, "values", b)
             result = ne.evaluate('a_value %s b_value' % op_str,
