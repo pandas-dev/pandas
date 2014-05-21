@@ -11,18 +11,17 @@ from pandas.core.base import PandasObject
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
 import pandas.core.indexing as indexing
-from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
-import pandas.core.array as pa
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote, _maybe_box_datetimelike,
-                                ABCSeries, SettingWithCopyError, SettingWithCopyWarning)
+                                _values_from_object, _maybe_promote,
+                                _maybe_box_datetimelike, ABCSeries,
+                                SettingWithCopyError, SettingWithCopyWarning)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
 from pandas.core import config
@@ -1757,6 +1756,11 @@ class NDFrame(PandasObject):
             Keep info axis where "arg in col == True"
         regex : string (regular expression)
             Keep info axis with re.search(regex, col) == True
+        axis : int or None
+            The axis to filter on. By default this is the info axis. The "info
+            axis" is the axis that is used when indexing with ``[]``. For
+            example, ``df = DataFrame({'a': [1, 2, 3, 4]]}); df['a']``. So,
+            the ``DataFrame`` columns are the info axis.
 
         Notes
         -----
