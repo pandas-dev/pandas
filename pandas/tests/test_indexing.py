@@ -1099,6 +1099,38 @@ class TestIndexing(tm.TestCase):
             p.iloc[0,[True,True,True],[2]]
         self.assertRaises(IndexError, f)
 
+        # GH 7199
+        # Panel with multi-index
+        multi_index = pd.MultiIndex.from_tuples([('ONE', 'one'),
+                                                 ('TWO', 'two'),
+                                                 ('THREE', 'three')],
+                                                names=['UPPER', 'lower'])
+
+        simple_index = [x[0] for x in multi_index]
+        wd1 = Panel(items=['First', 'Second'],
+                    major_axis=['a', 'b', 'c', 'd'],
+                    minor_axis=multi_index)
+
+        wd2 = Panel(items=['First', 'Second'],
+                    major_axis=['a', 'b', 'c', 'd'],
+                    minor_axis=simple_index)
+
+        expected1 = wd1['First'].iloc[[True, True, True, False], [0, 2]]
+        result1 = wd1.iloc[0, [True, True, True, False], [0, 2]]  # WRONG
+        assert_frame_equal(result1,expected1)
+
+        expected2 = wd2['First'].iloc[[True, True, True, False], [0, 2]]
+        result2 = wd2.iloc[0, [True, True, True, False], [0, 2]]
+        assert_frame_equal(result2,expected2)
+
+        expected1 = DataFrame(index=['a'],columns=multi_index,dtype='float64')
+        result1 = wd1.iloc[0,[0],[0,1,2]]
+        assert_frame_equal(result1,expected1)
+
+        expected2 = DataFrame(index=['a'],columns=simple_index,dtype='float64')
+        result2 = wd2.iloc[0,[0],[0,1,2]]
+        assert_frame_equal(result2,expected2)
+
     def test_iloc_getitem_doc_issue(self):
 
         # multi axis slicing issue with single block

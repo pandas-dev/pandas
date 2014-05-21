@@ -535,6 +535,7 @@ Bug Fixes
 - Bug in recognizing out-of-bounds positional list indexers with ``iloc`` and a multi-axis tuple indexer (:issue:`7189`)
 - Bug in setitem with a single value, multi-index and integer indices (:issue:`7190`)
 - Bug in expressions evaluation with reversed ops, showing in series-dataframe ops (:issue:`7198`, :issue:`7192`)
+- Bug in multi-axis indexing with > 2 ndim and a multi-index (:issue:`7199`)
 
 pandas 0.13.1
 -------------
