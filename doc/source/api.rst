@@ -1149,7 +1149,7 @@ Time/Date Components
    DatetimeIndex.is_month_end
    DatetimeIndex.is_quarter_start
    DatetimeIndex.is_quarter_end
-   DatetiemIndex.is_year_start
+   DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
 
 Selecting
@@ -1245,6 +1245,8 @@ Computations / Descriptive Stats
    generated/pandas.io.pytables.HDFStore.select
    generated/pandas.io.pytables.read_hdf
    generated/pandas.io.sql.read_sql
+   generated/pandas.io.sql.read_frame
+   generated/pandas.io.sql.write_frame
    generated/pandas.io.stata.read_stata
    generated/pandas.stats.moments.ewma
    generated/pandas.stats.moments.ewmcorr
