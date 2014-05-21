@@ -1846,12 +1846,16 @@ class Easter(DateOffset):
         currentEaster = datetime(currentEaster.year, currentEaster.month, currentEaster.day)
         
         # NOTE: easter returns a datetime.date so we have to convert to type of other
-        if other >= currentEaster:
-            new = easter(other.year + self.n)
-        elif other < currentEaster:
-            new = easter(other.year + self.n - 1)
+        if self.n >= 0:
+            if other >= currentEaster:
+                new = easter(other.year + self.n)
+            else:
+                new = easter(other.year + self.n - 1)
         else:
-            new = other
+            if other > currentEaster:
+                new = easter(other.year + self.n + 1)
+            else:
+                new = easter(other.year + self.n)
         
         # FIXME: There has to be a better way to do this, but I don't know what it is
         if isinstance(other, Timestamp):
