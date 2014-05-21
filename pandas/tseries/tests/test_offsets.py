@@ -382,6 +382,7 @@ class TestCustomBusinessDay(Base):
 
     def setUp(self):
         self.d = datetime(2008, 1, 1)
+        self.nd = np.datetime64('2008-01-01 00:00:00Z')
 
         _skip_if_no_cday()
         self.offset = CDay()
@@ -417,6 +418,7 @@ class TestCustomBusinessDay(Base):
 
     def testCall(self):
         self.assertEqual(self.offset2(self.d), datetime(2008, 1, 3))
+        self.assertEqual(self.offset2(self.nd), datetime(2008, 1, 3))
 
     def testRAdd(self):
         self.assertEqual(self.d + self.offset2, self.offset2 + self.d)

@@ -528,7 +528,6 @@ class CustomBusinessDay(BusinessDay):
 
         # Distinguish input cases to enhance performance
         if isinstance(other, datetime):
-            dtype = type(other)
             date_in = other
             np_dt = np.datetime64(date_in.date())
 
@@ -547,7 +546,6 @@ class CustomBusinessDay(BusinessDay):
             return as_timestamp(result)
 
         elif isinstance(other, np.datetime64):
-            dtype = other.dtype
             date_in = other
             np_day = date_in.astype('datetime64[D]')
             np_time = date_in - np_day
@@ -556,7 +554,7 @@ class CustomBusinessDay(BusinessDay):
                                   busdaycal=self.busdaycalendar)
 
             if not self.normalize:
-                result = np_day_incr + np_time
+                result = np_incr_dt + np_time
             else:
                 result = np_incr_dt
 
