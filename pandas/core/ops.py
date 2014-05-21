@@ -68,19 +68,21 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
         # not entirely sure why this is necessary, but previously was included
         # so it's here to maintain compatibility
         rmul=arith_method(operator.mul, names('rmul'), op('*'),
-                          default_axis=default_axis),
+                          default_axis=default_axis, reversed=True),
         rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-'),
-                          default_axis=default_axis),
+                          default_axis=default_axis, reversed=True),
         rtruediv=arith_method(lambda x, y: operator.truediv(y, x),
                               names('rtruediv'), op('/'), truediv=True,
-                              fill_zeros=np.inf, default_axis=default_axis),
+                              fill_zeros=np.inf, default_axis=default_axis,
+                              reversed=True),
         rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x),
                                names('rfloordiv'), op('//'),
-                               default_axis=default_axis, fill_zeros=np.inf),
+                               default_axis=default_axis, fill_zeros=np.inf,
+                               reversed=True),
         rpow=arith_method(lambda x, y: y ** x, names('rpow'), op('**'),
-                          default_axis=default_axis),
+                          default_axis=default_axis, reversed=True),
         rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%'),
-                          default_axis=default_axis),
+                          default_axis=default_axis, reversed=True),
     )
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']
