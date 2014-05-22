@@ -825,6 +825,10 @@ class _NDFrameIndexer(object):
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis, validate_iterable=True)
             axis += 1
 
+            # if we have a scalar, we are done
+            if np.isscalar(obj):
+                break
+
             # has the dim of the obj changed?
             # GH 7199
             if obj.ndim < current_ndim:

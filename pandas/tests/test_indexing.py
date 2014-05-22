@@ -611,9 +611,19 @@ class TestIndexing(tm.TestCase):
 
         # GH7190
         index = pd.MultiIndex.from_product([np.arange(0,100), np.arange(0, 80)], names=['time', 'firm'])
-        df = DataFrame(np.nan,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
         t, n = 0, 2
 
+        df = DataFrame(np.nan,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
+        df.loc[(t,n),'X'] = 0
+        result = df.loc[(t,n),'X']
+        self.assertEqual(result, 0)
+
+        df = DataFrame(-999,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
+        df.loc[(t,n),'X'] = 0
+        result = df.loc[(t,n),'X']
+        self.assertEqual(result, 0)
+
+        df = DataFrame(columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
         df.loc[(t,n),'X'] = 0
         result = df.loc[(t,n),'X']
         self.assertEqual(result, 0)
