@@ -366,7 +366,7 @@ class DataFrameFormatter(TableFormatter):
                                    *(_strlen(x) for x in cheader))
 
                 fmt_values = self._format_col(i)
-                
+
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=max_colwidth)
 
@@ -400,7 +400,7 @@ class DataFrameFormatter(TableFormatter):
             col_num = self.tr_col_num
             col_width = len(strcols[col_num][0])  # infer from column header
             strcols.insert(col_num + 1, ['...'.center(col_width)] * (len(str_index)))
-        if truncate_v: 
+        if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
             for ix,col in enumerate(strcols):
@@ -843,10 +843,10 @@ class HTMLFormatter(TableFormatter):
                     if self.fmt.sparsify and lnum == 0:
                         ins_col = row_levels + self.fmt.tr_col_num - 1
                         row.insert(ins_col, '...')
-                        
+
                         for tag in list(tags.keys()):
                             if tag >= ins_col:
-                                tags[tag+1] = tags.pop(tag)                                
+                                tags[tag+1] = tags.pop(tag)
                     else:
                         row.insert(row_levels + self.fmt.tr_col_num, '...')
 
@@ -911,12 +911,12 @@ class HTMLFormatter(TableFormatter):
             index_values = self.fmt.tr_frame.index.format()
 
         for i in range(nrows):
-            
+
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = [ '...' for ele in row ]
                 self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
                               nindex_levels=1)
-    
+
             row = []
             row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
@@ -1101,7 +1101,7 @@ class CSVFormatter(object):
 
         if chunksize is None:
             chunksize = (100000 / (len(self.cols) or 1)) or 1
-        self.chunksize = chunksize
+        self.chunksize = int(chunksize)
 
         self.data_index = obj.index
         if isinstance(obj.index, PeriodIndex):
