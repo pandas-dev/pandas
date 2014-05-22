@@ -1026,6 +1026,7 @@ class CSVFormatter(object):
         self.blocks = self.obj._data.blocks
         ncols = sum(b.shape[0] for b in self.blocks)
         self.data = [None] * ncols
+        self.type_strings = [None] * ncols
 
         if chunksize is None:
             chunksize = (100000 / (len(self.cols) or 1)) or 1
@@ -1167,16 +1168,10 @@ class CSVFormatter(object):
                 self.writer = com.UnicodeWriter(f, **writer_kwargs)
 
             elif self.engine == 'fast':
-                class Writer(object):
-                    def __init__(self, f):
-                        self.f = f
-
-                    def writerow(self, row):
-                        for elem in row:
-                            self.f.write('{0},'.format(elem))
-                        self.f.write('\n')
-
-                self.writer = Writer(f)
+                self.index = False
+                if close:
+                    f.close()
+                self.writer = lib.FastWriter(self.path_or_buf)
                 close = False
 
             else:
@@ -1279,9 +1274,6 @@ class CSVFormatter(object):
 
         self._save_header()
 
-        if self.engine == 'fast':
-            self.writer.f.close()
-
         nrows = len(self.data_index)
 
         # write in chunksize bites
@@ -1311,13 +1303,15 @@ class CSVFormatter(object):
             for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
+                self.type_strings[col_loc] = b.dtype.kind
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
                                         float_format=self.float_format,
                                         date_format=self.date_format)
 
         if self.engine == 'fast':
-            lib.write_csv_rows_fast(self.data, ix, self.cols, self.path_or_buf)
+            lib.write_csv_rows_fast(self.data, ix, self.nlevels, self.cols,
+                                    self.writer, self.type_strings)
         else:
             lib.write_csv_rows(self.data, ix, self.nlevels, self.cols,
                                self.writer)
