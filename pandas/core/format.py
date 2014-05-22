@@ -780,6 +780,7 @@ class HTMLFormatter(TableFormatter):
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
+        row_levels = self.frame.index.nlevels
         if not self.fmt.header:
             # write nothing
             return indent
@@ -819,13 +820,49 @@ class HTMLFormatter(TableFormatter):
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel,
                                          adjoin=False, names=False)
-
             level_lengths = _get_level_lengths(levels, sentinel)
-
-            row_levels = self.frame.index.nlevels
-
+            inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths,
                                                          levels)):
+                if truncate_h:
+                    # modify the header lines
+                    ins_col = self.fmt.tr_col_num
+                    if self.fmt.sparsify:
+                        recs_new = {}
+                        # Increment tags after ... col. 
+                        for tag,span in list(records.items()):
+                            if tag >= ins_col:
+                                recs_new[tag + 1] = span
+                            elif tag + span > ins_col:
+                                recs_new[tag] = span + 1
+                                if lnum == inner_lvl:
+                                    values = values[:ins_col] + (u('...'),) + \
+                                        values[ins_col:]
+                                else:  # sparse col headers do not receive a ...
+                                    values = values[:ins_col] + \
+                                        (values[ins_col - 1],) + values[ins_col:]
+                            else:
+                                recs_new[tag] = span
+                            # if ins_col lies between tags, all col headers get ...
+                            if tag + span == ins_col:  
+                                recs_new[ins_col] = 1
+                                values = values[:ins_col] + (u('...'),) + \
+                                    values[ins_col:]
+                        records = recs_new
+                        inner_lvl = len(level_lengths) - 1
+                        if lnum == inner_lvl:
+                            records[ins_col] = 1
+                    else:
+                        recs_new = {}
+                        for tag,span in list(records.items()):
+                            if tag >= ins_col:
+                                recs_new[tag + 1] = span
+                            else:
+                                recs_new[tag] = span
+                        recs_new[ins_col] = 1
+                        records = recs_new
+                        values = values[:ins_col] + [u('...')] + values[ins_col:]
+
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
                                                  else com.pprint_thing(name)]
@@ -839,17 +876,6 @@ class HTMLFormatter(TableFormatter):
                         continue
                     j += 1
                     row.append(v)
-                if truncate_h:
-                    if self.fmt.sparsify and lnum == 0:
-                        ins_col = row_levels + self.fmt.tr_col_num - 1
-                        row.insert(ins_col, '...')
-
-                        for tag in list(tags.keys()):
-                            if tag >= ins_col:
-                                tags[tag+1] = tags.pop(tag)
-                    else:
-                        row.insert(row_levels + self.fmt.tr_col_num, '...')
-
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
@@ -857,7 +883,8 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             if truncate_h:
-                col_row.insert(self.fmt.tr_col_num + 1, '...')
+                ins_col = row_levels + self.fmt.tr_col_num
+                col_row.insert(ins_col, '...')
 
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
@@ -866,6 +893,9 @@ class HTMLFormatter(TableFormatter):
             row = [
                 x if x is not None else '' for x in self.frame.index.names
             ] + [''] * min(len(self.columns), self.max_cols)
+            if truncate_h:
+                ins_col = row_levels + self.fmt.tr_col_num
+                row.insert(ins_col, '')                
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -948,12 +978,36 @@ class HTMLFormatter(TableFormatter):
                                                 adjoin=False, names=False)
 
             level_lengths = _get_level_lengths(levels, sentinel)
+            inner_lvl = len(level_lengths) - 1
+            if truncate_v:
+                # Insert ... row and adjust idx_values and
+                # level_lengths to take this into account. 
+                ins_row = self.fmt.tr_row_num
+                for lnum,records in enumerate(level_lengths):
+                    rec_new = {}
+                    for tag,span in list(records.items()):
+                        if tag >= ins_row:
+                            rec_new[tag + 1] = span
+                        elif tag + span > ins_row:
+                            rec_new[tag] = span + 1
+                            dot_row = list(idx_values[ins_row - 1])
+                            dot_row[-1] = u('...')
+                            idx_values.insert(ins_row,tuple(dot_row))
+                        else:
+                            rec_new[tag] = span
+                        # If ins_row lies between tags, all cols idx cols receive ...
+                        if tag + span == ins_row:
+                            rec_new[ins_row] = 1
+                            if lnum == 0:
+                                idx_values.insert(ins_row,tuple([u('...')]*len(level_lengths)))                            
+                    level_lengths[lnum] = rec_new
+
+                level_lengths[inner_lvl][ins_row] = 1
+                for ix_col in range(len(fmt_values)):
+                    fmt_values[ix_col].insert(ins_row,'...')
+                nrows += 1
 
             for i in range(nrows):
-                if truncate_v and i == (self.fmt.tr_row_num):
-                    str_sep_row = [ '...' ]  * (len(row) + sparse_offset)
-                    self.write_tr(str_sep_row, indent, self.indent_delta, tags=None)
-
                 row = []
                 tags = {}
 

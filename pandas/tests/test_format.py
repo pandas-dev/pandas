@@ -953,8 +953,8 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
     </tr>
     <tr>
-      <td>...</td>
-      <td>...</td>
+      <th>...</th>
+      <th>...</th>
       <td>...</td>
       <td>...</td>
       <td>...</td>
