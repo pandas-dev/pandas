@@ -5619,7 +5619,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_weekday(self):
         # Just run the function
-        weekdays = self.ts.weekday
+        def f():
+            self.ts.weekday
+        self.assertRaises(TypeError, f)
 
     def test_diff(self):
         # Just run the function
@@ -5715,7 +5717,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         result = self.ts.select(lambda x: x.weekday() == 2)
-        expected = self.ts[self.ts.weekday == 2]
+        expected = self.ts[self.ts.index.weekday == 2]
         assert_series_equal(result, expected)
 
 #------------------------------------------------------------------------------
