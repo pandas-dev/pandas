@@ -452,7 +452,15 @@ class TestDatetimeIndexOps(Ops):
 
     def test_ops_properties(self):
         self.check_ops_properties(['year','month','day','hour','minute','second','weekofyear','week','dayofweek','dayofyear','quarter'])
-        self.check_ops_properties(['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end'], lambda x: isinstance(x,DatetimeIndex))
+        self.check_ops_properties(['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
+                                   'is_quarter_end', 'is_year_start', 'is_year_end'], lambda x: isinstance(x,DatetimeIndex))
+
+    def test_ops_properties_basic(self):
+
+        # sanity check that the behavior didn't change
+        # GH7206
+        for op in ['year','day','second','weekday']:
+            self.assertRaises(TypeError, lambda x: getattr(self.dt_series,op))
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'

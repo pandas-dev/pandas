@@ -261,12 +261,10 @@ class IndexOpsMixin(object):
 
     def max(self):
         """ The maximum value of the object """
-        self._is_allowed_index_op('max')
         return self.values.max()
 
     def min(self):
         """ The minimum value of the object """
-        self._is_allowed_index_op('min')
         return self.values.min()
 
     def value_counts(self, normalize=False, sort=True, ascending=False,

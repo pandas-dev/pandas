@@ -73,28 +73,10 @@ API changes
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 - When converting a dataframe to HTML it used to return `Empty DataFrame`. This special case has
   been removed, instead a header with the column names is returned (:issue:`6062`).
-- allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
-  for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
-  now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
-
-  The following are affected:
-
-  - ``date,time,year,month,day``
-  - ``hour,minute,second,weekofyear``
-  - ``week,dayofweek,dayofyear,quarter``
-  - ``microsecond,nanosecond,qyear``
-  - ``is_month_start,is_month_end``
-  - ``is_quarter_start,is_quarter_end``
-  - ``is_year_start,is_year_end``
-  - ``min(),max()``
-  - ``pd.infer_freq()``
-
-  .. ipython:: python
-
-     s = Series(np.random.randn(5),index=tm.makeDateIndex(5))
-     s
-     s.year
-     s.index.year
+- allow ``Series`` and ``Index`` to share common ops. remove the ``Series.weekday`` property from Series;
+  Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
+  support ``min(),max(),factorize(),unique(),nunique(),value_counts()`` on ``Index`` types.
+  (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
 
 - Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex`` / ``Timestamp`` which return a boolean array of whether the timestamp(s) are at the start/end of the month/quarter/year defined by the frequency of the ``DateTimeIndex`` / ``Timestamp`` (:issue:`4565`, :issue:`6998`)
 
@@ -355,7 +337,7 @@ are introduced. The function :func:`~pandas.read_sql` is kept as a convenience
 wrapper around the other two and will delegate to specific function depending on
 the provided input (database table name or sql query).
 
-In practice, you have to provide a SQLAlchemy ``engine`` to the sql functions. 
+In practice, you have to provide a SQLAlchemy ``engine`` to the sql functions.
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are
 connecting to. For an in-memory sqlite database:
@@ -384,7 +366,7 @@ or by specifying a sql query:
 .. ipython:: python
 
    pd.read_sql_query('SELECT * FROM db_table', engine)
-   
+
 Some other enhancements to the sql functions include:
 
 - support for writing the index. This can be controlled with the ``index``
@@ -397,7 +379,7 @@ Some other enhancements to the sql functions include:
 
     Some of the existing functions or function aliases have been deprecated
     and will be removed in future versions. This includes: ``tquery``, ``uquery``,
-    ``read_frame``, ``frame_query``, ``write_frame``. 
+    ``read_frame``, ``frame_query``, ``write_frame``.
 
 .. warning::
 
@@ -638,7 +620,7 @@ Deprecations
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
 
-  - The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``. 
+  - The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``.
 
 - The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The

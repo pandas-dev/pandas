@@ -86,21 +86,10 @@ API Changes
 - ``df.to_html`` will now print out the header of an empty dataframe (:issue:`6062`)
 - The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
-- allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
-  for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
-  now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
-
-  The following are affected:
-
-  - ``date,time,year,month,day``
-  - ``hour,minute,second,weekofyear``
-  - ``week,dayofweek,dayofyear,quarter``
-  - ``microsecond,nanosecond,qyear``
-  - ``is_month_start,is_month_end``
-  - ``is_quarter_start,is_quarter_end``
-  - ``is_year_start,is_year_end``
-  - ``min(),max()``
-  - ``pd.infer_freq()``
+- allow ``Series`` and ``Index`` to share common ops. remove the ``Series.weekday`` property from Series;
+  Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
+  support ``min(),max(),factorize(),unique(),nunique(),value_counts()`` on ``Index`` types.
+  (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
 
 - Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``,
   ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex`` / ``Timestamp`` which return a boolean array
