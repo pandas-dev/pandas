@@ -821,10 +821,13 @@ class _NDFrameIndexer(object):
                 axis += 1
                 continue
 
+            current_ndim = obj.ndim
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis, validate_iterable=True)
             axis += 1
 
-            if obj.ndim < self.ndim:
+            # has the dim of the obj changed?
+            # GH 7199
+            if obj.ndim < current_ndim:
                 axis -= 1
 
         return obj
