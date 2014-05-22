@@ -506,7 +506,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
             ax.plot(x, y, color=colors[kls], label=label, **kwds)
         else:
             ax.plot(x, y, color=colors[kls], **kwds)
-    
+
     ax.legend(loc='upper right')
     ax.grid()
     return ax
@@ -754,7 +754,7 @@ class MPLPlot(object):
     """
     _default_rot = 0
 
-    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog', 
+    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
                       'mark_right': True}
@@ -1002,8 +1002,8 @@ class MPLPlot(object):
                 data = self.data
             data = data.transpose()
         else:
-            data = self.table    
-        ax = self._get_ax(0) 
+            data = self.table
+        ax = self._get_ax(0)
         table(ax, data)
 
     def _post_plot_logic(self):
@@ -1545,7 +1545,7 @@ class LinePlot(MPLPlot):
     def _make_plot(self):
         self._pos_prior = np.zeros(len(self.data))
         self._neg_prior = np.zeros(len(self.data))
-        
+
         if self._is_ts_plot():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
@@ -1565,7 +1565,7 @@ class LinePlot(MPLPlot):
 
                 errors = self._get_errorbars(label=label, index=i)
                 kwds = dict(kwds, **errors)
- 
+
                 label = com.pprint_thing(label)  # .encode('utf-8')
                 kwds['label'] = label
 
@@ -1613,7 +1613,7 @@ class LinePlot(MPLPlot):
     def _get_ts_plot_function(self):
         from pandas.tseries.plotting import tsplot
         plotf = self._get_plot_function()
-                
+
         def _plot(data, ax, label, style, **kwds):
             # errorbar function does not support style argument
             if plotf.__name__ == 'errorbar':
@@ -1722,7 +1722,7 @@ class AreaPlot(LinePlot):
             raise ValueError("Log-y scales are not supported in area plot")
         else:
             f = LinePlot._get_plot_function(self)
-            
+
             def plotf(*args, **kwds):
                 lines = f(*args, **kwds)
 
@@ -1746,12 +1746,12 @@ class AreaPlot(LinePlot):
 
                 self.plt.Axes.fill_between(*args, **kwds)
                 return lines
-            
+
         return plotf
 
     def _add_legend_handle(self, handle, label, index=None):
         from matplotlib.patches import Rectangle
-        # Because fill_between isn't supported in legend, 
+        # Because fill_between isn't supported in legend,
         # specifically add Rectangle handle here
         alpha = self.kwds.get('alpha', 0.5)
         handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
@@ -1766,14 +1766,14 @@ class AreaPlot(LinePlot):
             if self.xlim is None:
                 for ax in self.axes:
                     ax.set_xlim(0, len(self.data)-1)
-        
+
         if self.ylim is None:
             if (self.data >= 0).all().all():
                 for ax in self.axes:
                     ax.set_ylim(0, None)
             elif (self.data <= 0).all().all():
                 for ax in self.axes:
-                    ax.set_ylim(None, 0)    
+                    ax.set_ylim(None, 0)
 
 
 class BarPlot(MPLPlot):
@@ -1923,7 +1923,7 @@ class PiePlot(MPLPlot):
         self.logy = False
         self.logx = False
         self.loglog = False
-    
+
     def _get_layout(self):
         from pandas import DataFrame
         if isinstance(self.data, DataFrame):
@@ -1982,8 +1982,8 @@ _dataframe_kinds = ['scatter', 'hexbin']
 _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
-_plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot, 
-               'kde': KdePlot, 
+_plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
+               'kde': KdePlot,
                'scatter': ScatterPlot, 'hexbin': HexBinPlot,
                'area': AreaPlot, 'pie': PiePlot}
 
@@ -2101,7 +2101,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     elif kind in _series_kinds:
         if y is None and subplots is False:
             msg = "{0} requires either y column or 'subplots=True'"
-            raise ValueError(msg.format(kind)) 
+            raise ValueError(msg.format(kind))
         elif y is not None:
             if com.is_integer(y) and not frame.columns.holds_integer():
                 y = frame.columns[y]
@@ -2113,8 +2113,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          fontsize=fontsize, use_index=use_index, sharex=sharex,
                          sharey=sharey, xticks=xticks, yticks=yticks,
                          xlim=xlim, ylim=ylim, title=title, grid=grid,
-                         figsize=figsize, 
-                         sort_columns=sort_columns, 
+                         figsize=figsize,
+                         sort_columns=sort_columns,
                          **kwds)
     else:
         if x is not None:
@@ -2504,7 +2504,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         The size of the figure to create in inches by default
     layout: (optional) a tuple (rows, columns) for the layout of the histograms
     bins: integer, default 10
-        Number of histogram bins to be used 
+        Number of histogram bins to be used
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
@@ -2538,7 +2538,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           sharex=sharex, sharey=sharey, figsize=figsize)
 
     for i, col in enumerate(com._try_sort(data.columns)):
-        ax = axes[i / ncols, i % ncols]
+        ax = axes[i // ncols, i % ncols]
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
@@ -2583,7 +2583,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     figsize : tuple, default None
         figure size in inches by default
     bins: integer, default 10
-        Number of histogram bins to be used 
+        Number of histogram bins to be used
     kwds : keywords
         To be passed to the actual plotting function
 
@@ -3046,7 +3046,7 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
     if naxes != nplots:
         for ax in axarr[naxes:]:
             ax.set_visible(False)
-            
+
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
         # though discarding unneeded dimensions that equal 1.  If we only have
