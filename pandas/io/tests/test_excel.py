@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.compat import u, range, map
+from pandas.compat import u, range, map, openpyxl_compat
 from datetime import datetime, date, time
 import os
 from distutils.version import LooseVersion
@@ -44,6 +44,10 @@ def _skip_if_no_openpyxl():
         import openpyxl  # NOQA
     except ImportError:
         raise nose.SkipTest('openpyxl not installed, skipping')
+
+    if not openpyxl_compat.is_compat():
+        raise nose.SkipTest('need %s <= openpyxl < %s, skipping' %
+                (openpyxl_compat.start_ver, openpyxl_compat.stop_ver))
 
 
 def _skip_if_no_xlsxwriter():
