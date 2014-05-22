@@ -4,19 +4,18 @@ from datetime import datetime
 from pandas.compat import range, lrange, u
 import nose
 import re
+import os
 
 import numpy as np
+import pandas as pd
 
-from pandas.core.categorical import Categorical
-from pandas.core.index import Index, Int64Index, MultiIndex
-from pandas.core.frame import DataFrame
-from pandas.tseries.period import PeriodIndex
+from pandas import (Categorical, Index, Int64Index, MultiIndex,
+                    Series, DataFrame, PeriodIndex, Timestamp)
+
 from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com
-from pandas.tseries.period import PeriodIndex
-
+import pandas.compat as compat
 import pandas.util.testing as tm
-
 
 class TestCategorical(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -30,18 +29,90 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(self.factor[-1], 'c')
 
         subf = self.factor[[0, 1, 2]]
-        tm.assert_almost_equal(subf.labels, [0, 1, 1])
+        tm.assert_almost_equal(subf._codes, [0, 1, 1])
 
         subf = self.factor[np.asarray(self.factor) == 'c']
-        tm.assert_almost_equal(subf.labels, [2, 2, 2])
+        tm.assert_almost_equal(subf._codes, [2, 2, 2])
 
     def test_constructor_unsortable(self):
-        raise nose.SkipTest('skipping for now')
-
-        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
 
         # it works!
+        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
         factor = Categorical.from_array(arr)
+        self.assertFalse(factor.ordered)
+
+    def test_constructor(self):
+        # There are multiple ways to call a constructor
+
+        # old style: two arrays, one a pointer to the labels
+        # old style is now only available with compat=True
+        exp_arr = np.array(["a", "b", "c", "a", "b", "c"])
+        with tm.assert_produces_warning(FutureWarning):
+            c_old = Categorical([0,1,2,0,1,2], levels=["a","b","c"], compat=True)
+        self.assert_numpy_array_equal(c_old.__array__(), exp_arr)
+        # the next one are from the old docs
+        with tm.assert_produces_warning(FutureWarning):
+           c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3], compat=True)
+        self.assert_numpy_array_equal(c_old2.__array__(), np.array([1, 2, 3, 1, 2, 3]))
+        with tm.assert_produces_warning(FutureWarning):
+            c_old3 = Categorical([0,1,2,0,1,2], ['a', 'b', 'c'], compat=True)
+        self.assert_numpy_array_equal(c_old3.__array__(), np.array(['a', 'b', 'c', 'a', 'b', 'c']))
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([1,2], levels=[1,2,3], compat=True)
+        self.assert_numpy_array_equal(cat.__array__(), np.array([2,3]))
+
+        with tm.assert_produces_warning(None):
+            cat = pd.Categorical([1,2], levels=[1,2,3], compat=False)
+        self.assert_numpy_array_equal(cat.__array__(), np.array([1,2]))
+
+        # new style
+        c1 = Categorical(exp_arr)
+        self.assert_numpy_array_equal(c1.__array__(), exp_arr)
+        c2 = Categorical(exp_arr, levels=["a","b","c"])
+        self.assert_numpy_array_equal(c2.__array__(), exp_arr)
+        c2 = Categorical(exp_arr, levels=["c","b","a"])
+        self.assert_numpy_array_equal(c2.__array__(), exp_arr)
+
+        # Categorical as input
+        c1 = Categorical(["a", "b", "c", "a"])
+        c2 = Categorical(c1)
+        self.assertTrue(c1.equals(c2))
+
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","b","c","d"])
+        c2 = Categorical(c1)
+        self.assertTrue(c1.equals(c2))
+
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","c","b"])
+        c2 = Categorical(c1)
+        self.assertTrue(c1.equals(c2))
+
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","c","b"])
+        c2 = Categorical(c1, levels=["a","b","c"])
+        self.assert_numpy_array_equal(c1.__array__(), c2.__array__())
+        self.assert_numpy_array_equal(c2.levels, np.array(["a","b","c"]))
+
+        # Series of dtype category
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","b","c","d"])
+        c2 = Categorical(Series(c1))
+        self.assertTrue(c1.equals(c2))
+
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","c","b"])
+        c2 = Categorical(Series(c1))
+        self.assertTrue(c1.equals(c2))
+
+        # Series
+        c1 = Categorical(["a", "b", "c", "a"])
+        c2 = Categorical(Series(["a", "b", "c", "a"]))
+        self.assertTrue(c1.equals(c2))
+
+        c1 = Categorical(["a", "b", "c", "a"], levels=["a","b","c","d"])
+        c2 = Categorical(Series(["a", "b", "c", "a"]), levels=["a","b","c","d"])
+        self.assertTrue(c1.equals(c2))
+
+        # This should result in integer levels, not float!
+        cat = pd.Categorical([1,2,3,np.nan], levels=[1,2,3])
+        self.assertTrue(com.is_integer_dtype(cat.levels))
 
     def test_factor_agg(self):
         import pandas.core.frame as frame
@@ -50,9 +121,9 @@ class TestCategorical(tm.TestCase):
 
         f = np.sum
         agged = frame.factor_agg(self.factor, arr, f)
-        labels = self.factor.labels
+        pointers = self.factor._codes
         for i, idx in enumerate(self.factor.levels):
-            self.assertEqual(f(arr[labels == i]), agged[i])
+            self.assertEqual(f(arr[pointers == i]), agged[i])
 
     def test_comparisons(self):
         result = self.factor[self.factor == 'a']
@@ -97,7 +168,7 @@ class TestCategorical(tm.TestCase):
         labels = np.random.randint(0, 10, 20)
         labels[::5] = -1
 
-        cat = Categorical(labels, levels)
+        cat = Categorical(labels, levels, fastpath=True)
         repr(cat)
 
         self.assert_numpy_array_equal(com.isnull(cat), labels == -1)
@@ -127,7 +198,7 @@ class TestCategorical(tm.TestCase):
 
     def test_print(self):
         expected = [" a", " b", " b", " a", " a", " c", " c", " c",
-                    "Levels (3): Index([a, b, c], dtype=object)"]
+                    "Levels (3): Index([a, b, c], dtype=object), ordered"]
         expected = "\n".join(expected)
         # hack because array_repr changed in numpy > 1.6.x
         actual = repr(self.factor)
@@ -138,11 +209,11 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(actual, expected)
 
     def test_big_print(self):
-        factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat')
+        factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat', fastpath=True)
         expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
                     " a", " b", " c", " a", "...", " c", " a", " b", " c",
                     " a", " b", " c", " a", " b", " c", " a", " b", " c",
-                    "Levels (3): Index([a, b, c], dtype=object)",
+                    "Levels (3): Index([a, b, c], dtype=object), unordered",
                     "Name: cat, Length: 600" ]
         expected = "\n".join(expected)
 
@@ -157,7 +228,7 @@ class TestCategorical(tm.TestCase):
     def test_empty_print(self):
         factor = Categorical([], ["a","b","c"], name="cat")
         expected = ("Categorical([], Name: cat, Levels (3): "
-                    "Index([a, b, c], dtype=object)")
+                    "Index([a, b, c], dtype=object), ordered")
         # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         pat = "Index\(\['a', 'b', 'c']"
@@ -168,7 +239,7 @@ class TestCategorical(tm.TestCase):
 
         factor = Categorical([], ["a","b","c"])
         expected = ("Categorical([], Levels (3): "
-                    "Index([a, b, c], dtype=object)")
+                    "Index([a, b, c], dtype=object), ordered")
         # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         pat = "Index\(\['a', 'b', 'c']"
@@ -179,44 +250,1237 @@ class TestCategorical(tm.TestCase):
 
         factor = Categorical([], [])
         expected = ("Categorical([], Levels (0): "
-                    "Index([], dtype=object)")
+                    "Index([], dtype=object), ordered")
         self.assertEqual(repr(factor), expected)
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                             '2014-03', '2014-03'], freq='M')
+
         cat1 = Categorical.from_array(idx1)
-
-        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        str(cat1)
+        exp_arr = np.array([0, 0, 1, 1, 2, 2],dtype='int64')
         exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
-
-        self.assert_numpy_array_equal(cat1.labels, exp_arr)
+        self.assert_numpy_array_equal(cat1._codes, exp_arr)
         self.assertTrue(cat1.levels.equals(exp_idx))
-
 
         idx2 = PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
                             '2014-03', '2014-01'], freq='M')
         cat2 = Categorical.from_array(idx2)
-
-        exp_arr = np.array([2, 2, 1, 0, 2, 0])
-
-        self.assert_numpy_array_equal(cat2.labels, exp_arr)
-        self.assertTrue(cat2.levels.equals(exp_idx))
+        str(cat2)
+        exp_arr = np.array([2, 2, 1, 0, 2, 0],dtype='int64')
+        exp_idx2 = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
+        self.assert_numpy_array_equal(cat2._codes, exp_arr)
+        self.assertTrue(cat2.levels.equals(exp_idx2))
 
         idx3 = PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09',
                             '2013-08', '2013-07', '2013-05'], freq='M')
         cat3 = Categorical.from_array(idx3)
-
-        exp_arr = np.array([6, 5, 4, 3, 2, 1, 0])
+        exp_arr = np.array([6, 5, 4, 3, 2, 1, 0],dtype='int64')
         exp_idx = PeriodIndex(['2013-05', '2013-07', '2013-08', '2013-09',
                                '2013-10', '2013-11', '2013-12'], freq='M')
-
-        self.assert_numpy_array_equal(cat3.labels, exp_arr)
+        self.assert_numpy_array_equal(cat3._codes, exp_arr)
         self.assertTrue(cat3.levels.equals(exp_idx))
+
+    def test_level_assigments(self):
+        s = pd.Categorical(["a","b","c","a"])
+        exp = np.array([1,2,3,1])
+        s.levels = [1,2,3]
+        self.assert_numpy_array_equal(s.__array__(), exp)
+        self.assert_numpy_array_equal(s.levels, np.array([1,2,3]))
+        # lengthen
+        s.levels = [1,2,3,4]
+        # does nothing to the values but only the the levels
+        self.assert_numpy_array_equal(s.__array__(), exp)
+        self.assert_numpy_array_equal(s.levels, np.array([1,2,3,4]))
+        # shorten
+        exp2 = np.array([1,2,np.nan,1])
+        s.levels = [1,2]
+        self.assert_numpy_array_equivalent(s.__array__(), exp2) # doesn't work with nan :-(
+        self.assertTrue(np.isnan(s.__array__()[2]))
+        self.assert_numpy_array_equal(s.levels, np.array([1,2]))
+
+    def test_category_reorder_levels(self):
+        cat = Categorical(["a","b","c","a"], ordered=True)
+        exp_levels = np.array(["c","b","a"])
+        exp_values = np.array(["a","b","c","a"])
+        cat.reorder_levels(["c","b","a"])
+        self.assert_numpy_array_equal(cat.levels, exp_levels)
+        self.assert_numpy_array_equal(cat.__array__(), exp_values)
+
+        def f():
+            cat.reorder_levels(["a"])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            cat.reorder_levels(["a","b","d"])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            cat.reorder_levels(["a","b","c", "d"])
+        self.assertRaises(ValueError, f)
+
+        # internals...
+        c = Categorical([1,2,3,4,1], levels=[1,2,3,4])
+        self.assert_numpy_array_equal(c._codes, np.array([0,1,2,3,0]))
+        self.assert_numpy_array_equal(c.levels , np.array([1,2,3,4] ))
+        self.assert_numpy_array_equal(c.get_values() , np.array([1,2,3,4,1] ))
+        c.reorder_levels([4,3,2,1]) # all "pointers" to '4' must be changed from 3 to 0,...
+        self.assert_numpy_array_equal(c._codes , np.array([3,2,1,0,3])) # positions are changed
+        self.assert_numpy_array_equal(c.levels , np.array([4,3,2,1])) # levels are now in new order
+        self.assert_numpy_array_equal(c.get_values() , np.array([1,2,3,4,1])) # output is the same
+        self.assertTrue(c.min(), 4)
+        self.assertTrue(c.max(), 1)
+
+        def f():
+            c.reorder_levels([4,3,2,10])
+        self.assertRaises(ValueError, f)
+
+    def test_remove_unused_levels(self):
+        c = Categorical(["a","b","c","d","a"], levels=["a","b","c","d","e"])
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b","c","d","e"]))
+        c.remove_unused_levels()
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b","c","d"]))
+
+    def test_nan_handling(self):
+
+        # Nans are represented as -1 in labels
+        c = Categorical(["a","b",np.nan,"a"])
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b"]))
+        self.assert_numpy_array_equal(c._codes , np.array([0,1,-1,0]))
+
+        # If levels have nan included, the label should point to that instead
+        c = Categorical(["a","b",np.nan,"a"], levels=["a","b",np.nan])
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
+        self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
+
+        # Changing levels should also make the replaced level np.nan
+        c = Categorical(["a","b","c","a"])
+        c.levels = ["a","b",np.nan]
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
+        self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
+
+
+    def test_min_max(self):
+
+        # unordered cats have no min/max
+        cat = Categorical(["a","b","c","d"], ordered=False)
+        self.assertRaises(TypeError, lambda : cat.min())
+        self.assertRaises(TypeError, lambda : cat.max())
+        cat = Categorical(["a","b","c","d"], ordered=True)
+        _min = cat.min()
+        _max = cat.max()
+        self.assertEqual(_min, "a")
+        self.assertEqual(_max, "d")
+        cat = Categorical(["a","b","c","d"], levels=['d','c','b','a'], ordered=True)
+        _min = cat.min()
+        _max = cat.max()
+        self.assertEqual(_min, "d")
+        self.assertEqual(_max, "a")
+        cat = Categorical([np.nan,"b","c",np.nan], levels=['d','c','b','a'], ordered=True)
+        _min = cat.min()
+        _max = cat.max()
+        self.assertTrue(np.isnan(_min))
+        self.assertEqual(_max, "b")
+
+        _min = cat.min(numeric_only=True)
+        self.assertEqual(_min, "c")
+        _max = cat.max(numeric_only=True)
+        self.assertEqual(_max, "b")
+
+        cat = Categorical([np.nan,1,2,np.nan], levels=[5,4,3,2,1], ordered=True)
+        _min = cat.min()
+        _max = cat.max()
+        self.assertTrue(np.isnan(_min))
+        self.assertEqual(_max, 1)
+
+        _min = cat.min(numeric_only=True)
+        self.assertEqual(_min, 2)
+        _max = cat.max(numeric_only=True)
+        self.assertEqual(_max, 1)
+
+
+    def test_mode(self):
+        s = Categorical([1,1,2,4,5,5,5], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([5], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+        s = Categorical([1,1,1,4,5,5,5], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([5,1], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+        s = Categorical([1,2,3,4,5], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+        # NaN should not become the mode!
+        s = Categorical([np.nan,np.nan,np.nan,4,5], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+        s = Categorical([np.nan,np.nan,np.nan,4,5,4], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([4], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+        s = Categorical([np.nan,np.nan,4,5,4], levels=[5,4,3,2,1], ordered=True)
+        res = s.mode()
+        exp = Categorical([4], levels=[5,4,3,2,1], ordered=True)
+        self.assertTrue(res.equals(exp))
+
+
+    def test_sort(self):
+
+        # unordered cats are not sortable
+        cat = Categorical(["a","b","b","a"], ordered=False)
+        self.assertRaises(TypeError, lambda : cat.sort())
+        cat = Categorical(["a","c","b","d"], ordered=True)
+
+        # order
+        res = cat.order()
+        exp = np.array(["a","b","c","d"],dtype=object)
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        cat = Categorical(["a","c","b","d"], levels=["a","b","c","d"], ordered=True)
+        res = cat.order()
+        exp = np.array(["a","b","c","d"],dtype=object)
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        res = cat.order(ascending=False)
+        exp = np.array(["d","c","b","a"],dtype=object)
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        # sort (inplace order)
+        cat1 = cat.copy()
+        cat1.sort()
+        exp = np.array(["a","b","c","d"],dtype=object)
+        self.assert_numpy_array_equal(cat1.__array__(), exp)
+
+    def test_slicing_directly(self):
+        cat = Categorical(["a","b","c","d","a","b","c"])
+        sliced = cat[3]
+        tm.assert_equal(sliced, "d")
+        sliced = cat[3:5]
+        expected = Categorical(["d","a"], levels=['a', 'b', 'c', 'd'])
+        self.assert_numpy_array_equal(sliced._codes, expected._codes)
+        tm.assert_index_equal(sliced.levels, expected.levels)
+
+class TestCategoricalAsBlock(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
+                                              'a', 'c', 'c', 'c'])
+
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
+
+        df = df.sort(columns=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        self.cat = df
+
+    def test_dtypes(self):
+
+        dtype = com.CategoricalDtype()
+        hash(dtype)
+        self.assertTrue(com.is_categorical_dtype(dtype))
+
+        s = Series(self.factor,name='A')
+
+        # dtypes
+        self.assertTrue(com.is_categorical_dtype(s.dtype))
+        self.assertTrue(com.is_categorical_dtype(s))
+        self.assertFalse(com.is_categorical_dtype(np.dtype('float64')))
+
+        # np.dtype doesn't know about our new dtype
+        def f():
+            np.dtype(dtype)
+        self.assertRaises(TypeError, f)
+
+        self.assertFalse(dtype == np.str_)
+        self.assertFalse(np.str_ == dtype)
+
+    def test_basic(self):
+
+        # test basic creation / coercion of categoricals
+        s = Series(self.factor,name='A')
+        self.assertEqual(s.dtype,'category')
+        self.assertEqual(len(s),len(self.factor))
+        str(s.values)
+        str(s)
+
+        # in a frame
+        df = DataFrame({'A' : self.factor })
+        result = df['A']
+        tm.assert_series_equal(result,s)
+        result = df.iloc[:,0]
+        tm.assert_series_equal(result,s)
+        self.assertEqual(len(df),len(self.factor))
+        str(df.values)
+        str(df)
+
+        df = DataFrame({'A' : s })
+        result = df['A']
+        tm.assert_series_equal(result,s)
+        self.assertEqual(len(df),len(self.factor))
+        str(df.values)
+        str(df)
+
+        # multiples
+        df = DataFrame({'A' : s, 'B' : s, 'C' : 1})
+        result1 = df['A']
+        result2 = df['B']
+        tm.assert_series_equal(result1,s)
+        tm.assert_series_equal(result2,s)
+        self.assertEqual(len(df),len(self.factor))
+        str(df.values)
+        str(df)
+
+    def test_creation_astype(self):
+        l = ["a","b","c","a"]
+        s = pd.Series(l)
+        exp = pd.Series(Categorical(l))
+        res = s.astype('category')
+        tm.assert_series_equal(res, exp)
+
+        l = [1,2,3,1]
+        s = pd.Series(l)
+        exp = pd.Series(Categorical(l))
+        res = s.astype('category')
+        tm.assert_series_equal(res, exp)
+
+    def test_sideeffects_free(self):
+
+        # Passing a categorical to a Series and then changing values in either the series or the
+        # categorical should not change the values in the other one!
+        cat = Categorical(["a","b","c","a"])
+        s =  pd.Series(cat, copy=True)
+        self.assertFalse(s.cat is cat)
+        s.cat.levels = [1,2,3]
+        exp_s = np.array([1,2,3,1])
+        exp_cat = np.array(["a","b","c","a"])
+        self.assert_numpy_array_equal(s.__array__(), exp_s)
+        self.assert_numpy_array_equal(cat.__array__(), exp_cat)
+
+        # setting
+        s[0] = 2
+        exp_s2 = np.array([2,2,3,1])
+        self.assert_numpy_array_equal(s.__array__(), exp_s2)
+        self.assert_numpy_array_equal(cat.__array__(), exp_cat)
+
+        # however, copy is False by default
+        # so this WILL change values
+        cat = Categorical(["a","b","c","a"])
+        s =  pd.Series(cat)
+        self.assertTrue(s.cat is cat)
+        s.cat.levels = [1,2,3]
+        exp_s = np.array([1,2,3,1])
+        self.assert_numpy_array_equal(s.__array__(), exp_s)
+        self.assert_numpy_array_equal(cat.__array__(), exp_s)
+
+        s[0] = 2
+        exp_s2 = np.array([2,2,3,1])
+        self.assert_numpy_array_equal(s.__array__(), exp_s2)
+        self.assert_numpy_array_equal(cat.__array__(), exp_s2)
+
+    def test_nan_handling(self):
+
+        # Nans are represented as -1 in labels
+        s = Series(Categorical(["a","b",np.nan,"a"]))
+        self.assert_numpy_array_equal(s.cat.levels, np.array(["a","b"]))
+        self.assert_numpy_array_equal(s.cat._codes, np.array([0,1,-1,0]))
+
+        # If levels have nan included, the label should point to that instead
+        s2 = Series(Categorical(["a","b",np.nan,"a"], levels=["a","b",np.nan]))
+        self.assert_numpy_array_equal(s2.cat.levels,
+                                      np.array(["a","b",np.nan], dtype=np.object_))
+        self.assert_numpy_array_equal(s2.cat._codes, np.array([0,1,2,0]))
+
+        # Changing levels should also make the replaced level np.nan
+        s3 = Series(Categorical(["a","b","c","a"]))
+        s3.cat.levels = ["a","b",np.nan]
+        self.assert_numpy_array_equal(s3.cat.levels,
+                                      np.array(["a","b",np.nan], dtype=np.object_))
+        self.assert_numpy_array_equal(s3.cat._codes, np.array([0,1,2,0]))
+
+
+    def test_series_delegations(self):
+
+        # invalid accessor
+        self.assertRaises(TypeError, lambda : Series([1,2,3]).cat)
+        tm.assertRaisesRegexp(TypeError,
+                              r"Can only use .cat accessor with a 'category' dtype",
+                              lambda : Series([1,2,3]).cat)
+        self.assertRaises(TypeError, lambda : Series(['a','b','c']).cat)
+        self.assertRaises(TypeError, lambda : Series(np.arange(5.)).cat)
+        self.assertRaises(TypeError, lambda : Series([Timestamp('20130101')]).cat)
+
+        # Series should delegate calls to '.level', '.ordered' and '.reorder()' to the categorical
+        s = Series(Categorical(["a","b","c","a"], ordered=True))
+        exp_levels = np.array(["a","b","c"])
+        self.assert_numpy_array_equal(s.cat.levels, exp_levels)
+
+        s.cat.levels = [1,2,3]
+        exp_levels = np.array([1,2,3])
+        self.assert_numpy_array_equal(s.cat.levels, exp_levels)
+        self.assertEqual(s.cat.ordered, True)
+        s.cat.ordered = False
+        self.assertEqual(s.cat.ordered, False)
+
+        # reorder
+        s = Series(Categorical(["a","b","c","a"], ordered=True))
+        exp_levels = np.array(["c","b","a"])
+        exp_values = np.array(["a","b","c","a"])
+        s.cat.reorder_levels(["c","b","a"])
+        self.assert_numpy_array_equal(s.cat.levels, exp_levels)
+        self.assert_numpy_array_equal(s.cat.__array__(), exp_values)
+        self.assert_numpy_array_equal(s.__array__(), exp_values)
+
+        # remove unused levels
+        s = Series(Categorical(["a","b","b","a"], levels=["a","b","c"]))
+        exp_levels = np.array(["a","b"])
+        exp_values = np.array(["a","b","b","a"])
+        s.cat.remove_unused_levels()
+        self.assert_numpy_array_equal(s.cat.levels, exp_levels)
+        self.assert_numpy_array_equal(s.cat.__array__(), exp_values)
+        self.assert_numpy_array_equal(s.__array__(), exp_values)
+
+        # This method is likely to be confused, so test that it raises an error on wrong inputs:
+        def f():
+            s.reorder_levels([4,3,2,1])
+        self.assertRaises(Exception, f)
+        # right: s.cat.reorder_levels([4,3,2,1])
+
+    def test_series_functions_no_warnings(self):
+        df = pd.DataFrame({'value': np.random.randint(0, 100, 20)})
+        labels = [ "{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
+        with tm.assert_produces_warning(False):
+            df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
+
+    def test_assignment_to_dataframe(self):
+        # assignment
+        df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),dtype='int32')})
+        labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
+
+        df = df.sort(columns=['value'], ascending=True)
+        d = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        s = Series(d)
+        df['D'] = d
+        str(df)
+
+        result = df.dtypes
+        expected = Series([np.dtype('int32'), com.CategoricalDtype()],index=['value','D'])
+        tm.assert_series_equal(result,expected)
+
+        df['E'] = s
+        str(df)
+
+        result = df.dtypes
+        expected = Series([np.dtype('int32'), com.CategoricalDtype(), com.CategoricalDtype()],
+                          index=['value','D','E'])
+        tm.assert_series_equal(result,expected)
+
+        result1 = df['D']
+        result2 = df['E']
+        self.assertTrue(result1._data._block.values.equals(d))
+
+        # sorting
+        s.name = 'E'
+        self.assertTrue(result2.sort_index().equals(s))
+
+        # FIXME?
+        #### what does this compare to? ###
+        result = df.sort_index()
+
+        cat = pd.Categorical([1,2,3,10], levels=[1,2,3,4,10])
+        df = pd.DataFrame(pd.Series(cat))
+
+    def test_describe(self):
+
+        ###FIXME###
+        # This should(?) only includes the value column, not the value_group
+        result = self.cat['value_group'].describe()
+        result = self.cat.describe()
+        self.assertEquals(len(result.columns),1)
+
+        s = Series(Categorical(["a","b","b","b"], levels=['a','b','c'], ordered=True))
+        result = s.cat.describe()
+
+        expected = DataFrame([[1,0.25],[3,0.75],[np.nan,np.nan]],
+                             columns=['counts','freqs'],
+                             index=Index(['a','b','c'],name='levels'))
+        tm.assert_frame_equal(result,expected)
+
+        ###FIXME###x: this correctly returns 2 for the uniques, should we add an attribute levels?
+        result = s.describe()
+        expected = Series([4,2],index=['count','unique'])
+        tm.assert_series_equal(result,expected)
+
+    def test_groupby(self):
+
+        result = self.cat['value_group'].unique()
+        result = self.cat.groupby(['value_group'])['value_group'].count()
+
+    def test_groupby_sort(self):
+
+        # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
+        # This should result in a properly sorted Series so that the plot
+        # has a sorted x axis
+        #self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
+
+        res = self.cat.groupby(['value_group'])['value_group'].count()
+        exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max(self):
+        # unordered cats have no min/max
+        cat = Series(Categorical(["a","b","c","d"], ordered=False))
+        self.assertRaises(TypeError, lambda : cat.min())
+        self.assertRaises(TypeError, lambda : cat.max())
+
+        cat = Series(Categorical(["a","b","c","d"], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        self.assertEqual(_min, "a")
+        self.assertEqual(_max, "d")
+
+        cat = Series(Categorical(["a","b","c","d"], levels=['d','c','b','a'], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        self.assertEqual(_min, "d")
+        self.assertEqual(_max, "a")
+
+        cat = Series(Categorical([np.nan,"b","c",np.nan], levels=['d','c','b','a'], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        self.assertTrue(np.isnan(_min))
+        self.assertEqual(_max, "b")
+
+        cat = Series(Categorical([np.nan,1,2,np.nan], levels=[5,4,3,2,1], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        self.assertTrue(np.isnan(_min))
+        self.assertEqual(_max, 1)
+
+    def test_mode(self):
+        s = Series(Categorical([1,1,2,4,5,5,5], levels=[5,4,3,2,1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5], levels=[5,4,3,2,1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1,1,1,4,5,5,5], levels=[5,4,3,2,1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5,1], levels=[5,4,3,2,1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1,2,3,4,5], levels=[5,4,3,2,1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([], levels=[5,4,3,2,1], ordered=True))
+        tm.assert_series_equal(res, exp)
+
+    def test_value_counts(self):
+
+        s = pd.Series(pd.Categorical(["a","b","c","c","c","b"], levels=["c","a","b","d"]))
+        res = s.value_counts(sort=False)
+        exp = Series([3,1,2,0], index=["c","a","b","d"])
+        tm.assert_series_equal(res, exp)
+        res = s.value_counts(sort=True)
+        exp = Series([3,2,1,0], index=["c","b","a","d"])
+        tm.assert_series_equal(res, exp)
+
+    def test_groupby(self):
+
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])
+        data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
+
+        result = data.groupby("b").mean()
+        result = result["a"].values
+        exp = np.array([1,2,4,np.nan])
+        self.assert_numpy_array_equivalent(result, exp)
+
+        ### FIXME ###
+
+        #res = len(data.groupby("b"))
+        #self.assertEqual(res ,4)
+
+        raw_cat1 = Categorical(["a","a","b","b"], levels=["a","b","z"])
+        raw_cat2 = Categorical(["c","d","c","d"], levels=["c","d","y"])
+        df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
+        gb = df.groupby("A")
+
+        #idx = gb.indices
+        #self.assertEqual(len(gb), 3)
+        #num = 0
+        #for _ in gb:
+        #    num +=1
+        #self.assertEqual(len(gb), 3)
+        #gb = df.groupby(["B"])
+        #idx2 = gb.indices
+        #self.assertEqual(len(gb), 3)
+        #num = 0
+        #for _ in gb:
+        #    num +=1
+        #self.assertEqual(len(gb), 3)
+        #gb = df.groupby(["A","B"])
+        #res = len(gb)
+        #idx3 = gb.indices
+        #self.assertEqual(res, 9)
+        #num = 0
+        #for _ in gb:
+        #    num +=1
+        #self.assertEqual(len(gb), 9)
+
+    def test_pivot_table(self):
+
+        raw_cat1 = Categorical(["a","a","b","b"], levels=["a","b","z"])
+        raw_cat2 = Categorical(["c","d","c","d"], levels=["c","d","y"])
+        df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
+        res = pd.pivot_table(df, values='values', index=['A', 'B'])
+
+        ### FIXME ###
+        #self.assertEqual(len(res), 9)
+
+    def test_count(self):
+
+        s = Series(Categorical([np.nan,1,2,np.nan], levels=[5,4,3,2,1], ordered=True))
+        result = s.count()
+        self.assertEqual(result, 2)
+
+    def test_sort(self):
+
+        # unordered cats are not sortable
+        cat = Series(Categorical(["a","b","b","a"], ordered=False))
+        self.assertRaises(TypeError, lambda : cat.sort())
+
+        cat = Series(Categorical(["a","c","b","d"], ordered=True))
+
+        res = cat.order()
+        exp = np.array(["a","b","c","d"])
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        cat = Series(Categorical(["a","c","b","d"], levels=["a","b","c","d"], ordered=True))
+        res = cat.order()
+        exp = np.array(["a","b","c","d"])
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        res = cat.order(ascending=False)
+        exp = np.array(["d","c","b","a"])
+        self.assert_numpy_array_equal(res.__array__(), exp)
+
+        raw_cat1 = Categorical(["a","b","c","d"], levels=["a","b","c","d"], ordered=False)
+        raw_cat2 = Categorical(["a","b","c","d"], levels=["d","c","b","a"])
+        s = ["a","b","c","d"]
+        df = DataFrame({"unsort":raw_cat1,"sort":raw_cat2, "string":s, "values":[1,2,3,4]})
+
+        # Cats must be sorted in a dataframe
+        res = df.sort(columns=["string"], ascending=False)
+        exp = np.array(["d", "c", "b", "a"])
+        self.assert_numpy_array_equal(res["sort"].cat.__array__(), exp)
+        self.assertEqual(res["sort"].dtype, "category")
+
+        res = df.sort(columns=["sort"], ascending=False)
+        exp = df.sort(columns=["string"], ascending=True)
+        self.assert_numpy_array_equal(res["values"], exp["values"])
+        self.assertEqual(res["sort"].dtype, "category")
+        self.assertEqual(res["unsort"].dtype, "category")
+
+        def f():
+            df.sort(columns=["unsort"], ascending=False)
+        self.assertRaises(TypeError, f)
+
+
+    def test_slicing(self):
+        cat = Series(Categorical([1,2,3,4]))
+        reversed = cat[::-1]
+        exp = np.array([4,3,2,1])
+        self.assert_numpy_array_equal(reversed.__array__(), exp)
+
+        df = DataFrame({'value': (np.arange(100)+1).astype('int64')})
+        df['D'] = pd.cut(df.value, bins=[0,25,50,75,100])
+
+        expected = Series([11,'(0, 25]'],index=['value','D'])
+        result = df.iloc[10]
+        tm.assert_series_equal(result,expected)
+
+        expected = DataFrame({'value': np.arange(11,21).astype('int64')},
+                             index=np.arange(10,20).astype('int64'))
+        expected['D'] = pd.cut(expected.value, bins=[0,25,50,75,100])
+        result = df.iloc[10:20]
+        tm.assert_frame_equal(result,expected)
+
+        expected = Series([9,'(0, 25]'],index=['value','D'])
+        result = df.loc[8]
+        tm.assert_series_equal(result,expected)
+
+    def test_slicing_and_getting_ops(self):
+
+        # systematically test the slicing operations:
+        #  for all slicing ops:
+        #   - returning a dataframe
+        #   - returning a column
+        #   - returning a row
+        #   - returning a single value
+
+        cats = pd.Categorical(["a","c","b","c","c","c","c"], levels=["a","b","c"])
+        idx = pd.Index(["h","i","j","k","l","m","n"])
+        values= [1,2,3,4,5,6,7]
+        df = pd.DataFrame({"cats":cats,"values":values}, index=idx)
+
+        # the expected values
+        cats2 = pd.Categorical(["b","c"], levels=["a","b","c"])
+        idx2 = pd.Index(["j","k"])
+        values2= [3,4]
+
+        # 2:4,: | "j":"k",:
+        exp_df = pd.DataFrame({"cats":cats2,"values":values2}, index=idx2)
+
+        # :,"cats" | :,0
+        exp_col = pd.Series(cats,index=idx,name='cats')
+
+        # "j",: | 2,:
+        exp_row = pd.Series(["b",3], index=["cats","values"], dtype="object", name="j")
+
+        # "j","cats | 2,0
+        exp_val = "b"
+
+        # iloc
+        # frame
+        res_df = df.iloc[2:4,:]
+        tm.assert_frame_equal(res_df, exp_df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        # row
+        res_row = df.iloc[2,:]
+        tm.assert_series_equal(res_row, exp_row)
+        tm.assert_isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.iloc[:,0]
+        tm.assert_series_equal(res_col, exp_col)
+        self.assertTrue(com.is_categorical_dtype(res_col))
+
+        # single value
+        res_val = df.iloc[2,0]
+        self.assertEqual(res_val, exp_val)
+
+        # loc
+        # frame
+        res_df = df.loc["j":"k",:]
+        tm.assert_frame_equal(res_df, exp_df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        # row
+        res_row = df.loc["j",:]
+        tm.assert_series_equal(res_row, exp_row)
+        tm.assert_isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.loc[:,"cats"]
+        tm.assert_series_equal(res_col, exp_col)
+        self.assertTrue(com.is_categorical_dtype(res_col))
+
+        # single value
+        res_val = df.loc["j","cats"]
+        self.assertEqual(res_val, exp_val)
+
+        # ix
+        # frame
+        #res_df = df.ix["j":"k",[0,1]] # doesn't work?
+        res_df = df.ix["j":"k",:]
+        tm.assert_frame_equal(res_df, exp_df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        # row
+        res_row = df.ix["j",:]
+        tm.assert_series_equal(res_row, exp_row)
+        tm.assert_isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.ix[:,"cats"]
+        tm.assert_series_equal(res_col, exp_col)
+        self.assertTrue(com.is_categorical_dtype(res_col))
+
+        # single value
+        res_val = df.ix["j",0]
+        self.assertEqual(res_val, exp_val)
+
+        # iat
+        res_val = df.iat[2,0]
+        self.assertEqual(res_val, exp_val)
+
+        # at
+        res_val = df.at["j","cats"]
+        self.assertEqual(res_val, exp_val)
+
+        # fancy indexing
+        exp_fancy = df.iloc[[2]]
+
+        res_fancy = df[df["cats"] == "b"]
+        tm.assert_frame_equal(res_fancy,exp_fancy)
+        res_fancy = df[df["values"] == 3]
+        tm.assert_frame_equal(res_fancy,exp_fancy)
+
+        # get_value
+        res_val = df.get_value("j","cats")
+        self.assertEqual(res_val, exp_val)
+
+        # i : int, slice, or sequence of integers
+        res_row = df.irow(2)
+        tm.assert_series_equal(res_row, exp_row)
+        tm.assert_isinstance(res_row["cats"], compat.string_types)
+
+        res_df = df.irow(slice(2,4))
+        tm.assert_frame_equal(res_df, exp_df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        res_df = df.irow([2,3])
+        tm.assert_frame_equal(res_df, exp_df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        res_col = df.icol(0)
+        tm.assert_series_equal(res_col, exp_col)
+        self.assertTrue(com.is_categorical_dtype(res_col))
+
+        res_df = df.icol(slice(0,2))
+        tm.assert_frame_equal(res_df, df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+        res_df = df.icol([0,1])
+        tm.assert_frame_equal(res_df, df)
+        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+
+    def test_assigning_ops(self):
+
+        # systematically test the assigning operations:
+        # for all slicing ops:
+        #  for value in levels and value not in levels:
+        #   - assign a single value -> exp_single_cats_value
+        #   - assign a complete row (mixed values) -> exp_single_row
+        #   - assign multiple rows (mixed values) (-> array) -> exp_multi_row
+        #   - assign a part of a column with dtype == categorical -> exp_parts_cats_col
+        #   - assign a part of a column with dtype != categorical -> exp_parts_cats_col
+
+        cats = pd.Categorical(["a","a","a","a","a","a","a"], levels=["a","b"])
+        idx = pd.Index(["h","i","j","k","l","m","n"])
+        values = [1,1,1,1,1,1,1]
+        orig = pd.DataFrame({"cats":cats,"values":values}, index=idx)
+
+        ### the expected values
+        # changed single row
+        cats1 = pd.Categorical(["a","a","b","a","a","a","a"], levels=["a","b"])
+        idx1 = pd.Index(["h","i","j","k","l","m","n"])
+        values1 = [1,1,2,1,1,1,1]
+        exp_single_row = pd.DataFrame({"cats":cats1,"values":values1}, index=idx1)
+
+        #changed multiple rows
+        cats2 = pd.Categorical(["a","a","b","b","a","a","a"], levels=["a","b"])
+        idx2 = pd.Index(["h","i","j","k","l","m","n"])
+        values2 = [1,1,2,2,1,1,1]
+        exp_multi_row = pd.DataFrame({"cats":cats2,"values":values2}, index=idx2)
+
+        # changed part of the cats column
+        cats3 = pd.Categorical(["a","a","b","b","a","a","a"], levels=["a","b"])
+        idx3 = pd.Index(["h","i","j","k","l","m","n"])
+        values3 = [1,1,1,1,1,1,1]
+        exp_parts_cats_col = pd.DataFrame({"cats":cats3,"values":values3}, index=idx3)
+
+        # changed single value in cats col
+        cats4 = pd.Categorical(["a","a","b","a","a","a","a"], levels=["a","b"])
+        idx4 = pd.Index(["h","i","j","k","l","m","n"])
+        values4 = [1,1,1,1,1,1,1]
+        exp_single_cats_value = pd.DataFrame({"cats":cats4,"values":values4}, index=idx4)
+
+        ####  iloc #####
+        ################
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.iloc[2,0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current level set
+        def f():
+            df = orig.copy()
+            df.iloc[2,0] = "c"
+        self.assertRaises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.iloc[2,:] = ["b",2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in level set
+        def f():
+            df = orig.copy()
+            df.iloc[2,:] = ["c",2]
+        self.assertRaises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.iloc[2:4,:] = [["b",2],["b",2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.iloc[2:4,:] = [["c",2],["c",2]]
+        self.assertRaises(ValueError, f)
+
+        #   - assign a part of a column with dtype == categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.iloc[2:4,0] = pd.Categorical(["b","b"], levels=["a","b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            # different levels -> not sure if this should fail or pass
+            df = orig.copy()
+            df.iloc[2:4,0] = pd.Categorical(["b","b"], levels=["a","b","c"])
+
+        with tm.assertRaises(ValueError):
+            # different values
+            df = orig.copy()
+            df.iloc[2:4,0] = pd.Categorical(["c","c"], levels=["a","b","c"])
+
+        #   - assign a part of a column with dtype != categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.iloc[2:4,0] = ["b","b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            df.iloc[2:4,0] = ["c","c"]
+
+        ####  loc  #####
+        ################
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.loc["j","cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current level set
+        def f():
+            df = orig.copy()
+            df.loc["j","cats"] = "c"
+        self.assertRaises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.loc["j",:] = ["b",2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in level set
+        def f():
+            df = orig.copy()
+            df.loc["j",:] = ["c",2]
+        self.assertRaises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.loc["j":"k",:] = [["b",2],["b",2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.loc["j":"k",:] = [["c",2],["c",2]]
+        self.assertRaises(ValueError, f)
+
+        #   - assign a part of a column with dtype == categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k","cats"] = pd.Categorical(["b","b"], levels=["a","b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            # different levels -> not sure if this should fail or pass
+            df = orig.copy()
+            df.loc["j":"k","cats"] = pd.Categorical(["b","b"], levels=["a","b","c"])
+
+        with tm.assertRaises(ValueError):
+            # different values
+            df = orig.copy()
+            df.loc["j":"k","cats"] = pd.Categorical(["c","c"], levels=["a","b","c"])
+
+        #   - assign a part of a column with dtype != categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k","cats"] = ["b","b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            df.loc["j":"k","cats"] = ["c","c"]
+
+        ####  ix   #####
+        ################
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.ix["j",0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current level set
+        def f():
+            df = orig.copy()
+            df.ix["j",0] = "c"
+        self.assertRaises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.ix["j",:] = ["b",2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in level set
+        def f():
+            df = orig.copy()
+            df.ix["j",:] = ["c",2]
+        self.assertRaises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.ix["j":"k",:] = [["b",2],["b",2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.ix["j":"k",:] = [["c",2],["c",2]]
+        self.assertRaises(ValueError, f)
+
+        #   - assign a part of a column with dtype == categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.ix["j":"k",0] = pd.Categorical(["b","b"], levels=["a","b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            # different levels -> not sure if this should fail or pass
+            df = orig.copy()
+            df.ix["j":"k",0] = pd.Categorical(["b","b"], levels=["a","b","c"])
+
+        with tm.assertRaises(ValueError):
+            # different values
+            df = orig.copy()
+            df.ix["j":"k",0] = pd.Categorical(["c","c"], levels=["a","b","c"])
+
+        #   - assign a part of a column with dtype != categorical -> exp_parts_cats_col
+        df = orig.copy()
+        df.ix["j":"k",0] = ["b","b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with tm.assertRaises(ValueError):
+            df.ix["j":"k",0] = ["c","c"]
+
+        # iat
+        df = orig.copy()
+        df.iat[2,0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current level set
+        def f():
+            df = orig.copy()
+            df.iat[2,0] = "c"
+        self.assertRaises(ValueError, f)
+
+        # at
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.at["j","cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current level set
+        def f():
+            df = orig.copy()
+            df.at["j","cats"] = "c"
+        self.assertRaises(ValueError, f)
+
+        # fancy indexing
+        catsf = pd.Categorical(["a","a","c","c","a","a","a"], levels=["a","b","c"])
+        idxf = pd.Index(["h","i","j","k","l","m","n"])
+        valuesf = [1,1,3,3,1,1,1]
+        df = pd.DataFrame({"cats":catsf,"values":valuesf}, index=idxf)
+
+        exp_fancy = exp_multi_row.copy()
+        exp_fancy["cats"].cat.levels = ["a","b","c"]
+
+        df[df["cats"] == "c"] = ["b",2]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        # set_value
+        df = orig.copy()
+        df.set_value("j","cats", "b")
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        def f():
+            df = orig.copy()
+            df.set_value("j","cats", "c")
+        self.assertRaises(ValueError, f)
+
+        # Assigning a Category to parts of a int/... column uses the values of the Catgorical
+        df = pd.DataFrame({"a":[1,1,1,1,1], "b":["a","a","a","a","a"]})
+        exp = pd.DataFrame({"a":[1,"b","b",1,1], "b":["a","a","b","b","a"]})
+        df.loc[1:2,"a"] = pd.Categorical(["b","b"], levels=["a","b"])
+        df.loc[2:3,"b"] = pd.Categorical(["b","b"], levels=["a","b"])
+        tm.assert_frame_equal(df, exp)
+
+
+    def test_concat(self):
+        cat = pd.Categorical(["a","b"], levels=["a","b"])
+        vals = [1,2]
+        df = pd.DataFrame({"cats":cat, "vals":vals})
+        cat2 = pd.Categorical(["a","b","a","b"], levels=["a","b"])
+        vals2 = [1,2,1,2]
+        exp = pd.DataFrame({"cats":cat2, "vals":vals2}, index=pd.Index([0, 1, 0, 1]))
+
+        res = pd.concat([df,df])
+        tm.assert_frame_equal(exp, res)
+
+        # Concat should raise if the two categoricals do not have the same levels
+        cat3 = pd.Categorical(["a","b"], levels=["a","b","c"])
+        vals3 = [1,2]
+        df_wrong_levels = pd.DataFrame({"cats":cat3, "vals":vals3})
+
+        def f():
+            pd.concat([df,df_wrong_levels])
+        self.assertRaises(ValueError, f)
+
+    def test_append(self):
+        cat = pd.Categorical(["a","b"], levels=["a","b"])
+        vals = [1,2]
+        df = pd.DataFrame({"cats":cat, "vals":vals})
+        cat2 = pd.Categorical(["a","b","a","b"], levels=["a","b"])
+        vals2 = [1,2,1,2]
+        exp = pd.DataFrame({"cats":cat2, "vals":vals2}, index=pd.Index([0, 1, 0, 1]))
+
+        res = df.append(df)
+        tm.assert_frame_equal(exp, res)
+
+        # Concat should raise if the two categoricals do not have the same levels
+        cat3 = pd.Categorical(["a","b"], levels=["a","b","c"])
+        vals3 = [1,2]
+        df_wrong_levels = pd.DataFrame({"cats":cat3, "vals":vals3})
+
+        def f():
+            df.append(df_wrong_levels)
+        self.assertRaises(ValueError, f)
+
+    def test_na_actions(self):
+
+        cat = pd.Categorical([1,2,3,np.nan], levels=[1,2,3])
+        vals = ["a","b",np.nan,"d"]
+        df = pd.DataFrame({"cats":cat, "vals":vals})
+        cat2 = pd.Categorical([1,2,3,3], levels=[1,2,3])
+        vals2 = ["a","b","b","d"]
+        df_exp_fill = pd.DataFrame({"cats":cat2, "vals":vals2})
+        cat3 = pd.Categorical([1,2,3], levels=[1,2,3])
+        vals3 = ["a","b",np.nan]
+        df_exp_drop_cats = pd.DataFrame({"cats":cat3, "vals":vals3})
+        cat4 = pd.Categorical([1,2], levels=[1,2,3])
+        vals4 = ["a","b"]
+        df_exp_drop_all = pd.DataFrame({"cats":cat4, "vals":vals4})
+
+        # fillna
+        res = df.fillna(value={"cats":3, "vals":"b"})
+        tm.assert_frame_equal(res, df_exp_fill)
+
+        def f():
+            df.fillna(value={"cats":4, "vals":"c"})
+        self.assertRaises(ValueError, f)
+
+        res = df.fillna(method='pad')
+        tm.assert_frame_equal(res, df_exp_fill)
+
+        res = df.dropna(subset=["cats"])
+        tm.assert_frame_equal(res, df_exp_drop_cats)
+
+        res = df.dropna()
+        tm.assert_frame_equal(res, df_exp_drop_all)
+
+    def test_astype_to_other(self):
+
+        s = self.cat['value_group']
+        expected = s
+        tm.assert_series_equal(s.astype('category'),expected)
+        tm.assert_series_equal(s.astype(com.CategoricalDtype()),expected)
+        self.assertRaises(ValueError, lambda : s.astype('float64'))
+
+        cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
+        exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        tm.assert_series_equal(cat.astype('str'), exp)
+        s2 = Series(Categorical.from_array(['1', '2', '3', '4']))
+        exp2 = Series([1,2,3,4]).astype(int)
+        tm.assert_series_equal(s2.astype('int') , exp2)
+
+        # object don't sort correctly, so just compare that we have the same values
+        def cmp(a,b):
+            tm.assert_almost_equal(np.sort(np.unique(a)),np.sort(np.unique(b)))
+        expected = Series(np.array(s.values),name='value_group')
+        cmp(s.astype('object'),expected)
+        cmp(s.astype(np.object_),expected)
+
+        # array conversion
+        tm.assert_almost_equal(np.array(s),np.array(s.values))
+
+    def test_numeric_like_ops(self):
+
+        # numeric ops should not succeed
+        for op in ['__add__','__sub__','__mul__','__truediv__']:
+            self.assertRaises(TypeError, lambda : getattr(self.cat,op)(self.cat))
+
+        # reduction ops should not succeed (unless specifically defined, e.g. min/max)
+        s = self.cat['value_group']
+        for op in ['kurt','skew','var','std','mean','sum','median']:
+            self.assertRaises(TypeError, lambda : getattr(s,op)(numeric_only=False))
+
+        # mad technically works because it takes always the numeric data
+
+        # numpy ops
+        s = pd.Series(pd.Categorical([1,2,3,4]))
+        self.assertRaises(TypeError, lambda : np.sum(s))
+
+        # numeric ops on a Series
+        for op in ['__add__','__sub__','__mul__','__truediv__']:
+            self.assertRaises(TypeError, lambda : getattr(s,op)(2))
+
+        # invalid ufunc
+        self.assertRaises(TypeError, lambda : np.log(s))
+
+    def test_io_hdf(self):
+        from pandas.io.tests.test_pytables import safe_remove
+        from pandas.io.pytables import  read_hdf
+
+        hdf_file = 'test.h5'
+
+        try:
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
+            # FIXME: AttributeError: 'Categorical' object has no attribute 'T'
+            s.to_hdf(hdf_file, "series_alone")
+            s2 = read_hdf(hdf_file, "series_alone")
+            tm.assert_series_equal(s, s2)
+            df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
+            df.to_hdf(hdf_file, "frame_alone")
+            df2 = read_hdf(hdf_file, "frame_alone")
+            tm.assert_frame_equal(df, df2)
+            # Ok, this doesn't work yet
+            # FIXME: TypeError: cannot pass a where specification when reading from a Fixed format store. this store must be selected in its entirety
+            #result = read_hdf(hdf_file, "frame_alone", where = ['index>2'])
+            #tm.assert_frame_equal(df[df.index>2],result)
+
+        finally:
+            safe_remove(hdf_file)
+
+    def test_io_csv(self):
+
+        # CSV should result in the same output as when one would add a normal Series/DataFrame
+        from pandas.compat import StringIO
+
+        s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
+        s2 = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        res = StringIO()
+        s.to_csv(res)
+        exp = StringIO()
+        s2.to_csv(exp)
+        self.assertEqual(res.getvalue(), exp.getvalue())
+
+        df = DataFrame({"s":s})
+        df2 = DataFrame({"s":s2})
+        res = StringIO()
+        # FIXME: IndexError: too many indices
+        #df.to_csv(res)
+        #exp = StringIO()
+        #df2.to_csv(exp)
+        #self.assertEqual(res.getvalue(), exp.getvalue())
 
 
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)
+                   # '--with-coverage', '--cover-package=pandas.core']
+                    exit=False)

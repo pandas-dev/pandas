@@ -203,7 +203,6 @@ class FrozenNDArray(PandasObject, np.ndarray):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-
 class IndexOpsMixin(object):
     """ common ops mixin to support a unified inteface / docs for Series / Index """
 
@@ -287,7 +286,11 @@ class IndexOpsMixin(object):
         uniques : ndarray
         """
         from pandas.core.nanops import unique1d
-        return unique1d(self.values)
+        values = self.values
+        if hasattr(values,'unique'):
+            return values.unique()
+
+        return unique1d(values)
 
     def nunique(self, dropna=True):
         """

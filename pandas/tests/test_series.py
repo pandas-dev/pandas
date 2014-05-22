@@ -472,14 +472,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'])
-        res = Series(cat)
-        exp = Series({0: 'a', 1: 'b', 2: 'c', 3: 'a', 4: 'b', 5: 'c'})
-        assert_series_equal(res, exp)
-
+        cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'], fastpath=True)
         cat.name = 'foo'
         res = Series(cat)
         self.assertEqual(res.name, cat.name)
+        self.assertTrue(res.values.equals(cat))
 
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)

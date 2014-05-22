@@ -96,7 +96,10 @@ class CategoricalFormatter(object):
         levheader = 'Levels (%d): ' % len(self.categorical.levels)
 
         # TODO: should max_line_width respect a setting?
-        levstring = np.array_repr(self.categorical.levels, max_line_width=60)
+        try:
+            levstring = np.array_repr(self.categorical.levels, max_line_width=60)
+        except:
+            levstring = str(self.categorical.levels)
         indent = ' ' * (levstring.find('[') + len(levheader) + 1)
         lines = levstring.split('\n')
         levstring = '\n'.join([lines[0]] +
@@ -104,11 +107,15 @@ class CategoricalFormatter(object):
         if footer:
             footer += ', '
         footer += levheader + levstring
+        if self.categorical.ordered:
+            footer += ", ordered"
+        else:
+            footer += ", unordered"
 
         return compat.text_type(footer)
 
     def _get_formatted_values(self):
-        return format_array(np.asarray(self.categorical), None,
+        return format_array(self.categorical.get_values(), None,
                             float_format=None,
                             na_rep=self.na_rep)
 
@@ -191,7 +198,7 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.series.values, None,
+        return format_array(self.series.get_values(), None,
                             float_format=self.float_format,
                             na_rep=self.na_rep)
 
@@ -829,7 +836,7 @@ class HTMLFormatter(TableFormatter):
                     ins_col = self.fmt.tr_col_num
                     if self.fmt.sparsify:
                         recs_new = {}
-                        # Increment tags after ... col. 
+                        # Increment tags after ... col.
                         for tag,span in list(records.items()):
                             if tag >= ins_col:
                                 recs_new[tag + 1] = span
@@ -844,7 +851,7 @@ class HTMLFormatter(TableFormatter):
                             else:
                                 recs_new[tag] = span
                             # if ins_col lies between tags, all col headers get ...
-                            if tag + span == ins_col:  
+                            if tag + span == ins_col:
                                 recs_new[ins_col] = 1
                                 values = values[:ins_col] + (u('...'),) + \
                                     values[ins_col:]
@@ -895,7 +902,7 @@ class HTMLFormatter(TableFormatter):
             ] + [''] * min(len(self.columns), self.max_cols)
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '')                
+                row.insert(ins_col, '')
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -981,7 +988,7 @@ class HTMLFormatter(TableFormatter):
             inner_lvl = len(level_lengths) - 1
             if truncate_v:
                 # Insert ... row and adjust idx_values and
-                # level_lengths to take this into account. 
+                # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
                 for lnum,records in enumerate(level_lengths):
                     rec_new = {}
@@ -999,7 +1006,7 @@ class HTMLFormatter(TableFormatter):
                         if tag + span == ins_row:
                             rec_new[ins_row] = 1
                             if lnum == 0:
-                                idx_values.insert(ins_row,tuple([u('...')]*len(level_lengths)))                            
+                                idx_values.insert(ins_row,tuple([u('...')]*len(level_lengths)))
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1

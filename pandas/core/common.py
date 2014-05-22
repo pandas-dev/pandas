@@ -23,7 +23,6 @@ from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 from pandas.core.config import get_option
 from pandas.core import array as pa
 
-
 class PandasError(Exception):
     pass
 
@@ -107,6 +106,37 @@ def bind_method(cls, name, func):
     else:
         setattr(cls, name, func)
 
+class CategoricalDtype(object):
+    """
+    A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
+
+    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
+    """
+    name = 'category'
+    names = None
+    type = np.object_
+    subdtype = None
+    kind = 'O'
+    str = '|O08'
+    num = 100
+    shape = tuple()
+    itemsize = 8
+    base = np.dtype('O')
+    isbuiltin = 0
+    isnative = 0
+
+    def __unicode__(self):
+        return self.name
+
+    def __hash__(self):
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            return other == self.name
+
+        return isinstance(other, CategoricalDtype)
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -2318,6 +2348,15 @@ def is_bool_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.bool_)
 
+def is_categorical_dtype(arr_or_dtype):
+    if hasattr(arr_or_dtype,'dtype'):
+        arr_or_dtype = arr_or_dtype.dtype
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        return True
+    try:
+        return arr_or_dtype == 'category'
+    except:
+        return False
 
 def is_complex_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)

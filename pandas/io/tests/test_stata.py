@@ -198,6 +198,9 @@ class TestStata(tm.TestCase):
             columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled',
                      'labeled_with_missings', 'float_labelled'])
 
+        # these are all categoricals
+        expected = pd.concat([ Series(pd.Categorical(value)) for col, value in expected.iteritems() ],axis=1)
+
         tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)

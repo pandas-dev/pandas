@@ -3626,7 +3626,7 @@ class NDFrame(PandasObject):
         def describe_categorical_1d(data):
             names = ['count', 'unique']
             objcounts = data.value_counts()
-            result = [data.count(), len(objcounts)]
+            result = [data.count(), len(objcounts[objcounts!=0])]
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
@@ -3782,7 +3782,8 @@ Returns
                     return self._agg_by_level(name, axis=axis, level=level,
                                               skipna=skipna)
                 return self._reduce(f, axis=axis,
-                                    skipna=skipna, numeric_only=numeric_only)
+                                    skipna=skipna, numeric_only=numeric_only,
+                                    name=name)
             stat_func.__name__ = name
             return stat_func
 
