@@ -1029,7 +1029,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         else:
             factor = Categorical.from_array(concat_index)
             levels.append(factor.levels)
-            label_list.append(factor.labels)
+            label_list.append(factor.codes)
 
         if len(names) == len(levels):
             names = list(names)

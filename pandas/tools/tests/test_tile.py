@@ -27,25 +27,25 @@ class TestCut(tm.TestCase):
     def test_bins(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
         result, bins = cut(data, 3, retbins=True)
-        assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
+        assert_equal(result.codes, [0, 0, 0, 1, 2, 0])
         assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
-        assert_equal(result.labels, [0, 0, 0, 2, 3, 0, 0])
+        assert_equal(result.codes, [0, 0, 0, 2, 3, 0, 0])
         assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
-        assert_equal(result.labels, [0, 0, 0, 2, 3, 0, 1])
+        assert_equal(result.codes, [0, 0, 0, 2, 3, 0, 1])
         assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
-        assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
+        assert_equal(result.codes, [0, 0, 0, 1, 2, 0])
         assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
@@ -160,7 +160,7 @@ class TestCut(tm.TestCase):
 
         result = cut(arr, [-1, 0, 1])
 
-        mask = result.labels == -1
+        mask = result.codes == -1
         ex_mask = (arr < -1) | (arr > 1)
         self.assert_numpy_array_equal(mask, ex_mask)
 

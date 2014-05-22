@@ -203,6 +203,7 @@ class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_value_counts(self):
+        np.random.seed(1234)
         from pandas.tools.tile import cut
 
         arr = np.random.randn(4)
@@ -212,7 +213,7 @@ class TestValueCounts(tm.TestCase):
 
         result = algos.value_counts(factor)
         expected = algos.value_counts(np.asarray(factor))
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]

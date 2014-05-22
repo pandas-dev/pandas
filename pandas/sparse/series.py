@@ -213,6 +213,10 @@ class SparseSeries(Series):
         """ return the array """
         return self._data._values
 
+    def __array__(self, result=None):
+        """ the array interface, return my values """
+        return self._data._values
+
     def get_values(self):
         """ same as values """
         return self._data._values.to_dense().view()
@@ -298,6 +302,11 @@ class SparseSeries(Series):
         """
         self.name = getattr(obj, 'name', None)
         self.fill_value = getattr(obj, 'fill_value', None)
+
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, name=None, **kwds):
+        """ perform a reduction operation """
+        return op(self.get_values(), skipna=skipna, **kwds)
 
     def __getstate__(self):
         # pickling

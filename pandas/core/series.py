@@ -199,9 +199,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
             elif isinstance(data, Categorical):
+                if dtype is not None:
+                    raise ValueError("cannot specify a dtype with a Categorical")
                 if name is None:
                     name = data.name
-                data = np.asarray(data)
             elif isinstance(data, types.GeneratorType):
                 data = list(data)
             elif isinstance(data, (set, frozenset)):
@@ -369,7 +370,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         the array interface, return my values
         """
-        return self.values
+        return self.get_values()
 
     def __array_wrap__(self, result, context=None):
         """
@@ -382,6 +383,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Gets called prior to a ufunc
         """
+
+        # nice error message for non-ufunc types
+        if context is not None and not isinstance(self.values, np.ndarray):
+            obj = context[1][0]
+            raise TypeError("{obj} with dtype {dtype} cannot perform "
+                            "the numpy op {op}".format(obj=type(obj).__name__,
+                                                       dtype=getattr(obj,'dtype',None),
+                                                       op=context[0].__name__))
         return result
 
     # complex
@@ -664,7 +673,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     pass
 
             if not isinstance(key, (list, Series, pa.Array, Series)):
-                key = list(key)
+                try:
+                    key = list(key)
+                except:
+                    key = [ key ]
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
@@ -994,7 +1006,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
-        return self._data.values
+        return self._data.get_values()
 
     def tolist(self):
         """ Convert Series to a nested list """
@@ -1387,8 +1399,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
-#------------------------------------------------------------------------------
-# Combination
+    #------------------------------------------------------------------------------
+    # Combination
 
     def append(self, to_append, verify_integrity=False):
         """
@@ -2004,9 +2016,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                      index=self.index).__finalize__(self)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
-        """ perform a reduction operation """
-        return op(_values_from_object(self), skipna=skipna, **kwds)
+                filter_type=None, name=None, **kwds):
+        """
+        perform a reduction operation
+
+        if we have an ndarray as a value, then simply perform the operation,
+        otherwise delegate to the object
+
+        """
+        delegate = self.values
+        if isinstance(delegate, np.ndarray):
+            return op(delegate, skipna=skipna, **kwds)
+        return delegate._reduce(op=op, axis=axis, skipna=skipna, numeric_only=numeric_only,
+                                filter_type=filter_type, name=name, **kwds)
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
@@ -2377,6 +2399,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
+    #------------------------------------------------------------------------------
+    # Categorical methods
+
+    @property
+    def cat(self):
+        if not com.is_categorical_dtype(self.dtype):
+            raise TypeError("Can only use .cat accessor with a 'category' dtype")
+        return self.values
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
@@ -2453,6 +2483,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         if copy:
             subarr = data.copy()
+
+    elif isinstance(data, Categorical):
+        subarr = data
+
+        if copy:
+            subarr = data.copy()
+        return subarr
 
     elif isinstance(data, list) and len(data) > 0:
         if dtype is not None:

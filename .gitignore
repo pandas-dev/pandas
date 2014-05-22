@@ -88,3 +88,5 @@ doc/source/vbench
 doc/source/vbench.rst
 doc/source/index.rst
 doc/build/html/index.html
+# Windows specific leftover:
+doc/tmp.sv

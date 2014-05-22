@@ -1013,13 +1013,13 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     if dummy_na:
         number_of_cols += 1
 
-    dummy_mat = np.eye(number_of_cols).take(cat.labels, axis=0)
+    dummy_mat = np.eye(number_of_cols).take(cat.codes, axis=0)
 
     if dummy_na:
         levels = np.append(cat.levels, np.nan)
     else:
         # reset NaN GH4446
-        dummy_mat[cat.labels == -1] = 0
+        dummy_mat[cat.codes == -1] = 0
 
     if prefix is not None:
         dummy_cols = ['%s%s%s' % (prefix, prefix_sep, v)
@@ -1067,7 +1067,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     if transform is not None:
         mapped_items = items.map(transform)
         cat = Categorical.from_array(mapped_items.take(labels))
-        labels = cat.labels
+        labels = cat.codes
         items = cat.levels
 
     values = np.eye(len(items), dtype=float)

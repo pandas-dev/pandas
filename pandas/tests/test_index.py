@@ -1842,6 +1842,11 @@ class TestMultiIndex(tm.TestCase):
         result = MultiIndex.from_arrays(arrays)
         self.assertEqual(list(result), list(self.index))
 
+        # infer correctly
+        result = MultiIndex.from_arrays([[pd.NaT, Timestamp('20130101')], ['a', 'b']])
+        self.assertTrue(result.levels[0].equals(Index([Timestamp('20130101')])))
+        self.assertTrue(result.levels[1].equals(Index(['a','b'])))
+
     def test_from_product(self):
         first = ['foo', 'bar', 'buz']
         second = ['a', 'b', 'c']
@@ -1907,7 +1912,7 @@ class TestMultiIndex(tm.TestCase):
         expected = [np.nan, np.nan, np.nan]
         assert_array_equal(values.values.astype(float), expected)
         values = index.get_level_values(1)
-        expected = ['a', np.nan, 1]
+        expected = np.array(['a', np.nan, 1],dtype=object)
         assert_array_equal(values.values, expected)
 
         if not _np_version_under1p7:

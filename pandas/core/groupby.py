@@ -23,7 +23,8 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
-                               is_timedelta64_dtype, is_datetime64_dtype)
+                               is_timedelta64_dtype, is_datetime64_dtype,
+                               is_categorical_dtype)
 
 from pandas import _np_version_under1p7
 import pandas.lib as lib
@@ -147,8 +148,10 @@ def _last_compat(x, axis=0):
 
 
 def _count_compat(x, axis=0):
-    return x.size
-
+    try:
+        return x.size
+    except:
+        return x.count()
 
 class Grouper(object):
     """
@@ -1866,7 +1869,7 @@ class Grouping(object):
                 # Is there any way to avoid this?
                 self.grouper = np.asarray(factor)
 
-                self._labels = factor.labels
+                self._labels = factor.codes
                 self._group_index = factor.levels
                 if self.name is None:
                     self.name = factor.name
@@ -3419,6 +3422,11 @@ def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     It adds ascending and na_position parameters.
     GH #6399, #5231
     """
+
+    # specially handle Categorical
+    if is_categorical_dtype(items):
+        return items.argsort(ascending=ascending)
+
     items = np.asanyarray(items)
     idx = np.arange(len(items))
     mask = isnull(items)

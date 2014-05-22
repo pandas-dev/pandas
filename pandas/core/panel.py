@@ -97,7 +97,7 @@ def panel_index(time, panels, names=['time', 'panel']):
     time_factor = Categorical.from_array(time)
     panel_factor = Categorical.from_array(panels)
 
-    labels = [time_factor.labels, panel_factor.labels]
+    labels = [time_factor.codes, panel_factor.codes]
     levels = [time_factor.levels, panel_factor.levels]
     return MultiIndex(levels, labels, sortorder=None, names=names,
                       verify_integrity=False)
@@ -1045,7 +1045,7 @@ class Panel(NDFrame):
         return self._construct_return_type(dict(results))
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+                filter_type=None, name=None, **kwds):
         axis_name = self._get_axis_name(axis)
         axis_number = self._get_axis_number(axis_name)
         f = lambda x: op(x, axis=axis_number, skipna=skipna, **kwds)
