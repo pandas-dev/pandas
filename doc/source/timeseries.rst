@@ -579,8 +579,7 @@ calendars which account for local holidays and local weekend conventions.
     bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
     dt = datetime(2013, 4, 30)
     dt + 2 * bday_egypt
-    dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
-    dts
+    dts = date_range(dt, periods=5, freq=bday_egypt)
     Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
 
 As of v0.14 holiday calendars can be used to provide the list of holidays.  See the

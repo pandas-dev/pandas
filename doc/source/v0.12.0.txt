@@ -380,7 +380,7 @@ Experimental Features
       bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
       dt = datetime(2013, 4, 30)
       print(dt + 2 * bday_egypt)
-      dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
+      dts = date_range(dt, periods=5, freq=bday_egypt)
       print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
 Bug Fixes

@@ -426,22 +426,6 @@ Time series-related
    Series.resample
    Series.tz_convert
    Series.tz_localize
-   Series.year
-   Series.month
-   Series.day
-   Series.hour
-   Series.minute
-   Series.second
-   Series.microsecond
-   Series.nanosecond
-   Series.date
-   Series.time
-   Series.dayofyear
-   Series.weekofyear
-   Series.week
-   Series.dayofweek
-   Series.weekday
-   Series.quarter
 
 String handling
 ~~~~~~~~~~~~~~~~~~~
