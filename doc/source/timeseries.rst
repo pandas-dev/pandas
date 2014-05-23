@@ -413,7 +413,7 @@ regularity will result in a ``DatetimeIndex`` (but frequency is lost):
 Time/Date Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are several time/date properties that one can access from ``Timestamp`` or a collection of timestamps like a ``DateTimeIndex``. 
+There are several time/date properties that one can access from ``Timestamp`` or a collection of timestamps like a ``DateTimeIndex``.
 
 .. csv-table::
     :header: "Property", "Description"
@@ -604,7 +604,7 @@ in the usual way.
     # Skip new years
     dt = datetime(2013, 12, 17)
     dt + bmth_us
-   
+
     # Define date index with custom offset
     from pandas import DatetimeIndex
     DatetimeIndex(start='20100101',end='20120101',freq=bmth_us)
@@ -789,8 +789,8 @@ methods to return a list of holidays and only ``rules`` need to be defined
 in a specific holiday calendar class.  Further, ``start_date`` and ``end_date``
 class attributes determine over what date range holidays are generated.  These
 should be overwritten on the ``AbstractHolidayCalendar`` class to have the range
-apply to all calendar subclasses.  ``USFederalHolidayCalendar`` is the 
-only calendar that exists and primarily serves as an example for developing 
+apply to all calendar subclasses.  ``USFederalHolidayCalendar`` is the
+only calendar that exists and primarily serves as an example for developing
 other calendars.
 
 For holidays that occur on fixed dates (e.g., US Memorial Day or July 4th) an
@@ -823,12 +823,12 @@ An example of how holidays and holiday calendars are defined:
     cal = ExampleCalendar()
     cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))
 
-Using this calendar, creating an index or doing offset arithmetic skips weekends 
+Using this calendar, creating an index or doing offset arithmetic skips weekends
 and holidays (i.e., Memorial Day/July 4th).
 
 .. ipython:: python
 
-    DatetimeIndex(start='7/1/2012', end='7/10/2012', 
+    DatetimeIndex(start='7/1/2012', end='7/10/2012',
         freq=CDay(calendar=cal)).to_pydatetime()
     offset = CustomBusinessDay(calendar=cal)
     datetime(2012, 5, 25) + offset
@@ -840,11 +840,11 @@ Ranges are defined by the ``start_date`` and ``end_date`` class attributes
 of ``AbstractHolidayCalendar``.  The defaults are below.
 
 .. ipython:: python
-    
+
     AbstractHolidayCalendar.start_date
     AbstractHolidayCalendar.end_date
 
-These dates can be overwritten by setting the attributes as 
+These dates can be overwritten by setting the attributes as
 datetime/Timestamp/string.
 
 .. ipython:: python
@@ -1120,7 +1120,7 @@ Passing string represents lower frequency than `PeriodIndex` returns partial sli
    dfp
    dfp['2013-01-01 10H']
 
-As the same as `DatetimeIndex`, the endpoints will be included in the result. Below example slices data starting from 10:00 to 11:59. 
+As the same as `DatetimeIndex`, the endpoints will be included in the result. Below example slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
 

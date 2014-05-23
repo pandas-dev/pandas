@@ -15,6 +15,7 @@ from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string, get_offset)
+from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -102,7 +103,7 @@ def _ensure_datetime64(other):
 
 _midnight = time(0, 0)
 
-class DatetimeIndex(Int64Index):
+class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and

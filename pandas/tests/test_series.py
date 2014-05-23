@@ -5617,12 +5617,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(len(result), 0)
         self.assertIsNot(result, ts)
 
-    def test_weekday(self):
-        # Just run the function
-        def f():
-            self.ts.weekday
-        self.assertRaises(TypeError, f)
-
     def test_diff(self):
         # Just run the function
         self.ts.diff()

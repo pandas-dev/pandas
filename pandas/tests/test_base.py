@@ -4,7 +4,7 @@ import numpy as np
 import pandas.compat as compat
 import pandas as pd
 from pandas.compat import u, StringIO
-from pandas.core.base import FrozenList, FrozenNDArray
+from pandas.core.base import FrozenList, FrozenNDArray, DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
 from pandas import Series, Index, Int64Index, DatetimeIndex, PeriodIndex
 from pandas import _np_version_under1p7
@@ -181,7 +181,13 @@ class Ops(tm.TestCase):
             # we mostly care about Series hwere anyhow
             if not ignore_failures:
                 for o in self.not_valid_objs:
-                    self.assertRaises(TypeError, lambda : getattr(o,op))
+
+                    # an object that is datetimelike will raise a TypeError, otherwise
+                    # an AttributeError
+                    if issubclass(type(o), DatetimeIndexOpsMixin):
+                        self.assertRaises(TypeError, lambda : getattr(o,op))
+                    else:
+                        self.assertRaises(AttributeError, lambda : getattr(o,op))
 
 class TestIndexOps(Ops):
 
@@ -461,6 +467,13 @@ class TestDatetimeIndexOps(Ops):
         # GH7206
         for op in ['year','day','second','weekday']:
             self.assertRaises(TypeError, lambda x: getattr(self.dt_series,op))
+
+        # attribute access should still work!
+        s = Series(dict(year=2000,month=1,day=10))
+        self.assertEquals(s.year,2000)
+        self.assertEquals(s.month,1)
+        self.assertEquals(s.day,10)
+        self.assertRaises(AttributeError, lambda : s.weekday)
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'

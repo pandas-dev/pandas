@@ -8,6 +8,7 @@ from pandas.core.base import PandasObject
 from pandas.tseries.frequencies import (get_freq_code as _gfc,
                                         _month_numbers, FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
+from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
@@ -500,7 +501,7 @@ def _period_index_cmp(opname):
     return wrapper
 
 
-class PeriodIndex(Int64Index):
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc. A value of 1 is the
