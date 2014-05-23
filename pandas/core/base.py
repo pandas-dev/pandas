@@ -201,16 +201,6 @@ class FrozenNDArray(PandasObject, np.ndarray):
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
 
-# facilitate the properties on the wrapped ops
-def _field_accessor(name, docstring=None):
-    op_accessor = '_{0}'.format(name)
-    def f(self):
-        return self._ops_compat(name,op_accessor)
-
-    f.__name__ = name
-    f.__doc__ = docstring
-    return property(f)
-
 class IndexOpsMixin(object):
     """ common ops mixin to support a unified inteface / docs for Series / Index """
 
@@ -219,24 +209,9 @@ class IndexOpsMixin(object):
             raise TypeError("cannot perform an {name} operations on this type {typ}".format(
                 name=name,typ=type(self._get_access_object())))
 
-    def _is_allowed_datetime_index_op(self, name):
-        if not self._allow_datetime_index_ops:
-            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
-                name=name,typ=type(self._get_access_object())))
-
-    def _is_allowed_period_index_op(self, name):
-        if not self._allow_period_index_ops:
-            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
-                name=name,typ=type(self._get_access_object())))
-
     def _ops_compat(self, name, op_accessor):
-        from pandas.tseries.index import DatetimeIndex
-        from pandas.tseries.period import PeriodIndex
+
         obj = self._get_access_object()
-        if isinstance(obj, DatetimeIndex):
-            self._is_allowed_datetime_index_op(name)
-        elif isinstance(obj, PeriodIndex):
-            self._is_allowed_period_index_op(name)
         try:
             return self._wrap_access_object(getattr(obj,op_accessor))
         except AttributeError:
@@ -335,6 +310,44 @@ class IndexOpsMixin(object):
         """
         from pandas.core.algorithms import factorize
         return factorize(self, sort=sort, na_sentinel=na_sentinel)
+
+# facilitate the properties on the wrapped ops
+def _field_accessor(name, docstring=None):
+    op_accessor = '_{0}'.format(name)
+    def f(self):
+        return self._ops_compat(name,op_accessor)
+
+    f.__name__ = name
+    f.__doc__ = docstring
+    return property(f)
+
+class DatetimeIndexOpsMixin(object):
+    """ common ops mixin to support a unified inteface datetimelike Index """
+
+    def _is_allowed_datetime_index_op(self, name):
+        if not self._allow_datetime_index_ops:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(self._get_access_object())))
+
+    def _is_allowed_period_index_op(self, name):
+        if not self._allow_period_index_ops:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(self._get_access_object())))
+
+    def _ops_compat(self, name, op_accessor):
+
+        from pandas.tseries.index import DatetimeIndex
+        from pandas.tseries.period import PeriodIndex
+        obj = self._get_access_object()
+        if isinstance(obj, DatetimeIndex):
+            self._is_allowed_datetime_index_op(name)
+        elif isinstance(obj, PeriodIndex):
+            self._is_allowed_period_index_op(name)
+        try:
+            return self._wrap_access_object(getattr(obj,op_accessor))
+        except AttributeError:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(obj)))
 
     date = _field_accessor('date','Returns numpy array of datetime.date. The date part of the Timestamps')
     time = _field_accessor('time','Returns numpy array of datetime.time. The time part of the Timestamps')
