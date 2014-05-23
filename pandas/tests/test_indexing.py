@@ -619,14 +619,20 @@ class TestIndexing(tm.TestCase):
         self.assertEqual(result, 0)
 
         df = DataFrame(-999,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
-        df.loc[(t,n),'X'] = 0
+        df.loc[(t,n),'X'] = 1
         result = df.loc[(t,n),'X']
-        self.assertEqual(result, 0)
+        self.assertEqual(result, 1)
 
         df = DataFrame(columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
-        df.loc[(t,n),'X'] = 0
+        df.loc[(t,n),'X'] = 2
         result = df.loc[(t,n),'X']
-        self.assertEqual(result, 0)
+        self.assertEqual(result, 2)
+
+        # GH 7218, assinging with 0-dim arrays
+        df = DataFrame(-999,columns=['A', 'w', 'l', 'a', 'x', 'X', 'd', 'profit'], index=index)
+        df.loc[(t,n), 'X'] = np.array(3)
+        result = df.loc[(t,n),'X']
+        self.assertEqual(result,3)
 
     def test_loc_setitem_dups(self):
 

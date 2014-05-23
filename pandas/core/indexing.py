@@ -339,7 +339,7 @@ class _NDFrameIndexer(object):
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if is_list_like(value) and lplane_indexer != len(value):
+                if is_list_like(value) and np.iterable(value) and lplane_indexer != len(value):
 
                     if len(obj[idx]) != len(value):
                         raise ValueError(
@@ -386,7 +386,7 @@ class _NDFrameIndexer(object):
 
             def can_do_equal_len():
                 """ return True if we have an equal len settable """
-                if not len(labels) == 1:
+                if not len(labels) == 1 or not np.iterable(value):
                     return False
 
                 l = len(value)
