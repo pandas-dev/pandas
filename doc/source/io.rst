@@ -3171,7 +3171,7 @@ The key functions are:
 
 .. autosummary::
     :toctree: generated/
-    
+
     read_sql_table
     read_sql_query
     read_sql
@@ -3183,7 +3183,7 @@ The key functions are:
     :func:`~pandas.read_sql_table` and :func:`~pandas.read_sql_query` (and for
     backward compatibility) and will delegate to specific function depending on
     the provided input (database table name or sql query).
-    
+
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
