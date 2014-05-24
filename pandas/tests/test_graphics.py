@@ -2272,6 +2272,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_hist(self):
         df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
+        df['D'] = ['X'] * 500
+
         axes = plotting.grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
@@ -2280,14 +2282,24 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
-        # make sure kwargs to hist are handled
-        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
-                                     cumulative=True, bins=4)
+        # group by a key with single value
+        axes = df.hist(by='D', rot=30)
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        self._check_ticks_props(axes, xrot=30)
 
+        tm.close()
+        # make sure kwargs to hist are handled
+        xf, yf = 20, 18
+        xrot, yrot = 30, 40
+        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
+                                     cumulative=True, bins=4,
+                                     xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             height = ax.get_children()[5].get_height()
             self.assertAlmostEqual(height, 1.0)
+        self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
+                                ylabelsize=yf, yrot=yrot)
 
         tm.close()
         axes = plotting.grouped_hist(df.A, by=df.C, log=True)

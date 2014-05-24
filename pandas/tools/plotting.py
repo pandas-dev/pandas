@@ -2501,23 +2501,12 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
-    import matplotlib.pyplot as plt
 
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid, figsize=figsize,
                             sharex=sharex, sharey=sharey, layout=layout, bins=bins,
+                            xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
                             **kwds)
-
-        for ax in axes.ravel():
-            if xlabelsize is not None:
-                plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-            if xrot is not None:
-                plt.setp(ax.get_xticklabels(), rotation=xrot)
-            if ylabelsize is not None:
-                plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-            if yrot is not None:
-                plt.setp(ax.get_yticklabels(), rotation=yrot)
-
         return axes
 
     if column is not None:
@@ -2533,21 +2522,12 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = axes[i // ncols, i % ncols]
-        ax.xaxis.set_visible(True)
-        ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
 
-        if xlabelsize is not None:
-            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-        if xrot is not None:
-            plt.setp(ax.get_xticklabels(), rotation=xrot)
-        if ylabelsize is not None:
-            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-        if yrot is not None:
-            plt.setp(ax.get_yticklabels(), rotation=yrot)
-
+    _set_ticks_props(axes, xlabelsize=xlabelsize, xrot=xrot,
+             ylabelsize=ylabelsize, yrot=yrot)
     fig.subplots_adjust(wspace=0.3, hspace=0.3)
 
     return axes
@@ -2607,23 +2587,18 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         ax.hist(values, bins=bins, **kwds)
         ax.grid(grid)
         axes = np.array([ax])
+
+        _set_ticks_props(axes, xlabelsize=xlabelsize, xrot=xrot,
+                 ylabelsize=ylabelsize, yrot=yrot)
+
     else:
         if 'figure' in kwds:
             raise ValueError("Cannot pass 'figure' when using the "
                              "'by' argument, since a new 'Figure' instance "
                              "will be created")
-        axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
-                            bins=bins, **kwds)
-
-    for ax in axes.ravel():
-        if xlabelsize is not None:
-            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-        if xrot is not None:
-            plt.setp(ax.get_xticklabels(), rotation=xrot)
-        if ylabelsize is not None:
-            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-        if yrot is not None:
-            plt.setp(ax.get_yticklabels(), rotation=yrot)
+        axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize, bins=bins,
+                            xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
+                            **kwds)
 
     if axes.ndim == 1 and len(axes) == 1:
         return axes[0]
@@ -2632,6 +2607,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
                  layout=None, sharex=False, sharey=False, rot=90, grid=True,
+                 xlabelsize=None, xrot=None, ylabelsize=None, yrot=None,
                  **kwargs):
     """
     Grouped histogram
@@ -2658,9 +2634,15 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
+    xrot = xrot or rot
+
     fig, axes = _grouped_plot(plot_group, data, column=column,
                               by=by, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout, rot=rot)
+
+    _set_ticks_props(axes, xlabelsize=xlabelsize, xrot=xrot,
+             ylabelsize=ylabelsize, yrot=yrot)
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.5, wspace=0.3)
     return axes
@@ -3092,6 +3074,22 @@ def _get_xlim(lines):
         left = min(x[0], left)
         right = max(x[-1], right)
     return left, right
+
+
+def _set_ticks_props(axes, xlabelsize=None, xrot=None,
+                     ylabelsize=None, yrot=None):
+    import matplotlib.pyplot as plt
+
+    for ax in _flatten(axes):
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
+    return axes
 
 
 if __name__ == '__main__':
