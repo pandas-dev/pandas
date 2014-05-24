@@ -637,7 +637,7 @@ Deprecations
 Known Issues
 ~~~~~~~~~~~~
 
-- OpenPyXL 2.0.0 breaks backwards compatibility (:issue:`7196`)
+- OpenPyXL 2.0.0 breaks backwards compatibility (:issue:`7169`)
 
 
 .. _whatsnew_0140.enhancements:

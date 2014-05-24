@@ -203,6 +203,11 @@ API Changes
   ``'axes'``, or ``'both'``, in which case a namedtuple with the matplotlib
   axes and a dict of matplotlib Lines is returned.
 
+Known Issues
+~~~~~~~~~~~~
+
+- OpenPyXL 2.0.0 breaks backwards compatibility (:issue:`7169`)
+
 Deprecations
 ~~~~~~~~~~~~
 
