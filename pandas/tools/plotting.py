@@ -3022,15 +3022,16 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
 
     if nplots > 1:
         if sharex and nrows > 1:
-            for i, ax in enumerate(axarr):
-                if np.ceil(float(i + 1) / ncols) < nrows:  # only last row
-                    [label.set_visible(
-                        False) for label in ax.get_xticklabels()]
+            for ax in axarr[:naxes][:-ncols]:    # only bottom row
+                for label in ax.get_xticklabels():
+                    label.set_visible(False)
+                ax.xaxis.get_label().set_visible(False)
         if sharey and ncols > 1:
             for i, ax in enumerate(axarr):
                 if (i % ncols) != 0:  # only first column
-                    [label.set_visible(
-                        False) for label in ax.get_yticklabels()]
+                    for label in ax.get_yticklabels():
+                        label.set_visible(False)
+                    ax.yaxis.get_label().set_visible(False)
 
     if naxes != nplots:
         for ax in axarr[naxes:]:

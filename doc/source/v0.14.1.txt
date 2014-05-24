@@ -143,7 +143,7 @@ Performance
 
 
 
-
+- Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
 
 
 
