@@ -31,6 +31,8 @@ users upgrade to this version.
 
 - :ref:`Deprecations <whatsnew_0140.deprecations>`
 
+- :ref:`Known Issues <whatsnew_0140.knownissues>`
+
 - :ref:`Bug Fixes <release.bug_fixes-0.14.0>`
 
 .. warning::
@@ -629,6 +631,14 @@ Deprecations
 - The default return type of :func:`boxplot` will change from a dict to a matpltolib Axes
   in a future release. You can use the future behavior now by passing ``return_type='axes'``
   to boxplot.
+
+.. _whatsnew_0140.knownissues:
+
+Known Issues
+~~~~~~~~~~~~
+
+- OpenPyXL 2.0.0 breaks backwards compatibility (:issue:`7196`)
+
 
 .. _whatsnew_0140.enhancements:
 

@@ -114,7 +114,8 @@ pip install pandas
   - [xlrd/xlwt](http://www.python-excel.org/)
      - Excel reading (xlrd) and writing (xlwt)
   - [openpyxl](http://packages.python.org/openpyxl/)
-     - openpyxl version 1.6.1 or higher, for writing .xlsx files
+     - openpyxl version 1.6.1 or higher, but lower than 2.0.0, for
+       writing .xlsx files
      - xlrd >= 0.9.0
   - [XlsxWriter](https://pypi.python.org/pypi/XlsxWriter)
      - Alternative Excel writer.

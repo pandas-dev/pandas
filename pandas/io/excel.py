@@ -16,6 +16,7 @@ from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
+import pandas.compat.openpyxl_compat as openpyxl_compat
 import pandas.core.common as com
 from warnings import warn
 from distutils.version import LooseVersion
@@ -617,7 +618,12 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return xls_style
 
-register_writer(_OpenpyxlWriter)
+
+if openpyxl_compat.is_compat():
+    register_writer(_OpenpyxlWriter)
+else:
+    warn('Installed openpyxl is not supported at this time. Use >={} and <{}.'
+            .format(openpyxl_compat.start_ver, openpyxl_compat.stop_ver))
 
 
 class _XlwtWriter(ExcelWriter):
