@@ -1927,7 +1927,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     # a passed in Grouper, directly convert
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj)
-        return grouper, [], obj
+        if key.key is None:
+            return grouper, [], obj
+        else:
+            return grouper, set([key.key]), obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, BaseGrouper):
