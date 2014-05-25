@@ -744,28 +744,32 @@ class TestResample(tm.TestCase):
 
     def test_resample_timegrouper(self):
         # GH 7227
-        dates = [datetime(2014, 10, 1), datetime(2014, 9, 3),
+        dates1 = [datetime(2014, 10, 1), datetime(2014, 9, 3),
                   datetime(2014, 11, 5), datetime(2014, 9, 5),
                   datetime(2014, 10, 8), datetime(2014, 7, 15)]
 
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates))))
-        result = df.set_index('A').resample('M', how='count')
-        exp_idx = pd.DatetimeIndex(['2014-07-31', '2014-08-31', '2014-09-30',
-                                    '2014-10-31', '2014-11-30'], freq='M', name='A')
-        expected = DataFrame({'B': [1, 0, 2, 2, 1]}, index=exp_idx)
-        assert_frame_equal(result, expected)
+        dates2 = dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
+        dates3 = [pd.NaT] + dates1 + [pd.NaT]
 
-        result = df.groupby(pd.Grouper(freq='M', key='A')).count()
-        assert_frame_equal(result, expected)
+        for dates in [dates1, dates2, dates3]:
+            df = DataFrame(dict(A=dates, B=np.arange(len(dates))))
+            result = df.set_index('A').resample('M', how='count')
+            exp_idx = pd.DatetimeIndex(['2014-07-31', '2014-08-31', '2014-09-30',
+                                        '2014-10-31', '2014-11-30'], freq='M', name='A')
+            expected = DataFrame({'B': [1, 0, 2, 2, 1]}, index=exp_idx)
+            assert_frame_equal(result, expected)
 
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates)), C=np.arange(len(dates))))
-        result = df.set_index('A').resample('M', how='count')
-        expected = DataFrame({'B': [1, 0, 2, 2, 1], 'C': [1, 0, 2, 2, 1]},
-                             index=exp_idx, columns=['B', 'C'])
-        assert_frame_equal(result, expected)
+            result = df.groupby(pd.Grouper(freq='M', key='A')).count()
+            assert_frame_equal(result, expected)
 
-        result = df.groupby(pd.Grouper(freq='M', key='A')).count()
-        assert_frame_equal(result, expected)
+            df = DataFrame(dict(A=dates, B=np.arange(len(dates)), C=np.arange(len(dates))))
+            result = df.set_index('A').resample('M', how='count')
+            expected = DataFrame({'B': [1, 0, 2, 2, 1], 'C': [1, 0, 2, 2, 1]},
+                                 index=exp_idx, columns=['B', 'C'])
+            assert_frame_equal(result, expected)
+
+            result = df.groupby(pd.Grouper(freq='M', key='A')).count()
+            assert_frame_equal(result, expected)
 
 
 def _simple_ts(start, end, freq='D'):
@@ -1301,6 +1305,84 @@ class TestTimeGrouper(tm.TestCase):
                                        "axis must be a DatetimeIndex, "
                                        "but got an instance of %r" % name):
                 df.groupby(TimeGrouper('D'))
+
+    def test_aggregate_normal(self):
+        # check TimeGrouper's aggregation is identical as normal groupby
+
+        n = 20
+        data = np.random.randn(n, 4)
+        normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        normal_df['key'] = [1, 2, 3, 4, 5] * 4
+
+        dt_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        dt_df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3),
+                        datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
+
+        normal_grouped = normal_df.groupby('key')
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+
+        for func in ['min', 'max', 'prod', 'var', 'std', 'mean']:
+            expected = getattr(normal_grouped, func)()
+            dt_result = getattr(dt_grouped, func)()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            assert_frame_equal(expected, dt_result)
+
+        for func in ['count', 'sum']:
+            expected = getattr(normal_grouped, func)()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)()
+            assert_frame_equal(expected, dt_result)
+
+        """
+        for func in ['first', 'last']:
+            expected = getattr(normal_grouped, func)()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)()
+            assert_frame_equal(expected, dt_result)
+
+        for func in ['nth']:
+            expected = getattr(normal_grouped, func)(3)
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)(3)
+            assert_frame_equal(expected, dt_result)
+        """
+        # if TimeGrouper is used included, 'size' 'first','last' and 'nth' doesn't work yet
+
+    def test_aggregate_with_nat(self):
+        # check TimeGrouper's aggregation is identical as normal groupby
+
+        n = 20
+        data = np.random.randn(n, 4)
+        normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        normal_df['key'] = [1, 2, np.nan, 4, 5] * 4
+
+        dt_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        dt_df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT,
+                        datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
+
+        normal_grouped = normal_df.groupby('key')
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+
+        for func in ['min', 'max', 'prod']:
+            normal_result = getattr(normal_grouped, func)()
+            dt_result = getattr(dt_grouped, func)()
+            pad = DataFrame([[np.nan, np.nan, np.nan, np.nan]],
+                            index=[3], columns=['A', 'B', 'C', 'D'])
+            expected = normal_result.append(pad)
+            expected = expected.sort_index()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            assert_frame_equal(expected, dt_result)
+
+        for func in ['count', 'sum']:
+            normal_result = getattr(normal_grouped, func)()
+            pad = DataFrame([[0, 0, 0, 0]], index=[3], columns=['A', 'B', 'C', 'D'])
+            expected = normal_result.append(pad)
+            expected = expected.sort_index()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)()
+            assert_frame_equal(expected, dt_result)
+
+        # if NaT is included, 'var', 'std', 'mean', 'size', 'first','last' and 'nth' doesn't work yet
 
 
 if __name__ == '__main__':

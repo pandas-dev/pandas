@@ -13,6 +13,7 @@ import pandas.compat as compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
+import pandas.tslib as tslib
 
 
 _DEFAULT_METHOD = 'mean'
@@ -186,6 +187,10 @@ class TimeGrouper(Grouper):
             elif not trimmed:
                 labels = labels[:-1]
 
+        if (ax_values == tslib.iNaT).any():
+            binner = binner.insert(0, tslib.NaT)
+            labels = labels.insert(0, tslib.NaT)
+
         # if we end up with more labels than bins
         # adjust the labels
         # GH4076
@@ -352,14 +357,14 @@ def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, compat.string_types):
         offset = to_offset(offset)
 
+    first, last = axis.min(), axis.max()
     if isinstance(offset, Tick):
         day_nanos = _delta_to_nanoseconds(timedelta(1))
         # #1165
         if (day_nanos % offset.nanos) == 0:
-            return _adjust_dates_anchored(axis[0], axis[-1], offset,
+            return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
-    first, last = axis.min(), axis.max()
     if not isinstance(offset, Tick):  # and first.time() != last.time():
         # hack!
         first = tools.normalize_date(first)

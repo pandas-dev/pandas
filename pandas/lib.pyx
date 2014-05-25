@@ -968,6 +968,10 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         int64_t l_bin, r_bin
         bint right_closed = closed == 'right'
 
+    mask = values == iNaT
+    nat_count = values[mask].size
+    values = values[~mask]
+
     lenidx = len(values)
     lenbin = len(binner)
 
@@ -981,7 +985,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     if values[lenidx-1] > binner[lenbin-1]:
         raise ValueError("Values falls after last bin")
 
-    bins   = np.empty(lenbin - 1, dtype=np.int64)
+    bins = np.empty(lenbin - 1, dtype=np.int64)
 
     j  = 0 # index into values
     bc = 0 # bin count
@@ -998,6 +1002,11 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
         bins[bc] = j
         bc += 1
+
+    if nat_count > 0:
+        # shift bins by the number of NaT
+        bins = bins + nat_count
+        bins = np.insert(bins, 0, nat_count)
 
     return bins
 
