@@ -65,3 +65,5 @@ There are no experimental changes in 0.14.1
 Bug Fixes
 ~~~~~~~~~
 
+- BUG in ``DataFrame.hist`` raises ``TypeError`` when it contains non numeric column (:issue:`7277`)
+
