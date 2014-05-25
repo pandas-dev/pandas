@@ -2545,6 +2545,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         if not isinstance(column, (list, np.ndarray)):
             column = [column]
         data = data[column]
+    data = data._get_numeric_data()
     naxes = len(data.columns)
 
     nrows, ncols = _get_layout(naxes, layout=layout)

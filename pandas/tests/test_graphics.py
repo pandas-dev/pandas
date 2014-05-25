@@ -1493,14 +1493,12 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_hist(self):
-        df = DataFrame(randn(100, 4))
-        _check_plot_works(df.hist)
-        _check_plot_works(df.hist, grid=False)
+        _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
         df = DataFrame(randn(100, 3))
-        _check_plot_works(df.hist)
-        axes = df.hist(grid=False)
+        axes = _check_plot_works(df.hist, grid=False)
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
         self.assertFalse(axes[1, 1].get_visible())
 
         df = DataFrame(randn(100, 1))
@@ -1508,7 +1506,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # make sure layout is handled
         df = DataFrame(randn(100, 6))
-        _check_plot_works(df.hist)
+        axes = _check_plot_works(df.hist, layout=(4, 2))
+        self._check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
         # make sure sharex, sharey is handled
         _check_plot_works(df.hist, sharex=True, sharey=True)
