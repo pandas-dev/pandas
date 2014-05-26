@@ -260,7 +260,7 @@ def nanmean(values, axis=None, skipna=True):
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_max))
     count = _get_counts(mask, axis)
 
-    if axis is not None:
+    if axis is not None and getattr(the_sum, 'ndim', False):
         the_mean = the_sum / count
         ct_mask = count == 0
         if ct_mask.any():
@@ -517,7 +517,7 @@ def nanprod(values, axis=None, skipna=True):
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
     # helper function for nanargmin/nanargmax
-    if axis is None:
+    if axis is None or not getattr(result, 'ndim', False):
         if skipna:
             if mask.all():
                 result = -1
@@ -544,7 +544,7 @@ def _get_counts(mask, axis):
 
 
 def _maybe_null_out(result, axis, mask):
-    if axis is not None:
+    if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if null_mask.any():
             if np.iscomplexobj(result):
