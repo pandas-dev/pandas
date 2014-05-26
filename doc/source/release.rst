@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.14.0
 -------------
 
-**Release date:** (not yet released)
+**Release date:** (May 31, 2014)
 
 New features
 ~~~~~~~~~~~~
@@ -77,7 +77,7 @@ API Changes
   indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
   values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
   ``IndexError`` (:issue:`6296`)
-- ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
+- In ``HDFStore``, ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
@@ -86,9 +86,9 @@ API Changes
 - ``df.to_html`` will now print out the header of an empty dataframe (:issue:`6062`)
 - The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
-- allow ``Series`` and ``Index`` to share common ops. remove the ``Series.weekday`` property from Series;
-  Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
-  support ``min(),max(),factorize(),unique(),nunique(),value_counts()`` on ``Index`` types.
+- ``Series`` and ``Index`` now internall share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
+  now supported on ``Index`` types as well. The ``Series.weekday`` property from is removed
+  from Series for API  consistency. Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
   (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
 
 - Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``,
@@ -117,7 +117,7 @@ API Changes
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`)
 - Slicing and advanced/boolean indexing operations on ``Index`` classes as well
-  as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change type of the
+  as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change the type of the
   resulting index (:issue:`6440`, :issue:`7040`)
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples (:issue:`6459`).
 - Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
@@ -160,7 +160,7 @@ API Changes
   DataFrames (:issue:`6762`).
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 
-- ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``. The ``table`` kewyword can receive the following values.
+- ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``. The ``table`` keyword can receive the following values.
 
   - ``False``: Do nothing (default).
   - ``True``: Draw a table using the ``DataFrame`` or ``Series`` called ``plot`` method. Data will be transposed to meet matplotlib's default layout.
@@ -169,7 +169,7 @@ API Changes
 
 - drop unused order argument from ``Series.sort``; args now in the same orders as ``Series.order``;
   add ``na_position`` arg to conform to ``Series.order`` (:issue:`6847`)
-- default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
+- default sorting algorithm for ``Series.order`` is now ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 
@@ -189,7 +189,7 @@ API Changes
   ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
   (:issue:`6607`)
 - Raise ``ValueError`` when ``engine='c'`` specified with unsupported
-  options (:issue:`6607`)
+  options in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
 - Raise ``ValueError`` when fallback to python parser causes options to be
   ignored (:issue:`6607`)
 - Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
@@ -396,7 +396,7 @@ Bug Fixes
 - ``str.match`` ignored the na flag (:issue:`6609`).
 - Bug in take with duplicate columns that were not consolidated (:issue:`6240`)
 - Bug in interpolate changing dtypes (:issue:`6290`)
-- Bug in Series.get, was using a buggy access method (:issue:`6383`)
+- Bug in ``Series.get``, was using a buggy access method (:issue:`6383`)
 - Bug in hdfstore queries of the form ``where=[('date', '>=', datetime(2013,1,1)), ('date', '<=', datetime(2014,1,1))]`` (:issue:`6313`)
 - Bug in ``DataFrame.dropna`` with duplicate indices (:issue:`6355`)
 - Regression in chained getitem indexing with embedded list-like from 0.12 (:issue:`6394`)
@@ -831,7 +831,7 @@ Improvements to existing features
 - Added short docstrings to a few methods that were missing them + fixed the
   docstrings for Panel flex methods. (:issue:`5336`)
 - ``NDFrame.drop()``, ``NDFrame.dropna()``, and ``.drop_duplicates()`` all
-  accept ``inplace`` as a kewyord argument; however, this only means that the
+  accept ``inplace`` as a keyword argument; however, this only means that the
   wrapper is updated inplace, a copy is still made internally.
   (:issue:`1960`, :issue:`5247`, :issue:`5628`, and related :issue:`2325` [still not
   closed])

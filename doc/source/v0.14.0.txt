@@ -1,7 +1,7 @@
 .. _whatsnew_0140:
 
-v0.14.0 (May ? , 2014)
-----------------------
+v0.14.0 (May 31 , 2014)
+-----------------------
 
 This is a major release from 0.13.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -22,6 +22,8 @@ users upgrade to this version.
 - :ref:`Other Enhancements <whatsnew_0140.enhancements>`
 
 - :ref:`API Changes <whatsnew_0140.api>`
+
+- :ref:`Text Parsing API Changes <whatsnew_0140.parsing>`
 
 - :ref:`Groupby API Changes <whatsnew_0140.groupby>`
 
@@ -75,9 +77,9 @@ API changes
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 - When converting a dataframe to HTML it used to return `Empty DataFrame`. This special case has
   been removed, instead a header with the column names is returned (:issue:`6062`).
-- allow ``Series`` and ``Index`` to share common ops. remove the ``Series.weekday`` property from Series;
-  Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
-  support ``min(),max(),factorize(),unique(),nunique(),value_counts()`` on ``Index`` types.
+- ``Series`` and ``Index`` now internall share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
+  now supported on ``Index`` types as well. The ``Series.weekday`` property from is removed
+  from Series for API  consistency. Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
   (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
 
 - Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex`` / ``Timestamp`` which return a boolean array of whether the timestamp(s) are at the start/end of the month/quarter/year defined by the frequency of the ``DateTimeIndex`` / ``Timestamp`` (:issue:`4565`, :issue:`6998`)
@@ -100,7 +102,7 @@ API changes
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`). See :ref:`the docs <merging.mixed_ndims>`
 - Slicing and advanced/boolean indexing operations on ``Index`` classes as well
-  as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change type of the
+  as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change the type of the
   resulting index (:issue:`6440`, :issue:`7040`)
 
   .. ipython:: python
@@ -196,6 +198,7 @@ API changes
      # this now raises for arith ops like ``+``, ``*``, etc.
      NotImplementedError: operator '*' not implemented for bool dtypes
 
+
 .. _whatsnew_0140.display:
 
 Display Changes
@@ -248,6 +251,23 @@ Display Changes
   ``display.max_info_columns``. The global setting can be overriden with ``verbose=True`` or
   ``verbose=False``.
 - Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
+
+.. _whatsnew_0140.parsing:
+
+Text Parsing API Changes
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:func:`read_csv`/:func:`read_table` will now be noiser w.r.t invalid options rather than falling back to the ``PythonParser``.
+
+- Raise ``ValueError`` when ``sep`` specified with
+  ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
+  (:issue:`6607`)
+- Raise ``ValueError`` when ``engine='c'`` specified with unsupported
+  options in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
+- Raise ``ValueError`` when fallback to python parser causes options to be
+  ignored (:issue:`6607`)
+- Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
+  parser when no options are ignored (:issue:`6607`)
 
 .. _whatsnew_0140.groupby:
 
@@ -729,7 +749,7 @@ Enhancements
                 values='Quantity', aggfunc=np.sum)
 
 - str.wrap implemented (:issue:`6999`)
-- Add nsmallest and nlargest Series methods (:issue:`3960`)
+- Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
 
 - `PeriodIndex` fully supports partial string indexing like `DatetimeIndex` (:issue:`7043`)
 

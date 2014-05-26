@@ -1305,11 +1305,16 @@ argument:
    s.order()
    s.order(na_position='first')
 
-Some other sorting notes / nuances:
+.. note::
 
-  * ``Series.sort`` sorts a Series by value in-place. This is to provide
-    compatibility with NumPy methods which expect the ``ndarray.sort``
-    behavior.
+   ``Series.sort`` sorts a Series by value in-place. This is to provide
+   compatibility with NumPy methods which expect the ``ndarray.sort``
+   behavior. ``Series.order`` returns a copy of the sorted data.
+
+.. _basics.nsorted:
+
+smallest / largest values
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.14.0
 
@@ -1325,6 +1330,8 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    s.nsmallest(3)
    s.nlargest(3)
 
+
+.. _basics.multi-index_sorting:
 
 Sorting by a multi-index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
