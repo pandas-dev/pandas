@@ -287,6 +287,17 @@ A ``where`` operation for getting.
 
    df[df > 0]
 
+Using the :func:`~Series.isin` method for filtering:
+
+.. ipython:: python
+
+   df['E']=['one', 'one','two','three','four','three']
+   df
+   good_numbers=['two','four']
+   df[df['E'].isin(good_numbers)]
+
+   df.drop('E', inplace=True, axis=1)
+
 Setting
 ~~~~~~~
 
