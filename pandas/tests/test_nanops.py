@@ -13,6 +13,8 @@ nanops._USE_BOTTLENECK = False
 
 class TestnanopsDataFrame(tm.TestCase):
     def setUp(self):
+        np.random.seed(11235)
+
         self.arr_shape = (11, 7, 5)
 
         self.arr_float = np.random.randn(*self.arr_shape)
@@ -118,11 +120,38 @@ class TestnanopsDataFrame(tm.TestCase):
         res = getattr(res, 'values', res)
         if axis != 0 and hasattr(targ, 'shape') and targ.ndim:
             res = np.split(res, [targ.shape[0]], axis=0)[0]
-        tm.assert_almost_equal(targ, res)
+        try:
+            tm.assert_almost_equal(targ, res)
+        except:
+            # There are sometimes rounding errors with
+            # complex and object dtypes.
+            # If it isn't one of those, re-raise the error.
+            if not hasattr(res, 'dtype') or res.dtype.kind not in ['c', 'O']:
+                raise
+            # convert object dtypes to something that can be split into
+            # real and imaginary parts
+            if res.dtype.kind == 'O':
+                if targ.dtype.kind != 'O':
+                    res = res.astype(targ.dtype)
+                else:
+                    try:
+                        res = res.astype('c16')
+                    except:
+                        res = res.astype('f8')
+                    try:
+                        targ = targ.astype('c16')
+                    except:
+                        targ = targ.astype('f8')
+            # there should never be a case where numpy returns an object
+            # but nanops doesn't, so make that an exception
+            elif targ.dtype.kind == 'O':
+                raise
+            tm.assert_almost_equal(targ.real, res.real)
+            tm.assert_almost_equal(targ.imag, res.imag)
 
     def check_fun_data(self, testfunc, targfunc,
                        testarval, targarval, targarnanval, **kwargs):
-        for axis in list(range(targarval.ndim)):
+        for axis in list(range(targarval.ndim))+[None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
                 try:
@@ -215,6 +244,12 @@ class TestnanopsDataFrame(tm.TestCase):
 
         if allow_obj:
             self.arr_obj = np.vstack(objs)
+            # some nanops handle object dtypes better than their numpy
+            # counterparts, so the numpy functions need to be given something
+            # else
+            if allow_obj == 'convert':
+                targfunc = partial(self._badobj_wrap,
+                                   func=targfunc, allow_complex=allow_complex)
             self.check_fun(testfunc, targfunc, 'arr_obj', **kwargs)
 
     def check_funs_ddof(self, testfunc, targfunc,
@@ -229,6 +264,14 @@ class TestnanopsDataFrame(tm.TestCase):
             except BaseException as exc:
                 exc.args += ('ddof %s' % ddof,)
 
+    def _badobj_wrap(self, value, func, allow_complex=True, **kwargs):
+        if value.dtype.kind == 'O':
+            if allow_complex:
+                value = value.astype('c16')
+            else:
+                value = value.astype('f8')
+        return func(value, **kwargs)
+
     def test_nanany(self):
         self.check_funs(nanops.nanany, np.any,
                         allow_all_nan=False, allow_str=False, allow_date=False)
@@ -241,36 +284,15 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_funs(nanops.nansum, np.sum,
                         allow_str=False, allow_date=False)
 
-    def _nanmean_wrap(self, value, *args, **kwargs):
-        dtype = value.dtype
-        res = nanops.nanmean(value, *args, **kwargs)
-        if dtype.kind == 'O':
-            res = np.round(res, decimals=13)
-        return res
-
-    def _mean_wrap(self, value, *args, **kwargs):
-        dtype = value.dtype
-        if dtype.kind == 'O':
-            value = value.astype('c16')
-        res = np.mean(value, *args, **kwargs)
-        if dtype.kind == 'O':
-            res = np.round(res, decimals=13)
-        return res
-
     def test_nanmean(self):
-        self.check_funs(self._nanmean_wrap, self._mean_wrap,
+        self.check_funs(nanops.nanmean, np.mean,
                         allow_complex=False, allow_obj=False,
                         allow_str=False, allow_date=False)
 
-    def _median_wrap(self, value, *args, **kwargs):
-        if value.dtype.kind == 'O':
-            value = value.astype('c16')
-        res = np.median(value, *args, **kwargs)
-        return res
-
     def test_nanmedian(self):
-        self.check_funs(nanops.nanmedian, self._median_wrap,
-                        allow_complex=False, allow_str=False, allow_date=False)
+        self.check_funs(nanops.nanmedian, np.median,
+                        allow_complex=False, allow_str=False, allow_date=False,
+                        allow_obj='convert')
 
     def test_nanvar(self):
         self.check_funs_ddof(nanops.nanvar, np.var,
