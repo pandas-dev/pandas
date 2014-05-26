@@ -260,7 +260,7 @@ def nanmean(values, axis=None, skipna=True):
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_max))
     count = _get_counts(mask, axis)
 
-    if axis is not None:
+    if axis is not None and getattr(the_sum, 'ndim', False):
         the_mean = the_sum / count
         ct_mask = count == 0
         if ct_mask.any():
@@ -520,7 +520,7 @@ def nanprod(values, axis=None, skipna=True):
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
     # helper function for nanargmin/nanargmax
-    if axis is None:
+    if axis is None or not result.ndim:
         if skipna:
             if mask.all():
                 result = -1
@@ -547,7 +547,7 @@ def _get_counts(mask, axis):
 
 
 def _maybe_null_out(result, axis, mask):
-    if axis is not None:
+    if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if null_mask.any():
             if np.iscomplexobj(result):
@@ -639,7 +639,11 @@ def nancov(a, b, min_periods=None):
 def _ensure_numeric(x):
     if isinstance(x, np.ndarray):
         if x.dtype == np.object_:
-            x = x.astype(np.float64)
+            try:
+                x = x.astype(np.complex128)
+                x = x.real if not np.any(x.imag) else x
+            except TypeError:
+                x = x.astype(np.float64)
     elif not (com.is_float(x) or com.is_integer(x) or com.is_complex(x)):
         try:
             x = float(x)
