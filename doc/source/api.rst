@@ -489,7 +489,6 @@ Serialization / IO / Conversion
    Series.to_frame
    Series.to_hdf
    Series.to_sql
-   Series.to_gbq
    Series.to_msgpack
    Series.to_json
    Series.to_sparse
@@ -1200,6 +1199,9 @@ Indexing, iteration
 
 .. currentmodule:: pandas
 
+.. autosummary::
+   :toctree: generated/
+
    Grouper
 
 .. currentmodule:: pandas.core.groupby
@@ -1226,8 +1228,11 @@ Computations / Descriptive Stats
 
 .. currentmodule:: pandas
 
+General utility functions
+-------------------------
+
 Working with options
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -1237,6 +1242,7 @@ Working with options
    get_option
    set_option
    option_context
+
 
 ..
     HACK - see github issue #4539. To ensure old links remain valid, include
