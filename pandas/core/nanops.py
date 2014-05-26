@@ -547,7 +547,10 @@ def _maybe_null_out(result, axis, mask):
     if axis is not None:
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if null_mask.any():
-            result = result.astype('f8')
+            if np.iscomplexobj(result):
+                result = result.astype('c16')
+            else:
+                result = result.astype('f8')
             result[null_mask] = np.nan
     else:
         null_mask = mask.size - mask.sum()
