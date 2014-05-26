@@ -224,45 +224,55 @@ class CallableDynamicDoc(object):
                                         opts_list=opts_list)
 
 _get_option_tmpl = """
-get_option(pat) - Retrieves the value of the specified option
+get_option(pat)
+
+Retrieves the value of the specified option.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regexp which should match a single option.
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
+pat : str
+    Regexp which should match a single option.
+    Note: partial matches are supported for convenience, but unless you use the
+    full option name (e.g. x.y.z.option_name), your code may break in future
+    versions if new options with similar names are introduced.
 
 Returns
 -------
-result - the value of the option
+result : the value of the option
 
 Raises
 ------
-OptionError if no such option exists
+OptionError : if no such option exists
+
+Notes
+-----
+The available options with its descriptions:
 
 {opts_desc}
 """
 
 _set_option_tmpl = """
-set_option(pat,value) - Sets the value of the specified option
+set_option(pat, value)
+
+Sets the value of the specified option.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regexp which should match a single option.
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
-
-value - new value of option.
+pat : str
+    Regexp which should match a single option.
+    Note: partial matches are supported for convenience, but unless you use the
+    full option name (e.g. x.y.z.option_name), your code may break in future
+    versions if new options with similar names are introduced.
+value :
+    new value of option.
 
 Returns
 -------
@@ -272,54 +282,71 @@ Raises
 ------
 OptionError if no such option exists
 
+Notes
+-----
+The available options with its descriptions:
+
 {opts_desc}
 """
 
 _describe_option_tmpl = """
-describe_option(pat,_print_desc=False) Prints the description
-for one or more registered options.
+describe_option(pat, _print_desc=False)
+
+Prints the description for one or more registered options.
 
 Call with not arguments to get a listing for all registered options.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str, a regexp pattern. All matching keys will have their
-      description displayed.
-
-_print_desc - if True (default) the description(s) will be printed
-             to stdout otherwise, the description(s) will be returned
-             as a unicode string (for testing).
+pat : str
+    Regexp pattern. All matching keys will have their description displayed.
+_print_desc : bool, default True
+    If True (default) the description(s) will be printed to stdout.
+    Otherwise, the description(s) will be returned as a unicode string
+    (for testing).
 
 Returns
 -------
 None by default, the description(s) as a unicode string if _print_desc
 is False
 
+Notes
+-----
+The available options with its descriptions:
+
 {opts_desc}
 """
 
 _reset_option_tmpl = """
-reset_option(pat) - Reset one or more options to their default value.
+reset_option(pat)
+
+Reset one or more options to their default value.
 
 Pass "all" as argument to reset all options.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regex  if specified only options matching `prefix`* will be reset
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
+pat : str/regex 
+    If specified only options matching `prefix*` will be reset. 
+    Note: partial matches are supported for convenience, but unless you
+    use the full option name (e.g. x.y.z.option_name), your code may break
+    in future versions if new options with similar names are introduced.
 
 Returns
 -------
 None
+
+Notes
+-----
+The available options with its descriptions:
 
 {opts_desc}
 """
@@ -337,6 +364,18 @@ options = DictWrapper(_global_config)
 
 
 class option_context(object):
+    """
+    Context manager to temporarily set options in the `with` statement context.
+
+    You need to invoke as ``option_context(pat, val, [(pat, val), ...])``.
+    
+    Examples
+    --------
+
+    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
+            ...
+
+    """
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
@@ -589,13 +628,13 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('%s: ') % k
+    s = u('%s : ') % k
     if o:
         s += u('[default: %s] [currently: %s]') % (o.defval,
                                                    _get_option(k, True))
 
     if o.doc:
-        s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
+        s += '\n    '.join(o.doc.strip().split('\n'))
     else:
         s += 'No description available.\n'
 
@@ -604,7 +643,7 @@ def _build_option_description(k):
         s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
         s += u(')\n')
 
-    s += '\n'
+    s += '\n\n'
     return s
 
 
@@ -615,9 +654,9 @@ def pp_options_list(keys, width=80, _print=False):
     from itertools import groupby
 
     def pp(name, ks):
-        pfx = (name + '.[' if name else '')
+        pfx = ('- ' + name + '.[' if name else '')
         ls = wrap(', '.join(ks), width, initial_indent=pfx,
-                  subsequent_indent=' ' * len(pfx), break_long_words=False)
+                  subsequent_indent='  ', break_long_words=False)
         if ls and ls[-1] and name:
             ls[-1] = ls[-1] + ']'
         return ls

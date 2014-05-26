@@ -97,7 +97,6 @@ float_format_doc = """
     a string with the desired format of the number. This is used
     in some places like SeriesFormatter.
     See core.format.EngFormatter for an example.
-
 """
 
 max_colwidth_doc = """
@@ -162,7 +161,6 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-
     when pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
@@ -179,7 +177,6 @@ pc_max_info_rows_doc = """
 
 pc_large_repr_doc = """
 : 'truncate'/'info'
-
     For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
     show a truncated table (the default from 0.13), or switch to the view from
     df.info() (the behaviour in earlier versions of pandas).
@@ -187,7 +184,6 @@ pc_large_repr_doc = """
 
 pc_mpl_style_doc = """
 : bool
-
     Setting this to 'default' will modify the rcParams used by matplotlib
     to give plots a more pleasing visual style by default.
     Setting this to None/False restores the values to their initial value.
