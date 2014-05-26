@@ -215,6 +215,8 @@ Bug Fixes
 - Bug in ``quantile`` ignoring the axis keyword argument (:issue`7306`)
 - Bug where ``nanops._maybe_null_out`` doesn't work with complex numbers
   (:issue:`7353`)
+- Bug in several ``nanops`` functions when ``axis==0`` for
+  1-dimensional ``nan`` arrays (:issue:`7354`)
 
 
 

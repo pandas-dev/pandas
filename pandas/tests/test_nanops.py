@@ -145,7 +145,7 @@ class TestnanopsDataFrame(tm.TestCase):
                                  'kwargs: %s' % kwargs)
                     raise
 
-        if testarval.ndim <= 2:
+        if testarval.ndim <= 1:
             return
 
         try:
@@ -245,7 +245,7 @@ class TestnanopsDataFrame(tm.TestCase):
         dtype = value.dtype
         res = nanops.nanmean(value, *args, **kwargs)
         if dtype.kind == 'O':
-            res = np.round(res, decimals=15)
+            res = np.round(res, decimals=13)
         return res
 
     def _mean_wrap(self, value, *args, **kwargs):
@@ -254,7 +254,7 @@ class TestnanopsDataFrame(tm.TestCase):
             value = value.astype('c16')
         res = np.mean(value, *args, **kwargs)
         if dtype.kind == 'O':
-            res = np.round(res, decimals=15)
+            res = np.round(res, decimals=13)
         return res
 
     def test_nanmean(self):
