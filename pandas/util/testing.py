@@ -35,6 +35,8 @@ from pandas.compat import(
     raise_with_traceback, httplib
 )
 
+from pandas.computation import expressions as expr
+
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
@@ -1576,3 +1578,14 @@ class RNGContext(object):
     def __exit__(self, exc_type, exc_value, traceback):
 
         np.random.set_state(self.start_state)
+
+
+@contextmanager
+def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
+    olduse = expr._USE_NUMEXPR
+    oldmin = expr._MIN_ELEMENTS
+    expr.set_use_numexpr(use)
+    expr._MIN_ELEMENTS = min_elements
+    yield
+    expr._MIN_ELEMENTS = oldmin
+    expr.set_use_numexpr(olduse)
