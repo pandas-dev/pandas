@@ -18,6 +18,7 @@ from pandas import (Index, Series, DataFrame, isnull, notnull,
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp, DatetimeIndex
+import pandas.core.common as com
 import pandas.core.config as cf
 import pandas.lib as lib
 
@@ -73,7 +74,7 @@ class CheckNameIntegration(object):
         self.assertIs(self.ts, self.ts)
         cp = self.ts.copy()
         cp.index.name = 'foo'
-        print(self.ts.index.name)
+        com.pprint_thing(self.ts.index.name)
         self.assertIsNone(self.ts.index.name)
 
     def test_append_preserve_name(self):
@@ -2744,7 +2745,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                     if op is not None:
                         self.assertRaises(TypeError, op, test_ser)
                 except:
-                    print("Failed on op %r" % op)
+                    com.pprint_thing("Failed on op %r" % op)
                     raise
         ### timedelta64 ###
         td1 = Series([timedelta(minutes=5,seconds=3)]*3)

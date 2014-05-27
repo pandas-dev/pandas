@@ -4963,7 +4963,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                         assert_frame_equal(result, exp)
                         _check_mixed_int(result, dtype = dtype)
             except:
-                print("Failing operation %r" % op)
+                com.pprint_thing("Failing operation %r" % op)
                 raise
 
             # ndim >= 3
@@ -5792,7 +5792,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             base = int((chunksize// ncols or 1) or 1)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
-                #print( nrows,ncols)
                 _do_test(mkdf(nrows, ncols),path)
 
         for nrows in [10,N-2,N-1,N,N+1,N+2]:
@@ -5814,7 +5813,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             base = int(chunksize//ncols)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
-                #print(nrows, ncols)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2),path,rnlvl=2)
                 _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
@@ -10952,14 +10950,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # outputs in sorted order
         df["C"] = list(reversed(df["C"]))
-        print(df["C"])
-        print(df["C"].mode())
+        com.pprint_thing(df["C"])
+        com.pprint_thing(df["C"].mode())
         a, b = (df[["A", "B", "C"]].mode(),
                            pd.DataFrame({"A": [12, np.nan],
                                          "B": [10, np.nan],
                                          "C": [8, 9]}))
-        print(a)
-        print(b)
+        com.pprint_thing(a)
+        com.pprint_thing(b)
         assert_frame_equal(a, b)
         # should work with heterogeneous types
         df = pd.DataFrame({"A": range(6),
@@ -12981,7 +12979,6 @@ class TestDataFrameQueryWithMultiIndex(object):
             if isinstance(v, Index):
                 assert v.is_(expected[k])
             elif isinstance(v, Series):
-                #print(k)
                 tm.assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")

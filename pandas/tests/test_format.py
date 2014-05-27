@@ -18,6 +18,7 @@ from pandas import DataFrame, Series, Index, _np_version_under1p7, Timestamp, Mu
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+import pandas.core.common as com
 from pandas.util.terminal import get_terminal_size
 import pandas
 import pandas.tslib as tslib
@@ -288,7 +289,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 df = mkframe((term_width // 7) - 2)
                 self.assertFalse(has_expanded_repr(df))
                 df = mkframe((term_width // 7) + 2)
-                print( df._repr_fits_horizontal_())
+                com.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
     def test_to_string_repr_unicode(self):
@@ -411,8 +412,6 @@ class TestDataFrameFormatting(tm.TestCase):
                                     self.assertFalse(has_vertically_truncated_repr(df))
                             with option_context("display.max_columns", 15):
                                 if w == 20:
-                                    print(df)
-                                    print(repr(df))
                                     self.assertTrue(has_horizontally_truncated_repr(df))
                                 else:
                                     self.assertFalse(has_horizontally_truncated_repr(df))

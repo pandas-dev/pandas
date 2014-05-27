@@ -730,8 +730,8 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame(randint(10, size=(20, 10)))
 
         def raiseException(df):
-            print('----------------------------------------')
-            print(df.to_string())
+            com.pprint_thing('----------------------------------------')
+            com.pprint_thing(df.to_string())
             raise TypeError
 
         self.assertRaises(TypeError, df.groupby(0).agg,

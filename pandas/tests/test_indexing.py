@@ -162,7 +162,7 @@ class TestIndexing(tm.TestCase):
                     error = str(error)
                 v = "%-16.16s [%-16.16s]: [typ->%-8.8s,obj->%-8.8s,key1->(%-4.4s),key2->(%-4.4s),axis->%s] %s" % (name,result,t,o,method1,method2,a,error or '')
                 if _verbose:
-                    print(v)
+                    com.pprint_thing(v)
 
             try:
 
