@@ -505,12 +505,12 @@ class TestStringMethods(tm.TestCase):
 
         # one group, no matches
         result = s.str.extract('(_)')
-        exp = Series([NA, NA, NA])
+        exp = Series([NA, NA, NA], dtype=object)
         tm.assert_series_equal(result, exp)
 
         # two groups, no matches
         result = s.str.extract('(_)(_)')
-        exp = DataFrame([[NA, NA], [NA, NA], [NA, NA]])
+        exp = DataFrame([[NA, NA], [NA, NA], [NA, NA]], dtype=object)
         tm.assert_frame_equal(result, exp)
 
         # one group, some matches
@@ -584,6 +584,47 @@ class TestStringMethods(tm.TestCase):
         e = Series(['a', 'b', 'c'], name='sue')
         tm.assert_series_equal(r, e)
         self.assertEqual(r.name, e.name)
+
+    def test_empty_str_methods(self):
+        empty_str = empty = Series(dtype=str)
+        empty_int = Series(dtype=int)
+        empty_bool = Series(dtype=bool)
+        empty_list = Series(dtype=list)
+        empty_bytes = Series(dtype=object)
+
+        # GH7241
+        # (extract) on empty series
+
+        tm.assert_series_equal(empty_str, empty.str.cat(empty))
+        tm.assert_equal('', empty.str.cat())
+        tm.assert_series_equal(empty_str, empty.str.title())
+        tm.assert_series_equal(empty_int, empty.str.count('a'))
+        tm.assert_series_equal(empty_bool, empty.str.contains('a'))
+        tm.assert_series_equal(empty_bool, empty.str.startswith('a'))
+        tm.assert_series_equal(empty_bool, empty.str.endswith('a'))
+        tm.assert_series_equal(empty_str, empty.str.lower())
+        tm.assert_series_equal(empty_str, empty.str.upper())
+        tm.assert_series_equal(empty_str, empty.str.replace('a','b'))
+        tm.assert_series_equal(empty_str, empty.str.repeat(3))
+        tm.assert_series_equal(empty_bool, empty.str.match('^a'))
+        tm.assert_series_equal(empty_str, empty.str.extract('()'))
+        tm.assert_frame_equal(DataFrame(columns=[0,1], dtype=str), empty.str.extract('()()'))
+        tm.assert_frame_equal(DataFrame(dtype=str), empty.str.get_dummies())
+        tm.assert_series_equal(empty_str, empty_list.str.join(''))
+        tm.assert_series_equal(empty_int, empty.str.len())
+        tm.assert_series_equal(empty_list, empty_list.str.findall('a'))
+        tm.assert_series_equal(empty_str, empty.str.pad(42))
+        tm.assert_series_equal(empty_str, empty.str.center(42))
+        tm.assert_series_equal(empty_list, empty.str.split('a'))
+        tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
+        tm.assert_series_equal(empty_str, empty.str.strip())
+        tm.assert_series_equal(empty_str, empty.str.lstrip())
+        tm.assert_series_equal(empty_str, empty.str.rstrip())
+        tm.assert_series_equal(empty_str, empty.str.rstrip())
+        tm.assert_series_equal(empty_str, empty.str.wrap(42))
+        tm.assert_series_equal(empty_str, empty.str.get(0))
+        tm.assert_series_equal(empty_str, empty_bytes.str.decode('ascii'))
+        tm.assert_series_equal(empty_bytes, empty.str.encode('ascii'))
 
     def test_get_dummies(self):
         s = Series(['a|b', 'a|c', np.nan])

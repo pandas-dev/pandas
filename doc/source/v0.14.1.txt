@@ -30,6 +30,10 @@ API changes
 - Openpyxl now raises a ValueError on construction of the openpyxl writer
   instead of warning on pandas import (:issue:`7284`).
 
+- For ``StringMethods.extract``, when no match is found, the result - only
+  containing ``NaN`` values - now also has ``dtype=object`` instead of
+  ``float`` (:issue:`7242`)
+
 .. _whatsnew_0141.prior_deprecations:
 
 Prior Version Deprecations/Changes
@@ -90,3 +94,4 @@ Bug Fixes
 - Bug in broadcasting with ``.div``, integer dtypes and divide-by-zero (:issue:`7325`)
 - Bug in ``CustomBusinessDay.apply`` raiases ``NameError`` when ``np.datetime64`` object is passed (:issue:`7196`)
 - Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
+- Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
