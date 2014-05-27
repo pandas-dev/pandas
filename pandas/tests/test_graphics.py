@@ -10,7 +10,8 @@ from distutils.version import LooseVersion
 from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
-from pandas.compat import range, lrange, StringIO, lmap, lzip, u, zip
+from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
+                           iteritems, OrderedDict)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -2244,6 +2245,48 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # propagate attr exception from matplotlib.Axes.hist
         with tm.assertRaises(AttributeError):
             plotting.grouped_hist(df.A, by=df.C, foo='bar')
+
+    def _check_box_dict(self, returned, return_type,
+                        expected_klass, expected_keys):
+        self.assertTrue(isinstance(returned, OrderedDict))
+        self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
+        for key, value in iteritems(returned):
+            self.assertTrue(isinstance(value, expected_klass))
+            # check returned dict has correct mapping
+            if return_type == 'axes':
+                self.assertEqual(value.get_title(), key)
+            elif return_type == 'both':
+                self.assertEqual(value.ax.get_title(), key)
+            elif return_type == 'dict':
+                line = value['medians'][0]
+                self.assertEqual(line.get_axes().get_title(), key)
+            else:
+                raise AssertionError
+
+    @slow
+    def test_grouped_box_return_type(self):
+        import matplotlib.axes
+
+        df = self.hist_df
+
+        columns2 = 'X B C D A G Y N Q O'.split()
+        df2 = DataFrame(random.randn(50, 10), columns=columns2)
+        categories2 = 'A B C D E F G H I J'.split()
+        df2['category'] = tm.choice(categories2, size=50)
+
+        types = {'dict': dict, 'axes': matplotlib.axes.Axes, 'both': tuple}
+        for t, klass in iteritems(types):
+            returned = df.groupby('classroom').boxplot(return_type=t)
+            self._check_box_dict(returned, t, klass, ['A', 'B', 'C'])
+
+            returned = df.boxplot(by='classroom', return_type=t)
+            self._check_box_dict(returned, t, klass, ['height', 'weight', 'category'])
+
+            returned = df2.groupby('category').boxplot(return_type=t)
+            self._check_box_dict(returned, t, klass, categories2)
+
+            returned = df2.boxplot(by='category', return_type=t)
+            self._check_box_dict(returned, t, klass, columns2)
 
     @slow
     def test_grouped_box_layout(self):

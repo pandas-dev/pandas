@@ -2363,12 +2363,17 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         if return_type is None:
             ret = axes
         if return_type == 'axes':
-            ret = dict((k, ax) for k, ax in zip(d.keys(), axes))
+            ret = compat.OrderedDict()
+            axes = _flatten(axes)[:len(d)]
+            for k, ax in zip(d.keys(), axes):
+                ret[k] = ax
         elif return_type == 'dict':
             ret = d
         elif return_type == 'both':
-            ret = dict((k, BP(ax=ax, lines=line)) for
-                       (k, line), ax in zip(d.items(), axes))
+            ret = compat.OrderedDict()
+            axes = _flatten(axes)[:len(d)]
+            for (k, line), ax in zip(d.items(), axes):
+                ret[k] = BP(ax=ax, lines=line)
     else:
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
@@ -2723,7 +2728,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                             sharex=False, sharey=True)
         axes = _flatten(axes)
 
-        ret = {}
+        ret = compat.OrderedDict()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)
@@ -2804,7 +2809,6 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     ravel_axes = _flatten(axes)
 
     out_dict = compat.OrderedDict()
-
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
