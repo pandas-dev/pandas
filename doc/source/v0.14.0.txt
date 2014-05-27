@@ -186,17 +186,18 @@ API changes
 - Added ``factorize`` functions to ``Index`` and ``Series`` to get indexer and unique values (:issue:`7090`)
 - ``describe`` on a DataFrame with a mix of Timestamp and string like objects returns a different Index (:issue:`7088`).
   Previously the index was unintentionally sorted.
-- arithmetic operations with **only** ``bool`` dtypes now raise an error
-  (:issue:`7011`, :issue:`6762`, :issue:`7015`)
+- arithmetic operations with **only** ``bool`` dtypes warn for ``+``, ``-``,
+  and ``*`` operations and raise for all others (:issue:`7011`, :issue:`6762`,
+  :issue:`7015`, :issue:`7210`)
 
   .. code-block:: python
 
      x = pd.Series(np.random.rand(10) > 0.5)
      y = True
-     x * y
+     x + y  # warning generated: should do x | y instead
+     x / y  # this raises because it doesn't make sense
 
-     # this now raises for arith ops like ``+``, ``*``, etc.
-     NotImplementedError: operator '*' not implemented for bool dtypes
+     NotImplementedError: operator '/' not implemented for bool dtypes
 
 
 .. _whatsnew_0140.display:

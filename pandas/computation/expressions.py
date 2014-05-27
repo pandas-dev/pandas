@@ -6,6 +6,7 @@ Offer fast expression evaluation through numexpr
 
 """
 
+import warnings
 import numpy as np
 from pandas.core.common import _values_from_object
 from distutils.version import LooseVersion
@@ -170,11 +171,23 @@ def _has_bool_dtype(x):
             return isinstance(x, (bool, np.bool_))
 
 
-def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('+', '*', '-', '/',
-                                                           '//', '**'))):
-    if op_str in not_allowed and _has_bool_dtype(a) and _has_bool_dtype(b):
-        raise NotImplementedError("operator %r not implemented for bool "
-                                  "dtypes" % op_str)
+def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),
+                      unsupported=None):
+    if unsupported is None:
+        unsupported = {'+': '|', '*': '&', '-': '^'}
+
+    if _has_bool_dtype(a) and _has_bool_dtype(b):
+        if op_str in unsupported:
+            warnings.warn("evaluating in Python space because the %r operator"
+                          " is not supported by numexpr for the bool "
+                          "dtype, use %r instead" % (op_str,
+                                                     unsupported[op_str]))
+            return False
+
+        if op_str in not_allowed:
+            raise NotImplementedError("operator %r not implemented for bool "
+                                      "dtypes" % op_str)
+    return True
 
 
 def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
@@ -193,7 +206,7 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
                          return the results
         use_numexpr : whether to try to use numexpr (default True)
         """
-    _bool_arith_check(op_str, a, b)
+    use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
         return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error,
                          **eval_kwargs)

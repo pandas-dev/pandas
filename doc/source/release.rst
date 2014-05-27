@@ -156,8 +156,8 @@ API Changes
 - ``to_excel`` now converts ``np.inf`` into a string representation,
   customizable by the ``inf_rep`` keyword argument (Excel has no native inf
   representation) (:issue:`6782`)
-- Arithmetic ops are now disallowed when passed two bool dtype Series or
-  DataFrames (:issue:`6762`).
+- Arithmetic ops on bool dtype arrays/scalars now give a warning indicating
+  that they are evaluated in Python space (:issue:`6762`, :issue:`7210`).
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 
 - ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``. The ``table`` keyword can receive the following values.
