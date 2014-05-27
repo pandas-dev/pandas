@@ -318,7 +318,6 @@ class TestOptionsWarnings(tm.TestCase):
     @network
     def test_get_options_data_warning(self):
         with assert_produces_warning():
-            print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_options_data(month=self.month, year=self.year)
             except RemoteDataError as e:
@@ -327,7 +326,6 @@ class TestOptionsWarnings(tm.TestCase):
     @network
     def test_get_near_stock_price_warning(self):
         with assert_produces_warning():
-            print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 calls_near, puts_near = self.aapl.get_near_stock_price(call=True,
                                                                     put=True,
@@ -339,7 +337,6 @@ class TestOptionsWarnings(tm.TestCase):
     @network
     def test_get_call_data_warning(self):
         with assert_produces_warning():
-            print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_call_data(month=self.month, year=self.year)
             except RemoteDataError as e:
@@ -348,7 +345,6 @@ class TestOptionsWarnings(tm.TestCase):
     @network
     def test_get_put_data_warning(self):
         with assert_produces_warning():
-            print('month: {0}, year: {1}'.format(self.month, self.year))
             try:
                 self.aapl.get_put_data(month=self.month, year=self.year)
             except RemoteDataError as e:

@@ -330,13 +330,13 @@ class SafeForSparse(object):
             try:
                 check_op(getattr(operator, op), op)
             except:
-                print("Failing operation: %r" % op)
+                com.pprint_thing("Failing operation: %r" % op)
                 raise
         if compat.PY3:
             try:
                 check_op(operator.truediv, 'div')
             except:
-                print("Failing operation: %r" % name)
+                com.pprint_thing("Failing operation: %r" % name)
                 raise
 
     def test_combinePanel(self):
@@ -1928,8 +1928,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                     actual = panel.drop(drop_val, axis=alias)
                     assert_panel_equal(actual, expected)
             except AssertionError:
-                print("Failed with axis_number %d and aliases: %s" %
-                      (axis_number, aliases))
+                com.pprint_thing("Failed with axis_number %d and aliases: %s" %
+                                 (axis_number, aliases))
                 raise
         # Items
         expected = Panel({"One": df})

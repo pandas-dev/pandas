@@ -1506,7 +1506,7 @@ class TestHDFStore(tm.TestCase):
             recons = store.select('df')
             assert isinstance(recons, DataFrame)
 
-        print("\nbig_table frame [%s] -> %5.2f" % (rows, time.time() - x))
+        com.pprint_thing("\nbig_table frame [%s] -> %5.2f" % (rows, time.time() - x))
 
     def test_big_table2_frame(self):
         # this is a really big table: 1m rows x 60 float columns, 20 string, 20 datetime
@@ -1514,7 +1514,7 @@ class TestHDFStore(tm.TestCase):
         raise nose.SkipTest('no big table2 frame')
 
         # create and write a big table
-        print("\nbig_table2 start")
+        com.pprint_thing("\nbig_table2 start")
         import time
         start_time = time.time()
         df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
@@ -1524,7 +1524,7 @@ class TestHDFStore(tm.TestCase):
         for x in range(20):
             df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
 
-        print("\nbig_table2 frame (creation of df) [rows->%s] -> %5.2f"
+        com.pprint_thing("\nbig_table2 frame (creation of df) [rows->%s] -> %5.2f"
               % (len(df.index), time.time() - start_time))
 
         def f(chunksize):
@@ -1535,15 +1535,15 @@ class TestHDFStore(tm.TestCase):
 
         for c in [10000, 50000, 250000]:
             start_time = time.time()
-            print("big_table2 frame [chunk->%s]" % c)
+            com.pprint_thing("big_table2 frame [chunk->%s]" % c)
             rows = f(c)
-            print("big_table2 frame [rows->%s,chunk->%s] -> %5.2f"
-                  % (rows, c, time.time() - start_time))
+            com.pprint_thing("big_table2 frame [rows->%s,chunk->%s] -> %5.2f"
+                             % (rows, c, time.time() - start_time))
 
     def test_big_put_frame(self):
         raise nose.SkipTest('no big put frame')
 
-        print("\nbig_put start")
+        com.pprint_thing("\nbig_put start")
         import time
         start_time = time.time()
         df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
@@ -1553,7 +1553,7 @@ class TestHDFStore(tm.TestCase):
         for x in range(20):
             df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
 
-        print("\nbig_put frame (creation of df) [rows->%s] -> %5.2f"
+        com.pprint_thing("\nbig_put frame (creation of df) [rows->%s] -> %5.2f"
               % (len(df.index), time.time() - start_time))
 
         with ensure_clean_store(self.path, mode='w') as store:
@@ -1561,8 +1561,8 @@ class TestHDFStore(tm.TestCase):
             store = HDFStore(self.path, mode='w')
             store.put('df', df)
 
-            print(df.get_dtype_counts())
-            print("big_put frame [shape->%s] -> %5.2f"
+            com.pprint_thing(df.get_dtype_counts())
+            com.pprint_thing("big_put frame [shape->%s] -> %5.2f"
                   % (df.shape, time.time() - start_time))
 
     def test_big_table_panel(self):
@@ -1588,7 +1588,7 @@ class TestHDFStore(tm.TestCase):
             recons = store.select('wp')
             assert isinstance(recons, Panel)
 
-        print("\nbig_table panel [%s] -> %5.2f" % (rows, time.time() - x))
+        com.pprint_thing("\nbig_table panel [%s] -> %5.2f" % (rows, time.time() - x))
 
     def test_append_diff_item_order(self):
 
@@ -3538,9 +3538,9 @@ class TestHDFStore(tm.TestCase):
                 expected = df[df.x != 'none']
                 assert_frame_equal(result,expected)
             except Exception as detail:
-                print("[{0}]".format(detail))
-                print(store)
-                print(expected)
+                com.pprint_thing("[{0}]".format(detail))
+                com.pprint_thing(store)
+                com.pprint_thing(expected)
 
             df2 = df.copy()
             df2.loc[df2.x=='','x'] = np.nan

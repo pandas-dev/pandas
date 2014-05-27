@@ -163,7 +163,7 @@ class Generic(object):
 
         def f():
             if obj1:
-                print("this works and shouldn't")
+                com.pprint_thing("this works and shouldn't")
         self.assertRaises(ValueError, f)
         self.assertRaises(ValueError, lambda : obj1 and obj2)
         self.assertRaises(ValueError, lambda : obj1 or obj2)
