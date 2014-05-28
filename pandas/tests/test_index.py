@@ -242,6 +242,21 @@ class TestIndex(tm.TestCase):
         # Must also be an Index
         self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
 
+    def test_insert(self):
+        result = Index(['b', 'c', 'd'])
+        
+        #Test 0
+        self.assertTrue(Index(['a', 'b', 'c', 'd']).equals(
+            result.insert(0, 'a')))
+        
+        #Test negative
+        self.assertTrue(Index(['b', 'c', 'd', 'e']).equals(
+            result.insert(-1, 'e')))
+        
+        #Test positive
+        self.assertTrue(Index(['b', 'z', 'c', 'd']).equals(
+            result.insert(1, 'z')))
+
     def test_identical(self):
 
         # index
