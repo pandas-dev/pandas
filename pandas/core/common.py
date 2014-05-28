@@ -2038,7 +2038,8 @@ def intersection(*seqs):
 def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
 
-    if not isinstance(values, (list, tuple, np.ndarray)):
+    if not (isinstance(values, (list, tuple))
+            or hasattr(values, '__array__')):
         values = list(values)
     elif isinstance(values, Index):
         return values.values
