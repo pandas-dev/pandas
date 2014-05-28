@@ -2272,7 +2272,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         columns2 = 'X B C D A G Y N Q O'.split()
         df2 = DataFrame(random.randn(50, 10), columns=columns2)
         categories2 = 'A B C D E F G H I J'.split()
-        df2['category'] = tm.choice(categories2, size=50)
+        df2['category'] = categories2 * 5
 
         types = {'dict': dict, 'axes': matplotlib.axes.Axes, 'both': tuple}
         for t, klass in iteritems(types):
