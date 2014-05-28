@@ -1787,6 +1787,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         _self = np.asarray(self)
         item_idx = Index([item], dtype=self.dtype).values
+        #turn negative values into appropriate positive values
+        if loc < 0:
+            loc = len(_self[:loc]) + 1
         idx = np.concatenate(
             (_self[:loc], item_idx, _self[loc:]))
         return Index(idx, name=self.name)
