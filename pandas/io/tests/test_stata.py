@@ -19,9 +19,8 @@ import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
 
-def skip_if_not_little_endian():
-    if not is_little_endian():
-        raise nose.SkipTest("known failure of test on non-little endian")
+if not is_little_endian():
+    raise nose.SkipTest("known failure of test_stata on non-little endian")
 
 class TestStata(tm.TestCase):
 
@@ -198,8 +197,6 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(parsed_117, expected)
 
     def test_read_write_dta5(self):
-        # skip_if_not_little_endian()
-
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss',
                                       'int_miss', 'long_miss'])
@@ -212,8 +209,6 @@ class TestStata(tm.TestCase):
                                   original)
 
     def test_write_dta6(self):
-        # skip_if_not_little_endian()
-
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
         original.index = original.index.astype(np.int32)
@@ -245,8 +240,6 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_write_dta10(self):
-        # skip_if_not_little_endian()
-
         original = DataFrame(data=[["string", "object", 1, 1.1,
                                     np.datetime64('2003-12-25')]],
                              columns=['string', 'object', 'integer', 'floating',
@@ -284,8 +277,6 @@ class TestStata(tm.TestCase):
             self.assertIsInstance(result, unicode)
 
     def test_read_write_dta11(self):
-        # skip_if_not_little_endian()
-
         original = DataFrame([(1, 2, 3, 4)],
                              columns=['good', compat.u('b\u00E4d'), '8number', 'astringwithmorethan32characters______'])
         formatted = DataFrame([(1, 2, 3, 4)],
@@ -303,8 +294,6 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
 
     def test_read_write_dta12(self):
-        # skip_if_not_little_endian()
-
         original = DataFrame([(1, 2, 3, 4, 5, 6)],
                              columns=['astringwithmorethan32characters_1',
                                       'astringwithmorethan32characters_2',

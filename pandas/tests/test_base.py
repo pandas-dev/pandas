@@ -246,7 +246,11 @@ class TestIndexOps(Ops):
                     # Unable to assign None
                     continue
 
-                values[0:2] = null_obj
+                # special assign to the numpy array
+                if o.values.dtype == 'datetime64[ns]':
+                    values[0:2] = pd.tslib.iNaT
+                else:
+                    values[0:2] = null_obj
 
                 # create repeated values, 'n'th element is repeated by n+1 times
                 if isinstance(o, PeriodIndex):
