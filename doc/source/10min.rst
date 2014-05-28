@@ -294,7 +294,7 @@ Using the :func:`~Series.isin` method for filtering:
    df2 = df.copy()
    df2['E']=['one', 'one','two','three','four','three']
    df2
-   df2[df2['E'].isin(['two','four'])
+   df2[df2['E'].isin(['two','four'])]
 
 Setting
 ~~~~~~~
