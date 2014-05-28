@@ -291,12 +291,10 @@ Using the :func:`~Series.isin` method for filtering:
 
 .. ipython:: python
 
-   df['E']=['one', 'one','two','three','four','three']
-   df
-   good_numbers=['two','four']
-   df[df['E'].isin(good_numbers)]
-
-   df.drop('E', inplace=True, axis=1)
+   df2 = df.copy()
+   df2['E']=['one', 'one','two','three','four','three']
+   df2
+   df2[df2['E'].isin(['two','four'])
 
 Setting
 ~~~~~~~
