@@ -99,7 +99,7 @@ def _stata_elapsed_date_to_datetime(date, fmt):
     #TODO: IIRC relative delta doesn't play well with np.datetime?
     #TODO: When pandas supports more than datetime64[ns], this should be improved to use correct range, e.g. datetime[Y] for yearly
     if np.isnan(date):
-        return np.datetime64('nat')
+        return NaT
 
     date = int(date)
     stata_epoch = datetime.datetime(1960, 1, 1)

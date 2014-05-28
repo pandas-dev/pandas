@@ -2705,7 +2705,7 @@ class TestTimestamp(tm.TestCase):
         import pytz
 
         def compare(x,y):
-            self.assertEqual(int(Timestamp(x).value/1e9), int(Timestamp(y).value/1e9))
+            self.assertEqual(int(np.round(Timestamp(x).value/1e9)), int(np.round(Timestamp(y).value/1e9)))
 
         compare(Timestamp.now(),datetime.now())
         compare(Timestamp.now('UTC'),datetime.now(pytz.timezone('UTC')))
