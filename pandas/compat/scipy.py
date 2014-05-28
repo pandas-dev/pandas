@@ -54,16 +54,20 @@ def fastsort(a):
 
     Parameters
     ----------
-    a : array_like
-        Input array.
+    a : 1-d array_like object (i.e np.array or pd.Series)
 
     Returns
     -------
-    fastsort : ndarray of type int
-        sorted indices into the original array
+    fastsort : returns a 2-tuple of array_like objects consisting of 
+        'a', sorted ascending, and an array_like object containing 
+        indicies of 'a', sorted ascending on 'a'. 
+        
+    Example
+    -------
+    >>>fastsort(np.array([4,6,4,5]))
+    (array([4, 4, 5, 6]), array([0, 2, 3, 1], dtype=int32))
 
     """
-    # TODO: the wording in the docstring is nonsense.
     it = np.argsort(a)
     as_ = a[it]
     return as_, it
