@@ -245,17 +245,23 @@ class TestIndex(tm.TestCase):
     def test_insert(self):
         result = Index(['b', 'c', 'd'])
         
-        #Test 0
+        #test 0th element
         self.assertTrue(Index(['a', 'b', 'c', 'd']).equals(
             result.insert(0, 'a')))
         
-        #Test negative
+        #test Nth element
         self.assertTrue(Index(['b', 'c', 'd', 'e']).equals(
             result.insert(-1, 'e')))
         
-        #Test positive
-        self.assertTrue(Index(['b', 'z', 'c', 'd']).equals(
-            result.insert(1, 'z')))
+        #test loc +/- neq (0, -1)
+        self.assertTrue(result.insert(1, 'z').equals(
+            result.insert(-3, 'z')))
+
+        #test empty
+        null_index = Index([])
+        self.assertTrue(Index(['a']).equals(
+            null_index.insert(0, 'a')))
+        
 
     def test_identical(self):
 
