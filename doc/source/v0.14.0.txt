@@ -200,6 +200,7 @@ API changes
      NotImplementedError: operator '/' not implemented for bool dtypes
 
 
+
 .. _whatsnew_0140.display:
 
 Display Changes
