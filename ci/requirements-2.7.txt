@@ -20,3 +20,4 @@ scipy==0.13.3
 beautifulsoup4==4.2.1
 statsmodels==0.5.0
 bigquery==2.0.17
+boto==2.26.1

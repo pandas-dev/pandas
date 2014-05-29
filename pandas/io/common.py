@@ -126,7 +126,12 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # are environment variables
         parsed_url = parse_url(filepath_or_buffer)
-        conn = boto.connect_s3()
+
+        try:
+            conn = boto.connect_s3()
+        except boto.exception.NoAuthHandlerFound:
+            conn = boto.connect_s3(anon=True)
+
         b = conn.get_bucket(parsed_url.netloc)
         k = boto.s3.key.Key(b)
         k.key = parsed_url.path

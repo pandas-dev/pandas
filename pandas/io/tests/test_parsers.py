@@ -3414,6 +3414,36 @@ class TestParseSQL(tm.TestCase):
         assert_same_values_and_dtype(result, expected)
 
 
+class TestS3(tm.TestCase):
+    def setUp(self):
+        try:
+            import boto
+        except ImportError:
+            raise nose.SkipTest("boto not installed")
+
+        if compat.PY3:
+            raise nose.SkipTest("boto incompatible with Python 3")
+
+    @tm.network
+    def test_parse_public_s3_bucket(self):
+        import nose.tools as nt
+        df = pd.read_csv('s3://nyqpug/tips.csv')
+        nt.assert_true(isinstance(df, pd.DataFrame))
+        nt.assert_false(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
+    @tm.network
+    def test_s3_fails(self):
+        import boto
+        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
+                                'S3ResponseError: 404 Not Found'):
+            pd.read_csv('s3://nyqpug/asdf.csv')
+
+        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
+                                'S3ResponseError: 403 Forbidden'):
+            pd.read_csv('s3://cant_get_it/tips.csv')
+
+
 def assert_same_values_and_dtype(res, exp):
     tm.assert_equal(res.dtype, exp.dtype)
     tm.assert_almost_equal(res, exp)
