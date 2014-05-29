@@ -66,6 +66,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
+- Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`7261`)
 - Bug in ``TimeGrouper`` doesn't exclude column specified by ``key`` (:issue:`7227`)
 - Bug in ``DataFrame`` and ``Series`` bar and barh plot raises ``TypeError`` when ``bottom``
   and ``left`` keyword is specified (:issue:`7226`)
