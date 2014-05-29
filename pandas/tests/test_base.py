@@ -1,5 +1,5 @@
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 import numpy as np
 import pandas.compat as compat
 import pandas as pd
@@ -209,6 +209,39 @@ class TestIndexOps(Ops):
                     # comparing tz-aware series with np.array results in ValueError
                     expected = expected.astype('M8[ns]').astype('int64')
                     self.assertEqual(result.value, expected)
+
+    def test_nanops(self):
+        # GH 7261
+        for op in ['max','min']:
+            for klass in [Index, Series]:
+
+                obj = klass([np.nan, 2.0])
+                self.assertEqual(getattr(obj, op)(), 2.0)
+
+                obj = klass([np.nan])
+                self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+                obj = klass([])
+                self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+                obj = klass([pd.NaT, datetime(2011, 11, 1)])
+                # check DatetimeIndex monotonic path
+                self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
+
+                obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
+                # check DatetimeIndex non-monotonic path
+                self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
+
+            # explicitly create DatetimeIndex
+            obj = DatetimeIndex([])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+            obj = DatetimeIndex([pd.NaT])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+            obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
 
     def test_value_counts_unique_nunique(self):
         for o in self.objs:

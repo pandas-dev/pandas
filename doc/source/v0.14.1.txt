@@ -65,3 +65,4 @@ There are no experimental changes in 0.14.1
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
