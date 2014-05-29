@@ -1241,6 +1241,10 @@ class NDFrame(PandasObject):
 
         return result
 
+    def sample(self, size, replace=True):
+        msk = np.random.choice(len(self), size, replace=replace)
+        return self.iloc[msk]
+
     def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the Series/DataFrame.
