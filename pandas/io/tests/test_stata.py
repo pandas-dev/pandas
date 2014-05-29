@@ -19,9 +19,6 @@ import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
 
-if not is_little_endian():
-    raise nose.SkipTest("known failure of test_stata on non-little endian")
-
 class TestStata(tm.TestCase):
 
     def setUp(self):

@@ -561,7 +561,7 @@ class StataReader(StataParser):
                 raise ValueError("Version of given Stata file is not 104, "
                                  "105, 108, 113 (Stata 8/9), 114 (Stata "
                                  "10/11), 115 (Stata 12) or 117 (Stata 13)")
-            self.byteorder = self.path_or_buf.read(1) == 0x1 and '>' or '<'
+            self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[0] == 0x1 and '>' or '<'
             self.filetype = struct.unpack('b', self.path_or_buf.read(1))[0]
             self.path_or_buf.read(1)  # unused
 
