@@ -173,6 +173,18 @@ class TestIndex(tm.TestCase):
         result = pd.infer_freq(df['date'])
         self.assertEqual(result,'MS')
 
+    def test_constructor_ndarray_like(self):
+        # GH 5460#issuecomment-44474502
+        # it should be possible to convert any object that satisfies the numpy
+        # ndarray interface directly into an Index
+        class ArrayLike(object):
+            def __array__(self, dtype=None):
+                return np.arange(5)
+
+        expected = pd.Index(np.arange(5))
+        result = pd.Index(ArrayLike())
+        self.assertTrue(result.equals(expected))
+
     def test_index_ctor_infer_periodindex(self):
         from pandas import period_range, PeriodIndex
         xp = period_range('2012-1-1', freq='M', periods=3)
