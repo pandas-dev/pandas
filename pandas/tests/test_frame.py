@@ -9285,6 +9285,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xp = self.tsframe.diff(1)
         assert_frame_equal(rs, xp)
 
+    def test_diff_timedelta(self):
+        df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
+                                  Timestamp('20130101 9:02')],
+                            value=[1.0,2.0]))
+        res = df.diff()
+        exp = DataFrame([[pd.NaT, np.nan],
+                         [np.timedelta64(int(6e10), 'ns'), 1]],
+                         columns=['time', 'value'])
+        assert_frame_equal(res, exp)
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)

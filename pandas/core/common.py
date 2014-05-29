@@ -813,7 +813,8 @@ def diff(arr, n, axis=0):
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = na
 
-    if arr.ndim == 2 and arr.dtype.name in _diff_special:
+    if (arr.ndim == 2 and arr.dtype.name in _diff_special
+                      and dtype != 'timedelta64[ns]'):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
