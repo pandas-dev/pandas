@@ -869,6 +869,14 @@ class TestResamplePeriodIndex(tm.TestCase):
             expected = expected.asfreq(targ, 'ffill').to_period()
             assert_series_equal(result, expected)
 
+    def test_fill_method_and_how_upsample(self):
+        # GH2073
+        s = Series(range(9),
+                   index=date_range('2010-01-01', periods=9, freq='Q'))
+        last = s.resample('M', fill_method='ffill')
+        both = s.resample('M', how='last', fill_method='ffill').astype('int64')
+        assert_series_equal(last, both)
+
     def test_weekly_upsample(self):
         targets = ['D', 'B']
 
