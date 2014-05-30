@@ -4086,7 +4086,8 @@ class TestGroupBy(tm.TestCase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        gender = tm.choice(['male', 'female'], size=n)
+        with tm.RNGContext(42):
+            gender = tm.choice(['male', 'female'], size=n)
 
         weight.groupby(gender).plot()
         tm.close()
@@ -4118,7 +4119,8 @@ class TestGroupBy(tm.TestCase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        gender = tm.choice(['male', 'female'], size=n)
+        with tm.RNGContext(42):
+            gender = tm.choice(['male', 'female'], size=n)
         df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
         gb = df.groupby('gender')
 
@@ -4136,11 +4138,6 @@ class TestGroupBy(tm.TestCase):
         res = df.groupby('gender').hist()
         tm.close()
 
-        df2 = df.copy()
-        df2['gender2'] = df['gender']
-        with tm.assertRaisesRegexp(TypeError, '.*str.+float'):
-            df2.groupby('gender').hist()
-
     @slow
     def test_frame_groupby_hist(self):
         _skip_if_mpl_not_installed()
@@ -4152,7 +4149,8 @@ class TestGroupBy(tm.TestCase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        gender_int = tm.choice([0, 1], size=n)
+        with tm.RNGContext(42):
+            gender_int = tm.choice([0, 1], size=n)
         df_int = DataFrame({'height': height, 'weight': weight,
                             'gender': gender_int})
         gb = df_int.groupby('gender')
