@@ -2038,9 +2038,11 @@ def _delta_to_tick(delta):
 def _delta_to_nanoseconds(delta):
     if isinstance(delta, np.timedelta64):
         return delta.astype('timedelta64[ns]').item()
-    elif isinstance(delta, Tick):
+    if isinstance(delta, Tick):
         delta = delta.delta
 
+    if isinstance(delta, int):
+        return delta * 1000
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds) * 1000

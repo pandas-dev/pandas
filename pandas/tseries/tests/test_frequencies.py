@@ -13,6 +13,7 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.frequencies as fmod
 import pandas.tseries.offsets as offsets
+from pandas.tseries.offsets import Nano, Micro, Second, Minute, Hour, Day
 from pandas.tseries.period import PeriodIndex
 import pandas.compat as compat
 
@@ -106,6 +107,24 @@ class TestToOffset(tm.TestCase):
         ms = offsets.Day(1).nanos / 1000
         self.assertEqual(dttd, offsets.Micro(ms))
 
+    def test_to_offset_offset(self):
+        off = Nano(1000)
+        offed = to_offset(off)
+        exp = Micro(1)
+        assert isinstance(offed, Micro)
+        self.assertEqual(exp, offed)
+
+        off = Minute(60)
+        offed = to_offset(off)
+        exp = Hour(1)
+        assert isinstance(offed, Hour)
+        self.assertEqual(exp, offed)
+
+        off = Minute(90)
+        offed = to_offset(off)
+        exp = off
+        assert isinstance(offed, Minute)
+        self.assertEqual(exp, offed)
 
 class TestFrequencyInference(tm.TestCase):
 

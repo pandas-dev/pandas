@@ -252,7 +252,7 @@ def to_offset(freqstr):
         return None
 
     elif isinstance(freqstr, DateOffset):
-        return freqstr
+        return _simplify_offset(freqstr)
 
     elif isinstance(freqstr, tuple):
         name = freqstr[0]
@@ -411,23 +411,24 @@ def _simplify_offset(offset):
     '''
     from pandas.tseries.offsets import (Nano, Micro, Milli, Second,
                                         Minute, Hour, Day)
-    if isinstance((Nano, Micro, Milli, Second, Hour,)):
+    if isinstance(offset, (Nano, Micro, Milli, Second, Minute, Hour,)):
         ns = offset.nanos
 
-        def higher_offset(ns, unit, unit_ns):
+        def _offset(ns, unit, unit_ns):
             units, rem = divmod(ns, unit_ns)
-            if not rem:
+            if rem == 0:
                 return unit(units)
 
         units_in_ns = [(Day, 86400000000000), (Hour, 3600000000000),
-                       (Minute, 60000000000), (Second, 1000000000)
+                       (Minute, 60000000000), (Second, 1000000000),
                        (Milli, 1000000), (Micro, 1000)]
 
-        # None if can't simplify
-        simplified = any(higher_offset(ns, unit, unit_ns)
-                         for unit, unit_ns in units_in_ns)
+        for unit, unit_ns in units_in_ns:
+            new_offset = _offset(ns, unit, unit_ns)
+            if new_offset:
+                return new_offset
 
-    return simplified or offset
+    return offset
 
 
 def get_standard_freq(freq):
