@@ -45,6 +45,22 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.14.1
+-------------
+
+**Release date:** (????)
+
+This is a minor release from 0.14.0 and includes a number of API changes, several new features, enhancements, and
+performance improvements along with a large number of bug fixes.
+
+Highlights include:
+
+See the :ref:`v0.14.1 Whatsnew <whatsnew_0141>` overview or the issue tracker on GitHub for an extensive list
+of all API changes, enhancements and bugs that have been fixed in 0.14.1.
+
+Thanks
+~~~~~~
+
 pandas 0.14.0
 -------------
 

@@ -1,0 +1,67 @@
+.. _whatsnew_0141:
+
+v0.14.1 (???)
+-------------
+
+This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+- Highlights include:
+
+- :ref:`Other Enhancements <whatsnew_0141.enhancements>`
+
+- :ref:`API Changes <whatsnew_0141.api>`
+
+- :ref:`Performance Improvements <whatsnew_0141.performance>`
+
+- :ref:`Prior Deprecations <whatsnew_0141.prior_deprecations>`
+
+- :ref:`Deprecations <whatsnew_0141.deprecations>`
+
+- :ref:`Known Issues <whatsnew_0141.knownissues>`
+
+- :ref:`Bug Fixes <whatsnew_0141.bug_fixes>`
+
+.. _whatsnew_0141.api:
+
+API changes
+~~~~~~~~~~~
+
+.. _whatsnew_0141.prior_deprecations:
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are prior version deprecations that are taking effect as of 0.14.1.
+
+.. _whatsnew_0141.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_0141.knownissues:
+
+Known Issues
+~~~~~~~~~~~~
+
+.. _whatsnew_0141.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0141.performance:
+
+Performance
+~~~~~~~~~~~
+
+Experimental
+~~~~~~~~~~~~
+
+There are no experimental changes in 0.14.1
+
+.. _whatsnew_0141.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
