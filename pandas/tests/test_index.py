@@ -242,6 +242,26 @@ class TestIndex(tm.TestCase):
         # Must also be an Index
         self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
 
+    def test_insert(self):
+        result = Index(['b', 'c', 'd'])
+        
+        #test 0th element
+        self.assertTrue(Index(['a', 'b', 'c', 'd']).equals(
+            result.insert(0, 'a')))
+        
+        #test Nth element that follows Python list behavior
+        self.assertTrue(Index(['b', 'c', 'e', 'd']).equals(
+            result.insert(-1, 'e')))
+        
+        #test loc +/- neq (0, -1)
+        self.assertTrue(result.insert(1, 'z').equals(
+            result.insert(-2, 'z')))
+
+        #test empty
+        null_index = Index([])
+        self.assertTrue(Index(['a']).equals(
+            null_index.insert(0, 'a')))        
+
     def test_identical(self):
 
         # index

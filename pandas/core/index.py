@@ -1774,7 +1774,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def insert(self, loc, item):
         """
-        Make new Index inserting new item at location
+        Make new Index inserting new item at location. Follows
+        Python list.append semantics for negative values
 
         Parameters
         ----------
