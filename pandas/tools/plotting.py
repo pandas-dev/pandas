@@ -1789,6 +1789,9 @@ class BarPlot(MPLPlot):
         kwargs['align'] = kwargs.pop('align', 'center')
         self.tick_pos = np.arange(len(data))
 
+        self.bottom = kwargs.pop('bottom', None)
+        self.left = kwargs.pop('left', None)
+
         self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
 
@@ -1808,13 +1811,21 @@ class BarPlot(MPLPlot):
         if self.rot is None:
             self.rot = self._default_rot[self.kind]
 
-    @property
-    def bar_f(self):
+        if com.is_list_like(self.bottom):
+            self.bottom = np.array(self.bottom)
+        if com.is_list_like(self.left):
+            self.left = np.array(self.left)
+
+    def _get_plot_function(self):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
+                if self.bottom is not None:
+                    start = start + self.bottom
                 return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
         elif self.kind == 'barh':
             def f(ax, x, y, w, start=None, log=self.log, **kwds):
+                if self.left is not None:
+                    start = start + self.left
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
             raise NotImplementedError
@@ -1830,10 +1841,8 @@ class BarPlot(MPLPlot):
         colors = self._get_colors()
         ncolors = len(colors)
 
-        bar_f = self.bar_f
-
+        bar_f = self._get_plot_function()
         pos_prior = neg_prior = np.zeros(len(self.data))
-
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
