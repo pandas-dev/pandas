@@ -5,6 +5,8 @@ from datetime import datetime, date, time
 import os
 from distutils.version import LooseVersion
 
+import operator
+import functools
 import nose
 
 from numpy import nan
@@ -44,10 +46,6 @@ def _skip_if_no_openpyxl():
         import openpyxl  # NOQA
     except ImportError:
         raise nose.SkipTest('openpyxl not installed, skipping')
-
-    if not openpyxl_compat.is_compat():
-        raise nose.SkipTest('need %s <= openpyxl < %s, skipping' %
-                (openpyxl_compat.start_ver, openpyxl_compat.stop_ver))
 
 
 def _skip_if_no_xlsxwriter():
@@ -884,7 +882,6 @@ class ExcelWriterBase(SharedItems):
             result = read_excel(filename, 'TestSheet', encoding='utf8')
             tm.assert_frame_equal(result, df)
 
-
     def test_to_excel_unicode_filename(self):
         _skip_if_no_xlrd()
         with ensure_clean(u('\u0192u.') + self.ext) as filename:
@@ -1094,13 +1091,36 @@ class ExcelWriterBase(SharedItems):
             tm.assert_series_equal(write_frame['B'], read_frame['B'])
 
 
+def raise_wrapper(orig_method):
+    @functools.wraps(orig_method)
+    def wrapped(self, *args, **kwargs):
+        _skip_if_no_openpyxl()
+        if openpyxl_compat.is_compat():
+            orig_method(self, *args, **kwargs)
+        else:
+            msg = 'Installed openpyxl is not supported at this time\. Use.+'
+            with tm.assertRaisesRegexp(ValueError, msg):
+                orig_method(self, *args, **kwargs)
+    return wrapped
+
+
+def raise_on_incompat_version(cls):
+    methods = filter(operator.methodcaller('startswith', 'test_'), dir(cls))
+    for method in methods:
+        setattr(cls, method, raise_wrapper(getattr(cls, method)))
+    return cls
+
+
+@raise_on_incompat_version
 class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
-    check_skip = staticmethod(_skip_if_no_openpyxl)
+    check_skip = staticmethod(lambda *args, **kwargs: None)
 
     def test_to_excel_styleconverter(self):
         _skip_if_no_openpyxl()
+        if not openpyxl_compat.is_compat():
+            raise nose.SkipTest('incompatiable openpyxl version')
 
         import openpyxl
 
@@ -1114,17 +1134,17 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
         xlsx_style = _OpenpyxlWriter._convert_to_style(hstyle)
         self.assertTrue(xlsx_style.font.bold)
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.top.border_style)
+                         xlsx_style.borders.top.border_style)
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.right.border_style)
+                         xlsx_style.borders.right.border_style)
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.bottom.border_style)
+                         xlsx_style.borders.bottom.border_style)
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.left.border_style)
+                         xlsx_style.borders.left.border_style)
         self.assertEqual(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                          xlsx_style.alignment.horizontal)
+                         xlsx_style.alignment.horizontal)
         self.assertEqual(openpyxl.style.Alignment.VERTICAL_TOP,
-                          xlsx_style.alignment.vertical)
+                         xlsx_style.alignment.vertical)
 
 
 class XlwtTests(ExcelWriterBase, tm.TestCase):
@@ -1160,6 +1180,7 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
 
 
+@raise_on_incompat_version
 class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
@@ -1196,6 +1217,8 @@ class ExcelWriterEngineTests(tm.TestCase):
             import xlsxwriter
             writer_klass = _XlsxWriter
         except ImportError:
+            if not openpyxl_compat.is_compat():
+                raise nose.SkipTest('incompatible openpyxl version')
             _skip_if_no_openpyxl()
             writer_klass = _OpenpyxlWriter
 
@@ -1245,6 +1268,7 @@ class ExcelWriterEngineTests(tm.TestCase):
         check_called(lambda: df.to_excel('something.xlsx'))
         check_called(lambda: df.to_excel('something.xls', engine='dummy'))
         set_option('io.excel.xlsx.writer', val)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

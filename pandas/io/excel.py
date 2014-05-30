@@ -523,6 +523,11 @@ class _OpenpyxlWriter(ExcelWriter):
     supported_extensions = ('.xlsx', '.xlsm')
 
     def __init__(self, path, engine=None, **engine_kwargs):
+        if not openpyxl_compat.is_compat():
+            raise ValueError('Installed openpyxl is not supported at this '
+                             'time. Use >={0} and '
+                             '<{1}.'.format(openpyxl_compat.start_ver,
+                                            openpyxl_compat.stop_ver))
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
@@ -618,12 +623,7 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return xls_style
 
-
-if openpyxl_compat.is_compat():
-    register_writer(_OpenpyxlWriter)
-else:
-    warn('Installed openpyxl is not supported at this time. Use >={} and <{}.'
-            .format(openpyxl_compat.start_ver, openpyxl_compat.stop_ver))
+register_writer(_OpenpyxlWriter)
 
 
 class _XlwtWriter(ExcelWriter):
