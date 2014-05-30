@@ -66,3 +66,4 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
+- Bug in ``TimeGrouper`` doesn't exclude column specified by ``key`` (:issue:`7227`)

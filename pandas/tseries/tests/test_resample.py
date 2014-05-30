@@ -699,6 +699,32 @@ class TestResample(tm.TestCase):
         assert_series_equal(s10_2, r10_2)
         assert_series_equal(s10_2, rl)
 
+    def test_resample_timegrouper(self):
+        # GH 7227
+        dates = [datetime(2014, 10, 1), datetime(2014, 9, 3), 
+                  datetime(2014, 11, 5), datetime(2014, 9, 5),
+                  datetime(2014, 10, 8), datetime(2014, 7, 15)]
+
+        df = DataFrame(dict(A=dates, B=np.arange(len(dates))))
+        result = df.set_index('A').resample('M', how='count')
+        exp_idx = pd.DatetimeIndex(['2014-07-31', '2014-08-31', '2014-09-30',
+                                    '2014-10-31', '2014-11-30'], freq='M', name='A')
+        expected = DataFrame({'B': [1, 0, 2, 2, 1]}, index=exp_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.groupby(pd.Grouper(freq='M', key='A')).count()
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(dict(A=dates, B=np.arange(len(dates)), C=np.arange(len(dates))))
+        result = df.set_index('A').resample('M', how='count')
+        expected = DataFrame({'B': [1, 0, 2, 2, 1], 'C': [1, 0, 2, 2, 1]},
+                             index=exp_idx, columns=['B', 'C'])
+        assert_frame_equal(result, expected)
+
+        result = df.groupby(pd.Grouper(freq='M', key='A')).count()
+        assert_frame_equal(result, expected)
+
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
