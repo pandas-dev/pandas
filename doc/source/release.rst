@@ -50,8 +50,8 @@ pandas 0.14.0
 
 **Release date:** (May 31, 2014)
 
-This is a major release from 0.13.1 and includes a number of API changes, several new features, enhancements, and 
-performance improvements along with a large number of bug fixes. 
+This is a major release from 0.13.1 and includes a number of API changes, several new features, enhancements, and
+performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
@@ -65,9 +65,106 @@ Highlights include:
 - Several improvements in plotting functions, including: hexbin, area and pie plots, see :ref:`here<whatsnew_0140.plotting>`.
 - Performance doc section on I/O operations, see :ref:`here <io.perf>`
 
-See the :ref:`v0.14.0 Whatsnew <whatsnew_0140>` overview or the issue tracker on GitHub for an extensive list 
+See the :ref:`v0.14.0 Whatsnew <whatsnew_0140>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.14.0.
 
+Thanks
+~~~~~~
+
+- Acanthostega
+- Adam Marcus
+- agijsberts
+- akittredge
+- Alex Gaudio
+- Alex Rothberg
+- AllenDowney
+- Andrew Rosenfeld
+- Andy Hayden
+- ankostis
+- anomrake
+- Antoine Mazières
+- anton-d
+- bashtage
+- Benedikt Sauer
+- benjamin
+- Brad Buran
+- bwignall
+- cgohlke
+- chebee7i
+- Christopher Whelan
+- Clark Fitzgerald
+- clham
+- Dale Jung
+- Dan Allan
+- Dan Birken
+- danielballan
+- Daniel Waeber
+- David Jung
+- David Stephens
+- Douglas McNeil
+- DSM
+- Garrett Drapala
+- Gouthaman Balaraman
+- Guillaume Poulin
+- hshimizu77
+- hugo
+- immerrr
+- ischwabacher
+- Jacob Howard
+- Jacob Schaer
+- jaimefrio
+- Jason Sexauer
+- Jeff Reback
+- Jeffrey Starr
+- Jeff Tratner
+- John David Reaver
+- John McNamara
+- John W. O'Brien
+- Jonathan Chambers
+- Joris Van den Bossche
+- jreback
+- jsexauer
+- Julia Evans
+- Júlio
+- Katie Atkinson
+- kdiether
+- Kelsey Jordahl
+- Kevin Sheppard
+- K.-Michael Aye
+- Matthias Kuhn
+- Matt Wittmann
+- Max Grender-Jones
+- Michael E. Gruen
+- michaelws
+- mikebailey
+- Mike Kelly
+- Nipun Batra
+- Noah Spies
+- ojdo
+- onesandzeroes
+- Patrick O'Keeffe
+- phaebz
+- Phillip Cloud
+- Pietro Battiston
+- PKEuS
+- Randy Carnevale
+- ribonoous
+- Robert Gibboni
+- rockg
+- sinhrks
+- Skipper Seabold
+- SplashDance
+- Stephan Hoyer
+- Tim Cera
+- Tobias Brandt
+- Todd Jennings
+- TomAugspurger
+- Tom Augspurger
+- unutbu
+- westurner
+- Yaroslav Halchenko
+- y-p
+- zach powers
 
 pandas 0.13.1
 -------------
