@@ -1758,20 +1758,28 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         Overridden ndarray.min to return a Timestamp
         """
-        if self.is_monotonic:
-            return self[0]
+        mask = self.asi8 == tslib.iNaT
+        masked = self[~mask]
+        if len(masked) == 0:
+            return tslib.NaT
+        elif self.is_monotonic:
+            return masked[0]
         else:
-            min_stamp = self.asi8.min()
+            min_stamp = masked.asi8.min()
             return Timestamp(min_stamp, tz=self.tz)
 
     def max(self, axis=None):
         """
         Overridden ndarray.max to return a Timestamp
         """
-        if self.is_monotonic:
-            return self[-1]
+        mask = self.asi8 == tslib.iNaT
+        masked = self[~mask]
+        if len(masked) == 0:
+            return tslib.NaT
+        elif self.is_monotonic:
+            return masked[-1]
         else:
-            max_stamp = self.asi8.max()
+            max_stamp = masked.asi8.max()
             return Timestamp(max_stamp, tz=self.tz)
 
     def to_julian_date(self):

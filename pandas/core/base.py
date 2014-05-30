@@ -236,11 +236,13 @@ class IndexOpsMixin(object):
 
     def max(self):
         """ The maximum value of the object """
-        return self.values.max()
+        import pandas.core.nanops
+        return pandas.core.nanops.nanmax(self.values)
 
     def min(self):
         """ The minimum value of the object """
-        return self.values.min()
+        import pandas.core.nanops
+        return pandas.core.nanops.nanmin(self.values)
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None):
