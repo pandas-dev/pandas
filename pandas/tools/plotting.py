@@ -1563,6 +1563,8 @@ class LinePlot(MPLPlot):
                 kwds = self.kwds.copy()
                 self._maybe_add_color(colors, kwds, style, i)
 
+                lines += _get_all_lines(ax)
+
                 errors = self._get_errorbars(label=label, index=i)
                 kwds = dict(kwds, **errors)
 
@@ -3062,6 +3064,20 @@ def _flatten(axes):
     elif isinstance(axes, np.ndarray):
         axes = axes.ravel()
     return axes
+
+
+def _get_all_lines(ax):
+    lines = ax.get_lines()
+
+    # check for right_ax, which can oddly sometimes point back to ax
+    if hasattr(ax, 'right_ax') and ax.right_ax != ax:
+        lines += ax.right_ax.get_lines()
+
+    # no such risk with left_ax
+    if hasattr(ax, 'left_ax'):
+        lines += ax.left_ax.get_lines()
+
+    return lines
 
 
 def _get_xlim(lines):

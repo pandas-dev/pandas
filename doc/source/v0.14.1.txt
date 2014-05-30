@@ -270,6 +270,9 @@ Bug Fixes
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
 
+- Bug with last plotted timeseries dictating ``xlim`` (:issue:`2960`)
+- Bug with ``secondary_y`` axis not being considered for timeseries ``xlim`` (:issue:`3490`)
+
 - Bug in ``Float64Index`` assignment with a non scalar indexer (:issue:`7586`)
 - Bug in ``pandas.core.strings.str_contains`` does not properly match in a case insensitive fashion when ``regex=False`` and ``case=False`` (:issue:`7505`)
 
