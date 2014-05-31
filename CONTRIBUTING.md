@@ -42,9 +42,9 @@ looking for a quick way to help out.
     - Optionally, a commit message body.
   - Please reference relevant Github issues in your commit message using `GH1234`
     or `#1234`. Either style is fine but the '#' style generates noise when your rebase your PR.
-  - `doc/source/release.rst` and `doc/source/vx.y.z.txt` contain an ongoing
-    changelog for each release. Add entries to these files
-    as needed in a separate commit in your PR: document the fix, enhancement,
+  - `doc/source/vx.y.z.txt` contains an ongoing
+    changelog for each release. Add an entry to this file
+    as needed in your PR: document the fix, enhancement,
     or (unavoidable) breaking change.
   - Keep style fixes to a separate commit to make your PR more readable.
   - An informal commit message format is in effect for the project. Please try
