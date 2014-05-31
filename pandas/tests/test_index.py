@@ -265,6 +265,23 @@ class TestIndex(tm.TestCase):
         self.assertTrue(Index(['a']).equals(
             null_index.insert(0, 'a')))
 
+    def test_delete(self):
+        idx = Index(['a', 'b', 'c', 'd'], name='idx')
+
+        expected = Index(['b', 'c', 'd'], name='idx')
+        result = idx.delete(0)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+
+        expected = Index(['a', 'b', 'c'], name='idx')
+        result = idx.delete(-1)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+
+        with tm.assertRaises((IndexError, ValueError)):
+            # either depeidnig on numpy version
+            result = idx.delete(5)
+
     def test_identical(self):
 
         # index

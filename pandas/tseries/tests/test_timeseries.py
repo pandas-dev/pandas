@@ -4,8 +4,6 @@ import sys
 import os
 import operator
 
-from distutils.version import LooseVersion
-
 import nose
 
 import numpy as np
@@ -2092,6 +2090,35 @@ class TestDatetimeIndex(tm.TestCase):
 
         idx = date_range('1/1/2000', periods=3, freq='M')
         result = idx.insert(3, datetime(2000, 4, 30))
+        self.assertEqual(result.freqstr, 'M')
+
+    def test_delete(self):
+        idx = date_range(start='2000-01-01', periods=4, freq='M', name='idx')
+
+        expected = date_range(start='2000-02-01', periods=3, freq='M', name='idx')
+        result = idx.delete(0)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(result.freqstr, 'M')
+
+        expected = date_range(start='2000-01-01', periods=3, freq='M', name='idx')
+        result = idx.delete(-1)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(result.freqstr, 'M')
+
+        with tm.assertRaises((IndexError, ValueError)):
+            # either depeidnig on numpy version
+            result = idx.delete(5)
+
+        idx = date_range(start='2000-01-01', periods=4,
+                         freq='M', name='idx', tz='US/Pacific')
+
+        expected = date_range(start='2000-02-01', periods=3,
+                              freq='M', name='idx', tz='US/Pacific')
+        result = idx.delete(0)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
         self.assertEqual(result.freqstr, 'M')
 
     def test_map_bug_1677(self):
