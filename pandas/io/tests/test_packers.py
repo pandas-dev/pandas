@@ -149,8 +149,9 @@ class TestNumpy(TestPackers):
     def test_dict_complex(self):
         x = {'foo': 1.0 + 1.0j, 'bar': 2.0 + 2.0j}
         x_rec = self.encode_decode(x)
-        self.assertTrue(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
-                        all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
+        self.assertEqual(x, x_rec)
+        for key in x:
+            self.assertEqual(type(x[key]), type(x_rec[key]))
 
     def test_dict_numpy_float(self):
         x = {'foo': np.float32(1.0), 'bar': np.float32(2.0)}
@@ -158,12 +159,12 @@ class TestNumpy(TestPackers):
         tm.assert_almost_equal(x,x_rec)
 
     def test_dict_numpy_complex(self):
-        x = {'foo': np.complex128(
-            1.0 + 1.0j), 'bar': np.complex128(2.0 + 2.0j)}
+        x = {'foo': np.complex128(1.0 + 1.0j),
+             'bar': np.complex128(2.0 + 2.0j)}
         x_rec = self.encode_decode(x)
-        self.assertTrue(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
-                        all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
-
+        self.assertEqual(x, x_rec)
+        for key in x:
+            self.assertEqual(type(x[key]), type(x_rec[key]))
 
     def test_numpy_array_float(self):
 
