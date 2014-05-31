@@ -1973,8 +1973,8 @@ class TestPeriodIndex(tm.TestCase):
             tm.assert_frame_equal(df['2013/10/01':'2013/10/02'], df.iloc[:2])
             tm.assert_frame_equal(df['2013/10/02':'2013/09/30'], empty)
             tm.assert_frame_equal(df['2013/10/15':'2013/10/17'], empty)
-            tm.assert_frame_equal(df['2013/06':'2013/09'], empty)
-            tm.assert_frame_equal(df['2013/11':'2013/12'], empty)
+            tm.assert_frame_equal(df['2013-06':'2013-09'], empty)
+            tm.assert_frame_equal(df['2013-11':'2013-12'], empty)
 
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
