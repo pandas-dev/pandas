@@ -622,7 +622,7 @@ class _OpenpyxlWriter(ExcelWriter):
 if openpyxl_compat.is_compat():
     register_writer(_OpenpyxlWriter)
 else:
-    warn('Installed openpyxl is not supported at this time. Use >={} and <{}.'
+    warn('Installed openpyxl is not supported at this time. Use >={0} and <{1}.'
             .format(openpyxl_compat.start_ver, openpyxl_compat.stop_ver))
 
 
