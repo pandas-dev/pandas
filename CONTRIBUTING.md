@@ -78,6 +78,10 @@ looking for a quick way to help out.
   - Use `raise AssertionError` over `assert` unless you want the assertion stripped by `python -o`.
   - The pandas copyright policy is detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
   - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
+  - We've written a tool to check that your commits are PEP8 great,
+    [`pip install pep8radius`](https://github.com/hayd/pep8radius). Look at PEP8 fixes in your branch
+    vs master with `pep8radius master --diff` and make these changes with
+    `pep8radius master --diff --in-place`.
   - On the subject of a massive PEP8-storm touching everything: not too often (once per release works).
 
 ### Notes on plotting function conventions
