@@ -77,3 +77,5 @@ Bug Fixes
   sign were being treated as temporaries attempting to be deleted
   (:issue:`7300`).
 - Bug in ``Float64Index`` which didn't allow duplicates (:issue:`7149`).
+- Bug in ``DataFrame.replace()`` where truthy values were being replaced
+  (:issue:`7140`).
