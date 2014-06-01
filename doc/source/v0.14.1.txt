@@ -74,3 +74,4 @@ Bug Fixes
 - Bug in ``DataFrame.query()``/``eval`` where local string variables with the @
   sign were being treated as temporaries attempting to be deleted
   (:issue:`7300`).
+- Bug in ``Float64Index`` which didn't allow duplicates (:issue:`7149`).

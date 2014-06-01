@@ -401,6 +401,35 @@ cdef class Float64Engine(IndexEngine):
     cdef _get_index_values(self):
         return algos.ensure_float64(self.vgetter())
 
+    cdef _maybe_get_bool_indexer(self, object val):
+        cdef:
+            ndarray[uint8_t] indexer
+            ndarray[float64_t] values
+            int count = 0
+            Py_ssize_t i, n
+            int last_true
+
+        values = self._get_index_values()
+        n = len(values)
+
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
+
+        for i in range(n):
+            if values[i] == val:
+                count += 1
+                indexer[i] = 1
+                last_true = i
+            else:
+                indexer[i] = 0
+
+        if count == 0:
+            raise KeyError(val)
+        if count == 1:
+            return last_true
+
+        return result
+
     def _call_monotonic(self, values):
         return algos.is_monotonic_float64(values)
 
