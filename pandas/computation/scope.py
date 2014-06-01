@@ -278,16 +278,6 @@ class Scope(StringMixin):
         # only increment if the variable gets put in the scope
         return name
 
-    def remove_tmp(self, name):
-        """Remove a temporary variable from this scope
-
-        Parameters
-        ----------
-        name : str
-            The name of a temporary to be removed
-        """
-        del self.temps[name]
-
     @property
     def ntemps(self):
         """The number of temporary variables in this scope"""
