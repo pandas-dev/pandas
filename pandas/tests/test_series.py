@@ -4063,7 +4063,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
 
     def test_rank(self):
-        from pandas.compat.scipy import rankdata
+        _skip_if_no_scipy()
+        from scipy.stats import rankdata
 
         self.ts[::2] = np.nan
         self.ts[:10][::3] = 4.
