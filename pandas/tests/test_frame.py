@@ -13685,6 +13685,18 @@ class TestDataFrameQueryStrings(object):
         for parser, engine in product(PARSERS, ENGINES):
             yield self.check_query_single_element_booleans, parser, engine
 
+    def check_query_string_scalar_variable(self, parser, engine):
+        tm.skip_if_no_ne(engine)
+        df = pd.DataFrame({'Symbol': ['BUD US', 'BUD US', 'IBM US', 'IBM US'],
+                           'Price': [109.70, 109.72, 183.30, 183.35]})
+        e = df[df.Symbol == 'BUD US']
+        symb = 'BUD US'
+        r = df.query('Symbol == @symb', parser=parser, engine=engine)
+        tm.assert_frame_equal(e, r)
+
+    def test_query_string_scalar_variable(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_string_scalar_variable, parser, engine
 
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 

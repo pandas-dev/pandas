@@ -71,3 +71,6 @@ Bug Fixes
   and ``left`` keyword is specified (:issue:`7226`)
 - BUG in ``DataFrame.hist`` raises ``TypeError`` when it contains non numeric column (:issue:`7277`)
 - BUG in ``Index.delete`` does not preserve ``name`` and ``freq`` attributes (:issue:`7302`)
+- Bug in ``DataFrame.query()``/``eval`` where local string variables with the @
+  sign were being treated as temporaries attempting to be deleted
+  (:issue:`7300`).

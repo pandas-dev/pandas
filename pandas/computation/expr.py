@@ -340,12 +340,10 @@ class BaseExprVisitor(ast.NodeVisitor):
             # pop the string variable out of locals and replace it with a list
             # of one string, kind of a hack
             if right_str:
-                self.env.remove_tmp(right.name)
                 name = self.env.add_tmp([right.value])
                 right = self.term_type(name, self.env)
 
             if left_str:
-                self.env.remove_tmp(left.name)
                 name = self.env.add_tmp([left.value])
                 left = self.term_type(name, self.env)
 
