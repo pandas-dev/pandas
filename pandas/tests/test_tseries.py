@@ -9,6 +9,12 @@ import pandas.lib as lib
 import pandas.algos as algos
 from datetime import datetime
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest("scipy not installed")
+
 class TestTseriesUtil(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -335,7 +341,8 @@ def test_convert_objects_complex_number():
 
 
 def test_rank():
-    from pandas.compat.scipy import rankdata
+    _skip_if_no_scipy()
+    from scipy.stats import rankdata
 
     def _check(arr):
         mask = ~np.isfinite(arr)

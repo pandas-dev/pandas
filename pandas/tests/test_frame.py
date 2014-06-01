@@ -11142,7 +11142,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.cumprod(1)
 
     def test_rank(self):
-        from pandas.compat.scipy import rankdata
+        _skip_if_no_scipy()
+        from scipy.stats import rankdata
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
@@ -11235,7 +11236,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
 
     def test_rank_na_option(self):
-        from pandas.compat.scipy import rankdata
+        _skip_if_no_scipy()
+        from scipy.stats import rankdata
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
