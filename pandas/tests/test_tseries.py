@@ -1,4 +1,5 @@
 
+import nose
 from numpy import nan
 import numpy as np
 from pandas import Index, isnull, Timestamp
