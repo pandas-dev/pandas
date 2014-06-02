@@ -8351,6 +8351,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
             df.replace({'asdf': 'asdb', True: 'yes'})
 
+    def test_replace_truthy(self):
+        df = DataFrame({'a': [True, True]})
+        r = df.replace([np.inf, -np.inf], np.nan)
+        e = df
+        tm.assert_frame_equal(r, e)
+
     def test_replace_int_to_int_chain(self):
         df = DataFrame({'a': lrange(1, 5)})
         with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):

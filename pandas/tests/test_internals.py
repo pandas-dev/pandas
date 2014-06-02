@@ -4,7 +4,7 @@ import nose
 import numpy as np
 
 from pandas import Index, MultiIndex, DataFrame, Series
-from pandas.compat import OrderedDict
+from pandas.compat import OrderedDict, lrange
 from pandas.sparse.array import SparseArray
 from pandas.core.internals import *
 import pandas.core.internals as internals
@@ -833,8 +833,6 @@ class TestIndexing(object):
     # take(indexer, axis)
     # reindex_axis(new_labels, axis)
     # reindex_indexer(new_labels, indexer, axis)
-
-
 
 
 class TestBlockPlacement(tm.TestCase):

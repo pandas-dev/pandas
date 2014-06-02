@@ -3,18 +3,17 @@ import itertools
 import re
 import operator
 from datetime import datetime, timedelta
-from collections import defaultdict, deque
+from collections import defaultdict
 
 import numpy as np
 from pandas.core.base import PandasObject
 
-from pandas.hashtable import Factorizer
-from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
+from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 _is_null_datelike_scalar,
                                 is_timedelta64_dtype, is_datetime64_dtype,)
-from pandas.core.index import Index, Int64Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
@@ -25,10 +24,8 @@ from pandas.util.decorators import cache_readonly
 
 from pandas.tslib import Timestamp
 from pandas import compat
-from pandas.compat import (range, lrange, lmap, callable, map, zip, u,
-                           OrderedDict)
+from pandas.compat import range, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
-
 
 
 from pandas.lib import BlockPlacement
@@ -1020,6 +1017,7 @@ class FloatOrComplexBlock(NumericBlock):
         left, right = self.values, other.values
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
+
 class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
@@ -1212,7 +1210,7 @@ class BoolBlock(NumericBlock):
                 regex=False):
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
-            to_replace = to_replace_values
+            return self
         return super(BoolBlock, self).replace(to_replace, value,
                                               inplace=inplace, filter=filter,
                                               regex=regex)
