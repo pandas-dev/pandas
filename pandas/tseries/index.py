@@ -900,9 +900,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
-        indices = com._ensure_platform_int(indices)
-        taken = self.values.take(indices, axis=axis)
-        return self._simple_new(taken, self.name, None, self.tz)
+        return super(DatetimeIndex, self).take(indices, axis)
 
     def unique(self):
         """
@@ -1124,6 +1122,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         self.tz = getattr(obj, 'tz', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
+
+    def _wrap_union_result(self, other, result):
+        name = self.name if self.name == other.name else None
+        if self.tz != other.tz:
+            raise ValueError('Passed item and index have different timezone')
+        return self._simple_new(result, name=name, freq=None, tz=self.tz)
 
     def intersection(self, other):
         """

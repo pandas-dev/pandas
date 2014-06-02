@@ -1133,10 +1133,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
-        taken = taken.view(PeriodIndex)
-        taken.freq = self.freq
-        taken.name = self.name
-        return taken
+        return self._simple_new(taken, self.name, freq=self.freq)
 
     def append(self, other):
         """

@@ -2467,6 +2467,25 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertEqual(result.name, expected.name)
         self.assertEqual(result.freq, expected.freq)
 
+    def test_take(self):
+        dates = [datetime(2010, 1, 6), datetime(2010, 1, 7),
+                 datetime(2010, 1, 9), datetime(2010, 1, 13)]
+
+        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
+            idx = DatetimeIndex(start='1/1/10', end='12/31/12',
+                                freq='D', tz=tz, name='idx')
+            expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)
+
+            taken1 = idx.take([5, 6, 8, 12])
+            taken2 = idx[[5, 6, 8, 12]]
+
+            for taken in [taken1, taken2]:
+                self.assertTrue(taken.equals(expected))
+                tm.assert_isinstance(taken, DatetimeIndex)
+                self.assertIsNone(taken.freq)
+                self.assertEqual(taken.tz, expected.tz)
+                self.assertEqual(taken.name, expected.name)
+
     def test_map_bug_1677(self):
         index = DatetimeIndex(['2012-04-25 09:30:00.393000'])
         f = index.asof
@@ -3035,14 +3054,46 @@ class TestSeriesDatetime64(tm.TestCase):
         self.assertEqual(df.index.values.dtype, np.dtype('M8[ns]'))
 
     def test_intersection(self):
-        rng = date_range('6/1/2000', '6/15/2000', freq='D')
-        rng = rng.delete(5)
+        # GH 4690 (with tz)
+        for tz in [None, 'Asia/Tokyo']:
+            rng = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
-        rng2 = date_range('5/15/2000', '6/20/2000', freq='D')
-        rng2 = DatetimeIndex(rng2.values)
+            # if target has the same name, it is preserved 
+            rng2 = date_range('5/15/2000', '6/20/2000', freq='D', name='idx')
+            expected2 = date_range('6/1/2000', '6/20/2000', freq='D', name='idx')
 
-        result = rng.intersection(rng2)
-        self.assertTrue(result.equals(rng))
+            # if target name is different, it will be reset
+            rng3 = date_range('5/15/2000', '6/20/2000', freq='D', name='other')
+            expected3 = date_range('6/1/2000', '6/20/2000', freq='D', name=None)
+
+            result2 = rng.intersection(rng2)
+            result3 = rng.intersection(rng3)
+            for (result, expected) in [(result2, expected2), (result3, expected3)]:
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertEqual(result.freq, expected.freq)
+                self.assertEqual(result.tz, expected.tz)
+
+            # non-monotonic
+            rng = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-02', '2011-01-03'],
+                                tz=tz, name='idx')
+
+            rng2 = DatetimeIndex(['2011-01-04', '2011-01-02', '2011-02-02', '2011-02-03'],
+                                 tz=tz, name='idx')
+            expected2 = DatetimeIndex(['2011-01-04', '2011-01-02'], tz=tz, name='idx')
+
+            rng3 = DatetimeIndex(['2011-01-04', '2011-01-02', '2011-02-02', '2011-02-03'],
+                                 tz=tz, name='other')
+            expected3 = DatetimeIndex(['2011-01-04', '2011-01-02'], tz=tz, name=None)
+
+            result2 = rng.intersection(rng2)
+            result3 = rng.intersection(rng3)
+            for (result, expected) in [(result2, expected2), (result3, expected3)]:
+                print(result, expected)
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertIsNone(result.freq)
+                self.assertEqual(result.tz, expected.tz)
 
         # empty same freq GH2129
         rng = date_range('6/1/2000', '6/15/2000', freq='T')
@@ -3571,26 +3622,39 @@ class TestSlicing(tm.TestCase):
         self.assertRaises(ValueError, idx.shift, 1)
 
     def test_setops_preserve_freq(self):
-        rng = date_range('1/1/2000', '1/1/2002')
+        for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+            rng = date_range('1/1/2000', '1/1/2002', name='idx', tz=tz)
 
-        result = rng[:50].union(rng[50:100])
-        self.assertEqual(result.freq, rng.freq)
+            result = rng[:50].union(rng[50:100])
+            self.assertEqual(result.name, rng.name)
+            self.assertEqual(result.freq, rng.freq)
+            self.assertEqual(result.tz, rng.tz)
 
-        result = rng[:50].union(rng[30:100])
-        self.assertEqual(result.freq, rng.freq)
+            result = rng[:50].union(rng[30:100])
+            self.assertEqual(result.name, rng.name)
+            self.assertEqual(result.freq, rng.freq)
+            self.assertEqual(result.tz, rng.tz)
 
-        result = rng[:50].union(rng[60:100])
-        self.assertIsNone(result.freq)
+            result = rng[:50].union(rng[60:100])
+            self.assertEqual(result.name, rng.name)
+            self.assertIsNone(result.freq)
+            self.assertEqual(result.tz, rng.tz)
 
-        result = rng[:50].intersection(rng[25:75])
-        self.assertEqual(result.freqstr, 'D')
+            result = rng[:50].intersection(rng[25:75])
+            self.assertEqual(result.name, rng.name)
+            self.assertEqual(result.freqstr, 'D')
+            self.assertEqual(result.tz, rng.tz)
 
-        nofreq = DatetimeIndex(list(rng[25:75]))
-        result = rng[:50].union(nofreq)
-        self.assertEqual(result.freq, rng.freq)
+            nofreq = DatetimeIndex(list(rng[25:75]), name='other')
+            result = rng[:50].union(nofreq)
+            self.assertIsNone(result.name)
+            self.assertEqual(result.freq, rng.freq)
+            self.assertEqual(result.tz, rng.tz)
 
-        result = rng[:50].intersection(nofreq)
-        self.assertEqual(result.freq, rng.freq)
+            result = rng[:50].intersection(nofreq)
+            self.assertIsNone(result.name)
+            self.assertEqual(result.freq, rng.freq)
+            self.assertEqual(result.tz, rng.tz)
 
     def test_min_max(self):
         rng = date_range('1/1/2000', '12/31/2000')

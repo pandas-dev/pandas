@@ -2070,14 +2070,19 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(result[0].freq, index.freq)
 
     def test_take(self):
-        index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D')
+        index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D', name='idx')
+        expected = PeriodIndex([datetime(2010, 1, 6), datetime(2010, 1, 7),
+                                datetime(2010, 1, 9), datetime(2010, 1, 13)],
+                                freq='D', name='idx')
 
-        taken = index.take([5, 6, 8, 12])
+        taken1 = index.take([5, 6, 8, 12])
         taken2 = index[[5, 6, 8, 12]]
-        tm.assert_isinstance(taken, PeriodIndex)
-        self.assertEqual(taken.freq, index.freq)
-        tm.assert_isinstance(taken2, PeriodIndex)
-        self.assertEqual(taken2.freq, index.freq)
+
+        for taken in [taken1, taken2]:
+            self.assertTrue(taken.equals(expected))
+            tm.assert_isinstance(taken, PeriodIndex)
+            self.assertEqual(taken.freq, index.freq)
+            self.assertEqual(taken.name, expected.name)
 
     def test_joins(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')

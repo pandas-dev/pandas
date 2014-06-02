@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 from pandas.compat import range, lrange, lzip, u, zip
-import sys
 import operator
 import pickle
 import re
@@ -446,6 +445,33 @@ class TestIndex(tm.TestCase):
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
+
+        idx1 = Index([1, 2, 3, 4, 5], name='idx')
+        # if target has the same name, it is preserved 
+        idx2 = Index([3, 4, 5, 6, 7], name='idx')
+        expected2 = Index([3, 4, 5], name='idx')
+        result2 = idx1.intersection(idx2)
+        self.assertTrue(result2.equals(expected2))
+        self.assertEqual(result2.name, expected2.name)
+
+        # if target name is different, it will be reset
+        idx3 = Index([3, 4, 5, 6, 7], name='other')
+        expected3 = Index([3, 4, 5], name=None)
+        result3 = idx1.intersection(idx3)
+        self.assertTrue(result3.equals(expected3))
+        self.assertEqual(result3.name, expected3.name)
+
+        # non monotonic
+        idx1 = Index([5, 3, 2, 4, 1], name='idx')
+        idx2 = Index([4, 7, 6, 5, 3], name='idx')
+        result2 = idx1.intersection(idx2)
+        self.assertTrue(tm.equalContents(result2, expected2))
+        self.assertEqual(result2.name, expected2.name)
+
+        idx3 = Index([4, 7, 6, 5, 3], name='other')
+        result3 = idx1.intersection(idx3)
+        self.assertTrue(tm.equalContents(result3, expected3))
+        self.assertEqual(result3.name, expected3.name)
 
     def test_union(self):
         first = self.strIndex[5:20]
