@@ -80,3 +80,5 @@ Bug Fixes
 - Bug in ``Float64Index`` which didn't allow duplicates (:issue:`7149`).
 - Bug in ``DataFrame.replace()`` where truthy values were being replaced
   (:issue:`7140`).
+- Bug in ``StringMethods.extract()`` where a single match group Series
+  would use the matcher's name instead of the group name (:issue:`7313`).
