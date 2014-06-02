@@ -578,6 +578,13 @@ class TestStringMethods(tm.TestCase):
                        tm.makeDateIndex, tm.makePeriodIndex ]:
             check_index(index())
 
+    def test_extract_single_series_name_is_preserved(self):
+        s = Series(['a3', 'b3', 'c2'], name='bob')
+        r = s.str.extract(r'(?P<sue>[a-z])')
+        e = Series(['a', 'b', 'c'], name='sue')
+        tm.assert_series_equal(r, e)
+        self.assertEqual(r.name, e.name)
+
     def test_get_dummies(self):
         s = Series(['a|b', 'a|c', np.nan])
         result = s.str.get_dummies('|')
