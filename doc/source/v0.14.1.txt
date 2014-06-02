@@ -51,6 +51,7 @@ Known Issues
 
 Enhancements
 ~~~~~~~~~~~~
+- Tests for basic reading of public S3 buckets now exist (:issue:`7281`).
 
 .. _whatsnew_0141.performance:
 
