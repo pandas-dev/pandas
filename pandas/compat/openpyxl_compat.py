@@ -9,18 +9,16 @@ from distutils.version import LooseVersion
 start_ver = '1.6.1'
 stop_ver = '2.0.0'
 
+
 def is_compat():
-    """
-    Detect whether the installed version of openpyxl is supported
-    Returns True/False if openpyxl is installed, None otherwise
-    """
-    try:
-        import openpyxl
-    except ImportError:
-        return None
+    """Detect whether the installed version of openpyxl is supported.
 
+    Returns
+    -------
+    compat : bool
+        ``True`` if openpyxl is installed and is between versions 1.6.1 and
+        2.0.0, ``False`` otherwise.
+    """
+    import openpyxl
     ver = LooseVersion(openpyxl.__version__)
-    if ver < LooseVersion(start_ver) or LooseVersion(stop_ver) <= ver:
-        return False
-
-    return True
+    return LooseVersion(start_ver) < ver <= LooseVersion(stop_ver)

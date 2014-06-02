@@ -27,6 +27,8 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
+- Openpyxl now raises a ValueError on construction of the openpyxl writer
+  instead of warning on pandas import (:issue:`7284`).
 
 .. _whatsnew_0141.prior_deprecations:
 
