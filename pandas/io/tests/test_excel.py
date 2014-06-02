@@ -1217,9 +1217,9 @@ class ExcelWriterEngineTests(tm.TestCase):
             import xlsxwriter
             writer_klass = _XlsxWriter
         except ImportError:
+            _skip_if_no_openpyxl()
             if not openpyxl_compat.is_compat():
                 raise nose.SkipTest('incompatible openpyxl version')
-            _skip_if_no_openpyxl()
             writer_klass = _OpenpyxlWriter
 
         with ensure_clean('.xlsx') as path:
