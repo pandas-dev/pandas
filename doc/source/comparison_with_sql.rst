@@ -7,7 +7,7 @@ Since many potential pandas users have some familiarity with
 `SQL <http://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to Pandas<10min>`
+If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
 to familiarize yourself with the library.
 
 As is customary, we import pandas and numpy as follows:

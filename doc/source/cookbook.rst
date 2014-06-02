@@ -551,7 +551,7 @@ Storing Attributes to a group node
 Binary Files
 ~~~~~~~~~~~~
 
-Pandas readily accepts numpy record arrays, if you need to read in a binary
+pandas readily accepts numpy record arrays, if you need to read in a binary
 file consisting of an array of C structs. For example, given this C program
 in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a
 64-bit machine,

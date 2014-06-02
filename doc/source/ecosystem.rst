@@ -1,7 +1,7 @@
 .. _ecosystem:
 
 ****************
-Pandas Ecosystem
+pandas Ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
@@ -89,4 +89,3 @@ Domain Specific
 Geopandas extends pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
 you love pandas, you should take a close look at Geopandas.
-

@@ -22,7 +22,7 @@
 
 
 ********************
-10 Minutes to Pandas
+10 Minutes to pandas
 ********************
 
 This is a short introduction to pandas, geared mainly for new users.
@@ -344,7 +344,7 @@ A ``where`` operation with setting.
 Missing Data
 ------------
 
-Pandas primarily uses the value ``np.nan`` to represent missing data. It is by
+pandas primarily uses the value ``np.nan`` to represent missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
 <missing_data>`
 
@@ -445,7 +445,7 @@ Merge
 Concat
 ~~~~~~
 
-Pandas provides various facilities for easily combining together Series,
+pandas provides various facilities for easily combining together Series,
 DataFrame, and Panel objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
@@ -585,7 +585,7 @@ We can produce pivot tables from this data very easily:
 Time Series
 -----------
 
-Pandas has simple, powerful, and efficient functionality for performing
+pandas has simple, powerful, and efficient functionality for performing
 resampling operations during frequency conversion (e.g., converting secondly
 data into 5-minutely data). This is extremely common in, but not limited to,
 financial applications. See the :ref:`Time Series section <timeseries>`

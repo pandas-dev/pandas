@@ -736,7 +736,7 @@ in pandas.
 
 Legacy Aliases
 ~~~~~~~~~~~~~~
-Note that prior to v0.8.0, time rules had a slightly different look. Pandas
+Note that prior to v0.8.0, time rules had a slightly different look. pandas
 will continue to support the legacy time rules for the time being but it is
 strongly recommended that you switch to using the new offset aliases.
 
@@ -1509,7 +1509,7 @@ Numpy < 1.7 Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Numpy < 1.7 has a broken ``timedelta64`` type that does not correctly work
-for arithmetic. Pandas bypasses this, but for frequency conversion as above,
+for arithmetic. pandas bypasses this, but for frequency conversion as above,
 you need to create the divisor yourself. The ``np.timetimedelta64`` type only
 has 1 argument, the number of **micro** seconds.
 
@@ -1524,4 +1524,3 @@ The following are equivalent statements in the two versions of numpy.
    else:
        y / np.timedelta64(1,'D')
        y / np.timedelta64(1,'s')
-

@@ -29,7 +29,7 @@ _____________
 
 Stable installers available on `PyPI <http://pypi.python.org/pypi/pandas>`__
 
-Preliminary builds and installers on the `Pandas download page <http://pandas.pydata.org/getpandas.html>`__ .
+Preliminary builds and installers on the `pandas download page <http://pandas.pydata.org/getpandas.html>`__ .
 
 Overview
 ___________

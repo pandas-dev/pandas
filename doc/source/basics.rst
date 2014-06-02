@@ -93,7 +93,7 @@ unlike the axis labels, cannot be assigned to.
 Accelerated operations
 ----------------------
 
-Pandas has support for accelerating certain types of binary numerical and boolean operations using
+pandas has support for accelerating certain types of binary numerical and boolean operations using
 the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
@@ -1556,7 +1556,7 @@ Working with package options
 .. _basics.working_with_options:
 .. versionadded:: 0.10.1
 
-Pandas has an options system that let's you customize some aspects of it's behaviour,
+pandas has an options system that let's you customize some aspects of it's behaviour,
 display-related options being those the user is must likely to adjust.
 
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
