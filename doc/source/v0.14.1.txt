@@ -82,3 +82,6 @@ Bug Fixes
   (:issue:`7140`).
 - Bug in ``StringMethods.extract()`` where a single match group Series
   would use the matcher's name instead of the group name (:issue:`7313`).
+- Bug in ``isnull()`` when ``mode.use_inf_as_null == True`` where isnull
+  wouldn't test ``True`` when it encountered an ``inf``/``-inf``
+  (:issue:`7315`).

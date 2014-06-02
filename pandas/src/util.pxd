@@ -76,8 +76,7 @@ cdef inline bint _checknull_old(object val):
     cdef double INF = <double> np.inf
     cdef double NEGINF = -INF
     try:
-        return bool(val is None or val != val and val != INF
-                    and val != NEGINF)
+        return val is None or val != val or val == INF or val == NEGINF
     except ValueError:
         return False
 
