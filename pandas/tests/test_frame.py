@@ -11103,6 +11103,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xp = df.median()
         assert_series_equal(rs, xp)
 
+        # axis
+        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
+        result = df.quantile(.5, axis=1)
+        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = df.quantile([.5, .75], axis=1)
+        expected = DataFrame({1: [1.5, 1.75], 2: [2.5, 2.75],
+                              3: [3.5, 3.75]}, index=["0.5", "0.75"])
+        assert_frame_equal(result, expected)
+
+        # We may want to break API in the future to change this
+        # so that we exclude non-numeric along the same axis
+        # See GH #7312
+        df = DataFrame([[1, 2, 3],
+                        ['a', 'b', 4]])
+        result = df.quantile(.5, axis=1)
+        expected = Series([3., 4.], index=[0, 1])
+        assert_series_equal(result, expected)
+
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
@@ -11139,6 +11159,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.quantile([.5], numeric_only=False)
         expected = DataFrame([[Timestamp('2010-07-02 12:00:00'), 2.5]],
                              index=[.5], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+        # axis = 1
+        df['c'] = pd.to_datetime(['2011', '2012'])
+        result = df[['a', 'c']].quantile(.5, axis=1, numeric_only=False)
+        expected = Series([Timestamp('2010-07-02 12:00:00'),
+                           Timestamp('2011-07-02 12:00:00')],
+                          index=[0, 1])
+        assert_series_equal(result, expected)
+
+        result = df[['a', 'c']].quantile([.5], axis=1, numeric_only=False)
+        expected = DataFrame([[Timestamp('2010-07-02 12:00:00'),
+                               Timestamp('2011-07-02 12:00:00')]],
+                             index=[0.5], columns=[0, 1])
         assert_frame_equal(result, expected)
 
     def test_cumsum(self):
