@@ -30,6 +30,10 @@ API changes
 - Openpyxl now raises a ValueError on construction of the openpyxl writer
   instead of warning on pandas import (:issue:`7284`).
 
+- For ``StringMethods.extract``, when no match is found, the result - only
+  containing ``NaN`` values - now also has ``dtype=object`` instead of
+  ``float`` (:issue:`7242`)
+
 .. _whatsnew_0141.prior_deprecations:
 
 Prior Version Deprecations/Changes
@@ -86,3 +90,4 @@ Bug Fixes
   wouldn't test ``True`` when it encountered an ``inf``/``-inf``
   (:issue:`7315`).
 - Bug in inferred_freq results in None for eastern hemisphere timezones (:issue:`7310`)
+- Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)

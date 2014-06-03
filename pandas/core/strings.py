@@ -12,7 +12,7 @@ import textwrap
 
 
 def _get_array_list(arr, others):
-    if isinstance(others[0], (list, np.ndarray)):
+    if len(others) and isinstance(others[0], (list, np.ndarray)):
         arrays = [arr] + list(others)
     else:
         arrays = [arr, others]
@@ -88,12 +88,15 @@ def _length_check(others):
     return n
 
 
-def _na_map(f, arr, na_result=np.nan):
+def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
-    return _map(f, arr, na_mask=True, na_value=na_result)
+    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
-def _map(f, arr, na_mask=False, na_value=np.nan):
+def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+    if not len(arr):
+        return np.ndarray(0, dtype=dtype)
+
     if isinstance(arr, Series):
         arr = arr.values
     if not isinstance(arr, np.ndarray):
@@ -108,7 +111,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
                     return f(x)
                 except (TypeError, AttributeError):
                     return na_value
-            return _map(g, arr)
+            return _map(g, arr, dtype=dtype)
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -146,7 +149,7 @@ def str_count(arr, pat, flags=0):
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=int)
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
@@ -187,7 +190,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
         f = lambda x: bool(regex.search(x))
     else:
         f = lambda x: pat in x
-    return _na_map(f, arr, na)
+    return _na_map(f, arr, na, dtype=bool)
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -206,7 +209,7 @@ def str_startswith(arr, pat, na=np.nan):
     startswith : array (boolean)
     """
     f = lambda x: x.startswith(pat)
-    return _na_map(f, arr, na)
+    return _na_map(f, arr, na, dtype=bool)
 
 
 def str_endswith(arr, pat, na=np.nan):
@@ -225,7 +228,7 @@ def str_endswith(arr, pat, na=np.nan):
     endswith : array (boolean)
     """
     f = lambda x: x.endswith(pat)
-    return _na_map(f, arr, na)
+    return _na_map(f, arr, na, dtype=bool)
 
 
 def str_lower(arr):
@@ -375,6 +378,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     # and is basically useless, so we will not warn.
 
     if (not as_indexer) and regex.groups > 0:
+        dtype = object
         def f(x):
             m = regex.match(x)
             if m:
@@ -383,9 +387,10 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
                 return []
     else:
         # This is the new behavior of str_match.
+        dtype = bool
         f = lambda x: bool(regex.match(x))
 
-    return _na_map(f, arr, na)
+    return _na_map(f, arr, na, dtype=dtype)
 
 
 def _get_single_group_name(rx):
@@ -409,6 +414,9 @@ def str_extract(arr, pat, flags=0):
     Returns
     -------
     extracted groups : Series (one group) or DataFrame (multiple groups)
+        Note that dtype of the result is always object, even when no match is
+        found and the result is a Series or DataFrame containing only NaN
+        values.
 
     Examples
     --------
@@ -461,13 +469,17 @@ def str_extract(arr, pat, flags=0):
     if regex.groups == 1:
         result = Series([f(val)[0] for val in arr],
                         name=_get_single_group_name(regex),
-                        index=arr.index)
+                        index=arr.index, dtype=object)
     else:
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
-        result = DataFrame([f(val) for val in arr],
-                           columns=columns,
-                           index=arr.index)
+        if arr.empty:
+            result = DataFrame(columns=columns, dtype=object)
+        else:
+            result = DataFrame([f(val) for val in arr],
+                               columns=columns,
+                               index=arr.index,
+                               dtype=object)
     return result
 
 
@@ -536,7 +548,7 @@ def str_len(arr):
     -------
     lengths : array
     """
-    return _na_map(len, arr)
+    return _na_map(len, arr, dtype=int)
 
 
 def str_findall(arr, pat, flags=0):

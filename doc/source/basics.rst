@@ -1165,6 +1165,9 @@ Thus, a Series of messy strings can be "converted" into a
 like-indexed Series or DataFrame of cleaned-up or more useful strings,
 without necessitating ``get()`` to access tuples or ``re.match`` objects.
 
+The results dtype always is object, even if no match is found and the result
+only contains ``NaN``.
+
 Named groups like
 
 .. ipython:: python
