@@ -2,7 +2,6 @@
 import datetime
 import warnings
 from functools import partial
-import warnings
 from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
 import numpy as np
@@ -27,6 +26,9 @@ default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
 
 
 __all__ = ['Index']
+
+
+_unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 
 def _try_get_item(x):
@@ -1011,7 +1013,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
                     warnings.warn("%s, sort order is undefined for "
                                   "incomparable objects" % e, RuntimeWarning)
                 else:
-                    result.sort()
+                    types = frozenset((self.inferred_type,
+                                       other.inferred_type))
+                    if not types & _unsortable_types:
+                        result.sort()
 
             else:
                 result = self.values

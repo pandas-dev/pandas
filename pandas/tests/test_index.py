@@ -793,7 +793,7 @@ class TestIndex(tm.TestCase):
 
         # union broken
         union_idx = idx1.union(idx2)
-        expected = pandas.Index(sorted(set(idx1) | set(idx2)))
+        expected = idx2
         self.assertEqual(union_idx.ndim, 1)
         self.assertTrue(union_idx.equals(expected))
 
