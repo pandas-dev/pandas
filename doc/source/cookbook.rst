@@ -256,6 +256,9 @@ Timeseries
 `Using indexer between time
 <http://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
 
+`Constructing a datetime range that excludes weekends and includes only certain times
+<http://stackoverflow.com/questions/24010830/pandas-generate-sequential-timestamp-with-jump/24014440#24014440?>`__
+
 `Vectorized Lookup
 <http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
