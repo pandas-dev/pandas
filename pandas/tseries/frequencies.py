@@ -668,6 +668,9 @@ class _FrequencyInferer(object):
     def __init__(self, index, warn=True):
         self.index = index
         self.values = np.asarray(index).view('i8')
+        if index.tz is not None:
+            self.values = tslib.date_normalize(self.values, index.tz)
+
         self.warn = warn
 
         if len(index) < 3:

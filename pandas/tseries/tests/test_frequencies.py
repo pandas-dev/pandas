@@ -256,6 +256,22 @@ class TestFrequencyInference(tm.TestCase):
         rng = Index(rng.to_timestamp('D', how='e').asobject)
         self.assertEqual(rng.inferred_freq, 'Q-OCT')
 
+    def test_infer_freq_tz(self):
+
+        # GH 7310
+        for tz in [None, 'Asia/Tokyo', 'US/Pacific', 'Europe/Paris']:
+            dates = ['2010-11-30', '2010-12-31', '2011-01-31', '2011-02-28']
+            idx = DatetimeIndex(dates)
+            self.assertEqual(idx.inferred_freq, 'M')
+
+            dates = ['2011-01-01', '2011-01-02', '2011-01-03', '2011-01-04']
+            idx = DatetimeIndex(dates)
+            self.assertEqual(idx.inferred_freq, 'D')
+
+            dates = ['2011-12-31 22:00', '2011-12-31 23:00', '2012-01-01 00:00', '2012-01-01 01:00']
+            idx = DatetimeIndex(dates)
+            self.assertEqual(idx.inferred_freq, 'H')
+
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
         rng = rng[::-1]

@@ -85,3 +85,4 @@ Bug Fixes
 - Bug in ``isnull()`` when ``mode.use_inf_as_null == True`` where isnull
   wouldn't test ``True`` when it encountered an ``inf``/``-inf``
   (:issue:`7315`).
+- Bug in inferred_freq results in None for eastern hemisphere timezones (:issue:`7310`)
