@@ -100,7 +100,7 @@ index, not membership among the values.
     2 in s
     'b' in s
 
-If this behavior is surprising, keep in mind that using ``in`` on a Python 
+If this behavior is surprising, keep in mind that using ``in`` on a Python
 dictionary tests keys, not values, and Series are dict-like.
 To test for membership in the values, use the method :func:`~pandas.Series.isin`:
 

@@ -99,7 +99,7 @@ resources for development through the end of 2011, and continues to contribute
 bug reports today.
 
 Since January 2012, `Lambda Foundry <http://www.lambdafoundry.com>`__, has
-been providing development resources, as well as commercial support, 
+been providing development resources, as well as commercial support,
 training, and consulting for pandas.
 
 pandas is only made possible by a group of people around the world like you
@@ -114,7 +114,7 @@ collection of developers focused on the improvement of Python's data
 libraries. The core team that coordinates development can be found on `Github
 <http://github.com/pydata>`__. If you're interested in contributing, please
 visit the `project website <http://pandas.pydata.org>`__.
-  
+
 License
 -------
 

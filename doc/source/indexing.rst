@@ -216,9 +216,9 @@ new column.
    sa
    dfa.A = list(range(len(dfa.index)))       # ok if A already exists
    dfa
-   dfa['A'] = list(range(len(dfa.index)))    # use this form to create a new column                         
+   dfa['A'] = list(range(len(dfa.index)))    # use this form to create a new column
    dfa
-   
+
 .. warning::
 
    - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.

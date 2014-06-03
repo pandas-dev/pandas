@@ -45,7 +45,7 @@ We import the rplot API:
 Examples
 --------
 
-RPlot is a flexible API for producing Trellis plots. These plots allow you to arrange data in a rectangular grid by values of certain attributes. 
+RPlot is a flexible API for producing Trellis plots. These plots allow you to arrange data in a rectangular grid by values of certain attributes.
 
 .. ipython:: python
 

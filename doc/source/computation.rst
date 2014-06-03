@@ -244,7 +244,7 @@ accept the following arguments:
     is min for ``rolling_min``, max for ``rolling_max``, median for
     ``rolling_median``, and mean for all other rolling functions.  See
     :meth:`DataFrame.resample`'s how argument for more information.
-	
+
 These functions can be applied to ndarrays or Series objects:
 
 .. ipython:: python
