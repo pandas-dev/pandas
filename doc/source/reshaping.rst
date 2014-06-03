@@ -266,7 +266,7 @@ It takes a number of arguments
 - ``values``: a column or a list of columns to aggregate
 - ``index``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
-- ``columns``: a column, Grouper, array which has the same length as data, or list of them. 
+- ``columns``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
 - ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
 
@@ -456,4 +456,3 @@ handling of NaN:
 
    pd.factorize(x, sort=True)
    np.unique(x, return_inverse=True)[::-1]
-

@@ -22,8 +22,8 @@ are examples with real-world data, and all the bugs and weirdness that
 that entails.
 
 Here are links to the v0.1 release. For an up-to-date table of contents, see the `pandas-cookbook GitHub
-repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in this tutorial, you'll need to 
-clone the GitHub repository and get IPython Notebook running. 
+repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in this tutorial, you'll need to
+clone the GitHub repository and get IPython Notebook running.
 See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-use-this-cookbook>`_.
 
 -  `A quick tour of the IPython Notebook: <http://nbviewer.ipython.org/github/jvns/pandas-c|%2055ookbook/blob/v0.1/cookbook/A%20quick%20tour%20of%20IPython%20Notebook.ipynb>`_
