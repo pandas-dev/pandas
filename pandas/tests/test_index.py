@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from pandas.compat import range, lrange, lzip, u, zip
+import sys
 import operator
 import pickle
 import re
@@ -15,7 +16,6 @@ from numpy.testing import assert_array_equal
 from pandas.core.index import (Index, Float64Index, Int64Index, MultiIndex,
                                InvalidIndexError)
 from pandas.tseries.index import DatetimeIndex
-from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
@@ -844,11 +844,13 @@ class TestIndex(tm.TestCase):
         self.assertEqual(idx.name, idx[1:].name)
 
     def test_join_self(self):
+        # instance attributes of the form self.<name>Index
         indices = 'unicode', 'str', 'date', 'int', 'float'
         kinds = 'outer', 'inner', 'left', 'right'
         for index_kind in indices:
+            res = getattr(self, '{0}Index'.format(index_kind))
+
             for kind in kinds:
-                res = getattr(self, '{0}Index'.format(index_kind))
                 joined = res.join(res, how=kind)
                 self.assertIs(res, joined)
 
@@ -859,6 +861,17 @@ class TestIndex(tm.TestCase):
             pd.Index([2, 3], dtype=np.object_)))
         self.assertTrue(idx[[0,1]].identical(
             pd.Index([1, 2], dtype=np.object_)))
+
+    def test_outer_join_sort(self):
+        left_idx = Index(np.random.permutation(15))
+        right_idx = tm.makeDateIndex(10)
+
+        with tm.assert_produces_warning(RuntimeWarning):
+            joined = left_idx.join(right_idx, how='outer')
+        # right_idx in this case because DatetimeIndex has join precedence over
+        # Int64Index
+        expected = right_idx.astype(object).union(left_idx.astype(object))
+        tm.assert_index_equal(joined, expected)
 
 
 class TestFloat64Index(tm.TestCase):
@@ -2763,6 +2776,7 @@ def test_get_combined_index():
     from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
     assert(result.equals(Index([])))
+
 
 
 if __name__ == '__main__':
