@@ -86,3 +86,4 @@ Bug Fixes
   wouldn't test ``True`` when it encountered an ``inf``/``-inf``
   (:issue:`7315`).
 - Bug in inferred_freq results in None for eastern hemisphere timezones (:issue:`7310`)
+- Bug in ``Easter`` returns incorrect date when offset is negative (:issue:`7195`)

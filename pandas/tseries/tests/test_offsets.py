@@ -2483,9 +2483,11 @@ class TestYearEndDiffMonth(Base):
 def assertEq(offset, base, expected):
     actual = offset + base
     actual_swapped = base + offset
+    actual_apply = offset.apply(base)
     try:
         assert actual == expected
         assert actual_swapped == expected
+        assert actual_apply == expected
     except AssertionError:
         raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
                              "\nAt Date: %s" %
@@ -2493,6 +2495,18 @@ def assertEq(offset, base, expected):
 
 def test_Easter():
     assertEq(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
+    assertEq(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
+    assertEq(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
+
+    assertEq(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
+    assertEq(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
+
+    assertEq(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
+    assertEq(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
+    assertEq(-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12))
+
+    assertEq(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
+    assertEq(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
