@@ -60,7 +60,7 @@ Different Choices for Indexing (``loc``, ``iloc``, and ``ix``)
 .. versionadded:: 0.11.0
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. Pandas now supports three types
+support more explicit location based indexing. pandas now supports three types
 of multi-axis indexing.
 
 - ``.loc`` is strictly label based, will raise ``KeyError`` when the items are
@@ -275,7 +275,7 @@ Selection By Label
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
-Pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
+pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 **ALL** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
@@ -346,7 +346,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
+pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -1158,7 +1158,7 @@ Advanced Indexing with ``.ix``
 
    The recent addition of ``.loc`` and ``.iloc`` have enabled users to be quite
    explicit about indexing choices. ``.ix`` allows a great flexibility to
-   specify indexing locations by *label* and/or *integer position*. Pandas will
+   specify indexing locations by *label* and/or *integer position*. pandas will
    attempt to use any passed *integer* as *label* locations first (like what
    ``.loc`` would do, then to fall back on *positional* indexing, like what
    ``.iloc``  would do). See :ref:`Fallback Indexing <indexing.fallback>` for
@@ -1509,10 +1509,10 @@ Fallback indexing
 .. _indexing.fallback:
 
 Float indexes should be used only with caution. If you have a float indexed
-``DataFrame`` and try to select using an integer, the row that Pandas returns
-might not be what you expect. Pandas first attempts to use the *integer*
+``DataFrame`` and try to select using an integer, the row that pandas returns
+might not be what you expect. pandas first attempts to use the *integer*
 as a *label* location, but fails to find a match (because the types
-are not equal). Pandas then falls back to back to positional indexing.
+are not equal). pandas then falls back to back to positional indexing.
 
 .. ipython:: python
 

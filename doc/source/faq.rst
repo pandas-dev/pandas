@@ -30,7 +30,7 @@ Frequently Asked Questions (FAQ)
 How do I control the way my DataFrame is displayed?
 ---------------------------------------------------
 
-Pandas users rely on a variety of environments for using pandas: scripts, terminal,
+pandas users rely on a variety of environments for using pandas: scripts, terminal,
 IPython qtconsole/ notebook, (IDLE, spyder, etc').
 Each environment has it's own capabilities and limitations: HTML support,
 horizontal scrolling, auto-detection of width/height.
@@ -64,10 +64,10 @@ options automatically when starting up.
 
 .. _ref-monkey-patching:
 
-Adding Features to your Pandas Installation
+Adding Features to your pandas Installation
 -------------------------------------------
 
-Pandas is a powerful tool and already has a plethora of data manipulation
+pandas is a powerful tool and already has a plethora of data manipulation
 operations implemented, most of them are very fast as well.
 It's very possible however that certain functionality that would make your
 life easier is missing. In that case you have several options:

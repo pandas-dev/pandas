@@ -300,7 +300,7 @@ small_docs = False
 
 import argparse
 argparser = argparse.ArgumentParser(description="""
-Pandas documentation builder
+pandas documentation builder
 """.strip())
 
 # argparser.add_argument('-arg_name', '--arg_name',
@@ -325,7 +325,7 @@ def generate_index(api=True, single=False, **kwds):
         f.write(t.render(api=api,single=single,**kwds))
 
 import argparse
-argparser = argparse.ArgumentParser(description="Pandas documentation builder",
+argparser = argparse.ArgumentParser(description="pandas documentation builder",
                                     epilog="Targets : %s" % funcd.keys())
 
 argparser.add_argument('--no-api',

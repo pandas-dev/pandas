@@ -102,7 +102,7 @@ Dataset names are listed at `Fama/French Data Library
 World Bank
 ----------
 
-``Pandas`` users can easily access thousands of panel data series from the
+``pandas`` users can easily access thousands of panel data series from the
 `World Bank's World Development Indicators <http://data.worldbank.org>`__
 by using the ``wb`` I/O functions.
 
@@ -170,7 +170,7 @@ contracts around the world.
     4027      IT.MOB.COV.ZS  Population coverage of mobile cellular telepho...
 
 Notice that this second search was much faster than the first one because
-``Pandas`` now has a cached list of available data series.
+``pandas`` now has a cached list of available data series.
 
 .. code-block:: python
 

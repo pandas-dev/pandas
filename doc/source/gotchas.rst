@@ -18,10 +18,10 @@ Caveats and Gotchas
 
 .. _gotchas.truth:
 
-Using If/Truth Statements with Pandas
+Using If/Truth Statements with pandas
 -------------------------------------
 
-Pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
+pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
 This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
 what the result of
 

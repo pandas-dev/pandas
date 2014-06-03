@@ -9,11 +9,11 @@ This is a guide to many pandas tutorials, geared mainly for new users.
 Internal Guides
 ---------------
 
-Pandas own :ref:`10 Minutes to Pandas<10min>`
+pandas own :ref:`10 Minutes to pandas<10min>`
 
 More complex recipes are in the :ref:`Cookbook<cookbook>`
 
-Pandas Cookbook
+pandas Cookbook
 ---------------
 
 The goal of this cookbook (by `Julia Evans <http://jvns.ca>`_) is to
@@ -54,7 +54,7 @@ See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-us
    to be really easy.
 
 
-Lessons for New Pandas Users
+Lessons for New pandas Users
 ----------------------------
 
 For more resources, please visit the main `repository <https://bitbucket.org/hrojas/learn-pandas>`_.
@@ -117,7 +117,7 @@ Excel charts with pandas, vincent and xlsxwriter
 Various Tutorials
 -----------------
 
-- `Wes McKinney's (Pandas BDFL) blog <http://blog.wesmckinney.com/>`_
+- `Wes McKinney's (pandas BDFL) blog <http://blog.wesmckinney.com/>`_
 - `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
 - `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <http://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
 - `Financial analysis in python, by Thomas Wiecki <http://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_

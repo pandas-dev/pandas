@@ -29,7 +29,7 @@
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
-The Pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
+The pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
 object.
 
     * :ref:`read_csv<io.read_csv_table>`
@@ -515,7 +515,7 @@ If you have ``parse_dates`` enabled for some or all of your columns, and your
 datetime strings are all formatted the same way, you may get a large speed
 up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
 to guess the format of your datetime strings, and then use a faster means
-of parsing the strings.  5-10x parsing speeds have been observed.  Pandas
+of parsing the strings.  5-10x parsing speeds have been observed.  pandas
 will fallback to the usual parsing if either the format cannot be guessed
 or the format that was guessed cannot properly parse the entire column
 of strings.  So in general, ``infer_datetime_format`` should not have any
@@ -1438,7 +1438,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    dfju = pd.read_json(json, date_unit='ms')
    dfju
 
-   # Let Pandas detect the correct precision
+   # Let pandas detect the correct precision
    dfju = pd.read_json(json)
    dfju
 
@@ -1518,7 +1518,7 @@ Normalization
 
 .. versionadded:: 0.13.0
 
-Pandas provides a utility function to take a dict or list of dicts and *normalize* this semi-structured data
+pandas provides a utility function to take a dict or list of dicts and *normalize* this semi-structured data
 into a flat table.
 
 .. ipython:: python
@@ -2174,7 +2174,7 @@ for some advanced strategies
 .. note::
 
    ``PyTables`` 3.0.0 was recently released to enable support for Python 3.
-   Pandas should be fully compatible (and previously written stores should be
+   pandas should be fully compatible (and previously written stores should be
    backwards compatible) with all ``PyTables`` >= 2.3. For ``python >= 3.2``,
    ``pandas >= 0.12.0`` is required for compatibility.
 
@@ -3627,4 +3627,3 @@ And here's the code
 
    def test_csv_read():
        pd.read_csv('test.csv',index_col=0)
-
