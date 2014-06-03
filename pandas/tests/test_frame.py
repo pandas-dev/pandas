@@ -5240,6 +5240,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df.div(row), df / row)
         assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
+        # broadcasting issue in GH7325
+        df = DataFrame(np.arange(3*2).reshape((3,2)),dtype='int64')
+        expected = DataFrame([[np.inf,np.inf],[1.0,1.5],[1.0,1.25]])
+        result = df.div(df[0],axis='index')
+        assert_frame_equal(result,expected)
+
+        df = DataFrame(np.arange(3*2).reshape((3,2)),dtype='float64')
+        expected = DataFrame([[np.nan,np.inf],[1.0,1.5],[1.0,1.25]])
+        result = df.div(df[0],axis='index')
+        assert_frame_equal(result,expected)
+
     def test_arith_non_pandas_object(self):
         df = self.simple
 
