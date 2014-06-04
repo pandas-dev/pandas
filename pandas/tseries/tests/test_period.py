@@ -83,6 +83,16 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(p.tz,
                          pytz.timezone('Europe/Brussels').normalize(p).tzinfo)
 
+    def test_timestamp_tz_arg_dateutil(self):
+        import dateutil
+        p = Period('1/1/2005', freq='M').to_timestamp(tz=dateutil.tz.gettz('Europe/Brussels'))
+        self.assertEqual(p.tz, dateutil.tz.gettz('Europe/Brussels'))
+
+    def test_timestamp_tz_arg_dateutil_from_string(self):
+        import dateutil
+        p = Period('1/1/2005', freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
+        self.assertEqual(p.tz, dateutil.tz.gettz('Europe/Brussels'))
+
     def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')

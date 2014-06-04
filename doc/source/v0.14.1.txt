@@ -9,6 +9,8 @@ users upgrade to this version.
 
 - Highlights include:
 
+  - Support for ``dateutil`` timezones.
+
 - :ref:`Other Enhancements <whatsnew_0141.enhancements>`
 
 - :ref:`API Changes <whatsnew_0141.api>`
@@ -56,6 +58,17 @@ Known Issues
 Enhancements
 ~~~~~~~~~~~~
 - Tests for basic reading of public S3 buckets now exist (:issue:`7281`).
+
+- Support for dateutil timezones, which can now be used in the same way as
+  pytz timezones across pandas. (:issue:`4688`)
+
+  .. ipython:: python
+
+   rng_utc_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
+                                 tz='dateutil/UTC')
+   rng_utc_dateutil.tz
+
+  See :ref:`the docs <timeseries.timezone>`.
 
 .. _whatsnew_0141.performance:
 

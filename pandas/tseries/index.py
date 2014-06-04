@@ -1617,7 +1617,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def tz_convert(self, tz):
         """
-        Convert DatetimeIndex from one time zone to another (using pytz)
+        Convert DatetimeIndex from one time zone to another (using pytz/dateutil)
 
         Returns
         -------
@@ -1635,11 +1635,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def tz_localize(self, tz, infer_dst=False):
         """
-        Localize tz-naive DatetimeIndex to given time zone (using pytz)
+        Localize tz-naive DatetimeIndex to given time zone (using pytz/dateutil)
 
         Parameters
         ----------
-        tz : string or pytz.timezone
+        tz : string or pytz.timezone or dateutil.tz.tzfile
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries
         infer_dst : boolean, default False
@@ -1666,7 +1666,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         Parameters
         ----------
         time : datetime.time or string
-        tz : string or pytz.timezone
+        tz : string or pytz.timezone or dateutil.tz.tzfile
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries
 
@@ -1701,7 +1701,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
-        tz : string or pytz.timezone, default None
+        tz : string or pytz.timezone or dateutil.tz.tzfile, default None
 
         Returns
         -------
