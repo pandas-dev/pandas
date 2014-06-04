@@ -701,7 +701,7 @@ class TestResample(tm.TestCase):
 
     def test_resample_timegrouper(self):
         # GH 7227
-        dates = [datetime(2014, 10, 1), datetime(2014, 9, 3), 
+        dates = [datetime(2014, 10, 1), datetime(2014, 9, 3),
                   datetime(2014, 11, 5), datetime(2014, 9, 5),
                   datetime(2014, 10, 8), datetime(2014, 7, 15)]
 
@@ -871,7 +871,7 @@ class TestResamplePeriodIndex(tm.TestCase):
 
     def test_fill_method_and_how_upsample(self):
         # GH2073
-        s = Series(range(9),
+        s = Series(np.arange(9,dtype='int64'),
                    index=date_range('2010-01-01', periods=9, freq='Q'))
         last = s.resample('M', fill_method='ffill')
         both = s.resample('M', how='last', fill_method='ffill').astype('int64')

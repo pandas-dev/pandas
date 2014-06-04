@@ -497,7 +497,7 @@ class TestPivotTable(tm.TestCase):
                   '2013-02-01 15:00:00', '2013-02-01 15:00:00', '2013-02-01 15:00:00']
         df = DataFrame({'label': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'dt1': dates1, 'dt2': dates2,
-                        'value1': range(6), 'value2': [1, 2] * 3})
+                        'value1': np.arange(6,dtype='int64'), 'value2': [1, 2] * 3})
         df['dt1'] = df['dt1'].apply(lambda d: pd.Timestamp(d, tz='US/Pacific'))
         df['dt2'] = df['dt2'].apply(lambda d: pd.Timestamp(d, tz='Asia/Tokyo'))
 
