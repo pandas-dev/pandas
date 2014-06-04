@@ -1244,20 +1244,21 @@ def _fill_zeros(result, x, y, name, fill):
 
         if is_integer_dtype(y):
 
-            mask = y.ravel() == 0
-            if mask.any():
+            if (y.ravel() == 0).any():
                 shape = result.shape
                 result = result.ravel().astype('float64')
 
+                # GH 7325, mask and nans must be broadcastable
                 signs = np.sign(result)
-                nans = np.isnan(x.ravel())
-                np.putmask(result, mask & ~nans, fill)
+                mask = ((y == 0) & ~np.isnan(x)).ravel()
+
+                np.putmask(result, mask, fill)
 
                 # if we have a fill of inf, then sign it
                 # correctly
                 # GH 6178
                 if np.isinf(fill):
-                    np.putmask(result,signs<0 & mask & ~nans,-fill)
+                    np.putmask(result,signs<0 & mask, -fill)
 
                 result = result.reshape(shape)
 
