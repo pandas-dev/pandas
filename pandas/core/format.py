@@ -711,6 +711,8 @@ class HTMLFormatter(TableFormatter):
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
     def write_td(self, s, indent=0, tags=None):
+        if s == self.fmt.na_rep:
+            tags = (tags or "") + ' class="pandas-empty"'
         return self._write_cell(s, kind='td', indent=indent, tags=tags)
 
     def _write_cell(self, s, kind='td', indent=0, tags=None):
