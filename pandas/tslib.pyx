@@ -1029,7 +1029,7 @@ cdef inline object _get_zone(object tz):
         return 'UTC'
     else:
         if _treat_tz_as_dateutil(tz):
-            return 'dateutil/' + tz._filename.split('zoneinfo/')[1]
+            return 'dateutil/' + tz._filename
         else:
             # tz is a pytz timezone or unknown.
             try:
@@ -1047,9 +1047,8 @@ cpdef inline object maybe_get_tz(object tz):
     Otherwise, just return tz. 
     '''
     if isinstance(tz, string_types):
-        split_tz = tz.split('/', 1)
-        if split_tz[0] == 'dateutil':
-            tz = _dateutil_gettz(split_tz[1])
+        if tz.startswith('dateutil/'):
+            tz = _dateutil_gettz(tz[9:])
         else:
             tz = pytz.timezone(tz)
         return tz
