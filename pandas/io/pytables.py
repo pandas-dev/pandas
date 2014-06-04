@@ -40,6 +40,7 @@ import pandas.algos as algos
 import pandas.tslib as tslib
 
 from contextlib import contextmanager
+from collections import namedtuple
 from distutils.version import LooseVersion
 
 # versioning attribute
@@ -65,6 +66,7 @@ def _ensure_encoding(encoding):
 
 Term = Expr
 
+_raise_attribute = object()
 
 def _ensure_term(where, scope_level):
     """
@@ -341,6 +343,20 @@ def read_hdf(path_or_buf, key, **kwargs):
     # a passed store; user controls open/close
     f(path_or_buf, False)
 
+def get_attrs(path_or_buf, key, attrs, default=_raise_attribute, mode='r'):
+    if isinstance(path_or_buf, string_types):
+        with get_store(path_or_buf, mode=mode) as store:
+            return store.get_attrs(key, attrs, default)
+    else:
+        return path_or_buf.get_attrs(key, attrs, default)
+
+def set_attrs(path_or_buf, key, mode='a', **attrs):
+    if isinstance(path_or_buf, string_types):
+        with get_store(path_or_buf, mode=mode) as store:
+            store.set_attrs(key, **attrs)
+    else:
+        path_or_buf.set_attrs(key, **attrs)
+
 
 class HDFStore(StringMixin):
 
@@ -578,6 +594,58 @@ class HDFStore(StringMixin):
             return False
         return bool(self._handle.isopen)
 
+    def get_attrs(self, key, attrs, default=_raise_attribute):
+        """
+        get values from a groups attributes
+
+        Paramters
+        ---------
+        key : object
+        attrs : list or str
+            specifies attributes to return as namedtuple
+        default : object
+            optinal default value when an attribute is not found
+
+        Returns
+        -------
+        nametuple with requested attributes or single value when attrs is a
+        string specifing a single attribute
+
+        Exceptions
+        ----------
+        raises KeyError when group is not found
+        raises ValueError when attrs argument can't be used as namedtuple
+        raises AttributeError when an attribute is not in group and no default
+            value is given
+        """
+        node = self.get_node(key)
+        if node is None:
+            raise KeyError('No group named %s in the file' % key)
+        return _get_attrs(node, attrs, default)
+
+    def set_attrs(self, key, **attrs):
+        """
+        sets attributes of a node
+
+        Note that the size of the metastore for a group inside a hdf5 file is
+        limited and already used for internal metadata, so be carefull about
+        storing large objects inside attributes.
+
+        Paramters
+        ---------
+        key : object
+        attrs : kwargs
+            attribute values to set
+
+        Exceptions
+        ----------
+        raises KeyError when node is not found
+        """
+        node = self.get_node(key)
+        if node is None:
+            raise KeyError('No group named %s in the file' % key)
+        return _set_attrs(node, **attrs)
+
     def flush(self, fsync=False):
         """
         Force all buffered modifications to be written to disk.
@@ -811,6 +879,8 @@ class HDFStore(StringMixin):
         encoding : default None, provide an encoding for strings
         dropna   : boolean, default True, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
+        attrs    : dict, default None
+            Also store each value inside an attribute of the group
         """
         if format is None:
             format = get_option("io.hdf.default_format") or 'fixed'
@@ -893,6 +963,8 @@ class HDFStore(StringMixin):
         encoding     : default None, provide an encoding for strings
         dropna       : boolean, default True, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
+        attrs        : dict, default None
+            Also store each value inside an attribute of the group
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
@@ -948,6 +1020,10 @@ class HDFStore(StringMixin):
             raise ValueError(
                 "append_to_multiple requires a selector that is in passed dict"
             )
+
+        if 'attrs' in kwargs:
+            raise TypeError('attrs argument not allowed for append_to_multiple, '
+                            'use set_attrs manually')
 
         # figure out the splitting axis (the non_index_axis)
         axis = list(set(range(value.ndim)) - set(_AXES_MAP[type(value)]))[0]
@@ -1218,7 +1294,7 @@ class HDFStore(StringMixin):
             error('_TABLE_MAP')
 
     def _write_to_group(self, key, value, format, index=True, append=False,
-                        complib=None, encoding=None, **kwargs):
+                        complib=None, encoding=None, attrs=None, **kwargs):
         group = self.get_node(key)
 
         # remove the node if we are not appending
@@ -1272,10 +1348,37 @@ class HDFStore(StringMixin):
         if s.is_table and index:
             s.create_index(columns=index)
 
+        if attrs:
+            _set_attrs(s.group, **attrs)
+
     def _read_group(self, group, **kwargs):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read(**kwargs)
+
+
+def _get_attrs(node, attrs, default=_raise_attribute):
+    Attrs = namedtuple('GroupAttrs', attrs)
+
+    if default==_raise_attribute:
+        def get(attr):
+            return getattr(node._v_attrs, attr)
+    else:
+        def get(attr):
+            try:
+                return getattr(node._v_attrs, attr)
+            except AttributeError:
+                return default
+
+    vals = [get(a) for a in Attrs._fields]
+    if len(vals) == 1 and isinstance(attrs, string_types):
+        return vals[0]
+    else:
+        return Attrs(*vals)
+
+def _set_attrs(node, **attrs):
+    for attr,val in attrs.items():
+        node._v_attrs[attr] = val
 
 
 class TableIterator(object):

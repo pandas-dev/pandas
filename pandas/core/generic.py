@@ -889,6 +889,8 @@ class NDFrame(PandasObject):
             in the store wherever possible
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
+        attrs : dict, default None
+            Also store each value inside an attribute of the group
 
         """
 
