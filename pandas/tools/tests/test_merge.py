@@ -8,6 +8,7 @@ from numpy import nan
 import numpy as np
 import random
 
+import pandas as pd
 from pandas.compat import range, lrange, lzip, zip, StringIO
 from pandas import compat, _np_version_under1p7
 from pandas.tseries.index import DatetimeIndex
@@ -1496,6 +1497,26 @@ class TestConcatenate(tm.TestCase):
         tm.assert_frame_equal(result.ix[0], frame)
         tm.assert_frame_equal(result.ix[1], frame)
         self.assertEqual(result.index.nlevels, 3)
+
+    def test_concat_multiindex_with_tz(self):
+        # GH 6606
+        df = DataFrame({'dt': [datetime(2014, 1, 1),
+                               datetime(2014, 1, 2),
+                               datetime(2014, 1, 3)],
+                        'b': ['A', 'B', 'C'],
+                        'c': [1, 2, 3], 'd': [4, 5, 6]})
+        df['dt'] = df['dt'].apply(lambda d: pd.Timestamp(d, tz='US/Pacific'))
+        df = df.set_index(['dt', 'b'])
+
+        exp_idx1 = pd.DatetimeIndex(['2014-01-01', '2014-01-02', '2014-01-03'] * 2,
+                                    tz='US/Pacific', name='dt')
+        exp_idx2 = Index(['A', 'B', 'C'] * 2, name='b')
+        exp_idx = pd.MultiIndex.from_arrays([exp_idx1, exp_idx2])
+        expected = DataFrame({'c': [1, 2, 3] * 2, 'd': [4, 5, 6] * 2},
+                             index=exp_idx, columns=['c', 'd'])
+
+        result = concat([df, df])
+        tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
         df = DataFrame(np.random.randn(1, 3))

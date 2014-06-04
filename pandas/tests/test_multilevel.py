@@ -1,4 +1,5 @@
 # pylint: disable-msg=W0612,E1101,W0141
+import datetime
 import nose
 
 from numpy.random import randn
@@ -69,6 +70,46 @@ class TestMultiLevel(tm.TestCase):
 
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
+
+    def test_append_index(self):
+
+        idx1 = Index([1.1, 1.2, 1.3])
+        idx2 = pd.date_range('2011-01-01', freq='D', periods=3, tz='Asia/Tokyo')
+        idx3 = Index(['A', 'B', 'C'])
+
+        midx_lv2 = MultiIndex.from_arrays([idx1, idx2])
+        midx_lv3 = MultiIndex.from_arrays([idx1, idx2, idx3])
+
+        result = idx1.append(midx_lv2)
+        expected = Index([1.1, 1.2, 1.3,
+                         (1.1, datetime.datetime(2010, 12, 31, 15, 0)),
+                         (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
+                         (1.3, datetime.datetime(2011, 1, 2, 15, 0))])
+        self.assert_(result.equals(expected))
+
+        result = midx_lv2.append(idx1)
+        expected = Index([(1.1, datetime.datetime(2010, 12, 31, 15, 0)),
+                          (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
+                          (1.3, datetime.datetime(2011, 1, 2, 15, 0)),
+                           1.1, 1.2, 1.3])
+        self.assert_(result.equals(expected))
+
+        result = midx_lv2.append(midx_lv2)
+        expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
+        self.assert_(result.equals(expected))
+
+        result = midx_lv2.append(midx_lv3)
+        self.assert_(result.equals(expected))
+
+        result = midx_lv3.append(midx_lv2)
+        expected = Index._simple_new(
+            np.array([(1.1, datetime.datetime(2010, 12, 31, 15, 0), 'A'),
+                      (1.2, datetime.datetime(2011, 1, 1, 15, 0), 'B'),
+                      (1.3, datetime.datetime(2011, 1, 2, 15, 0), 'C'),
+                      (1.1, datetime.datetime(2010, 12, 31, 15, 0)),
+                      (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
+                      (1.3, datetime.datetime(2011, 1, 2, 15, 0))]), None)
+        self.assert_(result.equals(expected))
 
     def test_dataframe_constructor(self):
         multi = DataFrame(np.random.randn(4, 4),

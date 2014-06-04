@@ -2950,6 +2950,14 @@ class MultiIndex(Index):
         if not isinstance(other, (list, tuple)):
             other = [other]
 
+        if all((isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other):
+            arrays = []
+            for i in range(self.nlevels):
+                label = self.get_level_values(i)
+                appended = [o.get_level_values(i) for o in other]
+                arrays.append(label.append(appended))
+            return MultiIndex.from_arrays(arrays, names=self.names)
+
         to_concat = (self.values,) + tuple(k.values for k in other)
         new_tuples = np.concatenate(to_concat)
 

@@ -89,3 +89,4 @@ Bug Fixes
 - Bug in ``Easter`` returns incorrect date when offset is negative (:issue:`7195`)
 - Bug in broadcasting with ``.div``, integer dtypes and divide-by-zero (:issue:`7325`)
 - Bug in ``CustomBusinessDay.apply`` raiases ``NameError`` when ``np.datetime64`` object is passed (:issue:`7196`)
+- Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
