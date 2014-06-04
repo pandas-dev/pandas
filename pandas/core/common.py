@@ -1753,7 +1753,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                         elif is_timedelta64:
                             from pandas.tseries.timedeltas import \
                                 _possibly_cast_to_timedelta
-                            value = _possibly_cast_to_timedelta(value, coerce='compat')
+                            value = _possibly_cast_to_timedelta(value, coerce='compat', dtype=dtype)
                     except:
                         pass
 

@@ -148,7 +148,7 @@ cdef inline bint _is_fixed_offset(object tz):
         else:
             return 0
     return 1
-        
+
 
 _zero_time = datetime_time(0, 0)
 
@@ -340,7 +340,7 @@ class Timestamp(_Timestamp):
     @property
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
-    
+
     def tz_localize(self, tz):
         """
         Convert naive Timestamp to local time zone
@@ -994,7 +994,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
                 pandas_datetime_to_datetimestruct(obj.value + deltas[0],
                                                   PANDAS_FR_ns, &obj.dts)
             else:
-                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)        
+                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz
         elif _treat_tz_as_pytz(tz):
             inf = tz._transition_info[pos]
@@ -1044,7 +1044,7 @@ cdef inline object _get_zone(object tz):
 cpdef inline object maybe_get_tz(object tz):
     '''
     (Maybe) Construct a timezone object from a string. If tz is a string, use it to construct a timezone object.
-    Otherwise, just return tz. 
+    Otherwise, just return tz.
     '''
     if isinstance(tz, string_types):
         if tz.startswith('dateutil/'):
@@ -1337,7 +1337,7 @@ def array_to_timedelta64(ndarray[object] values, coerce=False):
 def convert_to_timedelta(object ts, object unit='ns', coerce=False):
     return convert_to_timedelta64(ts, unit, coerce)
 
-cdef convert_to_timedelta64(object ts, object unit, object coerce):
+cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
     """
     Convert an incoming object to a timedelta64 if possible
 
@@ -1952,9 +1952,9 @@ cdef inline bint _treat_tz_as_dateutil(object tz):
 cdef inline object _tz_cache_key(object tz):
     """
     Return the key in the cache for the timezone info object or None if unknown.
-    
+
     The key is currently the tz string for pytz timezones, the filename for dateutil timezones.
-    
+
     Notes
     =====
     This cannot just be the hash of a timezone object. Unfortunately, the hashes of two dateutil tz objects
@@ -2136,7 +2136,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
     # right side
     idx_shifted = _ensure_int64(
         np.maximum(0, trans.searchsorted(vals + DAY_NS, side='right') - 1))
- 
+
     for i in range(n):
         v = vals[i] - deltas[idx_shifted[i]]
         pos = bisect_right_i8(tdata, v, ntrans) - 1
@@ -2516,7 +2516,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
                 dom = dts.day
-                
+
                 if dom == 1:
                     out[i] = 1
             return out.view(bool)
@@ -2534,7 +2534,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
                 dow = ts_dayofweek(ts)
-                
+
                 if (ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2)):
                     out[i] = 1
             return out.view(bool)
@@ -2548,9 +2548,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 dom = dts.day
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
-                
+
                 if ldom == doy:
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
 
     elif field == 'is_quarter_start':
@@ -2564,7 +2564,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 dow = ts_dayofweek(ts)
 
                 if ((dts.month - start_month) % 3 == 0) and ((dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
         else:
             for i in range(count):
@@ -2572,9 +2572,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
                 dom = dts.day
-                
+
                 if ((dts.month - start_month) % 3 == 0) and dom == 1:
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
 
     elif field == 'is_quarter_end':
@@ -2590,9 +2590,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
                 dow = ts_dayofweek(ts)
-                
+
                 if ((dts.month - end_month) % 3 == 0) and ((ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2))):
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
         else:
             for i in range(count):
@@ -2604,9 +2604,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 dom = dts.day
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
-                
+
                 if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
 
     elif field == 'is_year_start':
@@ -2620,7 +2620,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 dow = ts_dayofweek(ts)
 
                 if (dts.month == start_month) and ((dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
         else:
             for i in range(count):
@@ -2648,7 +2648,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 ldom = _month_offset[isleap, dts.month]
 
                 if (dts.month == end_month) and ((ldom == doy and dow < 5) or (dow == 4 and (ldom - doy <= 2))):
-                    out[i] = 1 
+                    out[i] = 1
             return out.view(bool)
         else:
             for i in range(count):
@@ -2665,7 +2665,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
             return out.view(bool)
-    
+
     raise ValueError("Field %s not supported" % field)
 
 
