@@ -403,7 +403,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # normalized
         central = dr.tz_convert(tz)
         self.assertIs(central.tz, tz)
-        self.assertIs(central[0].tz, tz)
+        comp = self.localize(tz, central[0].to_pydatetime().replace(tzinfo=None)).tzinfo
+        self.assertIs(central[0].tz, comp)
 
         # compare vs a localized tz
         comp = self.localize(tz, dr[0].to_pydatetime().replace(tzinfo=None)).tzinfo
