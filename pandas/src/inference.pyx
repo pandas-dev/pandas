@@ -17,29 +17,47 @@ def is_complex(object obj):
     return util.is_complex_object(obj)
 
 _TYPE_MAP = {
-    np.int8: 'integer',
-    np.int16: 'integer',
-    np.int32: 'integer',
-    np.int64: 'integer',
-    np.uint8: 'integer',
-    np.uint16: 'integer',
-    np.uint32: 'integer',
-    np.uint64: 'integer',
-    np.float32: 'floating',
-    np.float64: 'floating',
-    np.complex128: 'complex',
-    np.complex128: 'complex',
-    np.string_: 'string',
-    np.unicode_: 'unicode',
-    np.bool_: 'boolean',
-    np.datetime64 : 'datetime64',
-    np.timedelta64 : 'timedelta64'
+    'int8': 'integer',
+    'int16': 'integer',
+    'int32': 'integer',
+    'int64': 'integer',
+    'i' : 'integer',
+    'uint8': 'integer',
+    'uint16': 'integer',
+    'uint32': 'integer',
+    'uint64': 'integer',
+    'u' : 'integer',
+    'float32': 'floating',
+    'float64': 'floating',
+    'f' : 'floating',
+    'complex128': 'complex',
+    'c' : 'complex',
+    'string': 'string',
+    'S' : 'string',
+    'unicode': 'unicode',
+    'U' : 'unicode',
+    'bool': 'boolean',
+    'b' : 'boolean',
+    'datetime64[ns]' : 'datetime64',
+    'M' : 'datetime64',
+    'timedelta64[ns]' : 'timedelta64',
+    'm' : 'timedelta64',
 }
 
+# types only exist on certain platform
 try:
-    _TYPE_MAP[np.float128] = 'floating'
-    _TYPE_MAP[np.complex256] = 'complex'
-    _TYPE_MAP[np.float16] = 'floating'
+    np.float128
+    _TYPE_MAP['float128'] = 'floating'
+except AttributeError:
+    pass
+try:
+    np.complex256
+    _TYPE_MAP['complex256'] = 'complex'
+except AttributeError:
+    pass
+try:
+    np.float16
+    _TYPE_MAP['float16'] = 'floating'
 except AttributeError:
     pass
 
@@ -60,7 +78,10 @@ def infer_dtype(object _values):
 
     values = getattr(values, 'values', values)
 
-    val_kind = values.dtype.type
+    val_name = values.dtype.name
+    if val_name in _TYPE_MAP:
+        return _TYPE_MAP[val_name]
+    val_kind = values.dtype.kind
     if val_kind in _TYPE_MAP:
         return _TYPE_MAP[val_kind]
 

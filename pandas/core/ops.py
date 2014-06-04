@@ -333,7 +333,7 @@ class _TimeOp(object):
                 values = values.to_series()
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
-            values = _possibly_cast_to_timedelta(values, coerce=coerce)
+            values = _possibly_cast_to_timedelta(values, coerce=coerce, dtype='timedelta64[ns]')
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
