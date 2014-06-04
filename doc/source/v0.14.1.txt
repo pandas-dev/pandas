@@ -73,6 +73,8 @@ Enhancements
 
   See :ref:`the docs <timeseries.timezone>`.
 
+- Add a sample method to NDFrame (:issue:`2419`)
+
 .. _whatsnew_0141.performance:
 
 Performance

@@ -8493,6 +8493,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         truncated.values[:] = 5.
         self.assertFalse((self.tsframe.values[5:11] == 5).any())
 
+    def test_sample(self):
+        df = DataFrame([[1, 2], [2, 3]], columns=['A', 'B'])
+        res = df.sample(5)
+        self.assertEqual(len(res), 5)
+        assert(res.index.isin(df.index).all())
+        
     def test_xs(self):
         idx = self.frame.index[5]
         xs = self.frame.xs(idx)

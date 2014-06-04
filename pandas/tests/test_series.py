@@ -1614,6 +1614,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         rs = s.where(cond, np.nan)
         assert_series_equal(rs, s.mask(~cond))
 
+    def test_sample(self):
+        s = Series([1, 2, 2, 3])
+        res = s.sample(5)
+        self.assertEqual(len(res), 5)
+        assert(res.index.isin(s.index).all())
+
     def test_drop(self):
 
         # unique

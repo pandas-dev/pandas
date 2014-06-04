@@ -1241,6 +1241,45 @@ class NDFrame(PandasObject):
 
         return result
 
+    def sample(self, size, replace=True):
+        """Take a sample from the object, analogue of numpy.random.choice
+
+        Parameters
+        ----------
+        size : int, size of sample to take
+        replace : bool, default True, whether to sample with replacements
+
+        Returns
+        -------
+        type of caller
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5])
+        >>> s.sample(3, replace=False)
+        2    3
+        0    1
+        3    4
+        dtype: int64
+        >>> s.sample(3, replace=True)
+        1    2
+        3    4
+        1    2
+        dtype: int64
+
+        Note
+        ----
+        If you are sampling without replacement over a larger sample size than
+        the object you're sampling a ValueError will be raised.
+
+        """
+        try:
+            from numpy.random import choice
+        except ImportError:
+            from pandas.stats.misc import choice
+        msk = choice(len(self), size, replace=replace)
+        return self.iloc[msk]
+
     def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the Series/DataFrame.

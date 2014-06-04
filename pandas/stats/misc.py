@@ -384,3 +384,20 @@ def _bucket_labels(series, k):
         mat[v] = i
 
     return mat + 1
+
+
+def choice(arr, size, replace):
+    """Partial implementation of numpy.random.choice which is new to 1.7
+
+    Note: unlike numpy's version size must be a scalar.
+    """
+    if replace:
+        pos = (np.random.sample(size) * len(arr)).astype('int64')
+        return arr[pos]
+    else:
+        if size > len(arr):
+            raise ValueError("Cannot take a larger sample than "
+                             "population when 'replace=False'")
+        shuffle = np.arange(len(arr))
+        np.random.shuffle(shuffle)
+        return arr[shuffle[:size]]

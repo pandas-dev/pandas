@@ -547,6 +547,12 @@ class CheckIndexing(object):
         result = self.panel.xs('D', axis=2)
         self.assertIsNotNone(result.is_copy)
 
+    def test_sample(self):
+        p = self.panel
+        res = p.sample(5)
+        self.assertEqual(len(res), 5)
+        assert(res.major_axis.isin(p.major_axis).all())
+
     def test_getitem_fancy_labels(self):
         p = self.panel
 
