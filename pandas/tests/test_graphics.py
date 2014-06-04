@@ -286,7 +286,7 @@ class TestPlotBase(tm.TestCase):
         axes_num : number
             expected number of axes. Unnecessary axes should be set to invisible.
         layout :  tuple
-            expected layout
+            expected layout, (expected number of rows , columns)
         figsize : tuple
             expected figsize. default is matplotlib default
         """
@@ -299,16 +299,21 @@ class TestPlotBase(tm.TestCase):
                 self.assertTrue(len(ax.get_children()) > 0)
 
         if layout is not None:
-            if isinstance(axes, list):
-                self.assertEqual((len(axes), ), layout)
-            elif isinstance(axes, np.ndarray):
-                self.assertEqual(axes.shape, layout)
-            else:
-                # in case of AxesSubplot
-                self.assertEqual((1, ), layout)
+            result = self._get_axes_layout(plotting._flatten(axes))
+            self.assertEqual(result, layout)
 
         self.assert_numpy_array_equal(np.round(visible_axes[0].figure.get_size_inches()),
                                       np.array(figsize))
+
+    def _get_axes_layout(self, axes):
+        x_set = set()
+        y_set = set()
+        for ax in axes:
+            # check axes coordinates to estimate layout
+            points = ax.get_position().get_points()
+            x_set.add(points[0][0])
+            y_set.add(points[0][1])
+        return (len(y_set), len(x_set))
 
     def _flatten_visible(self, axes):
         """
@@ -401,14 +406,14 @@ class TestSeriesPlots(TestPlotBase):
 
         # GH 6951
         ax = _check_plot_works(self.ts.plot, subplots=True)
-        self._check_axes_shape(ax, axes_num=1, layout=(1, ))
+        self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
     @slow
     def test_plot_figsize_and_title(self):
         # figsize and title
         ax = self.series.plot(title='Test', figsize=(16, 8))
         self._check_text_labels(ax.title, 'Test')
-        self._check_axes_shape(ax, axes_num=1, layout=(1, ), figsize=(16, 8))
+        self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
     def test_ts_area_lim(self):
         ax = self.ts.plot(kind='area', stacked=False)
@@ -556,10 +561,10 @@ class TestSeriesPlots(TestPlotBase):
         df = self.hist_df
 
         axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, ), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(2, 1), figsize=(10, 5))
 
         axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, ), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1), figsize=(10, 5))
 
         axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
@@ -757,9 +762,9 @@ class TestDataFramePlots(TestPlotBase):
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
         axes = _check_plot_works(df.plot, subplots=True)
-        self._check_axes_shape(axes, axes_num=4, layout=(4, ))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
         _check_plot_works(df.plot, subplots=True, use_index=False)
-        self._check_axes_shape(axes, axes_num=4, layout=(4, ))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         with tm.assertRaises(TypeError):
@@ -774,7 +779,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
         axes = _check_plot_works(df.plot, subplots=True, title='blah')
-        self._check_axes_shape(axes, axes_num=3, layout=(3, ))
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
 
         _check_plot_works(df.plot, title='blah')
 
@@ -804,7 +809,7 @@ class TestDataFramePlots(TestPlotBase):
         # Test with single column
         df = DataFrame({'x': np.random.rand(10)})
         axes = _check_plot_works(df.plot, kind='bar', subplots=True)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, ))
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
@@ -846,7 +851,7 @@ class TestDataFramePlots(TestPlotBase):
         # figsize and title
         ax = df.plot(x=1, y=2, title='Test', figsize=(16, 8))
         self._check_text_labels(ax.title, 'Test')
-        self._check_axes_shape(ax, axes_num=1, layout=(1, ), figsize=(16., 8.))
+        self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16., 8.))
 
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
@@ -913,7 +918,7 @@ class TestDataFramePlots(TestPlotBase):
 
         for kind in ['bar', 'barh', 'line', 'area']:
             axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
-            self._check_axes_shape(axes, axes_num=3, layout=(3, ))
+            self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
 
             for ax, column in zip(axes, df.columns):
                 self._check_legend_labels(ax, labels=[com.pprint_thing(column)])
@@ -1081,7 +1086,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # subplots
         axes = df.plot(kind='bar', linewidth=2, subplots=True)
-        self._check_axes_shape(axes, axes_num=5, layout=(5, ))
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
         for ax in axes:
             for r in ax.patches:
                 self.assertEqual(r.get_linewidth(), 2)
@@ -1179,7 +1184,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # GH 6951
         axes = df.plot(x='x', y='y', kind='scatter', subplots=True)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, ))
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @slow
     def test_plot_bar(self):
@@ -1486,7 +1491,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=expected)
 
         axes = _check_plot_works(df.plot, kind='kde', subplots=True)
-        self._check_axes_shape(axes, axes_num=4, layout=(4, ))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.plot(kind='kde', logy=True, subplots=True)
         self._check_ax_scales(axes, yaxis='log')
@@ -1949,8 +1954,7 @@ class TestDataFramePlots(TestPlotBase):
         # hexbin should have 2 axes in the figure, 1 for plotting and another is colorbar
         self.assertEqual(len(axes[0].figure.axes), 2)
         # return value is single axes
-        self._check_axes_shape(axes, axes_num=1, layout=(1, ))
-
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @slow
     def test_hexbin_with_c(self):
@@ -2193,11 +2197,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_boxplot(self):
         grouped = self.hist_df.groupby(by='gender')
         box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
         box = _check_plot_works(grouped.boxplot, subplots=False,
                                 return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
         tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
@@ -2205,19 +2209,19 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         grouped = df.groupby(level=1)
         box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=10)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=10, layout=(4, 3))
 
         box = _check_plot_works(grouped.boxplot, subplots=False,
                                 return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=10)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=10, layout=(4, 3))
 
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
         box = _check_plot_works(grouped.boxplot, subplots=False,
                                 return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
     def test_series_plot_color_kwargs(self):
         # GH1890
@@ -2327,35 +2331,35 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         box = _check_plot_works(df.groupby('gender').boxplot, column='height',
                                 return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=2)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
         box = _check_plot_works(df.groupby('category').boxplot, column='height',
                                 return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=4)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
         # GH 6769
         box = _check_plot_works(df.groupby('classroom').boxplot,
                                 column='height', return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
         box = df.boxplot(column=['height', 'weight', 'category'], by='gender')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
         box = df.groupby('classroom').boxplot(
             column=['height', 'weight', 'category'], return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
         box = _check_plot_works(df.groupby('category').boxplot, column='height',
                                 layout=(3, 2), return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=4)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
 
         box = df.boxplot(column=['height', 'weight', 'category'], by='gender', layout=(4, 1))
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(4, 1))
 
         box = df.groupby('classroom').boxplot(
             column=['height', 'weight', 'category'], layout=(1, 4),
             return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3)
+        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 4))
 
     @slow
     def test_grouped_hist_layout(self):
@@ -2367,10 +2371,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                           layout=(1, 3))
 
         axes = _check_plot_works(df.hist, column='height', by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, ), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(2, 1), figsize=(10, 5))
 
         axes = _check_plot_works(df.hist, column='height', by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, ), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1), figsize=(10, 5))
 
         axes = _check_plot_works(df.hist, column='height', by=df.category,
                                  layout=(4, 2), figsize=(12, 8))
