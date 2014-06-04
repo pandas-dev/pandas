@@ -252,6 +252,11 @@ class TimeGrouper(Grouper):
                 # downsample
                 grouped = obj.groupby(grouper, axis=self.axis)
                 result = grouped.aggregate(self._agg_method)
+                # GH2073
+                if self.fill_method is not None:
+                    result = result.fillna(method=self.fill_method,
+                                           limit=self.limit)
+
             else:
                 # upsampling shortcut
                 if self.axis:
