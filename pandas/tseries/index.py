@@ -1608,6 +1608,34 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 return self.asobject.insert(loc, item)
             raise TypeError("cannot insert DatetimeIndex with incompatible label")
 
+    def delete(self, loc):
+        """
+        Make new DatetimeIndex with passed location deleted
+        Returns
+
+        loc: int, slice or array of ints
+            Indicate which sub-arrays to remove.
+
+        -------
+        new_index : DatetimeIndex
+        """
+        new_dates = np.delete(self.asi8, loc)
+
+        freq = None
+        if lib.is_integer(loc):
+            if loc in (0, -len(self), -1, len(self) - 1):
+                freq = self.freq
+        else:
+            if com.is_list_like(loc):
+                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)))
+            if isinstance(loc, slice) and loc.step in (1, None):
+                if (loc.start in (0, None) or loc.stop in (len(self), None)):
+                    freq = self.freq
+
+        if self.tz is not None:
+            new_dates = tslib.date_normalize(new_dates, self.tz)
+        return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
+
     def _view_like(self, ndarray):
         result = ndarray.view(type(self))
         result.offset = self.offset

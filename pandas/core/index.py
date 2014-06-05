@@ -1774,9 +1774,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         -------
         new_index : Index
         """
-        return self._simple_new(np.delete(self, loc), self.name,
-                                freq=getattr(self, 'freq', None),
-                                tz=getattr(self, 'tz', None))
+        return np.delete(self, loc)
 
     def insert(self, loc, item):
         """
