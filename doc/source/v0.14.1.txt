@@ -219,6 +219,8 @@ Bug Fixes
   1-dimensional ``nan`` arrays (:issue:`7354`)
 - Bug where ``nanops.nanmedian`` doesn't work when ``axis==None``
   (:issue:`7352`)
+- Bug where ``nanops._has_infs`` doesn't work with many dtypes
+  (:issue:`7357`)
 
 
 

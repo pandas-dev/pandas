@@ -105,14 +105,18 @@ def _bn_ok_dtype(dt, name):
         return True
     return False
 
+
 def _has_infs(result):
     if isinstance(result, np.ndarray):
         if result.dtype == 'f8':
-            return lib.has_infs_f8(result)
+            return lib.has_infs_f8(result.ravel())
         elif result.dtype == 'f4':
-            return lib.has_infs_f4(result)
+            return lib.has_infs_f4(result.ravel())
+    try:
+        return np.isinf(result).any()
+    except (TypeError, NotImplementedError) as e:
+        # if it doesn't support infs, then it can't have infs
         return False
-    return np.isinf(result) or np.isneginf(result)
 
 
 def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
@@ -538,18 +542,20 @@ def _maybe_arg_null_out(result, axis, mask, skipna):
 
 
 def _get_counts(mask, axis):
-    if axis is not None:
-        count = (mask.shape[axis] - mask.sum(axis)).astype(float)
-    else:
-        count = float(mask.size - mask.sum())
+    if axis is None:
+        return float(mask.size - mask.sum())
 
-    return count
+    count = mask.shape[axis] - mask.sum(axis)
+    try:
+        return count.astype(float)
+    except AttributeError:
+        return np.array(count, dtype=float)
 
 
 def _maybe_null_out(result, axis, mask):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
-        if null_mask.any():
+        if np.any(null_mask):
             if np.iscomplexobj(result):
                 result = result.astype('c16')
             else:
@@ -638,8 +644,16 @@ def nancov(a, b, min_periods=None):
 
 def _ensure_numeric(x):
     if isinstance(x, np.ndarray):
-        if x.dtype == np.object_:
+        if x.dtype.kind in ['i', 'b']:
             x = x.astype(np.float64)
+        elif x.dtype == np.object_:
+            try:
+                x = x.astype(np.complex128)
+            except:
+                x = x.astype(np.float64)
+            else:
+                if not np.any(x.imag):
+                    x = x.real
     elif not (com.is_float(x) or com.is_integer(x) or com.is_complex(x)):
         try:
             x = float(x)
