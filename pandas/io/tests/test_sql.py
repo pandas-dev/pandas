@@ -671,7 +671,7 @@ class TestSQLLegacyApi(_TestSQLApi):
                               "read_sql and read_sql_query have not the same"
                               " result with a query")
 
-        self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn)
+        self.assertRaises(sql.DatabaseError, sql.read_sql, 'iris', self.conn)
 
     def test_safe_names_warning(self):
         # GH 6798
@@ -1077,6 +1077,36 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
         # Bool column with NA = int column with NA values => becomes float
         self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
                         "BoolColWithNull loaded with incorrect type")
+
+    def test_read_procedure(self):
+        # see GH7324. Although it is more an api test, it is added to the
+        # mysql tests as sqlite does not have stored procedures
+        df = DataFrame({'a': [1, 2, 3], 'b':[0.1, 0.2, 0.3]})
+        df.to_sql('test_procedure', self.conn, index=False)
+
+        proc = """DROP PROCEDURE IF EXISTS get_testdb;
+
+        CREATE PROCEDURE get_testdb ()
+
+        BEGIN
+            SELECT * FROM test_procedure;
+        END"""
+
+        connection = self.conn.connect()
+        trans = connection.begin()
+        try:
+            r1 = connection.execute(proc)
+            trans.commit()
+        except:
+            trans.rollback()
+            raise
+
+        res1 = sql.read_sql_query("CALL get_testdb();", self.conn)
+        tm.assert_frame_equal(df, res1)
+
+        # test delegation to read_sql_query
+        res2 = sql.read_sql("CALL get_testdb();", self.conn)
+        tm.assert_frame_equal(df, res2)
 
 
 class TestPostgreSQLAlchemy(_TestSQLAlchemy):

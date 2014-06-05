@@ -117,3 +117,6 @@ Bug Fixes
 - Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
 - Bug in ``.loc`` with a list of indexers on a single-multi index level (that is not nested) (:issue:`7349`)
 - Bug in ``Series.map`` when mapping a dict with tuple keys of different lengths (:issue:`7333`)
+- Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
+- Fix delegation of `read_sql` to `read_sql_query` when query does not contain
+ 'select' (:issue:`7324`).
