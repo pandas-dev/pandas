@@ -25,7 +25,7 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype)
-
+from pandas.core.config import option_context
 from pandas import _np_version_under1p7
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -635,7 +635,9 @@ class GroupBy(PandasObject):
 
         @wraps(func)
         def f(g):
-            return func(g, *args, **kwargs)
+            # ignore SettingWithCopy here in case the user mutates
+            with option_context('mode.chained_assignment',None):
+                return func(g, *args, **kwargs)
 
         return self._python_apply_general(f)
 

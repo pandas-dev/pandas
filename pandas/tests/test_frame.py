@@ -418,8 +418,12 @@ class CheckIndexing(object):
         self.frame['col8'] = 'foo'
         assert((self.frame['col8'] == 'foo').all())
 
+        # this is partially a view (e.g. some blocks are view)
+        # so raise/warn
         smaller = self.frame[:2]
-        smaller['col10'] = ['1', '2']
+        def f():
+            smaller['col10'] = ['1', '2']
+        self.assertRaises(com.SettingWithCopyError, f)
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assertTrue((smaller['col10'] == ['1', '2']).all())
 
@@ -830,8 +834,11 @@ class CheckIndexing(object):
         self.assertEqual(sliced['D'].dtype, np.float64)
 
         # get view with single block
+        # setting it triggers setting with copy
         sliced = self.frame.ix[:, -3:]
-        sliced['C'] = 4.
+        def f():
+            sliced['C'] = 4.
+        self.assertRaises(com.SettingWithCopyError, f)
         self.assertTrue((self.frame['C'] == 4).all())
 
     def test_fancy_setitem_int_labels(self):
@@ -1618,7 +1625,10 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
 
         # verify slice is view
-        result[2] = 0.
+        # setting it makes it raise/warn
+        def f():
+            result[2] = 0.
+        self.assertRaises(com.SettingWithCopyError, f)
         exp_col = df[2].copy()
         exp_col[4:8] = 0.
         assert_series_equal(df[2], exp_col)
@@ -1645,7 +1655,10 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
 
         # verify slice is view
-        result[8] = 0.
+        # and that we are setting a copy
+        def f():
+            result[8] = 0.
+        self.assertRaises(com.SettingWithCopyError, f)
         self.assertTrue((df[8] == 0).all())
 
         # list of integers

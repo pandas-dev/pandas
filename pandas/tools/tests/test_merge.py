@@ -1320,6 +1320,7 @@ class TestConcatenate(tm.TestCase):
         result = chunks[0].append(chunks[1:])
         tm.assert_frame_equal(result, self.frame)
 
+        chunks[-1] = chunks[-1].copy()
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:])
         tm.assert_frame_equal(result.ix[:, self.frame.columns], self.frame)
@@ -1673,7 +1674,7 @@ class TestConcatenate(tm.TestCase):
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
 
-        baz = df[:5]
+        baz = df[:5].copy()
         baz['foo'] = 'bar'
         empty = df[5:5]
 
