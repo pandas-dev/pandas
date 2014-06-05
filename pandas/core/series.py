@@ -1940,7 +1940,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if isinstance(arg, (dict, Series)):
             if isinstance(arg, dict):
-                arg = self._constructor(arg)
+                arg = self._constructor(arg, index=arg.keys())
 
             indexer = arg.index.get_indexer(values)
             new_values = com.take_1d(arg.values, indexer)

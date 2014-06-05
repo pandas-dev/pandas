@@ -1244,7 +1244,7 @@ the quarter end:
 Time Zone Handling
 ------------------
 
-Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries. 
+Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
 ``dateutil`` support is new [in 0.14.1] and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
 
@@ -1257,13 +1257,14 @@ By default, pandas objects are time zone unaware:
 
 To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
 other functions. Dateutil time zone strings are distinguished from ``pytz``
-time zones by starting with ``dateutil/``. In ``pytz`` you can find a list of
-common (and less common) time zones using ``from pytz import common_timezones, all_timezones``. 
-``dateutil`` uses the OS timezones so there isn't a fixed list available. For
+time zones by starting with ``dateutil/``.
+
+- In ``pytz`` you can find a list of common (and less common) time zones using ``from pytz import common_timezones, all_timezones``.
+- ``dateutil`` uses the OS timezones so there isn't a fixed list available. For
 common zones, the names are the same as ``pytz``.
 
 .. ipython:: python
-   
+
    # pytz
    rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
    rng_utc.tz
@@ -1314,7 +1315,7 @@ tz-aware data to another time zone:
 .. warning::
     Be very wary of conversions between libraries as ``pytz`` and ``dateutil``
     may have different definitions of the time zones. This is more of a problem for
-    unusual timezones than for 'standard' zones like ``US/Eastern``. 
+    unusual timezones than for 'standard' zones like ``US/Eastern``.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
