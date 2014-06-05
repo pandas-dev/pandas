@@ -78,7 +78,8 @@ _common_apply_whitelist = frozenset([
 
 _series_apply_whitelist = \
     (_common_apply_whitelist - set(['boxplot'])) | \
-    frozenset(['dtype', 'value_counts', 'unique', 'nunique'])
+    frozenset(['dtype', 'value_counts', 'unique', 'nunique',
+               'nlargest', 'nsmallest'])
 
 _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])

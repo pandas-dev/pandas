@@ -4047,6 +4047,7 @@ class TestGroupBy(tm.TestCase):
             'value_counts',
             'diff',
             'unique', 'nunique',
+            'nlargest', 'nsmallest',
         ])
 
         for obj, whitelist in zip((df, s),
@@ -4380,6 +4381,27 @@ class TestGroupBy(tm.TestCase):
         e = gb['File'].max().to_frame()
         tm.assert_frame_equal(r, e)
         self.assertFalse(r['File'].isnull().any())
+
+    def test_nlargest(self):
+        a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
+        b = Series(list('a' * 5 + 'b' * 5))
+        gb = a.groupby(b)
+        r = gb.nlargest(3)
+        e = Series([7, 5, 3, 10, 9, 6],
+                   index=MultiIndex.from_arrays([list('aaabbb'),
+                                                 [3, 2, 1, 9, 5, 8]]))
+        tm.assert_series_equal(r, e)
+
+    def test_nsmallest(self):
+        a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
+        b = Series(list('a' * 5 + 'b' * 5))
+        gb = a.groupby(b)
+        r = gb.nsmallest(3)
+        e = Series([1, 2, 3, 0, 4, 6],
+                   index=MultiIndex.from_arrays([list('aaabbb'),
+                                                 [0, 4, 1, 6, 7, 8]]))
+        tm.assert_series_equal(r, e)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
