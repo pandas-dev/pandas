@@ -9,7 +9,7 @@ users upgrade to this version.
 
 - Highlights include:
 
-  - Support for ``dateutil`` timezones.
+  - Support for ``dateutil`` timezones. See :ref:`Here <whatsnew_0141.enhancements>`
 
 - :ref:`Other Enhancements <whatsnew_0141.enhancements>`
 
@@ -78,9 +78,7 @@ Enhancements
 Performance
 ~~~~~~~~~~~
 
-- Improvements in dtype inference for numeric operations involving yielding performance gains
-for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
-
+- Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
 
 Experimental
 ~~~~~~~~~~~~
