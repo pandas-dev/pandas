@@ -486,7 +486,7 @@ class GroupBy(PandasObject):
                              (type(self).__name__, attr))
 
     def __getitem__(self, key):
-        raise NotImplementedError
+        raise NotImplementedError('Not implemented: %s' % key)
 
     def _make_wrapper(self, name):
         if name not in self._apply_whitelist:
@@ -695,12 +695,7 @@ class GroupBy(PandasObject):
         For multiple groupings, the result index will be a MultiIndex
         """
         # todo, implement at cython level?
-        if ddof == 1:
-            return self._cython_agg_general('std')
-        else:
-            self._set_selection_from_grouper()
-            f = lambda x: x.std(ddof=ddof)
-            return self._python_agg_general(f)
+        return np.sqrt(self.var(ddof=ddof))
 
     def var(self, ddof=1):
         """
@@ -714,6 +709,14 @@ class GroupBy(PandasObject):
             self._set_selection_from_grouper()
             f = lambda x: x.var(ddof=ddof)
             return self._python_agg_general(f)
+
+    def sem(self, ddof=1):
+        """
+        Compute standard error of the mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self.std(ddof=ddof)/np.sqrt(self.count())
 
     def size(self):
         """
@@ -1332,17 +1335,12 @@ class BaseGrouper(object):
             'name': 'group_median'
         },
         'var': 'group_var',
-        'std': 'group_var',
         'first': {
             'name': 'group_nth',
             'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
         },
         'last': 'group_last',
         'count': 'group_count',
-    }
-
-    _cython_transforms = {
-        'std': np.sqrt,
     }
 
     _cython_arity = {
@@ -1455,7 +1453,6 @@ class BaseGrouper(object):
 
     def _aggregate(self, result, counts, values, how, is_numeric):
         agg_func, dtype = self._get_aggregate_function(how, values)
-        trans_func = self._cython_transforms.get(how, lambda x: x)
 
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
@@ -1469,7 +1466,7 @@ class BaseGrouper(object):
         else:
             agg_func(result, counts, values, comp_ids)
 
-        return trans_func(result)
+        return result
 
     def agg_series(self, obj, func):
         try:
@@ -1669,7 +1666,6 @@ class BinGrouper(BaseGrouper):
         'min': 'group_min_bin',
         'max': 'group_max_bin',
         'var': 'group_var_bin',
-        'std': 'group_var_bin',
         'ohlc': 'group_ohlc',
         'first': {
             'name': 'group_nth_bin',
@@ -1688,7 +1684,6 @@ class BinGrouper(BaseGrouper):
     def _aggregate(self, result, counts, values, how, is_numeric=True):
 
         agg_func, dtype = self._get_aggregate_function(how, values)
-        trans_func = self._cython_transforms.get(how, lambda x: x)
 
         if values.ndim > 3:
             # punting for now
@@ -1699,7 +1694,7 @@ class BinGrouper(BaseGrouper):
         else:
             agg_func(result, counts, values, self.bins)
 
-        return trans_func(result)
+        return result
 
     def agg_series(self, obj, func):
         dummy = obj[:0]

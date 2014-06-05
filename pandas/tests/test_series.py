@@ -1980,6 +1980,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.std(ddof=1)
         self.assertTrue(isnull(result))
 
+    def test_sem(self):
+        alt = lambda x: np.std(x, ddof=1)/np.sqrt(len(x))
+        self._check_stat_op('sem', alt)
+
+        result = self.ts.sem(ddof=4)
+        expected = np.std(self.ts.values, ddof=4)/np.sqrt(len(self.ts.values))
+        assert_almost_equal(result, expected)
+
+        # 1 - element series with ddof=1
+        s = self.ts.iloc[[0]]
+        result = s.sem(ddof=1)
+        self.assert_(isnull(result))
+
     def test_skew(self):
         _skip_if_no_scipy()
 

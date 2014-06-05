@@ -10864,6 +10864,23 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertFalse((result < 0).any())
             nanops._USE_BOTTLENECK = True
 
+    def test_sem(self):
+        alt = lambda x: np.std(x, ddof=1)/np.sqrt(len(x))
+        self._check_stat_op('sem', alt)
+
+        result = self.tsframe.sem(ddof=4)
+        expected = self.tsframe.apply(lambda x: x.std(ddof=4)/np.sqrt(len(x)))
+        assert_almost_equal(result, expected)
+
+        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        result = nanops.nansem(arr, axis=0)
+        self.assertFalse((result < 0).any())
+        if nanops._USE_BOTTLENECK:
+            nanops._USE_BOTTLENECK = False
+            result = nanops.nansem(arr, axis=0)
+            self.assertFalse((result < 0).any())
+            nanops._USE_BOTTLENECK = True
+
     def test_skew(self):
         _skip_if_no_scipy()
         from scipy.stats import skew

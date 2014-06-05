@@ -3794,7 +3794,8 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
         @Substitution(outname='variance',
                       desc="Return unbiased variance over requested "
-                           "axis\nNormalized by N-1")
+                           "axis.\n\nNormalized by N-1 by default. "
+                           "This can be changed using the ddof argument")
         @Appender(_num_doc)
         def var(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
             if skipna is None:
@@ -3811,7 +3812,8 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
         @Substitution(outname='stdev',
                       desc="Return unbiased standard deviation over requested "
-                           "axis\nNormalized by N-1")
+                           "axis.\n\nNormalized by N-1 by default. "
+                           "This can be changed using the ddof argument")
         @Appender(_num_doc)
         def std(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
             if skipna is None:
@@ -3826,6 +3828,24 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                 return result.apply(np.sqrt)
             return np.sqrt(result)
         cls.std = std
+
+        @Substitution(outname='standarderror',
+                      desc="Return unbiased standard error of the mean over "
+                           "requested axis.\n\nNormalized by N-1 by default. "
+                           "This can be changed using the ddof argument")
+        @Appender(_num_doc)
+        def sem(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
+            if skipna is None:
+                skipna = True
+            if axis is None:
+                axis = self._stat_axis_number
+            if level is not None:
+                return self._agg_by_level('sem', axis=axis, level=level,
+                                          skipna=skipna, ddof=ddof)
+
+            return self._reduce(nanops.nansem, axis=axis, skipna=skipna,
+                                ddof=ddof)
+        cls.sem = sem
 
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "

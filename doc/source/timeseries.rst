@@ -974,8 +974,8 @@ an array and produces aggregated values:
    ts.resample('5Min', how=np.max)
 
 Any function available via :ref:`dispatching <groupby.dispatch>` can be given to
-the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``max``,
-``min``, ``median``, ``first``, ``last``, ``ohlc``.
+the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``sem``,
+``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``.
 
 For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
 end of the interval is closed:

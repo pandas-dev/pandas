@@ -98,6 +98,13 @@ class SafeForLongAndSparse(object):
             return np.std(x, ddof=1)
         self._check_stat_op('std', alt)
 
+    def test_sem(self):
+        def alt(x):
+            if len(x) < 2:
+                return np.nan
+            return np.std(x, ddof=1)/np.sqrt(len(x))
+        self._check_stat_op('sem', alt)
+
     # def test_skew(self):
     #     from scipy.stats import skew
 
