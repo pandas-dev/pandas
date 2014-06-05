@@ -1317,6 +1317,15 @@ class TestIndexing(tm.TestCase):
         result = df[attributes]
         assert_frame_equal(result, df)
 
+        # GH 7349
+        # loc with a multi-index seems to be doing fallback
+        df = DataFrame(np.arange(12).reshape(-1,1),index=pd.MultiIndex.from_product([[1,2,3,4],[1,2,3]]))
+
+        expected = df.loc[([1,2],),:]
+        result = df.loc[[1,2]]
+        assert_frame_equal(result, expected)
+
+
     def test_series_getitem_multiindex(self):
 
         # GH 6018

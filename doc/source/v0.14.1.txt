@@ -21,8 +21,6 @@ users upgrade to this version.
 
 - :ref:`Deprecations <whatsnew_0141.deprecations>`
 
-- :ref:`Known Issues <whatsnew_0141.knownissues>`
-
 - :ref:`Bug Fixes <whatsnew_0141.bug_fixes>`
 
 .. _whatsnew_0141.api:
@@ -36,22 +34,21 @@ API changes
   containing ``NaN`` values - now also has ``dtype=object`` instead of
   ``float`` (:issue:`7242`)
 
+- `StringMethods`` now work on empty Series (:issue:`7242`)
+
 .. _whatsnew_0141.prior_deprecations:
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are prior version deprecations that are taking effect as of 0.14.1.
+There are no prior version deprecations that are taking effect as of 0.14.1.
 
 .. _whatsnew_0141.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
-.. _whatsnew_0141.knownissues:
-
-Known Issues
-~~~~~~~~~~~~
+There are no deprecations that are taking effect as of 0.14.1.
 
 .. _whatsnew_0141.enhancements:
 
@@ -118,4 +115,4 @@ Bug Fixes
 - Bug in broadcasting with ``.div``, integer dtypes and divide-by-zero (:issue:`7325`)
 - Bug in ``CustomBusinessDay.apply`` raiases ``NameError`` when ``np.datetime64`` object is passed (:issue:`7196`)
 - Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
-- Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
+- Bug in ``.loc`` with a list of indexers on a single-multi index level (that is not nested) (:issue:`7349`)
