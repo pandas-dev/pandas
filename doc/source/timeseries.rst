@@ -12,6 +12,8 @@
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
    options.display.max_rows=15
+   import dateutil
+   import pytz
    from dateutil.relativedelta import relativedelta
    from pandas.tseries.api import *
    from pandas.tseries.offsets import *
@@ -1266,32 +1268,37 @@ common zones, the names are the same as ``pytz``.
 .. ipython:: python
 
    # pytz
-   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
-   rng_utc.tz
+   rng_pytz = date_range('3/6/2012 00:00', periods=10, freq='D',
+                         tz='Europe/London')
+   rng_pytz.tz
 
    # dateutil
-   rng_utc_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
-                                 tz='dateutil/UTC')
-   rng_utc_dateutil.tz
+   rng_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
+                             tz='dateutil/Europe/London')
+   rng_dateutil.tz
 
-You can also construct the timezone explicitly first, which gives you more control over which
-time zone is used:
+   # dateutil - utc special case
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D',
+                        tz=dateutil.tz.tzutc())
+   rng_utc.tz
+
+Note that the ``UTC`` timezone is a special case in ``dateutil`` and should be constructed explicitly
+as an instance of ``dateutil.tz.tzutc``. You can also construct other timezones explicitly first,
+which gives you more control over which time zone is used:
 
 .. ipython:: python
 
    # pytz
-   import pytz
-   tz_pytz = pytz.timezone('UTC')
-   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz=tz_pytz)
-   rng_utc.tz
+   tz_pytz = pytz.timezone('Europe/London')
+   rng_pytz = date_range('3/6/2012 00:00', periods=10, freq='D',
+                         tz=tz_pytz)
+   rng_pytz.tz == tz_pytz
 
    # dateutil
-   import dateutil
-   tz_dateutil = dateutil.tz.gettz('UTC')
-   rng_utc_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
-                                 tz=tz_dateutil)
-   rng_utc_dateutil.tz
-
+   tz_dateutil = dateutil.tz.gettz('Europe/London')
+   rng_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
+                             tz=tz_dateutil)
+   rng_dateutil.tz == tz_dateutil
 
 Timestamps, like Python's ``datetime.datetime`` object can be either time zone
 naive or time zone aware. Naive time series and DatetimeIndex objects can be
@@ -1313,9 +1320,10 @@ tz-aware data to another time zone:
    ts_utc.tz_convert('US/Eastern')
 
 .. warning::
-    Be very wary of conversions between libraries as ``pytz`` and ``dateutil``
-    may have different definitions of the time zones. This is more of a problem for
-    unusual timezones than for 'standard' zones like ``US/Eastern``.
+
+	Be wary of conversions between libraries. For some zones ``pytz`` and ``dateutil`` have different
+	definitions of the zone. This is more of a problem for unusual timezones than for
+	'standard' zones like ``US/Eastern``.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
@@ -1359,8 +1367,6 @@ TimeSeries, aligning the data on the UTC timestamps:
    result
    result.index
 
-.. _timeseries.timedeltas:
-
 In some cases, localize cannot determine the DST and non-DST hours when there are
 duplicates.  This often happens when reading files that simply duplicate the hours.
 The infer_dst argument in tz_localize will attempt
@@ -1375,6 +1381,8 @@ to determine the right offset.
    rng_hourly.tz_localize('US/Eastern')
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', infer_dst=True)
    rng_hourly_eastern.values
+
+.. _timeseries.timedeltas:
 
 Time Deltas
 -----------

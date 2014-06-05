@@ -104,11 +104,9 @@ Enhancements
 
   .. ipython:: python
 
-   rng_utc_dateutil = date_range('3/6/2012 00:00',
-                                 periods=10,
-                                 freq='D',
-                                 tz='dateutil/UTC')
-   rng_utc_dateutil.tz
+   rng = date_range('3/6/2012 00:00', periods=10, freq='D',
+                    tz='dateutil/Europe/London')
+   rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
 

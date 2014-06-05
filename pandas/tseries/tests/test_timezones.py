@@ -770,8 +770,12 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         _skip_if_no_dateutil()
 
     def tz(self, tz):
-        ''' Construct a timezone object from a string. Overridden in subclass to parameterize tests. '''
-        return dateutil.tz.gettz(tz)
+        '''
+        Construct a dateutil timezone.
+        Use tslib.maybe_get_tz so that we get the filename on the tz right
+        on windows. See #7337.
+        '''
+        return tslib.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
         ''' Construct a timezone string from a string. Overridden in subclass to parameterize tests. '''

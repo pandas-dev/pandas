@@ -2946,7 +2946,7 @@ class TestStringRepTimestamp(tm.TestCase):
     def test_tz_dateutil(self):
         _skip_if_no_dateutil()
         import dateutil
-        utc = dateutil.tz.gettz('UTC')
+        utc = dateutil.tz.tzutc()
 
         dt_date = datetime(2013, 1, 2, tzinfo=utc)
         self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
