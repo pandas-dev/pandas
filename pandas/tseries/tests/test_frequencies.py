@@ -14,8 +14,7 @@ from pandas.tseries.tools import to_datetime
 import pandas.tseries.frequencies as fmod
 import pandas.tseries.offsets as offsets
 from pandas.tseries.period import PeriodIndex
-
-import pandas.lib as lib
+import pandas.compat as compat
 
 from pandas import _np_version_under1p7
 import pandas.util.testing as tm
@@ -258,19 +257,20 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_infer_freq_tz(self):
 
+        freqs = {'AS-JAN': ['2009-01-01', '2010-01-01', '2011-01-01', '2012-01-01'],
+                 'Q-OCT': ['2009-01-31', '2009-04-30', '2009-07-31', '2009-10-31'],
+                 'M': ['2010-11-30', '2010-12-31', '2011-01-31', '2011-02-28'],
+                 'W-SAT': ['2010-12-25', '2011-01-01', '2011-01-08', '2011-01-15'],
+                 'D': ['2011-01-01', '2011-01-02', '2011-01-03', '2011-01-04'],
+                 'H': ['2011-12-31 22:00', '2011-12-31 23:00', '2012-01-01 00:00', '2012-01-01 01:00']
+        }
+
         # GH 7310
-        for tz in [None, 'Asia/Tokyo', 'US/Pacific', 'Europe/Paris']:
-            dates = ['2010-11-30', '2010-12-31', '2011-01-31', '2011-02-28']
-            idx = DatetimeIndex(dates)
-            self.assertEqual(idx.inferred_freq, 'M')
-
-            dates = ['2011-01-01', '2011-01-02', '2011-01-03', '2011-01-04']
-            idx = DatetimeIndex(dates)
-            self.assertEqual(idx.inferred_freq, 'D')
-
-            dates = ['2011-12-31 22:00', '2011-12-31 23:00', '2012-01-01 00:00', '2012-01-01 01:00']
-            idx = DatetimeIndex(dates)
-            self.assertEqual(idx.inferred_freq, 'H')
+        for tz in [None, 'Australia/Sydney', 'Asia/Tokyo', 'Europe/Paris',
+                   'US/Pacific', 'US/Eastern']:
+            for expected, dates in compat.iteritems(freqs):
+                idx = DatetimeIndex(dates, tz=tz)
+                self.assertEqual(idx.inferred_freq, expected)
 
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])

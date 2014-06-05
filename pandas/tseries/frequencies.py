@@ -668,8 +668,12 @@ class _FrequencyInferer(object):
     def __init__(self, index, warn=True):
         self.index = index
         self.values = np.asarray(index).view('i8')
+
         if index.tz is not None:
-            self.values = tslib.date_normalize(self.values, index.tz)
+            f = lambda x: tslib.tz_convert_single(x, 'UTC', index.tz)
+            self.values = np.vectorize(f)(self.values)
+            # This cant work, because of DST
+            # self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
 
         self.warn = warn
 
