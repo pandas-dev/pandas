@@ -8392,6 +8392,52 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expect = pd.DataFrame({'a': ['Y', 'N', 'Y']})
         tm.assert_frame_equal(res, expect)
 
+    def test_replace_period(self):
+        d = {'fname':
+             {'out_augmented_AUG_2011.json': pd.Period(year=2011, month=8, freq='M'),
+              'out_augmented_JAN_2011.json': pd.Period(year=2011, month=1, freq='M'),
+              'out_augmented_MAY_2012.json': pd.Period(year=2012, month=5, freq='M'),
+              'out_augmented_SUBSIDY_WEEK.json': pd.Period(year=2011, month=4, freq='M'),
+              'out_augmented_AUG_2012.json': pd.Period(year=2012, month=8, freq='M'),
+              'out_augmented_MAY_2011.json': pd.Period(year=2011, month=5, freq='M'),
+              'out_augmented_SEP_2013.json': pd.Period(year=2013, month=9, freq='M')}}
+
+        df = pd.DataFrame(['out_augmented_AUG_2012.json',
+                           'out_augmented_SEP_2013.json',
+                           'out_augmented_SUBSIDY_WEEK.json',
+                           'out_augmented_MAY_2012.json',
+                           'out_augmented_MAY_2011.json',
+                           'out_augmented_AUG_2011.json',
+                           'out_augmented_JAN_2011.json'], columns=['fname'])
+        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        expected = DataFrame({'fname': [d['fname'][k]
+                                        for k in df.fname.values]})
+        result = df.replace(d)
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_datetime(self):
+        d = {'fname':
+             {'out_augmented_AUG_2011.json': pd.Timestamp('2011/08'),
+              'out_augmented_JAN_2011.json': pd.Timestamp('2011/01'),
+              'out_augmented_MAY_2012.json': pd.Timestamp('2012/05'),
+              'out_augmented_SUBSIDY_WEEK.json': pd.Timestamp('2011/04'),
+              'out_augmented_AUG_2012.json': pd.Timestamp('2012/08'),
+              'out_augmented_MAY_2011.json': pd.Timestamp('2011/05'),
+              'out_augmented_SEP_2013.json': pd.Timestamp('2013/09')}}
+
+        df = pd.DataFrame(['out_augmented_AUG_2012.json',
+                           'out_augmented_SEP_2013.json',
+                           'out_augmented_SUBSIDY_WEEK.json',
+                           'out_augmented_MAY_2012.json',
+                           'out_augmented_MAY_2011.json',
+                           'out_augmented_AUG_2011.json',
+                           'out_augmented_JAN_2011.json'], columns=['fname'])
+        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        expected = DataFrame({'fname': [d['fname'][k]
+                                        for k in df.fname.values]})
+        result = df.replace(d)
+        tm.assert_frame_equal(result, expected)
+
     def test_combine_multiple_frames_dtypes(self):
 
         # GH 2759
@@ -11245,7 +11291,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         exp = df.astype(float).rank(1)
         assert_frame_equal(result, exp)
 
-
     def test_rank2(self):
         from datetime import datetime
         df = DataFrame([[1, 3, 2], [1, 2, 3]])
@@ -11302,7 +11347,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({"a":[1e-20, -5, 1e-20+1e-40, 10, 1e60, 1e80, 1e-30]})
         exp = DataFrame({"a":[ 3.5,  1. ,  3.5,  5. ,  6. ,  7. ,  2. ]})
         assert_frame_equal(df.rank(), exp)
-
 
     def test_rank_na_option(self):
         _skip_if_no_scipy()
