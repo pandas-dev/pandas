@@ -123,5 +123,3 @@ Bug Fixes
 - Bug where a string column name assignment to a ``DataFrame`` with a
   ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
   (:issue:`7366`).
-- BUG in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
-- BUG in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
