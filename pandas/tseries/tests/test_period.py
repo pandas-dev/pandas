@@ -2455,10 +2455,8 @@ class TestComparisons(tm.TestCase):
     def test_equal_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__eq__, self.day)
 
-    def test_equal_Raises_Type(self):
-        self.assertRaises(TypeError, self.january1.__eq__, 1)
-
     def test_notEqual(self):
+        self.assertNotEqual(self.january1, 1)
         self.assertNotEqual(self.january1, self.february)
 
     def test_greater(self):

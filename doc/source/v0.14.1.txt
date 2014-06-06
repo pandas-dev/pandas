@@ -35,6 +35,10 @@ API changes
   ``float`` (:issue:`7242`)
 
 - `StringMethods`` now work on empty Series (:issue:`7242`)
+- ``Period`` objects no longer raise a ``TypeError`` when compared using ``==``
+  with another object that *isn't* a ``Period``. See :issue:`7376`. Instead
+  when comparing a ``Period`` with another object using ``==`` if the other
+  object isn't a ``Period`` ``False`` is returned.
 
 .. _whatsnew_0141.prior_deprecations:
 
@@ -123,3 +127,5 @@ Bug Fixes
 - Bug where a string column name assignment to a ``DataFrame`` with a
   ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
   (:issue:`7366`).
+- Bug where ``NDFrame.replace()`` didn't correctly replace objects with
+  ``Period`` values (:issue:`7379`).
