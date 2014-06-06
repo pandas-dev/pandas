@@ -123,3 +123,4 @@ Bug Fixes
 - Bug where a string column name assignment to a ``DataFrame`` with a
   ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
   (:issue:`7366`).
+- Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
