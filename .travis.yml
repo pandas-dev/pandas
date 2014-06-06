@@ -34,12 +34,6 @@ matrix:
       - CLIPBOARD_GUI=gtk2
       - JOB_NAME: "27_nslow"
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
-    - python: 3.2
-      env:
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD_GUI=qt4
-      - JOB_NAME: "32_nslow"
     - python: 3.3
       env:
       - NOSE_ARGS="not slow and not disabled"
@@ -48,11 +42,16 @@ matrix:
       - JOB_NAME: "33_nslow"
     - python: 3.4
       env:
-      - EXPERIMENTAL=true
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "34_nslow"
+    - python: 3.2
+      env:
+      - NOSE_ARGS="not slow and not disabled"
+      - FULL_DEPS=true
+      - CLIPBOARD_GUI=qt4
+      - JOB_NAME: "32_nslow"
     - python: 2.7
       env:
       - EXPERIMENTAL=true
@@ -62,13 +61,12 @@ matrix:
       - NUMPY_BUILD=master
       - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
-      - python: 3.4
+      - python: 3.2
         env:
-        - EXPERIMENTAL=true
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - JOB_NAME: "34_nslow"
+        - CLIPBOARD_GUI=qt4
+        - JOB_NAME: "32_nslow"
       - python: 2.7
         env:
         - EXPERIMENTAL=true
