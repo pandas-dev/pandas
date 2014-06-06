@@ -120,3 +120,6 @@ Bug Fixes
 - Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
 - Fix delegation of `read_sql` to `read_sql_query` when query does not contain
  'select' (:issue:`7324`).
+- Bug where a string column name assignment to a ``DataFrame`` with a
+  ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
+  (:issue:`7366`).
