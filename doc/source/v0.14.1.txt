@@ -166,6 +166,8 @@ Bug Fixes
 
 
 
+- BUG in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
+- BUG in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
 
 
 
@@ -218,3 +220,4 @@ Bug Fixes
   :issue:`7409`).
 - Bug where bool objects were converted to ``nan`` in ``convert_objects``
   (:issue:`7416`).
+
