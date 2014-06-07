@@ -664,7 +664,9 @@ class Options(object):
                                       "element".format(url))
             tables = root.xpath('.//table')
             ntables = len(tables)
-            if table_loc - 1 > ntables:
+            if ntables == 0:
+                raise RemoteDataError("No tables found at {0!r}".format(url))
+            elif table_loc - 1 > ntables:
                 raise IndexError("Table location {0} invalid, {1} tables"
                                  " found".format(table_loc, ntables))
 
