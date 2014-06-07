@@ -164,7 +164,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``.ix`` getitem should always return a Series (:issue:`7150`)
 
 
 
