@@ -20,7 +20,7 @@ from numpy.testing.decorators import slow
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
-from pandas.compat import map, zip, StringIO, string_types
+from pandas.compat import map, zip, StringIO, string_types, BytesIO
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
 from pandas.parser import CParserError
@@ -601,7 +601,7 @@ class TestReadHtmlEncoding(tm.TestCase):
 
     def read_file_like(self, f, encoding):
         with open(f, 'rb') as fobj:
-            return read_html(StringIO(fobj.read()), encoding=encoding,
+            return read_html(BytesIO(fobj.read()), encoding=encoding,
                              index_col=0)
 
     def read_string(self, f, encoding):
