@@ -92,6 +92,25 @@ class TestCommon(unittest.TestCase):
                 else:
                     assert original == converted
 
+    def test_convert_r_dataframe_series(self):
+
+        s_noname = tm.makeFloatSeries()
+        s_name = tm.makeFloatSeries()
+        s_name.name = 'Test'
+
+        for series, key in [(s_noname, 'X0'), (s_name, s_name.name)]:
+
+            r_dataframe = com.convert_to_r_dataframe(series)
+
+            assert np.array_equal(
+                com.convert_robj(r_dataframe.rownames), series.index)
+            assert np.array_equal(
+                com.convert_robj(r_dataframe.colnames), np.array([key]))
+
+            result = com.convert_robj(r_dataframe.rx2(key))
+            result = np.array(result)
+            assert np.array_equal(result, series.values)
+
     def test_convert_r_matrix(self):
 
         is_na = robj.baseenv.get("is.na")
@@ -206,6 +225,28 @@ class TestCommon(unittest.TestCase):
             factors = [level[index - 1] for index in factors]
             result = com.load_data(name)
             assert np.equal(result, factors)
+
+    def test_assign_revert(self):
+        df = tm.makeDataFrame()
+        com.r.assign('df', df)
+        # test R function call
+        com.r('head(df)')
+        result = com.r['df']
+        tm.assert_frame_equal(df, result)
+
+        df = tm.makeTimeDataFrame()
+        com.r.assign('df', df)
+        result = com.r['df']
+        result.index = pd.DatetimeIndex(result.index)
+        tm.assert_frame_equal(df, result)
+
+        s = tm.makeFloatSeries()
+        s.name = 'Test'
+        com.r.assign('s', s)
+        result = com.r['s']
+        expected = pd.DataFrame(s, columns=['Test'])
+        tm.assert_frame_equal(expected, result)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

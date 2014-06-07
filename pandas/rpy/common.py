@@ -10,38 +10,69 @@ import numpy as np
 
 import pandas as pd
 import pandas.core.common as com
-import pandas.util.testing as _test
 
 from rpy2.robjects.packages import importr
-from rpy2.robjects import r
 import rpy2.robjects as robj
 
 import itertools as IT
 
 
 __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
-           'convert_to_r_matrix']
+           'convert_to_r_matrix', 'r']
+
+
+def _assign(attr, obj):
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        obj = convert_to_r_dataframe(obj)
+    return robj.r.assign(attr, obj)
+
+
+# Unable to subclass robjects.R because
+# it has special creation process using rinterface
+class _RPandas(object):
+
+    def __getattribute__(self, attr):
+        if attr == 'assign':
+            return _assign
+        return getattr(robj.r, attr)
+
+    def __getitem__(self, item):
+        result = robj.r[item]
+        try:
+            result = convert_robj(result)
+        except TypeError:
+            pass
+        return result
+
+    def __str__(self):
+        return str(robj.r)
+
+    def __call__(self, string):
+        return robj.r(string)
+
+
+r = _RPandas()
 
 
 def load_data(name, package=None, convert=True):
     if package:
         importr(package)
 
-    r.data(name)
+    robj.r.data(name)
 
-    robj = r[name]
+    r_obj = robj.r[name]
 
     if convert:
-        return convert_robj(robj)
+        return convert_robj(r_obj)
     else:
-        return robj
+        return r_obj
 
 
 def _rclass(obj):
     """
     Return R class name for input object
     """
-    return r['class'](obj)[0]
+    return robj.r['class'](obj)[0]
 
 
 def _is_null(obj):
@@ -54,12 +85,12 @@ def _convert_list(obj):
     """
     try:
         values = [convert_robj(x) for x in obj]
-        keys = r['names'](obj)
+        keys = robj.r['names'](obj)
         return dict(zip(keys, values))
     except TypeError:
         # For state.division and state.region
-        factors = list(r['factor'](obj))
-        level = list(r['levels'](obj))
+        factors = list(robj.r['factor'](obj))
+        level = list(robj.r['levels'](obj))
         result = [level[index-1] for index in factors]
         return result
 
@@ -77,9 +108,9 @@ def _convert_array(obj):
     # For iris3, HairEyeColor, UCBAdmissions, Titanic
     dim = list(obj.dim)
     values = np.array(list(obj))
-    names = r['dimnames'](obj)
+    names = robj.r['dimnames'](obj)
     try:
-        columns = list(r['names'](names))[::-1]
+        columns = list(robj.r['names'](names))[::-1]
     except TypeError:
         columns = ['X{:d}'.format(i) for i in range(len(names))][::-1]
     columns.append('value')
@@ -98,18 +129,18 @@ def _convert_vector(obj):
     # Check if the vector has extra information attached to it that can be used
     # as an index
     try:
-        attributes = set(r['attributes'](obj).names)
+        attributes = set(robj.r['attributes'](obj).names)
     except AttributeError:
         return list(obj)
     if 'names' in attributes:
-        return pd.Series(list(obj), index=r['names'](obj))
+        return pd.Series(list(obj), index=robj.r['names'](obj))
     elif 'tsp' in attributes:
-        return pd.Series(list(obj), index=r['time'](obj))
+        return pd.Series(list(obj), index=robj.r['time'](obj))
     elif 'labels' in attributes:
-        return pd.Series(list(obj), index=r['labels'](obj))
+        return pd.Series(list(obj), index=robj.r['labels'](obj))
     if _rclass(obj) == 'dist':
         # For 'eurodist'. WARNING: This results in a DataFrame, not a Series or list.
-        matrix = r['as.matrix'](obj)
+        matrix = robj.r['as.matrix'](obj)
         return convert_robj(matrix)
     else:
         return list(obj)
@@ -167,7 +198,7 @@ def _convert_Matrix(mat):
     rows = mat.rownames
 
     columns = None if _is_null(columns) else list(columns)
-    index = r['time'](mat) if _is_null(rows) else list(rows)
+    index = robj.r['time'](mat) if _is_null(rows) else list(rows)
     return pd.DataFrame(np.array(mat), index=_check_int(index),
                         columns=columns)
 
@@ -310,6 +341,10 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
 
     columns = rlc.OrdDict()
 
+    if isinstance(df, pd.Series):
+        name = df.name or 'X0'
+        df = pd.DataFrame(df, columns=[name])
+
     # FIXME: This doesn't handle MultiIndex
 
     for column in df:
@@ -364,6 +399,7 @@ def convert_to_r_matrix(df, strings_as_factors=False):
     r_matrix = as_matrix(r_dataframe)
 
     return r_matrix
+
 
 if __name__ == '__main__':
     pass
