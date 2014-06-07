@@ -36,6 +36,18 @@ class IndexingError(Exception):
     pass
 
 
+def _reconstruct_from_dup_ix(key, obj, values):
+    if np.isscalar(values):
+        return values
+    assert len(key) == obj.ndim
+
+    kwargs = dict()
+    for axis, name in obj._AXIS_NAMES.items():
+        index = getattr(obj, name)
+        kwargs[name] = index[index.get_loc(key[axis])]
+    return obj._constructor(values, **kwargs).squeeze()
+
+
 class _NDFrameIndexer(object):
     _valid_types = None
     _exception = KeyError
@@ -61,7 +73,8 @@ class _NDFrameIndexer(object):
     def __getitem__(self, key):
         if type(key) is tuple:
             try:
-                return self.obj.get_value(*key)
+                values = self.obj.get_value(*key)
+                return _reconstruct_from_dup_ix(key, self.obj, values)
             except Exception:
                 pass
 
@@ -1101,8 +1114,6 @@ class _IXIndexer(_NDFrameIndexer):
     """ A primarily location based indexer, with integer fallback """
 
     def _has_valid_type(self, key, axis):
-        ax = self.obj._get_axis(axis)
-
         if isinstance(key, slice):
             return True
 
