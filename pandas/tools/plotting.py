@@ -2665,7 +2665,8 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
-                          rot=0, grid=True, figsize=None, layout=None, **kwds):
+                          rot=0, grid=True, ax=None, figsize=None,
+                          layout=None, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2712,7 +2713,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         naxes = len(grouped)
         nrows, ncols = _get_layout(naxes, layout=layout)
         fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
-                            sharex=False, sharey=True)
+                              ax=ax, sharex=False, sharey=True, figsize=figsize)
         axes = _flatten(axes)
 
         ret = compat.OrderedDict()
@@ -2733,7 +2734,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
             else:
                 df = frames[0]
         ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
-                         grid=grid, figsize=figsize, layout=layout, **kwds)
+                         grid=grid, ax=ax, figsize=figsize, layout=layout, **kwds)
     return ret
 
 
@@ -2779,17 +2780,10 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
             by = [by]
         columns = data._get_numeric_data().columns - by
     naxes = len(columns)
-
-    if ax is None:
-        nrows, ncols = _get_layout(naxes, layout=layout)
-        fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
-                              sharex=True, sharey=True,
-                              figsize=figsize, ax=ax)
-    else:
-        if naxes > 1:
-            raise ValueError("Using an existing axis is not supported when plotting multiple columns.")
-        fig = ax.get_figure()
-        axes = ax.get_axes()
+    nrows, ncols = _get_layout(naxes, layout=layout)
+    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
+                          sharex=True, sharey=True,
+                          figsize=figsize, ax=ax)
 
     ravel_axes = _flatten(axes)
 
@@ -2974,12 +2968,6 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
     if subplot_kw is None:
         subplot_kw = {}
 
-    if ax is None:
-        fig = plt.figure(**fig_kw)
-    else:
-        fig = ax.get_figure()
-        fig.clear()
-
     # Create empty object array to hold all axes.  It's easiest to make it 1-d
     # so we can just append subplots upon creation, and then
     nplots = nrows * ncols
@@ -2988,6 +2976,21 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
         naxes = nrows * ncols
     elif nplots < naxes:
         raise ValueError("naxes {0} is larger than layour size defined by nrows * ncols".format(naxes))
+
+    if ax is None:
+        fig = plt.figure(**fig_kw)
+    else:
+        fig = ax.get_figure()
+         # if ax is passed and a number of subplots is 1, return ax as it is
+        if naxes == 1:
+            if squeeze:
+                return fig, ax
+            else:
+                return fig, _flatten(ax)
+        else:
+            warnings.warn("To output multiple subplots, the figure containing the passed axes "
+                          "is being cleared", UserWarning)
+            fig.clear()
 
     axarr = np.empty(nplots, dtype=object)
 
