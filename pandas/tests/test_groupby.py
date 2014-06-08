@@ -4369,6 +4369,17 @@ class TestGroupBy(tm.TestCase):
                 exc.args += ('operation: %s' % op,)
                 raise
 
+    def test_max_nan_bug(self):
+        raw = """,Date,app,File
+2013-04-23,2013-04-23 00:00:00,,log080001.log
+2013-05-06,2013-05-06 00:00:00,,log.log
+2013-05-07,2013-05-07 00:00:00,OE,xlsx"""
+        df = pd.read_csv(StringIO(raw), parse_dates=[0])
+        gb = df.groupby('Date')
+        r = gb[['File']].max()
+        e = gb['File'].max().to_frame()
+        tm.assert_frame_equal(r, e)
+        self.assertFalse(r['File'].isnull().any())
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
