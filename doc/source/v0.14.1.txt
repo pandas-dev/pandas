@@ -175,6 +175,7 @@ Bug Fixes
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 
 
+- Bug in grouped ``hist`` and ``scatter`` plots use old ``figsize`` default (:issue:`7394`)
 
 - Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
 
