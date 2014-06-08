@@ -2,7 +2,6 @@
 from datetime import datetime, time, timedelta
 import sys
 import os
-import unittest
 
 import nose
 
@@ -15,39 +14,19 @@ from pandas import (Index, Series, TimeSeries, DataFrame,
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
-import pandas.tseries.frequencies as fmod
 import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from pandas.tslib import NaT, iNaT
-import pandas.lib as lib
-import pandas.tslib as tslib
-
-import pandas.index as _index
-
 from pandas.compat import(
     range, long, StringIO, lrange, lmap, map, zip, cPickle as pickle, product
 )
 from pandas import read_pickle
-import pandas.core.datetools as dt
 from numpy.random import rand
-from numpy.testing import assert_array_equal
-from pandas.util.testing import assert_frame_equal
 import pandas.compat as compat
 from pandas.core.datetools import BDay
-import pandas.core.common as com
-from pandas import concat
 
-from numpy.testing.decorators import slow
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest("pytz not installed")
 
 # infortunately, too much has changed to handle these legacy pickles
 # class TestLegacySupport(unittest.TestCase):

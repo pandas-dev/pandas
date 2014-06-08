@@ -28,12 +28,6 @@ from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
 
-def _skip_if_no_scipy():
-    try:
-        import scipy
-    except ImportError:
-        raise nose.SkipTest("no scipy")
-
 def _skip_if_no_scipy_gaussian_kde():
     try:
         import scipy
@@ -655,7 +649,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_kde(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot, kind='kde')
         _check_plot_works(self.ts.plot, kind='density')
@@ -664,7 +658,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_kde_kwargs(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         from numpy import linspace
         _check_plot_works(self.ts.plot, kind='kde', bw_method=.5, ind=linspace(-100,100,20))
@@ -674,7 +668,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_kde_color(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         ax = self.ts.plot(kind='kde', logy=True, color='r')
         self._check_ax_scales(ax, yaxis='log')
@@ -1486,7 +1480,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_kde(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         df = DataFrame(randn(100, 4))
         ax = _check_plot_works(df.plot, kind='kde')
@@ -1584,7 +1578,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_scatter(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         df = DataFrame(randn(100, 2))
         import pandas.tools.plotting as plt

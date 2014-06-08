@@ -209,12 +209,41 @@ def mplskip(cls):
     cls.setUpClass = setUpClass
     return cls
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        import nose
+        raise nose.SkipTest("no scipy.stats module")
+    try:
+        import scipy.interpolate
+    except ImportError:
+        import nose
+        raise nose.SkipTest('scipy.interpolate missing')
+
+
 def _skip_if_no_pytz():
     try:
         import pytz
     except ImportError:
         import nose
         raise nose.SkipTest("pytz not installed")
+
+
+def _skip_if_no_dateutil():
+    try:
+        import dateutil
+    except ImportError:
+        import nose
+        raise nose.SkipTest("dateutil not installed")
+
+
+def _skip_if_no_cday():
+    from pandas.core.datetools import cday
+    if cday is None:
+        import nose
+        raise nose.SkipTest("CustomBusinessDay not available.")
+
 
 #------------------------------------------------------------------------------
 # locale utilities

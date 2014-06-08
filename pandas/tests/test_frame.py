@@ -52,12 +52,6 @@ import pandas.lib as lib
 
 from numpy.testing.decorators import slow
 
-def _skip_if_no_scipy():
-    try:
-        import scipy.stats
-    except ImportError:
-        raise nose.SkipTest("no scipy.stats module")
-
 #---------------------------------------------------------------------
 # DataFrame test cases
 
@@ -6739,28 +6733,28 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             expected.ix['A', 'B'] = expected.ix['B', 'A'] = nan
 
     def test_corr_pearson(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('pearson')
 
     def test_corr_kendall(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('kendall')
 
     def test_corr_spearman(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('spearman')
 
     def test_corr_non_numeric(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
@@ -6770,7 +6764,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_corr_nooverlap(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
@@ -6783,7 +6777,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertEqual(rs.ix['B', 'B'], 1)
 
     def test_corr_constant(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         # constant --> all NA
 
@@ -10957,7 +10951,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -10968,7 +10962,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         from scipy.stats import kurtosis
 
@@ -11320,7 +11314,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.cumprod(1)
 
     def test_rank(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         self.frame['A'][::2] = np.nan
@@ -11412,7 +11406,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df.rank(), exp)
 
     def test_rank_na_option(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         self.frame['A'][::2] = np.nan
