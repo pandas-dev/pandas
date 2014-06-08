@@ -27,6 +27,20 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - Openpyxl now raises a ValueError on construction of the openpyxl writer
   instead of warning on pandas import (:issue:`7284`).
 
@@ -58,6 +72,28 @@ There are no deprecations that are taking effect as of 0.14.1.
 
 Enhancements
 ~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - Tests for basic reading of public S3 buckets now exist (:issue:`7281`).
 - ``read_html`` now sports an ``encoding`` argument that is passed to the
   underlying parser library. You can use this to read non-ascii encoded web
@@ -79,12 +115,34 @@ Enhancements
 - Implemented ``sem`` (standard error of the mean) operation for ``Series``,
   ``DataFrame``, ``Panel``, and ``Groupby`` (:issue:`6897`)
 
+
+
+
+
+
+
+
 .. _whatsnew_0141.performance:
 
 Performance
 ~~~~~~~~~~~
 
+
+
+
+
+
+
+
+
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
+
+
+
+
+
+
+
 
 Experimental
 ~~~~~~~~~~~~
@@ -95,6 +153,32 @@ There are no experimental changes in 0.14.1
 
 Bug Fixes
 ~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
 - Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`7261`)
