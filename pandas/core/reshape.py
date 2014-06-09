@@ -17,8 +17,7 @@ from pandas.core.groupby import (get_group_index, _compress_group_index,
 import pandas.core.common as com
 import pandas.algos as algos
 
-from pandas.core.index import Index, MultiIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.core.index import MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -83,7 +82,7 @@ class _Unstacker(object):
 
         def _make_index(lev, lab):
             values = _make_index_array_level(lev.values, lab)
-            i = lev._simple_new(values, lev.name, 
+            i = lev._simple_new(values, lev.name,
                                 freq=getattr(lev, 'freq', None),
                                 tz=getattr(lev, 'tz', None))
             return i
@@ -262,7 +261,7 @@ def _make_index_array_level(lev, lab):
 
     l = np.arange(len(lab))
     mask_labels = np.empty(len(mask[mask]), dtype=object)
-    mask_labels.fill(np.nan)
+    mask_labels.fill(_get_na_value(lev.dtype.type))
     mask_indexer = com._ensure_int64(l[mask])
 
     labels = lev
@@ -638,7 +637,7 @@ def melt(frame, id_vars=None, value_vars=None,
 
     This function is useful to massage a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to 
+    columns, considered measured variables (`value_vars`), are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 
@@ -680,7 +679,7 @@ def melt(frame, id_vars=None, value_vars=None,
     0  a        B      1
     1  b        B      3
     2  c        B      5
-    
+
     >>> pd.melt(df, id_vars=['A'], value_vars=['B', 'C'])
        A variable  value
     0  a        B      1
@@ -702,7 +701,7 @@ def melt(frame, id_vars=None, value_vars=None,
     If you have multi-index columns:
 
     >>> df.columns = [list('ABC'), list('DEF')]
-    >>> df 
+    >>> df
        A  B  C
        D  E  F
     0  a  1  2
@@ -901,7 +900,7 @@ def wide_to_long(df, stubnames, i, j):
         return df.filter(regex=regex).columns.tolist()
 
     def melt_stub(df, stub, i, j):
-        varnames = get_var_names(df, "^"+stub)
+        varnames = get_var_names(df, "^" + stub)
         newdf = melt(df, id_vars=i, value_vars=varnames, value_name=stub,
                      var_name=j)
         newdf_j = newdf[j].str.replace(stub, "")
@@ -971,6 +970,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
 
     Examples
     --------
+    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> get_dummies(s)

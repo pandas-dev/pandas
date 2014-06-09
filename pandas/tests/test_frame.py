@@ -11665,6 +11665,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaises(ValueError):
             df.T.stack('c1')
 
+    def test_repr_with_mi_nat(self):
+        df = DataFrame({'X': [1, 2]},
+                       index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
+        res = repr(df)
+        exp = '              X\nNaT        a  1\n2013-01-01 b  2'
+        nose.tools.assert_equal(res, exp)
+
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})

@@ -212,3 +212,7 @@ Bug Fixes
 - Bug in ``.ix`` getitem should always return a Series (:issue:`7150`)
 - Bug in multi-index slicing with incomplete indexers (:issue:`7399`)
 - Bug in multi-index slicing with a step in a sliced level (:issue:`7400`)
+- Bug where negative indexers in ``DatetimeIndex`` were not correctly sliced
+  (:issue:`7408`)
+- Bug where ``NaT`` wasn't repr'd correctly in a ``MultiIndex`` (:issue:`7406`,
+  :issue:`7409`).
