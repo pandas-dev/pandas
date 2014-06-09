@@ -3570,8 +3570,14 @@ class TestIndexing(tm.TestCase):
                                          'a': [10] * 10}),
                               df)
 
+    def test_duplicate_ix_returns_series(self):
+        df = DataFrame(np.random.randn(3, 3), index=[0.1, 0.2, 0.2],
+                       columns=list('abc'))
+        r = df.ix[0.2, 'a']
+        e = df.loc[0.2, 'a']
+        tm.assert_series_equal(r, e)
+
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
