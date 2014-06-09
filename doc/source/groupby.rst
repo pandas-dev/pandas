@@ -664,6 +664,18 @@ In this example, we chopped the collection of time series into yearly chunks
 then independently called :ref:`fillna <missing_data.fillna>` on the
 groups.
 
+.. versionadded:: 0.14.1
+
+The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
+
+.. ipython:: python
+
+   s = Series([9, 8, 7, 5, 19, 1, 4.2, 3.3])
+   g = Series(list('abababab'))
+   gb = s.groupby(g)
+   gb.nlargest(3)
+   gb.nsmallest(3)
+
 .. _groupby.apply:
 
 Flexible ``apply``
