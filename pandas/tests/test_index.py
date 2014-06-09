@@ -873,6 +873,11 @@ class TestIndex(tm.TestCase):
         expected = right_idx.astype(object).union(left_idx.astype(object))
         tm.assert_index_equal(joined, expected)
 
+    def test_nan_first_take_datetime(self):
+        idx = Index([pd.NaT, Timestamp('20130101'), Timestamp('20130102')])
+        res = idx.take([-1, 0, 1])
+        exp = Index([idx[-1], idx[0], idx[1]])
+        tm.assert_index_equal(res, exp)
 
 class TestFloat64Index(tm.TestCase):
     _multiprocess_can_split_ = True

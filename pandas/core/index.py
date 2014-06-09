@@ -2610,12 +2610,14 @@ class MultiIndex(Index):
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
-               na_rep='NaN', formatter=None):
+               na_rep=None, formatter=None):
         if len(self) == 0:
             return []
 
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
+            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
+
             if len(lev) > 0:
 
                 formatted = lev.take(lab).format(formatter=formatter)
@@ -2624,12 +2626,12 @@ class MultiIndex(Index):
                 mask = lab == -1
                 if mask.any():
                     formatted = np.array(formatted, dtype=object)
-                    formatted[mask] = na_rep
+                    formatted[mask] = na
                     formatted = formatted.tolist()
 
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(na_rep if isnull(x) else x,
+                formatted = [com.pprint_thing(na if isnull(x) else x,
                                               escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
@@ -4041,3 +4043,12 @@ def _all_indexes_same(indexes):
         if not first.equals(index):
             return False
     return True
+
+
+def _get_na_rep(dtype):
+    return {np.datetime64: 'NaT', np.timedelta64: 'NaT'}.get(dtype, 'NaN')
+
+
+def _get_na_value(dtype):
+    return {np.datetime64: tslib.NaT, np.timedelta64: tslib.NaT}.get(dtype,
+                                                                     np.nan)
