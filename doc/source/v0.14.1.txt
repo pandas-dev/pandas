@@ -160,7 +160,7 @@ Bug Fixes
 
 
 
-
+- Bug in multi-index slicing with incomplete indexers (:issue:`7399`)
 
 
 

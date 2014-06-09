@@ -1325,6 +1325,18 @@ class TestIndexing(tm.TestCase):
         result = df.loc[[1,2]]
         assert_frame_equal(result, expected)
 
+        # GH 7399
+        # incomplete indexers
+        s = pd.Series(np.arange(15,dtype='int64'),MultiIndex.from_product([range(5), ['a', 'b', 'c']]))
+        expected = s.loc[:, 'a':'c']
+        result = s.loc[0:4, 'a':'c']
+        assert_series_equal(result, expected)
+
+        result = s.loc[:4, 'a':'c']
+        assert_series_equal(result, expected)
+
+        result = s.loc[0:, 'a':'c']
+        assert_series_equal(result, expected)
 
     def test_series_getitem_multiindex(self):
 

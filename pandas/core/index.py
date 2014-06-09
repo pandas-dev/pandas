@@ -3526,8 +3526,8 @@ class MultiIndex(Index):
             # handle a slice, returnig a slice if we can
             # otherwise a boolean indexer
 
-            start = level_index.get_loc(key.start)
-            stop  = level_index.get_loc(key.stop)
+            start = level_index.get_loc(key.start or  0)
+            stop  = level_index.get_loc(key.stop or len(level_index)-1)
             step = key.step
 
             if level > 0 or self.lexsort_depth == 0:
