@@ -3530,7 +3530,7 @@ class MultiIndex(Index):
             stop  = level_index.get_loc(key.stop or len(level_index)-1)
             step = key.step
 
-            if level > 0 or self.lexsort_depth == 0:
+            if level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so include the stop+1 (so we include stop)
