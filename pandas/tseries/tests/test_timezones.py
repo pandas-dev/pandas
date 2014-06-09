@@ -788,6 +788,19 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
 
+    def test_utc_with_system_utc(self):
+        from pandas.tslib import maybe_get_tz
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
+
 
 class TestTimeZones(tm.TestCase):
     _multiprocess_can_split_ = True
