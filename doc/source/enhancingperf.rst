@@ -668,3 +668,180 @@ In general, :meth:`DataFrame.query`/:func:`pandas.eval` will
 evaluate the subexpressions that *can* be evaluated by ``numexpr`` and those
 that must be evaluated in Python space transparently to the user. This is done
 by inferring the result type of an expression from its arguments and operators.
+
+Existence (IsIn, Inner Join, Dict/Hash, Query)
+----------------------------------------------------
+
+There are a number of different ways to test for existence using pandas. The 
+following methods can be used to achieve an existence test. The comments correspond
+to the legend in the plots further down.
+
+
+:meth:`DataFrame.isin`
+
+.. code-block:: python
+
+    # isin_list
+    df[df.index.isin(lst)]
+    # isin_dict
+    df[df.index.isin(dct)]
+    # isin_series
+    df[df.index.isin(series)] 
+    
+    
+    
+:meth:`DataFrame.query`
+
+.. code-block:: python
+    
+    # query_in list
+    df.query('index in @lst')
+    # query_in Series
+    df.query('index in @series')
+    # query_in dict
+    df.query('index in @dct')
+    
+    # query_eqeq list
+    df.query('index == @lst')
+    # query_eqeq Series
+    df.query('index == @series')
+    
+    # dict actually throws an error with '=='
+    
+    
+    
+:meth:`DataFrame.apply`
+
+.. code-block:: python
+    
+    df[df.index.apply(lambda x: x in lst)]
+    
+    
+    
+:meth:`DataFrame.join`
+
+.. code-block:: python
+
+    # join
+    df.join(lst, how='inner')
+    
+    # this can actually be fast for small DataFrames
+    df[[x in dct for x in df.index]]
+    
+    # isin_series, query_eqeq Series, query_in Series, pydict,
+    # join and isin_list are included in the plots below.
+    
+
+As seen below, generally using a ``Series`` is better than using pure python data
+structures for anything larger than very small datasets of around 1000 records.
+The fastest two being ``query('col == @series')`` and ``join(series)``:
+
+.. code-block:: python
+
+    lst = range(1000000)
+    series = Series(lst, name='data')
+
+    df = DataFrame(lst, columns=['ID'])
+    
+    df.query('index == @series')
+    # 10 loops, best of 3: 82.9 ms per loop
+    
+    df.join(series, how='inner')
+    # 100 loops, best of 3: 19.2 ms per loop
+    
+list vs Series:
+
+.. code-block:: python
+
+    df[df.index.isin(lst)]
+    # 1 loops, best of 3: 1.06 s per loop
+    
+    df[df.index.isin(series)]
+    # 1 loops, best of 3: 477 ms per loop
+
+df.index vs df.column doesn't make a difference here:
+
+.. code-block:: python
+
+    df[df.ID.isin(series)]
+    # 1 loops, best of 3: 474 ms per loop
+    
+    df[df.index.isin(series)]
+    # 1 loops, best of 3: 475 ms per loop
+
+The ``query`` 'in' syntax has the same performance as ``isin``, except
+for when using '==' with a ``Series``:
+
+.. code-block:: python
+
+    df.query('index in @lst')
+    # 1 loops, best of 3: 1.04 s per loop
+    
+    df.query('index in @series')
+    # 1 loops, best of 3: 451 ms per loop
+    
+    df.query('index == @lst')
+    # 1 loops, best of 3: 1.03 s per loop
+    
+'==' is actually quite a bit faster than 'in' when used against a Series
+but not as fast as ``join``.
+
+.. code-block:: python
+
+    df.query('index == @series')
+    # 10 loops, best of 3: 80.5 ms per loop
+
+For ``join``, the data must be the index in the ``DataFrame`` and the index in the ``Series``
+for the best performance. The ``Series`` must also have a ``name``. ``join`` defaults to a
+left join so we need to specify 'inner' for existence.
+
+.. code-block:: python
+
+    df.join(series, how='inner')
+    # 100 loops, best of 3: 19.7 ms per loop
+
+Smaller datasets:
+
+.. code-block:: python
+
+    df = DataFrame([1,2,3,4], columns=['ID'])
+    lst = range(10000)
+    dct = dict(zip(lst, lst))
+    series = Series(lst, name='data')
+
+    df.join(series, how='inner')
+    # 1000 loops, best of 3: 866 us per loop
+    
+    df[df.ID.isin(dct)]
+    # 1000 loops, best of 3: 809 us per loop
+    
+    df[df.ID.isin(lst)]
+    # 1000 loops, best of 3: 853 us per loop
+    
+    df[df.ID.isin(series)]
+    # 100 loops, best of 3: 2.22 ms per loop
+
+It's actually faster to use ``apply`` or a list comprehension for these small cases.
+
+.. code-block:: python
+
+    df[[x in dct for x in df.ID]]
+    # 1000 loops, best of 3: 266 us per loop
+    
+    df[df.ID.apply(lambda x: x in dct)]
+    # 1000 loops, best of 3: 364 us per loop
+
+    
+Here is a visualization of some of the benchmarks above. You can see that except for with
+very small datasets, ``isin(Series)``, ``join(Series)``, and ``query('col == Series')``
+quickly become faster than the pure python data structures. 
+
+.. image:: _static/existence-perf-small.png
+
+However, ``isin(Series)`` still presents fairly poor exponential performance where ``join`` is quite
+fast for large datasets. There is some overhead involved in ensuring your data is the index
+in both your left and right datasets but that time should be clearly outweighed by the gains of
+the join itself. For extremely large datasets, you may start bumping into memory limits since ``join``
+does not perform any disk chunking, etc.
+
+.. image:: _static/existence-perf-large.png
