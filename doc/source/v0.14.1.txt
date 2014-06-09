@@ -164,11 +164,6 @@ Bug Fixes
 
 
 
-- Bug in ``.ix`` getitem should always return a Series (:issue:`7150`)
-
-
-
-
 
 
 
@@ -216,3 +211,6 @@ Bug Fixes
   (:issue:`7366`).
 - Bug where ``NDFrame.replace()`` didn't correctly replace objects with
   ``Period`` values (:issue:`7379`).
+- Bug in ``.ix`` getitem should always return a Series (:issue:`7150`)
+- Bug in multi-index slicing with incomplete indexers (:issue:`7399`)
+- Bug in multi-index slicing with a step in a sliced level (:issue:`7400`)
