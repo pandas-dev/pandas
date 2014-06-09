@@ -1023,7 +1023,7 @@ def _dtype_to_default_stata_fmt(dtype):
         return "%10.0g"
     elif dtype == np.float32:
         return "%9.0g"
-    elif dtype in (np.int32, np.unint32):
+    elif dtype in (np.int32, np.uint32):
         return "%12.0g"
     elif dtype in (np.int8, np.uint8, np.int16, np.uint16):
         return "%8.0g"
