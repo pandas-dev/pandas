@@ -770,8 +770,12 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         _skip_if_no_dateutil()
 
     def tz(self, tz):
-        ''' Construct a timezone object from a string. Overridden in subclass to parameterize tests. '''
-        return dateutil.tz.gettz(tz)
+        '''
+        Construct a dateutil timezone.
+        Use tslib.maybe_get_tz so that we get the filename on the tz right
+        on windows. See #7337.
+        '''
+        return tslib.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
         ''' Construct a timezone string from a string. Overridden in subclass to parameterize tests. '''
@@ -783,6 +787,19 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
+
+    def test_utc_with_system_utc(self):
+        from pandas.tslib import maybe_get_tz
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
 
 
 class TestTimeZones(tm.TestCase):

@@ -58,6 +58,15 @@ def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
         raise nose.SkipTest("Specific locale is set {0}".format(lang))
+    
+def _skip_if_windows_python_3():
+    if sys.version_info > (3,) and sys.platform == 'win32':
+        raise nose.SkipTest("not used on python 3/win32")
+
+def _skip_if_not_windows_python_3():
+    if sys.version_info < (3,) or sys.platform != 'win32':
+        raise nose.SkipTest("only run on python 3/win32")
+
 
 class TestTimeSeriesDuplicates(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -406,6 +415,16 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp, dtval)
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
+    def test_timestamp_to_datetime_dateutil(self):
+        _skip_if_no_pytz()
+        rng = date_range('20090415', '20090519',
+                         tz='dateutil/US/Eastern')
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
+
     def test_timestamp_to_datetime_explicit_pytz(self):
         _skip_if_no_pytz()
         import pytz
@@ -418,6 +437,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEquals(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
+        _skip_if_windows_python_3()
         _skip_if_no_dateutil()
         import dateutil
         rng = date_range('20090415', '20090519',
@@ -467,7 +487,7 @@ class TestTimeSeries(tm.TestCase):
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
 
-    def test_index_convert_to_datetime_array_explicit_dateutil(self):
+    def test_index_convert_to_datetime_array_dateutil(self):
         _skip_if_no_dateutil()
         import dateutil
 
@@ -480,8 +500,8 @@ class TestTimeSeries(tm.TestCase):
                 self.assertEquals(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
-        rng_eastern = date_range('20090415', '20090519', tz=dateutil.tz.gettz('US/Eastern'))
-        rng_utc = date_range('20090415', '20090519', tz=dateutil.tz.gettz('UTC'))
+        rng_eastern = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        rng_utc = date_range('20090415', '20090519', tz=dateutil.tz.tzutc())
 
         _check_rng(rng)
         _check_rng(rng_eastern)
@@ -1560,14 +1580,14 @@ class TestTimeSeries(tm.TestCase):
         self.assert_(result == expected)
         self.assert_(ts.to_period().equals(xp))
 
-    def test_to_period_tz_explicit_dateutil(self):
+    def test_to_period_tz_dateutil(self):
         _skip_if_no_dateutil()
         import dateutil
         from dateutil.tz import tzlocal
 
         xp = date_range('1/1/2000', '4/1/2000').to_period()
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.gettz('US/Eastern'))
+        ts = date_range('1/1/2000', '4/1/2000', tz='dateutil/US/Eastern')
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
@@ -1575,7 +1595,7 @@ class TestTimeSeries(tm.TestCase):
         self.assert_(result == expected)
         self.assert_(ts.to_period().equals(xp))
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.gettz('UTC'))
+        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
@@ -1793,17 +1813,17 @@ class TestTimeSeries(tm.TestCase):
         appended = rng.append(rng2)
         self.assert_(appended.equals(rng3))
 
-    def test_append_concat_tz_explicit_dateutil(self):
+    def test_append_concat_tz_dateutil(self):
         # GH 2938
         _skip_if_no_dateutil()
         from dateutil.tz import gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
-                         tz=timezone('US/Eastern'))
+                         tz='dateutil/US/Eastern')
         rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
-                         tz=timezone('US/Eastern'))
+                         tz='dateutil/US/Eastern')
         rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
-                         tz=timezone('US/Eastern'))
+                         tz='dateutil/US/Eastern')
         ts = Series(np.random.randn(len(rng)), rng)
         df = DataFrame(np.random.randn(len(rng), 4), index=rng)
         ts2 = Series(np.random.randn(len(rng2)), rng2)
@@ -2021,11 +2041,11 @@ class TestTimeSeries(tm.TestCase):
         _skip_if_no_dateutil()
         import dateutil
 
-        local_timezone = dateutil.tz.gettz('America/Los_Angeles')
+        local_timezone = 'dateutil/America/Los_Angeles'
 
-        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=dateutil.tz.gettz('UTC'))
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=dateutil.tz.tzutc())
         # 1 day later
-        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.gettz('UTC'))
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.tzutc())
 
         index = pd.date_range(start, end, freq='H')
 
@@ -2990,13 +3010,13 @@ class TestTimestamp(tm.TestCase):
 
     def test_class_ops_dateutil(self):
         _skip_if_no_dateutil()
-        from dateutil.tz import gettz as timezone
+        from dateutil.tz import tzutc
 
         def compare(x,y):
             self.assertEqual(int(np.round(Timestamp(x).value/1e9)), int(np.round(Timestamp(y).value/1e9)))
 
         compare(Timestamp.now(),datetime.now())
-        compare(Timestamp.now('UTC'), datetime.now(timezone('UTC')))
+        compare(Timestamp.now('UTC'), datetime.now(tzutc()))
         compare(Timestamp.utcnow(),datetime.utcnow())
         compare(Timestamp.today(),datetime.today())
 
@@ -3149,8 +3169,8 @@ class TestTimestamp(tm.TestCase):
 
     def test_cant_compare_tz_naive_w_aware_dateutil(self):
         _skip_if_no_dateutil()
-        from dateutil.tz import gettz
-        utc = gettz('UTC')
+        from dateutil.tz import tzutc
+        utc = tzutc()
         # #1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz=utc)

@@ -2,7 +2,7 @@ from datetime import datetime
 from pandas.compat import range
 import pickle
 import nose
-
+import sys
 import numpy as np
 
 from pandas.core.index import Index
@@ -34,6 +34,11 @@ def _skip_if_no_dateutil():
 def _skip_if_no_cday():
     if datetools.cday is None:
         raise nose.SkipTest("CustomBusinessDay not available.")
+
+
+def _skip_if_windows_python_3():
+    if sys.version_info > (3,) and sys.platform == 'win32':
+        raise nose.SkipTest("not used on python 3/win32")
 
 
 def eq_gen_range(kwargs, expected):
@@ -300,7 +305,7 @@ class TestDateRange(tm.TestCase):
     def test_summary_dateutil(self):
         _skip_if_no_dateutil()
         import dateutil
-        bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.gettz('UTC')).summary()
+        bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -391,8 +396,10 @@ class TestDateRange(tm.TestCase):
     def test_range_tz_dateutil(self):
         # GH 2906
         _skip_if_no_dateutil()
-        from dateutil.tz import gettz as tz
-
+        # Use maybe_get_tz to fix filename in tz under dateutil.
+        from pandas.tslib import maybe_get_tz
+        tz = lambda x: maybe_get_tz('dateutil/' + x)
+        
         start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
         end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
 
@@ -428,6 +435,7 @@ class TestDateRange(tm.TestCase):
         early_dr.union(late_dr)
 
     def test_month_range_union_tz_dateutil(self):
+        _skip_if_windows_python_3()
         _skip_if_no_dateutil()
         from dateutil.tz import gettz as timezone
         tz = timezone('US/Eastern')
@@ -633,7 +641,7 @@ class TestCustomDateRange(tm.TestCase):
     def test_summary_dateutil(self):
         _skip_if_no_dateutil()
         import dateutil
-        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.gettz('UTC')).summary()
+        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_misc(self):
         end = datetime(2009, 5, 13)

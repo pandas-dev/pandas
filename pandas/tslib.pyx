@@ -1029,6 +1029,10 @@ cdef inline object _get_zone(object tz):
         return 'UTC'
     else:
         if _treat_tz_as_dateutil(tz):
+            if '.tar.gz' in tz._filename:
+                raise ValueError('Bad tz filename. Dateutil on python 3 on windows has a bug which causes tzfile._filename to be the same for all '
+                                 'timezone files. Please construct dateutil timezones implicitly by passing a string like "dateutil/Europe/London" '
+                                 'when you construct your pandas objects instead of passing a timezone object. See https://github.com/pydata/pandas/pull/7362')
             return 'dateutil/' + tz._filename
         else:
             # tz is a pytz timezone or unknown.
@@ -1048,7 +1052,11 @@ cpdef inline object maybe_get_tz(object tz):
     '''
     if isinstance(tz, string_types):
         if tz.startswith('dateutil/'):
+            zone = tz[9:]
             tz = _dateutil_gettz(tz[9:])
+            # On Python 3 on Windows, the filename is not always set correctly.
+            if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
+                tz._filename = zone
         else:
             tz = pytz.timezone(tz)
         return tz
@@ -1965,6 +1973,10 @@ cdef inline object _tz_cache_key(object tz):
     if isinstance(tz, _pytz_BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
+        if '.tar.gz' in tz._filename:
+            raise ValueError('Bad tz filename. Dateutil on python 3 on windows has a bug which causes tzfile._filename to be the same for all '
+                             'timezone files. Please construct dateutil timezones implicitly by passing a string like "dateutil/Europe/London" '
+                             'when you construct your pandas objects instead of passing a timezone object. See https://github.com/pydata/pandas/pull/7362')
         return tz._filename
     else:
         return None
