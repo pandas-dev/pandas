@@ -5025,6 +5025,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             result = s.convert_objects(convert_dates='coerce')
             assert_series_equal(result, s)
 
+    def test_convert_objects_preserve_bool(self):
+        s = Series([1, True, 3, 5], dtype=object)
+        r = s.convert_objects(convert_numeric=True)
+        e = Series([1, 1, 3, 5], dtype='i8')
+        tm.assert_series_equal(r, e)
+
+    def test_convert_objects_preserve_all_bool(self):
+        s = Series([False, True, False, False], dtype=object)
+        r = s.convert_objects(convert_numeric=True)
+        e = Series([False, True, False, False], dtype=bool)
+        tm.assert_series_equal(r, e)
+
     def test_apply_args(self):
         s = Series(['foo,bar'])
 

@@ -216,3 +216,5 @@ Bug Fixes
   (:issue:`7408`)
 - Bug where ``NaT`` wasn't repr'd correctly in a ``MultiIndex`` (:issue:`7406`,
   :issue:`7409`).
+- Bug where bool objects were converted to ``nan`` in ``convert_objects``
+  (:issue:`7416`).
