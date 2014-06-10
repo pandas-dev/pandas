@@ -789,6 +789,9 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         return x.replace(tzinfo=tz)
 
     def test_utc_with_system_utc(self):
+        if sys.platform == 'win32':
+            raise nose.SkipTest('Skipped on win32 due to dateutil bug.')
+
         from pandas.tslib import maybe_get_tz
 
         # from system utc to real utc
