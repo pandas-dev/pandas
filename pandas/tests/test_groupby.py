@@ -126,8 +126,10 @@ class TestGroupBy(tm.TestCase):
             assert_series_equal(agged, grouped.mean())
             assert_series_equal(grouped.agg(np.sum), grouped.sum())
 
+            expected = grouped.apply(lambda x: x * x.sum())
             transformed = grouped.transform(lambda x: x * x.sum())
             self.assertEqual(transformed[7], 12)
+            assert_series_equal(transformed, expected)
 
             value_grouped = data.groupby(data)
             assert_series_equal(value_grouped.aggregate(np.mean), agged)
