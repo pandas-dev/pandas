@@ -2067,6 +2067,10 @@ class TestHDFStore(tm.TestCase):
         except ImportError:
             raise nose.SkipTest
 
+        # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows filename issues.
+        from pandas.tslib import maybe_get_tz
+        gettz = lambda x: maybe_get_tz('dateutil/' + x)
+
         def compare(a, b):
             tm.assert_frame_equal(a, b)
 
@@ -2082,7 +2086,7 @@ class TestHDFStore(tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A=[ Timestamp('20130102 2:00:00', tz=dateutil.tz.gettz('US/Eastern')) + timedelta(hours=1) * i for i in range(5) ]))
+            df = DataFrame(dict(A=[ Timestamp('20130102 2:00:00', tz=gettz('US/Eastern')) + timedelta(hours=1) * i for i in range(5) ]))
             store.append('df_tz', df, data_columns=['A'])
             result = store['df_tz']
             compare(result, df)
@@ -2093,14 +2097,14 @@ class TestHDFStore(tm.TestCase):
 
             _maybe_remove(store, 'df_tz')
             # ensure we include dates in DST and STD time here.
-            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130603', tz=dateutil.tz.gettz('US/Eastern'))), index=range(5))
+            df = DataFrame(dict(A=Timestamp('20130102', tz=gettz('US/Eastern')), B=Timestamp('20130603', tz=gettz('US/Eastern'))), index=range(5))
             store.append('df_tz', df)
             result = store['df_tz']
             compare(result, df)
             assert_frame_equal(result, df)
 
             _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130102', tz=dateutil.tz.gettz('EET'))), index=range(5))
+            df = DataFrame(dict(A=Timestamp('20130102', tz=gettz('US/Eastern')), B=Timestamp('20130102', tz=gettz('EET'))), index=range(5))
             self.assertRaises(TypeError, store.append, 'df_tz', df)
 
             # this is ok
@@ -2111,14 +2115,14 @@ class TestHDFStore(tm.TestCase):
             assert_frame_equal(result, df)
 
             # can't append with diff timezone
-            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130102', tz=dateutil.tz.gettz('CET'))), index=range(5))
+            df = DataFrame(dict(A=Timestamp('20130102', tz=gettz('US/Eastern')), B=Timestamp('20130102', tz=gettz('CET'))), index=range(5))
             self.assertRaises(ValueError, store.append, 'df_tz', df)
 
         # as index
         with ensure_clean_store(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range('2000-1-1', periods=3, freq='H', tz=dateutil.tz.gettz('US/Eastern')))))
+            df = DataFrame(dict(A=Series(lrange(3), index=date_range('2000-1-1', periods=3, freq='H', tz=gettz('US/Eastern')))))
 
             _maybe_remove(store, 'df')
             store.put('df', df)
