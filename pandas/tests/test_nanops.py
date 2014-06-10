@@ -685,6 +685,9 @@ class TestEnsureNumeric(tm.TestCase):
         self.assertRaises(TypeError,
                           lambda: nanops._ensure_numeric([]))
 
+    def test_fail(self):
+        self.assertTrue(False)
+
 
 if __name__ == '__main__':
     import nose
