@@ -202,17 +202,20 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.labels
 
-    if com.is_integer_dtype(values.dtype):
+    dtype = values.dtype
+    if com.is_integer_dtype(dtype):
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
 
     elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
-        dtype = values.dtype
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
 
+        from pandas.lib import NaT
+        msk = keys != NaT.value
+        keys, counts = keys[msk], counts[msk]
         # convert the keys back to the dtype we came in
-        keys = Series(keys, dtype=dtype)
+        keys = keys.astype(dtype)
 
     else:
         mask = com.isnull(values)
@@ -220,7 +223,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         keys, counts = htable.value_count_object(values, mask)
 
     result = Series(counts, index=com._values_from_object(keys))
-
     if bins is not None:
         # TODO: This next line should be more efficient
         result = result.reindex(np.arange(len(cat.levels)), fill_value=0)

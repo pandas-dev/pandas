@@ -237,6 +237,20 @@ class TestValueCounts(tm.TestCase):
 
         self.assertRaises(TypeError, lambda s: algos.value_counts(s, bins=1), ['1', 1])
 
+    def test_value_counts_nat(self):
+        td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')
+        dt = pd.to_datetime(['NaT', '2014-01-01'])
+
+        res_td = algos.value_counts(td)
+        res_dt = algos.value_counts(dt)
+
+        self.assertEqual(len(res_td), 1)
+        self.assertEqual(len(res_dt), 1)
+
+        exp_dt = pd.Series({pd.Timestamp('2014-01-01 00:00:00'): 1})
+        tm.assert_series_equal(res_dt, exp_dt)
+
+        # TODO same for res_td (timedelta)
 
 def test_quantile():
     s = Series(np.random.randn(100))
