@@ -12,7 +12,6 @@ import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
-
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
@@ -3532,7 +3531,16 @@ class MultiIndex(Index):
             stop  = level_index.get_loc(key.stop or len(level_index)-1)
             step = key.step
 
-            if level > 0 or self.lexsort_depth == 0 or step is not None:
+            if isinstance(start,slice) or isinstance(stop,slice):
+                # we have a slice for start and/or stop
+                # a partial date slicer on a DatetimeIndex generates a slice
+                # note that the stop ALREADY includes the stopped point (if
+                # it was a string sliced)
+                m = np.zeros(len(labels),dtype=bool)
+                m[np.in1d(labels,np.arange(start.start,stop.stop,step))] = True
+                return m
+
+            elif level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so include the stop+1 (so we include stop)
@@ -3571,6 +3579,8 @@ class MultiIndex(Index):
                for passing to iloc
         """
 
+        from pandas.core.indexing import _is_null_slice
+
         # must be lexsorted to at least as many levels
         if not self.is_lexsorted_for_tuple(tup):
             raise KeyError('MultiIndex Slicing requires the index to be fully lexsorted'
@@ -3598,10 +3608,12 @@ class MultiIndex(Index):
                 ranges.append(reduce(
                     np.logical_or,[ _convert_indexer(self._get_level_indexer(x, level=i)
                                                      ) for x in k ]))
-            elif k == slice(None):
-                # include all from this level
+            elif _is_null_slice(k):
+                # empty slice
                 pass
+
             elif isinstance(k,slice):
+
                 # a slice, include BOTH of the labels
                 ranges.append(self._get_level_indexer(k,level=i))
             else:
