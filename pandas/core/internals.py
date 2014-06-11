@@ -12,7 +12,8 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 _is_null_datelike_scalar,
-                                is_timedelta64_dtype, is_datetime64_dtype,)
+                                is_timedelta64_dtype, is_datetime64_dtype,
+                                _possibly_infer_to_datetimelike)
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
 import pandas.core.common as com
@@ -1807,26 +1808,21 @@ def make_block(values, placement, klass=None, ndim=None,
         elif issubclass(vtype, np.complexfloating):
             klass = ComplexBlock
 
-        # try to infer a DatetimeBlock, or set to an ObjectBlock
         else:
 
+            # we want to infer here if its a datetimelike if its object type
+            # this is pretty strict in that it requires a datetime/timedelta
+            # value IN addition to possible nulls/strings
+            # an array of ONLY strings will not be inferred
             if np.prod(values.shape):
-                flat = values.ravel()
-
-                # try with just the first element; we just need to see if
-                # this is a datetime or not
-                inferred_type = lib.infer_dtype(flat[0:1])
-                if inferred_type in ['datetime', 'datetime64']:
-
-                    # we have an object array that has been inferred as
-                    # datetime, so convert it
-                    try:
-                        values = tslib.array_to_datetime(
-                            flat).reshape(values.shape)
-                        if issubclass(values.dtype.type, np.datetime64):
-                            klass = DatetimeBlock
-                    except:  # it already object, so leave it
-                        pass
+                result = _possibly_infer_to_datetimelike(values)
+                vtype = result.dtype.type
+                if issubclass(vtype, np.datetime64):
+                    klass = DatetimeBlock
+                    values = result
+                elif (issubclass(vtype, np.timedelta64)):
+                    klass = TimeDeltaBlock
+                    values = result
 
             if klass is None:
                 klass = ObjectBlock

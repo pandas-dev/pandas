@@ -1782,24 +1782,79 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
             value.dtype == np.object_)):
             pass
 
+        # try to infer if we have a datetimelike here
+        # otherwise pass thru
         else:
-            # we might have a array (or single object) that is datetime like,
-            # and no dtype is passed don't change the value unless we find a
-            # datetime set
-            v = value
-            if not is_list_like(v):
-                v = [v]
-            if len(v):
-                inferred_type = lib.infer_dtype(v)
-                if inferred_type in ['datetime', 'datetime64']:
-                    try:
-                        value = tslib.array_to_datetime(np.array(v))
-                    except:
-                        pass
-                elif inferred_type in ['timedelta', 'timedelta64']:
-                    from pandas.tseries.timedeltas import \
-                        _possibly_cast_to_timedelta
-                    value = _possibly_cast_to_timedelta(value, coerce='compat')
+            value = _possibly_infer_to_datetimelike(value)
+
+    return value
+
+def _possibly_infer_to_datetimelike(value):
+    # we might have a array (or single object) that is datetime like,
+    # and no dtype is passed don't change the value unless we find a
+    # datetime/timedelta set
+
+    # this is pretty strict in that a datetime/timedelta is REQUIRED
+    # in addition to possible nulls/string likes
+
+    # ONLY strings are NOT datetimelike
+
+    v = value
+    if not is_list_like(v):
+        v = [v]
+    v = np.array(v)
+    shape = v.shape
+    v = v.ravel()
+
+    if len(v):
+
+        def _try_datetime(v):
+            # safe coerce to datetime64
+            try:
+                return tslib.array_to_datetime(v, raise_=True).reshape(shape)
+            except:
+                return v
+
+        def _try_timedelta(v):
+            # safe coerce to timedelta64
+
+            # will try first with a string & object conversion
+            from pandas.tseries.timedeltas import to_timedelta
+            try:
+                return to_timedelta(v).values.reshape(shape)
+            except:
+
+                # this is for compat with numpy < 1.7
+                # but string-likes will fail here
+
+                from pandas.tseries.timedeltas import \
+                     _possibly_cast_to_timedelta
+                try:
+                    return _possibly_cast_to_timedelta(v, coerce='compat').reshape(shape)
+                except:
+                    return v
+
+        # do a quick inference for perf
+        sample = v[:min(3,len(v))]
+        inferred_type = lib.infer_dtype(sample)
+
+        if inferred_type in ['datetime', 'datetime64']:
+            value = _try_datetime(v)
+        elif inferred_type in ['timedelta', 'timedelta64']:
+            value = _try_timedelta(v)
+
+        # its possible to have nulls intermixed within the datetime or timedelta
+        # these will in general have an inferred_type of 'mixed', so have to try
+        # both datetime and timedelta
+
+        # try timedelta first to avoid spurious datetime conversions
+        # e.g. '00:00:01' is a timedelta but technically is also a datetime
+        elif inferred_type in ['mixed']:
+
+            if lib.is_possible_datetimelike_array(_ensure_object(v)):
+                value = _try_timedelta(v)
+                if lib.infer_dtype(value) in ['mixed']:
+                    value = _try_datetime(v)
 
     return value
 

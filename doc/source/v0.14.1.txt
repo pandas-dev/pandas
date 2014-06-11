@@ -46,10 +46,8 @@ API changes
    day = offsets.Day(normalize=True)
    day.apply(Timestamp('2014-01-01 09:00'))
 
-
-
-
-
+- Improved inference of datetime/timedelta with mixed null objects. Regression from 0.13.1 in interpretation of an object Index
+  with all null elements (:issue:`7431`)
 
 - Openpyxl now raises a ValueError on construction of the openpyxl writer
   instead of warning on pandas import (:issue:`7284`).
