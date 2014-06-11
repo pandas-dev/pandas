@@ -68,18 +68,19 @@ class Benchmarks(object):
             df.join(l_series, how='inner')
             
         return time_this
-        
-    def time_query_eqeq(look_for, look_in):
-        l = range(look_in)
-        s = pd.Series(l)
-        s.name = 'data'
-        df = pd.DataFrame(range(look_for))
-        
-        def time_this():
-            l_series = s
-            df.query('index == @l_series')
     
-        return time_this
+    # Removed. This functionality might be a bug in query('.. == ..').
+    # def time_query_eqeq(look_for, look_in):
+        # l = range(look_in)
+        # s = pd.Series(l)
+        # s.name = 'data'
+        # df = pd.DataFrame(range(look_for))
+        
+        # def time_this():
+            # l_series = s
+            # df.query('index == @l_series')
+    
+        # return time_this
         
     def time_query_in(look_for, look_in):
         l = range(look_in)

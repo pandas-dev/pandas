@@ -672,9 +672,13 @@ by inferring the result type of an expression from its arguments and operators.
 Existence (IsIn, Inner Join, Dict/Hash, Query)
 ----------------------------------------------------
 
-There are a number of different ways to test for existence using pandas. The 
-following methods can be used to achieve an existence test. The comments correspond
-to the legend in the plots further down.
+Existence is the process of testing if an item exists in another list of items, and
+in the case of a DataFrame, we're testing each value of a column for existence in 
+another collection of items.
+
+There are a number of different ways to test for existence using pandas and the 
+following methods are a few of those. The comments correspond to the legend
+in the plots further down.
 
 
 :meth:`DataFrame.isin`
@@ -694,20 +698,19 @@ to the legend in the plots further down.
 
 .. code-block:: python
     
+    # The '@' symbol is used with `query` to reference local variables. Names
+    # without '@' will reference the DataFrame's columns or index.
+    
     # query_in list
     df.query('index in @lst')
     # query_in Series
     df.query('index in @series')
-    # query_in dict
-    df.query('index in @dct')
     
-    # query_eqeq list
+    # A list can be used with `query('.. == ..')` to test for existence
+    # but other data structures such as the `pandas.Series` have
+    # a different behaviour.
+    
     df.query('index == @lst')
-    # query_eqeq Series
-    df.query('index == @series')
-    
-    # dict actually throws an error with '=='
-    
     
     
 :meth:`DataFrame.apply`
@@ -715,7 +718,6 @@ to the legend in the plots further down.
 .. code-block:: python
     
     df[df.index.apply(lambda x: x in lst)]
-    
     
     
 :meth:`DataFrame.join`
@@ -728,13 +730,13 @@ to the legend in the plots further down.
     # this can actually be fast for small DataFrames
     df[[x in dct for x in df.index]]
     
-    # isin_series, query_eqeq Series, query_in Series, pydict,
+    # isin_series, query_in Series, pydict,
     # join and isin_list are included in the plots below.
     
 
 As seen below, generally using a ``Series`` is better than using pure python data
 structures for anything larger than very small datasets of around 1000 records.
-The fastest two being ``query('col == @series')`` and ``join(series)``:
+The fastest two being ``join(series)``:
 
 .. code-block:: python
 
@@ -742,9 +744,6 @@ The fastest two being ``query('col == @series')`` and ``join(series)``:
     series = Series(lst, name='data')
 
     df = DataFrame(lst, columns=['ID'])
-    
-    df.query('index == @series')
-    # 10 loops, best of 3: 82.9 ms per loop
     
     df.join(series, how='inner')
     # 100 loops, best of 3: 19.2 ms per loop
@@ -769,8 +768,7 @@ df.index vs df.column doesn't make a difference here:
     df[df.index.isin(series)]
     # 1 loops, best of 3: 475 ms per loop
 
-The ``query`` 'in' syntax has the same performance as ``isin``, except
-for when using '==' with a ``Series``:
+The ``query`` 'in' syntax has the same performance as ``isin``.
 
 .. code-block:: python
 
@@ -783,13 +781,6 @@ for when using '==' with a ``Series``:
     df.query('index == @lst')
     # 1 loops, best of 3: 1.03 s per loop
     
-'==' is actually quite a bit faster than 'in' when used against a Series
-but not as fast as ``join``.
-
-.. code-block:: python
-
-    df.query('index == @series')
-    # 10 loops, best of 3: 80.5 ms per loop
 
 For ``join``, the data must be the index in the ``DataFrame`` and the index in the ``Series``
 for the best performance. The ``Series`` must also have a ``name``. ``join`` defaults to a
@@ -833,8 +824,8 @@ It's actually faster to use ``apply`` or a list comprehension for these small ca
 
     
 Here is a visualization of some of the benchmarks above. You can see that except for with
-very small datasets, ``isin(Series)``, ``join(Series)``, and ``query('col == Series')``
-quickly become faster than the pure python data structures. 
+very small datasets, ``isin(Series)`` and ``join(Series)`` quickly become faster than the
+pure python data structures. 
 
 .. image:: _static/existence-perf-small.png
 
