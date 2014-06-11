@@ -18,8 +18,8 @@ from pandas.core.datetools import (
     get_offset, get_offset_name, get_standard_freq)
 
 from pandas.tseries.frequencies import _offset_map
-from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
-from pandas.tseries.tools import parse_time_string
+from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
+from pandas.tseries.tools import parse_time_string, _maybe_get_tz
 import pandas.tseries.offsets as offsets
 
 from pandas.tslib import monthrange, OutOfBoundsDatetime, NaT
@@ -100,21 +100,34 @@ def test_to_m8():
 class Base(tm.TestCase):
     _offset = None
 
-    offset_types = [getattr(offsets, o) for o in offsets.__all__]
-    skip_np_u1p7 = [offsets.CustomBusinessDay, offsets.CDay, offsets.CustomBusinessMonthBegin, offsets.CustomBusinessMonthEnd, offsets.Nano]
+    _offset_types = [getattr(offsets, o) for o in offsets.__all__]
+    skip_np_u1p7 = [offsets.CustomBusinessDay, offsets.CDay, offsets.CustomBusinessMonthBegin,
+                    offsets.CustomBusinessMonthEnd, offsets.Nano]
 
-    def _get_offset(self, klass, value=1):
+    @property
+    def offset_types(self):
+        if _np_version_under1p7:
+            return [o for o in self._offset_types if o not in self.skip_np_u1p7]
+        else:
+            return self._offset_types
+
+    def _get_offset(self, klass, value=1, normalize=False):
         # create instance from offset class
         if klass is FY5253 or klass is FY5253Quarter:
             klass = klass(n=value, startingMonth=1, weekday=1,
-                            qtr_with_extra_week=1, variation='last')
-        elif klass is WeekOfMonth or klass is LastWeekOfMonth:
-            klass = LastWeekOfMonth(n=value, weekday=5)
+                          qtr_with_extra_week=1, variation='last',
+                          normalize=normalize)
+        elif klass is LastWeekOfMonth:
+            klass = klass(n=value, weekday=5, normalize=normalize)
+        elif klass is WeekOfMonth:
+            klass = klass(n=value, week=1, weekday=5, normalize=normalize)
+        elif klass is Week:
+            klass = klass(n=value, weekday=5, normalize=normalize)
         else:
             try:
-                klass = klass(value)
+                klass = klass(value, normalize=normalize)
             except:
-                klass = klass()
+                klass = klass(normalize=normalize)
         return klass
 
     def test_apply_out_of_range(self):
@@ -136,13 +149,45 @@ class Base(tm.TestCase):
             raise nose.SkipTest("cannot create out_of_range offset: {0} {1}".format(str(self).split('.')[-1],e))
 
 
-class TestOps(Base):
+class TestCommon(Base):
+
+    def setUp(self):
+
+        # exected value created by Base._get_offset
+        # are applied to 2011/01/01 09:00 (Saturday)
+        # used for .apply and .rollforward
+        self.expecteds = {'Day': Timestamp('2011-01-02 09:00:00'),
+                          'BusinessDay': Timestamp('2011-01-03 09:00:00'),
+                          'CustomBusinessDay': Timestamp('2011-01-03 09:00:00'),
+                          'CustomBusinessMonthEnd': Timestamp('2011-01-31 09:00:00'),
+                          'CustomBusinessMonthBegin': Timestamp('2011-01-03 09:00:00'),
+                          'MonthBegin': Timestamp('2011-02-01 09:00:00'),
+                          'BusinessMonthBegin': Timestamp('2011-01-03 09:00:00'),
+                          'MonthEnd': Timestamp('2011-01-31 09:00:00'),
+                          'BusinessMonthEnd': Timestamp('2011-01-31 09:00:00'),
+                          'YearBegin': Timestamp('2012-01-01 09:00:00'),
+                          'BYearBegin': Timestamp('2011-01-03 09:00:00'),
+                          'YearEnd': Timestamp('2011-12-31 09:00:00'),
+                          'BYearEnd': Timestamp('2011-12-30 09:00:00'),
+                          'QuarterBegin': Timestamp('2011-03-01 09:00:00'),
+                          'BQuarterBegin': Timestamp('2011-03-01 09:00:00'),
+                          'QuarterEnd': Timestamp('2011-03-31 09:00:00'),
+                          'BQuarterEnd': Timestamp('2011-03-31 09:00:00'),
+                          'WeekOfMonth': Timestamp('2011-01-08 09:00:00'),
+                          'LastWeekOfMonth': Timestamp('2011-01-29 09:00:00'),
+                          'FY5253Quarter': Timestamp('2011-01-25 09:00:00'),
+                          'FY5253': Timestamp('2011-01-25 09:00:00'),
+                          'Week': Timestamp('2011-01-08 09:00:00'),
+                          'Easter': Timestamp('2011-04-24 09:00:00'),
+                          'Hour': Timestamp('2011-01-01 10:00:00'),
+                          'Minute': Timestamp('2011-01-01 09:01:00'),
+                          'Second': Timestamp('2011-01-01 09:00:01'),
+                          'Milli': Timestamp('2011-01-01 09:00:00.001000'),
+                          'Micro': Timestamp('2011-01-01 09:00:00.000001'),
+                          'Nano': Timestamp(np.datetime64('2011-01-01T09:00:00.000000001Z'))}
 
     def test_return_type(self):
         for offset in self.offset_types:
-            if _np_version_under1p7 and offset in self.skip_np_u1p7:
-                continue
-
             offset = self._get_offset(offset)
 
             # make sure that we are returning a Timestamp
@@ -155,6 +200,148 @@ class TestOps(Base):
 
             self.assertTrue(NaT - offset is NaT)
             self.assertTrue((-offset).apply(NaT) is NaT)
+
+    def _check_offsetfunc_works(self, offset, funcname, dt, expected,
+                                normalize=False):
+        offset_s = self._get_offset(offset, normalize=normalize)
+        func = getattr(offset_s, funcname)
+
+        result = func(dt)
+        self.assert_(isinstance(result, datetime))
+        self.assertEqual(result, expected)
+
+        result = func(Timestamp(dt))
+        self.assert_(isinstance(result, Timestamp))
+        self.assertEqual(result, expected)
+
+    def _check_nanofunc_works(self, offset, funcname, dt, expected):
+        offset = self._get_offset(offset)
+        func = getattr(offset, funcname)
+
+        t1 = Timestamp(dt)
+        self.assertEqual(func(t1), expected)
+
+    def test_apply(self):
+        dt = datetime(2011, 1, 1, 9, 0)
+
+        for offset in self.offset_types:
+            expected = self.expecteds[offset.__name__]
+
+            if offset == Nano:
+                self._check_nanofunc_works(offset, 'apply', dt, expected)
+            else:
+                self._check_offsetfunc_works(offset, 'apply', dt, expected)
+
+                expected = Timestamp(expected.date())
+                self._check_offsetfunc_works(offset, 'apply', dt, expected,
+                                             normalize=True)
+
+    def test_rollforward(self):
+        expecteds = self.expecteds.copy()
+
+        # result will not be changed if the target is on the offset
+        no_changes = ['Day', 'MonthBegin', 'YearBegin', 'Week', 'Hour', 'Minute',
+                      'Second', 'Milli', 'Micro', 'Nano']
+        for n in no_changes:
+            expecteds[n] = Timestamp('2011/01/01 09:00')
+
+        # but be changed when normalize=True
+        norm_expected = expecteds.copy()
+        for k in norm_expected:
+            norm_expected[k] = Timestamp(norm_expected[k].date())
+
+        normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
+                      'MonthBegin': Timestamp('2011-02-01 00:00:00'),
+                      'YearBegin': Timestamp('2012-01-01 00:00:00'),
+                      'Week': Timestamp('2011-01-08 00:00:00'),
+                      'Hour': Timestamp('2011-01-01 00:00:00'),
+                      'Minute': Timestamp('2011-01-01 00:00:00'),
+                      'Second': Timestamp('2011-01-01 00:00:00'),
+                      'Milli': Timestamp('2011-01-01 00:00:00'),
+                      'Micro': Timestamp('2011-01-01 00:00:00')}
+        norm_expected.update(normalized)
+
+        dt = datetime(2011, 1, 1, 9, 0)
+        for offset in self.offset_types:
+            expected = expecteds[offset.__name__]
+
+            if offset == Nano:
+                self._check_nanofunc_works(offset, 'rollforward', dt, expected)
+            else:
+                self._check_offsetfunc_works(offset, 'rollforward', dt, expected)
+                expected = norm_expected[offset.__name__]
+                self._check_offsetfunc_works(offset, 'rollforward', dt, expected,
+                                             normalize=True)
+
+    def test_rollback(self):
+        expecteds = {'BusinessDay': Timestamp('2010-12-31 09:00:00'),
+                     'CustomBusinessDay': Timestamp('2010-12-31 09:00:00'),
+                     'CustomBusinessMonthEnd': Timestamp('2010-12-31 09:00:00'),
+                     'CustomBusinessMonthBegin': Timestamp('2010-12-01 09:00:00'),
+                     'BusinessMonthBegin': Timestamp('2010-12-01 09:00:00'),
+                     'MonthEnd': Timestamp('2010-12-31 09:00:00'),
+                     'BusinessMonthEnd': Timestamp('2010-12-31 09:00:00'),
+                     'BYearBegin': Timestamp('2010-01-01 09:00:00'),
+                     'YearEnd': Timestamp('2010-12-31 09:00:00'),
+                     'BYearEnd': Timestamp('2010-12-31 09:00:00'),
+                     'QuarterBegin': Timestamp('2010-12-01 09:00:00'),
+                     'BQuarterBegin': Timestamp('2010-12-01 09:00:00'),
+                     'QuarterEnd': Timestamp('2010-12-31 09:00:00'),
+                     'BQuarterEnd': Timestamp('2010-12-31 09:00:00'),
+                     'WeekOfMonth': Timestamp('2010-12-11 09:00:00'),
+                     'LastWeekOfMonth': Timestamp('2010-12-25 09:00:00'),
+                     'FY5253Quarter': Timestamp('2010-10-26 09:00:00'),
+                     'FY5253': Timestamp('2010-01-26 09:00:00'),
+                     'Easter': Timestamp('2010-04-04 09:00:00')}
+
+        # result will not be changed if the target is on the offset
+        for n in ['Day', 'MonthBegin', 'YearBegin', 'Week', 'Hour', 'Minute',
+                  'Second', 'Milli', 'Micro', 'Nano']:
+            expecteds[n] = Timestamp('2011/01/01 09:00')
+
+        # but be changed when normalize=True
+        norm_expected = expecteds.copy()
+        for k in norm_expected:
+            norm_expected[k] = Timestamp(norm_expected[k].date())
+
+        normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
+                      'MonthBegin': Timestamp('2010-12-01 00:00:00'),
+                      'YearBegin': Timestamp('2010-01-01 00:00:00'),
+                      'Week': Timestamp('2010-12-25 00:00:00'),
+                      'Hour': Timestamp('2011-01-01 00:00:00'),
+                      'Minute': Timestamp('2011-01-01 00:00:00'),
+                      'Second': Timestamp('2011-01-01 00:00:00'),
+                      'Milli': Timestamp('2011-01-01 00:00:00'),
+                      'Micro': Timestamp('2011-01-01 00:00:00')}
+        norm_expected.update(normalized)
+
+        dt = datetime(2011, 1, 1, 9, 0)
+        for offset in self.offset_types:
+            expected = expecteds[offset.__name__]
+
+            if offset == Nano:
+                self._check_nanofunc_works(offset, 'rollback', dt, expected)
+            else:
+                self._check_offsetfunc_works(offset, 'rollback', dt, expected)
+
+                expected = norm_expected[offset.__name__]
+                self._check_offsetfunc_works(offset, 'rollback',
+                                             dt, expected, normalize=True)
+
+    def test_onOffset(self):
+
+        for offset in self.offset_types:
+
+            dt = self.expecteds[offset.__name__]
+            offset_s = self._get_offset(offset)
+            self.assert_(offset_s.onOffset(dt))
+
+            # when normalize=True, onOffset checks time is 00:00:00
+            offset_n = self._get_offset(offset, normalize=True)
+            self.assert_(not offset_n.onOffset(dt))
+
+            date = datetime(dt.year, dt.month, dt.day)
+            self.assert_(offset_n.onOffset(date))
 
 
 class TestDateOffset(Base):
@@ -1208,7 +1395,7 @@ class TestBMonthEnd(Base):
     def test_normalize(self):
         dt = datetime(2007, 1, 1, 3)
 
-        result = dt + BMonthEnd()
+        result = dt + BMonthEnd(normalize=True)
         expected = dt.replace(hour=0) + BMonthEnd()
         self.assertEqual(result, expected)
 
@@ -1323,7 +1510,7 @@ class TestMonthEnd(Base):
     def test_normalize(self):
         dt = datetime(2007, 1, 1, 3)
 
-        result = dt + MonthEnd()
+        result = dt + MonthEnd(normalize=True)
         expected = dt.replace(hour=0) + MonthEnd()
         self.assertEqual(result, expected)
 

@@ -33,8 +33,18 @@ API changes
 
 
 
+- All ``offsets`` suppports ``normalize`` keyword to specify whether ``offsets.apply``, ``rollforward`` and ``rollback`` resets time (hour, minute, etc) or not (default ``False``, preserves time) (:issue:`7156`)
 
 
+  .. ipython:: python
+
+   import pandas.tseries.offsets as offsets
+
+   day = offsets.Day()
+   day.apply(Timestamp('2014-01-01 09:00'))
+
+   day = offsets.Day(normalize=True)
+   day.apply(Timestamp('2014-01-01 09:00'))
 
 
 

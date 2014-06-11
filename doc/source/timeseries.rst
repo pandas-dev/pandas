@@ -539,6 +539,25 @@ The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
 It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
+These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when create offset instance. If ``normalize=True``, result is normalized after the function is applied.
+
+
+  .. ipython:: python
+
+   day = Day()
+   day.apply(Timestamp('2014-01-01 09:00'))
+
+   day = Day(normalize=True)
+   day.apply(Timestamp('2014-01-01 09:00'))
+
+   hour = Hour()
+   hour.apply(Timestamp('2014-01-01 22:00'))
+
+   hour = Hour(normalize=True)
+   hour.apply(Timestamp('2014-01-01 22:00'))
+   hour.apply(Timestamp('2014-01-01 23:00'))
+
+
 Parametric offsets
 ~~~~~~~~~~~~~~~~~~
 
