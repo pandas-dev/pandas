@@ -1603,6 +1603,66 @@ def _get_fill_func(method):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+def _validate_date_like_dtype(dtype):
+    try:
+        typ = np.datetime_data(dtype)[0]
+    except ValueError as e:
+        raise TypeError('%s' % e)
+    if typ != 'generic' and typ != 'ns':
+        raise ValueError('%r is too specific of a frequency, try passing %r'
+                         % (dtype.name, dtype.type.__name__))
+
+
+def _invalidate_string_dtypes(dtype_set):
+    """Change string like dtypes to object for ``DataFrame.select_dtypes()``."""
+    non_string_dtypes = dtype_set - _string_dtypes
+    if non_string_dtypes != dtype_set:
+        raise TypeError("string dtypes are not allowed, use 'object' instead")
+
+
+def _get_dtype_from_object(dtype):
+    """Get a numpy dtype.type-style object.
+
+    Notes
+    -----
+    If nothing can be found, returns ``object``.
+    """
+    # type object from a dtype
+    if isinstance(dtype, type) and issubclass(dtype, np.generic):
+        return dtype
+    elif isinstance(dtype, np.dtype):  # dtype object
+        try:
+            _validate_date_like_dtype(dtype)
+        except TypeError:
+            # should still pass if we don't have a datelike
+            pass
+        return dtype.type
+    elif isinstance(dtype, compat.string_types):
+        if dtype == 'datetime' or dtype == 'timedelta':
+            dtype += '64'
+        try:
+            return _get_dtype_from_object(getattr(np, dtype))
+        except AttributeError:
+            # handles cases like _get_dtype(int)
+            # i.e., python objects that are valid dtypes (unlike user-defined
+            # types, in general)
+            pass
+    return _get_dtype_from_object(np.dtype(dtype))
+
+
+_string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
+                                                        compat.text_type)))
+
+
+def _get_info_slice(obj, indexer):
+    """Slice the info axis of `obj` with `indexer`."""
+    if not hasattr(obj, '_info_axis_number'):
+        raise TypeError('object of type %r has no info axis' %
+                        type(obj).__name__)
+    slices = [slice(None)] * obj.ndim
+    slices[obj._info_axis_number] = indexer
+    return tuple(slices)
+
 
 def _maybe_box(indexer, values, obj, key):
 
@@ -1612,6 +1672,7 @@ def _maybe_box(indexer, values, obj, key):
 
     # return the value
     return values
+
 
 def _maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
@@ -1796,6 +1857,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
             value = _possibly_infer_to_datetimelike(value)
 
     return value
+
 
 def _possibly_infer_to_datetimelike(value):
     # we might have a array (or single object) that is datetime like,

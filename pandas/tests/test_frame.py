@@ -12996,6 +12996,123 @@ starting,ending,measure
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, df.index]).index, mi2)
 
+    def test_select_dtypes_include(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True]})
+        ri = df.select_dtypes(include=[np.number])
+        ei = df[['b', 'c', 'd']]
+        tm.assert_frame_equal(ri, ei)
+
+    def test_select_dtypes_exclude(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True]})
+        re = df.select_dtypes(exclude=[np.number])
+        ee = df[['a', 'e']]
+        tm.assert_frame_equal(re, ee)
+
+    def test_select_dtypes_exclude_include(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True],
+                        'f': pd.date_range('now', periods=3).values})
+        exclude = np.datetime64,
+        include = np.bool_, 'integer'
+        r = df.select_dtypes(include=include, exclude=exclude)
+        e = df[['b', 'c', 'e']]
+        tm.assert_frame_equal(r, e)
+
+        exclude = 'datetime',
+        include = 'bool', 'int'
+        r = df.select_dtypes(include=include, exclude=exclude)
+        e = df[['b', 'e']]
+        tm.assert_frame_equal(r, e)
+
+    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True],
+                        'f': pd.date_range('now', periods=3).values})
+        df['g'] = df.f.diff()
+        assert not hasattr(np, 'u8')
+        r = df.select_dtypes(include=['i8', 'O'], exclude=['timedelta'])
+        e = df[['a', 'b']]
+        tm.assert_frame_equal(r, e)
+
+        r = df.select_dtypes(include=['i8', 'O', 'timedelta64[ns]'])
+        e = df[['a', 'b', 'g']]
+        tm.assert_frame_equal(r, e)
+
+    def test_select_dtypes_empty(self):
+        df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
+        with tm.assertRaisesRegexp(ValueError, 'at least one of include or '
+                                   'exclude must be nonempty'):
+            df.select_dtypes()
+
+    def test_select_dtypes_raises_on_string(self):
+        df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
+        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+            df.select_dtypes(include='object')
+        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+            df.select_dtypes(exclude='object')
+        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+            df.select_dtypes(include=int, exclude='object')
+
+    def test_select_dtypes_bad_datetime64(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True],
+                        'f': pd.date_range('now', periods=3).values})
+        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+            df.select_dtypes(include=['datetime64[D]'])
+
+        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+            df.select_dtypes(exclude=['datetime64[as]'])
+
+    def test_select_dtypes_str_raises(self):
+        df = DataFrame({'a': list('abc'),
+                        'g': list(u('abc')),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True],
+                        'f': pd.date_range('now', periods=3).values})
+        string_dtypes = set((str, 'str', np.string_, 'S1',
+                             'unicode', np.unicode_, 'U1'))
+        try:
+            string_dtypes.add(unicode)
+        except NameError:
+            pass
+        for dt in string_dtypes:
+            with tm.assertRaisesRegexp(TypeError,
+                                       'string dtypes are not allowed'):
+                df.select_dtypes(include=[dt])
+            with tm.assertRaisesRegexp(TypeError,
+                                       'string dtypes are not allowed'):
+                df.select_dtypes(exclude=[dt])
+
+    def test_select_dtypes_bad_arg_raises(self):
+        df = DataFrame({'a': list('abc'),
+                        'g': list(u('abc')),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0),
+                        'e': [True, False, True],
+                        'f': pd.date_range('now', periods=3).values})
+        with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
+            df.select_dtypes(['blargy, blarg, blarg'])
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
@@ -13930,6 +14047,7 @@ class TestDataFrameQueryStrings(object):
     def test_query_string_scalar_variable(self):
         for parser, engine in product(['pandas'], ENGINES):
             yield self.check_query_string_scalar_variable, parser, engine
+
 
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 

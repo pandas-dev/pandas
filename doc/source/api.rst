@@ -524,6 +524,7 @@ Attributes and underlying data
    DataFrame.ftypes
    DataFrame.get_dtype_counts
    DataFrame.get_ftype_counts
+   DataFrame.select_dtypes
    DataFrame.values
    DataFrame.axes
    DataFrame.ndim
