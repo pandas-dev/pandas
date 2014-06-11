@@ -23,7 +23,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.common import _is_sequence
+from pandas.core.common import _is_sequence, array_equivalent
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -86,9 +86,30 @@ class TestCase(unittest.TestCase):
         pd.reset_option('^display.',silent=True)
 
     def assert_numpy_array_equal(self, np_array, assert_equal):
+        """Checks that 'np_array' is equal to 'assert_equal'
+
+        Note that the expected array should not contain `np.nan`! Two numpy arrays are equal if all
+        elements are equal, which is not possible if `np.nan` is such an element!
+
+        If the expected array includes `np.nan` use `assert_numpy_array_equivalent(...)`.
+        """
         if np.array_equal(np_array, assert_equal):
 	        return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
+
+    def assert_numpy_array_equivalent(self, np_array, assert_equal):
+        """Checks that 'np_array' is equivalent to 'assert_equal'
+
+        Two numpy arrays are equivalent if the arrays have equal non-NaN elements, and
+        `np.nan` in corresponding locations.
+
+        If the the expected array does not contain `np.nan` `assert_numpy_array_equivalent` is the
+        similar to `assert_numpy_array_equal()`. If the expected array includes `np.nan` use this
+        function.
+        """
+        if array_equivalent(np_array, assert_equal):
+	        return
+        raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
 
     def assertIs(self, first, second, msg=''):
         """Checks that 'first' is 'second'"""
