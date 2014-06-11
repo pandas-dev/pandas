@@ -2293,24 +2293,101 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
 
+    def test_asobject(self):
+        idx = date_range(start='2013-01-01', periods=4, freq='M', name='idx')
+        expected = Index([Timestamp('2013-01-31'), Timestamp('2013-02-28'),
+                          Timestamp('2013-03-31'), Timestamp('2013-04-30')],
+                         dtype=object, name='idx')
+
+        result = idx.asobject
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+
     def test_insert(self):
-        idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'])
+        idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')
 
         result = idx.insert(2, datetime(2000, 1, 5))
         exp = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-05',
-                             '2000-01-02'])
+                             '2000-01-02'], name='idx')
         self.assertTrue(result.equals(exp))
 
         # insertion of non-datetime should coerce to object index
         result = idx.insert(1, 'inserted')
         expected = Index([datetime(2000, 1, 4), 'inserted', datetime(2000, 1, 1),
-                          datetime(2000, 1, 2)])
+                          datetime(2000, 1, 2)], name='idx')
         self.assertNotIsInstance(result, DatetimeIndex)
         tm.assert_index_equal(result, expected)
+        self.assertEqual(result.name, expected.name)
 
-        idx = date_range('1/1/2000', periods=3, freq='M')
-        result = idx.insert(3, datetime(2000, 4, 30))
-        self.assertEqual(result.freqstr, 'M')
+        idx = date_range('1/1/2000', periods=3, freq='M', name='idx')
+
+        # preserve freq
+        expected_0 = DatetimeIndex(['1999-12-31', '2000-01-31', '2000-02-29',
+                                    '2000-03-31'], name='idx', freq='M')
+        expected_3 = DatetimeIndex(['2000-01-31', '2000-02-29', '2000-03-31',
+                                    '2000-04-30'], name='idx', freq='M')
+
+        # reset freq to None
+        expected_1_nofreq = DatetimeIndex(['2000-01-31', '2000-01-31', '2000-02-29',
+                                           '2000-03-31'], name='idx', freq=None)
+        expected_3_nofreq = DatetimeIndex(['2000-01-31', '2000-02-29', '2000-03-31',
+                                           '2000-01-02'], name='idx', freq=None)
+
+        cases = [(0, datetime(1999, 12, 31), expected_0),
+                 (-3, datetime(1999, 12, 31), expected_0),
+                 (3, datetime(2000, 4, 30), expected_3),
+                 (1, datetime(2000, 1, 31), expected_1_nofreq),
+                 (3, datetime(2000, 1, 2), expected_3_nofreq)]
+
+        for n, d, expected in cases:
+            result = idx.insert(n, d)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freq, expected.freq)
+
+        # reset freq to None
+        result = idx.insert(3, datetime(2000, 1, 2))
+        expected = DatetimeIndex(['2000-01-31', '2000-02-29', '2000-03-31',
+                                  '2000-01-02'], name='idx', freq=None)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertTrue(result.freq is None)
+
+        # GH 7299
+        _skip_if_no_pytz()
+        import pytz
+
+        idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo', name='idx')
+        with tm.assertRaises(ValueError):
+            result = idx.insert(3, pd.Timestamp('2000-01-04'))
+        with tm.assertRaises(ValueError):
+            result = idx.insert(3, datetime(2000, 1, 4))
+        with tm.assertRaises(ValueError):
+            result = idx.insert(3, pd.Timestamp('2000-01-04', tz='US/Eastern'))
+        with tm.assertRaises(ValueError):
+            result = idx.insert(3, datetime(2000, 1, 4, tzinfo=pytz.timezone('US/Eastern')))
+
+        # preserve freq
+        expected = date_range('1/1/2000', periods=4, freq='D', tz='Asia/Tokyo', name='idx')
+        for d in [pd.Timestamp('2000-01-04', tz='Asia/Tokyo'),
+                  datetime(2000, 1, 4, tzinfo=pytz.timezone('Asia/Tokyo'))]:
+
+            result = idx.insert(3, d)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freqstr, expected.freq)
+
+        expected = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03',
+                                  '2000-01-02'], name='idx',
+                                  tz='Asia/Tokyo', freq=None)
+        # reset freq to None
+        for d in [pd.Timestamp('2000-01-02', tz='Asia/Tokyo'),
+                  datetime(2000, 1, 2, tzinfo=pytz.timezone('Asia/Tokyo'))]:
+            result = idx.insert(3, d)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertTrue(result.freq is None)
+
 
     def test_delete(self):
         idx = date_range(start='2000-01-01', periods=5, freq='M', name='idx')

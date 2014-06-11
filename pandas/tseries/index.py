@@ -784,7 +784,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def _get_object_index(self):
         boxfunc = lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
         boxed_values = lib.map_infer(self.asi8, boxfunc)
-        return Index(boxed_values, dtype=object)
+        return Index(boxed_values, dtype=object, name=self.name)
 
     def to_pydatetime(self):
         """
@@ -1594,13 +1594,29 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         new_index : Index
         """
+
+        freq = None
         if isinstance(item, datetime):
+            zone = tslib.get_timezone(self.tz)
+            izone = tslib.get_timezone(getattr(item, 'tzinfo', None))
+            if zone != izone:
+                raise ValueError('Passed item and index have different timezone')
+            # check freq can be preserved on edge cases
+            if self.freq is not None:
+                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
             item = _to_m8(item, tz=self.tz)
         try:
-            new_index = np.concatenate((self[:loc].asi8,
-                                    [item.view(np.int64)],
-                                    self[loc:].asi8))
-            return DatetimeIndex(new_index, freq='infer')
+            new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
+                                        self[loc:].asi8))
+            if self.tz is not None:
+                f = lambda x: tslib.tz_convert_single(x, 'UTC', self.tz)
+                new_dates = np.vectorize(f)(new_dates)
+                # new_dates = tslib.tz_convert(new_dates, 'UTC', self.tz)
+            return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
+
         except (AttributeError, TypeError):
 
             # fall back to object index
