@@ -278,8 +278,7 @@ class TestnanopsDataFrame(tm.TestCase):
                              allow_complex=False, allow_date=False)
 
     def test_nansem(self):
-        tm.skip_if_no_package('scipy')
-        from scipy.stats import sem
+        tm.skip_if_no_package('scipy.stats')
         self.check_funs_ddof(nanops.nansem, np.var,
                              allow_complex=False, allow_date=False)
 
@@ -340,14 +339,14 @@ class TestnanopsDataFrame(tm.TestCase):
         return result
 
     def test_nanskew(self):
-        tm.skip_if_no_package('scipy')
+        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
         self.check_funs(nanops.nanskew, func,
                         allow_complex=False, allow_str=False, allow_date=False)
 
     def test_nankurt(self):
-        tm.skip_if_no_package('scipy')
+        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
@@ -466,7 +465,7 @@ class TestnanopsDataFrame(tm.TestCase):
                                      method='pearson')
 
     def test_nancorr_kendall(self):
-        tm.skip_if_no_package('scipy')
+        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import kendalltau
         targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
@@ -478,7 +477,7 @@ class TestnanopsDataFrame(tm.TestCase):
                                      method='kendall')
 
     def test_nancorr_spearman(self):
-        tm.skip_if_no_package('scipy')
+        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import spearmanr
         targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
