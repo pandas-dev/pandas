@@ -4181,6 +4181,8 @@ class DataFrame(NDFrame):
                 return _quantile(values, per)
 
         data = self._get_numeric_data() if numeric_only else self
+        if axis == 1:
+            data = data.T
 
         # need to know which cols are timestamp going in so that we can
         # map timestamp over them after getting the quantile.
