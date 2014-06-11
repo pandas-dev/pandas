@@ -127,15 +127,6 @@ Enhancements
 
 Performance
 ~~~~~~~~~~~
-
-
-
-
-
-
-
-
-
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
 
 
@@ -166,13 +157,13 @@ Bug Fixes
 
 
 
-- BUG in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
-- BUG in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
+- Bug in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
+- Bug in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
 
 
 
 
-
+- Bug in multi-index slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
 
 
 
