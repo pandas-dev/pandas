@@ -137,7 +137,7 @@ Performance
 
 
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
-
+- Improvements in Series.transform for signifcant performance gains (:issue`6496`)
 
 
 

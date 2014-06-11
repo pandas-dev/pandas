@@ -376,3 +376,21 @@ f_fillna = lambda x: x.fillna(method='pad')
 """
 
 groupby_transform = Benchmark("data.groupby(level='security_id').transform(f_fillna)", setup)
+
+setup = common_setup + """
+np.random.seed(0)
+
+N = 120000
+N_TRANSITIONS = 1400
+
+# generate groups
+transition_points = np.random.permutation(np.arange(N))[:N_TRANSITIONS]
+transition_points.sort()
+transitions = np.zeros((N,), dtype=np.bool)
+transitions[transition_points] = True
+g = transitions.cumsum()
+
+df = DataFrame({ 'signal' : np.random.rand(N)})
+"""
+
+groupby_transform2 = Benchmark("df['signal'].groupby(g).transform(np.mean)", setup)
