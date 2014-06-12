@@ -38,32 +38,12 @@ echo "home_dir: [$home_dir]"
 # pip==1.5.1
 # setuptools==2.2
 # wheel==0.22
-# nose==1.3.0 (1.3.1 broken for PY3)
+# nose==1.3.3
 
 pip install -I -U pip
 pip install -I -U setuptools
 pip install wheel==0.22
-
-# install nose
-pip uninstall nose -y
-
-if [ -n "$EXPERIMENTAL" ]; then
-
-    # install from master
-    rm -Rf /tmp/nose
-    cd /tmp
-    git clone --branch master https://github.com/nose-devs/nose.git nose
-    cd nose
-    python setup.py install
-    cd $home_dir
-
-else
-
-    # known good version
-    pip install nose==1.3.0
-
-fi
-
+pip install nose==1.3.3
 
 # comment this line to disable the fetching of wheel files
 base_url=http://pandas.pydata.org/pandas-build/dev/wheels
