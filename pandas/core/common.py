@@ -1802,9 +1802,11 @@ def _possibly_infer_to_datetimelike(value):
     v = value
     if not is_list_like(v):
         v = [v]
-    v = np.array(v)
+    if not isinstance(v, np.ndarray):
+        v = np.array(v)
     shape = v.shape
-    v = v.ravel()
+    if not v.ndim == 1:
+        v = v.ravel()
 
     if len(v):
 
