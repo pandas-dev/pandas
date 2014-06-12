@@ -213,7 +213,8 @@ Bug Fixes
 - Bug where bool objects were converted to ``nan`` in ``convert_objects``
   (:issue:`7416`).
 - Bug in ``quantile`` ignoring the axis keyword argument (:issue`7306`)
-
+- Bug where ``nanops._maybe_null_out`` doesn't work with complex numbers
+  (:issue:`7353`)
 
 
 

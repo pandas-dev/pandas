@@ -239,7 +239,6 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nansum(self):
         self.check_funs(nanops.nansum, np.sum,
-                        allow_complex=False,
                         allow_str=False, allow_date=False)
 
     def _nanmean_wrap(self, value, *args, **kwargs):
@@ -291,13 +290,11 @@ class TestnanopsDataFrame(tm.TestCase):
     def test_nanmin(self):
         func = partial(self._minmax_wrap, func=np.min)
         self.check_funs(nanops.nanmin, func,
-                        allow_complex=False,
                         allow_str=False, allow_obj=False)
 
     def test_nanmax(self):
         func = partial(self._minmax_wrap, func=np.max)
         self.check_funs(nanops.nanmax, func,
-                        allow_complex=False,
                         allow_str=False, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
@@ -355,7 +352,6 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod,
-                        allow_complex=False,
                         allow_str=False, allow_date=False)
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
