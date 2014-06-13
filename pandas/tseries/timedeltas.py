@@ -9,7 +9,7 @@ import numpy as np
 import pandas.tslib as tslib
 from pandas import compat, _np_version_under1p7
 from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype, is_timedelta64_dtype,
-                                _values_from_object, is_list_like, isnull)
+                                _values_from_object, is_list_like, isnull, _ensure_object)
 
 repr_timedelta = tslib.repr_timedelta64
 repr_timedelta64 = tslib.repr_timedelta64
@@ -46,7 +46,7 @@ def to_timedelta(arg, box=True, unit='ns'):
             value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]')
         else:
             try:
-                value = tslib.array_to_timedelta64(_ensure_object(arg),unit=unit)
+                value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit)
             except:
                 value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
 

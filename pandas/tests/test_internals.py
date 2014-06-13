@@ -356,7 +356,9 @@ class TestBlockManager(tm.TestCase):
         for item in self.mgr.items:
             for i, index in enumerate(self.mgr.axes[1]):
                 res = self.mgr.get_scalar((item, index))
-                exp = self.mgr.get(item)[i]
+                exp = self.mgr.get(item, fastpath=False)[i]
+                assert_almost_equal(res, exp)
+                exp = self.mgr.get(item).values[i]
                 assert_almost_equal(res, exp)
 
     def test_get(self):
@@ -366,19 +368,22 @@ class TestBlockManager(tm.TestCase):
                            placement=np.arange(3))
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
-        assert_almost_equal(mgr.get('a'), values[0])
-        assert_almost_equal(mgr.get('b'), values[1])
-        assert_almost_equal(mgr.get('c'), values[2])
+        assert_almost_equal(mgr.get('a', fastpath=False), values[0])
+        assert_almost_equal(mgr.get('b', fastpath=False), values[1])
+        assert_almost_equal(mgr.get('c', fastpath=False), values[2])
+        assert_almost_equal(mgr.get('a').values, values[0])
+        assert_almost_equal(mgr.get('b').values, values[1])
+        assert_almost_equal(mgr.get('c').values, values[2])
 
     def test_set(self):
         mgr = create_mgr('a,b,c: int', item_shape=(3,))
 
         mgr.set('d', np.array(['foo'] * 3))
         mgr.set('b', np.array(['bar'] * 3))
-        assert_almost_equal(mgr.get('a'), [0] * 3)
-        assert_almost_equal(mgr.get('b'), ['bar'] * 3)
-        assert_almost_equal(mgr.get('c'), [2] * 3)
-        assert_almost_equal(mgr.get('d'), ['foo'] * 3)
+        assert_almost_equal(mgr.get('a').values, [0] * 3)
+        assert_almost_equal(mgr.get('b').values, ['bar'] * 3)
+        assert_almost_equal(mgr.get('c').values, [2] * 3)
+        assert_almost_equal(mgr.get('d').values, ['foo'] * 3)
 
     def test_insert(self):
         self.mgr.insert(0, 'inserted', np.arange(N))
@@ -580,10 +585,14 @@ class TestBlockManager(tm.TestCase):
         reindexed = mgr.reindex_axis(['g', 'c', 'a', 'd'], axis=0)
         self.assertEqual(reindexed.nblocks, 2)
         assert_almost_equal(reindexed.items, ['g', 'c', 'a', 'd'])
-        assert_almost_equal(mgr.get('g'), reindexed.get('g'))
-        assert_almost_equal(mgr.get('c'), reindexed.get('c'))
-        assert_almost_equal(mgr.get('a'), reindexed.get('a'))
-        assert_almost_equal(mgr.get('d'), reindexed.get('d'))
+        assert_almost_equal(mgr.get('g',fastpath=False), reindexed.get('g',fastpath=False))
+        assert_almost_equal(mgr.get('c',fastpath=False), reindexed.get('c',fastpath=False))
+        assert_almost_equal(mgr.get('a',fastpath=False), reindexed.get('a',fastpath=False))
+        assert_almost_equal(mgr.get('d',fastpath=False), reindexed.get('d',fastpath=False))
+        assert_almost_equal(mgr.get('g').values, reindexed.get('g').values)
+        assert_almost_equal(mgr.get('c').values, reindexed.get('c').values)
+        assert_almost_equal(mgr.get('a').values, reindexed.get('a').values)
+        assert_almost_equal(mgr.get('d').values, reindexed.get('d').values)
 
     def test_multiindex_xs(self):
         mgr = create_mgr('a,b,c: f8; d,e,f: i8')
@@ -608,16 +617,19 @@ class TestBlockManager(tm.TestCase):
 
         numeric = mgr.get_numeric_data()
         assert_almost_equal(numeric.items, ['int', 'float', 'complex', 'bool'])
-        assert_almost_equal(mgr.get('float'), numeric.get('float'))
+        assert_almost_equal(mgr.get('float',fastpath=False), numeric.get('float',fastpath=False))
+        assert_almost_equal(mgr.get('float').values, numeric.get('float').values)
 
         # Check sharing
         numeric.set('float', np.array([100., 200., 300.]))
-        assert_almost_equal(mgr.get('float'), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float',fastpath=False), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float').values, np.array([100., 200., 300.]))
 
         numeric2 = mgr.get_numeric_data(copy=True)
         assert_almost_equal(numeric.items, ['int', 'float', 'complex', 'bool'])
         numeric2.set('float', np.array([1000., 2000., 3000.]))
-        assert_almost_equal(mgr.get('float'), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float',fastpath=False), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float').values, np.array([100., 200., 300.]))
 
     def test_get_bool_data(self):
         mgr = create_mgr('int: int; float: float; complex: complex;'
@@ -627,15 +639,18 @@ class TestBlockManager(tm.TestCase):
 
         bools = mgr.get_bool_data()
         assert_almost_equal(bools.items, ['bool'])
-        assert_almost_equal(mgr.get('bool'), bools.get('bool'))
+        assert_almost_equal(mgr.get('bool',fastpath=False), bools.get('bool',fastpath=False))
+        assert_almost_equal(mgr.get('bool').values, bools.get('bool').values)
 
         bools.set('bool', np.array([True, False, True]))
-        assert_almost_equal(mgr.get('bool'), [True, False, True])
+        assert_almost_equal(mgr.get('bool',fastpath=False), [True, False, True])
+        assert_almost_equal(mgr.get('bool').values, [True, False, True])
 
         # Check sharing
         bools2 = mgr.get_bool_data(copy=True)
         bools2.set('bool', np.array([False, True, False]))
-        assert_almost_equal(mgr.get('bool'), [True, False, True])
+        assert_almost_equal(mgr.get('bool',fastpath=False), [True, False, True])
+        assert_almost_equal(mgr.get('bool').values, [True, False, True])
 
     def test_unicode_repr_doesnt_raise(self):
         str_repr = repr(create_mgr(u('b,\u05d0: object')))

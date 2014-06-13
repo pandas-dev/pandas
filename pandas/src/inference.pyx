@@ -172,6 +172,27 @@ def infer_dtype_list(list values):
     pass
 
 
+def is_possible_datetimelike_array(object arr):
+    # determine if we have a possible datetimelike (or null-like) array
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        bint seen_timedelta = 0, seen_datetime = 0
+        object v
+
+    for i in range(n):
+        v = arr[i]
+        if util.is_string_object(v):
+           continue
+        elif util._checknull(v):
+           continue
+        elif is_datetime(v):
+           seen_datetime=1
+        elif is_timedelta(v):
+           seen_timedelta=1
+        else:
+           return False
+    return seen_datetime or seen_timedelta
+
 cdef inline bint is_null_datetimelike(v):
     # determine if we have a null for a timedelta/datetime (or integer versions)x
     if util._checknull(v):
@@ -331,61 +352,84 @@ def is_unicode_array(ndarray values):
 
 
 def is_datetime_array(ndarray[object] values):
-    cdef int i, n = len(values)
+    cdef int i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
         return False
+
+    # return False for all nulls
     for i in range(n):
         v = values[i]
-        if not (is_datetime(v) or is_null_datetimelike(v)):
+        if is_null_datetimelike(v):
+            # we are a regular null
+            if util._checknull(v):
+               null_count += 1
+        elif not is_datetime(v):
             return False
-    return True
-
+    return null_count != n
 
 def is_datetime64_array(ndarray values):
-    cdef int i, n = len(values)
+    cdef int i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
         return False
+
+    # return False for all nulls
     for i in range(n):
         v = values[i]
-        if not (util.is_datetime64_object(v) or is_null_datetimelike(v)):
+        if is_null_datetimelike(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not util.is_datetime64_object(v):
             return False
-    return True
+    return null_count != n
 
 def is_timedelta_array(ndarray values):
-    cdef int i, n = len(values)
+    cdef int i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
         return False
     for i in range(n):
         v = values[i]
-        if not (PyDelta_Check(v) or is_null_datetimelike(v)):
+        if is_null_datetimelike(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not PyDelta_Check(v):
             return False
-    return True
+    return null_count != n
 
 def is_timedelta64_array(ndarray values):
-    cdef int i, n = len(values)
+    cdef int i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
         return False
     for i in range(n):
         v = values[i]
-        if not (util.is_timedelta64_object(v) or is_null_datetimelike(v)):
+        if is_null_datetimelike(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not util.is_timedelta64_object(v):
             return False
-    return True
+    return null_count != n
 
 def is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
-    cdef int i, n = len(values)
+    cdef int i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
         return False
     for i in range(n):
         v = values[i]
-        if not (is_timedelta(v) or is_null_datetimelike(v)):
+        if is_null_datetimelike(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not is_timedelta(v):
             return False
-    return True
+    return null_count != n
 
 def is_date_array(ndarray[object] values):
     cdef int i, n = len(values)

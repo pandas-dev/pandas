@@ -58,7 +58,7 @@ def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
         raise nose.SkipTest("Specific locale is set {0}".format(lang))
-    
+
 def _skip_if_windows_python_3():
     if sys.version_info > (3,) and sys.platform == 'win32':
         raise nose.SkipTest("not used on python 3/win32")

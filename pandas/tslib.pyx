@@ -1326,7 +1326,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
 
         return oresult
 
-def array_to_timedelta64(ndarray[object] values, coerce=False):
+def array_to_timedelta64(ndarray[object] values, unit='ns', coerce=False):
     """ convert an ndarray to an array of ints that are timedeltas
         force conversion if coerce = True,
         else will raise if cannot convert """
@@ -1339,7 +1339,7 @@ def array_to_timedelta64(ndarray[object] values, coerce=False):
     iresult = result.view('i8')
 
     for i in range(n):
-        result[i] = convert_to_timedelta64(values[i], 'ns', coerce)
+        result[i] = convert_to_timedelta64(values[i], unit, coerce)
     return iresult
 
 def convert_to_timedelta(object ts, object unit='ns', coerce=False):
@@ -1363,16 +1363,16 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
     # handle the numpy < 1.7 case
     """
     if _checknull_with_nat(ts):
-        ts = np.timedelta64(iNaT)
+        return np.timedelta64(iNaT)
     elif util.is_datetime64_object(ts):
         # only accept a NaT here
         if ts.astype('int64') == iNaT:
-            ts = np.timedelta64(iNaT)
+            return np.timedelta64(iNaT)
     elif isinstance(ts, np.timedelta64):
         ts = ts.astype("m8[{0}]".format(unit.lower()))
     elif is_integer_object(ts):
         if ts == iNaT:
-            ts = np.timedelta64(iNaT)
+            return np.timedelta64(iNaT)
         else:
             if util.is_array(ts):
                 ts = ts.astype('int64').item()
@@ -1381,6 +1381,11 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
                 ts = timedelta(microseconds=ts/1000.0)
             else:
                 ts = np.timedelta64(ts)
+    elif util.is_string_object(ts):
+        if ts in _nat_strings or coerce:
+            return np.timedelta64(iNaT)
+        else:
+            raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
 
     if _np_version_under1p7:
         if not isinstance(ts, timedelta):

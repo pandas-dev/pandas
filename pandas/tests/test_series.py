@@ -581,6 +581,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(None, index=lrange(5), dtype=object)
         self.assertEqual(s.dtype, np.object_)
 
+        # GH 7431
+        # inference on the index
+        s = Series(index=np.array([None]))
+        expected = Series(index=Index([None]))
+        assert_series_equal(s,expected)
+
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
@@ -668,6 +674,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         series1 = Series(dates2, dates)
         self.assert_numpy_array_equal(series1.values,dates2)
         self.assertEqual(series1.dtype,object)
+
+        # these will correctly infer a datetime
+        s = Series([None, pd.NaT, '2013-08-05 15:30:00.000001'])
+        self.assertEqual(s.dtype,'datetime64[ns]')
+        s = Series([np.nan, pd.NaT, '2013-08-05 15:30:00.000001'])
+        self.assertEqual(s.dtype,'datetime64[ns]')
+        s = Series([pd.NaT, None, '2013-08-05 15:30:00.000001'])
+        self.assertEqual(s.dtype,'datetime64[ns]')
+        s = Series([pd.NaT, np.nan, '2013-08-05 15:30:00.000001'])
+        self.assertEqual(s.dtype,'datetime64[ns]')
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
@@ -2462,6 +2478,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td = Series([timedelta(days=i) for i in range(3)] + ['foo'])
         self.assertEqual(td.dtype, 'object')
 
+        # these will correctly infer a timedelta
+        # but only on numpy > 1.7 as the cython path will only be used
+        if not _np_version_under1p7:
+            s = Series([None, pd.NaT, '1 Day'])
+            self.assertEqual(s.dtype,'timedelta64[ns]')
+            s = Series([np.nan, pd.NaT, '1 Day'])
+            self.assertEqual(s.dtype,'timedelta64[ns]')
+            s = Series([pd.NaT, None, '1 Day'])
+            self.assertEqual(s.dtype,'timedelta64[ns]')
+            s = Series([pd.NaT, np.nan, '1 Day'])
+            self.assertEqual(s.dtype,'timedelta64[ns]')
+
     def test_operators_timedelta64(self):
 
         # invalid ops
@@ -2939,11 +2967,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # GH 6587
         # make sure that we are treating as integer when filling
+        # this also tests inference of a datetime-like with NaT's
         s = Series([pd.NaT, pd.NaT, '2013-08-05 15:30:00.000001'])
         expected = Series(['2013-08-05 15:30:00.000001', '2013-08-05 15:30:00.000001', '2013-08-05 15:30:00.000001'], dtype='M8[ns]')
         result = s.fillna(method='backfill')
         assert_series_equal(result, expected)
-
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
