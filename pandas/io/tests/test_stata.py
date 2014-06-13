@@ -283,6 +283,11 @@ class TestStata(tm.TestCase):
             self.assertEqual(result, expected)
             self.assertIsInstance(result, unicode)
 
+        with tm.ensure_clean() as path:
+            encoded.to_stata(path,encoding='latin-1', write_index=False)
+            reread_encoded = read_stata(path, encoding='latin-1')
+            tm.assert_frame_equal(encoded, reread_encoded)
+
     def test_read_write_dta11(self):
         original = DataFrame([(1, 2, 3, 4)],
                              columns=['good', compat.u('b\u00E4d'), '8number', 'astringwithmorethan32characters______'])

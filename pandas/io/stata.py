@@ -1328,7 +1328,10 @@ class StataWriter(StataParser):
                         var = _pad_bytes('', typ)
                     if len(var) < typ:
                         var = _pad_bytes(var, typ)
-                    self._write(var)
+                    if compat.PY3:
+                        self._write(var)
+                    else:
+                        self._write(var.encode(self._encoding))
                 else:
                     try:
                         self._file.write(struct.pack(byteorder + TYPE_MAP[typ],
@@ -1358,7 +1361,10 @@ class StataWriter(StataParser):
                 if typ <= 244:  # we've got a string
                     if len(var) < typ:
                         var = _pad_bytes(var, typ)
-                    self._write(var)
+                    if compat.PY3:
+                        self._write(var)
+                    else:
+                        self._write(var.encode(self._encoding))
                 else:
                     self._file.write(struct.pack(byteorder+TYPE_MAP[typ], var))
 

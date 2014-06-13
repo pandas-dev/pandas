@@ -221,7 +221,7 @@ Bug Fixes
   (:issue:`7357`)
 - Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
 - Bug in when reading Stata 13 (117) files containing fixed width strings (:issue:`7360`)
-
+- Bug in when writing Stata files where the encoding was ignored (:issue:`7286`)
 
 
 
