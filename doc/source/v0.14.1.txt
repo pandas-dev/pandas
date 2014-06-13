@@ -219,6 +219,7 @@ Bug Fixes
   (:issue:`7352`)
 - Bug where ``nanops._has_infs`` doesn't work with many dtypes
   (:issue:`7357`)
+- Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
 
 
 

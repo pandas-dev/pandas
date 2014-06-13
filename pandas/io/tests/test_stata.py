@@ -72,6 +72,14 @@ class TestStata(tm.TestCase):
     def read_csv(self, file):
         return read_csv(file, parse_dates=True)
 
+    def test_read_empty_dta(self):
+        empty_ds = DataFrame(columns=['unit'])
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            empty_ds.to_stata(path,write_index=False)
+            empty_ds2 = read_stata(path)
+            tm.assert_frame_equal(empty_ds, empty_ds2)
+
     def test_read_dta1(self):
         reader_114 = StataReader(self.dta1_114)
         parsed_114 = reader_114.data()

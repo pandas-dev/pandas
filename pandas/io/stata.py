@@ -852,7 +852,10 @@ class StataReader(StataParser):
         if convert_categoricals:
             self._read_value_labels()
 
-        data = DataFrame(data, columns=self.varlist, index=index)
+        if len(data)==0:
+            data = DataFrame(columns=self.varlist, index=index)
+        else:
+            data = DataFrame(data, columns=self.varlist, index=index)
 
         cols_ = np.where(self.dtyplist)[0]
         for i in cols_:
