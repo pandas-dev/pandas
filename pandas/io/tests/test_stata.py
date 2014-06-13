@@ -60,11 +60,13 @@ class TestStata(tm.TestCase):
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
         self.dta14_114 = os.path.join(self.dirpath, 'stata5_114.dta')
         self.dta14_115 = os.path.join(self.dirpath, 'stata5_115.dta')
+        self.dta14_117 = os.path.join(self.dirpath, 'stata5_117.dta')
 
         self.csv15 = os.path.join(self.dirpath, 'stata6.csv')
         self.dta15_113 = os.path.join(self.dirpath, 'stata6_113.dta')
         self.dta15_114 = os.path.join(self.dirpath, 'stata6_114.dta')
         self.dta15_115 = os.path.join(self.dirpath, 'stata6_115.dta')
+        self.dta15_117 = os.path.join(self.dirpath, 'stata6_117.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -354,9 +356,12 @@ class TestStata(tm.TestCase):
         parsed_114.index.name = 'index'
         parsed_115 = self.read_dta(self.dta14_115)
         parsed_115.index.name = 'index'
+        parsed_117 = self.read_dta(self.dta14_117)
+        parsed_117.index.name = 'index'
 
         tm.assert_frame_equal(parsed_114, parsed_113)
         tm.assert_frame_equal(parsed_114, parsed_115)
+        tm.assert_frame_equal(parsed_114, parsed_117)
 
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, {'date_td': 'td'})
@@ -375,10 +380,12 @@ class TestStata(tm.TestCase):
         parsed_113 = self.read_dta(self.dta15_113)
         parsed_114 = self.read_dta(self.dta15_114)
         parsed_115 = self.read_dta(self.dta15_115)
+        parsed_117 = self.read_dta(self.dta15_117)
 
         tm.assert_frame_equal(expected, parsed_114)
         tm.assert_frame_equal(parsed_113, parsed_114)
         tm.assert_frame_equal(parsed_114, parsed_115)
+        tm.assert_frame_equal(parsed_114, parsed_117)
 
     def test_timestamp_and_label(self):
         original = DataFrame([(1,)], columns=['var'])

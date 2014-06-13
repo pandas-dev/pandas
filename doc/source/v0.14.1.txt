@@ -220,6 +220,8 @@ Bug Fixes
 - Bug where ``nanops._has_infs`` doesn't work with many dtypes
   (:issue:`7357`)
 - Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
+- Bug in when reading Stata 13 (117) files containing fixed width strings (:issue:`7360`)
+
 
 
 

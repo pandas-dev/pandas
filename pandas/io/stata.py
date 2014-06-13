@@ -512,8 +512,10 @@ class StataReader(StataParser):
             try:
                 i = 0
                 for typ in typlist:
-                    if typ <= 2045 or typ == 32768:
-                        self.typlist[i] = None
+                    if typ <= 2045:
+                        self.typlist[i] = typ
+                    elif typ == 32768:
+                        raise ValueError("Long strings are not supported")
                     else:
                         self.typlist[i] = self.TYPE_MAP_XML[typ]
                     i += 1
