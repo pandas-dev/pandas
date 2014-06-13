@@ -2022,6 +2022,8 @@ class DataFrame(NDFrame):
                 # GH 4107
                 try:
                     value = value.reindex(self.index).values
+                except ValueError as e:
+                    raise e
                 except:
                     raise TypeError('incompatible index of inserted column '
                                     'with frame index')
