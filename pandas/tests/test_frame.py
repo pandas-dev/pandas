@@ -2467,6 +2467,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_insert_error_msmgs(self):
 
+        # GH 7432
+        df = DataFrame({'foo':['a', 'b', 'c'], 'bar':[1,2,3], 'baz':['d','e','f']}).set_index('foo')
+        s = DataFrame({'foo':['a', 'b', 'c', 'a'], 'fiz':['g','h','i','j']}).set_index('foo')
+        msg = 'cannot reindex from a duplicate axis'
+        with assertRaisesRegexp(ValueError, msg):
+            df['newcol'] = s
+
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0,2,(4,4)),
                        columns=['a', 'b', 'c', 'd'])

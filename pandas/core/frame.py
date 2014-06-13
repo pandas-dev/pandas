@@ -2022,9 +2022,13 @@ class DataFrame(NDFrame):
                 # GH 4107
                 try:
                     value = value.reindex(self.index).values
-                except ValueError as e:
-                    raise e
-                except:
+                except Exception as e:
+
+                    # duplicate axis
+                    if not value.index.is_unique:
+                        raise e
+
+                    # other
                     raise TypeError('incompatible index of inserted column '
                                     'with frame index')
 
