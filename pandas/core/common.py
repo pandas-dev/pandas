@@ -1738,7 +1738,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 if value == tslib.iNaT or isnull(value):
                     value = tslib.iNaT
             else:
-                value = np.array(value)
+                value = np.array(value,copy=False)
 
                 # have a scalar array-like (e.g. NaT)
                 if value.ndim == 0:
@@ -1802,8 +1802,7 @@ def _possibly_infer_to_datetimelike(value):
     v = value
     if not is_list_like(v):
         v = [v]
-    if not isinstance(v, np.ndarray):
-        v = np.array(v)
+    v = np.array(v,copy=False)
     shape = v.shape
     if not v.ndim == 1:
         v = v.ravel()
