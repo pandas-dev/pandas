@@ -222,19 +222,20 @@ class TestCommon(Base):
         self.assertEqual(func(t1), expected)
 
     def test_apply(self):
-        dt = datetime(2011, 1, 1, 9, 0)
+        sdt = datetime(2011, 1, 1, 9, 0)
+        ndt = np.datetime64('2011-01-01 09:00Z')
 
         for offset in self.offset_types:
-            expected = self.expecteds[offset.__name__]
+            for dt in [sdt, ndt]:
+                expected = self.expecteds[offset.__name__]
+                if offset == Nano:
+                    self._check_nanofunc_works(offset, 'apply', dt, expected)
+                else:
+                    self._check_offsetfunc_works(offset, 'apply', dt, expected)
 
-            if offset == Nano:
-                self._check_nanofunc_works(offset, 'apply', dt, expected)
-            else:
-                self._check_offsetfunc_works(offset, 'apply', dt, expected)
-
-                expected = Timestamp(expected.date())
-                self._check_offsetfunc_works(offset, 'apply', dt, expected,
-                                             normalize=True)
+                    expected = Timestamp(expected.date())
+                    self._check_offsetfunc_works(offset, 'apply', dt, expected,
+                                                 normalize=True)
 
     def test_rollforward(self):
         expecteds = self.expecteds.copy()
@@ -261,17 +262,19 @@ class TestCommon(Base):
                       'Micro': Timestamp('2011-01-01 00:00:00')}
         norm_expected.update(normalized)
 
-        dt = datetime(2011, 1, 1, 9, 0)
-        for offset in self.offset_types:
-            expected = expecteds[offset.__name__]
+        sdt = datetime(2011, 1, 1, 9, 0)
+        ndt = np.datetime64('2011-01-01 09:00Z')
 
-            if offset == Nano:
-                self._check_nanofunc_works(offset, 'rollforward', dt, expected)
-            else:
-                self._check_offsetfunc_works(offset, 'rollforward', dt, expected)
-                expected = norm_expected[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollforward', dt, expected,
-                                             normalize=True)
+        for offset in self.offset_types:
+            for dt in [sdt, ndt]:
+                expected = expecteds[offset.__name__]
+                if offset == Nano:
+                    self._check_nanofunc_works(offset, 'rollforward', dt, expected)
+                else:
+                    self._check_offsetfunc_works(offset, 'rollforward', dt, expected)
+                    expected = norm_expected[offset.__name__]
+                    self._check_offsetfunc_works(offset, 'rollforward', dt, expected,
+                                                 normalize=True)
 
     def test_rollback(self):
         expecteds = {'BusinessDay': Timestamp('2010-12-31 09:00:00'),
@@ -315,18 +318,20 @@ class TestCommon(Base):
                       'Micro': Timestamp('2011-01-01 00:00:00')}
         norm_expected.update(normalized)
 
-        dt = datetime(2011, 1, 1, 9, 0)
+        sdt = datetime(2011, 1, 1, 9, 0)
+        ndt = np.datetime64('2011-01-01 09:00Z')
+
         for offset in self.offset_types:
-            expected = expecteds[offset.__name__]
+            for dt in [sdt, ndt]:
+                expected = expecteds[offset.__name__]
+                if offset == Nano:
+                    self._check_nanofunc_works(offset, 'rollback', dt, expected)
+                else:
+                    self._check_offsetfunc_works(offset, 'rollback', dt, expected)
 
-            if offset == Nano:
-                self._check_nanofunc_works(offset, 'rollback', dt, expected)
-            else:
-                self._check_offsetfunc_works(offset, 'rollback', dt, expected)
-
-                expected = norm_expected[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollback',
-                                             dt, expected, normalize=True)
+                    expected = norm_expected[offset.__name__]
+                    self._check_offsetfunc_works(offset, 'rollback',
+                                                 dt, expected, normalize=True)
 
     def test_onOffset(self):
 

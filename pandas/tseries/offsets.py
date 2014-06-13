@@ -45,6 +45,8 @@ def apply_wraps(func):
             return tslib.NaT
         if type(other) == date:
             other = datetime(other.year, other.month, other.day)
+        elif isinstance(other, np.datetime64):
+            other = as_timestamp(other)
 
         result = func(self, other)
 
@@ -549,20 +551,6 @@ class CustomBusinessDay(BusinessDay):
 
             dt_date = np_incr_dt.astype(datetime)
             result = datetime.combine(dt_date, date_in.time())
-
-            if self.offset:
-                result = result + self.offset
-
-            return as_timestamp(result)
-
-        elif isinstance(other, np.datetime64):
-            date_in = other
-            np_day = date_in.astype('datetime64[D]')
-            np_time = date_in - np_day
-
-            np_incr_dt = np.busday_offset(np_day, self.n, roll=roll,
-                                  busdaycal=self.busdaycalendar)
-            result = np_incr_dt + np_time
 
             if self.offset:
                 result = result + self.offset
