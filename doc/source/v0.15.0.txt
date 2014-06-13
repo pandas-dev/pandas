@@ -821,6 +821,8 @@ Enhancements
 
 - ``DataFrame.fillna`` can now accept a ``DataFrame`` as a fill value (:issue:`8377`)
 
+- Added ``searchsorted`` method to ``Series`` objects (:issue:`7447`)
+
 .. _whatsnew_0150.performance:
 
 Performance

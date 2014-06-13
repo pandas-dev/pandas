@@ -1230,6 +1230,19 @@ argument:
    compatibility with NumPy methods which expect the ``ndarray.sort``
    behavior. ``Series.order`` returns a copy of the sorted data.
 
+Series has the ``searchsorted`` method, which works similar to
+``np.ndarray.searchsorted``.
+
+.. ipython:: python
+
+   ser = Series([1, 2, 3])
+   ser.searchsorted([0, 3])
+   ser.searchsorted([0, 4])
+   ser.searchsorted([1, 3], side='right')
+   ser.searchsorted([1, 3], side='left')
+   ser = Series([3, 1, 2])
+   ser.searchsorted([0, 3], sorter=np.argsort(ser))
+
 .. _basics.nsorted:
 
 smallest / largest values

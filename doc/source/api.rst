@@ -415,6 +415,7 @@ Reshaping, sorting
    Series.sortlevel
    Series.swaplevel
    Series.unstack
+   Series.searchsorted
 
 Combining / joining / merging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

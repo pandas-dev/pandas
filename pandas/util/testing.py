@@ -21,6 +21,7 @@ from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
+from numpy.testing import assert_array_equal
 
 import pandas as pd
 from pandas.core.common import _is_sequence, array_equivalent
