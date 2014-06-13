@@ -168,7 +168,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
 
 def value_counts(values, sort=True, ascending=False, normalize=False,
-                 bins=None):
+                 bins=None, dropna=True):
     """
     Compute a histogram of the counts of non-null values
 
@@ -184,6 +184,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     bins : integer, optional
         Rather than count values, group them into half-open bins,
         convenience for pd.cut, only works with numeric data
+    dropna : boolean, default False
+        Don't include counts of NaN
 
     Returns
     -------
@@ -211,16 +213,20 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
 
-        from pandas.lib import NaT
-        msk = keys != NaT.value
-        keys, counts = keys[msk], counts[msk]
+        if dropna:
+            from pandas.tslib import iNaT
+            msk = keys != iNaT
+            keys, counts = keys[msk], counts[msk]
         # convert the keys back to the dtype we came in
         keys = keys.astype(dtype)
 
     else:
-        mask = com.isnull(values)
         values = com._ensure_object(values)
+        mask = com.isnull(values)
         keys, counts = htable.value_count_object(values, mask)
+        if not dropna:
+            keys = np.insert(keys, 0, np.NaN)
+            counts = np.insert(counts, 0, mask.sum())
 
     result = Series(counts, index=com._values_from_object(keys))
     if bins is not None:

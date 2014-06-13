@@ -241,16 +241,15 @@ class TestValueCounts(tm.TestCase):
         td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')
         dt = pd.to_datetime(['NaT', '2014-01-01'])
 
-        res_td = algos.value_counts(td)
-        res_dt = algos.value_counts(dt)
-
-        self.assertEqual(len(res_td), 1)
-        self.assertEqual(len(res_dt), 1)
+        for s in [td, dt]:
+            vc = algos.value_counts(s)
+            vc_with_na = algos.value_counts(s, dropna=False)
+            self.assertEqual(len(vc), 1)
+            self.assertEqual(len(vc_with_na), 2)
 
         exp_dt = pd.Series({pd.Timestamp('2014-01-01 00:00:00'): 1})
-        tm.assert_series_equal(res_dt, exp_dt)
-
-        # TODO same for res_td (timedelta)
+        tm.assert_series_equal(algos.value_counts(dt), exp_dt)
+        # TODO same for (timedelta)
 
 def test_quantile():
     s = Series(np.random.randn(100))

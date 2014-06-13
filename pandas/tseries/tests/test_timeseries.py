@@ -106,16 +106,19 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertEqual(result.name, 'foo')
         self.assertTrue(result.equals(expected))
 
-        # NaT
+        # NaT, note this is excluded
         arr = [ 1370745748 + t for t in range(20) ] + [iNaT]
         idx = DatetimeIndex(arr * 3)
         self.assertTrue(idx.unique().equals(DatetimeIndex(arr)))
-        self.assertEqual(idx.nunique(), 21)
+        self.assertEqual(idx.nunique(), 20)
+        self.assertEqual(idx.nunique(dropna=False), 21)
 
         arr = [ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT]
         idx = DatetimeIndex(arr * 3)
         self.assertTrue(idx.unique().equals(DatetimeIndex(arr)))
-        self.assertEqual(idx.nunique(), 21)
+        self.assertEqual(idx.nunique(), 20)
+        self.assertEqual(idx.nunique(dropna=False), 21)
+
 
     def test_index_dupes_contains(self):
         d = datetime(2011, 12, 5, 20, 30)

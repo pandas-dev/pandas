@@ -292,12 +292,13 @@ class TestIndexOps(Ops):
                     o = klass(np.repeat(values, range(1, len(o) + 1)))
 
                 if isinstance(o, DatetimeIndex):
-                    # DatetimeIndex: nan is casted to Nat and included
-                    expected_s = Series(list(range(10, 2, -1)) + [3], index=values[9:0:-1])
+                    expected_s_na = Series(list(range(10, 2, -1)) + [3], index=values[9:0:-1])
+                    expected_s = Series(list(range(10, 2, -1)), index=values[9:1:-1])
                 else:
-                    # nan is excluded
+                    expected_s_na = Series(range(10, 2, -1) +[3], index=values[9:0:-1], dtype='int64')
                     expected_s = Series(range(10, 2, -1), index=values[9:1:-1], dtype='int64')
 
+                tm.assert_series_equal(o.value_counts(dropna=False), expected_s_na)
                 tm.assert_series_equal(o.value_counts(), expected_s)
 
                 # numpy_array_equal cannot compare arrays includes nan
@@ -309,10 +310,8 @@ class TestIndexOps(Ops):
                 else:
                     self.assertTrue(pd.isnull(result[0]))
 
-                if isinstance(o, DatetimeIndex):
-                    self.assertEqual(o.nunique(), 9)
-                else:
-                    self.assertEqual(o.nunique(), 8)
+                self.assertEqual(o.nunique(), 8)
+                self.assertEqual(o.nunique(dropna=False), 9)
 
     def test_value_counts_inferred(self):
         klasses = [Index, Series]
@@ -406,6 +405,9 @@ class TestIndexOps(Ops):
 
             result = s.value_counts()
             self.assertEqual(result.index.dtype, 'datetime64[ns]')
+            tm.assert_series_equal(result, expected_s)
+
+            result = s.value_counts(dropna=False)
             expected_s[pd.NaT] = 1
             tm.assert_series_equal(result, expected_s)
 
@@ -415,7 +417,8 @@ class TestIndexOps(Ops):
             self.assert_numpy_array_equal(unique[:3], expected)
             self.assertTrue(unique[3] is pd.NaT or unique[3].astype('int64') == pd.tslib.iNaT)
 
-            self.assertEqual(s.nunique(), 4)
+            self.assertEqual(s.nunique(), 3)
+            self.assertEqual(s.nunique(dropna=False), 4)
 
             # timedelta64[ns]
             td = df.dt - df.dt + timedelta(1)
