@@ -295,8 +295,8 @@ class TestIndexOps(Ops):
                     expected_s_na = Series(list(range(10, 2, -1)) + [3], index=values[9:0:-1])
                     expected_s = Series(list(range(10, 2, -1)), index=values[9:1:-1])
                 else:
-                    expected_s_na = Series(range(10, 2, -1) +[3], index=values[9:0:-1], dtype='int64')
-                    expected_s = Series(range(10, 2, -1), index=values[9:1:-1], dtype='int64')
+                    expected_s_na = Series(list(range(10, 2, -1)) +[3], index=values[9:0:-1], dtype='int64')
+                    expected_s = Series(list(range(10, 2, -1)), index=values[9:1:-1], dtype='int64')
 
                 tm.assert_series_equal(o.value_counts(dropna=False), expected_s_na)
                 tm.assert_series_equal(o.value_counts(), expected_s)

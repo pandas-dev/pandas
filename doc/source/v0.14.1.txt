@@ -75,7 +75,7 @@ Enhancements
 
 
 
-
+- Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
 
 
 
