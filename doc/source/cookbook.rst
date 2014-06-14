@@ -269,6 +269,13 @@ Turn a matrix with hours in columns and days in rows into a continuous row seque
 `Dealing with duplicates when reindexing a timeseries to a specified frequency
 <http://stackoverflow.com/questions/22244383/pandas-df-refill-adding-two-columns-of-different-shape>`__
 
+Calculate the first day of the month for each entry in a DatetimeIndex
+
+.. ipython:: python
+
+    dates = pd.date_range('2000-01-01', periods=5)
+    dates.to_period(freq='M').to_timestamp()
+
 .. _cookbook.resample:
 
 Resampling
