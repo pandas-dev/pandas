@@ -126,7 +126,7 @@ Enhancements
 
 
 
-
+- All offsets ``apply``, ``rollforward`` and ``rollback`` can now handle ``np.datetime64``, previously results in ``ApplyTypeError`` (:issue:`7452`)
 
 
 

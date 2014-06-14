@@ -285,13 +285,32 @@ datetimeindex_converter = \
 setup = common_setup + """
 import datetime as dt
 import pandas as pd
+import numpy as np
 
 date = dt.datetime(2011,1,1)
+dt64 = np.datetime64('2011-01-01 09:00Z')
+
+day = pd.offsets.Day()
+year = pd.offsets.YearBegin()
 cday = pd.offsets.CustomBusinessDay()
 cme = pd.offsets.CustomBusinessMonthEnd()
 """
+timeseries_day_incr = Benchmark("date + day",setup)
+
+timeseries_day_apply = Benchmark("day.apply(date)",setup)
+
+timeseries_year_incr = Benchmark("date + year",setup)
+
+timeseries_year_apply = Benchmark("year.apply(date)",setup)
+
 timeseries_custom_bday_incr = \
     Benchmark("date + cday",setup)
+
+timeseries_custom_bday_apply = \
+    Benchmark("cday.apply(date)",setup)
+
+timeseries_custom_bday_apply_dt64 = \
+    Benchmark("cday.apply(dt64)",setup)
 
 # Increment by n
 timeseries_custom_bday_incr_n = \
