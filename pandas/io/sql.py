@@ -567,7 +567,7 @@ class PandasSQLTable(PandasObject):
         ins = self.insert_statement()
         data_list = []
         temp = self.insert_data()
-        keys = temp.columns
+        keys = list(map(str, temp.columns))
 
         for t in temp.itertuples():
             data = dict((k, self.maybe_asscalar(v))
