@@ -777,7 +777,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         indexer = com._ensure_platform_int(indexer)
         taken = self.view(np.ndarray).take(indexer)
-        return self._constructor(taken, name=self.name)
+        return self._simple_new(taken, name=self.name, freq=None,
+                                tz=getattr(self, 'tz', None))
 
     def format(self, name=False, formatter=None, **kwargs):
         """
@@ -1075,7 +1076,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
             # duplicates
             indexer = self.get_indexer_non_unique(other.values)[0].unique()
 
-        return self.take(indexer)
+        taken = self.take(indexer)
+        if self.name != other.name:
+            taken.name = None
+        return taken
 
     def diff(self, other):
         """
