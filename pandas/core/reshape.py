@@ -242,7 +242,12 @@ class _Unstacker(object):
 
         # construct the new index
         if len(self.new_index_levels) == 1:
+            result_labels = result_labels[0]
             new_index = self.new_index_levels[0]
+
+            if len(new_index) != len(result_labels):
+                new_index = new_index.take(result_labels)
+
             new_index.name = self.new_index_names[0]
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
