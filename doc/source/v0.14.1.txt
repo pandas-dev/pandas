@@ -225,6 +225,7 @@ Bug Fixes
 
 
 
+- BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 
 
 

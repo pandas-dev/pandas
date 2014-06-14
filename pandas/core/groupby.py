@@ -28,6 +28,7 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
 from pandas import _np_version_under1p7
 import pandas.lib as lib
 from pandas.lib import Timestamp
+import pandas.tslib as tslib
 import pandas.algos as _algos
 import pandas.hashtable as _hash
 
@@ -1581,7 +1582,11 @@ class BinGrouper(BaseGrouper):
 
         # this is mainly for compat
         # GH 3881
-        return dict(zip(self.binlabels,self.bins))
+        result = {}
+        for key, value in zip(self.binlabels, self.bins):
+            if key is not tslib.NaT:
+                result[key] = value
+        return result
 
     @property
     def nkeys(self):
@@ -1605,7 +1610,8 @@ class BinGrouper(BaseGrouper):
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
-            yield label, slicer(start,edge)
+            if label is not tslib.NaT:
+                yield label, slicer(start,edge)
             start = edge
 
         if start < length:
@@ -1636,7 +1642,7 @@ class BinGrouper(BaseGrouper):
 
         i = 0
         for label, bin in zip(self.binlabels, self.bins):
-            if i < bin:
+            if label is not tslib.NaT and i < bin:
                 indices[label] = list(range(i, bin))
                 i = bin
         return indices
@@ -1647,7 +1653,8 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def result_index(self):
-        return self.binlabels
+        mask = self.binlabels.asi8 == tslib.iNaT
+        return self.binlabels[~mask]
 
     @property
     def levels(self):
