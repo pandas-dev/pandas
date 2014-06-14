@@ -457,6 +457,20 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.title, 'Test')
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
+    def test_ts_line_lim(self):
+        ax = self.ts.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
+        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        tm.close()
+
+        ax = self.ts.plot(secondary_y=True)
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
+        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+
     def test_ts_area_lim(self):
         ax = self.ts.plot(kind='area', stacked=False)
         xmin, xmax = ax.get_xlim()
@@ -1090,6 +1104,27 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(d.plot, kind='area', stacked=False)
             self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
             self.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected2)
+
+    def test_line_lim(self):
+        df = DataFrame(rand(6, 3), columns=['x', 'y', 'z'])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        self.assertEqual(xmin, lines[0].get_data()[0][0])
+        self.assertEqual(xmax, lines[0].get_data()[0][-1])
+
+        ax = df.plot(secondary_y=True)
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        self.assertEqual(xmin, lines[0].get_data()[0][0])
+        self.assertEqual(xmax, lines[0].get_data()[0][-1])
+
+        axes = df.plot(secondary_y=True, subplots=True)
+        for ax in axes:
+            xmin, xmax = ax.get_xlim()
+            lines = ax.get_lines()
+            self.assertEqual(xmin, lines[0].get_data()[0][0])
+            self.assertEqual(xmax, lines[0].get_data()[0][-1])
 
     def test_area_lim(self):
         df = DataFrame(rand(6, 4),

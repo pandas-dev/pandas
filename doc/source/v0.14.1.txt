@@ -148,6 +148,11 @@ Performance
 
 
 
+
+- Bug in line plot doesn't set correct ``xlim`` if ``secondary_y=True`` (:issue:`7459`)
+
+
+
 Experimental
 ~~~~~~~~~~~~
 
