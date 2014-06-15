@@ -905,6 +905,7 @@ class TestIndex(tm.TestCase):
         exp = Index([idx[-1], idx[0], idx[1]])
         tm.assert_index_equal(res, exp)
 
+
 class TestFloat64Index(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -1040,6 +1041,13 @@ class TestFloat64Index(tm.TestCase):
         i = Float64Index([1.0, 2.0])
         np.testing.assert_array_equal(i.isin([np.nan]),
                                       np.array([False, False]))
+
+    def test_astype_from_object(self):
+        index = Index([1.0, np.nan, 0.2], dtype='object')
+        result = index.astype(float)
+        expected = Float64Index([1.0, np.nan, 0.2])
+        tm.assert_equal(result.dtype, expected.dtype)
+        tm.assert_index_equal(result, expected)
 
 
 class TestInt64Index(tm.TestCase):

@@ -140,6 +140,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
             if issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
+            if issubclass(data.dtype.type, np.floating):
+                return Float64Index(data, copy=copy, dtype=dtype, name=name)
 
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
@@ -1986,7 +1988,8 @@ class Float64Index(Index):
     def astype(self, dtype):
         if np.dtype(dtype) not in (np.object, np.float64):
             raise TypeError('Setting %s dtype to anything other than '
-                            'float64 or object is not supported' % self.__class__)
+                            'float64 or object is not supported' %
+                            self.__class__)
         return Index(self.values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, typ=None):
@@ -2020,7 +2023,7 @@ class Float64Index(Index):
         k = _values_from_object(key)
         loc = self.get_loc(k)
         new_values = series.values[loc]
-        if np.isscalar(new_values):
+        if np.isscalar(new_values) or new_values is None:
             return new_values
 
         new_index = self[loc]

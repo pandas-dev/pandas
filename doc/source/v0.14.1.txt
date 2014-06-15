@@ -229,7 +229,8 @@ Bug Fixes
 
 
 
-
+- Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
+  ``Index`` (:issue:`7464`).
 
 
 
