@@ -177,12 +177,17 @@ class TestIndex(tm.TestCase):
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike(object):
+            def __init__(self, array):
+                self.array = array
             def __array__(self, dtype=None):
-                return np.arange(5)
+                return self.array
 
-        expected = pd.Index(np.arange(5))
-        result = pd.Index(ArrayLike())
-        self.assertTrue(result.equals(expected))
+        for array in [np.arange(5),
+                      np.array(['a', 'b', 'c']),
+                      pd.date_range('2000-01-01', periods=3).values]:
+            expected = pd.Index(array)
+            result = pd.Index(ArrayLike(array))
+            self.assertTrue(result.equals(expected))
 
     def test_index_ctor_infer_periodindex(self):
         from pandas import period_range, PeriodIndex
@@ -447,7 +452,7 @@ class TestIndex(tm.TestCase):
         assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
 
         idx1 = Index([1, 2, 3, 4, 5], name='idx')
-        # if target has the same name, it is preserved 
+        # if target has the same name, it is preserved
         idx2 = Index([3, 4, 5, 6, 7], name='idx')
         expected2 = Index([3, 4, 5], name='idx')
         result2 = idx1.intersection(idx2)

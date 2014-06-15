@@ -148,6 +148,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
             if copy:
                 subarr = subarr.copy()
 
+        elif hasattr(data, '__array__'):
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
+                         **kwargs)
         elif np.isscalar(data):
             cls._scalar_data_error(data)
         else:
