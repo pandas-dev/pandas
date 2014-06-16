@@ -376,6 +376,7 @@ f_fillna = lambda x: x.fillna(method='pad')
 """
 
 groupby_transform = Benchmark("data.groupby(level='security_id').transform(f_fillna)", setup)
+groupby_transform_ufunc = Benchmark("data.groupby(level='date').transform(np.max)", setup)
 
 setup = common_setup + """
 np.random.seed(0)
@@ -393,4 +394,4 @@ g = transitions.cumsum()
 df = DataFrame({ 'signal' : np.random.rand(N)})
 """
 
-groupby_transform2 = Benchmark("df['signal'].groupby(g).transform(np.mean)", setup)
+groupby_transform_series = Benchmark("df['signal'].groupby(g).transform(np.mean)", setup)
