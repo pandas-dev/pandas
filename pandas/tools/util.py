@@ -3,6 +3,7 @@ from pandas.compat import reduce
 from pandas.core.index import Index
 import numpy as np
 from pandas import algos
+from pandas.core import common as com
 
 
 def match(needles, haystack):
@@ -32,7 +33,7 @@ def cartesian_product(X):
 
     b = cumprodX[-1] / cumprodX
 
-    return [np.tile(np.repeat(np.asarray(x), b[i]),
+    return [np.tile(np.repeat(np.asarray(com._values_from_object(x)), b[i]),
                     np.product(a[i]))
                for i, x in enumerate(X)]
 
