@@ -136,8 +136,8 @@ Enhancements
 Performance
 ~~~~~~~~~~~
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
-- Improvements in Series.transform for signifcant performance gains (:issue`6496`)
-- Improvements in DataFrame.transform with ufuncs and built-in grouper functions for signifcant performance gains (:issue`7383`)
+- Improvements in Series.transform for significant performance gains (:issue:`6496`)
+- Improvements in DataFrame.transform with ufuncs and built-in grouper functions for signifcant performance gains (:issue:`7383`)
 
 
 
@@ -195,8 +195,7 @@ Bug Fixes
 - Bug in ``.loc`` with a list of indexers on a single-multi index level (that is not nested) (:issue:`7349`)
 - Bug in ``Series.map`` when mapping a dict with tuple keys of different lengths (:issue:`7333`)
 - Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
-- Fix delegation of `read_sql` to `read_sql_query` when query does not contain
- 'select' (:issue:`7324`).
+- Fix delegation of `read_sql` to `read_sql_query` when query does not contain 'select' (:issue:`7324`).
 - Bug where a string column name assignment to a ``DataFrame`` with a
   ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
   (:issue:`7366`).
