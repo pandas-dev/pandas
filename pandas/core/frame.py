@@ -1980,6 +1980,19 @@ class DataFrame(NDFrame):
 
         is_existing = key in self.columns
         self._ensure_valid_index(value)
+
+        # have a new column, a multi-index, but no specification for the index,
+        # have to assume first level; this in effect broadcasts across the index
+        # GH 7475
+        if not is_existing and isinstance(self.columns, MultiIndex) and not isinstance(key, tuple):
+            value_columns = self.columns.set_levels([[key]] + self.columns.levels[1:])
+            value = self._sanitize_column(key, value)
+            if len(value_columns) != value.ndim:
+                raise ValueError("cannot assign to a multi-index with invalid dimensions")
+            for i, v in zip(value_columns,value):
+                NDFrame._set_item(self, i, v)
+            return self
+
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 

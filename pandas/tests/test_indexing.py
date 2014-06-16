@@ -1828,6 +1828,18 @@ class TestIndexing(tm.TestCase):
             df.loc['bar'] *= 2
         self.assertRaises(TypeError, f)
 
+    def test_multiindex_setitem(self):
+
+        # GH 7475
+        # multi-index assignment
+
+        df_orig = DataFrame(np.arange(10,dtype='int64').reshape(-1,2), columns=pd.MultiIndex.from_tuples([('Val','A'),('Val','B')]))
+        expected = concat([df_orig['Val'],df_orig['Val']/2],axis=1,keys=['Val','Half'])
+
+        df = df_orig.copy()
+        df['Half'] = df['Val']/2
+        assert_frame_equal(df,expected)
+
     def test_getitem_multiindex(self):
 
         # GH 5725

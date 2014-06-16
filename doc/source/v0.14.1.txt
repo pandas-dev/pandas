@@ -156,8 +156,7 @@ Bug Fixes
 ~~~~~~~~~
 
 
-
-
+- Bug Multiindex assignment with an aligned rhs (but at different levels) (:issue:`7475`)
 
 
 
