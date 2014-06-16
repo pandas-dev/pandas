@@ -1962,6 +1962,11 @@ cdef inline bint _treat_tz_as_dateutil(object tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
+def _p_tz_cache_key(tz):
+    ''' Python interface for cache function to facilitate testing.'''
+    return _tz_cache_key(tz)
+
+
 cdef inline object _tz_cache_key(object tz):
     """
     Return the key in the cache for the timezone info object or None if unknown.
@@ -1982,7 +1987,7 @@ cdef inline object _tz_cache_key(object tz):
             raise ValueError('Bad tz filename. Dateutil on python 3 on windows has a bug which causes tzfile._filename to be the same for all '
                              'timezone files. Please construct dateutil timezones implicitly by passing a string like "dateutil/Europe/London" '
                              'when you construct your pandas objects instead of passing a timezone object. See https://github.com/pydata/pandas/pull/7362')
-        return tz._filename
+        return 'dateutil' + tz._filename
     else:
         return None
 
