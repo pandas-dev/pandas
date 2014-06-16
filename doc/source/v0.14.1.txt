@@ -163,7 +163,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
 
 
 - Bug in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
