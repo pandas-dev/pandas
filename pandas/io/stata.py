@@ -512,8 +512,10 @@ class StataReader(StataParser):
             try:
                 i = 0
                 for typ in typlist:
-                    if typ <= 2045 or typ == 32768:
-                        self.typlist[i] = None
+                    if typ <= 2045:
+                        self.typlist[i] = typ
+                    elif typ == 32768:
+                        raise ValueError("Long strings are not supported")
                     else:
                         self.typlist[i] = self.TYPE_MAP_XML[typ]
                     i += 1
@@ -1326,7 +1328,10 @@ class StataWriter(StataParser):
                         var = _pad_bytes('', typ)
                     if len(var) < typ:
                         var = _pad_bytes(var, typ)
-                    self._write(var)
+                    if compat.PY3:
+                        self._write(var)
+                    else:
+                        self._write(var.encode(self._encoding))
                 else:
                     try:
                         self._file.write(struct.pack(byteorder + TYPE_MAP[typ],
@@ -1356,7 +1361,10 @@ class StataWriter(StataParser):
                 if typ <= 244:  # we've got a string
                     if len(var) < typ:
                         var = _pad_bytes(var, typ)
-                    self._write(var)
+                    if compat.PY3:
+                        self._write(var)
+                    else:
+                        self._write(var.encode(self._encoding))
                 else:
                     self._file.write(struct.pack(byteorder+TYPE_MAP[typ], var))
 
