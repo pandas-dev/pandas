@@ -2323,12 +2323,10 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if return_type not in valid_types:
         raise ValueError("return_type")
 
-
     from pandas import Series, DataFrame
     if isinstance(data, Series):
         data = DataFrame({'x': data})
         column = 'x'
-
 
     def _get_colors():
         return _get_standard_colors(color=kwds.get('color'), num_colors=1)
@@ -2340,8 +2338,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             setp(bp['whiskers'],color=colors[0],alpha=1)
             setp(bp['medians'],color=colors[2],alpha=1)
 
-    def plot_group(grouped, ax):
-        keys, values = zip(*grouped)
+    BP = namedtuple("Boxplot", ['ax', 'lines'])  # namedtuple to hold results
+
+    def plot_group(keys, values, ax):
         keys = [com.pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         bp = ax.boxplot(values, **kwds)
@@ -2350,7 +2349,14 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         maybe_color_bp(bp)
-        return bp
+
+        # Return axes in multiplot case, maybe revisit later # 985
+        if return_type == 'dict':
+            return bp
+        elif return_type == 'both':
+            return BP(ax=ax, lines=bp)
+        else:
+            return ax
 
     colors = _get_colors()
     if column is None:
@@ -2361,56 +2367,14 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             columns = [column]
 
-    BP = namedtuple("Boxplot", ['ax', 'lines'])  # namedtuple to hold results
-
     if by is not None:
-        fig, axes, d = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                               by=by, grid=grid, figsize=figsize,
-                                               ax=ax, layout=layout)
-
-        # Return axes in multiplot case, maybe revisit later # 985
-        if return_type is None:
-            ret = axes
-        if return_type == 'axes':
-            ret = compat.OrderedDict()
-            axes = _flatten(axes)[:len(d)]
-            for k, ax in zip(d.keys(), axes):
-                ret[k] = ax
-        elif return_type == 'dict':
-            ret = d
-        elif return_type == 'both':
-            ret = compat.OrderedDict()
-            axes = _flatten(axes)[:len(d)]
-            for (k, line), ax in zip(d.items(), axes):
-                ret[k] = BP(ax=ax, lines=line)
+        result = _grouped_plot_by_column(plot_group, data, columns=columns,
+                                         by=by, grid=grid, figsize=figsize,
+                                         ax=ax, layout=layout, return_type=return_type)
     else:
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
-        if ax is None:
-            ax = _gca()
-        fig = ax.get_figure()
-        data = data._get_numeric_data()
-        if columns:
-            cols = columns
-        else:
-            cols = data.columns
-        keys = [com.pprint_thing(x) for x in cols]
-
-        # Return boxplot dict in single plot case
-
-        clean_values = [remove_na(x) for x in data[cols].values.T]
-
-        bp = ax.boxplot(clean_values, **kwds)
-        maybe_color_bp(bp)
-
-        if kwds.get('vert', 1):
-            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
-        else:
-            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
-        ax.grid(grid)
-
-        ret = ax
 
         if return_type is None:
             msg = ("\nThe default value for 'return_type' will change to "
@@ -2420,13 +2384,18 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                    "return_type='dict'.")
             warnings.warn(msg, FutureWarning)
             return_type = 'dict'
-        if return_type == 'dict':
-            ret = bp
-        elif return_type == 'both':
-            ret = BP(ax=ret, lines=bp)
+        if ax is None:
+            ax = _gca()
+        data = data._get_numeric_data()
+        if columns is None:
+            columns = data.columns
+        else:
+            data = data[columns]
 
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
-    return ret
+        result = plot_group(columns, data.values.T, ax)
+        ax.grid(grid)
+
+    return result
 
 
 def format_date_labels(ax, rot):
@@ -2734,7 +2703,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     if subplots is True:
         naxes = len(grouped)
         nrows, ncols = _get_layout(naxes, layout=layout)
-        _, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
+        fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
                             sharex=False, sharey=True)
         axes = _flatten(axes)
 
@@ -2744,6 +2713,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               rot=rot, grid=grid, **kwds)
             ax.set_title(com.pprint_thing(key))
             ret[key] = d
+        fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         from pandas.tools.merge import concat
         keys, frames = zip(*grouped)
@@ -2795,9 +2765,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
-                            figsize=None, ax=None, layout=None, **kwargs):
-    from pandas.core.frame import DataFrame
-
+                            figsize=None, ax=None, layout=None, return_type=None,
+                            **kwargs):
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
@@ -2818,20 +2787,26 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     ravel_axes = _flatten(axes)
 
-    out_dict = compat.OrderedDict()
+    result = compat.OrderedDict()
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
-        re_plotf = plotf(gp_col, ax, **kwargs)
+        keys, values = zip(*gp_col)
+        re_plotf = plotf(keys, values, ax, **kwargs)
         ax.set_title(col)
         ax.set_xlabel(com.pprint_thing(by))
+        result[col] = re_plotf
         ax.grid(grid)
-        out_dict[col] = re_plotf
+
+    # Return axes in multiplot case, maybe revisit later # 985
+    if return_type is None:
+        result = axes
 
     byline = by[0] if len(by) == 1 else by
     fig.suptitle('Boxplot grouped by %s' % byline)
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
-    return fig, axes, out_dict
+    return result
 
 
 def table(ax, data, rowLabels=None, colLabels=None,

@@ -356,6 +356,54 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(xerr, xerr_count)
             self.assertEqual(yerr, yerr_count)
 
+    def _check_box_return_type(self, returned, return_type, expected_keys=None):
+        """
+        Check box returned type is correct
+
+        Parameters
+        ----------
+        returned : object to be tested, returned from boxplot
+        return_type : str
+            return_type passed to boxplot
+        expected_keys : list-like, optional
+            group labels in subplot case. If not passed,
+            the function checks assuming boxplot uses single ax
+        """
+        from matplotlib.axes import Axes
+        types = {'dict': dict, 'axes': Axes, 'both': tuple}
+        if expected_keys is None:
+            # should be fixed when the returning default is changed
+            if return_type is None:
+                return_type = 'dict'
+
+            self.assertTrue(isinstance(returned, types[return_type]))
+            if return_type == 'both':
+                self.assertIsInstance(returned.ax, Axes)
+                self.assertIsInstance(returned.lines, dict)
+        else:
+            # should be fixed when the returning default is changed
+            if return_type is None:
+                for r in self._flatten_visible(returned):
+                    self.assertIsInstance(r, Axes)
+                return
+
+            self.assertTrue(isinstance(returned, OrderedDict))
+            self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
+            for key, value in iteritems(returned):
+                self.assertTrue(isinstance(value, types[return_type]))
+                # check returned dict has correct mapping
+                if return_type == 'axes':
+                    self.assertEqual(value.get_title(), key)
+                elif return_type == 'both':
+                    self.assertEqual(value.ax.get_title(), key)
+                    self.assertIsInstance(value.ax, Axes)
+                    self.assertIsInstance(value.lines, dict)
+                elif return_type == 'dict':
+                    line = value['medians'][0]
+                    self.assertEqual(line.get_axes().get_title(), key)
+                else:
+                    raise AssertionError
+
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
@@ -1421,65 +1469,20 @@ class TestDataFramePlots(TestPlotBase):
 
         with tm.assert_produces_warning(FutureWarning):
             result = df.boxplot()
-        self.assertIsInstance(result, dict)  # change to Axes in future
+        # change to Axes in future
+        self._check_box_return_type(result, 'dict')
 
         with tm.assert_produces_warning(False):
             result = df.boxplot(return_type='dict')
-        self.assertIsInstance(result, dict)
+        self._check_box_return_type(result, 'dict')
 
         with tm.assert_produces_warning(False):
             result = df.boxplot(return_type='axes')
-        self.assertIsInstance(result, mpl.axes.Axes)
+        self._check_box_return_type(result, 'axes')
 
         with tm.assert_produces_warning(False):
             result = df.boxplot(return_type='both')
-        self.assertIsInstance(result, tuple)
-
-    @slow
-    def test_boxplot_return_type_by(self):
-        import matplotlib as mpl
-
-        df = DataFrame(np.random.randn(10, 2))
-        df['g'] = ['a'] * 5 + ['b'] * 5
-
-        # old style: return_type=None
-        result = df.boxplot(by='g')
-        self.assertIsInstance(result, np.ndarray)
-        self.assertIsInstance(result[0], mpl.axes.Axes)
-
-        result = df.boxplot(by='g', return_type='dict')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result[0], dict)
-
-        result = df.boxplot(by='g', return_type='axes')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result[0], mpl.axes.Axes)
-
-        result = df.boxplot(by='g', return_type='both')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result[0], tuple)
-        self.assertIsInstance(result[0][0], mpl.axes.Axes)
-        self.assertIsInstance(result[0][1], dict)
-
-        # now for groupby
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.groupby('g').boxplot()
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result['a'], dict)
-
-        result = df.groupby('g').boxplot(return_type='dict')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result['a'], dict)
-
-        result = df.groupby('g').boxplot(return_type='axes')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result['a'], mpl.axes.Axes)
-
-        result = df.groupby('g').boxplot(return_type='both')
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result['a'], tuple)
-        self.assertIsInstance(result['a'][0], mpl.axes.Axes)
-        self.assertIsInstance(result['a'][1], dict)
+        self._check_box_return_type(result, 'both')
 
     @slow
     def test_kde(self):
@@ -2278,47 +2281,39 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with tm.assertRaises(AttributeError):
             plotting.grouped_hist(df.A, by=df.C, foo='bar')
 
-    def _check_box_dict(self, returned, return_type,
-                        expected_klass, expected_keys):
-        self.assertTrue(isinstance(returned, OrderedDict))
-        self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
-        for key, value in iteritems(returned):
-            self.assertTrue(isinstance(value, expected_klass))
-            # check returned dict has correct mapping
-            if return_type == 'axes':
-                self.assertEqual(value.get_title(), key)
-            elif return_type == 'both':
-                self.assertEqual(value.ax.get_title(), key)
-            elif return_type == 'dict':
-                line = value['medians'][0]
-                self.assertEqual(line.get_axes().get_title(), key)
-            else:
-                raise AssertionError
-
     @slow
     def test_grouped_box_return_type(self):
-        import matplotlib.axes
-
         df = self.hist_df
+
+        # old style: return_type=None
+        result = df.boxplot(by='gender')
+        self.assertIsInstance(result, np.ndarray)
+        self._check_box_return_type(result, None,
+                                    expected_keys=['height', 'weight', 'category'])
+
+        # now for groupby
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.groupby('gender').boxplot()
+        self._check_box_return_type(result, 'dict', expected_keys=['Male', 'Female'])
 
         columns2 = 'X B C D A G Y N Q O'.split()
         df2 = DataFrame(random.randn(50, 10), columns=columns2)
         categories2 = 'A B C D E F G H I J'.split()
         df2['category'] = categories2 * 5
 
-        types = {'dict': dict, 'axes': matplotlib.axes.Axes, 'both': tuple}
-        for t, klass in iteritems(types):
+        for t in ['dict', 'axes', 'both']:
             returned = df.groupby('classroom').boxplot(return_type=t)
-            self._check_box_dict(returned, t, klass, ['A', 'B', 'C'])
+            self._check_box_return_type(returned, t, expected_keys=['A', 'B', 'C'])
 
             returned = df.boxplot(by='classroom', return_type=t)
-            self._check_box_dict(returned, t, klass, ['height', 'weight', 'category'])
+            self._check_box_return_type(returned, t,
+                                        expected_keys=['height', 'weight', 'category'])
 
             returned = df2.groupby('category').boxplot(return_type=t)
-            self._check_box_dict(returned, t, klass, categories2)
+            self._check_box_return_type(returned, t, expected_keys=categories2)
 
             returned = df2.boxplot(by='category', return_type=t)
-            self._check_box_dict(returned, t, klass, columns2)
+            self._check_box_return_type(returned, t, expected_keys=columns2)
 
     @slow
     def test_grouped_box_layout(self):
