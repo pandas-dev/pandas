@@ -60,8 +60,8 @@ Yahoo! Finance Options
 
 The Options class allows the download of options data from Yahoo! Finance.
 
-The ''get_all_data'' method downloads and caches option data for all expiry months
-and provides a formatted ''DataFrame'' with a hierarchical index, so its easy to get
+The ``get_all_data`` method downloads and caches option data for all expiry months
+and provides a formatted ``DataFrame`` with a hierarchical index, so its easy to get
 to the specific option you want.
 
 .. ipython:: python
@@ -69,13 +69,13 @@ to the specific option you want.
       from pandas.io.data import Options
       aapl = Options('aapl', 'yahoo')
       data = aapl.get_all_data()
-      data.head()
+      data.iloc[0:5:, 0:5]
 
-      #Show the $600 strike puts at all expiry dates:
-      data.loc[(600, slice(None), 'put'),:].head()
+      #Show the $100 strike puts at all expiry dates:
+      data.loc[(100, slice(None), 'put'),:].iloc[0:5:, 0:5]
 
-      #Show the volume traded of $600 strike puts at all expiry dates:
-      data.loc[(600, slice(None), 'put'),'Vol'].head()
+      #Show the volume traded of $100 strike puts at all expiry dates:
+      data.loc[(100, slice(None), 'put'),'Vol'].iloc[0:5:, 0:5]
 
 If you don't want to download all the data, more specific requests can be made.
 
@@ -84,9 +84,9 @@ If you don't want to download all the data, more specific requests can be made.
       import datetime
       expiry = datetime.date(2016, 1, 1)
       data = aapl.get_call_data(expiry=expiry)
-      data.head()
+      data.iloc[0:5:, 0:5]
 
-Note that if you call ''get_all_data'' first, this second call will happen much faster, as the data is cached.
+Note that if you call ``get_all_data`` first, this second call will happen much faster, as the data is cached.
 
 
 .. _remote_data.google:
