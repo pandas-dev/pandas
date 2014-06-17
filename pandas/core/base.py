@@ -245,7 +245,7 @@ class IndexOpsMixin(object):
         return pandas.core.nanops.nanmin(self.values)
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
-                     bins=None):
+                     bins=None, dropna=True):
         """
         Returns object containing counts of unique values. The resulting object
         will be in descending order so that the first element is the most
@@ -263,6 +263,8 @@ class IndexOpsMixin(object):
         bins : integer, optional
             Rather than count values, group them into half-open bins,
             a convenience for pd.cut, only works with numeric data
+        dropna : boolean, default False
+            Don't include counts of NaN
 
         Returns
         -------
@@ -270,7 +272,7 @@ class IndexOpsMixin(object):
         """
         from pandas.core.algorithms import value_counts
         return value_counts(self.values, sort=sort, ascending=ascending,
-                            normalize=normalize, bins=bins)
+                            normalize=normalize, bins=bins, dropna=dropna)
 
     def unique(self):
         """
@@ -284,7 +286,7 @@ class IndexOpsMixin(object):
         from pandas.core.nanops import unique1d
         return unique1d(self.values)
 
-    def nunique(self):
+    def nunique(self, dropna=True):
         """
         Return count of unique elements in the object. Excludes NA values.
 
@@ -292,7 +294,7 @@ class IndexOpsMixin(object):
         -------
         nunique : int
         """
-        return len(self.value_counts())
+        return len(self.value_counts(dropna=dropna))
 
     def factorize(self, sort=False, na_sentinel=-1):
         """

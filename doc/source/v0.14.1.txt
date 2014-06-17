@@ -83,7 +83,7 @@ Enhancements
 
 
 
-
+- Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
 
 
 
@@ -159,7 +159,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`) 
 
 
 
