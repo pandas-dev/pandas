@@ -824,7 +824,7 @@ class Block(PandasObject):
         is_transposed = False
         if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
             if values.ndim != other.ndim:
-                    is_transposed = True
+                is_transposed = True
             else:
                 if values.shape == other.shape[::-1]:
                     is_transposed = True
@@ -2981,7 +2981,7 @@ class BlockManager(PandasObject):
     def equals(self, other):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
-           return False
+            return False
         if not all (ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
         self._consolidate_inplace()

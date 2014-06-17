@@ -819,7 +819,7 @@ class TestAlignment(object):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
-                    testit(r_idx_type, c_idx_type, index_name)
+                testit(r_idx_type, c_idx_type, index_name)
 
     def test_basic_frame_series_alignment(self):
         for engine, parser in ENGINES_PARSERS:

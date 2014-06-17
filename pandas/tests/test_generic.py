@@ -413,8 +413,8 @@ class TestSeries(tm.TestCase, Generic):
         # single non-bool are an error
         for s in [Series([1]), Series([0]),
                   Series(['a']), Series([0.0])]:
-                self.assertRaises(ValueError, lambda : bool(s))
-                self.assertRaises(ValueError, lambda : s.bool())
+            self.assertRaises(ValueError, lambda : bool(s))
+            self.assertRaises(ValueError, lambda : s.bool())
 
     def test_metadata_propagation_indiv(self):
         # check that the metadata matches up on the resulting ops

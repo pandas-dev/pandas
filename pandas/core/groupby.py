@@ -2218,9 +2218,9 @@ class SeriesGroupBy(GroupBy):
 
             # may need to astype
             try:
-               common_type = np.common_type(np.array(res), result)
-               if common_type != result.dtype:
-                   result = result.astype(common_type)
+                common_type = np.common_type(np.array(res), result)
+                if common_type != result.dtype:
+                    result = result.astype(common_type)
             except:
                 pass
 

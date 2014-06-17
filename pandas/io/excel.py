@@ -291,10 +291,10 @@ class ExcelFile(object):
                             year = (value.timetuple())[0:3]
                             if ((not epoch1904 and year == (1899, 12, 31))
                                     or (epoch1904 and year == (1904, 1, 1))):
-                                    value = datetime.time(value.hour,
-                                                          value.minute,
-                                                          value.second,
-                                                          value.microsecond)
+                                value = datetime.time(value.hour,
+                                                      value.minute,
+                                                      value.second,
+                                                      value.microsecond)
                         else:
                             # Use the xlrd <= 0.9.2 date handling.
                             dt = xldate.xldate_as_tuple(value, epoch1904)

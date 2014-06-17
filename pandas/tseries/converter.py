@@ -513,7 +513,7 @@ def _daily_finder(vmin, vmax, freq):
     def first_label(label_flags):
         if (label_flags[0] == 0) and (label_flags.size > 1) and \
                 ((vmin_orig % 1) > 0.0):
-                return label_flags[1]
+            return label_flags[1]
         else:
             return label_flags[0]
 
