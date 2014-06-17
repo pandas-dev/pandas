@@ -1,6 +1,7 @@
 import datetime
 
 import numpy as np
+from numpy import nan
 from numpy.testing import assert_equal
 
 import pandas as pd
@@ -103,7 +104,6 @@ class TestPivotTable(tm.TestCase):
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
 
-
     def test_pass_array(self):
         result = self.data.pivot_table('D', index=self.data.A, columns=self.data.C)
         expected = self.data.pivot_table('D', index='A', columns='C')
@@ -172,14 +172,24 @@ class TestPivotTable(tm.TestCase):
 
     def test_pivot_index_with_nan(self):
         # GH 3588
-        nan = np.nan
-        df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
-        result = df.pivot('a','b','c')
-        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan],
-                              [nan,nan,nan,nan],[nan,nan,15,20]],
-                             index = Index(['R1','R2',nan,'R4'],name='a'),
-                             columns = Index(['C1','C2','C3','C4'],name='b'))
+        df = DataFrame({'a': ['R1', 'R2', nan, 'R4'],
+                        'b': ['C1', 'C2', 'C3', 'C4'],
+                        'c': [10, 15, nan, 20]})
+        result = df.pivot('a', 'b', 'c')
+        expected = DataFrame([[10, nan, nan, nan],
+                              [nan, 15, nan, nan],
+                              [nan, nan, nan, nan],
+                              [nan, nan, nan, 20]],
+                             index=Index(df.a.values, name='a'),
+                             columns=Index(df.b.values, name='b'))
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_dups(self):
+        df = DataFrame({'a': ['R1', 'R2', 'R2', 'R4'],
+                        'b': ['C1', 'C2', 'C2', 'C4'],
+                        'c': [10, 15, 17, 20]})
+        with tm.assertRaisesRegexp(ValueError, "Index contains duplicate .+"):
+            df.pivot('a', 'b', 'c')
 
     def test_pivot_with_tz(self):
         # GH 5878
@@ -637,6 +647,7 @@ class TestCrosstab(tm.TestCase):
         m = MultiIndex.from_tuples([('one', 'dull'), ('one', 'shiny'),
                                     ('two', 'dull'), ('two', 'shiny')])
         assert_equal(res.columns.values, m.values)
+
 
 if __name__ == '__main__':
     import nose

@@ -107,9 +107,6 @@ class _Unstacker(object):
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
 
-        # group_index = get_group_index(to_sort, sizes)
-        # comp_index, obs_ids = _compress_group_index(group_index)
-
         ngroups = len(obs_ids)
 
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
@@ -132,11 +129,14 @@ class _Unstacker(object):
         stride = self.index.levshape[self.level]
         self.full_shape = ngroups, stride
 
-        selector = self.sorted_labels[-1] + stride * comp_index
+        idx = comp_index != -1
+        selector = self.sorted_labels[-1][idx] + stride * comp_index[idx]
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
-        if mask.sum() < len(self.index):
+        min_nans = min(np.sum(lab.values() != -1)
+                       for lab in self.sorted_labels)
+        if mask.sum() != min_nans:
             raise ValueError('Index contains duplicate entries, '
                              'cannot reshape')
 
@@ -197,12 +197,14 @@ class _Unstacker(object):
 
         new_mask = np.zeros(result_shape, dtype=bool)
 
+        gi = self.group_index != -1
+
         # is there a simpler / faster way of doing this?
         for i in range(values.shape[1]):
             chunk = new_values[:, i * width: (i + 1) * width]
             mask_chunk = new_mask[:, i * width: (i + 1) * width]
 
-            chunk.flat[self.mask] = self.sorted_values[:, i]
+            chunk.flat[self.mask] = self.sorted_values[gi, i]
             mask_chunk.flat[self.mask] = True
 
         return new_values, new_mask
