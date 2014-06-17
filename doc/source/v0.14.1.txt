@@ -148,7 +148,23 @@ Performance
 Experimental
 ~~~~~~~~~~~~
 
-There are no experimental changes in 0.14.1
+``pandas.io.data.Options`` has a get_all_data method and now consistently returns a multi-indexed ''DataFrame'' (PR `#5602`)
+    See :ref:`the docs<remote_data.yahoo_Options>` ***Experimental***
+
+      .. ipython:: python
+
+      from pandas.io.data import Options
+      aapl = Options('aapl', 'yahoo')
+      data = aapl.get_all_data()
+      data.head()
+
+      .. ipython:: python
+
+      from pandas.io.data import Options
+      aapl = Options('aapl', 'yahoo')
+      data = aapl.get_all_data()
+      data.head()
+
 
 .. _whatsnew_0141.bug_fixes:
 
