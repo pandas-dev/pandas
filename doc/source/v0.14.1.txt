@@ -226,6 +226,8 @@ Bug Fixes
 
 
 
+- Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
+
 
 - BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 
