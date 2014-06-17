@@ -247,9 +247,11 @@ class IndexOpsMixin(object):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
         """
-        Returns object containing counts of unique values. The resulting object
-        will be in descending order so that the first element is the most
-        frequently-occurring element. Excludes NA values.
+        Returns object containing counts of unique values.
+
+        The resulting object will be in descending order so that the
+        first element is the most frequently-occurring element.
+        Excludes NA values by default.
 
         Parameters
         ----------
@@ -263,8 +265,8 @@ class IndexOpsMixin(object):
         bins : integer, optional
             Rather than count values, group them into half-open bins,
             a convenience for pd.cut, only works with numeric data
-        dropna : boolean, default False
-            Don't include counts of NaN
+        dropna : boolean, default True
+            Don't include counts of NaN.
 
         Returns
         -------
@@ -288,7 +290,14 @@ class IndexOpsMixin(object):
 
     def nunique(self, dropna=True):
         """
-        Return count of unique elements in the object. Excludes NA values.
+        Return number of unique elements in the object.
+
+        Excludes NA values by default.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include NaN in the count.
 
         Returns
         -------
