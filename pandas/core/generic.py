@@ -3598,10 +3598,10 @@ class NDFrame(PandasObject):
                 return '%.1f%%' % x
 
         def describe_numeric_1d(series, percentiles):
-                return ([series.count(), series.mean(), series.std(),
-                         series.min()] +
-                        [series.quantile(x) for x in percentiles] +
-                        [series.max()])
+            return ([series.count(), series.mean(), series.std(),
+                     series.min()] +
+                    [series.quantile(x) for x in percentiles] +
+                    [series.max()])
 
         def describe_categorical_1d(data):
             names = ['count', 'unique']

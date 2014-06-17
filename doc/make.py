@@ -77,10 +77,10 @@ def upload_prev(ver, doc_root='./'):
         raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
 
 def build_pandas():
-        os.chdir('..')
-        os.system('python setup.py clean')
-        os.system('python setup.py build_ext --inplace')
-        os.chdir('doc')
+    os.chdir('..')
+    os.system('python setup.py clean')
+    os.system('python setup.py build_ext --inplace')
+    os.chdir('doc')
 
 def build_prev(ver):
     if os.system('git checkout v%s' % ver) != 1:

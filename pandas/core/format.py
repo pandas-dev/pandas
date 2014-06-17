@@ -539,18 +539,18 @@ class DataFrameFormatter(TableFormatter):
                         buf.write('\\bottomrule\n')
                         buf.write('\\endlastfoot\n')
                 if self.escape:
-                  crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
-                           .replace('_', '\\_')
-                           .replace('%', '\\%')
-                           .replace('$', '\\$')
-                           .replace('#', '\\#')
-                           .replace('{', '\\{')
-                           .replace('}', '\\}')
-                           .replace('~', '\\textasciitilde')
-                           .replace('^', '\\textasciicircum')
-                           .replace('&', '\\&') if x else '{}') for x in row]
+                    crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
+                             .replace('_', '\\_')
+                             .replace('%', '\\%')
+                             .replace('$', '\\$')
+                             .replace('#', '\\#')
+                             .replace('{', '\\{')
+                             .replace('}', '\\}')
+                             .replace('~', '\\textasciitilde')
+                             .replace('^', '\\textasciicircum')
+                             .replace('&', '\\&') if x else '{}') for x in row]
                 else:
-                  crow = [x if x else '{}' for x in row]
+                    crow = [x if x else '{}' for x in row]
                 buf.write(' & '.join(crow))
                 buf.write(' \\\\\n')
 
@@ -2104,7 +2104,7 @@ def detect_console_encoding():
 
     # when all else fails. this will usually be "ascii"
     if not encoding or 'ascii' in encoding.lower():
-            encoding = sys.getdefaultencoding()
+        encoding = sys.getdefaultencoding()
 
     # GH3360, save the reported defencoding at import time
     # MPL backends may change it. Make available for debugging.

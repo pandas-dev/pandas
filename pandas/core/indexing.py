@@ -1131,13 +1131,13 @@ class _LocationIndexer(_NDFrameIndexer):
         raise NotImplementedError()
 
     def _getbool_axis(self, key, axis=0):
-            labels = self.obj._get_axis(axis)
-            key = _check_bool_indexer(labels, key)
-            inds, = key.nonzero()
-            try:
-                return self.obj.take(inds, axis=axis, convert=False)
-            except Exception as detail:
-                raise self._exception(detail)
+        labels = self.obj._get_axis(axis)
+        key = _check_bool_indexer(labels, key)
+        inds, = key.nonzero()
+        try:
+            return self.obj.take(inds, axis=axis, convert=False)
+        except Exception as detail:
+            raise self._exception(detail)
 
     def _get_slice_axis(self, slice_obj, axis=0):
         """ this is pretty simple as we just have to deal with labels """
@@ -1193,7 +1193,7 @@ class _LocIndexer(_LocationIndexer):
                         )
 
         elif com._is_bool_indexer(key):
-                return True
+            return True
 
         elif _is_list_like(key):
 

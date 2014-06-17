@@ -94,7 +94,7 @@ class TestCase(unittest.TestCase):
         If the expected array includes `np.nan` use `assert_numpy_array_equivalent(...)`.
         """
         if np.array_equal(np_array, assert_equal):
-	        return
+            return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
 
     def assert_numpy_array_equivalent(self, np_array, assert_equal):
@@ -108,7 +108,7 @@ class TestCase(unittest.TestCase):
         function.
         """
         if array_equivalent(np_array, assert_equal):
-	        return
+            return
         raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
 
     def assertIs(self, first, second, msg=''):
