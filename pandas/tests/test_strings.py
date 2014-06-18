@@ -189,6 +189,17 @@ class TestStringMethods(tm.TestCase):
         self.assertEqual(result.dtype, np.bool_)
         tm.assert_almost_equal(result, expected)
 
+        # case insensitive using regex
+        values = ['Foo', 'xYz', 'fOOomMm__fOo', 'MMM_']
+        result = strings.str_contains(values, 'FOO|mmm', case=False)
+        expected = [True, False, True, True]
+        tm.assert_almost_equal(result, expected)
+
+        # case insensitive without regex
+        result = strings.str_contains(values, 'foo', regex=False, case=False)
+        expected = [True, False, True, False]
+        tm.assert_almost_equal(result, expected)
+
         # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_contains(mixed, 'o')
