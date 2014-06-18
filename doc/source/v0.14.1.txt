@@ -248,7 +248,7 @@ Bug Fixes
 
 - BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 
-
+- Bug in ``Timestamp.tz_convert`` resets ``nanosecond`` info (:issue:`7534`)
 
 - Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
   ``Index`` (:issue:`7464`).
