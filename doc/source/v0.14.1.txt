@@ -244,11 +244,14 @@ Bug Fixes
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
 - Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
 
+- BUG in ``offsets.apply``, ''rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
 
 
 - BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)
+
+
 
 - Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
   ``Index`` (:issue:`7464`).

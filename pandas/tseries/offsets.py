@@ -45,7 +45,7 @@ def apply_wraps(func):
             return tslib.NaT
         if type(other) == date:
             other = datetime(other.year, other.month, other.day)
-        elif isinstance(other, np.datetime64):
+        if isinstance(other, (np.datetime64, datetime)):
             other = as_timestamp(other)
 
         tz = getattr(other, 'tzinfo', None)
@@ -57,11 +57,8 @@ def apply_wraps(func):
         if isinstance(other, Timestamp) and not isinstance(result, Timestamp):
             result = as_timestamp(result)
 
-        if tz is not None:
-            if isinstance(result, Timestamp) and result.tzinfo is None:
-                result = result.tz_localize(tz)
-            elif isinstance(result, datetime) and result.tzinfo is None:
-                result = tz.localize(result)
+        if tz is not None and result.tzinfo is None:
+            result = result.tz_localize(tz)
         return result
     return wrapper
 
