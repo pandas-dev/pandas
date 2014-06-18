@@ -148,7 +148,7 @@ Performance
 Experimental
 ~~~~~~~~~~~~
 
-``pandas.io.data.Options`` has a get_all_data method and now consistently returns a multi-indexed ``DataFrame`` (PR `#5602`)
+``pandas.io.data.Options`` has a get_all_data method and now consistently returns a multi-indexed ``DataFrame`` (:issue:`5602`)
     See :ref:`the docs<remote_data.yahoo_Options>` ***Experimental***
 
       .. ipython:: python
@@ -156,15 +156,7 @@ Experimental
       from pandas.io.data import Options
       aapl = Options('aapl', 'yahoo')
       data = aapl.get_all_data()
-      data.iloc[0:5:, 0:5]
-
-
-      .. ipython:: python
-
-      from pandas.io.data import Options
-      aapl = Options('aapl', 'yahoo')
-      data = aapl.get_all_data()
-      data.iloc[0:5:, 0:5]
+      data.iloc[0:5, 0:5]
 
 
 .. _whatsnew_0141.bug_fixes:
