@@ -2838,6 +2838,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td1 + dt1
         dt1 + td1
 
+    def test_ops_datetimelike_align(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np < 1.7")
+
+        # GH 7500
+        # datetimelike ops need to align
+        dt = Series(date_range('2012-1-1', periods=3, freq='D'))
+        dt.iloc[2] = np.nan
+        dt2 = dt[::-1]
+
+        expected = Series([timedelta(0),timedelta(0),pd.NaT])
+
+        result = dt2-dt
+        assert_series_equal(result,expected)
+
+        result = (dt2.to_frame()-dt.to_frame())[0]
+        assert_series_equal(result,expected)
+
     def test_timedelta64_functions(self):
 
         from datetime import timedelta

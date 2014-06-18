@@ -165,10 +165,10 @@ Bug Fixes
 ~~~~~~~~~
 
 
+- Bug in timeops with non-aligned Series (:issue:`7500`)
 
 
-
-- Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`) 
+- Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 
 
 
