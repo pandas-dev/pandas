@@ -5748,7 +5748,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                     recons.index = np.array(lmap(_to_uni,recons.index),
                                             dtype=r_dtype)
                     df.index = np.array(lmap(_to_uni,df.index),dtype=r_dtype)
-                if r_dtype == 'dt': # unicode
+                elif r_dtype == 'dt': # unicode
                     r_dtype='O'
                     recons.index = np.array(lmap(Timestamp,recons.index),
                                             dtype=r_dtype)
