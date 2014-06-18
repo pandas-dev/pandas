@@ -69,13 +69,13 @@ to the specific option you want.
       from pandas.io.data import Options
       aapl = Options('aapl', 'yahoo')
       data = aapl.get_all_data()
-      data.iloc[0:5:, 0:5]
+      data.iloc[0:5, 0:5]
 
       #Show the $100 strike puts at all expiry dates:
-      data.loc[(100, slice(None), 'put'),:].iloc[0:5:, 0:5]
+      data.loc[(100, slice(None), 'put'),:].iloc[0:5, 0:5]
 
       #Show the volume traded of $100 strike puts at all expiry dates:
-      data.loc[(100, slice(None), 'put'),'Vol'].iloc[0:5:, 0:5]
+      data.loc[(100, slice(None), 'put'),'Vol'].head()
 
 If you don't want to download all the data, more specific requests can be made.
 
