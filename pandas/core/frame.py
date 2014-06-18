@@ -1358,7 +1358,7 @@ class DataFrame(NDFrame):
                  bold_rows=True, longtable=False, escape=True):
         """
         Render a DataFrame to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \\usepackage(booktabs}.
+        this into a LaTeX document. Requires \\usepackage{booktabs}.
 
         `to_latex`-specific options:
 
