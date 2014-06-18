@@ -62,6 +62,8 @@ API changes
   when comparing a ``Period`` with another object using ``==`` if the other
   object isn't a ``Period`` ``False`` is returned.
 
+- Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
+
 .. _whatsnew_0141.prior_deprecations:
 
 Prior Version Deprecations/Changes
