@@ -8,6 +8,7 @@ import numbers
 import codecs
 import csv
 import types
+from functools import partial
 from datetime import datetime, timedelta
 
 from numpy.lib.format import read_array, write_array
@@ -19,6 +20,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+import pandas.tools as tools
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
@@ -2288,6 +2290,18 @@ def _is_sequence(x):
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
+
+def is_slice_of(typ_validator):
+    int_or_none = lambda x: x is None or typ_validator(x)
+    attrs = 'start', 'stop', 'step'
+    return lambda slc: all(map(tools.util.compose(int_or_none,
+                                                  partial(getattr, slc)),
+                               attrs))
+
+
+is_int_slice = is_slice_of(is_integer)
+
 
 
 _ensure_float64 = algos.ensure_float64
