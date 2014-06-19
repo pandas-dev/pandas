@@ -460,9 +460,33 @@ class TestSeriesPlots(TestPlotBase):
     def test_ts_area_lim(self):
         ax = self.ts.plot(kind='area', stacked=False)
         xmin, xmax = ax.get_xlim()
-        lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
-        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        line = ax.get_lines()[0].get_data(orig=False)[0]
+        self.assertEqual(xmin, line[0])
+        self.assertEqual(xmax, line[-1])
+        tm.close()
+
+        # GH 7471
+        ax = self.ts.plot(kind='area', stacked=False, x_compat=True)
+        xmin, xmax = ax.get_xlim()
+        line = ax.get_lines()[0].get_data(orig=False)[0]
+        self.assertEqual(xmin, line[0])
+        self.assertEqual(xmax, line[-1])
+        tm.close()
+
+        tz_ts = self.ts.copy()
+        tz_ts.index = tz_ts.tz_localize('GMT').tz_convert('CET')
+        ax = tz_ts.plot(kind='area', stacked=False, x_compat=True)
+        xmin, xmax = ax.get_xlim()
+        line = ax.get_lines()[0].get_data(orig=False)[0]
+        self.assertEqual(xmin, line[0])
+        self.assertEqual(xmax, line[-1])
+        tm.close()
+
+        ax = tz_ts.plot(kind='area', stacked=False, secondary_y=True)
+        xmin, xmax = ax.get_xlim()
+        line = ax.get_lines()[0].get_data(orig=False)[0]
+        self.assertEqual(xmin, line[0])
+        self.assertEqual(xmax, line[-1])
 
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]

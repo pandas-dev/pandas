@@ -262,6 +262,8 @@ Bug Fixes
 
 
 
+- Bug in area plot with tz-aware time series raises ``ValueError`` (:issue:`7471`)
+
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
 
