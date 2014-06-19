@@ -245,6 +245,12 @@ class _TimeOp(object):
     def __init__(self, left, right, name):
         self.name = name
 
+        # need to make sure that we are aligning the data
+        if isinstance(left, pd.Series) and isinstance(right, pd.Series):
+            left, right = left.align(right)
+
+        self.left = left
+        self.right = right
         lvalues = self._convert_to_array(left, name=name)
         rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
@@ -426,6 +432,7 @@ class _TimeOp(object):
         is_datetime_lhs = com.is_datetime64_dtype(left)
         if not (is_datetime_lhs or is_timedelta_lhs):
             return None
+
         # rops are allowed. No need for special checks, just strip off
         # r part.
         if name.startswith('__r'):
@@ -463,6 +470,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
 
         if isinstance(right, pd.DataFrame):
             return NotImplemented
+
         time_converted = _TimeOp.maybe_convert_for_time_op(left, right, name)
 
         if time_converted is None:
@@ -472,8 +480,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
         elif time_converted == NotImplemented:
             return NotImplemented
         else:
-            lvalues = time_converted.lvalues
-            rvalues = time_converted.rvalues
+            left, right = time_converted.left, time_converted.right
+            lvalues, rvalues = time_converted.lvalues, time_converted.rvalues
             dtype = time_converted.dtype
             wrap_results = time_converted.wrap_results
 
