@@ -5564,27 +5564,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean(pname) as path:
 
             self.frame['A'][:5] = nan
-            
+
             self.frame.to_csv(path)
             self.frame.to_csv(path, columns=['A', 'B'])
             self.frame.to_csv(path, header=False)
             self.frame.to_csv(path, index=False)
-        
+
             # test roundtrip
             self.tsframe.to_csv(path)
             recons = DataFrame.from_csv(path)
-            
+
             assert_frame_equal(self.tsframe, recons)
-            
+
             self.tsframe.to_csv(path, index_label='index')
             recons = DataFrame.from_csv(path, index_col=None)
             assert(len(recons.columns) == len(self.tsframe.columns) + 1)
-            
+
             # no index
             self.tsframe.to_csv(path, index=False)
             recons = DataFrame.from_csv(path, index_col=None)
             assert_almost_equal(self.tsframe.values, recons.values)
-            
+
             # corner case
             dm = DataFrame({'s1': Series(lrange(3), lrange(3)),
                             's2': Series(lrange(2), lrange(2))})
@@ -5600,7 +5600,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df.to_csv(path)
             result = DataFrame.from_csv(path)
             assert_frame_equal(result, df)
-            
+
             midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
             df = DataFrame(np.random.randn(3, 3), index=midx,
                            columns=['x', 'y', 'z'])
@@ -5608,16 +5608,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = DataFrame.from_csv(path, index_col=[0, 1, 2],
                                         parse_dates=False)
             assert_frame_equal(result, df, check_names=False)  # TODO from_csv names index ['Unnamed: 1', 'Unnamed: 2'] should it ?
-            
+
             # column aliases
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
             self.frame2.to_csv(path, header=col_aliases)
             rs = DataFrame.from_csv(path)
             xp = self.frame2.copy()
             xp.columns = col_aliases
-            
+
             assert_frame_equal(xp, rs)
-            
+
             self.assertRaises(ValueError, self.frame2.to_csv, path,
                               header=['AA', 'X'])
 
@@ -5881,7 +5881,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean() as path:
             self.frame.to_csv(path)
             recons = DataFrame.from_csv(path)
-            
+
             assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
             assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
@@ -5940,11 +5940,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             frame.to_csv(path, header=False)
             frame.to_csv(path, columns=['A', 'B'])
-            
+
             # round trip
             frame.to_csv(path)
             df = DataFrame.from_csv(path, index_col=[0, 1], parse_dates=False)
-            
+
             assert_frame_equal(frame, df, check_names=False)  # TODO to_csv drops column name
             self.assertEqual(frame.index.names, df.index.names)
             self.frame.index = old_index  # needed if setUP becomes a classmethod
@@ -9154,6 +9154,28 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = df.copy()
             result.where(result > 2, np.nan, inplace=True)
             assert_frame_equal(result, expected)
+
+        # transpositional issue
+        # GH7506
+        a = DataFrame({ 0 : [1,2], 1 : [3,4], 2 : [5,6]})
+        b = DataFrame({ 0 : [np.nan,8], 1:[9,np.nan], 2:[np.nan,np.nan]})
+        do_not_replace = b.isnull() | (a > b)
+
+        expected = a.copy()
+        expected[~do_not_replace] = b
+
+        result = a.where(do_not_replace,b)
+        assert_frame_equal(result,expected)
+
+        a = DataFrame({ 0 : [4,6], 1 : [1,0]})
+        b = DataFrame({ 0 : [np.nan,3],1:[3,np.nan]})
+        do_not_replace = b.isnull() | (a > b)
+
+        expected = a.copy()
+        expected[~do_not_replace] = b
+
+        result = a.where(do_not_replace,b)
+        assert_frame_equal(result,expected)
 
     def test_where_datetime(self):
 
