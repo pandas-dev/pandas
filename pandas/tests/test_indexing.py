@@ -3661,6 +3661,16 @@ class TestIndexing(tm.TestCase):
         e = df.loc[0.2, 'a']
         tm.assert_series_equal(r, e)
 
+    def test_float_slice_ix_style(self):
+        n = 5
+        df = DataFrame(np.random.randn(n, 2), columns=list('ab'),
+                       index=np.arange(0.0, n) + 50)
+        expected = df.iloc[2:4]
+        result = df[2:4]
+        tm.assert_frame_equal(expected, result)
+
+        assert df[2.0:4.0].empty
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

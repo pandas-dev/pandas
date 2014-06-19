@@ -252,3 +252,5 @@ Bug Fixes
 
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
+- Bug in ``Float64Index`` slicing with ``__getitem__`` (``[]``) style indexing
+  (:issue:`7501`).

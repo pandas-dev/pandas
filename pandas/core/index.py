@@ -10,6 +10,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
+import pandas.tools as tools
 from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
 from pandas.util.decorators import cache_readonly, deprecate
@@ -2004,13 +2005,10 @@ class Float64Index(Index):
     def _convert_slice_indexer(self, key, typ=None):
         """ convert a slice indexer, by definition these are labels
             unless we are iloc """
-        if typ == 'iloc':
+        if typ == 'iloc' or (typ == 'getitem' and com.is_int_slice(key)):
             return super(Float64Index, self)._convert_slice_indexer(key,
                                                                     typ=typ)
-
-        # allow floats here
-        validator = lambda v: v is None or is_integer(v) or is_float(v)
-        self._validate_slicer(key, validator)
+        self._validate_slicer(key, lambda v: v is None or is_float(v))
 
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step)
