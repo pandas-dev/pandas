@@ -921,9 +921,13 @@ class Block(PandasObject):
         if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
             if values.ndim != other.ndim or values.shape == other.shape[::-1]:
 
+                # if its symmetric are ok, no reshaping needed (GH 7506)
+                if (values.shape[0] == np.array(values.shape)).all():
+                    pass
+
                 # pseodo broadcast (its a 2d vs 1d say and where needs it in a
                 # specific direction)
-                if (other.ndim >= 1 and values.ndim - 1 == other.ndim and
+                elif (other.ndim >= 1 and values.ndim - 1 == other.ndim and
                         values.shape[0] != other.shape[0]):
                     other = _block_shape(other).T
                 else:
@@ -941,8 +945,10 @@ class Block(PandasObject):
         # may need to undo transpose of values
         if hasattr(values, 'ndim'):
             if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
+
                 values = values.T
                 is_transposed = not is_transposed
+
 
         # our where function
         def func(c, v, o):

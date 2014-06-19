@@ -163,12 +163,12 @@ Experimental
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
 
 
 
 
-
-- Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`) 
+- Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 
 
 
