@@ -130,7 +130,7 @@ Enhancements
 
 - All offsets ``apply``, ``rollforward`` and ``rollback`` can now handle ``np.datetime64``, previously results in ``ApplyTypeError`` (:issue:`7452`)
 
-
+- ``Period`` and ``PeriodIndex`` can contain ``NaT`` in its values (:issue:`7485`)
 
 
 .. _whatsnew_0141.performance:
@@ -239,6 +239,9 @@ Bug Fixes
 
 
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
+- Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
+- Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
+
 
 
 - BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)

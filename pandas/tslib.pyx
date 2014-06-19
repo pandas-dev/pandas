@@ -3028,6 +3028,9 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
 
     if tz is None:
         for i in range(l):
+            if dtarr[i] == iNaT:
+                out[i] = iNaT
+                continue
             pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
             out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                         dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
@@ -3049,6 +3052,9 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
+        if periodarr[i] == iNaT:
+            out[i] = iNaT
+            continue
         out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out
@@ -3064,6 +3070,9 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
+
+    if period_ordinal == iNaT:
+        return iNaT
 
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
@@ -3100,6 +3109,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         relation = START
 
     for i in range(n):
+        if arr[i] == iNaT:
+            result[i] = iNaT
+            continue
         val = func(arr[i], relation, &finfo)
         if val == INT32_MIN:
             raise ValueError("Unable to convert to desired frequency.")
@@ -3120,6 +3132,9 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
         date_info dinfo
         float subsecond_fraction
 
+    if ordinal == iNaT:
+        return NPY_NAT
+
     get_date_info(ordinal, freq, &dinfo)
 
     dts.year = dinfo.year
@@ -3137,6 +3152,9 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
 def period_format(int64_t value, int freq, object fmt=None):
     cdef:
         int freq_group
+
+    if value == iNaT:
+        return repr(NaT)
 
     if fmt is None:
         freq_group = (freq // 1000) * 1000
@@ -3241,6 +3259,8 @@ def get_period_field(int code, int64_t value, int freq):
     cdef accessor f = _get_accessor_func(code)
     if f is NULL:
         raise ValueError('Unrecognized period code: %d' % code)
+    if value == iNaT:
+        return -1
     return f(value, freq)
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
@@ -3257,6 +3277,9 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     out = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
+        if arr[i] == iNaT:
+            out[i] = -1
+            continue
         out[i] = f(arr[i], freq)
 
     return out
