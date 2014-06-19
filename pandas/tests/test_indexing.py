@@ -806,6 +806,38 @@ class TestIndexing(tm.TestCase):
         # raise a KeyError?
         self.assertRaises(KeyError, df.loc.__getitem__, tuple([[1, 2], [1, 2]]))
 
+        # GH  7496
+        # loc should not fallback
+
+        s = Series()
+        s.loc[1] = 1
+        s.loc['a'] = 2
+
+        self.assertRaises(KeyError, lambda : s.loc[-1])
+
+        result = s.loc[[-1, -2]]
+        expected = Series(np.nan,index=[-1,-2])
+        assert_series_equal(result, expected)
+
+        result = s.loc[['4']]
+        expected = Series(np.nan,index=['4'])
+        assert_series_equal(result, expected)
+
+        s.loc[-1] = 3
+        result = s.loc[[-1,-2]]
+        expected = Series([3,np.nan],index=[-1,-2])
+        assert_series_equal(result, expected)
+
+        s['a'] = 2
+        result = s.loc[[-2]]
+        expected = Series([np.nan],index=[-2])
+        assert_series_equal(result, expected)
+
+        del s['a']
+        def f():
+            s.loc[[-2]] = 0
+        self.assertRaises(KeyError, f)
+
     def test_loc_getitem_label_slice(self):
 
         # label slices (with ints)

@@ -609,7 +609,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
             and we have a mixed index (e.g. number/labels). figure out
             the indexer. return None if we can't help
         """
-        if com.is_integer_dtype(keyarr) and not self.is_floating():
+        if (typ is None or typ in ['iloc','ix']) and (com.is_integer_dtype(keyarr) and not self.is_floating()):
             if self.inferred_type != 'integer':
                 keyarr = np.where(keyarr < 0,
                                   len(self) + keyarr, keyarr)
