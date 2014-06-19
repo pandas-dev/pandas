@@ -498,16 +498,11 @@ def dt64arr_to_periodarr(data, freq, tz):
 
 # --- Period index sketch
 
-def _period_index_cmp(opname):
+def _period_index_cmp(opname, nat_result=False):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
     def wrapper(self, other):
-        if opname == '__ne__':
-            fill_value = True
-        else:
-            fill_value = False
-
         if isinstance(other, Period):
             func = getattr(self.values, opname)
             if other.freq != self.freq:
@@ -523,7 +518,7 @@ def _period_index_cmp(opname):
             mask = (com.mask_missing(self.values, tslib.iNaT) |
                     com.mask_missing(other.values, tslib.iNaT))
             if mask.any():
-                result[mask] = fill_value
+                result[mask] = nat_result
 
             return result
         else:
@@ -532,10 +527,10 @@ def _period_index_cmp(opname):
             result = func(other.ordinal)
 
         if other.ordinal == tslib.iNaT:
-            result.fill(fill_value)
+            result.fill(nat_result)
         mask = self.values == tslib.iNaT
         if mask.any():
-            result[mask] = fill_value
+            result[mask] = nat_result
 
         return result
     return wrapper
@@ -595,7 +590,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _allow_period_index_ops = True
 
     __eq__ = _period_index_cmp('__eq__')
-    __ne__ = _period_index_cmp('__ne__')
+    __ne__ = _period_index_cmp('__ne__', nat_result=True)
     __lt__ = _period_index_cmp('__lt__')
     __gt__ = _period_index_cmp('__gt__')
     __le__ = _period_index_cmp('__le__')

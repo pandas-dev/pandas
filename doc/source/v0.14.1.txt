@@ -237,6 +237,7 @@ Bug Fixes
 - Bug in when writing Stata files where the encoding was ignored (:issue:`7286`)
 
 
+- Bug in ``DatetimeIndex`` comparison doesn't handle ``NaT`` properly (:issue:`7529`)
 
 
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
