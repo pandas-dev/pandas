@@ -417,7 +417,7 @@ class Panel(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        startow : upper left cell row to dump data frame
+        startrow : upper left cell row to dump data frame
         startcol : upper left cell column to dump data frame
 
         Notes
