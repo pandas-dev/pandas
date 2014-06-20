@@ -2966,6 +2966,42 @@ class TestDatetime64(tm.TestCase):
         s = Series(lrange(100000), times)
         s.ix[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
+    def test_slicing_datetimes(self):
+
+        # GH 7523
+
+        # unique
+        df = DataFrame(np.arange(4.,dtype='float64'),
+                       index=[datetime(2001, 1, i, 10, 00) for i in [1,2,3,4]])
+        result = df.ix[datetime(2001,1,1,10):]
+        assert_frame_equal(result,df)
+        result = df.ix[:datetime(2001,1,4,10)]
+        assert_frame_equal(result,df)
+        result = df.ix[datetime(2001,1,1,10):datetime(2001,1,4,10)]
+        assert_frame_equal(result,df)
+
+        result = df.ix[datetime(2001,1,1,11):]
+        expected = df.iloc[1:]
+        assert_frame_equal(result,expected)
+        result = df.ix['20010101 11':]
+        assert_frame_equal(result,expected)
+
+        # duplicates
+        df = pd.DataFrame(np.arange(5.,dtype='float64'),
+                          index=[datetime(2001, 1, i, 10, 00) for i in [1,2,2,3,4]])
+
+        result = df.ix[datetime(2001,1,1,10):]
+        assert_frame_equal(result,df)
+        result = df.ix[:datetime(2001,1,4,10)]
+        assert_frame_equal(result,df)
+        result = df.ix[datetime(2001,1,1,10):datetime(2001,1,4,10)]
+        assert_frame_equal(result,df)
+
+        result = df.ix[datetime(2001,1,1,11):]
+        expected = df.iloc[1:]
+        assert_frame_equal(result,expected)
+        result = df.ix['20010101 11':]
+        assert_frame_equal(result,expected)
 
 class TestSeriesDatetime64(tm.TestCase):
 
@@ -3054,7 +3090,7 @@ class TestSeriesDatetime64(tm.TestCase):
         for tz in [None, 'Asia/Tokyo']:
             rng = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
-            # if target has the same name, it is preserved 
+            # if target has the same name, it is preserved
             rng2 = date_range('5/15/2000', '6/20/2000', freq='D', name='idx')
             expected2 = date_range('6/1/2000', '6/20/2000', freq='D', name='idx')
 
