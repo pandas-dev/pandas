@@ -1758,7 +1758,11 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
             except KeyError:
                 if self.is_monotonic:
-                    if not is_unique:
+
+                    # we are duplicated but non-unique
+                    # so if we have an indexer then we are done
+                    # else search for it (GH 7523)
+                    if not is_unique and is_integer(search_value):
                         slc = search_value
                     else:
                         slc = self.searchsorted(search_value,
