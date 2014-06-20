@@ -1752,6 +1752,24 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
+    def left(self, n=5):
+        """
+        Return first n columns
+        """
+        l = self.shape[1]
+        if l == 0 or n == 0:
+            return self
+        return self.iloc[:, :n]
+
+    def right(self, n=5):
+        """
+        Return last n columns
+        """
+        l = self.shape[1]
+        if l == 0 or n == 0:
+            return self
+        return self.iloc[:, -n:]
+
     def query(self, expr, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
