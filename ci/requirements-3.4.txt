@@ -5,7 +5,7 @@ xlsxwriter
 xlrd
 html5lib
 numpy==1.8.0
-cython==0.20.0
+cython==0.20.2
 scipy==0.13.3
 numexpr==2.4
 tables==3.1.0
