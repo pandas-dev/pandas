@@ -74,22 +74,35 @@ def _join_i8_wrapper(joinf, with_indexers=True):
     return wrapper
 
 
-def _dt_index_cmp(opname):
+def _dt_index_cmp(opname, nat_result=False):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
-        if isinstance(other, datetime):
+        if isinstance(other, datetime) or isinstance(other, compat.string_types):
             other = _to_m8(other, tz=self.tz)
-        elif isinstance(other, list):
-            other = DatetimeIndex(other)
-        elif isinstance(other, compat.string_types):
-            other = _to_m8(other, tz=self.tz)
-        elif not isinstance(other, (np.ndarray, ABCSeries)):
-            other = _ensure_datetime64(other)
-        result = func(other)
+            result = func(other)
+            if com.isnull(other):
+                result.fill(nat_result)
+        else:
+            if isinstance(other, list):
+                other = DatetimeIndex(other)
+            elif not isinstance(other, (np.ndarray, ABCSeries)):
+                other = _ensure_datetime64(other)
+            result = func(other)
 
+            if isinstance(other, Index):
+                o_mask = other.values.view('i8') == tslib.iNaT
+            else:
+                o_mask = other.view('i8') == tslib.iNaT
+
+            if o_mask.any():
+                result[o_mask] = nat_result
+
+        mask = self.asi8 == tslib.iNaT
+        if mask.any():
+            result[mask] = nat_result
         return result.view(np.ndarray)
 
     return wrapper
@@ -142,7 +155,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     _arrmap = None
 
     __eq__ = _dt_index_cmp('__eq__')
-    __ne__ = _dt_index_cmp('__ne__')
+    __ne__ = _dt_index_cmp('__ne__', nat_result=True)
     __lt__ = _dt_index_cmp('__lt__')
     __gt__ = _dt_index_cmp('__gt__')
     __le__ = _dt_index_cmp('__le__')
