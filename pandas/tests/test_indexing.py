@@ -1179,6 +1179,16 @@ class TestIndexing(tm.TestCase):
         result2 = wd2.iloc[0,[0],[0,1,2]]
         assert_frame_equal(result2,expected2)
 
+        # GH 7516
+        mi = MultiIndex.from_tuples([(0,'x'), (1,'y'), (2,'z')])
+        p = Panel(np.arange(3*3*3,dtype='int64').reshape(3,3,3), items=['a','b','c'], major_axis=mi, minor_axis=['u','v','w'])
+        result = p.iloc[:, 1, 0]
+        expected = Series([3,12,21],index=['a','b','c'], name='u')
+        assert_series_equal(result,expected)
+
+        result = p.loc[:, (1,'y'), 'u']
+        assert_series_equal(result,expected)
+
     def test_iloc_getitem_doc_issue(self):
 
         # multi axis slicing issue with single block

@@ -1632,11 +1632,11 @@ class NDFrame(PandasObject):
                 continue
 
             # convert to an index if we are not a multi-selection
+            ax = self._get_axis(a)
             if level is None:
                 labels = _ensure_index(labels)
 
             axis = self._get_axis_number(a)
-            ax = self._get_axis(a)
             new_index, indexer = ax.reindex(
                 labels, level=level, limit=limit, method=method)
 
@@ -1929,11 +1929,11 @@ class NDFrame(PandasObject):
 
     def as_matrix(self, columns=None):
         """
-        Convert the frame to its Numpy-array representation. 
-                
+        Convert the frame to its Numpy-array representation.
+
         Parameters
         ----------
-        columns: list, optional, default:None 
+        columns: list, optional, default:None
             If None, return all columns, otherwise, returns specified columns.
 
         Returns
@@ -1942,23 +1942,23 @@ class NDFrame(PandasObject):
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
-            
+
         Notes
-        ----- 
+        -----
         Return is NOT a Numpy-matrix, rather, a Numpy-array.
-        
+
         The dtype will be a lower-common-denominator dtype (implicit
         upcasting); that is to say if the dtypes (even of numeric types)
         are mixed, the one that accommodates all will be chosen. Use this
         with care if you are not dealing with the blocks.
 
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to 
-        float32.  If dtypes are int32 and uint8, dtype will be upcase to 
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32.  If dtypes are int32 and uint8, dtype will be upcase to
         int32.
 
         This method is provided for backwards compatibility. Generally,
         it is recommended to use '.values'.
-                            
+
         See Also
         --------
         pandas.DataFrame.values
@@ -1971,7 +1971,7 @@ class NDFrame(PandasObject):
     @property
     def values(self):
         """Numpy representation of NDFrame
-        
+
         Notes
         -----
         The dtype will be a lower-common-denominator dtype (implicit
@@ -1979,8 +1979,8 @@ class NDFrame(PandasObject):
         are mixed, the one that accommodates all will be chosen. Use this
         with care if you are not dealing with the blocks.
 
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to 
-        float32.  If dtypes are int32 and uint8, dtype will be upcase to 
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32.  If dtypes are int32 and uint8, dtype will be upcase to
         int32.
         """
         return self.as_matrix()
