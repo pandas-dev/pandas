@@ -816,7 +816,7 @@ class _NDFrameIndexer(object):
         # this is iterative
         obj = self.obj
         axis = 0
-        for key in tup:
+        for i, key in enumerate(tup):
 
             if _is_null_slice(key):
                 axis += 1
@@ -833,6 +833,13 @@ class _NDFrameIndexer(object):
             # has the dim of the obj changed?
             # GH 7199
             if obj.ndim < current_ndim:
+
+                # GH 7516
+                # if had a 3 dim and are going to a 2d
+                # axes are reversed on a DataFrame
+                if i >= 1 and current_ndim == 3 and obj.ndim == 2:
+                    obj = obj.T
+
                 axis -= 1
 
         return obj

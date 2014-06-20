@@ -166,7 +166,7 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
-
+- Bug in Panel indexing with a multi-index axis (:issue:`7516`)
 
 - Bug in timeops with non-aligned Series (:issue:`7500`)
 
