@@ -261,9 +261,9 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         results = {}
         if isinstance(arg2, DataFrame):
             X, Y = arg1.align(arg2, join='outer')
-            X = X + 0 * Y
-            Y = Y + 0 * X
             if pairwise is False:
+                X = X + 0 * Y
+                Y = Y + 0 * X
                 res_columns = arg1.columns.union(arg2.columns)
                 for col in res_columns:
                     if col in X and col in Y:
@@ -276,7 +276,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             # Symmetric case
                             results[k1][k2] = results[k2][k1]
                         else:
-                            results[k1][k2] = f(arg1[k1], arg2[k2])
+                            results[k1][k2] = f(*_prep_binary(arg1[k1], arg2[k2]))
                 return Panel.from_dict(results).swapaxes('items', 'major')
             else:
                 raise ValueError("'pairwise' is not True/False")

@@ -786,6 +786,21 @@ class TestMoments(tm.TestCase):
         result = mom.expanding_corr(s1, s2a)
         assert_series_equal(result, expected)
 
+    def test_expanding_corr_pairwise_diff_length(self):
+        df1 = DataFrame([[1,2], [3, 2], [3,4]], columns=['A','B'])
+        df1a = DataFrame([[1,2], [3,4]], index=[0,2], columns=['A','B'])
+        df2 = DataFrame([[5,6], [None,None], [2,1]], columns=['X','Y'])
+        df2a = DataFrame([[5,6], [2,1]], index=[0,2], columns=['X','Y'])
+        result1 = mom.expanding_corr(df1, df2, pairwise=True)[2]
+        result2 = mom.expanding_corr(df1, df2a, pairwise=True)[2]
+        result3 = mom.expanding_corr(df1a, df2, pairwise=True)[2]
+        result4 = mom.expanding_corr(df1a, df2a, pairwise=True)[2]
+        expected = DataFrame([[-1.0, -1.0], [-1.0, -1.0]], index=['A','B'], columns=['X','Y'])
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+        assert_frame_equal(result4, expected)
+
     def test_rolling_skew_edge_cases(self):
 
         all_nan = Series([np.NaN] * 5)
