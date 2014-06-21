@@ -204,7 +204,7 @@ class TestCommon(Base):
         func = getattr(offset_s, funcname)
 
         result = func(dt)
-        self.assert_(isinstance(result, datetime))
+        self.assert_(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
 
         result = func(Timestamp(dt))
@@ -222,11 +222,11 @@ class TestCommon(Base):
 
             dt_tz = pytz.timezone(tz).localize(dt)
             result = func(dt_tz)
-            self.assert_(isinstance(result, datetime))
+            self.assert_(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
             result = func(Timestamp(dt, tz=tz))
-            self.assert_(isinstance(result, datetime))
+            self.assert_(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
     def _check_nanofunc_works(self, offset, funcname, dt, expected):
