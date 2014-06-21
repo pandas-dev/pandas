@@ -1,9 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-import operator
 import nose
-import copy
 import numpy as np
 from numpy import nan
 import pandas as pd
@@ -11,7 +9,6 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, Panel,
                     isnull, notnull,date_range, _np_version_under1p7)
 from pandas.core.index import Index, MultiIndex
-from pandas.tseries.index import Timestamp, DatetimeIndex
 
 import pandas.core.common as com
 
@@ -23,13 +20,6 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
-
-
-def _skip_if_no_scipy():
-    try:
-        import scipy.interpolate
-    except ImportError:
-        raise nose.SkipTest('scipy.interpolate missing')
 
 
 def _skip_if_no_pchip():
@@ -491,7 +481,7 @@ class TestSeries(tm.TestCase, Generic):
         self.assertRaises(ValueError, non_ts.interpolate, method='time')
 
     def test_interp_regression(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
@@ -509,7 +499,7 @@ class TestSeries(tm.TestCase, Generic):
         s = Series([]).interpolate()
         assert_series_equal(s.interpolate(), s)
 
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([np.nan, np.nan])
         assert_series_equal(s.interpolate(method='polynomial', order=1), s)
 
@@ -544,7 +534,7 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([0., 1., 2., 3.])
         assert_series_equal(result, expected)
 
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
 
@@ -561,14 +551,14 @@ class TestSeries(tm.TestCase, Generic):
         assert_series_equal(result, expected)
 
     def test_interp_quad(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method='quadratic')
         expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -611,7 +601,7 @@ class TestSeries(tm.TestCase, Generic):
 
     def test_interp_all_good(self):
         # scipy
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([1, 2, 3])
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, s)
@@ -629,18 +619,18 @@ class TestSeries(tm.TestCase, Generic):
         result = s.interpolate()
         assert_series_equal(result, expected)
 
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         with tm.assertRaises(ValueError):
             s.interpolate(method='polynomial', order=1)
 
     def test_interp_nonmono_raise(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([1, np.nan, 3], index=[0, 2, 1])
         with tm.assertRaises(ValueError):
             s.interpolate(method='krogh')
 
     def test_interp_datetime64(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
         result = df.interpolate(method='nearest')
         expected = Series([1., 1., 3.], index=date_range('1/1/2000', periods=3))
@@ -768,7 +758,7 @@ class TestDataFrame(tm.TestCase, Generic):
             df.interpolate(method='values')
 
     def test_interp_various(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         df = df.set_index('C')
@@ -810,7 +800,7 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(result, expected)
 
     def test_interp_alt_scipy(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         result = df.interpolate(method='barycentric')
@@ -850,7 +840,7 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(result, expected)
 
         # scipy route
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         result = df.interpolate(axis=1, method='values')
         assert_frame_equal(result, expected)
 
@@ -871,7 +861,7 @@ class TestDataFrame(tm.TestCase, Generic):
         expected['B'].loc[3] = -3.75
         assert_frame_equal(result, expected)
 
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         result = df.interpolate(method='polynomial', order=1)
         assert_frame_equal(result, expected)
 
@@ -1022,7 +1012,7 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(df[['C2', 'C3']].describe(), df[['C3']].describe())
 
     def test_no_order(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([0, 1, np.nan, 3])
         with tm.assertRaises(ValueError):
             s.interpolate(method='polynomial')
@@ -1030,7 +1020,7 @@ class TestDataFrame(tm.TestCase, Generic):
             s.interpolate(method='spline')
 
     def test_spline(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method='spline', order=1)
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
