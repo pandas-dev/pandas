@@ -2175,6 +2175,14 @@ def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
 
+def _get_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        return arr_or_dtype
+    if isinstance(arr_or_dtype, type):
+        return np.dtype(arr_or_dtype)
+    return arr_or_dtype.dtype
+
+
 def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
@@ -2206,7 +2214,7 @@ def is_datetime64_dtype(arr_or_dtype):
 
 
 def is_datetime64_ns_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
+    tipo = _get_dtype(arr_or_dtype)
     return tipo == _NS_DTYPE
 
 

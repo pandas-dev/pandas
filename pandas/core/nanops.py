@@ -14,7 +14,17 @@ import pandas.core.common as com
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
 from pandas.compat import builtins
-from pandas.core.common import isnull, notnull, _values_from_object, is_float
+from pandas.core.common import (isnull, notnull, _values_from_object,
+                                _maybe_upcast_putmask,
+                                ensure_float, _ensure_float64,
+                                _ensure_int64, _ensure_object,
+                                is_float, is_integer, is_complex,
+                                is_float_dtype, _is_floating_dtype,
+                                is_complex_dtype, is_integer_dtype,
+                                is_bool_dtype, is_object_dtype,
+                                is_datetime64_dtype, is_timedelta64_dtype,
+                                _is_datetime_or_timedelta_dtype,
+                                _is_int_or_datetime_dtype, _is_any_int_dtype)
 
 
 class disallow(object):
@@ -90,8 +100,8 @@ class bottleneck_switch(object):
 
 def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
-    if dt != np.object_ and not issubclass(dt.type, (np.datetime64,
-                                                     np.timedelta64)):
+    if (not is_object_dtype(dt) and
+            not _is_datetime_or_timedelta_dtype(dt)):
 
         # bottleneck does not properly upcast during the sum
         # so can overflow
@@ -166,8 +176,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
         # promote if needed
         else:
-            values, changed = com._maybe_upcast_putmask(values, mask,
-                                                        fill_value)
+            values, changed = _maybe_upcast_putmask(values, mask, fill_value)
 
     elif copy:
         values = values.copy()
@@ -176,34 +185,29 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
     # return a platform independent precision dtype
     dtype_max = dtype
-    if dtype.kind == 'i' and not issubclass(dtype.type, (np.bool,
-                                                         np.datetime64,
-                                                         np.timedelta64)):
+    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
         dtype_max = np.int64
-    elif dtype.kind in ['b'] or issubclass(dtype.type, np.bool):
-        dtype_max = np.int64
-    elif dtype.kind in ['f']:
+    elif is_float_dtype(dtype):
         dtype_max = np.float64
 
     return values, mask, dtype, dtype_max
 
 
 def _isfinite(values):
-    if issubclass(values.dtype.type, (np.timedelta64, np.datetime64)):
+    if _is_datetime_or_timedelta_dtype(values):
         return isnull(values)
-    elif isinstance(values.dtype, object):
-        return ~np.isfinite(values.astype('float64'))
-
-    return ~np.isfinite(values)
+    if (is_complex_dtype(values) or is_float_dtype(values) or
+            is_integer_dtype(values) or is_bool_dtype(values)):
+        return ~np.isfinite(values)
+    return ~np.isfinite(values.astype('float64'))
 
 
 def _na_ok_dtype(dtype):
-    return not issubclass(dtype.type, (np.integer, np.datetime64,
-                                       np.timedelta64))
+    return not _is_int_or_datetime_dtype(dtype)
 
 
 def _view_if_needed(values):
-    if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+    if _is_datetime_or_timedelta_dtype(values):
         return values.view(np.int64)
     return values
 
@@ -211,12 +215,12 @@ def _view_if_needed(values):
 def _wrap_results(result, dtype):
     """ wrap our results if needed """
 
-    if issubclass(dtype.type, np.datetime64):
+    if is_datetime64_dtype(dtype):
         if not isinstance(result, np.ndarray):
             result = lib.Timestamp(result)
         else:
             result = result.view(dtype)
-    elif issubclass(dtype.type, np.timedelta64):
+    elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
 
             # this is a scalar timedelta result!
@@ -334,7 +338,7 @@ def _get_counts_nanvar(mask, axis, ddof):
 @disallow('M8')
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
-    if not isinstance(values.dtype.type, np.floating):
+    if not _is_floating_dtype(values):
         values = values.astype('f8')
 
     mask = isnull(values)
@@ -353,7 +357,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
-    if not isinstance(values.dtype.type, np.floating):
+    if not _is_floating_dtype(values):
         values = values.astype('f8')
     mask = isnull(values)
     count, _ = _get_counts_nanvar(mask, axis, ddof)
@@ -367,7 +371,7 @@ def nanmin(values, axis=None, skipna=True):
                                                  fill_value_typ='+inf')
 
     # numpy 1.6.1 workaround in Python 3.x
-    if (values.dtype == np.object_ and compat.PY3):
+    if is_object_dtype(values) and compat.PY3:
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.min, apply_ax, values)
@@ -380,7 +384,7 @@ def nanmin(values, axis=None, skipna=True):
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
             try:
-                result = com.ensure_float(values.sum(axis, dtype=dtype_max))
+                result = ensure_float(values.sum(axis, dtype=dtype_max))
                 result.fill(np.nan)
             except:
                 result = np.nan
@@ -397,7 +401,7 @@ def nanmax(values, axis=None, skipna=True):
                                                  fill_value_typ='-inf')
 
     # numpy 1.6.1 workaround in Python 3.x
-    if (values.dtype == np.object_ and compat.PY3):
+    if is_object_dtype(values) and compat.PY3:
 
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
@@ -411,7 +415,7 @@ def nanmax(values, axis=None, skipna=True):
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
             try:
-                result = com.ensure_float(values.sum(axis, dtype=dtype_max))
+                result = ensure_float(values.sum(axis, dtype=dtype_max))
                 result.fill(np.nan)
             except:
                 result = np.nan
@@ -446,7 +450,7 @@ def nanargmin(values, axis=None, skipna=True):
 
 @disallow('M8')
 def nanskew(values, axis=None, skipna=True):
-    if not isinstance(values.dtype.type, np.floating):
+    if not _is_floating_dtype(values):
         values = values.astype('f8')
 
     mask = isnull(values)
@@ -480,7 +484,7 @@ def nanskew(values, axis=None, skipna=True):
 
 @disallow('M8')
 def nankurt(values, axis=None, skipna=True):
-    if not isinstance(values.dtype.type, np.floating):
+    if not _is_floating_dtype(values):
         values = values.astype('f8')
 
     mask = isnull(values)
@@ -515,7 +519,7 @@ def nankurt(values, axis=None, skipna=True):
 @disallow('M8')
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
+    if skipna and not _is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
@@ -644,9 +648,9 @@ def nancov(a, b, min_periods=None):
 
 def _ensure_numeric(x):
     if isinstance(x, np.ndarray):
-        if x.dtype.kind in ['i', 'b']:
+        if is_integer_dtype(x) or is_bool_dtype(x):
             x = x.astype(np.float64)
-        elif x.dtype == np.object_:
+        elif is_object_dtype(x):
             try:
                 x = x.astype(np.complex128)
             except:
@@ -654,7 +658,7 @@ def _ensure_numeric(x):
             else:
                 if not np.any(x.imag):
                     x = x.real
-    elif not (com.is_float(x) or com.is_integer(x) or com.is_complex(x)):
+    elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:
             x = float(x)
         except Exception:
@@ -678,7 +682,7 @@ def make_nancomp(op):
         result = op(x, y)
 
         if mask.any():
-            if result.dtype == np.bool_:
+            if is_bool_dtype(result):
                 result = result.astype('O')
             np.putmask(result, mask, np.nan)
 
@@ -699,16 +703,16 @@ def unique1d(values):
     """
     if np.issubdtype(values.dtype, np.floating):
         table = _hash.Float64HashTable(len(values))
-        uniques = np.array(table.unique(com._ensure_float64(values)),
+        uniques = np.array(table.unique(_ensure_float64(values)),
                            dtype=np.float64)
     elif np.issubdtype(values.dtype, np.datetime64):
         table = _hash.Int64HashTable(len(values))
-        uniques = table.unique(com._ensure_int64(values))
+        uniques = table.unique(_ensure_int64(values))
         uniques = uniques.view('M8[ns]')
     elif np.issubdtype(values.dtype, np.integer):
         table = _hash.Int64HashTable(len(values))
-        uniques = table.unique(com._ensure_int64(values))
+        uniques = table.unique(_ensure_int64(values))
     else:
         table = _hash.PyObjectHashTable(len(values))
-        uniques = table.unique(com._ensure_object(values))
+        uniques = table.unique(_ensure_object(values))
     return uniques
