@@ -114,9 +114,9 @@ Enhancements
 
   .. ipython:: python
 
-   rng = date_range('3/6/2012 00:00', periods=10, freq='D',
-                    tz='dateutil/Europe/London')
-   rng.tz
+     rng = date_range('3/6/2012 00:00', periods=10, freq='D',
+                      tz='dateutil/Europe/London')
+     rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
 
@@ -150,16 +150,14 @@ Performance
 Experimental
 ~~~~~~~~~~~~
 
-``pandas.io.data.Options`` has a get_all_data method and now consistently returns a multi-indexed ``DataFrame`` (:issue:`5602`)
-    See :ref:`the docs<remote_data.yahoo_Options>` ***Experimental***
+``pandas.io.data.Options`` has gained a ``get_all_data method``, and now consistently returns a multi-indexed ``DataFrame`` (:issue:`5602`). See :ref:`the docs<remote_data.yahoo_options>`
 
-      .. ipython:: python
+  .. ipython:: python
 
-      from pandas.io.data import Options
-      aapl = Options('aapl', 'yahoo')
-      data = aapl.get_all_data()
-      data.iloc[0:5, 0:5]
-
+     from pandas.io.data import Options
+     aapl = Options('aapl', 'yahoo')
+     data = aapl.get_all_data()
+     data.iloc[0:5, 0:5]
 
 .. _whatsnew_0141.bug_fixes:
 

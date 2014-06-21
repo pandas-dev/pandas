@@ -52,7 +52,7 @@ Yahoo! Finance
     f=web.DataReader("F", 'yahoo', start, end)
     f.ix['2010-01-04']
 
-.. _remote_data.yahoo_Options:
+.. _remote_data.yahoo_options:
 
 Yahoo! Finance Options
 ----------------------
