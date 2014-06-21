@@ -237,10 +237,20 @@ class TestnanopsDataFrame(tm.TestCase):
                      self.arr_utf.astype('O')]
 
         if allow_date:
-            self.check_fun(testfunc, targfunc, 'arr_date', **kwargs)
-            self.check_fun(testfunc, targfunc, 'arr_tdelta', **kwargs)
-            objs += [self.arr_date.astype('O'),
-                     self.arr_tdelta.astype('O')]
+            try:
+                targfunc(self.arr_date)
+            except TypeError:
+                pass
+            else:
+                self.check_fun(testfunc, targfunc, 'arr_date', **kwargs)
+                objs += [self.arr_date.astype('O')]
+            try:
+                targfunc(self.arr_tdelta)
+            except TypeError:
+                pass
+            else:
+                self.check_fun(testfunc, targfunc, 'arr_tdelta', **kwargs)
+                objs += [self.arr_tdelta.astype('O')]
 
         if allow_obj:
             self.arr_obj = np.vstack(objs)
