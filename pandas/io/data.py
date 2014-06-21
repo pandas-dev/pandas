@@ -683,7 +683,10 @@ class Options(object):
         table_name = '_tables' + m1 + str(year)[-2:]
         setattr(self, table_name, tables)
 
-        self.underlying_price, self.quote_time = self._get_underlying_price(root)
+        try:
+            self.underlying_price, self.quote_time = self._get_underlying_price(root)
+        except IndexError:
+            self.underlying_price, self.quote_time = np.nan, np.nan
 
         return tables
 
@@ -723,7 +726,7 @@ class Options(object):
         if ntables == 0:
             raise RemoteDataError("No tables found at {0!r}".format(url))
         elif table_loc - 1 > ntables:
-            raise IndexError("Table location {0} invalid, {1} tables"
+            raise RemoteDataError("Table location {0} invalid, {1} tables"
                              " found".format(table_loc, ntables))
 
         option_data = _parse_options_data(tables[table_loc])
