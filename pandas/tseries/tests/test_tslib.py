@@ -9,6 +9,7 @@ from pandas.core.api import Timestamp, Series
 from pandas.tslib import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
+import pandas.tseries.offsets as offsets
 from pandas import _np_version_under1p7
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
@@ -61,7 +62,7 @@ class TestTimestamp(tm.TestCase):
             for unit in time_units:
                 self.assertRaises(
                     ValueError,
-                    tslib.Timestamp,
+                    Timestamp,
                     np.datetime64(date_string, dtype='M8[%s]' % unit)
                 )
 
@@ -72,27 +73,48 @@ class TestTimestamp(tm.TestCase):
 
         for date_string in in_bounds_dates:
             for unit in time_units:
-                tslib.Timestamp(
+                Timestamp(
                     np.datetime64(date_string, dtype='M8[%s]' % unit)
                 )
+
+    def test_tz(self):
+        t = '2014-02-01 09:00'
+        ts = Timestamp(t)
+        local = ts.tz_localize('Asia/Tokyo')
+        self.assertEqual(local.hour, 9)
+        self.assertEqual(local, Timestamp(t, tz='Asia/Tokyo'))
+        conv = local.tz_convert('US/Eastern')
+        self.assertEqual(conv,
+                         Timestamp('2014-01-31 19:00', tz='US/Eastern'))
+        self.assertEqual(conv.hour, 19)
+
+        # preserves nanosecond
+        ts = Timestamp(t) + offsets.Nano(5)
+        local = ts.tz_localize('Asia/Tokyo')
+        self.assertEqual(local.hour, 9)
+        self.assertEqual(local.nanosecond, 5)
+        conv = local.tz_convert('US/Eastern')
+        self.assertEqual(conv.nanosecond, 5)
+        self.assertEqual(conv.hour, 19)
 
     def test_barely_oob_dts(self):
         one_us = np.timedelta64(1)
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
-        min_ts_us = np.datetime64(tslib.Timestamp.min).astype('M8[us]')
-        max_ts_us = np.datetime64(tslib.Timestamp.max).astype('M8[us]')
+        min_ts_us = np.datetime64(Timestamp.min).astype('M8[us]')
+        max_ts_us = np.datetime64(Timestamp.max).astype('M8[us]')
 
         # No error for the min/max datetimes
-        tslib.Timestamp(min_ts_us)
-        tslib.Timestamp(max_ts_us)
+        Timestamp(min_ts_us)
+        Timestamp(max_ts_us)
 
         # One us less than the minimum is an error
-        self.assertRaises(ValueError, tslib.Timestamp, min_ts_us - one_us)
+        self.assertRaises(ValueError, Timestamp, min_ts_us - one_us)
 
         # One us more than the maximum is an error
-        self.assertRaises(ValueError, tslib.Timestamp, max_ts_us + one_us)
+        self.assertRaises(ValueError, Timestamp, max_ts_us + one_us)
+
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):

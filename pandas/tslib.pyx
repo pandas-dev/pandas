@@ -341,13 +341,15 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
-    def tz_localize(self, tz):
+    def tz_localize(self, tz, infer_dst=False):
         """
         Convert naive Timestamp to local time zone
 
         Parameters
         ----------
         tz : pytz.timezone or dateutil.tz.tzfile
+        infer_dst : boolean, default False
+            Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -355,7 +357,10 @@ class Timestamp(_Timestamp):
         """
         if self.tzinfo is None:
             # tz naive, localize
-            return Timestamp(self.to_pydatetime(), tz=tz)
+            tz = maybe_get_tz(tz)
+            value = tz_localize_to_utc(np.array([self.value]), tz,
+                                       infer_dst=infer_dst)[0]
+            return Timestamp(value, tz=tz)
         else:
             raise Exception('Cannot localize tz-aware Timestamp, use '
                             'tz_convert for conversions')
