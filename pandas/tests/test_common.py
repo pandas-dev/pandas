@@ -7,6 +7,7 @@ import sys
 import nose
 from nose.tools import assert_equal
 import numpy as np
+import pandas as pd
 from pandas.tslib import iNaT, NaT
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp, Float64Index
 from pandas import compat
@@ -143,6 +144,18 @@ def test_isnull_nat():
     exp = np.array([True])
     assert(np.array_equal(result, exp))
 
+    result = isnull(pd.Period('NaT', freq='M'))
+    assert(result)
+    result = isnull([pd.Period('NaT', freq='M')])
+    exp = np.array([True])
+    assert(np.array_equal(result, exp))
+
+    result = notnull(pd.Period('NaT', freq='M'))
+    assert(not result)
+    result = notnull([pd.Period('NaT', freq='M')])
+    exp = np.array([False])
+    assert(np.array_equal(result, exp))
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())
@@ -165,6 +178,30 @@ def test_isnull_datetime():
 
     mask = isnull(pidx[1:])
     assert(not mask.any())
+
+def test_isnull_period():
+    assert (not isnull(pd.Period('2011-01', freq='M')))
+    assert notnull(pd.Period('2011-01', freq='M'))
+
+    idx = pd.period_range('1/1/1990', periods=20)
+    assert(notnull(idx).all())
+
+    idx = pd.PeriodIndex(['NaT', '2011-01', '2011-02'], freq='M')
+    mask = isnull(idx)
+    assert(mask[0])
+    assert(not mask[1:].any())
+
+    mask = isnull(idx.asobject)
+    assert(mask[0])
+    assert(not mask[1:].any())
+
+    mask = notnull(idx)
+    assert(not mask[0])
+    assert(mask[1:].all())
+
+    mask = notnull(idx.asobject)
+    assert(not mask[0])
+    assert(mask[1:].all())
 
 
 class TestIsNull(tm.TestCase):
