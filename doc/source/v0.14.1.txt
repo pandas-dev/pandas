@@ -250,7 +250,7 @@ Bug Fixes
 
 - Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
   ``Index`` (:issue:`7464`).
-
+- Bug in ``DataFrame.reset_index`` loses ``tz`` (:issue:`3950`)
 
 
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)

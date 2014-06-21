@@ -2182,6 +2182,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.pop('ts')
         assert_frame_equal(df, expected)
 
+        # GH 3950
+        # reset_index with single level
+        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern']:
+            idx = pd.date_range('1/1/2011', periods=5, freq='D', tz=tz, name='idx')
+            df = pd.DataFrame({'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx) 
+
+            expected = pd.DataFrame({'idx': [datetime(2011, 1, 1), datetime(2011, 1, 2),
+                                             datetime(2011, 1, 3), datetime(2011, 1, 4),
+                                             datetime(2011, 1, 5)], 
+                                     'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']},
+                                     columns=['idx', 'a', 'b'])
+            expected['idx'] = expected['idx'].apply(lambda d: pd.Timestamp(d, tz=tz))
+            assert_frame_equal(df.reset_index(), expected)
+
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
         df = DataFrame(np.random.randn(3, 3), columns=columns)

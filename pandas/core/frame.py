@@ -2326,19 +2326,24 @@ class DataFrame(NDFrame):
         else:
             new_obj = self.copy()
 
-        def _maybe_cast(values, labels=None):
+        def _maybe_casted_values(index, labels=None):
+            if isinstance(index, PeriodIndex):
+                values = index.asobject
+            elif (isinstance(index, DatetimeIndex) and
+                  index.tz is not None):
+                values = index.asobject
+            else:
+                values = index.values
+                if values.dtype == np.object_:
+                    values = lib.maybe_convert_objects(values)
 
-            if values.dtype == np.object_:
-                values = lib.maybe_convert_objects(values)
-
-            # if we have the labels, extract the values with a mask
-            if labels is not None:
-                mask = labels == -1
-                values = values.take(labels)
-                if mask.any():
-                    values, changed = com._maybe_upcast_putmask(
-                        values, mask, np.nan)
-
+                # if we have the labels, extract the values with a mask
+                if labels is not None:
+                    mask = labels == -1
+                    values = values.take(labels)
+                    if mask.any():
+                        values, changed = com._maybe_upcast_putmask(values,
+                                                                    mask, np.nan)
             return values
 
         new_index = np.arange(len(new_obj))
@@ -2371,7 +2376,7 @@ class DataFrame(NDFrame):
                             col_name = tuple(name_lst)
 
                     # to ndarray and maybe infer different dtype
-                    level_values = _maybe_cast(lev.values, lab)
+                    level_values = _maybe_casted_values(lev, lab)
                     if level is None or i in level:
                         new_obj.insert(0, col_name, level_values)
 
@@ -2387,13 +2392,7 @@ class DataFrame(NDFrame):
                     lev_num = self.columns._get_level_number(col_level)
                     name_lst[lev_num] = name
                     name = tuple(name_lst)
-            if isinstance(self.index, PeriodIndex):
-                values = self.index.asobject
-            elif (isinstance(self.index, DatetimeIndex) and
-                  self.index.tz is not None):
-                values = self.index.asobject
-            else:
-                values = _maybe_cast(self.index.values)
+            values = _maybe_casted_values(self.index)
             new_obj.insert(0, name, values)
 
         new_obj.index = new_index
