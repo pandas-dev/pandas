@@ -108,6 +108,9 @@ Enhancements
 - ``read_html`` now sports an ``encoding`` argument that is passed to the
   underlying parser library. You can use this to read non-ascii encoded web
   pages (:issue:`7323`).
+- ``read_excel`` now supports reading from URLs in the same way
+  that ``read_csv`` does.  (:issue:`6809`)
+
 
 - Support for dateutil timezones, which can now be used in the same way as
   pytz timezones across pandas. (:issue:`4688`)

@@ -10,6 +10,7 @@ import abc
 import numpy as np
 
 from pandas.io.parsers import TextParser
+from pandas.io.common import _is_url, _urlopen
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
@@ -56,8 +57,10 @@ def read_excel(io, sheetname=0, **kwds):
 
     Parameters
     ----------
-    io : string, file-like object or xlrd workbook
-        If a string, expected to be a path to xls or xlsx file
+    io : string, file-like object, or xlrd workbook. 
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        and file. For file URLs, a host is expected. For instance, a local
+        file could be file://localhost/path/to/workbook.xlsx
     sheetname : string or int, default 0
         Name of Excel sheet or the page number of the sheet
     header : int, default 0
@@ -98,6 +101,7 @@ def read_excel(io, sheetname=0, **kwds):
     -------
     parsed : DataFrame
         DataFrame from the passed in Excel file
+
     """
     if 'kind' in kwds:
         kwds.pop('kind')
@@ -139,11 +143,16 @@ class ExcelFile(object):
             raise ValueError("Unknown engine: %s" % engine)
 
         if isinstance(io, compat.string_types):
-            self.book = xlrd.open_workbook(io)
-        elif engine == "xlrd" and isinstance(io, xlrd.Book):
+            if _is_url(io):
+                data = _urlopen(io).read()
+                self.book = xlrd.open_workbook(file_contents=data)
+            else:
+                self.book = xlrd.open_workbook(io)
+        elif engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
-        elif hasattr(io, "read"):
-            data = io.read()
+        elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
+            # N.B. xlrd.Book has a read attribute too
+            data = io.read() 
             self.book = xlrd.open_workbook(file_contents=data)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
