@@ -723,9 +723,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return False
         return key.ordinal in self._engine
 
-    def _box_values(self, values):
-        f = lambda x: Period(ordinal=x, freq=self.freq)
-        return lib.map_infer(values, f)
+    @property
+    def _box_func(self):
+        return lambda x: Period(ordinal=x, freq=self.freq)
 
     def asof_locs(self, where, mask):
         """
@@ -746,10 +746,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         result[(locs == 0) & (where_idx.values < self.values[first])] = -1
 
         return result
-
-    @property
-    def asobject(self):
-        return Index(self._box_values(self.values), name=self.name, dtype=object)
 
     def _array_values(self):
         return self.asobject
@@ -853,12 +849,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return True
 
         return np.array_equal(self.asi8, other.asi8)
-
-    def tolist(self):
-        """
-        Return a list of Period objects
-        """
-        return self._get_object_array().tolist()
 
     def to_timestamp(self, freq=None, how='start'):
         """

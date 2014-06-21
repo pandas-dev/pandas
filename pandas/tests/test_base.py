@@ -515,6 +515,44 @@ class TestDatetimeIndexOps(Ops):
         self.assertEquals(s.day,10)
         self.assertRaises(AttributeError, lambda : s.weekday)
 
+    def test_asobject_tolist(self):
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M', name='idx')
+        expected_list = [pd.Timestamp('2013-01-31'), pd.Timestamp('2013-02-28'),
+                         pd.Timestamp('2013-03-31'), pd.Timestamp('2013-04-30')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.asobject
+        self.assertTrue(isinstance(result, Index))
+        self.assertEqual(result.dtype, object)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(idx.tolist(), expected_list)
+
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M', name='idx', tz='Asia/Tokyo')
+        expected_list = [pd.Timestamp('2013-01-31', tz='Asia/Tokyo'),
+                         pd.Timestamp('2013-02-28', tz='Asia/Tokyo'),
+                         pd.Timestamp('2013-03-31', tz='Asia/Tokyo'),
+                         pd.Timestamp('2013-04-30', tz='Asia/Tokyo')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.asobject
+        self.assertTrue(isinstance(result, Index))
+        self.assertEqual(result.dtype, object)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(idx.tolist(), expected_list)
+
+        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
+                             pd.NaT, datetime(2013, 1, 4)], name='idx')
+        expected_list = [pd.Timestamp('2013-01-01'), pd.Timestamp('2013-01-02'),
+                         pd.NaT, pd.Timestamp('2013-01-04')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.asobject
+        self.assertTrue(isinstance(result, Index))
+        self.assertEqual(result.dtype, object)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(idx.tolist(), expected_list)
+
+
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'
 
@@ -527,6 +565,38 @@ class TestPeriodIndexOps(Ops):
     def test_ops_properties(self):
         self.check_ops_properties(['year','month','day','hour','minute','second','weekofyear','week','dayofweek','dayofyear','quarter'])
         self.check_ops_properties(['qyear'], lambda x: isinstance(x,PeriodIndex))
+
+    def test_asobject_tolist(self):
+        idx = pd.period_range(start='2013-01-01', periods=4, freq='M', name='idx')
+        expected_list = [pd.Period('2013-01-31', freq='M'), pd.Period('2013-02-28', freq='M'),
+                         pd.Period('2013-03-31', freq='M'), pd.Period('2013-04-30', freq='M')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.asobject
+        self.assertTrue(isinstance(result, Index))
+        self.assertEqual(result.dtype, object)
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(result.name, expected.name)
+        self.assertEqual(idx.tolist(), expected_list)
+
+        idx = PeriodIndex(['2013-01-01', '2013-01-02', 'NaT', '2013-01-04'], freq='D', name='idx')
+        expected_list = [pd.Period('2013-01-01', freq='D'), pd.Period('2013-01-02', freq='D'),
+                         pd.Period('NaT', freq='D'), pd.Period('2013-01-04', freq='D')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.asobject
+        self.assertTrue(isinstance(result, Index))
+        self.assertEqual(result.dtype, object)
+        for i in [0, 1, 3]:
+            self.assertTrue(result[i], expected[i])
+        self.assertTrue(result[2].ordinal, pd.tslib.iNaT)
+        self.assertTrue(result[2].freq, 'D')
+        self.assertEqual(result.name, expected.name)
+
+        result_list = idx.tolist()
+        for i in [0, 1, 3]:
+            self.assertTrue(result_list[i], expected_list[i])
+        self.assertTrue(result_list[2].ordinal, pd.tslib.iNaT)
+        self.assertTrue(result_list[2].freq, 'D')
+
 
 if __name__ == '__main__':
     import nose
