@@ -764,6 +764,28 @@ class TestMoments(tm.TestCase):
         for i in result.items:
             assert_almost_equal(result[i], rolling_result[i])
 
+    def test_expanding_cov_diff_length(self):
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.expanding_cov(s1, s2)
+        expected = Series([None, None, 2.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.expanding_cov(s1, s2a)
+        assert_series_equal(result, expected)
+
+    def test_expanding_corr_diff_length(self):
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.expanding_corr(s1, s2)
+        expected = Series([None, None, 1.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.expanding_corr(s1, s2a)
+        assert_series_equal(result, expected)
+
     def test_rolling_skew_edge_cases(self):
 
         all_nan = Series([np.NaN] * 5)

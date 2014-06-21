@@ -209,11 +209,11 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
         pairwise = True if pairwise is None else pairwise  # only default unset
     arg1 = _conv_timerule(arg1, freq, how)
     arg2 = _conv_timerule(arg2, freq, how)
-    window = min(window, len(arg1), len(arg2))
 
     def _get_cov(X, Y):
-        mean = lambda x: rolling_mean(x, window, min_periods, center=center)
-        count = rolling_count(X + Y, window, center=center)
+        adj_window = min(window, len(X), len(Y))
+        mean = lambda x: rolling_mean(x, adj_window, min_periods, center=center)
+        count = rolling_count(X + Y, adj_window, center=center)
         bias_adj = count / (count - 1)
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     rs = _flex_binary_moment(arg1, arg2, _get_cov, pairwise=bool(pairwise))
@@ -234,14 +234,14 @@ def rolling_corr(arg1, arg2=None, window=None, min_periods=None, freq=None,
         pairwise = True if pairwise is None else pairwise  # only default unset
     arg1 = _conv_timerule(arg1, freq, how)
     arg2 = _conv_timerule(arg2, freq, how)
-    window = min(window, len(arg1), len(arg2))
 
     def _get_corr(a, b):
-        num = rolling_cov(a, b, window, min_periods, freq=freq,
+        adj_window = min(window, len(a), len(b))
+        num = rolling_cov(a, b, adj_window, min_periods, freq=freq,
                           center=center)
-        den = (rolling_std(a, window, min_periods, freq=freq,
+        den = (rolling_std(a, adj_window, min_periods, freq=freq,
                            center=center) *
-               rolling_std(b, window, min_periods, freq=freq,
+               rolling_std(b, adj_window, min_periods, freq=freq,
                            center=center))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr, pairwise=bool(pairwise))
@@ -917,7 +917,7 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
         min_periods = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    window = max(len(arg1), len(arg2))
+    window = len(arg1) + len(arg2)
     return rolling_cov(arg1, arg2, window,
                        min_periods=min_periods, freq=freq,
                        center=center, pairwise=pairwise)
@@ -935,7 +935,7 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
         min_periods = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    window = max(len(arg1), len(arg2))
+    window = len(arg1) + len(arg2)
     return rolling_corr(arg1, arg2, window,
                         min_periods=min_periods,
                         freq=freq, center=center, pairwise=pairwise)
