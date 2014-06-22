@@ -1083,13 +1083,24 @@ class GroupBy(PandasObject):
     def _cython_agg_general(self, how, numeric_only=True):
         output = {}
         for name, obj in self._iterate_slices():
-            is_numeric = is_numeric_dtype(obj.dtype)
-            is_timdelta64 = is_timedelta64_dtype(obj.dtype)
-            if numeric_only and not (is_numeric or is_timdelta64):
+            if is_numeric_dtype(obj.dtype):
+                obj = com.ensure_float(obj)
+                is_numeric = True
+                out_dtype = 'f%d' % obj.dtype.itemsize
+            else:
+                is_numeric = issubclass(obj.dtype.type, (np.datetime64,
+                                                            np.timedelta64))
+                out_dtype = 'float64'
+                if is_numeric:
+                    values = obj.view('int64')
+                else:
+                    values = obj.astype(object)
+
+            if numeric_only and not is_numeric:
                 continue
 
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -2569,12 +2580,22 @@ class NDFrameGroupBy(GroupBy):
 
         for block in data.blocks:
             values = block._try_operate(block.values)
-            is_numeric = is_numeric_dtype(values.dtype)
-            is_timedelta64 = is_timedelta64_dtype(values.dtype)
 
-            if numeric_only and not (is_numeric or is_timedelta64):
+            if is_numeric_dtype(values.dtype):
+                values = com.ensure_float(values)
+                is_numeric = True
+            else:
+                is_numeric = issubclass(values.dtype.type, (np.datetime64,
+                                                            np.timedelta64))
+                if is_numeric:
+                    values = values.view('int64')
+                else:
+                    values = values.astype(object)
+
+            if numeric_only and not is_numeric:
                 continue
 
+            # TODO DAN
             if block.is_numeric:
                 values = _algos.ensure_float64(values)
 
