@@ -3,7 +3,7 @@ from pandas import compat
 import warnings
 import nose
 from nose.tools import assert_equal
-from datetime import datetime, date
+from datetime import datetime
 import os
 
 import numpy as np
@@ -20,6 +20,7 @@ if compat.PY3:
     from urllib.error import HTTPError
 else:
     from urllib2 import HTTPError
+
 
 def _skip_if_no_lxml():
     try:
@@ -125,8 +126,8 @@ class TestYahoo(tm.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
 
-        self.assertEqual( web.DataReader("F", 'yahoo', start,
-                                          end)['Close'][-1], 13.68)
+        self.assertEqual(web.DataReader("F", 'yahoo', start, end)['Close'][-1],
+                         13.68)
 
     @network
     def test_yahoo_fails(self):
@@ -200,17 +201,18 @@ class TestYahoo(tm.TestCase):
 
     @network
     def test_get_data_multiple_symbols_two_dates(self):
-        pan = web.get_data_yahoo(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
+        pan = web.get_data_yahoo(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
+                                 'JAN-31-12')
         result = pan.Close.ix['01-18-12']
         self.assertEqual(len(result), 3)
 
         # sanity checking
         assert np.issubdtype(result.dtype, np.floating)
 
-        expected = np.array([[ 18.99,  28.4 ,  25.18],
-                             [ 18.58,  28.31,  25.13],
-                             [ 19.03,  28.16,  25.52],
-                             [ 18.81,  28.82,  25.87]])
+        expected = np.array([[18.99,  28.4, 25.18],
+                             [18.58, 28.31, 25.13],
+                             [19.03, 28.16, 25.52],
+                             [18.81, 28.82, 25.87]])
         result = pan.Open.ix['Jan-15-12':'Jan-20-12']
         self.assertEqual(expected.shape, result.shape)
 
@@ -249,7 +251,6 @@ class TestYahooOptions(tm.TestCase):
         cls.root1 = cls.aapl._parse_url(cls.html1)
         cls.root2 = cls.aapl._parse_url(cls.html2)
 
-
     @classmethod
     def tearDownClass(cls):
         super(TestYahooOptions, cls).tearDownClass()
@@ -257,32 +258,28 @@ class TestYahooOptions(tm.TestCase):
 
     @network
     def test_get_options_data(self):
+        # regression test GH6105
+        self.assertRaises(ValueError, self.aapl.get_options_data, month=3)
+        self.assertRaises(ValueError, self.aapl.get_options_data, year=1992)
+
         try:
             options = self.aapl.get_options_data(expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
         else:
-            assert len(options)>1
-
-
-    def test_get_options_data(self):
-
-        # regression test GH6105
-        self.assertRaises(ValueError, self.aapl.get_options_data, month=3)
-        self.assertRaises(ValueError, self.aapl.get_options_data, year=1992)
+            assert len(options) > 1
 
     @network
     def test_get_near_stock_price(self):
         try:
             options = self.aapl.get_near_stock_price(call=True, put=True,
-                                                        expiry=self.expiry)
+                                                     expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
         else:
-            assert len(options)> 1
+            assert len(options) > 1
 
         self.assertTrue(len(options) > 1)
-
 
     @network
     def test_get_call_data(self):
@@ -291,7 +288,7 @@ class TestYahooOptions(tm.TestCase):
         except RemoteDataError as e:
             nose.SkipTest(e)
         else:
-            assert len(calls)>1
+            assert len(calls) > 1
 
     @network
     def test_get_put_data(self):
@@ -300,7 +297,7 @@ class TestYahooOptions(tm.TestCase):
         except RemoteDataError as e:
             nose.SkipTest(e)
         else:
-            assert len(puts)>1
+            assert len(puts) > 1
 
     @network
     def test_get_expiry_months(self):
@@ -328,25 +325,27 @@ class TestYahooOptions(tm.TestCase):
 
         self.assertTrue(len(data) > 1)
 
+    @network
     def test_sample_page_price_quote_time1(self):
         #Tests the weekend quote time format
         price, quote_time = self.aapl._get_underlying_price(self.root1)
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
 
+    @network
     def test_sample_page_price_quote_time2(self):
         #Tests the weekday quote time format
         price, quote_time = self.aapl._get_underlying_price(self.root2)
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
 
+    @network
     def test_sample_page_chg_float(self):
         #Tests that numeric columns with comma's are appropriately dealt with
         tables = self.root1.xpath('.//table')
         data = web._parse_options_data(tables[self.aapl._TABLE_LOC['puts']])
         option_data = self.aapl._process_data(data)
         self.assertEqual(option_data['Chg'].dtype, 'float64')
-
 
 
 class TestOptionsWarnings(tm.TestCase):
@@ -383,9 +382,9 @@ class TestOptionsWarnings(tm.TestCase):
         with assert_produces_warning():
             try:
                 options_near = self.aapl.get_near_stock_price(call=True,
-                                                                    put=True,
-                                                                    month=self.month,
-                                                                    year=self.year)
+                                                              put=True,
+                                                              month=self.month,
+                                                              year=self.year)
             except RemoteDataError as e:
                 nose.SkipTest(e)
 
@@ -430,7 +429,7 @@ class TestDataReader(tm.TestCase):
     def test_read_famafrench(self):
         for name in ("F-F_Research_Data_Factors",
                      "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
-                     "F-F_ST_Reversal_Factor","F-F_Momentum_Factor"):
+                     "F-F_ST_Reversal_Factor", "F-F_Momentum_Factor"):
             ff = DataReader(name, "famafrench")
             assert ff
             assert isinstance(ff, dict)
@@ -507,6 +506,7 @@ class TestFred(tm.TestCase):
         names = ['NOTAREALSERIES', 'CPIAUCSL', "ALSO FAKE"]
         with tm.assertRaises(HTTPError):
             DataReader(names, data_source="fred")
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
