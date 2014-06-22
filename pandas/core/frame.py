@@ -1166,7 +1166,7 @@ class DataFrame(NDFrame):
             Missing data representation
         float_format : string, default None
             Format string for floating point numbers
-        cols : sequence, optional
+        columns : sequence, optional
             Columns to write
         header : boolean or list of string, default True
             Write out column names. If a list of string is given it is
