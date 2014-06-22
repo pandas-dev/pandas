@@ -17,19 +17,7 @@ from pandas.tseries.resample import DatetimeIndex
 from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
 
-
-def _skip_if_no_scipy():
-    try:
-        import scipy
-    except ImportError:
-        raise nose.SkipTest("scipy not installed")
-
-def _skip_if_no_scipy_gaussian_kde():
-    try:
-        import scipy
-        from scipy.stats import gaussian_kde
-    except ImportError:
-        raise nose.SkipTest("scipy version doesn't support gaussian_kde")
+from pandas.tests.test_graphics import _skip_if_no_scipy_gaussian_kde
 
 
 @tm.mplskip
@@ -573,7 +561,7 @@ class TestTSPlot(tm.TestCase):
 
     @slow
     def test_secondary_kde(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
 
         import matplotlib.pyplot as plt

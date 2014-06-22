@@ -26,13 +26,6 @@ import pandas.util.testing as tm
 bday = BDay()
 
 
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest("pytz not installed")
-
-
 class TestResample(tm.TestCase):
     _multiprocess_can_split_ = True
 

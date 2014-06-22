@@ -34,25 +34,6 @@ from pandas.util.testing import (assert_series_equal,
 import pandas.util.testing as tm
 
 
-def _skip_if_no_scipy():
-    try:
-        import scipy.stats
-    except ImportError:
-        raise nose.SkipTest("scipy not installed")
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest("pytz not installed")
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil
-    except ImportError:
-        raise nose.SkipTest("dateutil not installed")
-
 #------------------------------------------------------------------------------
 # Series test cases
 
@@ -2010,14 +1991,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assert_(isnull(result))
 
     def test_skew(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         from scipy.stats import skew
         alt = lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
@@ -3786,7 +3767,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # df['c'].update(Series(['foo'],index=[0])) #####
 
     def test_corr(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         import scipy.stats as stats
 
@@ -3817,7 +3798,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
 
         import scipy
         import scipy.stats as stats
@@ -4138,7 +4119,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
 
     def test_rank(self):
-        _skip_if_no_scipy()
+        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         self.ts[::2] = np.nan
@@ -4639,7 +4620,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_datetime_tz_pytz(self):
-        _skip_if_no_pytz();
+        tm._skip_if_no_pytz();
         from pytz import timezone as tz
 
         from pandas import date_range
@@ -4675,7 +4656,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
-        _skip_if_no_dateutil();
+        tm._skip_if_no_dateutil();
         from dateutil.tz import gettz, tzutc
         tz = lambda x: tzutc() if x == 'UTC' else gettz(x)  # handle special case for utc in dateutil
 

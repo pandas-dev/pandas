@@ -2,7 +2,6 @@
 from datetime import datetime, timedelta, tzinfo, date
 import sys
 import os
-import unittest
 import nose
 
 import numpy as np
@@ -26,17 +25,6 @@ from pandas.compat import lrange, zip
 
 from pandas import _np_version_under1p7
 
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest("pytz not installed")
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil
-    except ImportError:
-        raise nose.SkipTest
 
 try:
     import pytz
@@ -73,7 +61,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
 
     def tz(self, tz):
         ''' Construct a timezone object from a string. Overridden in subclass to parameterize tests. '''
@@ -493,7 +481,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         self.assertTrue(result.equals(expected))
 
     def test_take_dont_lose_meta(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         rng = date_range('1/1/2000', periods=20, tz=self.tzstr('US/Eastern'))
 
         result = rng.take(lrange(5))
@@ -759,7 +747,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
 
     def tz(self, tz):
         '''
@@ -816,7 +804,7 @@ class TestTimeZones(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
 
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')

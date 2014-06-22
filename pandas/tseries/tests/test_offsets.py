@@ -9,7 +9,7 @@ from nose.tools import assert_raises
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, cday, CDay, BQuarterEnd, BMonthEnd,
+    bday, BDay, CDay, BQuarterEnd, BMonthEnd,
     CBMonthEnd, CBMonthBegin,
     BYearEnd, MonthEnd, MonthBegin, BYearBegin,
     QuarterBegin, BQuarterBegin, BMonthBegin, DateOffset, Week,
@@ -40,11 +40,6 @@ def test_monthrange():
     for y in range(2000, 2013):
         for m in range(1, 13):
             assert monthrange(y, m) == calendar.monthrange(y, m)
-
-
-def _skip_if_no_cday():
-    if cday is None:
-        raise nose.SkipTest("CustomBusinessDay not available.")
 
 
 ####
@@ -209,7 +204,7 @@ class TestCommon(Base):
         func = getattr(offset_s, funcname)
 
         result = func(dt)
-        self.assert_(isinstance(result, datetime))
+        self.assert_(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
 
         result = func(Timestamp(dt))
@@ -227,11 +222,11 @@ class TestCommon(Base):
 
             dt_tz = pytz.timezone(tz).localize(dt)
             result = func(dt_tz)
-            self.assert_(isinstance(result, datetime))
+            self.assert_(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
             result = func(Timestamp(dt, tz=tz))
-            self.assert_(isinstance(result, datetime))
+            self.assert_(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
     def _check_nanofunc_works(self, offset, funcname, dt, expected):
@@ -594,7 +589,7 @@ class TestCustomBusinessDay(Base):
         self.d = datetime(2008, 1, 1)
         self.nd = np.datetime64('2008-01-01 00:00:00Z')
 
-        _skip_if_no_cday()
+        tm._skip_if_no_cday()
         self.offset = CDay()
         self.offset2 = CDay(2)
 
@@ -813,7 +808,7 @@ class CustomBusinessMonthBase(object):
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
-        _skip_if_no_cday()
+        tm._skip_if_no_cday()
         self.offset = self._object()
         self.offset2 = self._object(2)
 

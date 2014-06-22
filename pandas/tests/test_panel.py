@@ -28,13 +28,6 @@ import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
 
-def _skip_if_no_scipy():
-    try:
-        import scipy.stats
-    except ImportError:
-        raise nose.SkipTest("no scipy.stats")
-
-
 class PanelTests(object):
     panel = None
 

@@ -1,7 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 from datetime import datetime, time, timedelta, date
 import sys
-import os
 import operator
 
 import nose
@@ -40,18 +39,6 @@ from pandas import _np_version_under1p7
 
 from numpy.testing.decorators import slow
 
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil
-    except ImportError:
-        raise nose.SkipTest("dateutil not installed")
-
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest("pytz not installed")
 
 def _skip_if_has_locale():
     import locale
@@ -402,7 +389,7 @@ class TestTimeSeries(tm.TestCase):
                           freq='s', periods=10)
 
     def test_timestamp_to_datetime(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         rng = date_range('20090415', '20090519',
                          tz='US/Eastern')
 
@@ -412,7 +399,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_dateutil(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         rng = date_range('20090415', '20090519',
                          tz='dateutil/US/Eastern')
 
@@ -422,7 +409,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         import pytz
         rng = date_range('20090415', '20090519',
                          tz=pytz.timezone('US/Eastern'))
@@ -434,7 +421,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         import dateutil
         rng = date_range('20090415', '20090519',
                          tz=dateutil.tz.gettz('US/Eastern'))
@@ -445,7 +432,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEquals(stamp.tzinfo, dtval.tzinfo)
 
     def test_index_convert_to_datetime_array(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
@@ -464,7 +451,7 @@ class TestTimeSeries(tm.TestCase):
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_explicit_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         import pytz
 
         def _check_rng(rng):
@@ -484,7 +471,7 @@ class TestTimeSeries(tm.TestCase):
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_dateutil(self):
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         import dateutil
 
         def _check_rng(rng):
@@ -1515,7 +1502,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(period[1], Period('2007-01-01 10:11:13.789123Z', 'U'))
 
     def test_to_period_tz_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         from dateutil.tz import tzlocal
         from pytz import utc as UTC
 
@@ -1546,7 +1533,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertTrue(ts.to_period().equals(xp))
 
     def test_to_period_tz_explicit_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         import pytz
         from dateutil.tz import tzlocal
 
@@ -1577,7 +1564,7 @@ class TestTimeSeries(tm.TestCase):
         self.assert_(ts.to_period().equals(xp))
 
     def test_to_period_tz_dateutil(self):
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         import dateutil
         from dateutil.tz import tzlocal
 
@@ -1764,7 +1751,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_append_concat_tz(self):
         #GH 2938
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='US/Eastern')
@@ -1787,7 +1774,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_append_concat_tz_explicit_pytz(self):
         # GH 2938
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         from pytz import timezone as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
@@ -1811,7 +1798,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_append_concat_tz_dateutil(self):
         # GH 2938
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         from dateutil.tz import gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
@@ -2013,7 +2000,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_period_resample_with_local_timezone_pytz(self):
         # GH5430
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         import pytz
 
         local_timezone = pytz.timezone('America/Los_Angeles')
@@ -2034,7 +2021,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_period_resample_with_local_timezone_dateutil(self):
         # GH5430
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         import dateutil
 
         local_timezone = 'dateutil/America/Los_Angeles'
@@ -2437,7 +2424,7 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertTrue(result.freq is None)
 
         # GH 7299
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         import pytz
 
         idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo', name='idx')
@@ -3244,7 +3231,7 @@ class TestSeriesDatetime64(tm.TestCase):
 class TestTimestamp(tm.TestCase):
 
     def test_class_ops_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         from pytz import timezone
 
         def compare(x, y):
@@ -3256,7 +3243,7 @@ class TestTimestamp(tm.TestCase):
         compare(Timestamp.today(), datetime.today())
 
     def test_class_ops_dateutil(self):
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
 
         def compare(x,y):
@@ -3370,7 +3357,7 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(other >= val)
 
     def test_cant_compare_tz_naive_w_aware(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         # #1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz='utc')
@@ -3392,7 +3379,7 @@ class TestTimestamp(tm.TestCase):
             self.assertFalse(a.to_pydatetime() == b)
 
     def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
-        _skip_if_no_pytz()
+        tm._skip_if_no_pytz()
         from pytz import utc
         # #1404
         a = Timestamp('3/12/2012')
@@ -3415,7 +3402,7 @@ class TestTimestamp(tm.TestCase):
             self.assertFalse(a.to_pydatetime() == b)
 
     def test_cant_compare_tz_naive_w_aware_dateutil(self):
-        _skip_if_no_dateutil()
+        tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
         utc = tzutc()
         # #1404
