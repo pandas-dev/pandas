@@ -1087,6 +1087,7 @@ class GroupBy(PandasObject):
                 obj = com.ensure_float(obj)
                 is_numeric = True
                 out_dtype = 'f%d' % obj.dtype.itemsize
+                values = obj.values
             else:
                 is_numeric = issubclass(obj.dtype.type, (np.datetime64,
                                                             np.timedelta64))
