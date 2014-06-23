@@ -2532,7 +2532,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        method : {'linear', 'time', 'values', 'index' 'nearest', 'zero',
+        method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
                   'polynomial', 'spline' 'piecewise_polynomial', 'pchip'}
 
@@ -2540,7 +2540,7 @@ class NDFrame(PandasObject):
               spaced. default
             * 'time': interpolation works on daily and higher resolution
               data to interpolate given length of interval
-            * 'index': use the actual numerical values of the index
+            * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
               `scipy.interpolate.interp1d` with the order given both
