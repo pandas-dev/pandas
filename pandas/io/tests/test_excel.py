@@ -2,6 +2,7 @@
 
 from pandas.compat import u, range, map, openpyxl_compat
 from datetime import datetime, date, time
+import sys
 import os
 from distutils.version import LooseVersion
 
@@ -11,6 +12,7 @@ import nose
 
 from numpy import nan
 import numpy as np
+from numpy.testing.decorators import slow
 
 from pandas import DataFrame, Index, MultiIndex
 from pandas.io.parsers import read_csv
@@ -18,6 +20,7 @@ from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
     register_writer, _XlsxWriter
 )
+from pandas.io.common import URLError
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
 import pandas.util.testing as tm
@@ -279,6 +282,39 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
 
             result = read_excel(book, sheetname="SheetA", engine="xlrd")
             tm.assert_frame_equal(df, result)
+
+    @tm.network
+    def test_read_from_http_url(self):
+        _skip_if_no_xlrd()
+
+        url = ('https://raw.github.com/pydata/pandas/master/'
+               'pandas/io/tests/data/test.xlsx')
+        url_table = read_excel(url)
+        dirpath = tm.get_data_path()
+        localtable = os.path.join(dirpath, 'test.xlsx')
+        local_table = read_excel(localtable)
+        tm.assert_frame_equal(url_table, local_table)
+
+    @slow
+    def test_read_from_file_url(self):
+        _skip_if_no_xlrd()
+
+        # FILE
+        if sys.version_info[:2] < (2, 6):
+            raise nose.SkipTest("file:// not supported with Python < 2.6")
+        dirpath = tm.get_data_path()
+        localtable = os.path.join(dirpath, 'test.xlsx')
+        local_table = read_excel(localtable)
+
+        try:
+            url_table = read_excel('file://localhost/' + localtable)
+        except URLError:
+            # fails on some systems
+            raise nose.SkipTest("failing on %s" %
+                                ' '.join(platform.uname()).strip())
+
+        tm.assert_frame_equal(url_table, local_table)
+
 
     def test_xlsx_table(self):
         _skip_if_no_xlrd()
