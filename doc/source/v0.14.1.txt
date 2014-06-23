@@ -185,8 +185,8 @@ Bug Fixes
 - Bug in ``TimeGrouper`` doesn't exclude column specified by ``key`` (:issue:`7227`)
 - Bug in ``DataFrame`` and ``Series`` bar and barh plot raises ``TypeError`` when ``bottom``
   and ``left`` keyword is specified (:issue:`7226`)
-- BUG in ``DataFrame.hist`` raises ``TypeError`` when it contains non numeric column (:issue:`7277`)
-- BUG in ``Index.delete`` does not preserve ``name`` and ``freq`` attributes (:issue:`7302`)
+- Bug in ``DataFrame.hist`` raises ``TypeError`` when it contains non numeric column (:issue:`7277`)
+- Bug in ``Index.delete`` does not preserve ``name`` and ``freq`` attributes (:issue:`7302`)
 - Bug in ``DataFrame.query()``/``eval`` where local string variables with the @
   sign were being treated as temporaries attempting to be deleted
   (:issue:`7300`).
@@ -242,10 +242,10 @@ Bug Fixes
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
 - Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
 
-- BUG in ``offsets.apply``, ''rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
+- Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
 
 
-- BUG in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
+- Bug in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)
 
