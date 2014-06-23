@@ -1272,7 +1272,6 @@ class TestIndexing(tm.TestCase):
         result = df.iloc[:,2:3]
         assert_frame_equal(result, expected)
 
-    def test_iloc_setitem_series(self):
         s = Series(np.random.randn(10), index=lrange(0,20,2))
 
         s.iloc[1] = 1
@@ -1283,6 +1282,20 @@ class TestIndexing(tm.TestCase):
         expected = s.iloc[:4]
         result = s.iloc[:4]
         assert_series_equal(result, expected)
+
+    def test_iloc_setitem_list_of_lists(self):
+
+        # GH 7551
+        # list-of-list is set incorrectly in mixed vs. single dtyped frames
+        df = DataFrame(dict(A = np.arange(5,dtype='int64'), B = np.arange(5,10,dtype='int64')))
+        df.iloc[2:4] = [[10,11],[12,13]]
+        expected = DataFrame(dict(A = [0,1,10,12,4], B = [5,6,11,13,9]))
+        assert_frame_equal(df, expected)
+
+        df = DataFrame(dict(A = list('abcde'), B = np.arange(5,10,dtype='int64')))
+        df.iloc[2:4] = [['x',11],['y',13]]
+        expected = DataFrame(dict(A = ['a','b','x','y','e'], B = [5,6,11,13,9]))
+        assert_frame_equal(df, expected)
 
     def test_iloc_getitem_multiindex(self):
         mi_labels = DataFrame(np.random.randn(4, 3), columns=[['i', 'i', 'j'],

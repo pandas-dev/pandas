@@ -169,7 +169,7 @@ Bug Fixes
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
 - Bug in Panel indexing with a multi-index axis (:issue:`7516`)
 - Regression in datetimelike slice indexing with a duplicated index and non-exact end-points (:issue:`7523`)
-
+- Bug in setitem with list-of-lists and single vs mixed types (:issue:`7551`:)
 - Bug in timeops with non-aligned Series (:issue:`7500`)
 
 
