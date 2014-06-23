@@ -419,14 +419,20 @@ class _NDFrameIndexer(object):
                         else:
                             setter(item, np.nan)
 
-                # we have an equal len ndarray to our labels
-                elif isinstance(value, np.ndarray) and value.ndim == 2:
+                # we have an equal len ndarray/convertible to our labels
+                elif np.array(value).ndim == 2:
+
+                    # note that this coerces the dtype if we are mixed
+                    # GH 7551
+                    value = np.array(value,dtype=object)
                     if len(labels) != value.shape[1]:
                         raise ValueError('Must have equal len keys and value '
                                          'when setting with an ndarray')
 
                     for i, item in enumerate(labels):
-                        setter(item, value[:, i])
+
+                        # setting with a list, recoerces
+                        setter(item, value[:, i].tolist())
 
                 # we have an equal len list/ndarray
                 elif can_do_equal_len():
