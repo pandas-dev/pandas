@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, time, timedelta, date
+from datetime import datetime, time, timedelta
 import sys
 import operator
 
@@ -2362,16 +2362,6 @@ class TestDatetimeIndex(tm.TestCase):
         ordered, dexer = idx.order(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
-
-    def test_asobject(self):
-        idx = date_range(start='2013-01-01', periods=4, freq='M', name='idx')
-        expected = Index([Timestamp('2013-01-31'), Timestamp('2013-02-28'),
-                          Timestamp('2013-03-31'), Timestamp('2013-04-30')],
-                         dtype=object, name='idx')
-
-        result = idx.asobject
-        self.assertTrue(result.equals(expected))
-        self.assertEqual(result.name, expected.name)
 
     def test_insert(self):
         idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')

@@ -6,15 +6,15 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
-                                is_list_like,_values_from_object, _maybe_box,
-                                notnull, ABCSeries)
-from pandas.core.index import Index, Int64Index, _Identity, Float64Index
+from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
+                                _values_from_object, _maybe_box,
+                                ABCSeries)
+from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string, get_offset)
+    Resolution, get_reso_string)
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
@@ -29,7 +29,6 @@ import pandas.tslib as tslib
 import pandas.algos as _algos
 import pandas.index as _index
 
-from pandas.tslib import isleapyear
 
 def _utc():
     import pytz
@@ -452,8 +451,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return index
 
-    def _box_values(self, values):
-        return lib.map_infer(values, lib.Timestamp)
+    @property
+    def _box_func(self):
+        return lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
 
     def _local_timestamps(self):
         utc = _utc()
@@ -673,7 +673,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
-        data = self._get_object_index()
+        data = self.asobject
         from pandas.core.format import Datetime64Formatter
         return Datetime64Formatter(values=data,
                                    nat_rep=na_rep,
@@ -777,27 +777,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         if keep_tz and self.tz is not None and str(self.tz) != 'UTC':
             return self.asobject.values
         return self.values
-
-    @property
-    def asobject(self):
-        """
-        Convert to Index of datetime objects
-        """
-        if isnull(self).any():
-            msg = 'DatetimeIndex with NaT cannot be converted to object'
-            raise ValueError(msg)
-        return self._get_object_index()
-
-    def tolist(self):
-        """
-        See ndarray.tolist
-        """
-        return list(self.asobject)
-
-    def _get_object_index(self):
-        boxfunc = lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
-        boxed_values = lib.map_infer(self.asi8, boxfunc)
-        return Index(boxed_values, dtype=object, name=self.name)
 
     def to_pydatetime(self):
         """
@@ -1515,7 +1494,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                              tz=self.tz)
 
     def __iter__(self):
-        return iter(self._get_object_index())
+        return iter(self.asobject)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):

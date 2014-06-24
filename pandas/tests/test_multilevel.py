@@ -72,6 +72,7 @@ class TestMultiLevel(tm.TestCase):
         tm.assert_series_equal(result, self.frame['A'])
 
     def test_append_index(self):
+        tm._skip_if_no_pytz()
 
         idx1 = Index([1.1, 1.2, 1.3])
         idx2 = pd.date_range('2011-01-01', freq='D', periods=3, tz='Asia/Tokyo')
@@ -81,17 +82,18 @@ class TestMultiLevel(tm.TestCase):
         midx_lv3 = MultiIndex.from_arrays([idx1, idx2, idx3])
 
         result = idx1.append(midx_lv2)
-        expected = Index([1.1, 1.2, 1.3,
-                         (1.1, datetime.datetime(2010, 12, 31, 15, 0)),
-                         (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
-                         (1.3, datetime.datetime(2011, 1, 2, 15, 0))])
+
+        # GH 7112
+        import pytz
+        tz = pytz.timezone('Asia/Tokyo')
+        expected_tuples = [(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz)),
+                           (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz)),
+                           (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz))]
+        expected = Index([1.1, 1.2, 1.3] + expected_tuples)
         self.assert_(result.equals(expected))
 
         result = midx_lv2.append(idx1)
-        expected = Index([(1.1, datetime.datetime(2010, 12, 31, 15, 0)),
-                          (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
-                          (1.3, datetime.datetime(2011, 1, 2, 15, 0)),
-                           1.1, 1.2, 1.3])
+        expected = Index(expected_tuples + [1.1, 1.2, 1.3])
         self.assert_(result.equals(expected))
 
         result = midx_lv2.append(midx_lv2)
@@ -103,12 +105,10 @@ class TestMultiLevel(tm.TestCase):
 
         result = midx_lv3.append(midx_lv2)
         expected = Index._simple_new(
-            np.array([(1.1, datetime.datetime(2010, 12, 31, 15, 0), 'A'),
-                      (1.2, datetime.datetime(2011, 1, 1, 15, 0), 'B'),
-                      (1.3, datetime.datetime(2011, 1, 2, 15, 0), 'C'),
-                      (1.1, datetime.datetime(2010, 12, 31, 15, 0)),
-                      (1.2, datetime.datetime(2011, 1, 1, 15, 0)),
-                      (1.3, datetime.datetime(2011, 1, 2, 15, 0))]), None)
+            np.array([(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz), 'A'),
+                      (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
+                      (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')]
+                      + expected_tuples), None)
         self.assert_(result.equals(expected))
 
     def test_dataframe_constructor(self):

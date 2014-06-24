@@ -1448,18 +1448,6 @@ class TestPeriodIndex(tm.TestCase):
         self.assertTrue(result2.equals(index))
         self.assertEqual(result2.name, 'idx')
 
-    def test_asobject_period_nat(self):
-        index = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='M', name='idx')
-
-        result = index.asobject
-        self.assertTrue(isinstance(result, Index))
-        self.assertEqual(result.dtype, object)
-        self.assertTrue(isinstance(result[0], Period))
-        self.assertEqual(result[0].ordinal, tslib.iNaT)
-        self.assertEqual(result[1], Period('2011-01', freq='M'))
-        self.assertEqual(result[2], Period('2011-02', freq='M'))
-        self.assertEqual(result.name, 'idx')
-
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)
