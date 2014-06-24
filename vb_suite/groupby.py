@@ -244,6 +244,13 @@ groupby_last = Benchmark('data.groupby(labels).last()', setup,
 groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
                                  start_date=datetime(2013, 1, 1))
 
+# with datetimes (GH7555)
+setup = common_setup + """
+df = DataFrame({'a' : date_range('1/1/2011',periods=100000,freq='s'),'b' : range(100000)})
+"""
+
+groupby_mixed_first = Benchmark('df.groupby("b").first()', setup,
+                                 start_date=datetime(2013, 5, 1))
 
 #----------------------------------------------------------------------
 # groupby_indices replacement, chop up Series
