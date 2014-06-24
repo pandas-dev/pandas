@@ -412,6 +412,11 @@ class Block(PandasObject):
         """ reverse of try_coerce_args """
         return result
 
+    def _try_coerce_and_cast_result(self, result, dtype=None):
+        result = self._try_coerce_result(result)
+        result = self._try_cast_result(result, dtype=dtype)
+        return result
+
     def _try_fill(self, value):
         return value
 
@@ -513,8 +518,7 @@ class Block(PandasObject):
                 dtype, _ = _infer_dtype_from_scalar(value)
             else:
                 dtype = 'infer'
-            values = self._try_coerce_result(values)
-            values = self._try_cast_result(values, dtype)
+            values = self._try_coerce_and_cast_result(values, dtype)
             return [make_block(transf(values),
                                ndim=self.ndim, placement=self.mgr_locs,
                                fastpath=True)]

@@ -2332,17 +2332,16 @@ class NDFrameGroupBy(GroupBy):
             data = data.get_numeric_data(copy=False)
 
         for block in data.blocks:
-            values = block.values
 
-            is_numeric = is_numeric_dtype(values.dtype)
+            values = block._try_operate(block.values)
 
-            if is_numeric:
+            if block.is_numeric:
                 values = com.ensure_float(values)
 
             result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
 
             # see if we can cast the block back to the original dtype
-            result = block._try_cast_result(result)
+            result = block._try_coerce_and_cast_result(result)
 
             newb = make_block(result, placement=block.mgr_locs)
             new_blocks.append(newb)

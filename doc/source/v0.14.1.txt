@@ -144,7 +144,7 @@ Performance
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
 - Improvements in Series.transform for significant performance gains (:issue:`6496`)
 - Improvements in DataFrame.transform with ufuncs and built-in grouper functions for signifcant performance gains (:issue:`7383`)
-
+- Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
 
 
 
