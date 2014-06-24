@@ -470,14 +470,12 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        # ipnb in html repr mode allows scrolling
-        # users strongly prefer to h-scroll a wide HTML table in the browser
-        # then to get a summary view. GH3541, GH3573
-        ipnbh = com.in_ipnb() and get_option('display.notebook_repr_html')
-
         # qtconsole doesn't report it's line width, and also
         # behaves badly when outputting an HTML table
         # that doesn't fit the window, so disable it.
+        # XXX: In IPython 3.x and above, the Qt console will not attempt to
+        # display HTML, so this check can be removed when support for IPython 2.x
+        # is no longer needed.
         if com.in_qtconsole():
             # 'HTML output is disabled in QtConsole'
             return None
