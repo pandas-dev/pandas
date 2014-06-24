@@ -266,8 +266,7 @@ class TestYahooOptions(tm.TestCase):
             options = self.aapl.get_options_data(expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
-        else:
-            assert len(options) > 1
+        self.assertTrue(len(options) > 1)
 
     @network
     def test_get_near_stock_price(self):
@@ -276,9 +275,6 @@ class TestYahooOptions(tm.TestCase):
                                                      expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
-        else:
-            assert len(options) > 1
-
         self.assertTrue(len(options) > 1)
 
     @network
@@ -287,8 +283,7 @@ class TestYahooOptions(tm.TestCase):
             calls = self.aapl.get_call_data(expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
-        else:
-            assert len(calls) > 1
+        self.assertTrue(len(calls) > 1)
 
     @network
     def test_get_put_data(self):
@@ -296,33 +291,30 @@ class TestYahooOptions(tm.TestCase):
             puts = self.aapl.get_put_data(expiry=self.expiry)
         except RemoteDataError as e:
             nose.SkipTest(e)
-        else:
-            assert len(puts) > 1
+        self.assertTrue(len(puts) > 1)
 
     @network
     def test_get_expiry_months(self):
         try:
             dates = self.aapl._get_expiry_months()
-        except RemoteDataError:
-            raise nose.SkipTest("RemoteDataError thrown no dates found")
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
         self.assertTrue(len(dates) > 1)
 
     @network
     def test_get_all_data(self):
         try:
             data = self.aapl.get_all_data(put=True)
-        except RemoteDataError:
-            raise nose.SkipTest("RemoteDataError thrown")
-
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
         self.assertTrue(len(data) > 1)
 
     @network
     def test_get_all_data_calls_only(self):
         try:
             data = self.aapl.get_all_data(call=True, put=False)
-        except RemoteDataError:
-            raise nose.SkipTest("RemoteDataError thrown")
-
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
         self.assertTrue(len(data) > 1)
 
     @network

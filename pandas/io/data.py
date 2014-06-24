@@ -680,6 +680,10 @@ class Options(object):
 
         root = self._parse_url(url)
         tables = root.xpath('.//table')
+        ntables = len(tables)
+        if ntables == 0:
+            raise RemoteDataError("No tables found at {0!r}".format(url))
+
         table_name = '_tables' + m1 + str(year)[-2:]
         setattr(self, table_name, tables)
 
@@ -723,9 +727,7 @@ class Options(object):
 
         ntables = len(tables)
         table_loc = self._TABLE_LOC[name]
-        if ntables == 0:
-            raise RemoteDataError("No tables found at {0!r}".format(url))
-        elif table_loc - 1 > ntables:
+        if table_loc - 1 > ntables:
             raise RemoteDataError("Table location {0} invalid, {1} tables"
                              " found".format(table_loc, ntables))
 
