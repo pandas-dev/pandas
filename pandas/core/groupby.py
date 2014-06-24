@@ -1090,8 +1090,7 @@ class GroupBy(PandasObject):
                 values = obj.values
             else:
                 is_numeric = issubclass(obj.dtype.type, (np.datetime64,
-                                                            np.timedelta64))
-                out_dtype = 'float64'
+                                                         np.timedelta64))
                 if is_numeric:
                     values = obj.view('int64')
                 else:
