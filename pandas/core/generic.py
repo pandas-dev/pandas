@@ -717,8 +717,8 @@ class NDFrame(PandasObject):
     def __array__(self, dtype=None):
         return _values_from_object(self)
 
-    def __array_wrap__(self, result, copy=False):
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=copy)
+    def __array_wrap__(self, result, context=None):
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         return self._constructor(result, **d).__finalize__(self)
 
     # ideally we would define this to avoid the getattr checks, but

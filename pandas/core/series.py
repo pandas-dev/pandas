@@ -366,18 +366,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                  index=self.index).__finalize__(self)
 
     def __array__(self, result=None):
-        """ the array interface, return my values """
+        """
+        the array interface, return my values
+        """
         return self.values
 
-    def __array_wrap__(self, result, copy=False):
+    def __array_wrap__(self, result, context=None):
         """
-        Gets called prior to a ufunc (and after)
+        Gets called after a ufunc
         """
         return self._constructor(result, index=self.index,
-                                 copy=copy).__finalize__(self)
+                                 copy=False).__finalize__(self)
 
-    def __contains__(self, key):
-        return key in self.index
+    def __array_prepare__(self, result, context=None):
+        """
+        Gets called prior to a ufunc
+        """
+        return result
 
     # complex
     @property
