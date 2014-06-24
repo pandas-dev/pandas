@@ -227,7 +227,10 @@ def _read(filepath_or_buffer, kwds):
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
-    if nrows is not None:
+    if (nrows is not None) and (chunksize is not None):
+        raise NotImplementedError("'nrows' and 'chunksize' can not be used"
+                                  " together yet.")
+    elif nrows is not None:
         return parser.read(nrows)
     elif chunksize or iterator:
         return parser

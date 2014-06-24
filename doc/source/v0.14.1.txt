@@ -86,7 +86,8 @@ Enhancements
 
 
 - Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
-
+- Add ``NotImplementedError`` for simultaneous use of ``chunksize`` and ``nrows``
+  for read_csv() (:issue:`6774`).
 
 
 
