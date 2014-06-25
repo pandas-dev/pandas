@@ -6697,7 +6697,7 @@ def group_count_float32(ndarray[float32_t, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_count_object(ndarray[float64_t, ndim=2] out,
+def group_count_object(ndarray[object, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[object, ndim=2] values,
                          ndarray[int64_t] labels):
@@ -6838,7 +6838,7 @@ def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_count_bin_object(ndarray[float64_t, ndim=2] out,
+def group_count_bin_object(ndarray[object, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[object, ndim=2] values,
                              ndarray[int64_t] bins):
