@@ -1663,7 +1663,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        index : array-like, optional
+        labels : array-like
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         axis : %(axes_single_arg)s
