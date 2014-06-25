@@ -232,16 +232,22 @@ data2[1::3] = np.nan
 labels = labels.take(np.random.permutation(len(labels)))
 """
 
-groupby_first = Benchmark('data.groupby(labels).first()', setup,
+groupby_first_float64 = Benchmark('data.groupby(labels).first()', setup,
                           start_date=datetime(2012, 5, 1))
 
 groupby_first_float32 = Benchmark('data2.groupby(labels).first()', setup,
                                   start_date=datetime(2013, 1, 1))
 
-groupby_last = Benchmark('data.groupby(labels).last()', setup,
+groupby_last_float64 = Benchmark('data.groupby(labels).last()', setup,
                          start_date=datetime(2012, 5, 1))
 
 groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
+                                 start_date=datetime(2013, 1, 1))
+
+groupby_nth_float64 = Benchmark('data.groupby(labels).nth(0)', setup,
+                         start_date=datetime(2012, 5, 1))
+
+groupby_nth_float32 = Benchmark('data2.groupby(labels).nth(0)', setup,
                                  start_date=datetime(2013, 1, 1))
 
 # with datetimes (GH7555)
@@ -249,7 +255,23 @@ setup = common_setup + """
 df = DataFrame({'a' : date_range('1/1/2011',periods=100000,freq='s'),'b' : range(100000)})
 """
 
-groupby_mixed_first = Benchmark('df.groupby("b").first()', setup,
+groupby_first_datetimes = Benchmark('df.groupby("b").first()', setup,
+                                 start_date=datetime(2013, 5, 1))
+groupby_last_datetimes = Benchmark('df.groupby("b").last()', setup,
+                                 start_date=datetime(2013, 5, 1))
+groupby_nth_datetimes = Benchmark('df.groupby("b").nth(0)', setup,
+                                 start_date=datetime(2013, 5, 1))
+
+# with object
+setup = common_setup + """
+df = DataFrame({'a' : ['foo']*100000,'b' : range(100000)})
+"""
+
+groupby_first_object = Benchmark('df.groupby("b").first()', setup,
+                                 start_date=datetime(2013, 5, 1))
+groupby_last_object = Benchmark('df.groupby("b").last()', setup,
+                                 start_date=datetime(2013, 5, 1))
+groupby_nth_object = Benchmark('df.groupby("b").nth(0)', setup,
                                  start_date=datetime(2013, 5, 1))
 
 #----------------------------------------------------------------------

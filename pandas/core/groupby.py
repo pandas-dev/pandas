@@ -1414,10 +1414,11 @@ class BaseGrouper(object):
         else:
             is_numeric = issubclass(values.dtype.type, (np.datetime64,
                                                         np.timedelta64))
-            out_dtype = 'float64'
             if is_numeric:
+                out_dtype = 'float64'
                 values = values.view('int64')
             else:
+                out_dtype = 'object'
                 values = values.astype(object)
 
         # will be filled in Cython function

@@ -2234,7 +2234,7 @@ def generate_put_template(template, use_ints=True, use_floats=True,
     date_like_list = [
         ('int64', 'int64_t', 'float64_t', 'np.float64'),
     ]
-    object_list = [('object', 'object', 'float64_t', 'np.float64')]
+    object_list = [('object', 'object', 'object', 'np.object_')]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
