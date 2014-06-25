@@ -663,3 +663,25 @@ To globally provide aliases for axis names, one can define these 2 functions:
    df2 = DataFrame(randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
    df2.sum(axis='myaxis2')
    clear_axis_alias(DataFrame,'columns', 'myaxis2')
+
+Creating Example Data
+---------------------
+
+To create a dataframe from every combination of some given values, like R's ``expand.grid()``
+function, we can create a dict where the keys are column names and the values are lists
+of the data values:
+
+.. ipython:: python
+
+    import itertools
+
+    def expand_grid(data_dict):
+        rows = itertools.product(*data_dict.values())
+        return pd.DataFrame.from_records(rows, columns=data_dict.keys())
+
+    df = expand_grid(
+        {'height': [60, 70],
+         'weight': [100, 140, 180],
+         'sex': ['Male', 'Female']}
+    )
+    df
