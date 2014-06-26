@@ -665,6 +665,7 @@ Bug Fixes
 - Bug in ``read_csv`` where line comments were not handled correctly given
   a custom line terminator or ``delim_whitespace=True`` (:issue:`8122`).
 
+- Bug in ``read_html`` where empty tables caused a ``StopIteration`` (:issue:`7575`)
 
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
