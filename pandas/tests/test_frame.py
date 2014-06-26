@@ -11736,6 +11736,38 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaises(ValueError):
             df.T.stack('c1')
 
+    def test_unstack_mixed_dtypes(self):
+        n = 5
+        df = DataFrame({'A': ['a'] * n,
+                        'B': pd.date_range('20120101', periods=n),
+                        'C': np.zeros(n),
+                        'D': np.zeros(n, dtype='i8')}).set_index(list("AB"))
+        expected = df.unstack(0).iloc[:3]
+        result = df.iloc[:3].unstack(0)
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_mixed_dtypes_different_method(self):
+        n = 5
+        df = DataFrame({'A': ['a'] * n,
+                        'B': pd.date_range('20120101', periods=n),
+                        'C': np.zeros(n),
+                        'D': np.zeros(n, dtype='i8')}).set_index(list("AB"))
+        result = df.iloc[:3].unstack(0)
+        other = df.iloc[:3].reset_index().set_index(list("AB")).unstack(0)
+        tm.assert_frame_equal(result, other)
+
+    def test_unstack_mixed_dtypes_with_mi_and_nat_different_method(self):
+        n = 5
+        B = pd.date_range('20120101', periods=n - 1).tolist()
+        B.insert(3, pd.NaT)
+        df = DataFrame({'A': ['a'] * n,
+                        'B': B,
+                        'C': np.zeros(n),
+                        'D': np.zeros(n, dtype='i8')}).set_index(list("AB"))
+        result = df.iloc[:3].unstack(0)
+        other = df.iloc[:3].reset_index().set_index(list("AB")).unstack(0)
+        tm.assert_frame_equal(result, other)
+
     def test_repr_with_mi_nat(self):
         df = DataFrame({'X': [1, 2]},
                        index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
