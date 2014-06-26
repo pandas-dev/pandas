@@ -623,6 +623,22 @@ class TestSQLApi(_TestSQLApi):
         iris_frame2 = sql.read_sql('iris', self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
+    def test_not_reflect_all_tables(self):
+        # create invalid table
+        qry = """CREATE TABLE invalid (x INTEGER, y UNKNOWN);"""
+        self.conn.execute(qry)
+        qry = """CREATE TABLE other_table (x INTEGER, y INTEGER);"""
+        self.conn.execute(qry)
+        
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            # Trigger a warning.
+            sql.read_sql_table('other_table', self.conn)
+            sql.read_sql_query('SELECT * FROM other_table', self.conn)
+            # Verify some things
+            self.assertEqual(len(w), 0, "Warning triggered for other table")
+
 
 class TestSQLLegacyApi(_TestSQLApi):
     """
@@ -736,6 +752,8 @@ class _TestSQLAlchemy(PandasSQLTest):
         try:
             self.conn = self.connect()
             self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+            # to test if connection can be made:
+            self.conn.connect()
         except sqlalchemy.exc.OperationalError:
             raise nose.SkipTest("Can't connect to {0} server".format(self.flavor))
 
