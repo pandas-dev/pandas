@@ -467,7 +467,7 @@ class GroupBy(PandasObject):
     def _set_selection_from_grouper(self):
         """ we may need create a selection if we have non-level groupers """
         grp = self.grouper
-        if self.as_index and getattr(grp,'groupings',None) is not None:
+        if self.as_index and getattr(grp,'groupings',None) is not None and self.obj.ndim > 1:
             ax = self.obj._info_axis
             groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
             if len(groupers):
@@ -759,7 +759,7 @@ class GroupBy(PandasObject):
 
         Examples
         --------
-        >>> DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+        >>> df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
         >>> g = df.groupby('A')
         >>> g.nth(0)
            A   B
@@ -804,7 +804,10 @@ class GroupBy(PandasObject):
             if self.as_index:
                 ax = self.obj._info_axis
                 names = self.grouper.names
-                if all([ n in ax for n in names ]):
+                if self.obj.ndim == 1:
+                    # this is a pass-thru
+                    pass
+                elif all([ n in ax for n in names ]):
                     result.index = Index(self.obj[names][is_nth].values.ravel()).set_names(names)
                 elif self._group_selection is not None:
                     result.index = self.obj._get_axis(self.axis)[is_nth]
@@ -821,17 +824,29 @@ class GroupBy(PandasObject):
                              "(was passed %s)." % (dropna),)
 
         # old behaviour, but with all and any support for DataFrames.
-
+        # modified in GH 7559 to have better perf
         max_len = n if n >= 0 else - 1 - n
+        dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
-        def picker(x):
-            x = x.dropna(how=dropna)  # Note: how is ignored if Series
-            if len(x) <= max_len:
-                return np.nan
-            else:
-                return x.iloc[n]
+        # get a new grouper for our dropped obj
+        grouper, exclusions, obj = _get_grouper(dropped, key=self.keys, axis=self.axis,
+                                                level=self.level, sort=self.sort)
 
-        return self.agg(picker)
+        sizes = obj.groupby(grouper).size()
+        result = obj.groupby(grouper).nth(n)
+        mask = (sizes<max_len).values
+
+        # set the results which don't meet the criteria
+        if len(result) and mask.any():
+            result.loc[mask] = np.nan
+
+        # reset/reindex to the original groups
+        if len(self.obj) == len(dropped):
+            result.index = self.grouper.result_index
+        else:
+            result = result.reindex(self.grouper.result_index)
+
+        return result
 
     def cumcount(self, **kwargs):
         """
@@ -942,6 +957,9 @@ class GroupBy(PandasObject):
     def _cumcount_array(self, arr=None, **kwargs):
         """
         arr is where cumcount gets it's values from
+
+        note: this is currently implementing sort=False (though the default is sort=True)
+              for groupby in general
         """
         ascending = kwargs.pop('ascending', True)
 
@@ -949,14 +967,23 @@ class GroupBy(PandasObject):
             arr = np.arange(self.grouper._max_groupsize, dtype='int64')
 
         len_index = len(self._selected_obj.index)
-        cumcounts = np.empty(len_index, dtype=arr.dtype)
+        cumcounts = np.zeros(len_index, dtype=arr.dtype)
+        if not len_index:
+            return cumcounts
 
-        if ascending:
-            for v in self.indices.values():
-                cumcounts[v] = arr[:len(v)]
-        else:
-            for v in self.indices.values():
-                cumcounts[v] = arr[len(v)-1::-1]
+        indices, values = [], []
+        for v in self.indices.values():
+            indices.append(v)
+
+            if ascending:
+                values.append(arr[:len(v)])
+            else:
+                values.append(arr[len(v)-1::-1])
+
+        indices = np.concatenate(indices)
+        values = np.concatenate(values)
+        cumcounts[indices] = values
+
         return cumcounts
 
     def _index_with_as_index(self, b):
@@ -1269,6 +1296,7 @@ class BaseGrouper(object):
         ngroups = len(obs_group_ids)
         comp_ids = com._ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
+
 
     def _get_compressed_labels(self):
         all_labels = [ping.labels for ping in self.groupings]
@@ -1892,7 +1920,6 @@ class Grouping(object):
             self._groups = self.index.groupby(self.grouper)
         return self._groups
 
-
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     """
     create and return a BaseGrouper, which is an internal
@@ -2141,7 +2168,10 @@ class SeriesGroupBy(GroupBy):
         if names is not None:
             return DataFrame(output, index=index, columns=names)
         else:
-            return Series(output, index=index, name=self.name)
+            name = self.name
+            if name is None:
+                name = self._selected_obj.name
+            return Series(output, index=index, name=name)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:

@@ -282,6 +282,28 @@ class TestGroupBy(tm.TestCase):
         expected = df.loc[[]]
         assert_frame_equal(result,expected)
 
+        # GH 7559
+        # from the vbench
+        df = DataFrame(np.random.randint(1, 10, (100, 2)))
+        s = df[1]
+        g = df[0]
+        expected = s.groupby(g).first()
+        expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
+        assert_series_equal(expected2,expected)
+
+        # validate first
+        v = s[g==1].iloc[0]
+        self.assertEqual(expected.iloc[0],v)
+        self.assertEqual(expected2.iloc[0],v)
+
+        # this is NOT the same as .first (as sorted is default!)
+        # as it keeps the order in the series (and not the group order)
+        # related GH 7287
+        expected = s.groupby(g,sort=False).first()
+        expected.index = range(1,10)
+        result = s.groupby(g).nth(0,dropna='all')
+        assert_series_equal(result,expected)
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
