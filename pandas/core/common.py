@@ -2175,92 +2175,96 @@ def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
 
-def is_integer_dtype(arr_or_dtype):
+def _get_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    else:
-        tipo = arr_or_dtype.dtype.type
-    return (issubclass(tipo, np.integer) and not
-            (issubclass(tipo, np.datetime64) or
-             issubclass(tipo, np.timedelta64)))
+        return arr_or_dtype
+    if isinstance(arr_or_dtype, type):
+        return np.dtype(arr_or_dtype)
+    return arr_or_dtype.dtype
 
 
-def _is_int_or_datetime_dtype(arr_or_dtype):
-    # also timedelta64
+def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    else:
-        tipo = arr_or_dtype.dtype.type
+        return arr_or_dtype.type
+    if isinstance(arr_or_dtype, type):
+        return np.dtype(arr_or_dtype).type
+    return arr_or_dtype.dtype.type
+
+
+def _is_any_int_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.integer)
 
 
+def is_integer_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return (issubclass(tipo, np.integer) and
+            not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+
+def _is_int_or_datetime_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return (issubclass(tipo, np.integer) or
+            issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+
 def is_datetime64_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    elif isinstance(arr_or_dtype, type):
-        tipo = np.dtype(arr_or_dtype).type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.datetime64)
 
 
 def is_datetime64_ns_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype
-    elif isinstance(arr_or_dtype, type):
-        tipo = np.dtype(arr_or_dtype)
-    else:
-        tipo = arr_or_dtype.dtype
+    tipo = _get_dtype(arr_or_dtype)
     return tipo == _NS_DTYPE
 
 
 def is_timedelta64_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    elif isinstance(arr_or_dtype, type):
-        tipo = np.dtype(arr_or_dtype).type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.timedelta64)
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    elif isinstance(arr_or_dtype, type):
-        tipo = np.dtype(arr_or_dtype).type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return tipo == _TD_DTYPE
 
 
-def needs_i8_conversion(arr_or_dtype):
-    return (is_datetime64_dtype(arr_or_dtype) or
-            is_timedelta64_dtype(arr_or_dtype))
+def _is_datetime_or_timedelta_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, (np.datetime64, np.timedelta64))
+
+
+needs_i8_conversion = _is_datetime_or_timedelta_dtype
 
 
 def is_numeric_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, (np.number, np.bool_))
             and not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
+
 def is_float_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.floating)
 
 
+def _is_floating_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return isinstance(tipo, np.floating)
+
+
+def is_bool_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, np.bool_)
+
+
 def is_complex_dtype(arr_or_dtype):
-    if isinstance(arr_or_dtype, np.dtype):
-        tipo = arr_or_dtype.type
-    else:
-        tipo = arr_or_dtype.dtype.type
+    tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.complexfloating)
+
+
+def is_object_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, np.object_)
 
 
 def is_re(obj):
