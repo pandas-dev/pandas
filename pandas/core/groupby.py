@@ -2581,20 +2581,6 @@ class NDFrameGroupBy(GroupBy):
         for block in data.blocks:
             values = block._try_operate(block.values)
 
-            if is_numeric_dtype(values.dtype):
-                values = com.ensure_float(values)
-                is_numeric = True
-            else:
-                is_numeric = issubclass(values.dtype.type, (np.datetime64,
-                                                            np.timedelta64))
-                if is_numeric:
-                    values = values.view('int64')
-                else:
-                    values = values.astype(object)
-
-            if numeric_only and not is_numeric:
-                continue
-
             # TODO DAN
             if block.is_numeric:
                 values = _algos.ensure_float64(values)
