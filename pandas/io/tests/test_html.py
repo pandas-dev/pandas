@@ -401,6 +401,36 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
         self.assertFalse(any(s.isnull().any() for _, s in df.iteritems()))
 
+    def test_empty_tables(self):
+        """
+        Make sure that read_html ignores empty tables.
+        """
+        data1 = '''<table>
+            <thead>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>'''
+        data2 = data1 + '''<table>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>'''
+        res1 = self.read_html(StringIO(data1))
+        res2 = self.read_html(StringIO(data2))
+        assert_framelist_equal(res1, res2)
+
     def test_countries_municipalities(self):
         # GH5048
         data1 = StringIO('''<table>
