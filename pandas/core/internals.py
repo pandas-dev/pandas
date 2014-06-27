@@ -1037,9 +1037,11 @@ class FloatBlock(FloatOrComplexBlock):
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
-            return issubclass(element.dtype.type, (np.floating, np.integer))
-        return (isinstance(element, (float, int, np.float_, np.int_)) and
-                not isinstance(bool, np.bool_))
+            tipo = element.dtype.type
+            return issubclass(tipo, (np.floating, np.integer)) and not issubclass(
+                tipo, (np.datetime64, np.timedelta64))
+        return isinstance(element, (float, int, np.float_, np.int_)) and not isinstance(
+            element, (bool, np.bool_, datetime, timedelta, np.datetime64, np.timedelta64))
 
     def _try_cast(self, element):
         try:
@@ -1099,7 +1101,8 @@ class IntBlock(NumericBlock):
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
-            return issubclass(element.dtype.type, np.integer)
+            tipo = element.dtype.type
+            return issubclass(tipo, np.integer) and not issubclass(tipo, (np.datetime64, np.timedelta64))
         return com.is_integer(element)
 
     def _try_cast(self, element):
