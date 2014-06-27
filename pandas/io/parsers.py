@@ -64,9 +64,11 @@ header : int row number(s) to use as the column names, and the start of the
     pass ``header=0`` to be able to replace existing names. The header can be
     a list of integers that specify row locations for a multi-index on the
     columns E.g. [0,1,3]. Intervening rows that are not specified will be
-    skipped. (E.g. 2 in this example are skipped)
+    skipped (e.g. 2 in this example are skipped). Note that this parameter
+    ignores commented lines, so header=0 denotes the first line of
+    data rather than the first line of the file.
 skiprows : list-like or integer
-    Row numbers to skip (0-indexed) or number of rows to skip (int)
+    Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file
 index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
@@ -106,8 +108,12 @@ dayfirst : boolean, default False
 thousands : str, default None
     Thousands separator
 comment : str, default None
-    Indicates remainder of line should not be parsed
-    Does not support line commenting (will return empty line)
+    Indicates remainder of line should not be parsed. If found at the
+    beginning of a line, the line will be ignored altogether. This parameter
+    must be a single character. Also, fully commented lines
+    are ignored by the parameter `header` but not by `skiprows`. For example,
+    if comment='#', parsing '#empty\n1,2,3\na,b,c' with `header=0` will
+    result in '1,2,3' being treated as the header.
 decimal : str, default '.'
     Character to recognize as decimal point. E.g. use ',' for European data
 nrows : int, default None
@@ -1313,6 +1319,7 @@ class PythonParser(ParserBase):
         self.data = None
         self.buf = []
         self.pos = 0
+        self.line_pos = 0
 
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
@@ -1459,6 +1466,7 @@ class PythonParser(ParserBase):
                 line = self._check_comments([line])[0]
 
                 self.pos += 1
+                self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
                 if self.encoding is not None:
@@ -1566,7 +1574,7 @@ class PythonParser(ParserBase):
         if self.header is not None:
             header = self.header
 
-            # we have a mi columns, so read and extra line
+            # we have a mi columns, so read an extra line
             if isinstance(header, (list, tuple, np.ndarray)):
                 have_mi_columns = True
                 header = list(header) + [header[-1] + 1]
@@ -1578,9 +1586,8 @@ class PythonParser(ParserBase):
             for level, hr in enumerate(header):
                 line = self._buffered_line()
 
-                while self.pos <= hr:
+                while self.line_pos <= hr:
                     line = self._next_line()
-
                 unnamed_count = 0
                 this_columns = []
                 for i, c in enumerate(line):
@@ -1705,25 +1712,36 @@ class PythonParser(ParserBase):
         else:
             return self._next_line()
 
+    def _empty(self, line):
+        return not line or all(not x for x in line)
+
     def _next_line(self):
         if isinstance(self.data, list):
             while self.pos in self.skiprows:
                 self.pos += 1
 
-            try:
-                line = self.data[self.pos]
-            except IndexError:
-                raise StopIteration
+            while True:
+                try:
+                    line = self._check_comments([self.data[self.pos]])[0]
+                    self.pos += 1
+                    # either uncommented or blank to begin with
+                    if self._empty(self.data[self.pos - 1]) or line:
+                        break
+                except IndexError:
+                    raise StopIteration
         else:
             while self.pos in self.skiprows:
                 next(self.data)
                 self.pos += 1
 
-            line = next(self.data)
+            while True:
+                orig_line = next(self.data)
+                line = self._check_comments([orig_line])[0]
+                self.pos += 1
+                if self._empty(orig_line) or line:
+                    break
 
-        line = self._check_comments([line])[0]
-
-        self.pos += 1
+        self.line_pos += 1
         self.buf.append(line)
 
         return line

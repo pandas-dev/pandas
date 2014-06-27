@@ -698,6 +698,9 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             } else if (c == '\r') {
                 self->state = EAT_CRNL;
                 break;
+            } else if (c == self->commentchar) {
+                self->state = EAT_LINE_COMMENT;
+                break;
             }
 
             /* normal character - handle as START_FIELD */
@@ -750,6 +753,16 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
 
             PUSH_CHAR(c);
             self->state = IN_FIELD;
+            break;
+
+        case EAT_LINE_COMMENT:
+            if (c == '\n') {
+                self->file_lines++;
+                self->state = START_RECORD;
+            } else if (c == '\r') {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
+            }
             break;
 
         case IN_FIELD:
@@ -880,6 +893,15 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                     goto linelimit;
                 }
 
+            }
+            break;
+
+        case EAT_CRNL_NOP: /* inside an ignored comment line */
+            self->state = START_RECORD;
+            /* \r line terminator -- parse this character again */
+            if (c != '\n' && c != self->delimiter) {
+                --i;
+                --buf;
             }
             break;
 

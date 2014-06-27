@@ -1584,6 +1584,65 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             df = self.read_table(StringIO(text), sep='\s+')
             self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
 
+    def test_line_comment(self):
+        data = """# empty
+A,B,C
+1,2.,4.#hello world
+#ignore this line
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_skiprows(self):
+        data = """# empty
+random line
+# second empty line
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # this should ignore the first four lines (including comments)
+        df = self.read_csv(StringIO(data), comment='#', skiprows=4)
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_header(self):
+        data = """# empty
+# second empty line
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # header should begin at the second non-comment line
+        df = self.read_csv(StringIO(data), comment='#', header=1)
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_skiprows_header(self):
+        data = """# empty
+# second empty line
+# third empty line
+X,Y,Z
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # skiprows should skip the first 4 lines (including comments), while
+        # header should start from the second non-commented line starting
+        # with line 5
+        df = self.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
+        tm.assert_almost_equal(df.values, expected)
+
     def test_read_csv_parse_simple_list(self):
         text = """foo
 bar baz
@@ -2873,6 +2932,65 @@ class TestCParserHighMemory(ParserTests, tm.TestCase):
 
     def test_usecols(self):
         raise nose.SkipTest("Usecols is not supported in C High Memory engine.")
+
+    def test_line_comment(self):
+        data = """# empty
+A,B,C
+1,2.,4.#hello world
+#ignore this line
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_skiprows(self):
+        data = """# empty
+random line
+# second empty line
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # this should ignore the first four lines (including comments)
+        df = self.read_csv(StringIO(data), comment='#', skiprows=4)
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_header(self):
+        data = """# empty
+# second empty line
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # header should begin at the second non-comment line
+        df = self.read_csv(StringIO(data), comment='#', header=1)
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_comment_skiprows_header(self):
+        data = """# empty
+# second empty line
+# third empty line
+X,Y,Z
+1,2,3
+A,B,C
+1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        # skiprows should skip the first 4 lines (including comments), while
+        # header should start from the second non-commented line starting
+        # with line 5
+        df = self.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
+        tm.assert_almost_equal(df.values, expected)
 
     def test_passing_dtype(self):
         # GH 6607

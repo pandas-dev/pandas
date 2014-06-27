@@ -98,8 +98,10 @@ They can take a number of arguments:
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
     a list of integers that specify row locations for a multi-index on the columns
-    E.g. [0,1,3]. Intervening rows that are not specified will be skipped.
-    (E.g. 2 in this example are skipped)
+    E.g. [0,1,3]. Intervening rows that are not specified will be
+    skipped (e.g. 2 in this example are skipped). Note that this parameter
+    ignores commented lines, so header=0 denotes the first line of
+    data rather than the first line of the file.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, column name, or list of column numbers/names,
@@ -145,8 +147,12 @@ They can take a number of arguments:
     Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
   - ``skipinitialspace`` : boolean, default ``False``, Skip spaces after delimiter
   - ``escapechar`` : string, to specify how to escape quoted data
-  - ``comment``: denotes the start of a comment and ignores the rest of the line.
-    Currently line commenting is not supported.
+  - ``comment``: Indicates remainder of line should not be parsed. If found at the
+    beginning of a line, the line will be ignored altogether. This parameter
+    must be a single character. Also, fully commented lines
+    are ignored by the parameter `header` but not by `skiprows`. For example,
+    if comment='#', parsing '#empty\n1,2,3\na,b,c' with `header=0` will
+    result in '1,2,3' being treated as the header.
   - ``nrows``: Number of rows to read out of the file. Useful to only read a
     small portion of a large file
   - ``iterator``: If True, return a ``TextFileReader`` to enable reading a file
@@ -252,6 +258,27 @@ after a delimiter:
    data = 'a, b, c\n1, 2, 3\n4, 5, 6'
    print(data)
    pd.read_csv(StringIO(data), skipinitialspace=True)
+   
+Moreover, ``read_csv`` ignores any completely commented lines:
+
+.. ipython:: python
+
+   data = 'a,b,c\n# commented line\n1,2,3\n#another comment\n4,5,6'
+   print(data)
+   pd.read_csv(StringIO(data), comment='#')
+
+.. note::
+
+   The presence of ignored lines might create ambiguities involving line numbers;
+   the parameter ``header`` uses row numbers (ignoring commented
+   lines), while ``skiprows`` uses line numbers (including commented lines):
+
+   .. ipython:: python
+
+      data = '#comment\na,b,c\nA,B,C\n1,2,3'
+      pd.read_csv(StringIO(data), comment='#', header=1)
+      data = 'A,B,C\n#comment\na,b,c\n1,2,3'
+      pd.read_csv(StringIO(data), comment='#', skiprows=2)
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
