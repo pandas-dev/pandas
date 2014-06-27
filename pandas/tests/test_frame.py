@@ -32,7 +32,8 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, notnull, isnull,
-                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv)
+                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv,
+                    _np_version_under1p7)
 import pandas as pd
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
@@ -2180,11 +2181,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # reset_index with single level
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern']:
             idx = pd.date_range('1/1/2011', periods=5, freq='D', tz=tz, name='idx')
-            df = pd.DataFrame({'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx) 
+            df = pd.DataFrame({'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
 
             expected = pd.DataFrame({'idx': [datetime(2011, 1, 1), datetime(2011, 1, 2),
                                              datetime(2011, 1, 3), datetime(2011, 1, 4),
-                                             datetime(2011, 1, 5)], 
+                                             datetime(2011, 1, 5)],
                                      'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']},
                                      columns=['idx', 'a', 'b'])
             expected['idx'] = expected['idx'].apply(lambda d: pd.Timestamp(d, tz=tz))
@@ -3756,6 +3757,28 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df._consolidate_inplace()
         self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
         self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
+
+    def test_datetimelike_setitem_with_inference(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("numpy < 1.7")
+
+        # GH 7592
+        # assignment of timedeltas with NaT
+
+        one_hour = timedelta(hours=1)
+        df = DataFrame(index=date_range('20130101',periods=4))
+        df['A'] = np.array([1*one_hour]*4, dtype='m8[ns]')
+        df.loc[:,'B'] = np.array([2*one_hour]*4, dtype='m8[ns]')
+        df.loc[:3,'C'] = np.array([3*one_hour]*3, dtype='m8[ns]')
+        df.ix[:,'D'] = np.array([4*one_hour]*4, dtype='m8[ns]')
+        df.ix[:3,'E'] = np.array([5*one_hour]*3, dtype='m8[ns]')
+        df['F'] = np.timedelta64('NaT')
+        df.ix[:-1,'F'] = np.array([6*one_hour]*3, dtype='m8[ns]')
+        df.ix[-3:,'G'] = date_range('20130101',periods=3)
+        df['H'] = np.datetime64('NaT')
+        result = df.dtypes
+        expected = Series([np.dtype('timedelta64[ns]')]*6+[np.dtype('datetime64[ns]')]*2,index=list('ABCDEFGH'))
+        assert_series_equal(result,expected)
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))

@@ -172,7 +172,7 @@ Bug Fixes
 - Regression in datetimelike slice indexing with a duplicated index and non-exact end-points (:issue:`7523`)
 - Bug in setitem with list-of-lists and single vs mixed types (:issue:`7551`:)
 - Bug in timeops with non-aligned Series (:issue:`7500`)
-
+- Bug in timedelta inference when assigning an incomplete Series (:issue:`7592`)
 
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 
