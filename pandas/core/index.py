@@ -2074,7 +2074,7 @@ class Float64Index(Index):
 
     def get_loc(self, key):
         try:
-            if np.isnan(key):
+            if np.all(np.isnan(key)):
                 try:
                     return self._nan_idxs.item()
                 except ValueError:
