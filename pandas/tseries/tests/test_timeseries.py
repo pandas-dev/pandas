@@ -1432,6 +1432,25 @@ class TestTimeSeries(tm.TestCase):
         rng2 = DatetimeIndex(rng)
         self.assertEqual(rng.freq, rng2.freq)
 
+    def test_dti_constructor_years_only(self):
+        # GH 6961
+        for tz in [None, 'UTC', 'Asia/Tokyo', 'dateutil/US/Pacific']:
+            rng1 = date_range('2014', '2015', freq='M', tz=tz)
+            expected1 = date_range('2014-01-31', '2014-12-31', freq='M', tz=tz)
+
+            rng2 = date_range('2014', '2015', freq='MS', tz=tz)
+            expected2 = date_range('2014-01-01', '2015-01-01', freq='MS', tz=tz)
+
+            rng3 = date_range('2014', '2020', freq='A', tz=tz)
+            expected3 = date_range('2014-12-31', '2019-12-31', freq='A', tz=tz)
+
+            rng4 = date_range('2014', '2020', freq='AS', tz=tz)
+            expected4 = date_range('2014-01-01', '2020-01-01', freq='AS', tz=tz)
+
+            for rng, expected in [(rng1, expected1), (rng2, expected2),
+                                  (rng3, expected3), (rng4, expected4)]:
+                tm.assert_index_equal(rng, expected)
+
     def test_normalize(self):
         rng = date_range('1/1/2000 9:30', periods=10, freq='D')
 
@@ -2139,6 +2158,15 @@ class TestDatetimeIndex(tm.TestCase):
 
         # NumPy string array
         strings = np.array(['2000-01-01', '2000-01-02', '2000-01-03'])
+        result = DatetimeIndex(strings)
+        expected = DatetimeIndex(strings.astype('O'))
+        self.assertTrue(result.equals(expected))
+
+        from_ints = DatetimeIndex(expected.asi8)
+        self.assertTrue(from_ints.equals(expected))
+
+        # string with NaT
+        strings = np.array(['2000-01-01', '2000-01-02', 'NaT'])
         result = DatetimeIndex(strings)
         expected = DatetimeIndex(strings.astype('O'))
         self.assertTrue(result.equals(expected))
