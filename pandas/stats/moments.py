@@ -89,6 +89,9 @@ adjust : boolean, default True
     imbalance in relative weightings (viewing EWMA as a moving average)
 how : string, default 'mean'
     Method for down- or re-sampling
+ignore_na : boolean, default False
+    Ignore missing values when calculating weights;
+    specify True to reproduce pre-0.15.0 behavior
 """
 
 _ewm_notes = r"""
@@ -420,12 +423,12 @@ def _get_center_of_mass(com, span, halflife):
               _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
-         adjust=True, how=None):
+         adjust=True, how=None, ignore_na=False):
     com = _get_center_of_mass(com, span, halflife)
     arg = _conv_timerule(arg, freq, how)
 
     def _ewma(v):
-        result = algos.ewma(v, com, int(adjust))
+        result = algos.ewma(v, com, int(adjust), int(ignore_na))
         first_index = _first_valid_index(v)
         result[first_index: first_index + min_periods] = NaN
         return result
@@ -444,11 +447,11 @@ def _first_valid_index(arr):
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, how=None):
+           freq=None, how=None, ignore_na=False):
     com = _get_center_of_mass(com, span, halflife)
     arg = _conv_timerule(arg, freq, how)
-    moment2nd = ewma(arg * arg, com=com, min_periods=min_periods)
-    moment1st = ewma(arg, com=com, min_periods=min_periods)
+    moment2nd = ewma(arg * arg, com=com, min_periods=min_periods, ignore_na=ignore_na)
+    moment1st = ewma(arg, com=com, min_periods=min_periods, ignore_na=ignore_na)
 
     result = moment2nd - moment1st ** 2
     if not bias:
@@ -460,9 +463,10 @@ def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
 @Substitution("Exponentially-weighted moving std", _unary_arg,
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False):
+def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
+           ignore_na=False):
     result = ewmvar(arg, com=com, span=span, halflife=halflife,
-                    min_periods=min_periods, bias=bias)
+                    min_periods=min_periods, bias=bias, ignore_na=ignore_na)
     return _zsqrt(result)
 
 ewmvol = ewmstd
@@ -472,7 +476,7 @@ ewmvol = ewmstd
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-           bias=False, freq=None, pairwise=None, how=None):
+           bias=False, freq=None, pairwise=None, how=None, ignore_na=False):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -484,7 +488,8 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
     arg2 = _conv_timerule(arg2, freq, how)
 
     def _get_ewmcov(X, Y):
-        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods)
+        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
+                              ignore_na=ignore_na)
         return (mean(X * Y) - mean(X) * mean(Y))
     result = _flex_binary_moment(arg1, arg2, _get_ewmcov,
                                  pairwise=bool(pairwise))
@@ -499,7 +504,7 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-            freq=None, pairwise=None, how=None):
+            freq=None, pairwise=None, how=None, ignore_na=False):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -511,9 +516,10 @@ def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
     arg2 = _conv_timerule(arg2, freq, how)
 
     def _get_ewmcorr(X, Y):
-        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods)
+        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
+                              ignore_na=ignore_na)
         var = lambda x: ewmvar(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
-                               bias=True)
+                               bias=True, ignore_na=ignore_na)
         return (mean(X * Y) - mean(X) * mean(Y)) / _zsqrt(var(X) * var(Y))
     result = _flex_binary_moment(arg1, arg2, _get_ewmcorr,
                                  pairwise=bool(pairwise))

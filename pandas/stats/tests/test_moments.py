@@ -520,11 +520,64 @@ class TestMoments(tm.TestCase):
         result = mom.ewma(arr, span=100, adjust=False).sum()
         self.assertTrue(np.abs(result - 1) < 1e-2)
 
+        s = Series([1.0, 2.0, 4.0, 8.0])
+        
+        expected = Series([1.0, 1.6, 2.736842, 4.923077])
+        for f in [lambda s: mom.ewma(s, com=2.0, adjust=True),
+                  lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=False),
+                  lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=True),
+                 ]:
+            result = f(s)
+            assert_series_equal(result, expected)
+
+        expected = Series([1.0, 1.333333, 2.222222, 4.148148])
+        for f in [lambda s: mom.ewma(s, com=2.0, adjust=False),
+                  lambda s: mom.ewma(s, com=2.0, adjust=False, ignore_na=False),
+                  lambda s: mom.ewma(s, com=2.0, adjust=False, ignore_na=True),
+                 ]:
+            result = f(s)
+            assert_series_equal(result, expected)
+
     def test_ewma_nan_handling(self):
         s = Series([1.] + [np.nan] * 5 + [1.])
-
         result = mom.ewma(s, com=5)
-        assert_almost_equal(result, [1] * len(s))
+        assert_almost_equal(result, [1.] * len(s))
+
+        s = Series([np.nan] * 2 + [1.] + [np.nan] * 2 + [1.])
+        result = mom.ewma(s, com=5)
+        assert_almost_equal(result, [np.nan] * 2 + [1.] * 4)
+
+        # GH 7603
+        s0 = Series([np.nan, 1., 101.])
+        s1 = Series([1., np.nan, 101.])
+        s2 = Series([np.nan, 1., np.nan, np.nan, 101., np.nan])
+        com = 2.
+        alpha = 1. / (1. + com)
+
+        def simple_wma(s, w):
+            return (s.multiply(w).cumsum() / w.cumsum()).fillna(method='ffill')
+
+        for (s, adjust, ignore_na, w) in [
+                (s0, True, False, [np.nan, (1.0 - alpha), 1.]),
+                (s0, True, True, [np.nan, (1.0 - alpha), 1.]),
+                (s0, False, False, [np.nan, (1.0 - alpha), alpha]),
+                (s0, False, True, [np.nan, (1.0 - alpha), alpha]),
+                (s1, True, False, [(1.0 - alpha)**2, np.nan, 1.]),
+                (s1, True, True, [(1.0 - alpha), np.nan, 1.]),
+                (s1, False, False, [(1.0 - alpha)**2, np.nan, alpha]),
+                (s1, False, True, [(1.0 - alpha), np.nan, alpha]),
+                (s2, True, False, [np.nan, (1.0 - alpha)**3, np.nan, np.nan, 1., np.nan]),
+                (s2, True, True, [np.nan, (1.0 - alpha), np.nan, np.nan, 1., np.nan]),
+                (s2, False, False, [np.nan, (1.0 - alpha)**3, np.nan, np.nan, alpha, np.nan]),
+                (s2, False, True, [np.nan, (1.0 - alpha), np.nan, np.nan, alpha, np.nan]),
+                ]:
+            expected = simple_wma(s, Series(w))
+            result = mom.ewma(s, com=com, adjust=adjust, ignore_na=ignore_na)
+            assert_series_equal(result, expected)
+            if ignore_na is False:
+                # check that ignore_na defaults to False
+                result = mom.ewma(s, com=com, adjust=adjust)
+                assert_series_equal(result, expected)
 
     def test_ewmvar(self):
         self._check_ew(mom.ewmvar)
