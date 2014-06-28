@@ -265,7 +265,7 @@ class TestYahooOptions(tm.TestCase):
         try:
             options = self.aapl.get_options_data(expiry=self.expiry)
         except RemoteDataError as e:
-            nose.SkipTest(e)
+            raise nose.SkipTest(e)
         self.assertTrue(len(options) > 1)
 
     @network
@@ -274,7 +274,7 @@ class TestYahooOptions(tm.TestCase):
             options = self.aapl.get_near_stock_price(call=True, put=True,
                                                      expiry=self.expiry)
         except RemoteDataError as e:
-            nose.SkipTest(e)
+            raise nose.SkipTest(e)
         self.assertTrue(len(options) > 1)
 
     @network
@@ -282,7 +282,7 @@ class TestYahooOptions(tm.TestCase):
         try:
             calls = self.aapl.get_call_data(expiry=self.expiry)
         except RemoteDataError as e:
-            nose.SkipTest(e)
+            raise nose.SkipTest(e)
         self.assertTrue(len(calls) > 1)
 
     @network
@@ -290,7 +290,7 @@ class TestYahooOptions(tm.TestCase):
         try:
             puts = self.aapl.get_put_data(expiry=self.expiry)
         except RemoteDataError as e:
-            nose.SkipTest(e)
+            raise nose.SkipTest(e)
         self.assertTrue(len(puts) > 1)
 
     @network
@@ -367,7 +367,7 @@ class TestOptionsWarnings(tm.TestCase):
             try:
                 self.aapl.get_options_data(month=self.month, year=self.year)
             except RemoteDataError as e:
-                nose.SkipTest(e)
+                raise nose.SkipTest(e)
 
     @network
     def test_get_near_stock_price_warning(self):
@@ -378,7 +378,7 @@ class TestOptionsWarnings(tm.TestCase):
                                                               month=self.month,
                                                               year=self.year)
             except RemoteDataError as e:
-                nose.SkipTest(e)
+                raise nose.SkipTest(e)
 
     @network
     def test_get_call_data_warning(self):
@@ -386,7 +386,7 @@ class TestOptionsWarnings(tm.TestCase):
             try:
                 self.aapl.get_call_data(month=self.month, year=self.year)
             except RemoteDataError as e:
-                nose.SkipTest(e)
+                raise nose.SkipTest(e)
 
     @network
     def test_get_put_data_warning(self):
@@ -394,7 +394,7 @@ class TestOptionsWarnings(tm.TestCase):
             try:
                 self.aapl.get_put_data(month=self.month, year=self.year)
             except RemoteDataError as e:
-                nose.SkipTest(e)
+                raise nose.SkipTest(e)
 
 
 class TestDataReader(tm.TestCase):
