@@ -1326,6 +1326,13 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
 
+        # GH 7453
+        for func in ['size']:
+            expected = getattr(normal_grouped, func)()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)()
+            assert_series_equal(expected, dt_result)
+
         """
         for func in ['first', 'last']:
             expected = getattr(normal_grouped, func)()
@@ -1339,7 +1346,7 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)(3)
             assert_frame_equal(expected, dt_result)
         """
-        # if TimeGrouper is used included, 'size' 'first','last' and 'nth' doesn't work yet
+        # if TimeGrouper is used included, 'first','last' and 'nth' doesn't work yet
 
     def test_aggregate_with_nat(self):
         # check TimeGrouper's aggregation is identical as normal groupby
@@ -1375,7 +1382,16 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
 
-        # if NaT is included, 'var', 'std', 'mean', 'size', 'first','last' and 'nth' doesn't work yet
+        for func in ['size']:
+            normal_result = getattr(normal_grouped, func)()
+            pad = Series([0], index=[3])
+            expected = normal_result.append(pad)
+            expected = expected.sort_index()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            dt_result = getattr(dt_grouped, func)()
+            assert_series_equal(expected, dt_result)
+
+        # if NaT is included, 'var', 'std', 'mean', 'first','last' and 'nth' doesn't work yet
 
 
 if __name__ == '__main__':
