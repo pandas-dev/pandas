@@ -572,6 +572,40 @@ class TestDatetimeIndexOps(Ops):
             obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
             self.assertTrue(pd.isnull(getattr(obj, op)()))
 
+    def test_representation(self):
+        idx1 = DatetimeIndex([], freq='D')
+        idx2 = DatetimeIndex(['2011-01-01'], freq='D')
+        idx3 = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        idx4 = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
+        idx5 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'],
+                             freq='H', tz='Asia/Tokyo')
+        idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
+                             tz='US/Eastern')
+
+        exp1 = """<class 'pandas.tseries.index.DatetimeIndex'>
+Length: 0, Freq: D, Timezone: None"""
+        exp2 = """<class 'pandas.tseries.index.DatetimeIndex'>
+[2011-01-01]
+Length: 1, Freq: D, Timezone: None"""
+        exp3 = """<class 'pandas.tseries.index.DatetimeIndex'>
+[2011-01-01, 2011-01-02]
+Length: 2, Freq: D, Timezone: None"""
+        exp4 = """<class 'pandas.tseries.index.DatetimeIndex'>
+[2011-01-01, ..., 2011-01-03]
+Length: 3, Freq: D, Timezone: None"""
+        exp5 = """<class 'pandas.tseries.index.DatetimeIndex'>
+[2011-01-01 09:00:00+09:00, ..., 2011-01-01 11:00:00+09:00]
+Length: 3, Freq: H, Timezone: Asia/Tokyo"""
+        exp6 = """<class 'pandas.tseries.index.DatetimeIndex'>
+[2011-01-01 09:00:00-05:00, ..., NaT]
+Length: 3, Freq: None, Timezone: US/Eastern"""
+
+        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
+                                 [exp1, exp2, exp3, exp4, exp5, exp6]):
+            for func in ['__repr__', '__unicode__', '__str__']:
+                result = getattr(idx, func)()
+                self.assertEqual(result, expected)
+
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'
@@ -649,6 +683,52 @@ class TestPeriodIndexOps(Ops):
             result = getattr(obj, op)()
             self.assertEqual(result.ordinal, tslib.iNaT)
             self.assertEqual(result.freq, 'M')
+
+    def test_representation(self):
+        # GH 7601
+        idx1 = PeriodIndex([], freq='D')
+        idx2 = PeriodIndex(['2011-01-01'], freq='D')
+        idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
+        idx4 = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
+        idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
+        idx6 = PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], freq='H')
+
+        idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
+        idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
+        idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
+
+        exp1 = """<class 'pandas.tseries.period.PeriodIndex'>
+Length: 0, Freq: D"""
+        exp2 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2011-01-01]
+Length: 1, Freq: D"""
+        exp3 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2011-01-01, 2011-01-02]
+Length: 2, Freq: D"""
+        exp4 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2011-01-01, ..., 2011-01-03]
+Length: 3, Freq: D"""
+        exp5 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2011, ..., 2013]
+Length: 3, Freq: A-DEC"""
+        exp6 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2011-01-01 09:00, ..., NaT]
+Length: 3, Freq: H"""
+        exp7 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2013Q1]
+Length: 1, Freq: Q-DEC"""
+        exp8 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2013Q1, 2013Q2]
+Length: 2, Freq: Q-DEC"""
+        exp9 = """<class 'pandas.tseries.period.PeriodIndex'>
+[2013Q1, ..., 2013Q3]
+Length: 3, Freq: Q-DEC"""
+
+        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
+                                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9]):
+            for func in ['__repr__', '__unicode__', '__str__']:
+                result = getattr(idx, func)()
+                self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':

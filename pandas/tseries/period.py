@@ -1129,37 +1129,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
 
-    def __repr__(self):
-        output = com.pprint_thing(self.__class__) + '\n'
-        output += 'freq: %s\n' % self.freq
-        n = len(self)
-        if n == 1:
-            output += '[%s]\n' % (self[0])
-        elif n == 2:
-            output += '[%s, %s]\n' % (self[0], self[-1])
-        elif n:
-            output += '[%s, ..., %s]\n' % (self[0], self[-1])
-        output += 'length: %d' % n
-        return output
-
-    def __unicode__(self):
-        output = self.__class__.__name__
-        output += u('(')
-        prefix = '' if compat.PY3 else 'u'
-        mapper = "{0}'{{0}}'".format(prefix)
-        output += '[{0}]'.format(', '.join(map(mapper.format, self)))
-        output += ", freq='{0}'".format(self.freq)
-        output += ')'
-        return output
-
-    def __bytes__(self):
-        encoding = com.get_option('display.encoding')
-        return self.__unicode__().encode(encoding, 'replace')
-
-    def __str__(self):
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
+    def _format_footer(self):
+        tagline = 'Length: %d, Freq: %s'
+        return tagline % (len(self), self.freqstr)
 
     def take(self, indices, axis=None):
         """

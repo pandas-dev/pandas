@@ -565,31 +565,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         from pandas.core.format import _is_dates_only
         return _is_dates_only(self.values)
 
-    def __unicode__(self):
+    @property
+    def _formatter_func(self):
         from pandas.core.format import _get_format_datetime64
-
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
-
-        values = self.values
-
-        freq = self.freqstr
-        summary = str(self.__class__)
-        if len(self) == 1:
-            first = formatter(values[0], tz=self.tz)
-            summary += '\n[%s]' % first
-        elif len(self) == 2:
-            first = formatter(values[0], tz=self.tz)
-            last = formatter(values[-1], tz=self.tz)
-            summary += '\n[%s, %s]' % (first, last)
-        elif len(self) > 2:
-            first = formatter(values[0], tz=self.tz)
-            last = formatter(values[-1], tz=self.tz)
-            summary += '\n[%s, ..., %s]' % (first, last)
-
-        tagline = '\nLength: %d, Freq: %s, Timezone: %s'
-        summary += tagline % (len(self), freq, self.tz)
-
-        return summary
+        return lambda x: formatter(x, tz=self.tz)
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
