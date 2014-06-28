@@ -67,7 +67,7 @@ cdef int64_t NPY_NAT = util.get_nat()
 compat_NaT = np.array([NPY_NAT]).astype('m8[ns]').item()
 
 # numpy actual nat object
-np_NaT = np.datetime64('NaT',dtype='M8')
+np_NaT = np.datetime64('NaT')
 
 try:
     basestring
@@ -892,8 +892,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if ts is None or ts is NaT or ts is np_NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        obj.value = _get_datetime64_nanos(ts)
-        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
+        if ts == np_NaT:
+            obj.value = NPY_NAT
+        else:
+            obj.value = _get_datetime64_nanos(ts)
+            pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
             obj.value = NPY_NAT
@@ -1218,7 +1221,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         continue
                     raise
             elif util.is_datetime64_object(val):
-                if val is np_NaT or val.view('i8') == iNaT:
+                if val == np_NaT or val.view('i8') == iNaT:
                     iresult[i] = iNaT
                 else:
                     try:
@@ -1296,10 +1299,13 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             val = values[i]
 
             # set as nan if is even a datetime NaT
-            if _checknull_with_nat(val) or val is np_NaT:
+            if _checknull_with_nat(val):
                 oresult[i] = np.nan
             elif util.is_datetime64_object(val):
-                oresult[i] = val.item()
+                if val == np_NaT:
+                    oresult[i] = np.nan
+                else:
+                    oresult[i] = val.item()
             else:
                 oresult[i] = val
         return oresult
