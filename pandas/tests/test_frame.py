@@ -3587,6 +3587,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected.sort_index()
         assert_series_equal(result, expected)
 
+        # GH 7594
+        # don't coerce tz-aware
+        import pytz
+        tz = pytz.timezone('US/Eastern')
+        dt = tz.localize(datetime(2012, 1, 1))
+        df = DataFrame({'End Date': dt}, index=[0])
+        self.assertEqual(df.iat[0,0],dt)
+        assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
+
+        df = DataFrame([{'End Date': dt}])
+        self.assertEqual(df.iat[0,0],dt)
+        assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
+
     def test_constructor_for_list_with_dtypes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
