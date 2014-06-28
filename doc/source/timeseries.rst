@@ -71,6 +71,23 @@ Resample:
    ts.resample('D', how='mean')
 
 
+.. _timeseries.overview:
+
+Overview
+--------
+
+Following table shows the type of time-related classes pandas can handle and
+how to create them.
+
+=================  ============================== ==================================================
+Class              Remarks                        How to create
+=================  ============================== ==================================================
+``Timestamp``      Represents a single time stamp ``to_datetime``, ``Timestamp``
+``DatetimeIndex``  Index of ``Timestamps``        ``to_datetime``, ``date_range``, ``DatetimeIndex``
+``Period``         Represents a single time span  ``Period``
+``PeriodIndex``    Index of ``Period``            ``period_range``, ``PeriodIndex``
+=================  ============================== ==================================================
+
 .. _timeseries.representation:
 
 Time Stamps vs. Time Spans
@@ -78,30 +95,45 @@ Time Stamps vs. Time Spans
 
 Time-stamped data is the most basic type of timeseries data that associates
 values with points in time. For pandas objects it means using the points in
-time to create the index
+time.
 
 .. ipython:: python
 
-   dates = [datetime(2012, 5, 1), datetime(2012, 5, 2), datetime(2012, 5, 3)]
-   ts = Series(np.random.randn(3), dates)
-
-   type(ts.index)
-
-   ts
+   Timestamp(datetime(2012, 5, 1))
+   Timestamp('2012-05-01')
 
 However, in many cases it is more natural to associate things like change
-variables with a time span instead.
+variables with a time span instead. The span represented by ``Period`` can be
+specified explicitly, or inferred from datetime string format.
 
 For example:
 
 .. ipython:: python
 
-   periods = PeriodIndex([Period('2012-01'), Period('2012-02'),
-                          Period('2012-03')])
+   Period('2011-01')
+
+   Period('2012-05', freq='D')
+
+``Timestamp`` and ``Period`` can be the index. Lists of ``Timestamp`` and
+``Period`` are automatically coerce to ``DatetimeIndex`` and ``PeriodIndex``
+respectively.
+
+.. ipython:: python
+
+   dates = [Timestamp('2012-05-01'), Timestamp('2012-05-02'), Timestamp('2012-05-03')]
+   ts = Series(np.random.randn(3), dates)
+
+   type(ts.index)
+   ts.index
+
+   ts
+
+   periods = [Period('2012-01'), Period('2012-02'), Period('2012-03')]
 
    ts = Series(np.random.randn(3), periods)
 
    type(ts.index)
+   ts.index
 
    ts
 
@@ -149,6 +181,17 @@ you can pass the ``dayfirst`` flag:
    Specifying a ``format`` argument will potentially speed up the conversion
    considerably and on versions later then 0.13.0 explicitly specifying
    a format string of '%Y%m%d' takes a faster path still.
+
+If you pass a single string to ``to_datetime``, it returns single ``Timestamp``.
+Also, ``Timestamp`` can accept the string input.
+Note that ``Timestamp`` doesn't accept string parsing option like ``dayfirst``
+or ``format``, use ``to_datetime`` if these are required.
+
+.. ipython:: python
+
+    to_datetime('2010/11/12')
+
+    Timestamp('2010/11/12')
 
 
 Invalid Data

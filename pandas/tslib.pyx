@@ -43,17 +43,22 @@ cimport cython
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
 
+import re
+
 # dateutil compat
 from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal, tzfile as _dateutil_tzfile,
-                         tzutc as _dateutil_tzutc)
+                         tzutc as _dateutil_tzutc, tzstr as _dateutil_tzstr)
+
 from pandas.compat import is_platform_windows
 if is_platform_windows():
     from dateutil.zoneinfo import gettz as _dateutil_gettz
 else:
     from dateutil.tz import gettz as _dateutil_gettz
+from dateutil.relativedelta import relativedelta
+from dateutil.parser import DEFAULTPARSER
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
-from pandas.compat import parse_date, string_types, iteritems
+from pandas.compat import parse_date, string_types, iteritems, StringIO
 
 import operator
 import collections
@@ -219,7 +224,21 @@ class Timestamp(_Timestamp):
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
+
+    Parameters
+    ----------
+    ts_input : datetime-like, str, int, float
+        Value to be converted to Timestamp
+    offset : str, DateOffset
+        Offset which Timestamp will have
+    tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        Time zone for time which Timestamp will have.
+    unit : string
+        numpy unit used for conversion, if ts_input is int or float
     """
+
+    # Do not add ``dayfirst`` and ``yearfist`` to Timestamp based on the discussion
+    # https://github.com/pydata/pandas/pull/7599
 
     @classmethod
     def fromordinal(cls, ordinal, offset=None, tz=None):
@@ -1079,40 +1098,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     obj = _TSObject()
 
     if util.is_string_object(ts):
-        if ts in _nat_strings:
-            ts = NaT
-        elif ts == 'now':
-            # Issue 9000, we short-circuit rather than going
-            # into np_datetime_strings which returns utc
-            ts = Timestamp.now(tz)
-        elif ts == 'today':
-            # Issue 9000, we short-circuit rather than going
-            # into np_datetime_strings which returns a normalized datetime
-            ts = Timestamp.today(tz)
-        else:
-            try:
-                _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-                obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
-                _check_dts_bounds(&obj.dts)
-                if out_local == 1:
-                    obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                    obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
-                    if tz is None:
-                        _check_dts_bounds(&obj.dts)
-                        return obj
-                    else:
-                        # Keep the converter same as PyDateTime's
-                        ts = Timestamp(obj.value, tz=obj.tzinfo)
-                else:
-                    ts = obj.value
-                    if tz is not None:
-                        # shift for _localize_tso
-                        ts = tz_convert_single(ts, tz, 'UTC')
-            except ValueError:
-                try:
-                    ts = parse_datetime_string(ts)
-                except Exception:
-                    raise ValueError
+        return convert_str_to_tsobject(ts, tz, unit)
 
     if ts is None or ts is NaT or ts is np_NaT:
         obj.value = NPY_NAT
@@ -1195,6 +1181,56 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
         _localize_tso(obj, tz)
 
     return obj
+
+
+cpdef convert_str_to_tsobject(object ts, object tz, object unit,
+                              dayfirst=False, yearfirst=False):
+    cdef:
+        _TSObject obj
+        int out_local = 0, out_tzoffset = 0
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+
+    obj = _TSObject()
+
+    if ts in _nat_strings:
+        ts = NaT
+    elif ts == 'now':
+        # Issue 9000, we short-circuit rather than going
+        # into np_datetime_strings which returns utc
+        ts = Timestamp.now(tz)
+    elif ts == 'today':
+        # Issue 9000, we short-circuit rather than going
+        # into np_datetime_strings which returns a normalized datetime
+        ts = Timestamp.today(tz)
+    else:
+        try:
+            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
+            obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
+            _check_dts_bounds(&obj.dts)
+            if out_local == 1:
+                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+                if tz is None:
+                    _check_dts_bounds(&obj.dts)
+                    return obj
+                else:
+                    # Keep the converter same as PyDateTime's
+                    ts = Timestamp(obj.value, tz=obj.tzinfo)
+            else:
+                ts = obj.value
+                if tz is not None:
+                    # shift for _localize_tso
+                    ts = tz_convert_single(ts, tz, 'UTC')
+        except ValueError:
+            try:
+                ts = parse_datetime_string(ts, dayfirst=dayfirst, yearfirst=yearfirst)
+            except Exception:
+                raise ValueError
+
+    return convert_to_tsobject(ts, tz, unit)
+
 
 cdef inline void _localize_tso(_TSObject obj, object tz):
     '''
@@ -1377,9 +1413,10 @@ def datetime_to_datetime64(ndarray[object] values):
 
     return result, inferred_tz
 
-_not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
+cdef:
+    set _not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 
-def _does_string_look_like_datetime(date_string):
+cpdef object _does_string_look_like_datetime(object date_string):
     if date_string.startswith('0'):
         # Strings starting with 0 are more consistent with a
         # date-like string than a number
@@ -1396,14 +1433,9 @@ def _does_string_look_like_datetime(date_string):
 
     return True
 
-def parse_datetime_string(date_string, **kwargs):
-    if not _does_string_look_like_datetime(date_string):
-        raise ValueError('Given date string not likely a datetime.')
 
-    dt = parse_date(date_string, **kwargs)
-    return dt
-
-def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object format=None, object na_rep=None):
+def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
+                               object format=None, object na_rep=None):
     """
     return a np object array of the string formatted values
 
@@ -1484,8 +1516,260 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
 
     return result
 
-def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None, utc=None, coerce=False, unit=None):
+
+class DateParseError(ValueError):
+    pass
+
+
+cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
+
+
+def parse_datetime_string(object date_string, object freq=None,
+                          dayfirst=False, yearfirst=False, **kwargs):
+
+    """parse datetime string, only returns datetime.
+    Also cares special handling matching time patterns.
+
+    Returns
+    -------
+    datetime
+    """
+
+    cdef:
+        object dt
+
+    if not _does_string_look_like_datetime(date_string):
+        raise ValueError('Given date string not likely a datetime.')
+
+    if _TIMEPAT.match(date_string):
+        # use current datetime as default, not pass _DEFAULT_DATETIME
+        dt = parse_date(date_string, dayfirst=dayfirst,
+                        yearfirst=yearfirst, **kwargs)
+        return dt
+    try:
+        dt, _, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        return dt
+    except DateParseError:
+        raise
+    except ValueError:
+        pass
+
+    dt = parse_date(date_string, default=_DEFAULT_DATETIME,
+                    dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    return dt
+
+
+def parse_datetime_string_with_reso(object date_string, object freq=None,
+                                    dayfirst=False, yearfirst=False, **kwargs):
+    """parse datetime string, only returns datetime
+
+    Returns
+    -------
+    datetime
+    """
+
+    cdef:
+        object parsed, reso
+
+    if not _does_string_look_like_datetime(date_string):
+        raise ValueError('Given date string not likely a datetime.')
+
+    try:
+        return _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+    except DateParseError:
+        raise
+    except ValueError:
+        pass
+
+    try:
+        parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
+                                      dayfirst=dayfirst, yearfirst=yearfirst)
+    except Exception as e:
+        # TODO: allow raise of errors within instead
+        raise DateParseError(e)
+    if parsed is None:
+        raise DateParseError("Could not parse %s" % date_string)
+    return parsed, parsed, reso
+
+
+cdef inline object _parse_dateabbr_string(object date_string, object default,
+                                          object freq):
+    cdef:
+        object ret
+        int year, quarter, month, mnum, date_len
+
+    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
+
+    if date_string in _nat_strings:
+        return NaT, NaT, ''
+
+    date_string = date_string.upper()
+    date_len = len(date_string)
+
+    if date_len == 4:
+        # parse year only like 2000
+        try:
+            ret = default.replace(year=int(date_string))
+            return ret, ret, 'year'
+        except ValueError:
+            pass
+
+    try:
+        if 4 <= date_len <= 7:
+            i = date_string.index('Q', 1, 6)
+            if i == 1:
+                quarter = int(date_string[0])
+                if date_len == 4 or (date_len == 5 and date_string[i + 1] == '-'):
+                    # r'(\d)Q-?(\d\d)')
+                    year = 2000 + int(date_string[-2:])
+                elif date_len == 6 or (date_len == 7 and date_string[i + 1] == '-'):
+                    # r'(\d)Q-?(\d\d\d\d)')
+                    year = int(date_string[-4:])
+                else:
+                    raise ValueError
+            elif i == 2 or i == 3:
+                # r'(\d\d)-?Q(\d)'
+                if date_len == 4 or (date_len == 5 and date_string[i - 1] == '-'):
+                    quarter = int(date_string[-1])
+                    year = 2000 + int(date_string[:2])
+                else:
+                    raise ValueError
+            elif i == 4 or i == 5:
+                if date_len == 6 or (date_len == 7 and date_string[i - 1] == '-'):
+                    # r'(\d\d\d\d)-?Q(\d)'
+                    quarter = int(date_string[-1])
+                    year = int(date_string[:4])
+                else:
+                    raise ValueError
+
+            if not (1 <= quarter <= 4):
+                msg = 'Incorrect quarterly string is given, quarter must be between 1 and 4: {0}'
+                raise DateParseError(msg.format(date_string))
+
+            if freq is not None:
+                # hack attack, #1228
+                try:
+                    mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
+                except (KeyError, ValueError):
+                    msg = 'Unable to retrieve month information from given freq: {0}'.format(freq)
+                    raise DateParseError(msg)
+
+                month = (mnum + (quarter - 1) * 3) % 12 + 1
+                if month > mnum:
+                    year -= 1
+            else:
+                month = (quarter - 1) * 3 + 1
+
+            ret = default.replace(year=year, month=month)
+            return ret, ret, 'quarter'
+
+    except DateParseError:
+        raise
+    except ValueError:
+        pass
+
+    if date_len == 6 and (freq == 'M' or getattr(freq, 'rule_code', None) == 'M'):
+        year = int(date_string[:4])
+        month = int(date_string[4:6])
+        try:
+            ret = default.replace(year=year, month=month)
+            return ret, ret, 'month'
+        except ValueError:
+            pass
+
+    for pat in ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']:
+        try:
+            ret = datetime.strptime(date_string, pat)
+            return ret, ret, 'month'
+        except ValueError:
+            pass
+
+    raise ValueError('Unable to parse {0}'.format(date_string))
+
+
+def dateutil_parse(object timestr, object default, ignoretz=False,
+                   tzinfos=None, **kwargs):
+    """ lifted from dateutil to get resolution"""
+
+    cdef:
+        object fobj, res, attr, ret, tzdata
+        object reso = None
+        dict repl = {}
+
+    fobj = StringIO(str(timestr))
+    res = DEFAULTPARSER._parse(fobj, **kwargs)
+
+    # dateutil 2.2 compat
+    if isinstance(res, tuple):
+        res, _ = res
+
+    if res is None:
+        raise ValueError("unknown string format")
+
+    for attr in ["year", "month", "day", "hour",
+                 "minute", "second", "microsecond"]:
+        value = getattr(res, attr)
+        if value is not None:
+            repl[attr] = value
+            reso = attr
+
+    if reso is None:
+        raise ValueError("Cannot parse date.")
+
+    if reso == 'microsecond':
+        if repl['microsecond'] == 0:
+            reso = 'second'
+        elif repl['microsecond'] % 1000 == 0:
+            reso = 'millisecond'
+
+    ret = default.replace(**repl)
+    if res.weekday is not None and not res.day:
+        ret = ret + relativedelta.relativedelta(weekday=res.weekday)
+    if not ignoretz:
+        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
+            if callable(tzinfos):
+                tzdata = tzinfos(res.tzname, res.tzoffset)
+            else:
+                tzdata = tzinfos.get(res.tzname)
+            if isinstance(tzdata, datetime.tzinfo):
+                tzinfo = tzdata
+            elif isinstance(tzdata, string_types):
+                tzinfo = _dateutil_tzstr(tzdata)
+            elif isinstance(tzdata, int):
+                tzinfo = tzoffset(res.tzname, tzdata)
+            else:
+                raise ValueError("offset must be tzinfo subclass, "
+                                 "tz string, or int offset")
+            ret = ret.replace(tzinfo=tzinfo)
+        elif res.tzname and res.tzname in time.tzname:
+            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+        elif res.tzoffset == 0:
+            ret = ret.replace(tzinfo=_dateutil_tzutc())
+        elif res.tzoffset:
+            ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
+    return ret, reso
+
+
+# const for parsers
+
+_DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0, second=0, microsecond=0)
+_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
+           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+_MONTH_NUMBERS = dict((k, i) for i, k in enumerate(_MONTHS))
+_MONTH_ALIASES = dict((k + 1, v) for k, v in enumerate(_MONTHS))
+
+
+cpdef object _get_rule_month(object source, object default='DEC'):
+    source = source.upper()
+    if '-' not in source:
+        return default
+    else:
+        return source.split('-')[1]
+
+
+cpdef array_to_datetime(ndarray[object] values, raise_=False,
+                        dayfirst=False, yearfirst=False, freq=None,
+                        format=None, utc=None, coerce=False, unit=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val, py_dt
@@ -1577,7 +1861,6 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     elif val in _nat_strings:
                         iresult[i] = iNaT
                         continue
-
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
                     if out_local == 1:
@@ -1587,7 +1870,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     _check_dts_bounds(&dts)
                 except ValueError:
                     try:
-                        py_dt = parse_datetime_string(val, dayfirst=dayfirst)
+                        py_dt = parse_datetime_string(val, dayfirst=dayfirst,
+                                                      yearfirst=yearfirst, freq=freq)
                     except Exception:
                         if coerce:
                             iresult[i] = iNaT
@@ -1647,7 +1931,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     oresult[i] = 'NaT'
                     continue
                 try:
-                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst)
+                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                                                       yearfirst=yearfirst, freq=freq)
                     _pydatetime_to_dts(oresult[i], &dts)
                     _check_dts_bounds(&dts)
                 except Exception:
@@ -1661,6 +1946,29 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 return values
 
         return oresult
+
+def parse_str_array_to_datetime(ndarray values, dayfirst=False,
+                                yearfirst=False, object freq=None):
+    """Shortcut to parse str array for quicker DatetimeIndex construction"""
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val, py_dt
+        ndarray[int64_t] iresult
+        _TSObject _ts
+
+    iresult = np.empty(n, dtype='i8')
+
+    for i in range(n):
+        val = values[i]
+        try:
+            py_dt = parse_datetime_string(val, dayfirst=dayfirst,
+                                          yearfirst=yearfirst, freq=freq)
+        except Exception:
+            raise ValueError
+        _ts = convert_to_tsobject(py_dt, None, None)
+        iresult[i] = _ts.value
+
+    return iresult
 
 # Similar to Timestamp/datetime, this is a construction requirement for timedeltas
 # we need to do object instantiation in python
