@@ -498,3 +498,17 @@ class DatetimeIndexOpsMixin(object):
         summary += self._format_footer()
         return summary
 
+    @cache_readonly
+    def _resolution(self):
+        from pandas.tseries.frequencies import Resolution
+        return Resolution.get_reso_from_freq(self.freqstr)
+
+    @cache_readonly
+    def resolution(self):
+        """
+        Returns day, hour, minute, second, millisecond or microsecond
+        """
+        from pandas.tseries.frequencies import get_reso_string
+        return get_reso_string(self._resolution)
+
+

@@ -605,6 +605,14 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
                 result = getattr(idx, func)()
                 self.assertEqual(result, expected)
 
+    def test_resolution(self):
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
+                                  ['day', 'day', 'day', 'day',
+                                   'hour', 'minute', 'second', 'millisecond', 'microsecond']):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+                idx = pd.date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
+                self.assertEqual(idx.resolution, expected)
+
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'
@@ -728,6 +736,14 @@ Length: 3, Freq: Q-DEC"""
             for func in ['__repr__', '__unicode__', '__str__']:
                 result = getattr(idx, func)()
                 self.assertEqual(result, expected)
+
+    def test_resolution(self):
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
+                                  ['day', 'day', 'day', 'day',
+                                   'hour', 'minute', 'second', 'millisecond', 'microsecond']):
+
+            idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
+            self.assertEqual(idx.resolution, expected)
 
 
 if __name__ == '__main__':

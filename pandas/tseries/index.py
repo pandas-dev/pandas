@@ -1537,14 +1537,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         return tslib.dates_normalized(self.asi8, self.tz)
 
     @cache_readonly
-    def resolution(self):
-        """
-        Returns day, hour, minute, second, or microsecond
-        """
-        reso = self._resolution
-        return get_reso_string(reso)
-
-    @cache_readonly
     def _resolution(self):
         return tslib.resolution(self.asi8, self.tz)
 
