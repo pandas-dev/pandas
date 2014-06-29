@@ -185,6 +185,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
 - Bug in multi-index slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
+- Bug in ``PeriodIndex.min/max`` results in ``int`` (:issue:`7609`)
 - Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`7261`)
 - Bug in ``TimeGrouper`` doesn't exclude column specified by ``key`` (:issue:`7227`)
 - Bug in ``DataFrame`` and ``Series`` bar and barh plot raises ``TypeError`` when ``bottom``

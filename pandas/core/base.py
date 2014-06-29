@@ -402,3 +402,34 @@ class DatetimeIndexOpsMixin(object):
         """
         return list(self.asobject)
 
+    def min(self, axis=None):
+        """
+        Overridden ndarray.min to return an object
+        """
+        import pandas.tslib as tslib
+        mask = self.asi8 == tslib.iNaT
+        masked = self[~mask]
+        if len(masked) == 0:
+            return self._na_value
+        elif self.is_monotonic:
+            return masked[0]
+        else:
+            min_stamp = masked.asi8.min()
+            return self._box_func(min_stamp)
+
+    def max(self, axis=None):
+        """
+        Overridden ndarray.max to return an object
+        """
+        import pandas.tslib as tslib
+        mask = self.asi8 == tslib.iNaT
+        masked = self[~mask]
+        if len(masked) == 0:
+            return self._na_value
+        elif self.is_monotonic:
+            return masked[-1]
+        else:
+            max_stamp = masked.asi8.max()
+            return self._box_func(max_stamp)
+
+
