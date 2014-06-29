@@ -126,7 +126,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         Optional datetime-like data to construct index with
     copy  : bool
         Make a copy of input ndarray
-    freq : string or pandas offset object, optional
+    freq : string, pandas offset object, timedelta, optional
         One of pandas date offset strings or corresponding objects
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
@@ -1865,7 +1865,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Right bound for generating dates
     periods : integer or None, default None
         If None, must specify start and end
-    freq : string or DateOffset, default 'D' (calendar daily)
+    freq : string, DateOffset or timedelta, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example

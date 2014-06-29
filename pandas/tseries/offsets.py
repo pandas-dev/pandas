@@ -1952,8 +1952,20 @@ import operator
 
 
 def _tick_comp(op):
+    def delta_with_ns_remainder(self):
+        if isinstance(self.delta, timedelta):
+            return (self.delta, 0)
+        else:
+            # it's a numpy.datetime64[ns]
+            ms, ns_rem = divmod(self.n, 10**3)
+            return timedelta(microseconds=ms), ns_rem
+
     def f(self, other):
-        return op(self.delta, other.delta)
+        if type(self) == type(other):
+            return op(self.delta, other.delta)
+        else:
+            return op(delta_with_ns_remainder(self),
+                      delta_with_ns_remainder(other))
 
     return f
 
@@ -1986,7 +1998,7 @@ class Tick(SingleConstructorOffset):
             other = to_offset(other)
 
         if isinstance(other, Tick):
-            return self.delta == other.delta
+            return _tick_comp(operator.eq)(self, other)
         else:
             return DateOffset.__eq__(self, other)
 
@@ -2054,15 +2066,25 @@ def _delta_to_tick(delta):
 def _delta_to_nanoseconds(delta):
     if isinstance(delta, np.timedelta64):
         return delta.astype('timedelta64[ns]').item()
-    elif isinstance(delta, Tick):
+    if isinstance(delta, Tick):
         delta = delta.delta
 
+    if isinstance(delta, int):
+        return delta * 1000
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds) * 1000
 
 
-class Day(Tick):
+def _np_delta_to_tick(npdelta):
+    one_ns = np.timedelta64(1, 'ns') if not _np_version_under1p7 else 1
+    ns = npdelta / one_ns
+    if ns % 1000 == 0:
+        return _delta_to_tick(timedelta(microseconds=ns / 1000))
+    return Nano(ns)
+
+
+class Day(CacheableOffset, Tick):
     _inc = timedelta(1)
     _prefix = 'D'
 

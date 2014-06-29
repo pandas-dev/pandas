@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.compat import range
 import pickle
 import nose
@@ -350,6 +350,26 @@ class TestDateRange(tm.TestCase):
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
         self.assert_numpy_array_equal(result, DatetimeIndex(exp_values))
+
+    def test_freq_timedelta_np(self):
+        from pandas import _np_version_under1p7
+        if _np_version_under1p7:
+            raise nose.SkipTest("date_range with freq timedelta "
+                                "not supported numpy < 1.7")
+
+        from pandas.tseries.offsets import Nano, Micro, Second, Day
+
+        nptd = np.timedelta64(1, 's')
+        dti_n = date_range(start='2014-02-01', freq=nptd, periods=2)
+        self.assertEqual(dti_n.freq, Second(1))
+
+    def test_freq_timedelta_dt(self):
+        from pandas.tseries.offsets import Nano, Micro, Second, Day
+
+        dttd = timedelta(1)
+        us = Day(1).nanos / 1000
+        dti_d = date_range(start='2014-02-01', freq=dttd, periods=2)
+        self.assertEqual(dti_d.freq, Micro(us))
 
     def test_range_tz_pytz(self):
         # GH 2906

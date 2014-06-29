@@ -3004,8 +3004,7 @@ class TestCaching(tm.TestCase):
 
     def test_all_cacheableoffsets(self):
         for subclass in get_all_subclasses(CacheableOffset):
-            if subclass.__name__[0] == "_" \
-                or subclass in TestCaching.no_simple_ctr:
+            if subclass.__name__[0] == "_" :
                 continue
             self.run_X_index_creation(subclass)
 
