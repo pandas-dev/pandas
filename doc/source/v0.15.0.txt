@@ -256,6 +256,9 @@ Bug Fixes
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or  incorrect kind (:issue:`7733`)
 
 
+- Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
+- Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
+
 
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 
