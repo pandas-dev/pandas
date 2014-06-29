@@ -1798,65 +1798,39 @@ class TestPeriodIndex(tm.TestCase):
         expected = PeriodIndex(['2011Q1', '2011Q1', 'NaT', '2011Q2'], freq='Q')
         self.assertTrue(result.equals(expected))
 
-    def test_ts_repr(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
-        ts = Series(np.random.randn(len(index)), index=index)
-        repr(ts) # ??
-
-        val = period_range('2013Q1', periods=1, freq="Q")
-        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1]\nlength: 1"
-        assert_equal(repr(val), expected)
-
-        val = period_range('2013Q1', periods=2, freq="Q")
-        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, 2013Q2]\nlength: 2"
-        assert_equal(repr(val), expected)
-
-        val = period_range('2013Q1', periods=3, freq="Q")
-        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, ..., 2013Q3]\nlength: 3"
-        assert_equal(repr(val), expected)
-
-    def test_period_index_unicode(self):
+    def test_period_index_length(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 9)
-        assert_equal(pi, eval(compat.text_type(pi)))
 
         pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 4 * 9)
-        assert_equal(pi, eval(compat.text_type(pi)))
 
         pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 12 * 9)
-        assert_equal(pi, eval(compat.text_type(pi)))
 
         start = Period('02-Apr-2005', 'B')
         i1 = PeriodIndex(start=start, periods=20)
         assert_equal(len(i1), 20)
         assert_equal(i1.freq, start.freq)
         assert_equal(i1[0], start)
-        assert_equal(i1, eval(compat.text_type(i1)))
 
         end_intv = Period('2006-12-31', 'W')
         i1 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), 10)
         assert_equal(i1.freq, end_intv.freq)
         assert_equal(i1[-1], end_intv)
-        assert_equal(i1, eval(compat.text_type(i1)))
 
         end_intv = Period('2006-12-31', '1w')
         i2 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), len(i2))
         self.assertTrue((i1 == i2).all())
         assert_equal(i1.freq, i2.freq)
-        assert_equal(i1, eval(compat.text_type(i1)))
-        assert_equal(i2, eval(compat.text_type(i2)))
 
         end_intv = Period('2006-12-31', ('w', 1))
         i2 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), len(i2))
         self.assertTrue((i1 == i2).all())
         assert_equal(i1.freq, i2.freq)
-        assert_equal(i1, eval(compat.text_type(i1)))
-        assert_equal(i2, eval(compat.text_type(i2)))
 
         try:
             PeriodIndex(start=start, end=end_intv)
@@ -1866,7 +1840,6 @@ class TestPeriodIndex(tm.TestCase):
 
         end_intv = Period('2005-05-01', 'B')
         i1 = PeriodIndex(start=start, end=end_intv)
-        assert_equal(i1, eval(compat.text_type(i1)))
 
         try:
             PeriodIndex(start=start)
@@ -1879,12 +1852,10 @@ class TestPeriodIndex(tm.TestCase):
         i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
         assert_equal(len(i2), 2)
         assert_equal(i2[0], end_intv)
-        assert_equal(i2, eval(compat.text_type(i2)))
 
         i2 = PeriodIndex(np.array([end_intv, Period('2005-05-05', 'B')]))
         assert_equal(len(i2), 2)
         assert_equal(i2[0], end_intv)
-        assert_equal(i2, eval(compat.text_type(i2)))
 
         # Mixed freq should fail
         vals = [end_intv, Period('2006-12-31', 'w')]
