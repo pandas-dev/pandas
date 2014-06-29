@@ -255,7 +255,7 @@ Bug Fixes
 
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)
 - Bug in ``DatetimeIndex.asobject`` raises ``ValueError`` when it contains ``NaT`` (:issue:`7539`)
-
+- Bug in ``Timestamp.__new__`` doesn't preserve nanosecond properly (:issue:`7610`)
 
 - Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
   ``Index`` (:issue:`7464`).
