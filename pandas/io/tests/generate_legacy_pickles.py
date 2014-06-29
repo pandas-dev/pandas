@@ -58,7 +58,7 @@ def create_data():
     from pandas import (Series,TimeSeries,DataFrame,Panel,
                         SparseSeries,SparseTimeSeries,SparseDataFrame,SparsePanel,
                         Index,MultiIndex,PeriodIndex,
-                        date_range,bdate_range,Timestamp)
+                        date_range,period_range,bdate_range,Timestamp)
     nan = np.nan
 
     data = {
@@ -70,7 +70,9 @@ def create_data():
         }
 
     index = dict(int = Index(np.arange(10)),
-                  date = date_range('20130101',periods=10))
+                 date = date_range('20130101',periods=10),
+                 period = period_range('2013-01-01', freq='M', periods=10))
+
     mi = dict(reg2 = MultiIndex.from_tuples(tuple(zip(*[['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                                                       ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']])),
                                                  names=['first', 'second']))

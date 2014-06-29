@@ -508,8 +508,11 @@ def dateutil_parse(timestr, default,
     if reso is None:
         raise ValueError("Cannot parse date.")
 
-    if reso == 'microsecond' and repl['microsecond'] == 0:
-        reso = 'second'
+    if reso == 'microsecond':
+        if repl['microsecond'] == 0:
+            reso = 'second'
+        elif repl['microsecond'] % 1000 == 0:
+            reso = 'millisecond'
 
     ret = default.replace(**repl)
     if res.weekday is not None and not res.day:

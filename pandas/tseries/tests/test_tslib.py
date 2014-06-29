@@ -476,6 +476,17 @@ class TestTimestampOps(tm.TestCase):
             self.assertEqual((timestamp_instance + timedelta64_instance).freq, original_freq)
             self.assertEqual((timestamp_instance - timedelta64_instance).freq, original_freq)
 
+    def test_resolution(self):
+
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
+                                  [tslib.D_RESO, tslib.D_RESO, tslib.D_RESO, tslib.D_RESO,
+                                   tslib.H_RESO, tslib.T_RESO,tslib.S_RESO, tslib.MS_RESO, tslib.US_RESO]):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+                idx = date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
+                result = tslib.resolution(idx.asi8, idx.tz)
+                self.assertEqual(result, expected)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
