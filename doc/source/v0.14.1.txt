@@ -268,3 +268,5 @@ Bug Fixes
 
 - Bug in ``Float64Index`` assignment with a non scalar indexer (:issue:`7586`)
 - Bug in ``pandas.core.strings.str_contains`` does not properly match in a case insensitive fashion when ``regex=False`` and ``case=False`` (:issue:`7505`)
+
+- Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, and ``rolling_corr`` for two arguments with mismatched index  (:issue:`7512`)

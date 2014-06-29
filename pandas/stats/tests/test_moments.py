@@ -759,6 +759,98 @@ class TestMoments(tm.TestCase):
         for i in result.items:
             assert_almost_equal(result[i], rolling_result[i])
 
+    def test_expanding_cov_diff_index(self):
+        # GH 7512
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.expanding_cov(s1, s2)
+        expected = Series([None, None, 2.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.expanding_cov(s1, s2a)
+        assert_series_equal(result, expected)
+
+        s1 = Series([7, 8, 10], index=[0, 1, 3])
+        s2 = Series([7, 9, 10], index=[0, 2, 3])
+        result = mom.expanding_cov(s1, s2)
+        expected = Series([None, None, None, 4.5])
+        assert_series_equal(result, expected)
+
+    def test_expanding_corr_diff_index(self):
+        # GH 7512
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.expanding_corr(s1, s2)
+        expected = Series([None, None, 1.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.expanding_corr(s1, s2a)
+        assert_series_equal(result, expected)
+
+        s1 = Series([7, 8, 10], index=[0, 1, 3])
+        s2 = Series([7, 9, 10], index=[0, 2, 3])
+        result = mom.expanding_corr(s1, s2)
+        expected = Series([None, None, None, 1.])
+        assert_series_equal(result, expected)
+
+    def test_rolling_cov_diff_length(self):
+        # GH 7512
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.rolling_cov(s1, s2, window=3, min_periods=2)
+        expected = Series([None, None, 2.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.rolling_cov(s1, s2a, window=3, min_periods=2)
+        assert_series_equal(result, expected)
+
+    def test_rolling_corr_diff_length(self):
+        # GH 7512
+        s1 = Series([1, 2, 3], index=[0, 1, 2])
+        s2 = Series([1, 3], index=[0, 2])
+        result = mom.rolling_corr(s1, s2, window=3, min_periods=2)
+        expected = Series([None, None, 1.0])
+        assert_series_equal(result, expected)
+
+        s2a = Series([1, None, 3], index=[0, 1, 2])
+        result = mom.rolling_corr(s1, s2a, window=3, min_periods=2)
+        assert_series_equal(result, expected)
+
+    def test_expanding_cov_pairwise_diff_length(self):
+        # GH 7512
+        df1 = DataFrame([[1,5], [3, 2], [3,9]], columns=['A','B'])
+        df1a = DataFrame([[1,5], [3,9]], index=[0,2], columns=['A','B'])
+        df2 = DataFrame([[5,6], [None,None], [2,1]], columns=['X','Y'])
+        df2a = DataFrame([[5,6], [2,1]], index=[0,2], columns=['X','Y'])
+        result1 = mom.expanding_cov(df1, df2, pairwise=True)[2]
+        result2 = mom.expanding_cov(df1, df2a, pairwise=True)[2]
+        result3 = mom.expanding_cov(df1a, df2, pairwise=True)[2]
+        result4 = mom.expanding_cov(df1a, df2a, pairwise=True)[2]
+        expected = DataFrame([[-3., -5.], [-6., -10.]], index=['A','B'], columns=['X','Y'])
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+        assert_frame_equal(result4, expected)
+    
+    def test_expanding_corr_pairwise_diff_length(self):
+        # GH 7512
+        df1 = DataFrame([[1,2], [3, 2], [3,4]], columns=['A','B'])
+        df1a = DataFrame([[1,2], [3,4]], index=[0,2], columns=['A','B'])
+        df2 = DataFrame([[5,6], [None,None], [2,1]], columns=['X','Y'])
+        df2a = DataFrame([[5,6], [2,1]], index=[0,2], columns=['X','Y'])
+        result1 = mom.expanding_corr(df1, df2, pairwise=True)[2]
+        result2 = mom.expanding_corr(df1, df2a, pairwise=True)[2]
+        result3 = mom.expanding_corr(df1a, df2, pairwise=True)[2]
+        result4 = mom.expanding_corr(df1a, df2a, pairwise=True)[2]
+        expected = DataFrame([[-1.0, -1.0], [-1.0, -1.0]], index=['A','B'], columns=['X','Y'])
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+        assert_frame_equal(result4, expected)
+    
     def test_rolling_skew_edge_cases(self):
 
         all_nan = Series([np.NaN] * 5)
