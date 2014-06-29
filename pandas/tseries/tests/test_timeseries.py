@@ -1477,7 +1477,28 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(pts, exp)
 
         pts = ts.to_period('M')
+        exp.index = exp.index.asfreq('M')
         self.assertTrue(pts.index.equals(exp.index.asfreq('M')))
+        assert_series_equal(pts, exp)
+
+        # GH 7606 without freq
+        idx = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03', '2011-01-04'])
+        exp_idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03',
+                                  '2011-01-04'], freq='D')
+
+        s = Series(np.random.randn(4), index=idx)
+        expected = s.copy()
+        expected.index = exp_idx
+        assert_series_equal(s.to_period(), expected)
+
+        df = DataFrame(np.random.randn(4, 4), index=idx, columns=idx)
+        expected = df.copy()
+        expected.index = exp_idx
+        assert_frame_equal(df.to_period(), expected)
+
+        expected = df.copy()
+        expected.columns = exp_idx
+        assert_frame_equal(df.to_period(axis=1), expected)
 
     def create_dt64_based_index(self):
         data = [Timestamp('2007-01-01 10:11:12.123456Z'),
@@ -2102,7 +2123,14 @@ class TestDatetimeIndex(tm.TestCase):
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
                             freq='infer')
-        idx.to_period()
+        self.assertEqual(idx.freqstr, 'D')
+        expected = pd.PeriodIndex(['2000-01-01', '2000-01-02', '2000-01-03'], freq='D')
+        self.assertTrue(idx.to_period().equals(expected))
+
+        # GH 7606
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
+        self.assertEqual(idx.freqstr, None)
+        self.assertTrue(idx.to_period().equals(expected))
 
     def test_000constructor_resolution(self):
         # 2252

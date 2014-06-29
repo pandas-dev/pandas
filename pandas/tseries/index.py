@@ -48,8 +48,7 @@ def _field_accessor(name, field, docstring=None):
                     'is_quarter_start', 'is_quarter_end',
                     'is_year_start', 'is_year_end']:
             month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12
-            freqstr = self.freqstr if self.freq else None
-            return tslib.get_start_end_field(values, field, freqstr, month_kw)
+            return tslib.get_start_end_field(values, field, self.freqstr, month_kw)
         else:
             return tslib.get_date_field(values, field)
     f.__name__ = name
@@ -573,10 +572,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         values = self.values
 
-        freq = None
-        if self.offset is not None:
-            freq = self.offset.freqstr
-
+        freq = self.freqstr
         summary = str(self.__class__)
         if len(self) == 1:
             first = formatter(values[0], tz=self.tz)
@@ -794,12 +790,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         from pandas.tseries.period import PeriodIndex
 
-        if self.freq is None and freq is None:
-            msg = "You must pass a freq argument as current index has none."
-            raise ValueError(msg)
-
         if freq is None:
-            freq = get_period_alias(self.freqstr)
+            freq = self.freqstr or self.inferred_freq
+
+            if freq is None:
+                msg = "You must pass a freq argument as current index has none."
+                raise ValueError(msg)
+
+            freq = get_period_alias(freq)
 
         return PeriodIndex(self.values, name=self.name, freq=freq, tz=self.tz)
 
@@ -1440,6 +1438,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     @property
     def freqstr(self):
         """ return the frequency object as a string if its set, otherwise None """
+        if self.freq is None:
+            return None
         return self.offset.freqstr
 
     _year = _field_accessor('year', 'Y')
