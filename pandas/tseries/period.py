@@ -712,6 +712,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         result.freq = freq
         return result
 
+    @property
+    def _na_value(self):
+        return self._box_func(tslib.iNaT)
+
     def __contains__(self, key):
         if not isinstance(key, Period) or key.freq != self.freq:
             if isinstance(key, compat.string_types):

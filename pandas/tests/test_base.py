@@ -8,6 +8,7 @@ from pandas.core.base import FrozenList, FrozenNDArray, DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
 from pandas import Series, Index, Int64Index, DatetimeIndex, PeriodIndex
 from pandas import _np_version_under1p7
+import pandas.tslib as tslib
 import nose
 
 import pandas.util.testing as tm
@@ -202,7 +203,10 @@ class TestIndexOps(Ops):
         for op in ['max','min']:
             for o in self.objs:
                 result = getattr(o,op)()
-                expected = getattr(o.values,op)()
+                if not isinstance(o, PeriodIndex):
+                    expected = getattr(o.values, op)()
+                else:
+                    expected = pd.Period(ordinal=getattr(o.values, op)(), freq=o.freq)
                 try:
                     self.assertEqual(result, expected)
                 except ValueError:
@@ -231,17 +235,6 @@ class TestIndexOps(Ops):
                 obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
                 # check DatetimeIndex non-monotonic path
                 self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
-
-            # explicitly create DatetimeIndex
-            obj = DatetimeIndex([])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
-
-            obj = DatetimeIndex([pd.NaT])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
-
-            obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
-
 
     def test_value_counts_unique_nunique(self):
         for o in self.objs:
@@ -552,6 +545,33 @@ class TestDatetimeIndexOps(Ops):
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
+    def test_minmax(self):
+        for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+            # monotonic
+            idx1 = pd.DatetimeIndex([pd.NaT, '2011-01-01', '2011-01-02',
+                                     '2011-01-03'], tz=tz)
+            self.assertTrue(idx1.is_monotonic)
+
+            # non-monotonic
+            idx2 = pd.DatetimeIndex(['2011-01-01', pd.NaT, '2011-01-03',
+                                     '2011-01-02', pd.NaT], tz=tz)
+            self.assertFalse(idx2.is_monotonic)
+
+            for idx in [idx1, idx2]:
+                self.assertEqual(idx.min(), pd.Timestamp('2011-01-01', tz=tz))
+                self.assertEqual(idx.max(), pd.Timestamp('2011-01-03', tz=tz))
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = DatetimeIndex([])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+            obj = DatetimeIndex([pd.NaT])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
+            obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
+            self.assertTrue(pd.isnull(getattr(obj, op)()))
+
 
 class TestPeriodIndexOps(Ops):
     _allowed = '_allow_period_index_ops'
@@ -596,6 +616,39 @@ class TestPeriodIndexOps(Ops):
             self.assertTrue(result_list[i], expected_list[i])
         self.assertTrue(result_list[2].ordinal, pd.tslib.iNaT)
         self.assertTrue(result_list[2].freq, 'D')
+
+    def test_minmax(self):
+
+        # monotonic
+        idx1 = pd.PeriodIndex([pd.NaT, '2011-01-01', '2011-01-02',
+                               '2011-01-03'], freq='D')
+        self.assertTrue(idx1.is_monotonic)
+
+        # non-monotonic
+        idx2 = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03',
+                                '2011-01-02', pd.NaT], freq='D')
+        self.assertFalse(idx2.is_monotonic)
+
+        for idx in [idx1, idx2]:
+            self.assertEqual(idx.min(), pd.Period('2011-01-01', freq='D'))
+            self.assertEqual(idx.max(), pd.Period('2011-01-03', freq='D'))
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = PeriodIndex([], freq='M')
+            result = getattr(obj, op)()
+            self.assertEqual(result.ordinal, tslib.iNaT)
+            self.assertEqual(result.freq, 'M')
+
+            obj = PeriodIndex([pd.NaT], freq='M')
+            result = getattr(obj, op)()
+            self.assertEqual(result.ordinal, tslib.iNaT)
+            self.assertEqual(result.freq, 'M')
+
+            obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
+            result = getattr(obj, op)()
+            self.assertEqual(result.ordinal, tslib.iNaT)
+            self.assertEqual(result.freq, 'M')
 
 
 if __name__ == '__main__':

@@ -1783,34 +1783,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return mask.nonzero()[0]
 
-    def min(self, axis=None):
-        """
-        Overridden ndarray.min to return a Timestamp
-        """
-        mask = self.asi8 == tslib.iNaT
-        masked = self[~mask]
-        if len(masked) == 0:
-            return tslib.NaT
-        elif self.is_monotonic:
-            return masked[0]
-        else:
-            min_stamp = masked.asi8.min()
-            return Timestamp(min_stamp, tz=self.tz)
-
-    def max(self, axis=None):
-        """
-        Overridden ndarray.max to return a Timestamp
-        """
-        mask = self.asi8 == tslib.iNaT
-        masked = self[~mask]
-        if len(masked) == 0:
-            return tslib.NaT
-        elif self.is_monotonic:
-            return masked[-1]
-        else:
-            max_stamp = masked.asi8.max()
-            return Timestamp(max_stamp, tz=self.tz)
-
     def to_julian_date(self):
         """
         Convert DatetimeIndex to Float64Index of Julian Dates.
