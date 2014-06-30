@@ -284,7 +284,7 @@ class TestGroupBy(tm.TestCase):
 
         # GH 7559
         # from the vbench
-        df = DataFrame(np.random.randint(1, 10, (100, 2)))
+        df = DataFrame(np.random.randint(1, 10, (100, 2)),dtype='int64')
         s = df[1]
         g = df[0]
         expected = s.groupby(g).first()
