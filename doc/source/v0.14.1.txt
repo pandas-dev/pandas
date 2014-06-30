@@ -102,9 +102,9 @@ Enhancements
 
 
 
-
-
-
+- The file parsers ``read_csv`` and ``read_table`` now ignore line comments provided by
+  the parameter `comment`, which accepts only a single character for the C reader.
+  In particular, they allow for comments before file data begins (:issue:`2685`)
 - Tests for basic reading of public S3 buckets now exist (:issue:`7281`).
 - ``read_html`` now sports an ``encoding`` argument that is passed to the
   underlying parser library. You can use this to read non-ascii encoded web
