@@ -158,10 +158,10 @@ Experimental
 ~~~~~~~~~~~~
 
 - ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
-  dependency on the Google ``bq.py`` command line client. This submodule 
-  now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client 
-  libraries which should be more stable and, therefore, reliable than 
-  ``bq.py`` (:issue:`6937`).  
+  dependency on the Google ``bq.py`` command line client. This submodule
+  now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client
+  libraries which should be more stable and, therefore, reliable than
+  ``bq.py`` (:issue:`6937`).
 
 .. _whatsnew_0141.bug_fixes:
 
@@ -267,3 +267,4 @@ Bug Fixes
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
 
 - Bug in ``Float64Index`` assignment with a non scalar indexer (:issue:`7586`)
+- Bug in ``pandas.core.strings.str_contains`` does not properly match in a case insensitive fashion when ``regex=False`` and ``case=False`` (:issue:`7505`)

@@ -189,7 +189,12 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         f = lambda x: bool(regex.search(x))
     else:
-        f = lambda x: pat in x
+        if case:
+            f = lambda x: pat in x
+        else:
+            upper_pat = pat.upper()
+            f = lambda x: upper_pat in x
+            return _na_map(f, str_upper(arr), na, dtype=bool)
     return _na_map(f, arr, na, dtype=bool)
 
 
