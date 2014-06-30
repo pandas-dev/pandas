@@ -108,15 +108,25 @@ groupby_multi_different_numpy_functions = \
 # size() speed
 
 setup = common_setup + """
-df = DataFrame({'key1': np.random.randint(0, 500, size=100000),
-                'key2': np.random.randint(0, 100, size=100000),
-                'value1' : np.random.randn(100000),
-                'value2' : np.random.randn(100000),
-                'value3' : np.random.randn(100000)})
+n = 100000
+offsets = np.random.randint(n, size=n).astype('timedelta64[ns]')
+dates = np.datetime64('now') + offsets
+df = DataFrame({'key1': np.random.randint(0, 500, size=n),
+                'key2': np.random.randint(0, 100, size=n),
+                'value1' : np.random.randn(n),
+                'value2' : np.random.randn(n),
+                'value3' : np.random.randn(n),
+                'dates' : dates})
 """
 
 groupby_multi_size = Benchmark("df.groupby(['key1', 'key2']).size()",
                                setup, start_date=datetime(2011, 10, 1))
+
+groupby_dt_size = Benchmark("df.groupby(['dates']).size()",
+                            setup, start_date=datetime(2011, 10, 1))
+
+groupby_dt_timegrouper_size = Benchmark("df.groupby(TimeGrouper(key='dates', freq='M')).size()",
+                                        setup, start_date=datetime(2011, 10, 1))
 
 #----------------------------------------------------------------------
 # count() speed

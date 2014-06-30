@@ -261,6 +261,7 @@ Bug Fixes
   ``Index`` (:issue:`7464`).
 - Bug in ``DataFrame.reset_index`` loses ``tz`` (:issue:`3950`)
 - Bug in ``DatetimeIndex.freqstr`` raises ``AttributeError`` when ``freq`` is ``None`` (:issue:`7606`)
+- Bug in ``GroupBy.size`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`7453`)
 
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
