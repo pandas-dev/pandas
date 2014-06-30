@@ -892,7 +892,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if ts is None or ts is NaT or ts is np_NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        if ts == np_NaT:
+        if ts.view('i8') == iNaT:
             obj.value = NPY_NAT
         else:
             obj.value = _get_datetime64_nanos(ts)
@@ -1222,7 +1222,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         continue
                     raise
             elif util.is_datetime64_object(val):
-                if val == np_NaT or val.view('i8') == iNaT:
+                if val is np_NaT or val.view('i8') == iNaT:
                     iresult[i] = iNaT
                 else:
                     try:
@@ -1303,7 +1303,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             if _checknull_with_nat(val):
                 oresult[i] = np.nan
             elif util.is_datetime64_object(val):
-                if val == np_NaT:
+                if val is np_NaT or val.view('i8') == iNaT:
                     oresult[i] = np.nan
                 else:
                     oresult[i] = val.item()
