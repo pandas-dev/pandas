@@ -1448,7 +1448,7 @@ Elements can be set to ``NaT`` using ``np.nan`` analagously to datetimes
    y[1] = np.nan
    y
 
-Operands can also appear in a reversed order (a singluar object operated with a Series)
+Operands can also appear in a reversed order (a singular object operated with a Series)
 
 .. ipython:: python
 
