@@ -1388,11 +1388,17 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         else:
             if util.is_array(ts):
                 ts = ts.astype('int64').item()
-            ts = cast_from_unit(ts, unit)
-            if _np_version_under1p7:
-                ts = timedelta(microseconds=ts/1000.0)
+            if unit in ['Y','M','W']:
+                if _np_version_under1p7:
+                    raise ValueError("unsupported unit for native timedelta under this numpy {0}".format(unit))
+                else:
+                    ts = np.timedelta64(ts,unit)
             else:
-                ts = np.timedelta64(ts)
+                ts = cast_from_unit(ts, unit)
+                if _np_version_under1p7:
+                    ts = timedelta(microseconds=ts/1000.0)
+                else:
+                    ts = np.timedelta64(ts)
     elif util.is_string_object(ts):
         if ts in _nat_strings or coerce:
             return np.timedelta64(iNaT)
@@ -1748,6 +1754,12 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except -1:
     if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
         p = 6
+    elif unit == 'h':
+        m = 1000000000L * 3600
+        p = 6
+    elif unit == 'm':
+        m = 1000000000L * 60
+        p = 6
     elif unit == 's':
         m = 1000000000L
         p = 6
@@ -1757,9 +1769,11 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except -1:
     elif unit == 'us':
         m = 1000L
         p = 0
-    else:
+    elif unit == 'ns' or unit is None:
         m = 1L
         p = 0
+    else:
+        raise ValueError("cannot cast unit {0}".format(unit))
 
     # just give me the unit back
     if ts is None:

@@ -199,20 +199,40 @@ class TestTimedeltas(tm.TestCase):
         expected = Series([ np.timedelta64(1,'D') ]*5)
         tm.assert_series_equal(result, expected)
 
+        def testit(unit, transform):
+
+            # array
+            result = to_timedelta(np.arange(5),unit=unit)
+            expected = Series([ np.timedelta64(i,transform(unit)) for i in np.arange(5).tolist() ])
+            tm.assert_series_equal(result, expected)
+
+            # scalar
+            result = to_timedelta(2,unit=unit)
+            expected = np.timedelta64(2,transform(unit)).astype('timedelta64[ns]')
+            self.assert_numpy_array_equal(result,expected)
+
         # validate all units
         # GH 6855
         for unit in ['Y','M','W','D','y','w','d']:
-            result = to_timedelta(np.arange(5),unit=unit)
-            expected = Series([ np.timedelta64(i,unit.upper()) for i in np.arange(5).tolist() ])
-            tm.assert_series_equal(result, expected)
+            testit(unit,lambda x: x.upper())
+        for unit in ['days','day','Day','Days']:
+            testit(unit,lambda x: 'D')
         for unit in ['h','m','s','ms','us','ns','H','S','MS','US','NS']:
-            result = to_timedelta(np.arange(5),unit=unit)
-            expected = Series([ np.timedelta64(i,unit.lower()) for i in np.arange(5).tolist() ])
-            tm.assert_series_equal(result, expected)
+            testit(unit,lambda x: x.lower())
+
+        # offsets
+
+        # m
+        testit('T',lambda x: 'm')
+
+        # ms
+        testit('L',lambda x: 'ms')
 
         # these will error
         self.assertRaises(ValueError, lambda : to_timedelta(['1h']))
         self.assertRaises(ValueError, lambda : to_timedelta(['1m']))
+        self.assertRaises(ValueError, lambda : to_timedelta([1,2],unit='foo'))
+        self.assertRaises(ValueError, lambda : to_timedelta(1,unit='foo'))
 
     def test_to_timedelta_via_apply(self):
         _skip_if_numpy_not_friendly()
