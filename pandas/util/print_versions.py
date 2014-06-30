@@ -82,7 +82,7 @@ def show_versions(as_json=False):
         ("lxml", lambda mod: mod.etree.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
-        ("bq", lambda mod: mod._VersionNumber()),
+        ("httplib2", lambda mod: mod.__version__),
         ("apiclient", lambda mod: mod.__version__),
         ("rpy2", lambda mod: mod.__version__),
         ("sqlalchemy", lambda mod: mod.__version__),

@@ -669,47 +669,43 @@ class DataFrame(NDFrame):
         else:  # pragma: no cover
             raise ValueError("outtype %s not understood" % outtype)
 
-    def to_gbq(self, destination_table, schema=None, col_order=None,
-               if_exists='fail', **kwargs):
+    def to_gbq(self, destination_table, project_id=None, chunksize=10000,
+               verbose=True, reauth=False):
         """Write a DataFrame to a Google BigQuery table.
 
-        If the table exists, the DataFrame will be appended. If not, a new
-        table will be created, in which case the schema will have to be
-        specified. By default, rows will be written in the order they appear
-        in the DataFrame, though the user may specify an alternative order.
+        THIS IS AN EXPERIMENTAL LIBRARY
+
+        If the table exists, the dataframe will be written to the table using
+        the defined table schema and column types. For simplicity, this method
+        uses the Google BigQuery streaming API. The to_gbq method chunks data
+        into a default chunk size of 10,000. Failures return the complete error
+        response which can be quite long depending on the size of the insert. 
+        There are several important limitations of the Google streaming API 
+        which are detailed at:
+        https://developers.google.com/bigquery/streaming-data-into-bigquery.
 
         Parameters
-        ---------------
+        ----------
+        dataframe : DataFrame
+            DataFrame to be written
         destination_table : string
-             name of table to be written, in the form 'dataset.tablename'
-        schema : sequence (optional)
-             list of column types in order for data to be inserted, e.g.
-             ['INTEGER', 'TIMESTAMP', 'BOOLEAN']
-        col_order : sequence (optional)
-             order which columns are to be inserted, e.g. ['primary_key',
-             'birthday', 'username']
-        if_exists : {'fail', 'replace', 'append'} (optional)
-            - fail: If table exists, do nothing.
-            - replace: If table exists, drop it, recreate it, and insert data.
-            - append: If table exists, insert data. Create if does not exist.
-        kwargs are passed to the Client constructor
+            Name of table to be written, in the form 'dataset.tablename'
+        project_id : str
+            Google BigQuery Account project ID.
+        chunksize : int (default 10000)
+            Number of rows to be inserted in each chunk from the dataframe.
+        verbose : boolean (default True)
+            Show percentage complete
+        reauth : boolean (default False)
+            Force Google BigQuery to reauthenticate the user. This is useful
+            if multiple accounts are used.
 
-        Raises
-        ------
-        SchemaMissing :
-            Raised if the 'if_exists' parameter is set to 'replace', but no
-            schema is specified
-        TableExists :
-            Raised if the specified 'destination_table' exists but the
-            'if_exists' parameter is set to 'fail' (the default)
-        InvalidSchema :
-            Raised if the 'schema' parameter does not match the provided
-            DataFrame
         """
 
         from pandas.io import gbq
-        return gbq.to_gbq(self, destination_table, schema=None, col_order=None,
-                          if_exists='fail', **kwargs)
+        return gbq.to_gbq(self, destination_table, project_id=project_id,
+                          chunksize=chunksize, verbose=verbose,
+                          reauth=reauth)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
