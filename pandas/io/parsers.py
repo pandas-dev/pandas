@@ -1085,6 +1085,10 @@ class CParserWrapper(ParserBase):
 
         self.orig_names = self.names
 
+        # index_col may be specified on line after the header
+        if self.index_col is None:
+            self.index_col = self._reader.index_col
+
         if not self._has_complex_date_col:
             if (self._reader.leading_cols == 0 and
                     _is_index_col(self.index_col)):

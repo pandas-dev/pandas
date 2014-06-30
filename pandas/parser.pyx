@@ -576,6 +576,17 @@ cdef class TextReader:
             raise IOError('Expected file path name or file-like object,'
                           ' got %s type' % type(source))
 
+    cdef _word2name(self, word, char *errors):
+        if self.c_encoding == NULL and not PY3:
+            name = PyBytes_FromString(word)
+        else:
+            if self.c_encoding == NULL or self.c_encoding == b'utf-8':
+                name = PyUnicode_FromString(word)
+            else:
+                name = PyUnicode_Decode(word, strlen(word),
+                                        self.c_encoding, errors)
+        return name
+
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]
 
@@ -614,16 +625,7 @@ cdef class TextReader:
                 counts = {}
                 unnamed_count = 0
                 for i in range(field_count):
-                    word = self.parser.words[start + i]
-
-                    if self.c_encoding == NULL and not PY3:
-                        name = PyBytes_FromString(word)
-                    else:
-                        if self.c_encoding == NULL or self.c_encoding == b'utf-8':
-                            name = PyUnicode_FromString(word)
-                        else:
-                            name = PyUnicode_Decode(word, strlen(word),
-                                                    self.c_encoding, errors)
+                    name = self._word2name(self.parser.words[start + i], errors)
 
                     if name == '':
                         if self.has_mi_columns:
@@ -687,12 +689,55 @@ cdef class TextReader:
         else: # not self.has_usecols:
 
             field_count = self.parser.line_fields[data_line]
+            passed_count = len(header[0])
+
+            # #6893: look for index columns on first line after header
+
+            # hack: temporarily set expected_fields to prevent parser from
+            # raising if it sees extra columns
+            ex_fields = self.parser.expected_fields
+            self.parser.expected_fields = field_count
+
+            datapos = self.parser.datapos   # save position
+            self._tokenize_rows(1)
+            self.parser.expected_fields = ex_fields # restore expected_fields
+
+            if self.parser.lines == data_line + 2:
+                field_count_next = self.parser.line_fields[data_line + 1]
+
+                if field_count_next > field_count:
+                    # found extra columns in the second row after the header
+                    # check whether previous row contains index columns
+                    start = self.parser.line_start[data_line]
+
+                    line = [self._word2name(self.parser.words[start + i], errors)
+                            for i in range(self.parser.line_fields[data_line])]
+
+                    # remove trailing empty fields
+                    while not line[-1]:
+                        line.pop()
+
+                    if passed_count + len(line) == field_count_next:
+                        for h in header:
+                            for c in reversed(line):
+                                h.insert(0, c)
+
+                        field_count = field_count_next
+                        passed_count = field_count
+                        self.index_col = line
+                        self.parser_start += 1
+
+                    else:
+                        # hack: didn't find index columns, back up a line and
+                        # let the parser code hande this...
+                        self.parser.datapos = datapos
+                        self.parser.lines -= 1
+                        self.parser.file_lines -= 1
+                        self.parser.line_fields[self.parser.lines] = 0
 
             # #2981
             if self.names is not None:
                 field_count = max(field_count, len(self.names))
-
-            passed_count = len(header[0])
 
             # if passed_count > field_count:
             #     raise CParserError('Column names have %d fields, '
