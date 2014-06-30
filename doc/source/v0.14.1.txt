@@ -176,7 +176,7 @@ Bug Fixes
 - Bug in groupby ``.nth`` with a Series and integer-like column name (:issue:`7559`)
 
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
-
+- Bug in ``to_timedelta`` that accepted invalid units and misinterpreted 'm/h' (:issue:`7611`, :issue: `6423`)
 
 
 - Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
