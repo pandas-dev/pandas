@@ -244,11 +244,14 @@ groupby_last_float64 = Benchmark('data.groupby(labels).last()', setup,
 groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
                                  start_date=datetime(2013, 1, 1))
 
-groupby_nth_float64 = Benchmark('data.groupby(labels).nth(0)', setup,
-                         start_date=datetime(2012, 5, 1))
-
-groupby_nth_float32 = Benchmark('data2.groupby(labels).nth(0)', setup,
-                                 start_date=datetime(2013, 1, 1))
+groupby_nth_float64_none = Benchmark('data.groupby(labels).nth(0)', setup,
+                                     start_date=datetime(2012, 5, 1))
+groupby_nth_float32_none = Benchmark('data2.groupby(labels).nth(0)', setup,
+                                     start_date=datetime(2013, 1, 1))
+groupby_nth_float64_any = Benchmark('data.groupby(labels).nth(0,dropna="all")', setup,
+                                     start_date=datetime(2012, 5, 1))
+groupby_nth_float32_any = Benchmark('data2.groupby(labels).nth(0,dropna="all")', setup,
+                                    start_date=datetime(2013, 1, 1))
 
 # with datetimes (GH7555)
 setup = common_setup + """
@@ -259,8 +262,10 @@ groupby_first_datetimes = Benchmark('df.groupby("b").first()', setup,
                                  start_date=datetime(2013, 5, 1))
 groupby_last_datetimes = Benchmark('df.groupby("b").last()', setup,
                                  start_date=datetime(2013, 5, 1))
-groupby_nth_datetimes = Benchmark('df.groupby("b").nth(0)', setup,
-                                 start_date=datetime(2013, 5, 1))
+groupby_nth_datetimes_none = Benchmark('df.groupby("b").nth(0)', setup,
+                                       start_date=datetime(2013, 5, 1))
+groupby_nth_datetimes_any = Benchmark('df.groupby("b").nth(0,dropna="all")', setup,
+                                      start_date=datetime(2013, 5, 1))
 
 # with object
 setup = common_setup + """
@@ -271,8 +276,10 @@ groupby_first_object = Benchmark('df.groupby("b").first()', setup,
                                  start_date=datetime(2013, 5, 1))
 groupby_last_object = Benchmark('df.groupby("b").last()', setup,
                                  start_date=datetime(2013, 5, 1))
-groupby_nth_object = Benchmark('df.groupby("b").nth(0)', setup,
-                                 start_date=datetime(2013, 5, 1))
+groupby_nth_object_none = Benchmark('df.groupby("b").nth(0)', setup,
+                                    start_date=datetime(2013, 5, 1))
+groupby_nth_object_any = Benchmark('df.groupby("b").nth(0,dropna="any")', setup,
+                                   start_date=datetime(2013, 5, 1))
 
 #----------------------------------------------------------------------
 # groupby_indices replacement, chop up Series
@@ -351,11 +358,16 @@ df = DataFrame(np.random.randint(1, 100, (10000, 2)))
 """
 
 # Not really a fair test as behaviour has changed!
-groupby_frame_nth = Benchmark("df.groupby(0).nth(0)", setup,
-                              start_date=datetime(2014, 3, 1))
+groupby_frame_nth_none = Benchmark("df.groupby(0).nth(0)", setup,
+                                   start_date=datetime(2014, 3, 1))
 
-groupby_series_nth = Benchmark("df[1].groupby(df[0]).nth(0)", setup,
-                               start_date=datetime(2014, 3, 1))
+groupby_series_nth_none = Benchmark("df[1].groupby(df[0]).nth(0)", setup,
+                                    start_date=datetime(2014, 3, 1))
+groupby_frame_nth_any= Benchmark("df.groupby(0).nth(0,dropna='any')", setup,
+                                 start_date=datetime(2014, 3, 1))
+
+groupby_series_nth_any = Benchmark("df[1].groupby(df[0]).nth(0,dropna='any')", setup,
+                                   start_date=datetime(2014, 3, 1))
 
 
 #----------------------------------------------------------------------

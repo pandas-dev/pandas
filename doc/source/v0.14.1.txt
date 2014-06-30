@@ -173,6 +173,7 @@ Bug Fixes
 - Bug in setitem with list-of-lists and single vs mixed types (:issue:`7551`:)
 - Bug in timeops with non-aligned Series (:issue:`7500`)
 - Bug in timedelta inference when assigning an incomplete Series (:issue:`7592`)
+- Bug in groupby ``.nth`` with a Series and integer-like column name (:issue:`7559`)
 
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 
