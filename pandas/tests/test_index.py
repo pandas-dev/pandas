@@ -1861,6 +1861,15 @@ class TestMultiIndex(tm.TestCase):
         assert_array_equal(result, expected)
         self.assertEqual(result.names, names)
 
+    def test_from_product_datetimeindex(self):
+        dt_index = pd.date_range('2000-01-01', periods=2)
+        mi = pd.MultiIndex.from_product([[1, 2], dt_index])
+        etalon = pd.lib.list_to_object_array([(1, pd.Timestamp('2000-01-01')),
+                                              (1, pd.Timestamp('2000-01-02')),
+                                              (2, pd.Timestamp('2000-01-01')),
+                                              (2, pd.Timestamp('2000-01-02'))])
+        assert_array_equal(mi.values, etalon)
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         self.assertTrue(result.equals(self.index))

@@ -2875,10 +2875,14 @@ class MultiIndex(Index):
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         """
+        from pandas.core.categorical import Categorical
         from pandas.tools.util import cartesian_product
-        product = cartesian_product(iterables)
-        return MultiIndex.from_arrays(product, sortorder=sortorder,
-                                      names=names)
+
+        categoricals = [Categorical.from_array(it) for it in iterables]
+        labels = cartesian_product([c.labels for c in categoricals])
+
+        return MultiIndex(levels=[c.levels for c in categoricals],
+                          labels=labels, sortorder=sortorder, names=names)
 
     @property
     def nlevels(self):

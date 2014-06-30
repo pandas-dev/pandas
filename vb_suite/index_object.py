@@ -105,3 +105,15 @@ index_float64_mul = Benchmark('idx * 2', setup, name='index_float64_mul',
                               start_date=datetime(2014, 4, 13))
 index_float64_div = Benchmark('idx / 2', setup, name='index_float64_div',
                               start_date=datetime(2014, 4, 13))
+
+
+# Constructing MultiIndex from cartesian product of iterables
+# 
+
+setup = common_setup + """
+iterables = [tm.makeStringIndex(10000), xrange(20)]
+"""
+
+multiindex_from_product = Benchmark('MultiIndex.from_product(iterables)',
+                                    setup, name='multiindex_from_product',
+                                    start_date=datetime(2014, 6, 30))

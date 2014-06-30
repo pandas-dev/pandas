@@ -145,7 +145,7 @@ Performance
 - Improvements in Series.transform for significant performance gains (:issue:`6496`)
 - Improvements in DataFrame.transform with ufuncs and built-in grouper functions for signifcant performance gains (:issue:`7383`)
 - Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
-
+- Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
 
 
 
