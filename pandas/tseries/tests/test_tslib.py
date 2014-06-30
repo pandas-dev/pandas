@@ -283,13 +283,47 @@ class TestTimestampNsOperations(tm.TestCase):
     def test_timedelta_us_arithmetic(self):
         self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'us'), -123000)
 
-    def test_timedelta_ns_arithmetic(self):
+    def test_timedelta_ms_arithmetic(self):
         time = self.timestamp + np.timedelta64(-123, 'ms')
         self.assert_ns_timedelta(time, -123000000)
 
     def test_nanosecond_string_parsing(self):
         self.timestamp = Timestamp('2013-05-01 07:15:45.123456789')
         self.assertEqual(self.timestamp.value, 1367392545123456000)
+
+    def test_nanosecond_timestamp(self):
+        # GH 7610
+        expected = 1293840000000000005
+        t = Timestamp('2011-01-01') + offsets.Nano(5)
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000005')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 5)
+
+        t = Timestamp(t)
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000005')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 5)
+
+        t = Timestamp(np.datetime64('2011-01-01 00:00:00.000000005Z'))
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000005')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 5)
+
+        expected = 1293840000000000010
+        t = t + offsets.Nano(5)
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000010')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 10)
+
+        t = Timestamp(t)
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000010')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 10)
+
+        t = Timestamp(np.datetime64('2011-01-01 00:00:00.000000010Z'))
+        self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000010')")
+        self.assertEqual(t.value, expected)
+        self.assertEqual(t.nanosecond, 10)
 
     def test_nat_arithmetic(self):
         # GH 6873

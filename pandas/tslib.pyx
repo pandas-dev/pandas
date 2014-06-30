@@ -956,6 +956,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
 
         if is_timestamp(ts):
             obj.value += ts.nanosecond
+            obj.dts.ps = ts.nanosecond * 1000
         _check_dts_bounds(&obj.dts)
         return obj
     elif PyDate_Check(ts):
