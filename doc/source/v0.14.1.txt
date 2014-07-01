@@ -1,17 +1,13 @@
 .. _whatsnew_0141:
 
-v0.14.1 (???)
--------------
+v0.14.1 (July 11, 2014)
+-----------------------
 
 This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
-- Highlights include:
-
-  - Support for ``dateutil`` timezones. See :ref:`Here <whatsnew_0141.enhancements>`
-
-- :ref:`Other Enhancements <whatsnew_0141.enhancements>`
+- :ref:`Enhancements <whatsnew_0141.enhancements>`
 
 - :ref:`API Changes <whatsnew_0141.api>`
 
@@ -56,11 +52,11 @@ API changes
   containing ``NaN`` values - now also has ``dtype=object`` instead of
   ``float`` (:issue:`7242`)
 
-- `StringMethods`` now work on empty Series (:issue:`7242`)
+- ``StringMethods`` now work on empty Series (:issue:`7242`)
 - ``Period`` objects no longer raise a ``TypeError`` when compared using ``==``
-  with another object that *isn't* a ``Period``. See :issue:`7376`. Instead
+  with another object that *isn't* a ``Period``. Instead
   when comparing a ``Period`` with another object using ``==`` if the other
-  object isn't a ``Period`` ``False`` is returned.
+  object isn't a ``Period`` ``False`` is returned. (:issue:`7376`)
 
 - Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
 
