@@ -1191,7 +1191,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         try:
             return self._engine.get_value(s, k)
         except KeyError as e1:
-            if len(self) > 0 and self.inferred_type == 'integer':
+            if len(self) > 0 and self.inferred_type in ['integer','boolean']:
                 raise
 
             try:
