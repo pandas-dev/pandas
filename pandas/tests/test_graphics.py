@@ -822,6 +822,12 @@ class TestDataFramePlots(TestPlotBase):
 
         axes = _check_plot_works(df.plot, subplots=True, title='blah')
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax in axes[:2]:
+            self._check_visible(ax.get_xticklabels(), visible=False)
+            self._check_visible([ax.xaxis.get_label()], visible=False)
+        for ax in [axes[2]]:
+            self._check_visible(ax.get_xticklabels())
+            self._check_visible([ax.xaxis.get_label()])
 
         _check_plot_works(df.plot, title='blah')
 
@@ -2331,8 +2337,16 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                 column='height', return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
-        box = df.boxplot(column=['height', 'weight', 'category'], by='gender')
+        # GH 5897
+        axes = df.boxplot(column=['height', 'weight', 'category'], by='gender',
+                          return_type='axes')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
+        for ax in [axes['height']]:
+            self._check_visible(ax.get_xticklabels(), visible=False)
+            self._check_visible([ax.xaxis.get_label()], visible=False)
+        for ax in [axes['weight'], axes['category']]:
+            self._check_visible(ax.get_xticklabels())
+            self._check_visible([ax.xaxis.get_label()])
 
         box = df.groupby('classroom').boxplot(
             column=['height', 'weight', 'category'], return_type='dict')

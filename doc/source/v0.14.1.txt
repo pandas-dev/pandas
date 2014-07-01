@@ -149,7 +149,7 @@ Performance
 - Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
 - Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
 
-
+- Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
 
 
 
