@@ -2734,9 +2734,11 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   rot=0, ax=None, **kwargs):
     from pandas import DataFrame
 
-    # allow to specify mpl default with 'default'
-    if figsize is None or figsize == 'default':
-        figsize = (10, 5)               # our default
+    if figsize == 'default':
+        # allowed to specify mpl default with 'default'
+        warnings.warn("figsize='default' is deprecated. Specify figure"
+                      "size by tuple instead", FutureWarning)
+        figsize = None
 
     grouped = data.groupby(by)
     if column is not None:
@@ -2744,10 +2746,6 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     naxes = len(grouped)
     nrows, ncols = _get_layout(naxes, layout=layout)
-    if figsize is None:
-        # our favorite default beating matplotlib's idea of the
-        # default size
-        figsize = (10, 5)
     fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
                           figsize=figsize, sharex=sharex, sharey=sharey, ax=ax)
 

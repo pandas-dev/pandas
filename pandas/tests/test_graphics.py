@@ -603,16 +603,16 @@ class TestSeriesPlots(TestPlotBase):
         df = self.hist_df
 
         axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 2))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(10, 5))
+        axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 2), figsize=(12, 7))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     @slow
     def test_hist_no_overlap(self):
@@ -2255,11 +2255,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
         axes = plotting.grouped_hist(df.A, by=df.C)
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
         axes = df.hist(by=df.C)
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
         # make sure kwargs to hist are handled
@@ -2280,6 +2280,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # propagate attr exception from matplotlib.Axes.hist
         with tm.assertRaises(AttributeError):
             plotting.grouped_hist(df.A, by=df.C, foo='bar')
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.hist(by='C', figsize='default')
 
     @slow
     def test_grouped_box_return_type(self):
@@ -2374,29 +2377,28 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                           layout=(1, 3))
 
         axes = _check_plot_works(df.hist, column='height', by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         axes = _check_plot_works(df.hist, column='height', by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = _check_plot_works(df.hist, column='height', by=df.category,
                                  layout=(4, 2), figsize=(12, 8))
-
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
 
         # GH 6769
         axes = _check_plot_works(df.hist, column='height', by='classroom', layout=(2, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
         axes = _check_plot_works(df.hist, by='classroom')
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = _check_plot_works(df.hist, by='gender', layout=(3, 5))
-        self._check_axes_shape(axes, axes_num=2, layout=(3, 5), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=2, layout=(3, 5))
 
         axes = _check_plot_works(df.hist, column=['height', 'weight', 'category'])
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2), figsize=(10, 5))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
     @slow
     def test_axis_share_x(self):
