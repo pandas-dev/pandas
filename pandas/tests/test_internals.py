@@ -352,6 +352,16 @@ class TestBlockManager(tm.TestCase):
         self.assertFalse(mgr2._is_consolidated)
         self.assertFalse(mgr2._known_consolidated)
 
+    def test_non_unique_pickle(self):
+        import pickle
+        mgr = create_mgr('a,a,a:f8')
+        mgr2 = pickle.loads(pickle.dumps(mgr))
+        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+
+        mgr = create_mgr('a: f8; a: i8')
+        mgr2 = pickle.loads(pickle.dumps(mgr))
+        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+
     def test_get_scalar(self):
         for item in self.mgr.items:
             for i, index in enumerate(self.mgr.axes[1]):

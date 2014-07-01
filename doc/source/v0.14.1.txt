@@ -135,6 +135,9 @@ Enhancements
 - All offsets ``apply``, ``rollforward`` and ``rollback`` can now handle ``np.datetime64``, previously results in ``ApplyTypeError`` (:issue:`7452`)
 
 - ``Period`` and ``PeriodIndex`` can contain ``NaT`` in its values (:issue:`7485`)
+- Support pickling ``Series``, ``DataFrame`` and ``Panel`` objects with
+  non-unique labels along *item* axis (``index``, ``columns`` and ``items``
+  respectively) (:issue:`7370`).
 
 - ``read_csv`` and ``read_table`` can now read index columns from the first
   line after the header when using the C engine (:issue:`6893`)
