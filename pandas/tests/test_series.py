@@ -4235,11 +4235,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(checkseries, series)
 
     def test_to_csv(self):
+        import io
 
         with ensure_clean() as path:
             self.ts.to_csv(path)
 
-            lines = open(path, 'U').readlines()
+            lines = io.open(path, newline=None).readlines()
             assert(lines[1] != '\n')
 
             self.ts.to_csv(path, index=False)

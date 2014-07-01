@@ -157,12 +157,13 @@ class PandasSQLTest(unittest.TestCase):
             return self.conn.cursor()
 
     def _load_iris_data(self):
+        import io
         iris_csv_file = os.path.join(tm.get_data_path(), 'iris.csv')
 
         self.drop_table('iris')
         self._get_exec().execute(SQL_STRINGS['create_iris'][self.flavor])
 
-        with open(iris_csv_file, 'rU') as iris_csv:
+        with io.open(iris_csv_file, mode='r', newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS['insert_iris'][self.flavor]
