@@ -304,6 +304,13 @@ class TestGroupBy(tm.TestCase):
         result = s.groupby(g).nth(0,dropna='all')
         assert_series_equal(result,expected)
 
+        # doc example
+        df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+        g = df.groupby('A')
+        result = g.B.nth(0, dropna=True)
+        expected = g.B.first()
+        assert_series_equal(result,expected)
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index

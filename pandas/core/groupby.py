@@ -829,11 +829,21 @@ class GroupBy(PandasObject):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
-        grouper, exclusions, obj = _get_grouper(dropped, key=self.keys, axis=self.axis,
-                                                level=self.level, sort=self.sort)
+        if self.keys is None and self.level is None:
 
-        sizes = obj.groupby(grouper).size()
-        result = obj.groupby(grouper).nth(n)
+            # we don't have the grouper info available (e.g. we have selected out
+            # a column that is not in the current object)
+            axis = self.grouper.axis
+            grouper = axis[axis.isin(dropped.index)]
+            keys = self.grouper.names
+        else:
+
+            # create a grouper with the original parameters, but on the dropped object
+            grouper, _, _ = _get_grouper(dropped, key=self.keys, axis=self.axis,
+                                         level=self.level, sort=self.sort)
+
+        sizes = dropped.groupby(grouper).size()
+        result = dropped.groupby(grouper).nth(n)
         mask = (sizes<max_len).values
 
         # set the results which don't meet the criteria
@@ -841,7 +851,7 @@ class GroupBy(PandasObject):
             result.loc[mask] = np.nan
 
         # reset/reindex to the original groups
-        if len(self.obj) == len(dropped):
+        if len(self.obj) == len(dropped) or len(result) == len(self.grouper.result_index):
             result.index = self.grouper.result_index
         else:
             result = result.reindex(self.grouper.result_index)
