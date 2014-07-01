@@ -9,7 +9,7 @@ import datetime
 import numpy as np
 
 import pandas
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
+from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, Index, DatetimeIndex, isnull)
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
@@ -4348,6 +4348,28 @@ class TestHDFStore(tm.TestCase):
             result = store.select('test', 'a = "test & test"')
         tm.assert_frame_equal(expected, result)
 
+    def test_categorical(self):
+        # FIXME
+
+        with ensure_clean_store(self.path) as store:
+
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
+
+            self.assertRaises(NotImplementedError, store.append, 's', s, format='table')
+            #store.append('s', s, format='table')
+            #result = store.select('s')
+            #tm.assert_series_equal(s, result)
+
+            df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
+            self.assertRaises(NotImplementedError, store.append, 'df', df, format='table')
+            #store.append('df', df, format='table')
+            #result = store.select('df')
+            #tm.assert_frame_equal(df, df2)
+
+            # Ok, this doesn't work yet
+            # FIXME: TypeError: cannot pass a where specification when reading from a Fixed format store. this store must be selected in its entirety
+            #result = store.select('df', where = ['index>2'])
+            #tm.assert_frame_equal(df[df.index>2],result)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

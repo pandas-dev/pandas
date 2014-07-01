@@ -51,6 +51,12 @@ pc_max_cols_doc = """
     'None' value means unlimited.
 """
 
+pc_max_levels_doc = """
+: int
+    This sets the maximum number of levels pandas should output when printing
+    out a `Categorical`.
+"""
+
 pc_max_info_cols_doc = """
 : int
     max_info_columns is used in DataFrame.info method to decide if
@@ -223,6 +229,7 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
                        validator=is_instance_factory([type(None), int]))
+    cf.register_option('max_levels', 8, pc_max_levels_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))

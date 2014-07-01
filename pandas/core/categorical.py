@@ -75,8 +75,7 @@ all level-items at a higher position are set to NaN. If the number of
 level-items is more that the current number of level-items, new
 (unused) levels are added at the end.
 
-To add level-items in between, you need to assign them to the end and
-then reorder the levels.
+To add level-items in between, use `reorder_levels`.
 
 Raises
 ------
@@ -123,6 +122,8 @@ class Categorical(PandasObject):
     ----------
     levels : ndarray
         The levels of this categorical
+    codes : Index
+        The codes (integer positions, which point to the levels) of this categorical, read only
     ordered : boolean
         Whether or not this Categorical is ordered
     name : string
@@ -286,18 +287,67 @@ class Categorical(PandasObject):
         """
         return Categorical(data)
 
+    @classmethod
+    def from_codes(cls, codes, levels, ordered=True, name=None):
+        """
+        Make a Categorical type from codes and levels arrays.
+
+        This constructor is useful if you already have codes and levels and so do not need the
+        (computation intensive) factorization step, which is usually done on the constructor.
+
+        If your data does not follow this convention, please use the normal constructor.
+
+        Parameters
+        ----------
+        codes : array-like, integers
+            An integer array, where each integer points to a level in levels or -1 for NaN
+        levels : index-like
+            The levels for the categorical. Items need to be unique.
+        ordered : boolean, optional
+            Whether or not this categorical is treated as a ordered categorical. If not given,
+            the resulting categorical will be ordered.
+        name : str, optional
+            Name for the Categorical variable.
+        """
+        try:
+            codes = np.asarray(codes, np.int64)
+        except:
+            raise ValueError("codes need to be convertible to an arrays of integers")
+
+        levels = cls._validate_levels(levels)
+
+        if codes.max() >= len(levels) or codes.min() < -1:
+            raise ValueError("codes need to be between -1 and len(levels)-1")
+
+
+        return Categorical(codes, levels=levels, ordered=ordered, name=name, fastpath=True)
+
     _codes = None
 
     def _get_codes(self):
-        """ Get the level codes. """
-        # TODO: return a copy so that no manipulation is possible?
-        return self._codes
+        """ Get the level codes.
 
-    codes = property(fget=_get_codes, doc=_codes_doc)
+        Returns
+        -------
+        codes : integer array view
+            A non writable view of the `codes` array.
+        """
+        v = self._codes.view()
+        v.flags.writeable = False
+        return v
+
+    def _set_codes(self, codes):
+        """
+        Not settable by the user directly
+        """
+        raise ValueError("cannot set Categorical codes directly")
+
+    codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     _levels = None
 
-    def _validate_levels(self, levels):
+    @classmethod
+    def _validate_levels(cls, levels):
         """" Validates that we have good levels """
         levels = _ensure_index(levels)
         if not levels.is_unique:
@@ -323,12 +373,15 @@ class Categorical(PandasObject):
     def reorder_levels(self, new_levels, ordered=None):
         """ Reorders levels as specified in new_levels.
 
+        `new_levels` must include all old levels but can also include new level items. In
+        contrast to assigning to `levels`, these new level items can be in arbitrary positions.
+
         The level reordering is done inplace.
 
         Raises
         ------
         ValueError
-            If the new levels do not contain the same level items as before
+            If the new levels do not contain all old level items
 
         Parameters
         ----------
@@ -340,10 +393,8 @@ class Categorical(PandasObject):
         """
         new_levels = self._validate_levels(new_levels)
 
-        if len(new_levels) != len(self._levels):
-            raise ValueError('Reordered levels must be of same length as old levels')
-        if len(new_levels-self._levels):
-            raise ValueError('Reordered levels be the same as the original levels')
+        if len(new_levels) < len(self._levels) or len(self._levels-new_levels):
+            raise ValueError('Reordered levels must include all original levels')
         values = self.__array__()
         self._codes = _get_codes_for_values(values, new_levels)
         self._levels = new_levels
@@ -612,26 +663,52 @@ class Categorical(PandasObject):
                                                   footer=False)
 
         result = '%s\n...\n%s' % (head, tail)
-        # TODO: tidy_repr for footer since there may be a ton of levels?
         result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
 
+    def _repr_level_info(self):
+        """ Returns a string representation of the footer."""
+
+        max_levels = (10 if get_option("display.max_levels") == 0
+                    else get_option("display.max_levels"))
+        level_strs = fmt.format_array(self.levels.get_values(), None)
+        if len(level_strs) > max_levels:
+            num = max_levels // 2
+            head = level_strs[:num]
+            tail = level_strs[-(max_levels - num):]
+            level_strs = head + ["..."] + tail
+        # Strip all leading spaces, which format_array adds for columns...
+        level_strs = [x.strip() for x in level_strs]
+        levheader = "Levels (%d, %s): " % (len(self.levels),
+                                               self.levels.dtype)
+        width, height = get_terminal_size()
+        max_width = (width if get_option("display.width") == 0
+                    else get_option("display.width"))
+        if com.in_ipython_frontend():
+            # 0 = no breaks
+            max_width = 0
+        levstring = ""
+        start = True
+        cur_col_len = len(levheader)
+        sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
+        for val in level_strs:
+            if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
+                levstring += "\n" + (" "* len(levheader))
+                cur_col_len = len(levheader)
+            if not start:
+                levstring += sep
+                cur_col_len += len(val)
+            levstring += val
+            start = False
+        # replace to simple save space by
+        return levheader + "["+levstring.replace(" < ... < ", " ... ")+"]"
+
     def _repr_footer(self):
-        levheader = 'Levels (%d): ' % len(self.levels)
-        # TODO: should max_line_width respect a setting?
-        levstring = np.array_repr(self.levels, max_line_width=60)
-        indent = ' ' * (levstring.find('[') + len(levheader) + 1)
-        lines = levstring.split('\n')
-        levstring = '\n'.join([lines[0]] +
-                              [indent + x.lstrip() for x in lines[1:]])
-        if self.ordered:
-            order = ", ordered"
-        else:
-            order = ", unordered"
+
         namestr = "Name: %s, " % self.name if self.name is not None else ""
-        return u('%s\n%sLength: %d' % (levheader + levstring + order, namestr,
-                                       len(self)))
+        return u('%sLength: %d\n%s') % (namestr,
+                                       len(self), self._repr_level_info())
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
         formatter = fmt.CategoricalFormatter(self, name=name,
@@ -655,7 +732,7 @@ class Categorical(PandasObject):
             result = 'Categorical([], %s' % self._get_repr(name=True,
                                                            length=False,
                                                            footer=True,
-                                                           )
+                                                           ).replace("\n",", ")
 
         return result
 

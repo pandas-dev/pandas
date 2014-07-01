@@ -6365,6 +6365,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                     'three,3,6\n')
         self.assertEqual(buf.getvalue(), expected)
 
+    def test_to_csv_from_csv_categorical(self):
+
+        # CSV with categoricals should result in the same output as when one would add a "normal"
+        # Series/DataFrame.
+        s = Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
+        s2 = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        res = StringIO()
+        s.to_csv(res)
+        exp = StringIO()
+        s2.to_csv(exp)
+        self.assertEqual(res.getvalue(), exp.getvalue())
+
+        df = DataFrame({"s":s})
+        df2 = DataFrame({"s":s2})
+        res = StringIO()
+        df.to_csv(res)
+        exp = StringIO()
+        df2.to_csv(exp)
+        self.assertEqual(res.getvalue(), exp.getvalue())
+
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -12999,9 +13020,14 @@ starting,ending,measure
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
-                        'e': [True, False, True]})
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc'))})
         ri = df.select_dtypes(include=[np.number])
         ei = df[['b', 'c', 'd']]
+        tm.assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=[np.number,'category'])
+        ei = df[['b', 'c', 'd', 'f']]
         tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude(self):

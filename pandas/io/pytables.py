@@ -1773,6 +1773,9 @@ class DataCol(IndexCol):
             raise TypeError(
                 "[unicode] is not implemented as a table column")
 
+        elif dtype == 'category':
+            raise NotImplementedError
+
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
