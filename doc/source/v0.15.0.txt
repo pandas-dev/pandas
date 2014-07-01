@@ -1,0 +1,225 @@
+.. _whatsnew_0150:
+
+v0.15.0 (???)
+-------------
+
+This is a major release from 0.14.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+- Highlights include:
+
+  - Add highlites here
+
+- :ref:`Other Enhancements <whatsnew_0150.enhancements>`
+
+- :ref:`API Changes <whatsnew_0150.api>`
+
+- :ref:`Performance Improvements <whatsnew_0150.performance>`
+
+- :ref:`Prior Deprecations <whatsnew_0150.prior_deprecations>`
+
+- :ref:`Deprecations <whatsnew_0150.deprecations>`
+
+- :ref:`Known Issues <whatsnew_0150.knownissues>`
+
+- :ref:`Bug Fixes <whatsnew_0150.bug_fixes>`
+
+.. _whatsnew_0150.api:
+
+API changes
+~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0150.prior_deprecations:
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are prior version deprecations that are taking effect as of 0.15.0.
+
+.. _whatsnew_0150.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_0150.knownissues:
+
+Known Issues
+~~~~~~~~~~~~
+
+.. _whatsnew_0150.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0150.performance:
+
+Performance
+~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0150.experimental:
+
+Experimental
+~~~~~~~~~~~~
+
+There are no experimental changes in 0.15.0
+
+.. _whatsnew_0150.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
