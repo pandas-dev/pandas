@@ -173,7 +173,7 @@ Bug Fixes
 - Bug in timeops with non-aligned Series (:issue:`7500`)
 - Bug in timedelta inference when assigning an incomplete Series (:issue:`7592`)
 - Bug in groupby ``.nth`` with a Series and integer-like column name (:issue:`7559`)
-
+- Bug in ``Series.get`` with a boolean accessor (:issue:`7407`)
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
 - Bug in ``to_timedelta`` that accepted invalid units and misinterpreted 'm/h' (:issue:`7611`, :issue: `6423`)
 

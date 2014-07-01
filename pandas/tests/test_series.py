@@ -123,6 +123,20 @@ class CheckNameIntegration(object):
         expected = 43
         self.assertEqual(result,expected)
 
+        # GH 7407
+        # with a boolean accessor
+        df = pd.DataFrame({'i':[0]*3, 'b':[False]*3})
+        vc = df.i.value_counts()
+        result = vc.get(99,default='Missing')
+        self.assertEquals(result,'Missing')
+
+        vc = df.b.value_counts()
+        result = vc.get(False,default='Missing')
+        self.assertEquals(result,3)
+
+        result = vc.get(True,default='Missing')
+        self.assertEquals(result,'Missing')
+
     def test_delitem(self):
 
         # GH 5542
