@@ -27,8 +27,8 @@ Categorical
     `Categorical` data in `Series` and `DataFrame` is new.
 
 
-This is a short introduction to pandas `Categorical` type, including a short comparison with R's
-`factor`.
+This is a introduction to pandas :class:`pandas.Categorical` type, including a short comparison
+with R's `factor`.
 
 `Categoricals` are a pandas data type, which correspond to categorical variables in
 statistics: a variable, which can take on only a limited, and usually fixed,
@@ -108,7 +108,7 @@ By using some special functions:
     creation time. Use `levels` to change the levels after creation time.
 
 To get back to the original Series or `numpy` array, use ``Series.astype(original_dtype)`` or
-``Categorical.get_values()``:
+``np.asarray(categorical)``:
 
 .. ipython:: python
 
@@ -118,7 +118,33 @@ To get back to the original Series or `numpy` array, use ``Series.astype(origina
     s2
     s3 = s2.astype('string')
     s3
-    s2.cat.get_values()
+    np.asarray(s2.cat)
+
+If you have already `codes` and `levels`, you can use the :func:`~pandas.Categorical.from_codes`
+constructor to save the factorize step during normal constructor mode:
+
+.. ipython:: python
+
+    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
+    pd.Categorical.from_codes(splitter, levels=["train", "test"])
+
+Description
+-----------
+
+Using ``.describe()`` on a ``Categorical(...)`` or a ``Series(Categorical(...))`` will show
+different output.
+
+
+As part of a `Dataframe` or as a `Series` a similar output as for a `Series` of type ``string`` is
+shown. Calling ``Categorical.describe()`` will show the frequencies for each level, with NA for
+unused levels.
+
+.. ipython:: python
+
+    cat = pd.Categorical(["a","c","c",np.nan], levels=["b","a","c",np.nan] )
+    df = pd.DataFrame({"cat":cat, "s":["a","c","c",np.nan]})
+    df.describe()
+    cat.describe()
 
 Working with levels
 -------------------
@@ -153,7 +179,8 @@ It's also possible to pass in the levels in a specific order:
 
 .. note::
 
-    Passing in a `levels` argument implies ``ordered=True``.
+    Passing in a `levels` argument implies ``ordered=True``. You can of course overwrite that by
+    passing in an explicit ``ordered=False``.
 
 Any value omitted in the levels argument will be replaced by `np.nan`:
 
@@ -178,8 +205,7 @@ Renaming levels is done by assigning new values to the ``Category.levels`` or
 
 .. note::
 
-    I contrast to R's `factor` function, a `Categorical` can have levels of other types than
-    string.
+    I contrast to R's `factor`, a `Categorical` can have levels of other types than string.
 
 Levels must be unique or a `ValueError` is raised:
 
@@ -190,7 +216,7 @@ Levels must be unique or a `ValueError` is raised:
     except ValueError as e:
         print("ValueError: " + str(e))
 
-Appending a level can be done by assigning a levels list longer than the current levels:
+Appending levels can be done by assigning a levels list longer than the current levels:
 
 .. ipython:: python
 
@@ -198,6 +224,8 @@ Appending a level can be done by assigning a levels list longer than the current
     s.cat.levels
     s
 
+.. note::
+    Adding levels in other positions can be done with ``.reorder_levels(<levels_including_new>)``.
 
 Removing a level is also possible, but only the last level(s) can be removed by assigning a
 shorter list than current levels. Values which are omitted are replaced by `np.nan`.
@@ -236,8 +264,8 @@ Ordered or not...
 -----------------
 
 If a `Categoricals` is ordered (``cat.ordered == True``), then the order of the levels has a
-meaning and certain operations are possible. If the the categorical is unordered,
-a `TypeError` is raised.
+meaning and certain operations are possible. If the categorical is unordered, a `TypeError` is
+raised.
 
 .. ipython:: python
 
@@ -268,7 +296,8 @@ This is even true for strings and numeric data:
     print(s.min(), s.max())
 
 Reordering the levels is possible via the ``Categorical.reorder_levels(new_levels)``  or
-``Series.cat.reorder_levels(new_levels)`` methods:
+``Series.cat.reorder_levels(new_levels)`` methods. All old levels must be included in the new
+levels.
 
 .. ipython:: python
 
@@ -286,6 +315,15 @@ Reordering the levels is possible via the ``Categorical.reorder_levels(new_level
     position was sorted last, the renamed value will still be sorted last. Reordering means that the
     way values are sorted is different afterwards, but not that individual values in the
     `Series` are changed.
+
+You can also add new levels with :func:`Categorical.reorder_levels`, as long as you include all
+old levels:
+
+.. ipython:: python
+
+    s3 = pd.Series(pd.Categorical(["a","b","d"]))
+    s3.cat.reorder_levels(["a","b","c",d"])
+    s3
 
 
 Operations
@@ -317,8 +355,8 @@ The mode:
 .. note::
 
     Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them (e.g.
-    ``Categorical.median()``, which would need to compute the mean between two values if the
-    length of an array is even) do not work and raise a `TypeError`.
+    ``.median()``, which would need to compute the mean between two values if the length of an
+    array is even) do not work and raise a `TypeError`.
 
 `Series` methods like `Series.value_counts()` will use all levels, even if some levels are not
 present in the data:
@@ -353,7 +391,7 @@ Pivot tables:
 Data munging
 ------------
 
-The optimized pandas data access methods  ``.loc``, ``.iloc`` ``ix`` ``.at``, and``.iat``,
+The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.ix`` ``.at``, and ``.iat``,
 work as normal, the only difference is the return type (for getting) and
 that only values already in the levels can be assigned.
 
@@ -393,7 +431,7 @@ of length "1".
     df.at["h","cats"] # returns a string
 
 .. note::
-    Note that this is a difference to R's `factor` function, where ``factor(c(1,2,3))[1]``
+    This is a difference to R's `factor` function, where ``factor(c(1,2,3))[1]``
     returns a single value `factor`.
 
 To get a single value `Series` of type ``category`` pass in a single value list:
@@ -455,7 +493,9 @@ but the levels of these `Categoricals` need to be the same:
         cat = pd.Categorical(["a","b"], levels=["a","b"])
         vals = [1,2]
         df = pd.DataFrame({"cats":cat, "vals":vals})
-        pd.concat([df,df])
+        res = pd.concat([df,df])
+        res
+        res.dtypes
 
         df_different = df.copy()
         df_different["cats"].cat.levels = ["a","b","c"]
@@ -501,27 +541,34 @@ store does not yet work.
 
 
 Writing to a csv file will convert the data, effectively removing any information about the
-`Categorical` (`levels` and ordering). So if you read back the csv file you have to convert the
-relevant columns back to `category` and assign the right `levels` and level ordering.
+`Categorical` (levels and ordering). So if you read back the csv file you have to convert the
+relevant columns back to `category` and assign the right levels and level ordering.
 
 .. ipython:: python
    :suppress:
 
     from pandas.compat import StringIO
-    csv_file = StringIO
+    csv_file = StringIO()
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
+    s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
+    # rename the levels
+    s.cat.levels = ["very good", "good", "bad"]
+    # add new levels at the end
+    s.cat.levels = list(s.cat.levels) + ["medium", "very bad"]
+    # reorder the levels
+    s.cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
     df.to_csv(csv_file)
     df2 = pd.read_csv(csv_file)
-    df2.dtype
+    df2.dtypes
     df2["vals"]
     # Redo the category
     df2["vals"] = df2["vals"].astype("category")
-    df2["vals"].cat.levels = ['a','b','c','d']
-    df2.dtype
+    df2["vals"].cat.levels = list(df2["vals"].cat.levels) + ["medium", "very bad"]
+    df2["vals"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    df2.dtypes
     df2["vals"]
 
 
@@ -576,8 +623,8 @@ object and not as a low level `numpy` array dtype. This leads to some problems.
     dtype == np.str_
     np.str_ == dtype
 
-Using ``numpy`` functions on a `Series` of type ``category`` should not work as `Categoricals`
-are not numeric data (even in the case that levels is numeric).
+Using `numpy` functions on a `Series` of type ``category`` should not work as `Categoricals`
+are not numeric data (even in the case that ``.levels`` is numeric).
 
 .. ipython:: python
 
@@ -612,6 +659,7 @@ means that changes to the `Series` will in most cases change the original `Categ
 Use ``copy=True`` to prevent such a behaviour:
 
 .. ipython:: python
+
     cat = pd.Categorical([1,2,3,10], levels=[1,2,3,4,10])
     s = pd.Series(cat, name="cat", copy=True)
     cat
@@ -619,29 +667,32 @@ Use ``copy=True`` to prevent such a behaviour:
     cat
 
 .. note::
-    This also happens in some cases when you supply a `numpy` array: using an int array
-    (e.g. ``np.array([1,2,3,4])``) will exhibit the same behaviour, but using a string
-    array (e.g. ``np.array(["a","b","c","a"])``) will not.
+    This also happens in some cases when you supply a `numpy` array instea dof a `Categorical`:
+    using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behaviour, but using
+    a string array (e.g. ``np.array(["a","b","c","a"])``) will not.
 
 
 Danger of confusion
 ~~~~~~~~~~~~~~~~~~~
 
-Both `Series` and `Categorical` have a method ``.reorder_levels()`` . For Series of type
-``category`` this means that there is some danger to confuse both methods.
+Both `Series` and `Categorical` have a method ``.reorder_levels()`` but for different things. For
+Series of type ``category`` this means that there is some danger to confuse both methods.
 
 .. ipython:: python
 
     s = pd.Series(pd.Categorical([1,2,3,4]))
+    print(s.cat.levels)
     # wrong and raises an error:
     try:
         s.reorder_levels([4,3,2,1])
     except Exception as e:
         print("Exception: " + str(e))
     # right
-    print(s.cat.levels)
-    print([4,3,2,1])
     s.cat.reorder_levels([4,3,2,1])
+    print(s.cat.levels)
+
+See also the API documentation for :func:`pandas.Series.reorder_levels` and
+:func:`pandas.Categorical.reorder_levels`
 
 Old style constructor usage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -665,8 +716,8 @@ In the default case (``compat=False``) the first argument is interpreted as valu
 
 .. warning::
     Using Categorical with precomputed level_codes and levels is deprecated and a `FutureWarning`
-    is raised. Please change your code to use one of the proper constructor modes instead of
-    adding ``compat=False``.
+    is raised. Please change your code to use the :func:`~pandas.Categorical.from_codes`
+    constructor instead of adding ``compat=False``.
 
 No categorical index
 ~~~~~~~~~~~~~~~~~~~~
@@ -682,8 +733,12 @@ ordering of the levels:
     values = [4,2,3,1]
     df = pd.DataFrame({"strings":strings, "values":values}, index=cats)
     df.index
-    # This should sort by levels but doesn't!
+    # This should sort by levels but does not as there is no CategoricalIndex!
     df.sort_index()
+
+.. note::
+    This could change if a `CategoricalIndex` is implemented (see
+    https://github.com/pydata/pandas/issues/7629)
 
 dtype in apply
 ~~~~~~~~~~~~~~

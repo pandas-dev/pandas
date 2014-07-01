@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
-from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
@@ -1027,19 +1026,6 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_get_attr(self):
         assert_panel_equal(self.panel4d['l1'], self.panel4d.l1)
 
-    def test_group_agg(self):
-        values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
-        bounds = np.arange(5) * 2
-        f = lambda x: x.mean(axis=0)
-
-        agged = group_agg(values, bounds, f)
-
-        assert(agged[1][0] == 2.5)
-        assert(agged[2][0] == 4.5)
-
-        # test a function that doesn't aggregate
-        f2 = lambda x: np.zeros((2, 2))
-        self.assertRaises(Exception, group_agg, values, bounds, f2)
 
     def test_from_frame_level1_unsorted(self):
         raise nose.SkipTest("skipping for now")

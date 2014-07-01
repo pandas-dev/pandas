@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
-from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
@@ -1827,19 +1826,6 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.panel['i'] = self.panel['ItemA']
         assert_frame_equal(self.panel['i'], self.panel.i)
 
-    def test_group_agg(self):
-        values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
-        bounds = np.arange(5) * 2
-        f = lambda x: x.mean(axis=0)
-
-        agged = group_agg(values, bounds, f)
-
-        assert(agged[1][0] == 2.5)
-        assert(agged[2][0] == 4.5)
-
-        # test a function that doesn't aggregate
-        f2 = lambda x: np.zeros((2, 2))
-        self.assertRaises(Exception, group_agg, values, bounds, f2)
 
     def test_from_frame_level1_unsorted(self):
         tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2),

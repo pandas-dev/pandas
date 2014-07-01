@@ -485,6 +485,7 @@ and has the following usable methods and properties (all available as
    :toctree: generated/
 
    Categorical
+   Categorical.from_codes
    Categorical.levels
    Categorical.ordered
    Categorical.reorder_levels
@@ -492,11 +493,18 @@ and has the following usable methods and properties (all available as
    Categorical.min
    Categorical.max
    Categorical.mode
+   Categorical.describe
+
+``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
+the Categorical back to a numpy array, so levels and order information is not preserved!
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.__array__
 
 To create compatibility with `pandas.Series` and `numpy` arrays, the following (non-API) methods
-are also introduced. Apart from these methods, ``np.asarray(categorical)`` works by implementing the
-array interface (`Categorical.__array__()`). Be aware, that this converts the
-Categorical back to a numpy array, so levels and order information is not preserved!
+are also introduced.
 
 .. autosummary::
    :toctree: generated/
@@ -507,13 +515,11 @@ Categorical back to a numpy array, so levels and order information is not preser
    Categorical.dtype
    Categorical.ndim
    Categorical.sort
-   Categorical.describe
    Categorical.equals
    Categorical.unique
    Categorical.order
    Categorical.argsort
    Categorical.fillna
-   Categorical.__array__
 
 
 Plotting

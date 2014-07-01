@@ -9,7 +9,7 @@ import datetime
 import numpy as np
 
 import pandas
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
+from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, Index, DatetimeIndex, isnull)
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
@@ -4347,6 +4347,25 @@ class TestHDFStore(tm.TestCase):
             store.append('test', df, format='table', data_columns=True)
             result = store.select('test', 'a = "test & test"')
         tm.assert_frame_equal(expected, result)
+
+    def test_categorical(self):
+        try:
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
+            # FIXME: AttributeError: 'Categorical' object has no attribute 'T'
+            s.to_hdf(self.path, "cat_series_alone")
+            s2 = read_hdf(self.path, "cat_series_alone")
+            tm.assert_series_equal(s, s2)
+            df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
+            df.to_hdf(self.path, "cat_frame_alone")
+            df2 = read_hdf(self.path, "cat_frame_alone")
+            tm.assert_frame_equal(df, df2)
+            # Ok, this doesn't work yet
+            # FIXME: TypeError: cannot pass a where specification when reading from a Fixed format store. this store must be selected in its entirety
+            #result = read_hdf(hdf_file, "frame_alone", where = ['index>2'])
+            #tm.assert_frame_equal(df[df.index>2],result)
+
+        finally:
+            safe_remove(self.path)
 
 
 def _test_sort(obj):

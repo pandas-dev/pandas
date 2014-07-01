@@ -759,7 +759,6 @@ class NonPooledPanelOLS(object):
 
 def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
                     nw_lags, nobs, df, nw_overlap):
-    from pandas.core.frame import group_agg
     xx_inv = math.inv(xx)
 
     yv = y.values
@@ -782,7 +781,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             x = x.swaplevel(0, 1).sortlevel(0)
             resid = resid.swaplevel(0, 1).sortlevel(0)
 
-        m = group_agg(x.values * resid.values, x.index._bounds,
+        m = _group_agg(x.values * resid.values, x.index._bounds,
                       lambda x: np.sum(x, axis=0))
 
         if nw_lags is None:
@@ -795,6 +794,40 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
 
         return np.dot(xx_inv, np.dot(xox, xx_inv))
 
+def _group_agg(values, bounds, f):
+    """
+    R-style aggregator
+
+    Parameters
+    ----------
+    values : N-length or N x K ndarray
+    bounds : B-length ndarray
+    f : ndarray aggregation function
+
+    Returns
+    -------
+    ndarray with same length as bounds array
+    """
+    if values.ndim == 1:
+        N = len(values)
+        result = np.empty(len(bounds), dtype=float)
+    elif values.ndim == 2:
+        N, K = values.shape
+        result = np.empty((len(bounds), K), dtype=float)
+
+    testagg = f(values[:min(1, len(values))])
+    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
+        raise AssertionError('Function must reduce')
+
+    for i, left_bound in enumerate(bounds):
+        if i == len(bounds) - 1:
+            right_bound = N
+        else:
+            right_bound = bounds[i + 1]
+
+        result[i] = f(values[left_bound:right_bound])
+
+    return result
 
 def _xx_time_effects(x, y):
     """

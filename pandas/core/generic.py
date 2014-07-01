@@ -3630,7 +3630,7 @@ class NDFrame(PandasObject):
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if data.dtype == object:
+                if data.dtype == object or com.is_categorical_dtype(data.dtype):
                     names += ['top', 'freq']
                     result += [top, freq]
 
