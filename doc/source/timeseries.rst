@@ -1280,9 +1280,10 @@ To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
 other functions. Dateutil time zone strings are distinguished from ``pytz``
 time zones by starting with ``dateutil/``.
 
-- In ``pytz`` you can find a list of common (and less common) time zones using ``from pytz import common_timezones, all_timezones``.
+- In ``pytz`` you can find a list of common (and less common) time zones using
+  ``from pytz import common_timezones, all_timezones``.
 - ``dateutil`` uses the OS timezones so there isn't a fixed list available. For
-common zones, the names are the same as ``pytz``.
+  common zones, the names are the same as ``pytz``.
 
 .. ipython:: python
 

@@ -3411,6 +3411,7 @@ table : `test_dataset.test_table` into a DataFrame using the :func:`~pandas.io.r
 function.
 
 .. code-block:: python
+
    # Insert your BigQuery Project ID Here
    # Can be found in the Google web console
    projectid = "xxxxxxxx"
