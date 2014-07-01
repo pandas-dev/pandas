@@ -88,7 +88,7 @@ def execute(sql, con, cur=None, params=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    cur : depreciated, cursor is obtained from connection
+    cur : deprecated, cursor is obtained from connection
     params : list or tuple, optional
         List of parameters to pass to execute method.
 
@@ -134,7 +134,7 @@ def tquery(sql, con=None, cur=None, retry=True):
     sql: string
         SQL query to be executed
     con: DBAPI2 connection
-    cur: depreciated, cursor is obtained from connection
+    cur: deprecated, cursor is obtained from connection
 
     Returns
     -------
@@ -142,7 +142,7 @@ def tquery(sql, con=None, cur=None, retry=True):
 
     """
     warnings.warn(
-        "tquery is depreciated, and will be removed in future versions. "
+        "tquery is deprecated, and will be removed in future versions. "
         "You can use ``execute(...).fetchall()`` instead.",
         FutureWarning)
 
@@ -187,7 +187,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     sql: string
         SQL query to be executed
     con: DBAPI2 connection
-    cur: depreciated, cursor is obtained from connection
+    cur: deprecated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
 
@@ -197,7 +197,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
 
     """
     warnings.warn(
-        "uquery is depreciated, and will be removed in future versions. "
+        "uquery is deprecated, and will be removed in future versions. "
         "You can use ``execute(...).rowcount`` instead.",
         FutureWarning)
 
@@ -1153,21 +1153,21 @@ def _get_schema_legacy(frame, name, flavor, keys=None):
 # legacy names, with depreciation warnings and copied docs
 
 def read_frame(*args, **kwargs):
-    """DEPRECIATED - use read_sql
+    """DEPRECATED - use read_sql
     """
-    warnings.warn("read_frame is depreciated, use read_sql", FutureWarning)
+    warnings.warn("read_frame is deprecated, use read_sql", FutureWarning)
     return read_sql(*args, **kwargs)
 
 
 def frame_query(*args, **kwargs):
-    """DEPRECIATED - use read_sql
+    """DEPRECATED - use read_sql
     """
-    warnings.warn("frame_query is depreciated, use read_sql", FutureWarning)
+    warnings.warn("frame_query is deprecated, use read_sql", FutureWarning)
     return read_sql(*args, **kwargs)
 
 
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
-    """DEPRECIATED - use to_sql
+    """DEPRECATED - use to_sql
 
     Write records stored in a DataFrame to a SQL database.
 
@@ -1200,7 +1200,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     pandas.DataFrame.to_sql
 
     """
-    warnings.warn("write_frame is depreciated, use to_sql", FutureWarning)
+    warnings.warn("write_frame is deprecated, use to_sql", FutureWarning)
 
     # for backwards compatibility, set index=False when not specified
     index = kwargs.pop('index', False)
