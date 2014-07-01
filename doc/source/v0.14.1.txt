@@ -263,6 +263,10 @@ Bug Fixes
 - Bug in ``DatetimeIndex.freqstr`` raises ``AttributeError`` when ``freq`` is ``None`` (:issue:`7606`)
 - Bug in ``GroupBy.size`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`7453`)
 
+- Bug in single column bar plot is misaligned (:issue:`7498`).
+
+
+
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
 
