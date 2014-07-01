@@ -706,7 +706,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
     def test_default_na_values(self):
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                           '#N/A','N/A', 'NA', '#NA', 'NULL', 'NaN',
-                          'nan', '-NaN', '-nan', ''])
+                          'nan', '-NaN', '-nan', '#N/A N/A',''])
         assert_array_equal (_NA_VALUES, parsers._NA_VALUES)
         nv = len(_NA_VALUES)
         def f(i, v):

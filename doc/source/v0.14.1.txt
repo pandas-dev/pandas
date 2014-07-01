@@ -59,6 +59,7 @@ API changes
   object isn't a ``Period`` ``False`` is returned. (:issue:`7376`)
 
 - Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
+- Add back ``#N/A N/A`` as a default NA value in text parsing, (regresion from 0.12) (:issue:`5521`)
 
 .. _whatsnew_0141.prior_deprecations:
 

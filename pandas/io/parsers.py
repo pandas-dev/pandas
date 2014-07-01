@@ -487,7 +487,7 @@ def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
 _NA_VALUES = set([
-    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A', 'N/A', 'NA', '#NA',
+    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA', '#NA',
     'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
 
