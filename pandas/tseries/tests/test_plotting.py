@@ -948,7 +948,7 @@ class TestTSPlot(tm.TestCase):
         left_after, right_after = ax.get_xlim()
 
         self.assertEqual(left_before, left_after)
-        self.assertLess(right_before, right_after)
+        self.assertTrue(right_before < right_after)
 
     @slow
     def test_secondary_y_regular_ts_xlim(self):
@@ -964,7 +964,7 @@ class TestTSPlot(tm.TestCase):
         left_after, right_after = ax.get_xlim()
 
         self.assertEqual(left_before, left_after)
-        self.assertLess(right_before, right_after)
+        self.assertTrue(right_before < right_after)
 
     @slow
     def test_secondary_y_mixed_freq_ts_xlim(self):
