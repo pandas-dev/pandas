@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string)
+    Resolution, get_reso_string, _tz_convert_with_transitions)
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
@@ -1588,9 +1588,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
             if self.tz is not None:
-                f = lambda x: tslib.tz_convert_single(x, 'UTC', self.tz)
-                new_dates = np.vectorize(f)(new_dates)
-                # new_dates = tslib.tz_convert(new_dates, 'UTC', self.tz)
+                new_dates = _tz_convert_with_transitions(new_dates,'UTC',self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
         except (AttributeError, TypeError):
