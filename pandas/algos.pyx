@@ -1173,6 +1173,10 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
     minp = _check_minp(win, minp, N)
 
+    # Check for windows larger than array, addresses #7297
+    win = min(win, N)
+
+    # Over the first window, observations can only be added, never removed
     for i from 0 <= i < win:
         val = input[i]
 
@@ -1196,23 +1200,27 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
         output[i] = val
 
+    # After the first window, observations can both be added and removed
     for i from win <= i < N:
         val = input[i]
         prev = input[i - win]
 
         if val == val:
             if prev == prev:
+                # Adding one observation and removing another one
                 delta = val - prev
                 prev -= mean_x
                 mean_x += delta / nobs
                 val -= mean_x
                 ssqdm_x += (val + prev) * delta
             else:
+                # Adding one observation and not removing any
                 nobs += 1
                 delta = (val - mean_x)
                 mean_x += delta / nobs
                 ssqdm_x += delta * (val - mean_x)
         elif prev == prev:
+            # Adding no new observation, but removing one
             nobs -= 1
             if nobs:
                 delta = (prev - mean_x)
@@ -1221,6 +1229,7 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
             else:
                 mean_x = 0
                 ssqdm_x = 0
+        # Variance is unchanged if no observation is added or removed
 
         if nobs >= minp:
             #pathological case

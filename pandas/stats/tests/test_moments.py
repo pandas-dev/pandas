@@ -366,7 +366,8 @@ class TestMoments(tm.TestCase):
                        preserve_nan=True,
                        has_center=True,
                        fill_value=None,
-                       test_stable=False):
+                       test_stable=False,
+                       test_window=True):
 
         result = func(self.arr, window)
         assert_almost_equal(result[-1],
@@ -428,6 +429,27 @@ class TestMoments(tm.TestCase):
             result = func(self.arr + 1e9, window)
             assert_almost_equal(result[-1],
                                 static_comp(self.arr[-50:] + 1e9))
+
+        # Test window larger than array, #7297
+        if test_window:
+            if has_min_periods:
+                for minp in (0, len(self.arr)-1, len(self.arr)):
+                    result = func(self.arr, len(self.arr)+1, min_periods=minp)
+                    expected = func(self.arr, len(self.arr), min_periods=minp)
+                    nan_mask = np.isnan(result)
+                    self.assertTrue(np.array_equal(nan_mask,
+                                                   np.isnan(expected)))
+                    nan_mask = ~nan_mask
+                    assert_almost_equal(result[nan_mask], expected[nan_mask])
+            else:
+                result = func(self.arr, len(self.arr)+1)
+                expected = func(self.arr, len(self.arr))
+                nan_mask = np.isnan(result)
+                self.assertTrue(np.array_equal(nan_mask, np.isnan(expected)))
+                nan_mask = ~nan_mask
+                assert_almost_equal(result[nan_mask], expected[nan_mask])
+
+
 
 
     def _check_structures(self, func, static_comp,
