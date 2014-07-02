@@ -136,9 +136,6 @@ Enhancements
   non-unique labels along *item* axis (``index``, ``columns`` and ``items``
   respectively) (:issue:`7370`).
 
-- ``read_csv`` and ``read_table`` can now read index columns from the first
-  line after the header when using the C engine (:issue:`6893`)
-
 
 .. _whatsnew_0141.performance:
 
