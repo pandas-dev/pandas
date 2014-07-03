@@ -24,11 +24,6 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
-
-
-
-
-
 - All ``offsets`` suppports ``normalize`` keyword to specify whether ``offsets.apply``, ``rollforward`` and ``rollback`` resets time (hour, minute, etc) or not (default ``False``, preserves time) (:issue:`7156`)
 
 
@@ -60,6 +55,8 @@ API changes
 
 - Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
 - Add back ``#N/A N/A`` as a default NA value in text parsing, (regresion from 0.12) (:issue:`5521`)
+- Raise a ``TypeError`` on inplace-setting with a ``.where`` and a non ``np.nan`` value as this is inconsistent
+  with a set-item expression like ``df[mask] = None`` (:issue:`7656`)
 
 .. _whatsnew_0141.prior_deprecations:
 

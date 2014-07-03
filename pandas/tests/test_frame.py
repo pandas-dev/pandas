@@ -9242,6 +9242,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({'series': Series([0,1,2,3,4,5,6,7,np.nan,np.nan]) })
         assert_frame_equal(df, expected)
 
+        # GH 7656
+        df = DataFrame([{'A': 1, 'B': np.nan, 'C': 'Test'}, {'A': np.nan, 'B': 'Test', 'C': np.nan}])
+        expected = df.where(~isnull(df), None)
+        with tm.assertRaisesRegexp(TypeError, 'boolean setting on mixed-type'):
+            df.where(~isnull(df), None, inplace=True)
+
     def test_where_align(self):
 
         def create():
