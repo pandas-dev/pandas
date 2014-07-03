@@ -1626,7 +1626,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     freq = self.freq
 
         if self.tz is not None:
-            new_dates = tslib.date_normalize(new_dates, self.tz)
+            new_dates = _tz_convert_with_transitions(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
     def _view_like(self, ndarray):
