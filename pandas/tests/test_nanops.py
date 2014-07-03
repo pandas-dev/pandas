@@ -255,6 +255,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 pass
             else:
                 self.check_fun(testfunc, targfunc, 'arr_tdelta', **kwargs)
+                objs += [self.arr_date.astype('O')]
                 if allow_all_nan:
                     self.check_fun(testfunc, targfunc, 'arr_tdeltanat',
                                    **kwargs)
