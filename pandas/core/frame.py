@@ -679,8 +679,8 @@ class DataFrame(NDFrame):
         the defined table schema and column types. For simplicity, this method
         uses the Google BigQuery streaming API. The to_gbq method chunks data
         into a default chunk size of 10,000. Failures return the complete error
-        response which can be quite long depending on the size of the insert. 
-        There are several important limitations of the Google streaming API 
+        response which can be quite long depending on the size of the insert.
+        There are several important limitations of the Google streaming API
         which are detailed at:
         https://developers.google.com/bigquery/streaming-data-into-bigquery.
 
@@ -1925,11 +1925,7 @@ class DataFrame(NDFrame):
         if key.values.dtype != np.bool_:
             raise TypeError('Must pass DataFrame with boolean values only')
 
-        if self._is_mixed_type:
-            if not self._is_numeric_mixed_type:
-                raise TypeError(
-                    'Cannot do boolean setting on mixed-type frame')
-
+        self._check_inplace_setting(value)
         self._check_setitem_copy()
         self.where(-key, value, inplace=True)
 

@@ -1910,6 +1910,24 @@ class NDFrame(PandasObject):
         f = lambda: self._data.is_datelike_mixed_type
         return self._protect_consolidate(f)
 
+    def _check_inplace_setting(self, value):
+        """ check whether we allow in-place setting with this type of value """
+
+        if self._is_mixed_type:
+            if not self._is_numeric_mixed_type:
+
+                # allow an actual np.nan thru
+                try:
+                    if np.isnan(value):
+                        return True
+                except:
+                    pass
+
+                raise TypeError(
+                    'Cannot do inplace boolean setting on mixed-types with a non np.nan value')
+
+        return True
+
     def _protect_consolidate(self, f):
         blocks_before = len(self._data.blocks)
         result = f()
@@ -3214,6 +3232,8 @@ class NDFrame(PandasObject):
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
+
+            self._check_inplace_setting(other)
             new_data = self._data.putmask(mask=cond, new=other, align=axis is None,
                                           inplace=True)
             self._update_inplace(new_data)
