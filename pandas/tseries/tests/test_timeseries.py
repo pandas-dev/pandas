@@ -2455,27 +2455,31 @@ class TestDatetimeIndex(tm.TestCase):
         with tm.assertRaises(ValueError):
             result = idx.insert(3, datetime(2000, 1, 4, tzinfo=pytz.timezone('US/Eastern')))
 
-        # preserve freq
-        expected = date_range('1/1/2000', periods=4, freq='D', tz='Asia/Tokyo', name='idx')
-        for d in [pd.Timestamp('2000-01-04', tz='Asia/Tokyo'),
-                  datetime(2000, 1, 4, tzinfo=pytz.timezone('Asia/Tokyo'))]:
+        for tz in ['US/Pacific', 'Asia/Singapore']:
+            idx = date_range('1/1/2000 09:00', periods=6, freq='H', tz=tz, name='idx')
+            # preserve freq
+            expected = date_range('1/1/2000 09:00', periods=7, freq='H', tz=tz, name='idx')
+            for d in [pd.Timestamp('2000-01-01 15:00', tz=tz),
+                      pytz.timezone(tz).localize(datetime(2000, 1, 1, 15))]:
 
-            result = idx.insert(3, d)
-            self.assertTrue(result.equals(expected))
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freqstr, expected.freq)
+                result = idx.insert(6, d)
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertEqual(result.freq, expected.freq)
+                self.assertEqual(result.tz, expected.tz)
 
-        expected = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03',
-                                  '2000-01-02'], name='idx',
-                                  tz='Asia/Tokyo', freq=None)
-        # reset freq to None
-        for d in [pd.Timestamp('2000-01-02', tz='Asia/Tokyo'),
-                  datetime(2000, 1, 2, tzinfo=pytz.timezone('Asia/Tokyo'))]:
-            result = idx.insert(3, d)
-            self.assertTrue(result.equals(expected))
-            self.assertEqual(result.name, expected.name)
-            self.assertTrue(result.freq is None)
-
+            expected = DatetimeIndex(['2000-01-01 09:00', '2000-01-01 10:00', '2000-01-01 11:00',
+                                      '2000-01-01 12:00', '2000-01-01 13:00', '2000-01-01 14:00',
+                                      '2000-01-01 10:00'], name='idx',
+                                      tz=tz, freq=None)
+            # reset freq to None
+            for d in [pd.Timestamp('2000-01-01 10:00', tz=tz),
+                      pytz.timezone(tz).localize(datetime(2000, 1, 1, 10))]:
+                result = idx.insert(6, d)
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertTrue(result.freq is None)
+                self.assertEqual(result.tz, expected.tz)
 
     def test_delete(self):
         idx = date_range(start='2000-01-01', periods=5, freq='M', name='idx')
@@ -2501,16 +2505,25 @@ class TestDatetimeIndex(tm.TestCase):
             # either depeidnig on numpy version
             result = idx.delete(5)
 
-        idx = date_range(start='2000-01-01', periods=5,
-                         freq='D', name='idx', tz='US/Pacific')
+        for tz in [None, 'Asia/Tokyo', 'US/Pacific']:
+            idx = date_range(start='2000-01-01 09:00', periods=10,
+                             freq='H', name='idx', tz=tz)
 
-        expected = date_range(start='2000-01-02', periods=4,
-                              freq='D', name='idx', tz='US/Pacific')
-        result = idx.delete(0)
-        self.assertTrue(result.equals(expected))
-        self.assertEqual(result.name, expected.name)
-        self.assertEqual(result.freqstr, 'D')
-        self.assertEqual(result.tz, expected.tz)
+            expected = date_range(start='2000-01-01 10:00', periods=9,
+                                  freq='H', name='idx', tz=tz)
+            result = idx.delete(0)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freqstr, 'H')
+            self.assertEqual(result.tz, expected.tz)
+
+            expected = date_range(start='2000-01-01 09:00', periods=9,
+                                  freq='H', name='idx', tz=tz)
+            result = idx.delete(-1)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freqstr, 'H')
+            self.assertEqual(result.tz, expected.tz)
 
     def test_delete_slice(self):
         idx = date_range(start='2000-01-01', periods=10, freq='D', name='idx')
@@ -2538,30 +2551,34 @@ class TestDatetimeIndex(tm.TestCase):
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
-        ts = pd.Series(1, index=pd.date_range('2000-01-01', periods=10,
-                                              freq='D', name='idx'))
-        # preserve freq
-        result = ts.drop(ts.index[:5]).index
-        expected = pd.date_range('2000-01-06', periods=5, freq='D', name='idx')
-        self.assertTrue(result.equals(expected))
-        self.assertEqual(result.name, expected.name)
-        self.assertEqual(result.freq, expected.freq)
+        for tz in [None, 'Asia/Tokyo', 'US/Pacific']:
+            ts = pd.Series(1, index=pd.date_range('2000-01-01 09:00', periods=10,
+                                                  freq='H', name='idx', tz=tz))
+            # preserve freq
+            result = ts.drop(ts.index[:5]).index
+            expected = pd.date_range('2000-01-01 14:00', periods=5, freq='H', name='idx', tz=tz)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.tz, expected.tz)
 
-        # reset freq to None
-        result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
-        expected = DatetimeIndex(['2000-01-01', '2000-01-03', '2000-01-05',
-                                    '2000-01-07', '2000-01-09'], freq=None, name='idx')
-        self.assertTrue(result.equals(expected))
-        self.assertEqual(result.name, expected.name)
-        self.assertEqual(result.freq, expected.freq)
+            # reset freq to None
+            result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
+            expected = DatetimeIndex(['2000-01-01 09:00', '2000-01-01 11:00', '2000-01-01 13:00',
+                                      '2000-01-01 15:00', '2000-01-01 17:00'],
+                                      freq=None, name='idx', tz=tz)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.tz, expected.tz)
 
     def test_take(self):
-        dates = [datetime(2010, 1, 6), datetime(2010, 1, 7),
-                 datetime(2010, 1, 9), datetime(2010, 1, 13)]
+        dates = [datetime(2010, 1, 1, 14), datetime(2010, 1, 1, 15),
+                 datetime(2010, 1, 1, 17), datetime(2010, 1, 1, 21)]
 
         for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
-            idx = DatetimeIndex(start='1/1/10', end='12/31/12',
-                                freq='D', tz=tz, name='idx')
+            idx = DatetimeIndex(start='2010-01-01 09:00', end='2010-02-01 09:00',
+                                freq='H', tz=tz, name='idx')
             expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)
 
             taken1 = idx.take([5, 6, 8, 12])
