@@ -30,6 +30,8 @@ class TestnanopsDataFrame(tm.TestCase):
                                             self.arr_shape).astype('m8[ns]')
 
         self.arr_nan = np.tile(np.nan, self.arr_shape)
+        self.arr_datenat = np.tile(np.datetime64('NaT'), self.arr_shape)
+        self.arr_tdeltanat = np.tile(np.timedelta64('NaT'), self.arr_shape)
         self.arr_float_nan = np.vstack([self.arr_float, self.arr_nan])
         self.arr_float1_nan = np.vstack([self.arr_float1, self.arr_nan])
         self.arr_nan_float1 = np.vstack([self.arr_nan, self.arr_float1])
@@ -244,13 +246,18 @@ class TestnanopsDataFrame(tm.TestCase):
             else:
                 self.check_fun(testfunc, targfunc, 'arr_date', **kwargs)
                 objs += [self.arr_date.astype('O')]
+                if allow_all_nan:
+                    self.check_fun(testfunc, targfunc, 'arr_datenat',
+                                   **kwargs)
             try:
                 targfunc(self.arr_tdelta)
             except TypeError:
                 pass
             else:
                 self.check_fun(testfunc, targfunc, 'arr_tdelta', **kwargs)
-                objs += [self.arr_tdelta.astype('O')]
+                if allow_all_nan:
+                    self.check_fun(testfunc, targfunc, 'arr_tdeltanat',
+                                   **kwargs)
 
         if allow_obj:
             self.arr_obj = np.vstack(objs)
@@ -291,18 +298,15 @@ class TestnanopsDataFrame(tm.TestCase):
                         allow_all_nan=False, allow_str=False, allow_date=False)
 
     def test_nansum(self):
-        self.check_funs(nanops.nansum, np.sum,
-                        allow_str=False, allow_date=False)
+        self.check_funs(nanops.nansum, np.sum, allow_str=False)
 
     def test_nanmean(self):
-        self.check_funs(nanops.nanmean, np.mean,
-                        allow_complex=False, allow_obj=False,
-                        allow_str=False, allow_date=False)
+        self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
+                        allow_obj=False, allow_str=False)
 
     def test_nanmedian(self):
-        self.check_funs(nanops.nanmedian, np.median,
-                        allow_complex=False, allow_str=False, allow_date=False,
-                        allow_obj='convert')
+        self.check_funs(nanops.nanmedian, np.median, allow_complex=False,
+                        allow_str=False, allow_obj='convert')
 
     def test_nanvar(self):
         self.check_funs_ddof(nanops.nanvar, np.var,
@@ -349,7 +353,6 @@ class TestnanopsDataFrame(tm.TestCase):
         func = partial(self._argminmax_wrap, func=np.argmin)
         if tm.sys.version_info[0:2] == (2, 6):
             self.check_funs(nanops.nanargmin, func,
-                            allow_date=False,
                             allow_str=False, allow_obj=False)
         else:
             self.check_funs(nanops.nanargmin, func,
