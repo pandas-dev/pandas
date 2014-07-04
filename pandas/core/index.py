@@ -523,6 +523,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def _convert_slice_indexer(self, key, typ=None):
         """ convert a slice indexer. disallow floats in the start/stop/step """
 
+        # if we are not a slice, then we are done
+        if not isinstance(key, slice):
+            return key
+
         # validate iloc
         if typ == 'iloc':
 
@@ -2008,6 +2012,11 @@ class Float64Index(Index):
     def _convert_slice_indexer(self, key, typ=None):
         """ convert a slice indexer, by definition these are labels
             unless we are iloc """
+
+        # if we are not a slice, then we are done
+        if not isinstance(key, slice):
+            return key
+
         if typ == 'iloc':
             return super(Float64Index, self)._convert_slice_indexer(key,
                                                                     typ=typ)
