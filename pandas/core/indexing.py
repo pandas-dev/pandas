@@ -348,6 +348,9 @@ class _NDFrameIndexer(object):
                             "with a different length than the value"
                         )
 
+                    # make sure we have an ndarray
+                    value = getattr(value,'values',value).ravel()
+
                     # we can directly set the series here
                     # as we select a slice indexer on the mi
                     idx = index._convert_slice_indexer(idx)
