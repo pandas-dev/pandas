@@ -661,31 +661,35 @@ class Options(object):
 
     _OPTIONS_BASE_URL = 'http://finance.yahoo.com/q/op?s={sym}'
 
-    def _get_option_tables(self, month, year, expiry):
+    def _get_option_tables(self, expiry):
+        root = self._get_option_page_from_yahoo(expiry)
+        tables = self._parse_option_page_from_yahoo(root)
+        m1 = _two_char_month(expiry.month)
+        table_name = '_tables' + m1 + str(expiry.year)[-2:]
+        setattr(self, table_name, tables)
+        return tables
 
-        year, month, expiry = self._try_parse_dates(year, month, expiry)
+    def _get_option_page_from_yahoo(self, expiry):
 
         url = self._OPTIONS_BASE_URL.format(sym=self.symbol)
 
-        if month and year:  # try to get specified month from yahoo finance
-            m1 = _two_char_month(month)
+        m1 = _two_char_month(expiry.month)
 
-            # if this month use other url
-            if month == CUR_MONTH and year == CUR_YEAR:
-                url += '+Options'
-            else:
-                url += '&m={year}-{m1}'.format(year=year, m1=m1)
-        else:  # Default to current month
+        # if this month use other url
+        if expiry.month == CUR_MONTH and expiry.year == CUR_YEAR:
             url += '+Options'
+        else:
+            url += '&m={year}-{m1}'.format(year=expiry.year, m1=m1)
 
         root = self._parse_url(url)
+        return root
+
+    def _parse_option_page_from_yahoo(self, root):
+
         tables = root.xpath('.//table')
         ntables = len(tables)
         if ntables == 0:
-            raise RemoteDataError("No tables found at {0!r}".format(url))
-
-        table_name = '_tables' + m1 + str(year)[-2:]
-        setattr(self, table_name, tables)
+            raise RemoteDataError("No tables found")
 
         try:
             self.underlying_price, self.quote_time = self._get_underlying_price(root)
@@ -723,7 +727,7 @@ class Options(object):
         try:
             tables = getattr(self, table_name)
         except AttributeError:
-            tables = self._get_option_tables(month, year, expiry)
+            tables = self._get_option_tables(expiry)
 
         ntables = len(tables)
         table_loc = self._TABLE_LOC[name]
@@ -948,6 +952,8 @@ class Options(object):
             year = CUR_YEAR
             month = CUR_MONTH
             expiry = dt.date(year, month, 1)
+        else:
+            expiry = dt.date(year, month, 1)
 
         return year, month, expiry
 
@@ -1127,7 +1133,11 @@ class Options(object):
         url = 'http://finance.yahoo.com/q/op?s={sym}'.format(sym=self.symbol)
         root = self._parse_url(url)
 
-        links = root.xpath('.//*[@id="yfncsumtab"]')[0].xpath('.//a')
+        try:
+            links = root.xpath('.//*[@id="yfncsumtab"]')[0].xpath('.//a')
+        except IndexError:
+            return RemoteDataError('Expiry months not available')
+
         month_gen = (element.attrib['href'].split('=')[-1]
                  for element in links
                  if '/q/op?s=' in element.attrib['href']
