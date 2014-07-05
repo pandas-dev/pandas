@@ -1767,7 +1767,9 @@ class AreaPlot(LinePlot):
         else:
             if self.xlim is None:
                 for ax in self.axes:
-                    ax.set_xlim(0, len(self.data)-1)
+                    lines = _get_all_lines(ax)
+                    left, right = _get_xlim(lines)
+                    ax.set_xlim(left, right)
 
         if self.ylim is None:
             if (self.data >= 0).all().all():
@@ -3083,19 +3085,10 @@ def _get_all_lines(ax):
 def _get_xlim(lines):
     left, right = np.inf, -np.inf
     for l in lines:
-        x = l.get_xdata()
-        left = min(_maybe_convert_date(x[0]), left)
-        right = max(_maybe_convert_date(x[-1]), right)
+        x = l.get_xdata(orig=False)
+        left = min(x[0], left)
+        right = max(x[-1], right)
     return left, right
-
-
-def _maybe_convert_date(x):
-    if not com.is_integer(x):
-        conv_func = conv._dt_to_float_ordinal
-        if isinstance(x, datetime.time):
-            conv_func = conv._to_ordinalf
-        x = conv_func(x)
-    return x
 
 
 if __name__ == '__main__':
