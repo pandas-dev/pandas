@@ -207,9 +207,9 @@ properties. Here are the pandas equivalents:
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-Frequency conversion is implemented using the ``resample`` method on TimeSeries
-and DataFrame objects (multiple time series). ``resample`` also works on panels
-(3D). Here is some code that resamples daily data to monthly:
+Frequency conversion is implemented using the ``resample`` method on Series
+and DataFrame objects with a DatetimeIndex or PeriodIndex. ``resample`` also
+works on panels (3D). Here is some code that resamples daily data to montly:
 
 .. ipython:: python
 
@@ -369,4 +369,3 @@ just a thin layer around the ``QTableView``.
 	    mw = MainWidget()
 	    mw.show()
 	    app.exec_()
-
