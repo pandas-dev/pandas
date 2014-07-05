@@ -9,7 +9,7 @@ Package overview
 :mod:`pandas` consists of the following things
 
  * A set of labeled array data structures, the primary of which are
-   Series/TimeSeries and DataFrame
+   Series and DataFrame
  * Index objects enabling both simple axis indexing and multi-level /
    hierarchical axis indexing
  * An integrated group by engine for aggregating and transforming data sets
@@ -32,7 +32,6 @@ Data structures at a glance
     :widths: 15, 20, 50
 
     1, Series, "1D labeled homogeneously-typed array"
-    1, TimeSeries, "Series with index containing datetimes"
     2, DataFrame, "General 2D labeled, size-mutable tabular structure with
     potentially heterogeneously-typed columns"
     3, Panel, "General 3D labeled, also size-mutable array"
