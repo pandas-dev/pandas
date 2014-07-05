@@ -965,12 +965,14 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     cdef:
         Py_ssize_t lenidx, lenbin, i, j, bc, vc
         ndarray[int64_t] bins
-        int64_t l_bin, r_bin
+        int64_t l_bin, r_bin, nat_count
         bint right_closed = closed == 'right'
 
     mask = values == iNaT
-    nat_count = values[mask].size
-    values = values[~mask]
+    nat_count = 0
+    if mask.any():
+        nat_count = np.sum(mask)
+        values = values[~mask]
 
     lenidx = len(values)
     lenbin = len(binner)
@@ -991,17 +993,22 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     bc = 0 # bin count
 
     # linear scan
-    for i in range(0, lenbin - 1):
-        l_bin = binner[i]
-        r_bin = binner[i+1]
-
-        # count values in current bin, advance to next bin
-        while j < lenidx and (values[j] < r_bin or
-                              (right_closed and values[j] == r_bin)):
-            j += 1
-
-        bins[bc] = j
-        bc += 1
+    if right_closed:
+        for i in range(0, lenbin - 1):
+            r_bin = binner[i+1]
+            # count values in current bin, advance to next bin
+            while j < lenidx and values[j] <= r_bin:
+                j += 1
+            bins[bc] = j
+            bc += 1
+    else:
+        for i in range(0, lenbin - 1):
+            r_bin = binner[i+1]
+            # count values in current bin, advance to next bin
+            while j < lenidx and values[j] < r_bin:
+                j += 1
+            bins[bc] = j
+            bc += 1
 
     if nat_count > 0:
         # shift bins by the number of NaT

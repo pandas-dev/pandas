@@ -4,6 +4,9 @@ Base and utility classes for pandas objects.
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
+import pandas.core.nanops as nanops
+import pandas.tslib as tslib
+
 
 class StringMixin(object):
 
@@ -236,13 +239,11 @@ class IndexOpsMixin(object):
 
     def max(self):
         """ The maximum value of the object """
-        import pandas.core.nanops
-        return pandas.core.nanops.nanmax(self.values)
+        return nanops.nanmax(self.values)
 
     def min(self):
         """ The minimum value of the object """
-        import pandas.core.nanops
-        return pandas.core.nanops.nanmin(self.values)
+        return nanops.nanmin(self.values)
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
@@ -406,31 +407,29 @@ class DatetimeIndexOpsMixin(object):
         """
         Overridden ndarray.min to return an object
         """
-        import pandas.tslib as tslib
-        mask = self.asi8 == tslib.iNaT
-        masked = self[~mask]
-        if len(masked) == 0:
-            return self._na_value
-        elif self.is_monotonic:
-            return masked[0]
-        else:
-            min_stamp = masked.asi8.min()
+        try:
+            mask = self.asi8 == tslib.iNaT
+            if mask.any():
+                min_stamp = self[~mask].asi8.min()
+            else:
+                min_stamp = self.asi8.min()
             return self._box_func(min_stamp)
+        except ValueError:
+            return self._na_value
 
     def max(self, axis=None):
         """
         Overridden ndarray.max to return an object
         """
-        import pandas.tslib as tslib
-        mask = self.asi8 == tslib.iNaT
-        masked = self[~mask]
-        if len(masked) == 0:
-            return self._na_value
-        elif self.is_monotonic:
-            return masked[-1]
-        else:
-            max_stamp = masked.asi8.max()
+        try:
+            mask = self.asi8 == tslib.iNaT
+            if mask.any():
+                max_stamp = self[~mask].asi8.max()
+            else:
+                max_stamp = self.asi8.max()
             return self._box_func(max_stamp)
+        except ValueError:
+            return self._na_value
 
     @property
     def _formatter_func(self):

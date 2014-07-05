@@ -3134,14 +3134,21 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     else:
         relation = START
 
-    for i in range(n):
-        if arr[i] == iNaT:
-            result[i] = iNaT
-            continue
-        val = func(arr[i], relation, &finfo)
-        if val == INT32_MIN:
-            raise ValueError("Unable to convert to desired frequency.")
-        result[i] = val
+    mask = arr == iNaT
+    if mask.any():      # NaT process
+        for i in range(n):
+            val = arr[i]
+            if val != iNaT:
+                val = func(val, relation, &finfo)
+                if val == INT32_MIN:
+                    raise ValueError("Unable to convert to desired frequency.")
+            result[i] = val
+    else:
+        for i in range(n):
+            val = func(arr[i], relation, &finfo)
+            if val == INT32_MIN:
+                raise ValueError("Unable to convert to desired frequency.")
+            result[i] = val
 
     return result
 

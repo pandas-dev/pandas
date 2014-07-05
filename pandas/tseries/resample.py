@@ -152,7 +152,8 @@ class TimeGrouper(Grouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = _get_range_edges(ax, self.freq, closed=self.closed,
+        first, last = ax.min(), ax.max()
+        first, last = _get_range_edges(first, last, self.freq, closed=self.closed,
                                        base=self.base)
         tz = ax.tz
         binner = labels = DatetimeIndex(freq=self.freq,
@@ -163,7 +164,7 @@ class TimeGrouper(Grouper):
 
         # a little hack
         trimmed = False
-        if (len(binner) > 2 and binner[-2] == ax.max() and
+        if (len(binner) > 2 and binner[-2] == last and
                 self.closed == 'right'):
 
             binner = binner[:-1]
@@ -353,11 +354,10 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise NotImplementedError
 
 
-def _get_range_edges(axis, offset, closed='left', base=0):
+def _get_range_edges(first, last, offset, closed='left', base=0):
     if isinstance(offset, compat.string_types):
         offset = to_offset(offset)
 
-    first, last = axis.min(), axis.max()
     if isinstance(offset, Tick):
         day_nanos = _delta_to_nanoseconds(timedelta(1))
         # #1165
