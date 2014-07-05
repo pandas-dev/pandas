@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string, _tz_convert_with_transitions)
+    Resolution, _tz_convert_with_transitions)
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
@@ -291,7 +291,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 tz = subarr.tz
         else:
             if tz is not None:
-                tz = tools._maybe_get_tz(tz)
+                tz = tslib.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
                         getattr(data, 'tz', None) is None):
@@ -361,10 +361,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             raise ValueError('Start and end cannot both be tz-aware with '
                              'different timezones')
 
-        inferred_tz = tools._maybe_get_tz(inferred_tz)
+        inferred_tz = tslib.maybe_get_tz(inferred_tz)
 
         # these may need to be localized
-        tz = tools._maybe_get_tz(tz, start or end)
+        tz = tslib.maybe_get_tz(tz)
+        if tz is not None:
+            date = start or end
+            if date.tzinfo is not None and hasattr(tz, 'localize'):
+                tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
             if not inferred_tz == tz:
@@ -477,7 +481,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         result = values.view(cls)
         result.name = name
         result.offset = freq
-        result.tz = tools._maybe_get_tz(tz)
+        result.tz = tslib.maybe_get_tz(tz)
 
         return result
 
@@ -1620,7 +1624,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         normalized : DatetimeIndex
         """
-        tz = tools._maybe_get_tz(tz)
+        tz = tslib.maybe_get_tz(tz)
 
         if self.tz is None:
             # tz naive, use tz_localize
@@ -1648,7 +1652,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if self.tz is not None:
             raise TypeError("Already tz-aware, use tz_convert to convert.")
-        tz = tools._maybe_get_tz(tz)
+        tz = tslib.maybe_get_tz(tz)
 
         # Convert to UTC
         new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)

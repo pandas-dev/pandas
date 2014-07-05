@@ -15,7 +15,7 @@ from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
 from pandas.tseries.tools import to_datetime
-import pandas.tseries.period as pmod
+import pandas.tseries.period as period
 
 import pandas.core.datetools as datetools
 import pandas as pd
@@ -508,7 +508,7 @@ class TestPeriodProperties(tm.TestCase):
     def test_pnow(self):
         dt = datetime.now()
 
-        val = pmod.pnow('D')
+        val = period.pnow('D')
         exp = Period(dt, freq='D')
         self.assertEqual(val, exp)
 

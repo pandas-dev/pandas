@@ -5,12 +5,11 @@ from datetime import datetime, date
 import numpy as np
 from pandas.core.base import PandasObject
 
-from pandas.tseries.frequencies import (get_freq_code as _gfc,
-                                        _month_numbers, FreqGroup)
+import pandas.tseries.frequencies as frequencies
+from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
-import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
@@ -116,7 +115,7 @@ class Period(PandasObject):
             dt, _, reso = parse_time_string(value, freq)
             if freq is None:
                 try:
-                    freq = _freq_mod.Resolution.get_freq(reso)
+                    freq = frequencies.Resolution.get_freq(reso)
                 except KeyError:
                     raise ValueError("Invalid frequency or could not infer: %s" % reso)
 
@@ -142,7 +141,7 @@ class Period(PandasObject):
                                                 dt.hour, dt.minute, dt.second, dt.microsecond, 0,
                                                 base)
 
-        self.freq = _freq_mod._get_freq_str(base)
+        self.freq = frequencies._get_freq_str(base)
 
     def __eq__(self, other):
         if isinstance(other, Period):
@@ -267,7 +266,7 @@ class Period(PandasObject):
 
         if freq is None:
             base, mult = _gfc(self.freq)
-            freq = _freq_mod.get_to_timestamp_base(base)
+            freq = frequencies.get_to_timestamp_base(base)
 
         base, mult = _gfc(freq)
         val = self.asfreq(freq, how)
@@ -296,7 +295,7 @@ class Period(PandasObject):
     def __repr__(self):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
-        freqstr = _freq_mod._reverse_period_code_map[base]
+        freqstr = frequencies._reverse_period_code_map[base]
 
         if not compat.PY3:
             encoding = com.get_option("display.encoding")
@@ -577,7 +576,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 quarter=None, day=None, hour=None, minute=None, second=None,
                 tz=None):
 
-        freq = _freq_mod.get_standard_freq(freq)
+        freq = frequencies.get_standard_freq(freq)
 
         if periods is not None:
             if com.is_float(periods):
@@ -767,7 +766,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
 
-        freq = _freq_mod.get_standard_freq(freq)
+        freq = frequencies.get_standard_freq(freq)
 
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
@@ -845,7 +844,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if freq is None:
             base, mult = _gfc(self.freq)
-            freq = _freq_mod.get_to_timestamp_base(base)
+            freq = frequencies.get_to_timestamp_base(base)
 
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
@@ -889,8 +888,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = _freq_mod._infer_period_group(reso)
-                freqn = _freq_mod._period_group(self.freq)
+                grp = frequencies._infer_period_group(reso)
+                freqn = frequencies._period_group(self.freq)
 
                 vals = self.values
 
@@ -978,8 +977,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         key, parsed, reso = parse_time_string(key, self.freq)
 
-        grp = _freq_mod._infer_period_group(reso)
-        freqn = _freq_mod._period_group(self.freq)
+        grp = frequencies._infer_period_group(reso)
+        freqn = frequencies._period_group(self.freq)
 
         if reso == 'year':
             t1 = Period(year=parsed.year, freq='A')
@@ -1216,12 +1215,12 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
     if quarter is not None:
         if freq is None:
             freq = 'Q'
-            base = FreqGroup.FR_QTR
+            base = frequencies.FreqGroup.FR_QTR
         else:
             base, mult = _gfc(freq)
             if mult != 1:
                 raise ValueError('Only mult == 1 supported')
-            if base != FreqGroup.FR_QTR:
+            if base != frequencies.FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
         year, quarter = _make_field_arrays(year, quarter)
@@ -1273,7 +1272,7 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
+        mnum = frequencies._month_numbers[frequencies._get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1

@@ -56,20 +56,6 @@ def _infer_tzinfo(start, end):
     return tz
 
 
-def _maybe_get_tz(tz, date=None):
-    tz = tslib.maybe_get_tz(tz)
-    if com.is_integer(tz):
-        import pytz
-        tz = pytz.FixedOffset(tz / 60)
-
-    # localize and get the tz
-    if date is not None and tz is not None:
-        if date.tzinfo is not None and hasattr(tz,'localize'):
-            tz = tz.localize(date.replace(tzinfo=None)).tzinfo
-
-    return tz
-
-
 def _guess_datetime_format(dt_str, dayfirst=False,
                            dt_str_parse=compat.parse_date,
                            dt_str_split=_DATEUTIL_LEXER_SPLIT):

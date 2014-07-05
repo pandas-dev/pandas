@@ -9,9 +9,9 @@ import numpy as np
 
 from pandas import Index, DatetimeIndex, Timestamp, Series, date_range, period_range
 
-from pandas.tseries.frequencies import to_offset, infer_freq
+import pandas.tseries.frequencies as frequencies
 from pandas.tseries.tools import to_datetime
-import pandas.tseries.frequencies as fmod
+
 import pandas.tseries.offsets as offsets
 from pandas.tseries.period import PeriodIndex
 import pandas.compat as compat
@@ -23,40 +23,40 @@ def test_to_offset_multiple():
     freqstr = '2h30min'
     freqstr2 = '2h 30min'
 
-    result = to_offset(freqstr)
-    assert(result == to_offset(freqstr2))
+    result = frequencies.to_offset(freqstr)
+    assert(result == frequencies.to_offset(freqstr2))
     expected = offsets.Minute(150)
     assert(result == expected)
 
     freqstr = '2h30min15s'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     expected = offsets.Second(150 * 60 + 15)
     assert(result == expected)
 
     freqstr = '2h 60min'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     expected = offsets.Hour(3)
     assert(result == expected)
 
     freqstr = '15l500u'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     expected = offsets.Micro(15500)
     assert(result == expected)
 
     freqstr = '10s75L'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     expected = offsets.Milli(10075)
     assert(result == expected)
 
     if not _np_version_under1p7:
         freqstr = '2800N'
-        result = to_offset(freqstr)
+        result = frequencies.to_offset(freqstr)
         expected = offsets.Nano(2800)
         assert(result == expected)
 
     # malformed
     try:
-        to_offset('2h20m')
+        frequencies.to_offset('2h20m')
     except ValueError:
         pass
     else:
@@ -65,31 +65,31 @@ def test_to_offset_multiple():
 
 def test_to_offset_negative():
     freqstr = '-1S'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     assert(result.n == -1)
 
     freqstr = '-5min10s'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     assert(result.n == -310)
 
 
 def test_to_offset_leading_zero():
     freqstr = '00H 00T 01S'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     assert(result.n == 1)
 
     freqstr = '-00H 03T 14S'
-    result = to_offset(freqstr)
+    result = frequencies.to_offset(freqstr)
     assert(result.n == -194)
 
 
 def test_anchored_shortcuts():
-    result = to_offset('W')
-    expected = to_offset('W-SUN')
+    result = frequencies.to_offset('W')
+    expected = frequencies.to_offset('W-SUN')
     assert(result == expected)
 
-    result = to_offset('Q')
-    expected = to_offset('Q-DEC')
+    result = frequencies.to_offset('Q')
+    expected = frequencies.to_offset('Q-DEC')
     assert(result == expected)
 
 
@@ -100,26 +100,26 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
-        self.assertRaises(TypeError, infer_freq, index)
+        self.assertRaises(TypeError, frequencies.infer_freq, index)
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])
-        self.assertRaises(ValueError, infer_freq, index)
+        self.assertRaises(ValueError, frequencies.infer_freq, index)
 
     def test_business_daily(self):
         index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
-        self.assertEqual(infer_freq(index), 'B')
+        self.assertEqual(frequencies.infer_freq(index), 'B')
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
 
     def test_day_corner(self):
         index = _dti(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assertEqual(infer_freq(index), 'D')
+        self.assertEqual(frequencies.infer_freq(index), 'D')
 
     def test_non_datetimeindex(self):
         dates = to_datetime(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assertEqual(infer_freq(dates), 'D')
+        self.assertEqual(frequencies.infer_freq(dates), 'D')
 
     def test_hour(self):
         self._check_tick(timedelta(hours=1), 'H')
@@ -149,15 +149,15 @@ class TestFrequencyInference(tm.TestCase):
                 exp_freq = '%d%s' % (i, code)
             else:
                 exp_freq = code
-            self.assertEqual(infer_freq(index), exp_freq)
+            self.assertEqual(frequencies.infer_freq(index), exp_freq)
 
         index = _dti([b + base_delta * 7] +
                      [b + base_delta * j for j in range(3)])
-        self.assertIsNone(infer_freq(index))
+        self.assertIsNone(frequencies.infer_freq(index))
 
         index = _dti([b + base_delta * j for j in range(3)] +
                      [b + base_delta * 7])
-        self.assertIsNone(infer_freq(index))
+        self.assertIsNone(frequencies.infer_freq(index))
 
     def test_weekly(self):
         days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -175,7 +175,7 @@ class TestFrequencyInference(tm.TestCase):
     def test_week_of_month_fake(self):
         #All of these dates are on same day of week and are 4 or 5 weeks apart
         index = DatetimeIndex(["2013-08-27","2013-10-01","2013-10-29","2013-11-26"])
-        assert infer_freq(index) != 'WOM-4TUE'
+        assert frequencies.infer_freq(index) != 'WOM-4TUE'
 
     def test_monthly(self):
         self._check_generated_range('1/1/2000', 'M')
@@ -212,9 +212,9 @@ class TestFrequencyInference(tm.TestCase):
         gen = date_range(start, periods=7, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
-            self.assertEqual(infer_freq(index), gen.freqstr)
+            self.assertEqual(frequencies.infer_freq(index), gen.freqstr)
         else:
-            inf_freq = infer_freq(index)
+            inf_freq = frequencies.infer_freq(index)
             self.assertTrue((inf_freq == 'Q-DEC' and
                              gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
                                              'Q-MAR'))
@@ -228,9 +228,9 @@ class TestFrequencyInference(tm.TestCase):
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
-            self.assertEqual(infer_freq(index), gen.freqstr)
+            self.assertEqual(frequencies.infer_freq(index), gen.freqstr)
         else:
-            inf_freq = infer_freq(index)
+            inf_freq = frequencies.infer_freq(index)
             self.assertTrue((inf_freq == 'Q-DEC' and
                              gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
                                              'Q-MAR'))
@@ -281,7 +281,7 @@ class TestFrequencyInference(tm.TestCase):
 
         vals = rng.to_pydatetime()
 
-        result = infer_freq(vals)
+        result = frequencies.infer_freq(vals)
         self.assertEqual(result, rng.inferred_freq)
 
     def test_invalid_index_types(self):
@@ -290,17 +290,17 @@ class TestFrequencyInference(tm.TestCase):
         for i in [ tm.makeIntIndex(10),
                    tm.makeFloatIndex(10),
                    tm.makePeriodIndex(10) ]:
-            self.assertRaises(TypeError, lambda : infer_freq(i))
+            self.assertRaises(TypeError, lambda : frequencies.infer_freq(i))
 
         for i in [ tm.makeStringIndex(10),
                    tm.makeUnicodeIndex(10) ]:
-            self.assertRaises(ValueError, lambda : infer_freq(i))
+            self.assertRaises(ValueError, lambda : frequencies.infer_freq(i))
 
     def test_string_datetimelike_compat(self):
 
         # GH 6463
-        expected = infer_freq(['2004-01', '2004-02', '2004-03', '2004-04'])
-        result = infer_freq(Index(['2004-01', '2004-02', '2004-03', '2004-04']))
+        expected = frequencies.infer_freq(['2004-01', '2004-02', '2004-03', '2004-04'])
+        result = frequencies.infer_freq(Index(['2004-01', '2004-02', '2004-03', '2004-04']))
         self.assertEqual(result,expected)
 
     def test_series(self):
@@ -311,24 +311,24 @@ class TestFrequencyInference(tm.TestCase):
         # invalid type of Series
         for s in [ Series(np.arange(10)),
                    Series(np.arange(10.))]:
-            self.assertRaises(TypeError, lambda : infer_freq(s))
+            self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
 
         # a non-convertible string
-        self.assertRaises(ValueError, lambda : infer_freq(Series(['foo','bar'])))
+        self.assertRaises(ValueError, lambda : frequencies.infer_freq(Series(['foo','bar'])))
 
         # cannot infer on PeriodIndex
         for freq in [None, 'L', 'Y']:
             s = Series(period_range('2013',periods=10,freq=freq))
-            self.assertRaises(TypeError, lambda : infer_freq(s))
+            self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
 
         # DateTimeIndex
         for freq in ['M', 'L', 'S']:
             s = Series(date_range('20130101',periods=10,freq=freq))
-            inferred = infer_freq(s)
+            inferred = frequencies.infer_freq(s)
             self.assertEqual(inferred,freq)
 
         s = Series(date_range('20130101','20130110'))
-        inferred = infer_freq(s)
+        inferred = frequencies.infer_freq(s)
         self.assertEqual(inferred,'D')
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
@@ -336,20 +336,20 @@ MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
 
 
 def test_is_superperiod_subperiod():
-    assert(fmod.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
-    assert(fmod.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
+    assert(frequencies.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
+    assert(frequencies.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
 
-    assert(fmod.is_superperiod(offsets.Hour(), offsets.Minute()))
-    assert(fmod.is_subperiod(offsets.Minute(), offsets.Hour()))
+    assert(frequencies.is_superperiod(offsets.Hour(), offsets.Minute()))
+    assert(frequencies.is_subperiod(offsets.Minute(), offsets.Hour()))
 
-    assert(fmod.is_superperiod(offsets.Second(), offsets.Milli()))
-    assert(fmod.is_subperiod(offsets.Milli(), offsets.Second()))
+    assert(frequencies.is_superperiod(offsets.Second(), offsets.Milli()))
+    assert(frequencies.is_subperiod(offsets.Milli(), offsets.Second()))
 
-    assert(fmod.is_superperiod(offsets.Milli(), offsets.Micro()))
-    assert(fmod.is_subperiod(offsets.Micro(), offsets.Milli()))
+    assert(frequencies.is_superperiod(offsets.Milli(), offsets.Micro()))
+    assert(frequencies.is_subperiod(offsets.Micro(), offsets.Milli()))
 
-    assert(fmod.is_superperiod(offsets.Micro(), offsets.Nano()))
-    assert(fmod.is_subperiod(offsets.Nano(), offsets.Micro()))
+    assert(frequencies.is_superperiod(offsets.Micro(), offsets.Nano()))
+    assert(frequencies.is_subperiod(offsets.Nano(), offsets.Micro()))
 
 
 if __name__ == '__main__':

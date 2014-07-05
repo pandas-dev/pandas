@@ -15,7 +15,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame,
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
-import pandas.tseries.frequencies as fmod
+import pandas.tseries.frequencies as frequencies
 import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -28,7 +28,6 @@ import pandas.tslib as tslib
 import pandas.index as _index
 
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
-import pandas.core.datetools as dt
 from numpy.random import rand
 from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
@@ -2961,7 +2960,7 @@ class TestDatetime64(tm.TestCase):
         edate = datetime(2000, 1, 1)
         idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
         self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[0], sdate + 0 * dt.bday)
+        self.assertEqual(idx[0], sdate + 0 * datetools.bday)
         self.assertEqual(idx.freq, 'B')
 
         idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
@@ -2971,19 +2970,19 @@ class TestDatetime64(tm.TestCase):
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=dt.Week(weekday=6))
+                             freq=datetools.Week(weekday=6))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=dt.QuarterBegin(startingMonth=1))
+                             freq=datetools.QuarterBegin(startingMonth=1))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=dt.BQuarterEnd(startingMonth=12))
+                             freq=datetools.BQuarterEnd(startingMonth=12))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
@@ -3474,31 +3473,31 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(result.nanosecond, val.nanosecond)
 
     def test_frequency_misc(self):
-        self.assertEqual(fmod.get_freq_group('T'),
-                          fmod.FreqGroup.FR_MIN)
+        self.assertEqual(frequencies.get_freq_group('T'),
+                          frequencies.FreqGroup.FR_MIN)
 
-        code, stride = fmod.get_freq_code(offsets.Hour())
-        self.assertEqual(code, fmod.FreqGroup.FR_HR)
+        code, stride = frequencies.get_freq_code(offsets.Hour())
+        self.assertEqual(code, frequencies.FreqGroup.FR_HR)
 
-        code, stride = fmod.get_freq_code((5, 'T'))
-        self.assertEqual(code, fmod.FreqGroup.FR_MIN)
+        code, stride = frequencies.get_freq_code((5, 'T'))
+        self.assertEqual(code, frequencies.FreqGroup.FR_MIN)
         self.assertEqual(stride, 5)
 
         offset = offsets.Hour()
-        result = fmod.to_offset(offset)
+        result = frequencies.to_offset(offset)
         self.assertEqual(result, offset)
 
-        result = fmod.to_offset((5, 'T'))
+        result = frequencies.to_offset((5, 'T'))
         expected = offsets.Minute(5)
         self.assertEqual(result, expected)
 
-        self.assertRaises(ValueError, fmod.get_freq_code, (5, 'baz'))
+        self.assertRaises(ValueError, frequencies.get_freq_code, (5, 'baz'))
 
-        self.assertRaises(ValueError, fmod.to_offset, '100foo')
+        self.assertRaises(ValueError, frequencies.to_offset, '100foo')
 
-        self.assertRaises(ValueError, fmod.to_offset, ('', ''))
+        self.assertRaises(ValueError, frequencies.to_offset, ('', ''))
 
-        result = fmod.get_standard_freq(offsets.Hour())
+        result = frequencies.get_standard_freq(offsets.Hour())
         self.assertEqual(result, 'H')
 
     def test_hash_equivalent(self):
@@ -3936,7 +3935,7 @@ class TimeConversionFormats(tm.TestCase):
         val = '01-Apr-2011 00:00:01.978'
         format = '%d-%b-%Y %H:%M:%S.%f'
         result = to_datetime(val, format=format)
-        exp = dt.datetime.strptime(val, format)
+        exp = datetime.strptime(val, format)
         self.assertEqual(result, exp)
 
     def test_to_datetime_format_time(self):
