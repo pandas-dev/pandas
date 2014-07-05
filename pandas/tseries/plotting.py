@@ -9,6 +9,8 @@ import numpy as np
 
 from matplotlib import pylab
 from pandas.tseries.period import Period
+import numpy as np
+
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.index import DatetimeIndex
@@ -41,17 +43,13 @@ def tsplot(series, plotf, ax=None, **kwargs):
         import matplotlib.pyplot as plt
         ax = plt.gca()
 
-    freq, series = _maybe_resample(series, ax, kwargs)
-
-    # Set ax with freq info
-    _decorate_axes(ax, freq, kwargs)
+    series = _maybe_resample(series, ax, kwargs)
     ax._plot_data.append((series, plotf, kwargs))
     lines = plotf(ax, series.index._mpl_repr(), series.values, **kwargs)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
     return lines
-
 
 def _maybe_resample(series, ax, kwargs):
     # resample against axes freq if necessary
@@ -75,11 +73,20 @@ def _maybe_resample(series, ax, kwargs):
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
-            _upsample_others(ax, freq, kwargs)
+            _upsample_others(ax, freq)
             ax_freq = freq
         else:  # pragma: no cover
             raise ValueError('Incompatible frequency conversion')
-    return freq, series
+
+    # Set ax with freq info
+    _decorate_axes(ax, freq)
+    # digging deeper
+    if hasattr(ax, 'left_ax'):
+        _decorate_axes(ax.left_ax, freq)
+    elif hasattr(ax, 'right_ax'):
+        _decorate_axes(ax.right_ax, freq)
+
+    return series
 
 
 def _is_sub(f1, f2):
@@ -92,61 +99,84 @@ def _is_sup(f1, f2):
             (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
 
 
-def _upsample_others(ax, freq, kwargs):
-    legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, kwargs)
-    _replot_ax(ax, freq, kwargs)
-
-    other_ax = None
-    if hasattr(ax, 'left_ax'):
-        other_ax = ax.left_ax
-    if hasattr(ax, 'right_ax'):
-        other_ax = ax.right_ax
-
-    if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, kwargs)
-        lines.extend(rlines)
-        labels.extend(rlabels)
-
-    if (legend is not None and kwargs.get('legend', True) and
-            len(lines) > 0):
-        title = legend.get_title().get_text()
-        if title == 'None':
-            title = None
-        ax.legend(lines, labels, loc='best', title=title)
+def _get_plot_func(plotf):
+    """ get actual function when plotf is specified with str """
+    # for tsplot
+    if isinstance(plotf, compat.string_types):
+        from pandas.tools.plotting import _plot_klass
+        plotf = _plot_klass[plotf]._plot
+    return plotf
 
 
-def _replot_ax(ax, freq, kwargs):
-    data = getattr(ax, '_plot_data', None)
+def _upsample_others(ax, freq):
 
-    # clear current axes and data
-    ax._plot_data = []
-    ax.clear()
+    def _replot(ax):
+        data = getattr(ax, '_plot_data', None)
+        if data is None:
+            return
 
-    _decorate_axes(ax, freq, kwargs)
+        # preserve legend
+        leg = ax.get_legend()
+        handles, labels = ax.get_legend_handles_labels()
 
-    lines = []
-    labels = []
-    if data is not None:
+        ax._plot_data = []
+        ax.clear()
+        _decorate_axes(ax, freq)
+
         for series, plotf, kwds in data:
             series = series.copy()
-            idx = series.index.asfreq(freq, how='S')
+            idx = series.index.asfreq(freq, how='s')
             series.index = idx
             ax._plot_data.append((series, plotf, kwds))
 
-            # for tsplot
-            if isinstance(plotf, compat.string_types):
-                from pandas.tools.plotting import _plot_klass
-                plotf = _plot_klass[plotf]._plot
-
-            lines.append(plotf(ax, series.index._mpl_repr(),
-                               series.values, **kwds)[0])
-            labels.append(pprint_thing(series.name))
-
-    return lines, labels
+            plotf = _get_plot_func(plotf)
+            plotf(ax, series.index._mpl_repr(), series.values, **kwds)
 
 
-def _decorate_axes(ax, freq, kwargs):
+        if leg is not None:
+            ax.legend(handles, labels, title=leg.get_title().get_text())
+
+    _replot(ax)
+    if hasattr(ax, 'left_ax'):
+        _replot(ax.left_ax)
+    elif hasattr(ax, 'right_ax'):
+        _replot(ax.right_ax)
+
+
+def _replot_x_compat(ax):
+
+    def _replot(ax):
+        data = getattr(ax, '_plot_data', None)
+        if data is None:
+            return
+
+        # preserve legend
+        leg = ax.get_legend()
+        handles, labels = ax.get_legend_handles_labels()
+
+        ax._plot_data = None
+        ax.clear()
+
+        _decorate_axes(ax, None)
+
+        for series, plotf, kwds in data:
+            idx = series.index.to_timestamp(how='s')
+            series.index = idx
+
+            plotf = _get_plot_func(plotf)
+            plotf(ax, series.index._mpl_repr(), series, **kwds)
+
+        if leg is not None:
+            ax.legend(handles, labels, title=leg.get_title().get_text())
+
+    _replot(ax)
+    if hasattr(ax, 'left_ax'):
+        _replot(ax.left_ax)
+    elif hasattr(ax, 'right_ax'):
+        _replot(ax.right_ax)
+
+
+def _decorate_axes(ax, freq):
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, '_plot_data'):
         ax._plot_data = []
@@ -154,19 +184,27 @@ def _decorate_axes(ax, freq, kwargs):
     ax.freq = freq
     xaxis = ax.get_xaxis()
     xaxis.freq = freq
-    if not hasattr(ax, 'legendlabels'):
-        ax.legendlabels = [kwargs.get('label', None)]
-    else:
-        ax.legendlabels.append(kwargs.get('label', None))
     ax.view_interval = None
     ax.date_axis_info = None
 
 
-def _get_freq(ax, series):
-    # get frequency from data
-    freq = getattr(series.index, 'freq', None)
+def _get_index_freq(data):
+    freq = getattr(data.index, 'freq', None)
     if freq is None:
-        freq = getattr(series.index, 'inferred_freq', None)
+        freq = getattr(data.index, 'inferred_freq', None)
+        if freq == 'B':
+            weekdays = np.unique(data.index.dayofweek)
+            if (5 in weekdays) or (6 in weekdays):
+                freq = None
+    return freq
+
+
+def _get_freq(ax, data):
+    # get frequency from data
+    freq = getattr(data.index, 'freq', None)
+
+    if freq is None:
+        freq = getattr(data.index, 'inferred_freq', None)
 
     ax_freq = getattr(ax, 'freq', None)
     if ax_freq is None:
@@ -175,17 +213,17 @@ def _get_freq(ax, series):
         elif hasattr(ax, 'right_ax'):
             ax_freq = getattr(ax.right_ax, 'freq', None)
 
-    # use axes freq if no data freq
-    if freq is None:
-        freq = ax_freq
+    if freq is not None:
+        # get the period frequency
+        if isinstance(freq, DateOffset):
+            freq = freq.rule_code
+        else:
+            freq = frequencies.get_base_alias(freq)
 
-    # get the period frequency
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = frequencies.get_base_alias(freq)
+        if freq is None:
+            raise ValueError('Could not get frequency alias for plotting')
+        freq = frequencies.get_period_alias(freq)
 
-    freq = frequencies.get_period_alias(freq)
     return freq, ax_freq
 
 

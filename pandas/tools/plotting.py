@@ -1665,21 +1665,35 @@ class LinePlot(MPLPlot):
 
     def _is_ts_plot(self):
         # this is slightly deceptive
-        return not self.x_compat and self.use_index and self._use_dynamic_x()
-
-    def _use_dynamic_x(self):
-        from pandas.tseries.plotting import _use_dynamic_x
-        return _use_dynamic_x(self._get_ax(0), self.data)
+        from pandas.tseries.plotting import _use_dynamic_x, _get_freq
+        ax = self._get_ax(0)
+        freq, ax_freq = _get_freq(ax, self.data)
+        dynamic_x = _use_dynamic_x(ax, self.data)
+        return (not self.x_compat and self.use_index and
+                dynamic_x and freq is not None)
 
     def _make_plot(self):
         if self._is_ts_plot():
+            print('tsplot-path!!')
             from pandas.tseries.plotting import _maybe_convert_index
             data = _maybe_convert_index(self._get_ax(0), self.data)
+
+            from pandas.tseries.plotting import _maybe_resample
+            for ax in self.axes:
+                # resample data and replot if required
+                kwds = self.kwds.copy()
+                data = _maybe_resample(data, ax, kwds)
 
             x = data.index      # dummy, not used
             plotf = self._ts_plot
             it = self._iter_data(data=data, keep_index=True)
         else:
+            print('xcompat-path!!')
+            from pandas.tseries.plotting import _replot_x_compat
+            for ax in self.axes:
+                # if ax holds _plot_data, replot them on the x_compat scale
+                _replot_x_compat(ax)
+
             x = self._get_xticks(convert_period=True)
             plotf = self._plot
             it = self._iter_data()
@@ -1723,24 +1737,15 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
-        from pandas.tseries.plotting import (_maybe_resample,
-                                             _decorate_axes,
-                                             format_dateaxis)
+        from pandas.tseries.plotting import _maybe_resample, format_dateaxis
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = _maybe_resample(data, ax, kwds)
 
-        # Set ax with freq info
-        _decorate_axes(ax, freq, kwds)
-        # digging deeper
-        if hasattr(ax, 'left_ax'):
-            _decorate_axes(ax.left_ax, freq, kwds)
-        if hasattr(ax, 'right_ax'):
-            _decorate_axes(ax.right_ax, freq, kwds)
+        data = _maybe_resample(data, ax, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
-
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
+
         # set date formatter, locators and rescale limits
         format_dateaxis(ax, ax.freq)
         return lines
@@ -1790,14 +1795,9 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
-        condition = (not self._use_dynamic_x() and
-                     data.index.is_all_dates and
-                     not self.subplots or
-                     (self.subplots and self.sharex))
-
         index_name = self._get_index_name()
 
-        if condition:
+        if not self._is_ts_plot():
             # irregular TS rotated 30 deg. by default
             # probably a better place to check / set this.
             if not self._rot_set:
