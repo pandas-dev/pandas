@@ -829,6 +829,14 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object),
                         "BoolColWithNull loaded with incorrect type")
 
+    def test_bigint(self):
+        # int64 should be converted to BigInteger, GH7433
+        df = DataFrame(data={'i64':[2**62]})
+        df.to_sql('test_bigint', self.conn, index=False)
+        result = sql.read_sql_table('test_bigint', self.conn)
+
+        tm.assert_frame_equal(df, result)
+
     def test_default_date_load(self):
         df = sql.read_sql_table("types_test_data", self.conn)
 

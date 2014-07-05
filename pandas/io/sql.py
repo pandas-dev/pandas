@@ -700,7 +700,8 @@ class PandasSQLTable(PandasObject):
                 pass  # this column not in results
 
     def _sqlalchemy_type(self, arr_or_dtype):
-        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date, Interval
+        from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
+            DateTime, Date, Interval)
 
         if arr_or_dtype is date:
             return Date
@@ -714,12 +715,12 @@ class PandasSQLTable(PandasObject):
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
                           "database.", UserWarning)
-            return Integer
+            return BigInteger
         elif com.is_float_dtype(arr_or_dtype):
             return Float
         elif com.is_integer_dtype(arr_or_dtype):
             # TODO: Refine integer size.
-            return Integer
+            return BigInteger
         elif com.is_bool(arr_or_dtype):
             return Boolean
         return Text
