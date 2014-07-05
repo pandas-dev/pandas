@@ -2911,6 +2911,8 @@ Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow
 you to reuse previously deleted space. Aalternatively, one can simply
 remove the file and write again, or use the ``copy`` method.
 
+.. _io.hdf5-notes:
+
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
@@ -2933,6 +2935,13 @@ Notes & Caveats
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
      of the elements in that axis or by passing the parameter
+   - Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``) 
+     are not necessarily equal across timezone versions.  So if data is
+     localized to a specific timezone in the HDFStore using one version
+     of a timezone library and that data is updated with another version, the data
+     will be converted to UTC since these timezones are not considered
+     equal.  Either use the same version of timezone library or use ``tz_convert`` with
+     the updated timezone definition.
 
 .. warning::
 

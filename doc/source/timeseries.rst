@@ -1342,7 +1342,14 @@ tz-aware data to another time zone:
 
 	Be wary of conversions between libraries. For some zones ``pytz`` and ``dateutil`` have different
 	definitions of the zone. This is more of a problem for unusual timezones than for
-	'standard' zones like ``US/Eastern``.
+	'standard' zones like ``US/Eastern``.  
+
+.. warning:: 
+
+       Be aware that a timezone definition across versions of timezone libraries may not 
+       be considered equal.  This may cause problems when working with stored data that 
+       is localized using one version and operated on with a different version.  
+       See :ref:`here<io.hdf5-notes>` for how to handle such a situation.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
