@@ -630,19 +630,19 @@ default:
 
    DataFrame(randn(3, 12))
 
-You can change how much to print on a single row by setting the ``line_width``
+You can change how much to print on a single row by setting the ``display.width``
 option:
 
 .. ipython:: python
 
-   set_option('line_width', 40) # default is 80
+   set_option('display.width', 40) # default is 80
 
    DataFrame(randn(3, 12))
 
 .. ipython:: python
    :suppress:
 
-   reset_option('line_width')
+   reset_option('display.width')
 
 You can also disable this feature via the ``expand_frame_repr`` option.
 This will print the table in one block.
