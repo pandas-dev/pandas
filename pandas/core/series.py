@@ -897,7 +897,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Categorical
         if com.is_categorical_dtype(self.dtype):
             level_info = self.cat._repr_level_info()
-            return u('%sLength: %d\n%s') % (namestr, len(self),level_info)
+            return u('%sLength: %d, dtype: %s\n%s') % (namestr,
+                                                       len(self),
+                                                       str(self.dtype.name),
+                                                       level_info)
 
         # reg series
         return u('%sLength: %d, dtype: %s') % (namestr,

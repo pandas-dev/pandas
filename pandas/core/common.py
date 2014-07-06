@@ -128,6 +128,38 @@ class CategoricalDtype(object):
     def __unicode__(self):
         return self.name
 
+    def __str__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular object.
+
+        Invoked by bytes(obj) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        from pandas.core.config import get_option
+
+        encoding = get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular object.
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
+
     def __hash__(self):
         # make myself hashable
         return hash(str(self))

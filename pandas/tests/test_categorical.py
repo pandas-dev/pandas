@@ -778,21 +778,21 @@ class TestCategoricalAsBlock(tm.TestCase):
     def test_repr(self):
         a = pd.Series(pd.Categorical([1,2,3,4], name="a"))
         exp = u("0    1\n1    2\n2    3\n3    4\n" +
-              "Name: a\nLevels (4, int64): [1 < 2 < 3 < 4]")
+              "Name: a, dtype: category\nLevels (4, int64): [1 < 2 < 3 < 4]")
 
         self.assertEqual(exp, a.__unicode__())
 
         a = pd.Series(pd.Categorical(["a","b"] *25, name="a"))
         exp = u("".join(["%s    a\n%s    b\n"%(i,i+1) for i in range(0,10,2)]) + "...\n" +
                 "".join(["%s    a\n%s    b\n"%(i,i+1) for i in range(40,50,2)]) +
-                "Name: a, Length: 50\n" +
+                "Name: a, Length: 50, dtype: category\n" +
                 "Levels (2, object): [a < b]")
         self.assertEqual(exp,a._tidy_repr())
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = pd.Series(pd.Categorical(["a","b"], name="a", levels=levs))
         exp = u("0    a\n1    b\n" +
-                "Name: a\n"
+                "Name: a, dtype: category\n"
                 "Levels (26, object): [a < b < c < d ... w < x < y < z]")
         self.assertEqual(exp,a.__unicode__())
 

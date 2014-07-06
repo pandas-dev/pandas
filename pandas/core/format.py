@@ -167,8 +167,7 @@ class SeriesFormatter(object):
             footer += 'Length: %d' % len(self.series)
 
         # TODO: in tidy_repr, with freq index, no dtype is shown -> also include a guard here?
-        # tidy_repr does not show a dtype for categorical, so do the same here
-        if self.dtype and not com.is_categorical_dtype(self.series.dtype):
+        if self.dtype:
             name = getattr(self.series.dtype, 'name', None)
             if name:
                 if footer:
