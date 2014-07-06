@@ -1,0 +1,47 @@
+
+
+import numpy as np
+import pandas as pd
+from string import *
+import matplotlib.pyplot as plt
+get_ipython().magic(u'matplotlib inline')
+
+
+
+data = pd.ExcelFile('/file/path/troopMarch2005.xls')
+#Data Taken from http://www.heritage.org/research/reports/2004/10/global-us-troop-deployment-1950-2003
+
+data.sheet_names
+
+
+df = data.parse('DATA')
+
+#Bar plot given year
+def Barhplot(column):
+    y_pos = np.arange(len(df[df.columns[column]]))
+    plt.figure(figsize=(10,200))
+    plt.barh(y_pos,df[df.columns[column]],xerr=10000,alpha = 0.4,linewidth = 3)
+    plt.yticks(y_pos,df.Country)
+    plt.xlabel('troops deployed 2005',size = 'xx-large')
+    
+    plt.show()
+
+#Scatter plot
+def Warplot(x):
+    years = np.arange(1950,2005)
+    plt.figure(figsize=(10,10))
+    data = df.xs(x)
+    plt.scatter(years,data[2:57])
+    plt.plot(years,data[2:57],'r--')
+    plt.title(df.iloc[x,1],size='xx-large').set_backgroundcolor('y')
+    plt.ylabel('Troops deployed',size='xx-large')
+    plt.xlabel('Years',size='xx-large')
+    
+    plt.grid(True)
+    plt.show()
+
+
+
+
+
+
