@@ -30,20 +30,40 @@ class FreqGroup(object):
 
 class Resolution(object):
 
-    RESO_US = 0
-    RESO_SEC = 1
-    RESO_MIN = 2
-    RESO_HR = 3
-    RESO_DAY = 4
+    RESO_US = tslib.US_RESO
+    RESO_MS = tslib.MS_RESO
+    RESO_SEC = tslib.S_RESO
+    RESO_MIN = tslib.T_RESO
+    RESO_HR = tslib.H_RESO
+    RESO_DAY = tslib.D_RESO
+
+    _reso_str_map = {
+    RESO_US: 'microsecond',
+    RESO_MS: 'millisecond',
+    RESO_SEC: 'second',
+    RESO_MIN: 'minute',
+    RESO_HR: 'hour',
+    RESO_DAY: 'day'}
+
+    _reso_period_map = {
+    'year': 'A',
+    'quarter': 'Q',
+    'month': 'M',
+    'day': 'D',
+    'hour': 'H',
+    'minute': 'T',
+    'second': 'S',
+    'millisecond': 'L',
+    'microsecond': 'U',
+    'nanosecond': 'N'}
 
     @classmethod
     def get_str(cls, reso):
-        return {cls.RESO_US: 'microsecond',
-                cls.RESO_SEC: 'second',
-                cls.RESO_MIN: 'minute',
-                cls.RESO_HR: 'hour',
-                cls.RESO_DAY: 'day'}.get(reso, 'day')
+        return cls._reso_str_map.get(reso, 'day')
 
+    @classmethod
+    def get_freq(cls, resostr):
+        return cls._reso_period_map[resostr]
 
 def get_reso_string(reso):
     return Resolution.get_str(reso)
@@ -571,22 +591,9 @@ def _period_alias_dictionary():
 
     return alias_dict
 
-_reso_period_map = {
-    "year": "A",
-    "quarter": "Q",
-    "month": "M",
-    "day": "D",
-    "hour": "H",
-    "minute": "T",
-    "second": "S",
-    "millisecond": "L",
-    "microsecond": "U",
-    "nanosecond": "N",
-}
-
 
 def _infer_period_group(freqstr):
-    return _period_group(_reso_period_map[freqstr])
+    return _period_group(Resolution._reso_period_map[freqstr])
 
 
 def _period_group(freqstr):

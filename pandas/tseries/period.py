@@ -111,8 +111,14 @@ class Period(PandasObject):
         elif isinstance(value, compat.string_types) or com.is_integer(value):
             if com.is_integer(value):
                 value = str(value)
+            value = value.upper()
 
-            dt, freq = _get_date_and_freq(value, freq)
+            dt, _, reso = parse_time_string(value, freq)
+            if freq is None:
+                try:
+                    freq = _freq_mod.Resolution.get_freq(reso)
+                except KeyError:
+                    raise ValueError("Invalid frequency or could not infer: %s" % reso)
 
         elif isinstance(value, datetime):
             dt = value
@@ -449,36 +455,6 @@ class Period(PandasObject):
         """
         base, mult = _gfc(self.freq)
         return tslib.period_format(self.ordinal, base, fmt)
-
-
-def _get_date_and_freq(value, freq):
-    value = value.upper()
-    dt, _, reso = parse_time_string(value, freq)
-
-    if freq is None:
-        if reso == 'year':
-            freq = 'A'
-        elif reso == 'quarter':
-            freq = 'Q'
-        elif reso == 'month':
-            freq = 'M'
-        elif reso == 'day':
-            freq = 'D'
-        elif reso == 'hour':
-            freq = 'H'
-        elif reso == 'minute':
-            freq = 'T'
-        elif reso == 'second':
-            freq = 'S'
-        elif reso == 'microsecond':
-            if dt.microsecond % 1000 == 0:
-                freq = 'L'
-            else:
-                freq = 'U'
-        else:
-            raise ValueError("Invalid frequency or could not infer: %s" % reso)
-
-    return dt, freq
 
 
 def _get_ordinals(data, freq):

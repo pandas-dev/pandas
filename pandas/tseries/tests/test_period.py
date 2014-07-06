@@ -227,6 +227,14 @@ class TestPeriodProperties(tm.TestCase):
         i2 = Period(datetime(2007, 1, 1), freq='M')
         self.assertEqual(i1, i2)
 
+        i1 = Period('2007-01-01 09:00:00.001')
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq='L')
+        self.assertEqual(i1, expected)
+
+        i1 = Period('2007-01-01 09:00:00.00101')
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq='U')
+        self.assertEqual(i1, expected)
+
         self.assertRaises(ValueError, Period, ordinal=200701)
 
         self.assertRaises(ValueError, Period, '2007-1-1', freq='X')

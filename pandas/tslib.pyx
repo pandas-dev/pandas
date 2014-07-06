@@ -3372,13 +3372,16 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
         return reso
 
 US_RESO = 0
-S_RESO = 1
-T_RESO = 2
-H_RESO = 3
-D_RESO = 4
+MS_RESO = 1
+S_RESO = 2
+T_RESO = 3
+H_RESO = 4
+D_RESO = 5
 
 cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     if dts.us != 0:
+        if dts.us % 1000 == 0:
+            return MS_RESO
         return US_RESO
     elif dts.sec != 0:
         return S_RESO
