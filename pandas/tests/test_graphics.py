@@ -883,6 +883,13 @@ class TestDataFramePlots(TestPlotBase):
         axes = _check_plot_works(df.plot, kind='bar', subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+        # When ax is supplied and required number of axes is 1,
+        # passed ax should be used:
+        fig, ax = self.plt.subplots()
+        axes = df.plot(kind='bar', subplots=True, ax=ax)
+        self.assertEqual(len(axes), 1)
+        self.assertIs(ax.get_axes(), axes[0])
+
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
         ax = df.plot()
@@ -1443,17 +1450,23 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
+        df['Y'] = Series(['A'] * 10)
         _check_plot_works(df.boxplot, by='X')
 
-        # When ax is supplied, existing axes should be used:
+        # When ax is supplied and required number of axes is 1,
+        # passed ax should be used:
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
         self.assertIs(ax.get_axes(), axes)
 
-        # Multiple columns with an ax argument is not supported
         fig, ax = self.plt.subplots()
-        with tm.assertRaisesRegexp(ValueError, 'existing axis'):
-            df.boxplot(column=['Col1', 'Col2'], by='X', ax=ax)
+        axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
+        self.assertIs(ax.get_axes(), axes['A'])
+
+        # Multiple columns with an ax argument should use same figure
+        fig, ax = self.plt.subplots()
+        axes = df.boxplot(column=['Col1', 'Col2'], by='X', ax=ax, return_type='axes')
+        self.assertIs(axes['Col1'].get_figure(), fig)
 
         # When by is None, check that all relevant lines are present in the dict
         fig, ax = self.plt.subplots()
@@ -2204,32 +2217,32 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @slow
     def test_boxplot(self):
         grouped = self.hist_df.groupby(by='gender')
-        box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
+        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        self._check_axes_shape(axes.values(), axes_num=2, layout=(1, 2))
 
-        box = _check_plot_works(grouped.boxplot, subplots=False,
-                                return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
+        axes = _check_plot_works(grouped.boxplot, subplots=False,
+                                 return_type='axes')
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
         tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
 
         grouped = df.groupby(level=1)
-        box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=10, layout=(4, 3))
+        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        self._check_axes_shape(axes.values(), axes_num=10, layout=(4, 3))
 
-        box = _check_plot_works(grouped.boxplot, subplots=False,
-                                return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=10, layout=(4, 3))
+        axes = _check_plot_works(grouped.boxplot, subplots=False,
+                                 return_type='axes')
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        box = _check_plot_works(grouped.boxplot, return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
+        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        self._check_axes_shape(axes.values(), axes_num=3, layout=(2, 2))
 
-        box = _check_plot_works(grouped.boxplot, subplots=False,
-                                return_type='dict')
-        self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
+        axes = _check_plot_works(grouped.boxplot, subplots=False,
+                                 return_type='axes')
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     def test_series_plot_color_kwargs(self):
         # GH1890
