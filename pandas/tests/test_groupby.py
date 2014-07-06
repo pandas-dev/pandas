@@ -2901,9 +2901,9 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']
-        labels = np.random.randint(0, 4, size=100)
+        codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical(labels, levels, name='myfactor', fastpath=True)
+        cats = Categorical.from_codes(codes, levels, name='myfactor')
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -3049,18 +3049,18 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_categorical_no_compress(self):
         data = Series(np.random.randn(9))
 
-        labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
-        cats = Categorical(labels, [0, 1, 2], fastpath=True)
+        codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
+        cats = Categorical.from_codes(codes, [0, 1, 2])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(labels).mean()
+        exp = data.groupby(codes).mean()
         assert_series_equal(result, exp)
 
-        labels = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
-        cats = Categorical(labels, [0, 1, 2, 3], fastpath=True)
+        codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
+        cats = Categorical.from_codes(codes, [0, 1, 2, 3])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(labels).mean().reindex(cats.levels)
+        exp = data.groupby(codes).mean().reindex(cats.levels)
         assert_series_equal(result, exp)
 
         cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])

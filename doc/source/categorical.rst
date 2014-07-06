@@ -548,28 +548,25 @@ relevant columns back to `category` and assign the right levels and level orderi
    :suppress:
 
     from pandas.compat import StringIO
-    csv_file = StringIO()
 
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
     # rename the levels
     s.cat.levels = ["very good", "good", "bad"]
-    # add new levels at the end
-    s.cat.levels = list(s.cat.levels) + ["medium", "very bad"]
-    # reorder the levels
+    # reorder the levels and add missing levels
     s.cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
-    df = pd.DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
-    df.to_csv(csv_file)
-    df2 = pd.read_csv(csv_file)
+    df = pd.DataFrame({"cats":s, "vals":[1,2,3,4,5,6]})
+    csv = StringIO()
+    df.to_csv(csv)
+    df2 = pd.read_csv(StringIO(csv.getvalue()))
     df2.dtypes
-    df2["vals"]
+    df2["cats"]
     # Redo the category
-    df2["vals"] = df2["vals"].astype("category")
-    df2["vals"].cat.levels = list(df2["vals"].cat.levels) + ["medium", "very bad"]
-    df2["vals"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    df2["cats"] = df2["cats"].astype("category")
+    df2["cats"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
     df2.dtypes
-    df2["vals"]
+    df2["cats"]
 
 
 Missing Data

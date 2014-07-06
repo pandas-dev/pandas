@@ -7,7 +7,8 @@ import re
 import numpy as np
 import pandas as pd
 
-from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp)
+from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
+                    Timestamp, _np_version_under1p7)
 
 import pandas.core.common as com
 import pandas.compat as compat
@@ -345,12 +346,12 @@ class TestCategorical(tm.TestCase):
 
     def test_nan_handling(self):
 
-        # Nans are represented as -1 in labels
+        # Nans are represented as -1 in codes
         c = Categorical(["a","b",np.nan,"a"])
         self.assert_numpy_array_equal(c.levels , np.array(["a","b"]))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,-1,0]))
 
-        # If levels have nan included, the label should point to that instead
+        # If levels have nan included, the code should point to that instead
         c = Categorical(["a","b",np.nan,"a"], levels=["a","b",np.nan])
         self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
@@ -360,6 +361,36 @@ class TestCategorical(tm.TestCase):
         c.levels = ["a","b",np.nan]
         self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
+
+    def test_codes_immutable(self):
+
+        # Codes should be read only
+        c = Categorical(["a","b","c","a", np.nan])
+        exp = np.array([0,1,2,0, -1])
+        self.assert_numpy_array_equal(c.codes, exp)
+
+        # Assignments to codes should raise
+        def f():
+            c.codes = np.array([0,1,2,0,1])
+        self.assertRaises(ValueError, f)
+
+        # changes in the codes array should raise
+        # np 1.6.1 raises RuntimeError rather than ValueError
+        codes= c.codes
+        def f():
+            codes[4] = 1
+        if _np_version_under1p7:
+            self.assertRaises(RuntimeError, f)
+        else:
+            self.assertRaises(ValueError, f)
+
+        # But even after getting the codes, the original array should still be writeable!
+        c[4] = "a"
+        exp = np.array([0,1,2,0, 0])
+        self.assert_numpy_array_equal(c.codes, exp)
+        c._codes[4] = 2
+        exp = np.array([0,1,2,0, 2])
+        self.assert_numpy_array_equal(c.codes, exp)
 
 
     def test_min_max(self):
@@ -548,6 +579,19 @@ class TestCategoricalAsBlock(tm.TestCase):
         exp = pd.Series(Categorical(l))
         res = s.astype('category')
         tm.assert_series_equal(res, exp)
+
+        df = pd.DataFrame({"cats":[1,2,3,4,5,6], "vals":[1,2,3,4,5,6]})
+        cats = Categorical([1,2,3,4,5,6])
+        exp_df = pd.DataFrame({"cats":cats, "vals":[1,2,3,4,5,6]})
+        df["cats"] =  df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+
+        df = pd.DataFrame({"cats":['a', 'b', 'b', 'a', 'a', 'd'], "vals":[1,2,3,4,5,6]})
+        cats = Categorical(['a', 'b', 'b', 'a', 'a', 'd'])
+        exp_df = pd.DataFrame({"cats":cats, "vals":[1,2,3,4,5,6]})
+        df["cats"] =  df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
 
     def test_sideeffects_free(self):
 

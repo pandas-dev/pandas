@@ -1426,9 +1426,9 @@ class ObjectBlock(Block):
         return element
 
     def should_store(self, value):
-        return not issubclass(value.dtype.type,
+        return not (issubclass(value.dtype.type,
                               (np.integer, np.floating, np.complexfloating,
-                               np.datetime64, np.bool_))
+                               np.datetime64, np.bool_)) or com.is_categorical_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False):

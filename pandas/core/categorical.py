@@ -325,11 +325,24 @@ class Categorical(PandasObject):
     _codes = None
 
     def _get_codes(self):
-        """ Get the level codes. """
-        # TODO: return a copy so that no manipulation is possible?
-        return self._codes
+        """ Get the level codes.
 
-    codes = property(fget=_get_codes, doc=_codes_doc)
+        Returns
+        -------
+        codes : integer array view
+            A non writable view of the `codes` array.
+        """
+        v = self._codes.view()
+        v.flags.writeable = False
+        return v
+
+    def _set_codes(self, codes):
+        """
+        Not settable by the user directly
+        """
+        raise ValueError("cannot set Categorical codes directly")
+
+    codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     _levels = None
 
