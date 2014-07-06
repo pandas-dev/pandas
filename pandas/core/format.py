@@ -4,16 +4,15 @@ from __future__ import print_function
 # pylint: disable=W0141
 
 import sys
-import re
 
 from pandas.core.base import PandasObject
-from pandas.core.common import adjoin, isnull, notnull
+from pandas.core.common import adjoin, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
                           OrderedDict)
 from pandas.util.terminal import get_terminal_size
-from pandas.core.config import get_option, set_option, reset_option
+from pandas.core.config import get_option, set_option
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT
@@ -22,7 +21,6 @@ import numpy as np
 
 import itertools
 import csv
-from datetime import time
 
 from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
@@ -321,30 +319,69 @@ class DataFrameFormatter(TableFormatter):
         self._chk_truncate()
 
     def _chk_truncate(self):
+        '''
+        Checks whether the frame should be truncated. If so, slices
+        the frame up.
+        '''
         from pandas.tools.merge import concat
 
-        truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
-        truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
+        # Column of which first element is used to determine width of a dot col
+        self.tr_size_col = -1
 
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
+
+        if max_cols == 0 or max_rows == 0:  # assume we are in the terminal (why else = 0)
+            (w,h) = get_terminal_size()
+            self.w = w
+            self.h = h
+            if self.max_rows == 0:
+                dot_row = 1
+                prompt_row = 1
+                if self.show_dimensions:
+                    show_dimension_rows = 3
+                n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
+                max_rows_adj = self.h - n_add_rows  # rows available to fill with actual data
+                self.max_rows_adj = max_rows_adj
+
+            # Format only rows and columns that could potentially fit the screen
+            if max_cols == 0  and len(self.frame.columns) > w:
+                max_cols = w
+            if max_rows == 0 and len(self.frame) > h:
+                max_rows = h
+
+        if not hasattr(self,'max_rows_adj'):
+            self.max_rows_adj = max_rows
+        if not hasattr(self,'max_cols_adj'):
+            self.max_cols_adj = max_cols
+
+        max_cols_adj = self.max_cols_adj
+        max_rows_adj = self.max_rows_adj
+
+        truncate_h = max_cols_adj and (len(self.columns) > max_cols_adj)
+        truncate_v = max_rows_adj and (len(self.frame) > max_rows_adj)
+
         frame = self.frame
         if truncate_h:
-            if max_cols > 1:
-                col_num = (max_cols // 2)
-                frame = concat( (frame.iloc[:,:col_num],frame.iloc[:,-col_num:]),axis=1 )
-            else:
-                col_num = max_cols
+            if max_cols_adj == 0:
+                col_num = len(frame.columns)
+            elif max_cols_adj == 1:
                 frame = frame.iloc[:,:max_cols]
+                col_num = max_cols
+            else:
+                col_num = (max_cols_adj // 2)
+                frame = concat( (frame.iloc[:,:col_num],frame.iloc[:,-col_num:]),axis=1 )
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows > 1:
-                row_num = max_rows // 2
-                frame = concat( (frame.iloc[:row_num,:],frame.iloc[-row_num:,:]) )
-            else:
+            if max_rows_adj == 0:
+                row_num = len(frame)
+            if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows,:]
+            else:
+                row_num = max_rows_adj // 2
+                frame = concat( (frame.iloc[:row_num,:],frame.iloc[-row_num:,:]) )
             self.tr_row_num = row_num
 
         self.tr_frame = frame
@@ -360,13 +397,12 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
 
         # may include levels names also
-        str_index = self._get_formatted_index(frame)
 
+        str_index = self._get_formatted_index(frame)
         str_columns = self._get_formatted_column_labels(frame)
 
         if self.header:
             stringified = []
-            col_headers = frame.columns
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 max_colwidth = max(self.col_space or 0,
@@ -389,7 +425,6 @@ class DataFrameFormatter(TableFormatter):
         else:
             stringified = []
             for i, c in enumerate(frame):
-                formatter = self._get_formatter(i)
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=(self.col_space or 0))
@@ -406,8 +441,8 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            col_width = len(strcols[col_num][0])  # infer from column header
-            strcols.insert(col_num + 1, ['...'.center(col_width)] * (len(str_index)))
+            col_width = len(strcols[self.tr_size_col][0])  # infer from column header
+            strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
@@ -424,19 +459,19 @@ class DataFrameFormatter(TableFormatter):
                 if ix == 0:
                     dot_str = my_str.ljust(cwidth)
                 elif is_dot_col:
+                    cwidth = len(strcols[self.tr_size_col][0])
                     dot_str = my_str.center(cwidth)
                 else:
                     dot_str = my_str.rjust(cwidth)
 
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
-
         return strcols
 
     def to_string(self):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-
+        from pandas import Series
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -447,10 +482,40 @@ class DataFrameFormatter(TableFormatter):
             text = info_line
         else:
             strcols = self._to_str_columns()
-            if self.line_width is None:
+            if self.line_width is None:  # no need to wrap around just print the whole frame
                 text = adjoin(1, *strcols)
-            else:
+            elif not isinstance(self.max_cols,int) or self.max_cols > 0:  # perhaps need to wrap around
                 text = self._join_multiline(*strcols)
+            else:  # max_cols == 0. Try to fit frame to terminal
+                text = adjoin(1, *strcols).split('\n')
+                row_lens = Series(text).apply(len)
+                max_len_col_ix = np.argmax(row_lens)
+                max_len = row_lens[max_len_col_ix]
+                headers = [ele[0] for ele in strcols]
+                # Size of last col determines dot col size. See `self._to_str_columns
+                size_tr_col = len(headers[self.tr_size_col])
+                max_len += size_tr_col  # Need to make space for largest row plus truncate (dot) col
+                dif = max_len - self.w
+                adj_dif = dif
+                col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+                n_cols = len(col_lens)
+                counter = 0
+                while adj_dif > 0 and n_cols > 1:
+                    counter += 1
+                    mid = int(round(n_cols / 2.))
+                    mid_ix = col_lens.index[mid]
+                    col_len = col_lens[mid_ix]
+                    adj_dif -= ( col_len + 1 )  # adjoin adds one
+                    col_lens = col_lens.drop(mid_ix)
+                    n_cols = len(col_lens)
+                max_cols_adj = n_cols - self.index  # subtract index column
+                self.max_cols_adj = max_cols_adj
+
+                # Call again _chk_truncate to cut frame appropriately
+                # and then generate string representation
+                self._chk_truncate()
+                strcols = self._to_str_columns()
+                text = adjoin(1, *strcols)
 
         self.buf.writelines(text)
 
@@ -472,8 +537,8 @@ class DataFrameFormatter(TableFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.max_rows and len(self.frame) > self.max_rows:
-            nrows = self.max_rows + 1
+        if self.truncate_v:
+            nrows = self.max_rows_adj + 1
         else:
             nrows = len(self.frame)
 
@@ -636,6 +701,7 @@ class DataFrameFormatter(TableFormatter):
             for x in str_columns:
                 x.append('')
 
+        # self.str_columns = str_columns
         return str_columns
 
     @property

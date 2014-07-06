@@ -280,6 +280,36 @@ class TestDataFrameFormatting(tm.TestCase):
                 com.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
+    def test_auto_detect(self):
+        term_width, term_height = get_terminal_size()
+        fac = 1.05  # Arbitrary large factor to exceed term widht
+        cols = range(int(term_width * fac))
+        index = range(10)
+        df = DataFrame(index=index, columns=cols)
+        with option_context('mode.sim_interactive', True):
+            with option_context('max_rows',None):
+                with option_context('max_columns',None):
+                    # Wrap around with None
+                    self.assertTrue(has_expanded_repr(df))
+            with option_context('max_rows',0):
+                with option_context('max_columns',0):
+                    # Truncate with auto detection.
+                    self.assertTrue(has_horizontally_truncated_repr(df))
+
+            index = range(int(term_height * fac))
+            df = DataFrame(index=index, columns=cols)
+            with option_context('max_rows',0):
+                with option_context('max_columns',None):
+                    # Wrap around with None
+                    self.assertTrue(has_expanded_repr(df))
+                    # Truncate vertically
+                    self.assertTrue(has_vertically_truncated_repr(df))
+
+            with option_context('max_rows',None):
+                with option_context('max_columns',0):
+                    self.assertTrue(has_horizontally_truncated_repr(df))
+
+
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
