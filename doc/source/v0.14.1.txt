@@ -13,9 +13,7 @@ users upgrade to this version.
 
 - :ref:`Performance Improvements <whatsnew_0141.performance>`
 
-- :ref:`Prior Deprecations <whatsnew_0141.prior_deprecations>`
-
-- :ref:`Deprecations <whatsnew_0141.deprecations>`
+- :ref:`Experimental Changes <whatsnew_0141.experimental>`
 
 - :ref:`Bug Fixes <whatsnew_0141.bug_fixes>`
 
@@ -144,12 +142,15 @@ Performance
 - Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
 - Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
 
-- Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
 
 
+.. _whatsnew_0141.experimental:
 
 Experimental
 ~~~~~~~~~~~~
+
+- ``pandas.io.data.Options`` has a new method, ``get_all_data`` method, and now consistently returns a
+  multi-indexed ``DataFrame``, see :ref:`the docs <remote_data.yahoo_options>`. (:issue:`5602`)
 
 - ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
   dependency on the Google ``bq.py`` command line client. This submodule
@@ -175,6 +176,7 @@ Bug Fixes
 - Bug in grouped ``hist`` and ``scatter`` plots use old ``figsize`` default (:issue:`7394`)
 - Bug in plotting subplots with ``DataFrame.plot``, ``hist`` clears passed ``ax`` even if the number of subplots is one (:issue:`7391`).
 - Bug in plotting subplots with ``DataFrame.boxplot`` with ``by`` kw raises ``ValueError`` if the number of subplots exceeds 1 (:issue:`7391`).
+- Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
 
 - Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
 
