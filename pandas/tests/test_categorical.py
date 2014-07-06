@@ -797,11 +797,6 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertEqual(exp,a.__unicode__())
 
 
-    def test_groupby(self):
-
-        result = self.cat['value_group'].unique()
-        result = self.cat.groupby(['value_group'])['value_group'].count()
-
     def test_groupby_sort(self):
 
         # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
@@ -872,52 +867,52 @@ class TestCategoricalAsBlock(tm.TestCase):
         cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
+        expected = DataFrame({ 'a' : Series([1,2,4,np.nan],index=Index(['a','b','c','d'],name='b')) })
         result = data.groupby("b").mean()
-        result = result["a"].values
-        exp = np.array([1,2,4,np.nan])
-        self.assert_numpy_array_equivalent(result, exp)
-
-        ### FIXME ###
-
-        #res = len(data.groupby("b"))
-        #self.assertEqual(res ,4)
+        tm.assert_frame_equal(result, expected)
 
         raw_cat1 = Categorical(["a","a","b","b"], levels=["a","b","z"])
         raw_cat2 = Categorical(["c","d","c","d"], levels=["c","d","y"])
         df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
-        gb = df.groupby("A")
 
-        #idx = gb.indices
-        #self.assertEqual(len(gb), 3)
-        #num = 0
-        #for _ in gb:
-        #    num +=1
-        #self.assertEqual(len(gb), 3)
-        #gb = df.groupby(["B"])
-        #idx2 = gb.indices
-        #self.assertEqual(len(gb), 3)
-        #num = 0
-        #for _ in gb:
-        #    num +=1
-        #self.assertEqual(len(gb), 3)
-        #gb = df.groupby(["A","B"])
-        #res = len(gb)
-        #idx3 = gb.indices
-        #self.assertEqual(res, 9)
-        #num = 0
-        #for _ in gb:
-        #    num +=1
-        #self.assertEqual(len(gb), 9)
+        # single grouper
+        gb = df.groupby("A")
+        expected = DataFrame({ 'values' : Series([3,7,np.nan],index=Index(['a','b','z'],name='A')) })
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # multiple groupers
+        gb = df.groupby(['A','B'])
+        expected = DataFrame({ 'values' : Series([1,2,np.nan,3,4,np.nan,np.nan,np.nan,np.nan],
+                                                 index=pd.MultiIndex.from_product([['a','b','z'],['c','d','y']],names=['A','B'])) })
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # multiple groupers with a non-cat
+        df = df.copy()
+        df['C'] = ['foo','bar']*2
+        gb = df.groupby(['A','B','C'])
+        expected = DataFrame({ 'values' :
+                               Series(np.nan,index=pd.MultiIndex.from_product([['a','b','z'],
+                                                                               ['c','d','y'],
+                                                                               ['foo','bar']],
+                                                                              names=['A','B','C']))
+                               }).sortlevel()
+        expected.iloc[[1,2,7,8],0] = [1,2,3,4]
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table(self):
 
         raw_cat1 = Categorical(["a","a","b","b"], levels=["a","b","z"])
         raw_cat2 = Categorical(["c","d","c","d"], levels=["c","d","y"])
         df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
-        res = pd.pivot_table(df, values='values', index=['A', 'B'])
+        result = pd.pivot_table(df, values='values', index=['A', 'B'])
 
-        ### FIXME ###
-        #self.assertEqual(len(res), 9)
+        expected = Series([1,2,np.nan,3,4,np.nan,np.nan,np.nan,np.nan],
+                          index=pd.MultiIndex.from_product([['a','b','z'],['c','d','y']],names=['A','B']),
+                          name='values')
+        tm.assert_series_equal(result, expected)
 
     def test_count(self):
 
