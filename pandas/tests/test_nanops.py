@@ -5,6 +5,7 @@ from functools import partial
 import numpy as np
 
 from pandas.core.common import isnull
+from pandas.tslib import iNaT
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -30,9 +31,8 @@ class TestnanopsDataFrame(tm.TestCase):
                                             self.arr_shape).astype('m8[ns]')
 
         self.arr_nan = np.tile(np.nan, self.arr_shape)
-        self.arr_datenat = np.tile(np.datetime64('NaT', 'ns'), self.arr_shape)
-        self.arr_tdeltanat = np.tile(np.timedelta64('NaT', 'ns'),
-                                     self.arr_shape)
+        self.arr_datenat = np.tile(iNaT, self.arr_shape).astype('M8[ns]')
+        self.arr_tdeltanat = np.tile(iNaT, self.arr_shape).astype('m8[ns]')
         self.arr_float_nan = np.vstack([self.arr_float, self.arr_nan])
         self.arr_float1_nan = np.vstack([self.arr_float1, self.arr_nan])
         self.arr_nan_float1 = np.vstack([self.arr_nan, self.arr_float1])
