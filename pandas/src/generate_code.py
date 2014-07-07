@@ -1584,7 +1584,7 @@ def group_mean_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             count = nobs[i, j]
-            if nobs[i, j] == 0:
+            if count == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count

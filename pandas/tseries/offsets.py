@@ -27,6 +27,8 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to pass thru
 def as_timestamp(obj):
     try:
+        if isinstance(obj, Timestamp):
+            return obj
         return Timestamp(obj)
     except (OutOfBoundsDatetime):
         pass
@@ -2014,9 +2016,21 @@ class Tick(SingleConstructorOffset):
     def nanos(self):
         return _delta_to_nanoseconds(self.delta)
 
-    @apply_wraps
     def apply(self, other):
-        if isinstance(other, (datetime, timedelta)):
+        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
+        if type(other) == date:
+            other = datetime(other.year, other.month, other.day)
+        elif isinstance(other, (np.datetime64, datetime)):
+            other = as_timestamp(other)
+
+        if isinstance(other, datetime):
+            result = other + self.delta
+            if self.normalize:
+                # normalize_date returns normal datetime
+                result = tslib.normalize_date(result)
+            return as_timestamp(result)
+
+        elif isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
