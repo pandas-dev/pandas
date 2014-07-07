@@ -13000,7 +13000,7 @@ starting,ending,measure
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True]})
         ri = df.select_dtypes(include=[np.number])
         ei = df[['b', 'c', 'd']]
@@ -13010,7 +13010,7 @@ starting,ending,measure
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True]})
         re = df.select_dtypes(exclude=[np.number])
         ee = df[['a', 'e']]
@@ -13020,7 +13020,7 @@ starting,ending,measure
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
         exclude = np.datetime64,
@@ -13030,7 +13030,7 @@ starting,ending,measure
         tm.assert_frame_equal(r, e)
 
         exclude = 'datetime',
-        include = 'bool', 'int'
+        include = 'bool', 'int64', 'int32'
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[['b', 'e']]
         tm.assert_frame_equal(r, e)
@@ -13039,7 +13039,7 @@ starting,ending,measure
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
         df['g'] = df.f.diff()
@@ -13071,7 +13071,7 @@ starting,ending,measure
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
         with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
@@ -13085,7 +13085,7 @@ starting,ending,measure
                         'g': list(u('abc')),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
         string_dtypes = set((str, 'str', np.string_, 'S1',
@@ -13107,7 +13107,7 @@ starting,ending,measure
                         'g': list(u('abc')),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
-                        'd': np.arange(4.0, 7.0),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
         with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
