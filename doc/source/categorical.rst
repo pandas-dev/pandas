@@ -41,7 +41,7 @@ operations (additions, divisions, ...) are not possible.
 
 All values of the `Categorical` are either in `levels` or `np.nan`. Order is defined by
 the order of the `levels`, not lexical order of the values. Internally, the data structure
-consists of a levels array and an integer array of level_codes which point to the real value in the
+consists of a levels array and an integer array of `codes` which point to the real value in the
 levels array.
 
 `Categoricals` are useful in the following cases:
@@ -376,7 +376,6 @@ Groupby will also show "unused" levels:
 
     cats2 = pd.Categorical(["a","a","b","b"], levels=["a","b","c"])
     df2 = pd.DataFrame({"cats":cats2,"B":["c","d","c","d"], "values":[1,2,3,4]})
-    # This doesn't work yet with two columns -> see failing unittests
     df2.groupby(["cats","B"]).mean()
 
 
@@ -694,13 +693,15 @@ See also the API documentation for :func:`pandas.Series.reorder_levels` and
 Old style constructor usage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-I earlier versions, a `Categorical` could be constructed by passing in precomputed `level_codes`
-(called then `labels`) instead of values with levels. The `level_codes` are interpreted as pointers
+I earlier versions, a `Categorical` could be constructed by passing in precomputed `codes`
+(called then `labels`) instead of values with levels. The `codes` are interpreted as pointers
 to the levels with `-1` as `NaN`. This usage is now deprecated and not available unless
 ``compat=True`` is passed to the constructor of `Categorical`.
 
 .. ipython:: python
+    :okwarning:
 
+    # This raises a FutureWarning:
     cat = pd.Categorical([1,2], levels=[1,2,3], compat=True)
     cat.get_values()
 
@@ -712,7 +713,7 @@ In the default case (``compat=False``) the first argument is interpreted as valu
     cat.get_values()
 
 .. warning::
-    Using Categorical with precomputed level_codes and levels is deprecated and a `FutureWarning`
+    Using Categorical with precomputed codes and levels is deprecated and a `FutureWarning`
     is raised. Please change your code to use the :func:`~pandas.Categorical.from_codes`
     constructor instead of adding ``compat=False``.
 
