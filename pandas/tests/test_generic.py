@@ -512,7 +512,7 @@ class TestSeries(tm.TestCase, Generic):
 
         vals = s.index.values.astype(float)
 
-        result = s.interpolate(method='values')
+        result = s.interpolate(method='index')
 
         expected = s.copy()
         bad = isnull(expected.values)
@@ -521,6 +521,12 @@ class TestSeries(tm.TestCase, Generic):
             np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad])
 
         assert_series_equal(result[bad], expected)
+
+        # 'values' is synonymous with 'index' for the method kwarg
+        other_result = s.interpolate(method='values')
+
+        assert_series_equal(other_result, result)
+        assert_series_equal(other_result[bad], expected)
 
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])

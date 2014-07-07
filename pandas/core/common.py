@@ -1392,7 +1392,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
 
 
 def _clean_interp_method(method, order=None, **kwargs):
-    valid = ['linear', 'time', 'values', 'nearest', 'zero', 'slinear',
+    valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
              'pchip', 'spline']
@@ -1457,7 +1457,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         result.fill(np.nan)
         return result
 
-    if method in ['linear', 'time', 'values']:
+    if method in ['linear', 'time', 'index', 'values']:
         if method in ('values', 'index'):
             inds = np.asarray(xvalues)
             # hack for DatetimeIndex, #1646
