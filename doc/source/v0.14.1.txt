@@ -290,3 +290,5 @@ Bug Fixes
 - Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, and ``rolling_corr`` for two arguments with mismatched index  (:issue:`7512`)
 
 - Bug in ``to_sql`` taking the boolean column as text column (:issue:`7678`)
+- Bug in grouped `hist` doesn't handle `rot` kw and `sharex` kw properly (:issue:`7234`)
+
