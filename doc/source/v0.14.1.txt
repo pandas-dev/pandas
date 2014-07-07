@@ -7,6 +7,8 @@ This is a minor release from 0.14.0 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
+- New Documentation section on :ref:`Options and Settings <options>`
+
 - :ref:`Enhancements <whatsnew_0141.enhancements>`
 
 - :ref:`API Changes <whatsnew_0141.api>`
