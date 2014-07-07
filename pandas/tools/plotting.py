@@ -909,13 +909,9 @@ class MPLPlot(object):
         pass
 
     def _maybe_right_yaxis(self, ax):
-        _types = (list, tuple, np.ndarray)
-        sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
-        list_sec = isinstance(self.secondary_y, _types)
-        has_sec = list_sec and len(self.secondary_y) > 0
-        all_sec = list_sec and len(self.secondary_y) == self.nseries
-
-        if (sec_true or has_sec) and not hasattr(ax, 'right_ax'):
+        if hasattr(ax, 'right_ax'):
+            return ax.right_ax
+        else:
             orig_ax, new_ax = ax, ax.twinx()
             new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
 
@@ -924,38 +920,25 @@ class MPLPlot(object):
 
             if len(orig_ax.get_lines()) == 0:  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
-
-            if len(new_ax.get_lines()) == 0:
-                new_ax.get_yaxis().set_visible(False)
-
-            if sec_true or all_sec:
-                ax = new_ax
-        else:
-            ax.get_yaxis().set_visible(True)
-
-        return ax
+            return new_ax
 
     def _setup_subplots(self):
         if self.subplots:
             nrows, ncols = self._get_layout()
             fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                   sharex=self.sharex, sharey=self.sharey,
-                                  figsize=self.figsize, ax=self.ax,
-                                  secondary_y=self.secondary_y,
-                                  data=self.data)
+                                  figsize=self.figsize, ax=self.ax)
             if not com.is_list_like(axes):
                 axes = np.array([axes])
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
                 ax = fig.add_subplot(111)
-                ax = self._maybe_right_yaxis(ax)
             else:
                 fig = self.ax.get_figure()
                 if self.figsize is not None:
                     fig.set_size_inches(self.figsize)
-                ax = self._maybe_right_yaxis(self.ax)
-
+                ax = self.ax
             axes = [ax]
 
         if self.logx or self.loglog:
@@ -1182,14 +1165,21 @@ class MPLPlot(object):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
+
+            if self.on_right(i):
+                ax = self._maybe_right_yaxis(ax)
+                self.axes[i] = ax
         else:
             ax = self.axes[0]
 
-        if self.on_right(i):
-            if hasattr(ax, 'right_ax'):
-                ax = ax.right_ax
-        elif hasattr(ax, 'left_ax'):
-            ax = ax.left_ax
+            if self.on_right(i):
+                ax = self._maybe_right_yaxis(ax)
+
+                sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
+                all_sec = (com.is_list_like(self.secondary_y) and
+                           len(self.secondary_y) == self.nseries)
+                if sec_true or all_sec:
+                    self.axes[0] = ax
 
         ax.get_yaxis().set_visible(True)
         return ax
@@ -1550,8 +1540,6 @@ class LinePlot(MPLPlot):
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
-            from pandas.core.frame import DataFrame
-            lines = []
             x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
@@ -1562,8 +1550,6 @@ class LinePlot(MPLPlot):
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
                 self._maybe_add_color(colors, kwds, style, i)
-
-                lines += _get_all_lines(ax)
 
                 errors = self._get_errorbars(label=label, index=i)
                 kwds = dict(kwds, **errors)
@@ -1588,15 +1574,13 @@ class LinePlot(MPLPlot):
                 newlines = plotf(*args, **kwds)
                 self._add_legend_handle(newlines[0], label, index=i)
 
-                lines.append(newlines[0])
-
                 if self.stacked and not self.subplots:
                     if (y >= 0).all():
                         self._pos_prior += y
                     elif (y <= 0).all():
                         self._neg_prior += y
 
-            if self._is_datetype():
+                lines = _get_all_lines(ax)
                 left, right = _get_xlim(lines)
                 ax.set_xlim(left, right)
 
@@ -2253,14 +2237,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     import matplotlib.pyplot as plt
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
-        if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
-            fig = _gcf()
-            axes = fig.get_axes()
-            for i in reversed(range(len(axes))):
-                ax = axes[i]
-                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
-                if ypos == 'left':
-                    break
+        ax = getattr(ax, 'left_ax', ax)
 
     # is there harm in this?
     if label is None:
@@ -2884,8 +2861,7 @@ def _get_layout(nplots, layout=None):
 
 
 def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, secondary_y=False, data=None,
-              **fig_kw):
+              subplot_kw=None, ax=None, **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -2925,12 +2901,6 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
       subplots.
 
     ax : Matplotlib axis object, optional
-
-    secondary_y : boolean or sequence of ints, default False
-        If True then y-axis will be on the right
-
-    data : DataFrame, optional
-        If secondary_y is a sequence, data is used to select columns.
 
     fig_kw : Other keyword arguments to be passed to the figure() call.
         Note that all keywords not recognized above will be
@@ -2996,22 +2966,8 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
 
     axarr = np.empty(nplots, dtype=object)
 
-    def on_right(i):
-        if isinstance(secondary_y, bool):
-            return secondary_y
-        if isinstance(data, DataFrame):
-            return data.columns[i] in secondary_y
-
     # Create first subplot separately, so we can share it if requested
     ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
-    if on_right(0):
-        orig_ax = ax0
-        ax0 = ax0.twinx()
-        ax0._get_lines.color_cycle = orig_ax._get_lines.color_cycle
-
-        orig_ax.get_yaxis().set_visible(False)
-        orig_ax.right_ax = ax0
-        ax0.left_ax = orig_ax
 
     if sharex:
         subplot_kw['sharex'] = ax0
@@ -3023,12 +2979,6 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
     # convention.
     for i in range(1, nplots):
         ax = fig.add_subplot(nrows, ncols, i + 1, **subplot_kw)
-        if on_right(i):
-            orig_ax = ax
-            ax = ax.twinx()
-            ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
-
-            orig_ax.get_yaxis().set_visible(False)
         axarr[i] = ax
 
     if nplots > 1:
