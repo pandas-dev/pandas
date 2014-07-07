@@ -334,8 +334,8 @@ Available options:
 
 Parameters
 ----------
-pat : str/regex 
-    If specified only options matching `prefix*` will be reset. 
+pat : str/regex
+    If specified only options matching `prefix*` will be reset.
     Note: partial matches are supported for convenience, but unless you
     use the full option name (e.g. x.y.z.option_name), your code may break
     in future versions if new options with similar names are introduced.
@@ -368,7 +368,7 @@ class option_context(object):
     Context manager to temporarily set options in the `with` statement context.
 
     You need to invoke as ``option_context(pat, val, [(pat, val), ...])``.
-    
+
     Examples
     --------
 
@@ -628,20 +628,21 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('%s : ') % k
-    if o:
-        s += u('[default: %s] [currently: %s]') % (o.defval,
-                                                   _get_option(k, True))
+    s = u('%s ') % k
 
     if o.doc:
-        s += '\n    '.join(o.doc.strip().split('\n'))
+        s += '\n'.join(o.doc.strip().split('\n'))
     else:
-        s += 'No description available.\n'
+        s += 'No description available.'
+
+    if o:
+        s += u('\n    [default: %s] [currently: %s]') % (o.defval,
+                                                         _get_option(k, True))
 
     if d:
         s += u('\n\t(Deprecated')
         s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
-        s += u(')\n')
+        s += u(')')
 
     s += '\n\n'
     return s
