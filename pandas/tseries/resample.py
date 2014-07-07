@@ -174,7 +174,7 @@ class TimeGrouper(Grouper):
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed)
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=ax.hasnans)
 
         if self.closed == 'right':
             labels = binner
@@ -188,7 +188,7 @@ class TimeGrouper(Grouper):
             elif not trimmed:
                 labels = labels[:-1]
 
-        if (ax_values == tslib.iNaT).any():
+        if ax.hasnans:
             binner = binner.insert(0, tslib.NaT)
             labels = labels.insert(0, tslib.NaT)
 
