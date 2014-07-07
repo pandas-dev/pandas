@@ -334,7 +334,7 @@ class TestYahooOptions(tm.TestCase):
     @network
     def test_sample_page_chg_float(self):
         #Tests that numeric columns with comma's are appropriately dealt with
-        tables = self.root1.xpath('.//table')
+        tables = self.aapl._parse_option_page_from_yahoo(self.root1)
         data = web._parse_options_data(tables[self.aapl._TABLE_LOC['puts']])
         option_data = self.aapl._process_data(data)
         self.assertEqual(option_data['Chg'].dtype, 'float64')
