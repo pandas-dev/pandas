@@ -151,7 +151,6 @@ Performance
 .. _whatsnew_0141.experimental:
 
 
-- Bug in line plot doesn't set correct ``xlim`` if ``secondary_y=True`` (:issue:`7459`)
 
 
 
@@ -165,7 +164,7 @@ Experimental
   dependency on the Google ``bq.py`` command line client. This submodule
   now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client
   libraries which should be more stable and, therefore, reliable than
-  ``bq.py`` (:issue:`6937`).
+  ``bq.py``. See :ref:`the docs <io.bigquery>`. (:issue:`6937`).
 
 .. _whatsnew_0141.bug_fixes:
 
@@ -180,8 +179,8 @@ Bug Fixes
 - Bug in groupby ``.nth`` with a Series and integer-like column name (:issue:`7559`)
 - Bug in ``Series.get`` with a boolean accessor (:issue:`7407`)
 - Bug in ``value_counts`` where ``NaT`` did not qualify as missing (``NaN``) (:issue:`7423`)
-- Bug in ``to_timedelta`` that accepted invalid units and misinterpreted 'm/h' (:issue:`7611`, :issue: `6423`)
-
+- Bug in ``to_timedelta`` that accepted invalid units and misinterpreted 'm/h' (:issue:`7611`, :issue:`6423`)
+- Bug in line plot doesn't set correct ``xlim`` if ``secondary_y=True`` (:issue:`7459`)
 - Bug in grouped ``hist`` and ``scatter`` plots use old ``figsize`` default (:issue:`7394`)
 - Bug in plotting subplots with ``DataFrame.plot``, ``hist`` clears passed ``ax`` even if the number of subplots is one (:issue:`7391`).
 - Bug in plotting subplots with ``DataFrame.boxplot`` with ``by`` kw raises ``ValueError`` if the number of subplots exceeds 1 (:issue:`7391`).
@@ -195,7 +194,7 @@ Bug Fixes
 - Bug in multi-index slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
 - Bug in ``PeriodIndex.min/max`` results in ``int`` (:issue:`7609`)
-- Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`7261`)
+- Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`2073`)
 - Bug in ``TimeGrouper`` doesn't exclude column specified by ``key`` (:issue:`7227`)
 - Bug in ``DataFrame`` and ``Series`` bar and barh plot raises ``TypeError`` when ``bottom``
   and ``left`` keyword is specified (:issue:`7226`)

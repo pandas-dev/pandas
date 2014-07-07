@@ -258,7 +258,7 @@ after a delimiter:
    data = 'a, b, c\n1, 2, 3\n4, 5, 6'
    print(data)
    pd.read_csv(StringIO(data), skipinitialspace=True)
-   
+
 Moreover, ``read_csv`` ignores any completely commented lines:
 
 .. ipython:: python
@@ -2962,7 +2962,7 @@ Notes & Caveats
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
      of the elements in that axis or by passing the parameter
-   - Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``) 
+   - Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``)
      are not necessarily equal across timezone versions.  So if data is
      localized to a specific timezone in the HDFStore using one version
      of a timezone library and that data is updated with another version, the data
@@ -3409,14 +3409,14 @@ Google BigQuery (Experimental)
 The :mod:`pandas.io.gbq` module provides a wrapper for Google's BigQuery
 analytics web service to simplify retrieving results from BigQuery tables
 using SQL-like queries. Result sets are parsed into a pandas
-DataFrame with a shape and data types derived from the source table. 
-Additionally, DataFrames can be appended to existing BigQuery tables if 
+DataFrame with a shape and data types derived from the source table.
+Additionally, DataFrames can be appended to existing BigQuery tables if
 the destination table is the same shape as the DataFrame.
 
 For specifics on the service itself, see `here <https://developers.google.com/bigquery/>`__
 
-As an example, suppose you want to load all data from an existing BigQuery 
-table : `test_dataset.test_table` into a DataFrame using the :func:`~pandas.io.read_gbq` 
+As an example, suppose you want to load all data from an existing BigQuery
+table : `test_dataset.test_table` into a DataFrame using the :func:`~pandas.io.read_gbq`
 function.
 
 .. code-block:: python
@@ -3447,14 +3447,14 @@ Finally, you can append data to a BigQuery table from a pandas DataFrame
 using the :func:`~pandas.io.to_gbq` function. This function uses the
 Google streaming API which requires that your destination table exists in
 BigQuery. Given the BigQuery table already exists, your DataFrame should
-match the destination table in column order, structure, and data types. 
-DataFrame indexes are not supported. By default, rows are streamed to 
-BigQuery in chunks of 10,000 rows, but you can pass other chuck values 
-via the ``chunksize`` argument. You can also see the progess of your 
-post via the ``verbose`` flag which defaults to ``True``. The http 
-response code of Google BigQuery can be successful (200) even if the 
-append failed. For this reason, if there is a failure to append to the 
-table, the complete error response from BigQuery is returned which 
+match the destination table in column order, structure, and data types.
+DataFrame indexes are not supported. By default, rows are streamed to
+BigQuery in chunks of 10,000 rows, but you can pass other chuck values
+via the ``chunksize`` argument. You can also see the progess of your
+post via the ``verbose`` flag which defaults to ``True``. The http
+response code of Google BigQuery can be successful (200) even if the
+append failed. For this reason, if there is a failure to append to the
+table, the complete error response from BigQuery is returned which
 can be quite long given it provides a status for each row. You may want
 to start with smaller chuncks to test that the size and types of your
 dataframe match your destination table to make debugging simpler.
@@ -3470,9 +3470,9 @@ The BigQuery SQL query language has some oddities, see `here <https://developers
 
 While BigQuery uses SQL-like syntax, it has some important differences
 from traditional databases both in functionality, API limitations (size and
-qunatity of queries or uploads), and how Google charges for use of the service. 
+qunatity of queries or uploads), and how Google charges for use of the service.
 You should refer to Google documentation often as the service seems to
-be changing and evolving. BiqQuery is best for analyzing large sets of 
+be changing and evolving. BiqQuery is best for analyzing large sets of
 data quickly, but it is not a direct replacement for a transactional database.
 
 You can access the management console to determine project id's by:
