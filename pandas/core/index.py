@@ -2072,7 +2072,7 @@ class Float64Index(Index):
 
         try:
             # if other is a sequence this throws a ValueError
-            return np.isnan(other) and self._hasnans
+            return np.isnan(other) and self.hasnans
         except ValueError:
             try:
                 return len(other) <= 1 and _try_get_item(other) in self
@@ -2109,7 +2109,7 @@ class Float64Index(Index):
         return np.isnan(self.values)
 
     @cache_readonly
-    def _hasnans(self):
+    def hasnans(self):
         return self._isnan.any()
 
     @cache_readonly

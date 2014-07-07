@@ -958,7 +958,7 @@ def is_lexsorted(list list_of_arrays):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
-                       object closed='left'):
+                       object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
     """
@@ -968,9 +968,9 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         int64_t l_bin, r_bin, nat_count
         bint right_closed = closed == 'right'
 
-    mask = values == iNaT
     nat_count = 0
-    if mask.any():
+    if hasnans:
+        mask = values == iNaT
         nat_count = np.sum(mask)
         values = values[~mask]
 

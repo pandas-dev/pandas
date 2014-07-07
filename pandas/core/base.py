@@ -6,7 +6,7 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.tslib as tslib
-
+from pandas.util.decorators import cache_readonly
 
 class StringMixin(object):
 
@@ -392,6 +392,11 @@ class DatetimeIndexOpsMixin(object):
         import pandas.lib as lib
         return lib.map_infer(values, self._box_func)
 
+    @cache_readonly
+    def hasnans(self):
+        """ return if I have any nans; enables various perf speedups """
+        return (self.asi8 == tslib.iNaT).any()
+
     @property
     def asobject(self):
         from pandas.core.index import Index
@@ -408,11 +413,18 @@ class DatetimeIndexOpsMixin(object):
         Overridden ndarray.min to return an object
         """
         try:
-            mask = self.asi8 == tslib.iNaT
-            if mask.any():
+            i8 = self.asi8
+
+            # quick check
+            if len(i8) and self.is_monotonic:
+                if i8[0] != tslib.iNaT:
+                    return self._box_func(i8[0])
+
+            if self.hasnans:
+                mask = i8 == tslib.iNaT
                 min_stamp = self[~mask].asi8.min()
             else:
-                min_stamp = self.asi8.min()
+                min_stamp = i8.min()
             return self._box_func(min_stamp)
         except ValueError:
             return self._na_value
@@ -422,11 +434,18 @@ class DatetimeIndexOpsMixin(object):
         Overridden ndarray.max to return an object
         """
         try:
-            mask = self.asi8 == tslib.iNaT
-            if mask.any():
+            i8 = self.asi8
+
+            # quick check
+            if len(i8) and self.is_monotonic:
+                if i8[-1] != tslib.iNaT:
+                    return self._box_func(i8[-1])
+
+            if self.hasnans:
+                mask = i8 == tslib.iNaT
                 max_stamp = self[~mask].asi8.max()
             else:
-                max_stamp = self.asi8.max()
+                max_stamp = i8.max()
             return self._box_func(max_stamp)
         except ValueError:
             return self._na_value
