@@ -98,7 +98,7 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(conv.hour, 19)
 
     def test_barely_oob_dts(self):
-        one_us = np.timedelta64(1)
+        one_us = np.timedelta64(1).astype('timedelta64[us]')
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
