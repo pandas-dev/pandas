@@ -170,7 +170,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 def value_counts(values, sort=True, ascending=False, normalize=False,
                  bins=None, dropna=True):
     """
-    Compute a histogram of the counts of non-null values
+    Compute a histogram of the counts of non-null values.
 
     Parameters
     ----------
@@ -184,7 +184,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     bins : integer, optional
         Rather than count values, group them into half-open bins,
         convenience for pd.cut, only works with numeric data
-    dropna : boolean, default False
+    dropna : boolean, default True
         Don't include counts of NaN
 
     Returns
