@@ -733,7 +733,7 @@ class PandasSQLTable(PandasObject):
         elif com.is_integer_dtype(arr_or_dtype):
             # TODO: Refine integer size.
             return BigInteger
-        elif com.is_bool(arr_or_dtype):
+        elif com.is_bool_dtype(arr_or_dtype):
             return Boolean
         return Text
 

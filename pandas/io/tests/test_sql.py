@@ -191,6 +191,26 @@ class PandasSQLTest(unittest.TestCase):
 
         self.test_frame1 = DataFrame(data, columns=columns)
 
+    def _load_test2_data(self):
+        df = DataFrame(dict(A=[4, 1, 3, 6],
+                            B=['asd', 'gsq', 'ylt', 'jkl'],
+                            C=[1.1, 3.1, 6.9, 5.3],
+                            D=[False, True, True, False],
+                            E=['1990-11-22', '1991-10-26', '1993-11-26', '1995-12-12']))
+        df['E'] = to_datetime(df['E'])
+
+        self.test_frame3 = df
+
+    def _load_test3_data(self):
+        columns = ['index', 'A', 'B']
+        data = [(
+            '2000-01-03 00:00:00', 2 ** 31 - 1, -1.987670),
+            ('2000-01-04 00:00:00', -29, -0.0412318367011),
+            ('2000-01-05 00:00:00', 20000, 0.731167677815),
+            ('2000-01-06 00:00:00', -290867, 1.56762092543)]
+
+        self.test_frame3 = DataFrame(data, columns=columns)
+
     def _load_raw_sql(self):
         self.drop_table('types_test_data')
         self._get_exec().execute(SQL_STRINGS['create_test_types'][self.flavor])
@@ -331,6 +351,8 @@ class _TestSQLApi(PandasSQLTest):
         self.conn = self.connect()
         self._load_iris_data()
         self._load_test1_data()
+        self._load_test2_data()
+        self._load_test3_data()
         self._load_raw_sql()
 
     def test_read_sql_iris(self):
@@ -390,6 +412,13 @@ class _TestSQLApi(PandasSQLTest):
 
         self.assertEqual(
             num_rows, num_entries, "not the same number of rows as entries")
+
+    def test_to_sql_type_mapping(self):
+        sql.to_sql(self.test_frame3, 'test_frame5',
+                   self.conn, flavor='sqlite', index=False)
+        result = sql.read_sql("SELECT * FROM test_frame5", self.conn)
+
+        tm.assert_frame_equal(self.test_frame3, result)
 
     def test_to_sql_series(self):
         s = Series(np.arange(5, dtype='int64'), name='series')
@@ -651,35 +680,23 @@ class TestSQLLegacyApi(_TestSQLApi):
     def connect(self, database=":memory:"):
         return sqlite3.connect(database)
 
-    def _load_test2_data(self):
-        columns = ['index', 'A', 'B']
-        data = [(
-            '2000-01-03 00:00:00', 2 ** 31 - 1, -1.987670),
-            ('2000-01-04 00:00:00', -29, -0.0412318367011),
-            ('2000-01-05 00:00:00', 20000, 0.731167677815),
-            ('2000-01-06 00:00:00', -290867, 1.56762092543)]
-
-        self.test_frame2 = DataFrame(data, columns=columns)
-
     def test_sql_open_close(self):
         # Test if the IO in the database still work if the connection closed
         # between the writing and reading (as in many real situations).
 
-        self._load_test2_data()
-
         with tm.ensure_clean() as name:
 
             conn = self.connect(name)
-            sql.to_sql(self.test_frame2, "test_frame2_legacy", conn,
+            sql.to_sql(self.test_frame3, "test_frame3_legacy", conn,
                        flavor="sqlite", index=False)
             conn.close()
 
             conn = self.connect(name)
-            result = sql.read_sql_query("SELECT * FROM test_frame2_legacy;",
+            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;",
                                         conn)
             conn.close()
 
-        tm.assert_frame_equal(self.test_frame2, result)
+        tm.assert_frame_equal(self.test_frame3, result)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
