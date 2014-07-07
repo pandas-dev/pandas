@@ -1,5 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
+import sys
 from datetime import datetime, timedelta
 import operator
 import string
@@ -5541,6 +5542,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 #------------------------------------------------------------------------------
 # TimeSeries-specific
     def test_cummethods_bool(self):
+        # GH 6270
+        # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
+        if _np_version_under1p7 and sys.version_info[0] == 3 and sys.version_info[1] == 2:
+            raise nose.SkipTest("failure of GH6270 on numpy < 1.7 and py 3.2")
+
         def cummin(x):
             return np.minimum.accumulate(x)
 
