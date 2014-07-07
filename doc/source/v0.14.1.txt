@@ -91,6 +91,8 @@ Enhancements
 
 
 
+- Add :meth:`~pandas.DataFrame.select_dtypes` method to allow selection of
+  columns based on dtype (:issue:`7316`). See :ref:`the docs <basics.selectdtypes>`.
 
 
 
