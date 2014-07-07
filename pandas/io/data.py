@@ -907,13 +907,14 @@ class Options(object):
                 meth_name = 'get_{0}_data'.format(nam[:-1])
                 df = getattr(self, meth_name)(expiry=expiry)
 
-            start_index = np.where(df.index.get_level_values('Strike')
+            if self.underlying_price:
+                start_index = np.where(df.index.get_level_values('Strike')
                                    > self.underlying_price)[0][0]
 
-            get_range = slice(start_index - above_below,
+                get_range = slice(start_index - above_below,
                               start_index + above_below + 1)
-            chop = df[get_range].dropna(how='all')
-            data[nam] = chop
+                chop = df[get_range].dropna(how='all')
+                data[nam] = chop
 
         return concat([data[nam] for nam in to_ret]).sortlevel()
 
