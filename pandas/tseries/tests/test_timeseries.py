@@ -770,10 +770,12 @@ class TestTimeSeries(tm.TestCase):
         self.assertTrue((idx.values == tslib.cast_to_nanoseconds(arr)).all())
 
     def test_index_astype_datetime64(self):
-        idx = Index([datetime(2012, 1, 1)], dtype=object)
-
+        # valid only under 1.7!
         if not _np_version_under1p7:
             raise nose.SkipTest("test only valid in numpy < 1.7")
+
+        idx = Index([datetime(2012, 1, 1)], dtype=object)
+        casted = idx.astype(np.dtype('M8[D]'))
 
         casted = idx.astype(np.dtype('M8[D]'))
         expected = DatetimeIndex(idx.values)
@@ -2680,9 +2682,7 @@ class TestDatetimeIndex(tm.TestCase):
         assert index.inferred_freq == '40960N'
 
     def test_ns_index(self):
-
-        if _np_version_under1p7:
-            raise nose.SkipTest
+        tm._skip_if_not_numpy17_friendly()
 
         nsamples = 400
         ns = int(1e9 / 24414)

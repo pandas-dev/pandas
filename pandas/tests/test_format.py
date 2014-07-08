@@ -80,13 +80,6 @@ def has_expanded_repr(df):
             return True
     return False
 
-def skip_if_np_version_under1p7():
-    if _np_version_under1p7:
-        import nose
-
-        raise nose.SkipTest('numpy >= 1.7 required')
-
-
 class TestDataFrameFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -2736,7 +2729,7 @@ class TestFloatArrayFormatter(tm.TestCase):
 class TestRepr_timedelta64(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        skip_if_np_version_under1p7()
+        tm._skip_if_not_numpy17_friendly()
 
     def test_legacy(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2784,7 +2777,7 @@ class TestRepr_timedelta64(tm.TestCase):
 class TestTimedelta64Formatter(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        skip_if_np_version_under1p7()
+        tm._skip_if_not_numpy17_friendly()
 
     def test_mixed(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')

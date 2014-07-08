@@ -2061,11 +2061,7 @@ class TestHDFStore(tm.TestCase):
     def test_append_with_timezones_dateutil(self):
 
         from datetime import timedelta
-
-        try:
-            import dateutil
-        except ImportError:
-            raise nose.SkipTest
+        tm._skip_if_no_dateutil()
 
         # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows filename issues.
         from pandas.tslib import maybe_get_tz
@@ -2186,8 +2182,7 @@ class TestHDFStore(tm.TestCase):
             setTZ(orig_tz)
 
     def test_append_with_timedelta(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("requires numpy >= 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         # GH 3577
         # append timedelta

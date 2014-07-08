@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, Timestamp, isnull, notnull,
-                    bdate_range, date_range, _np_version_under1p7)
+                    bdate_range, date_range)
 import pandas.core.common as com
 from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
 from pandas import compat, to_timedelta, tslib
@@ -15,13 +15,9 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_almost_equal,
-                                 ensure_clean)
+                                 ensure_clean,
+                                 _skip_if_not_numpy17_friendly)
 import pandas.util.testing as tm
-
-def _skip_if_numpy_not_friendly():
-    # not friendly for < 1.7
-    if _np_version_under1p7:
-        raise nose.SkipTest("numpy < 1.7")
 
 class TestTimedeltas(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -30,7 +26,7 @@ class TestTimedeltas(tm.TestCase):
         pass
 
     def test_numeric_conversions(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         self.assertEqual(ct(0), np.timedelta64(0,'ns'))
         self.assertEqual(ct(10), np.timedelta64(10,'ns'))
@@ -42,14 +38,14 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(ct(10,unit='d'), np.timedelta64(10,'D').astype('m8[ns]'))
 
     def test_timedelta_conversions(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         self.assertEqual(ct(timedelta(seconds=1)), np.timedelta64(1,'s').astype('m8[ns]'))
         self.assertEqual(ct(timedelta(microseconds=1)), np.timedelta64(1,'us').astype('m8[ns]'))
         self.assertEqual(ct(timedelta(days=1)), np.timedelta64(1,'D').astype('m8[ns]'))
 
     def test_short_format_converters(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         def conv(v):
             return v.astype('m8[ns]')
@@ -97,7 +93,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(ValueError, ct, 'foo')
 
     def test_full_format_converters(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         def conv(v):
             return v.astype('m8[ns]')
@@ -120,13 +116,13 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(ValueError, ct, '- 1days, 00')
 
     def test_nat_converters(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         self.assertEqual(to_timedelta('nat',box=False).astype('int64'), tslib.iNaT)
         self.assertEqual(to_timedelta('nan',box=False).astype('int64'), tslib.iNaT)
 
     def test_to_timedelta(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         def conv(v):
             return v.astype('m8[ns]')
@@ -235,7 +231,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(ValueError, lambda : to_timedelta(1,unit='foo'))
 
     def test_to_timedelta_via_apply(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         # GH 5458
         expected = Series([np.timedelta64(1,'s')])
@@ -246,7 +242,7 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
     def test_timedelta_ops(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         # GH4984
         # make sure ops return timedeltas
@@ -275,7 +271,7 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_almost_equal(result, expected)
 
     def test_timedelta_ops_scalar(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         # GH 6808
         base = pd.to_datetime('20130101 09:01:12.123456')
@@ -309,7 +305,7 @@ class TestTimedeltas(tm.TestCase):
             self.assertEqual(result, expected_sub)
 
     def test_to_timedelta_on_missing_values(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         # GH5438
         timedelta_NaT = np.timedelta64('NaT')
@@ -328,7 +324,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(actual.astype('int64'), timedelta_NaT.astype('int64'))
 
     def test_timedelta_ops_with_missing_values(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         # setup
         s1 = pd.to_timedelta(Series(['00:00:01']))
@@ -407,7 +403,7 @@ class TestTimedeltas(tm.TestCase):
         assert_frame_equal(actual, dfn)
 
     def test_apply_to_timedelta(self):
-        _skip_if_numpy_not_friendly()
+        _skip_if_not_numpy17_friendly()
 
         timedelta_NaT = pd.to_timedelta('NaT')
 

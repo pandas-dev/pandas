@@ -180,7 +180,7 @@ class TestCommon(Base):
                           'Milli': Timestamp('2011-01-01 09:00:00.001000'),
                           'Micro': Timestamp('2011-01-01 09:00:00.000001'),
                           'Nano': Timestamp(np.datetime64('2011-01-01T09:00:00.000000001Z'))}
- 
+
         self.timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern']
 
     def test_return_type(self):
@@ -2782,8 +2782,8 @@ def test_Microsecond():
 
 
 def test_NanosecondGeneric():
-    if _np_version_under1p7:
-        raise nose.SkipTest('numpy >= 1.7 required')
+    tm._skip_if_not_numpy17_friendly()
+
     timestamp = Timestamp(datetime(2010, 1, 1))
     assert timestamp.nanosecond == 0
 
@@ -2795,8 +2795,7 @@ def test_NanosecondGeneric():
 
 
 def test_Nanosecond():
-    if _np_version_under1p7:
-        raise nose.SkipTest('numpy >= 1.7 required')
+    tm._skip_if_not_numpy17_friendly()
 
     timestamp = Timestamp(datetime(2010, 1, 1))
     assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
