@@ -250,6 +250,9 @@ class TestYahooOptions(tm.TestCase):
         cls.html2 = os.path.join(cls.dirpath, 'yahoo_options2.html')
         cls.root1 = cls.aapl._parse_url(cls.html1)
         cls.root2 = cls.aapl._parse_url(cls.html2)
+        cls.tables1 = cls.aapl._parse_option_page_from_yahoo(cls.root1)
+        cls.unprocessed_data1 = web._parse_options_data(cls.tables1[cls.aapl._TABLE_LOC['puts']])
+        cls.data1 = cls.aapl._process_data(cls.unprocessed_data1, 'put')
 
     @classmethod
     def tearDownClass(cls):
@@ -324,6 +327,13 @@ class TestYahooOptions(tm.TestCase):
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
 
+    def test_chop(self):
+        #regression test for #7625
+        self.aapl.chop_data(self.data1, above_below=2, underlying_price=np.nan)
+        chopped = self.aapl.chop_data(self.data1, above_below=2, underlying_price=300)
+        self.assertIsInstance(chopped, DataFrame)
+        self.assertTrue(len(chopped) > 1)
+
     @network
     def test_sample_page_price_quote_time2(self):
         #Tests the weekday quote time format
@@ -334,10 +344,7 @@ class TestYahooOptions(tm.TestCase):
     @network
     def test_sample_page_chg_float(self):
         #Tests that numeric columns with comma's are appropriately dealt with
-        tables = self.aapl._parse_option_page_from_yahoo(self.root1)
-        data = web._parse_options_data(tables[self.aapl._TABLE_LOC['puts']])
-        option_data = self.aapl._process_data(data)
-        self.assertEqual(option_data['Chg'].dtype, 'float64')
+        self.assertEqual(self.data1['Chg'].dtype, 'float64')
 
 
 class TestOptionsWarnings(tm.TestCase):

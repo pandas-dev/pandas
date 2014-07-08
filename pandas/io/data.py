@@ -736,9 +736,8 @@ class Options(object):
                              " found".format(table_loc, ntables))
 
         option_data = _parse_options_data(tables[table_loc])
-        option_data = self._process_data(option_data)
         option_data['Type'] = name[:-1]
-        option_data.set_index(['Strike', 'Expiry', 'Type', 'Symbol'], inplace=True)
+        option_data = self._process_data(option_data, name[:-1])
 
         if month == CUR_MONTH and year == CUR_YEAR:
             setattr(self, name, option_data)
@@ -859,8 +858,7 @@ class Options(object):
                              month=None, year=None, expiry=None):
         """
         ***Experimental***
-        Cuts the data frame opt_df that is passed in to only take
-        options that are near the current stock price.
+        Returns a data frame of options that are near the current stock price.
 
         Parameters
         ----------
@@ -889,7 +887,6 @@ class Options(object):
          Note: Format of returned data frame is dependent on Yahoo and may change.
 
         """
-        year, month, expiry = self._try_parse_dates(year, month, expiry)
 
         to_ret = Series({'calls': call, 'puts': put})
         to_ret = to_ret[to_ret].index
@@ -897,26 +894,31 @@ class Options(object):
         data = {}
 
         for nam in to_ret:
-            if month:
-                m1 = _two_char_month(month)
-                name = nam + m1 + str(year)[2:]
-
-            try:
-                df = getattr(self, name)
-            except AttributeError:
-                meth_name = 'get_{0}_data'.format(nam[:-1])
-                df = getattr(self, meth_name)(expiry=expiry)
-
-            if self.underlying_price:
-                start_index = np.where(df.index.get_level_values('Strike')
-                                   > self.underlying_price)[0][0]
-
-                get_range = slice(start_index - above_below,
-                              start_index + above_below + 1)
-                chop = df[get_range].dropna(how='all')
-                data[nam] = chop
+            df = self._get_option_data(month, year, expiry, nam)
+            data[nam] = self.chop_data(df, above_below, self.underlying_price)
 
         return concat([data[nam] for nam in to_ret]).sortlevel()
+
+    def chop_data(self, df, above_below=2, underlying_price=None):
+        """Returns a data frame only options that are near the current stock price."""
+
+        if not underlying_price:
+            try:
+                underlying_price = self.underlying_price
+            except AttributeError:
+                underlying_price = np.nan
+
+        if not np.isnan(underlying_price):
+            start_index = np.where(df.index.get_level_values('Strike')
+                                   > underlying_price)[0][0]
+
+            get_range = slice(start_index - above_below,
+                              start_index + above_below + 1)
+            df = df[get_range].dropna(how='all')
+
+        return df
+
+
 
     @staticmethod
     def _try_parse_dates(year, month, expiry):
@@ -1048,7 +1050,7 @@ class Options(object):
                     frame = self.get_near_stock_price(call=call, put=put,
                                                       above_below=above_below,
                                                       month=m2, year=y2)
-                frame = self._process_data(frame)
+                frame = self._process_data(frame, name[:-1])
 
                 all_data.append(frame)
 
@@ -1178,7 +1180,7 @@ class Options(object):
         return root
 
 
-    def _process_data(self, frame):
+    def _process_data(self, frame, type):
         """
         Adds columns for Expiry, IsNonstandard (ie: deliverable is not 100 shares)
         and Tag (the tag indicating what is actually deliverable, None if standard).
@@ -1195,5 +1197,7 @@ class Options(object):
         frame['Underlying_Price'] = self.underlying_price
         frame["Quote_Time"] = self.quote_time
         frame.rename(columns={'Open Int': 'Open_Int'}, inplace=True)
+        frame['Type'] = type
+        frame.set_index(['Strike', 'Expiry', 'Type', 'Symbol'], inplace=True)
 
         return frame
