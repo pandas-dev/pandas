@@ -5,7 +5,7 @@ import os
 
 import numpy as np
 import nose
-from pandas import Series, DataFrame, DatetimeIndex, Timestamp, _np_version_under1p7
+from pandas import Series, DataFrame, DatetimeIndex, Timestamp
 import pandas as pd
 read_json = pd.read_json
 
@@ -601,8 +601,7 @@ class TestPandasContainer(tm.TestCase):
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
 
     def test_timedelta(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("numpy < 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         from datetime import timedelta
         converter = lambda x: pd.to_timedelta(x,unit='ms')

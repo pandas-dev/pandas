@@ -32,8 +32,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, notnull, isnull,
-                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv,
-                    _np_version_under1p7)
+                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv)
 import pandas as pd
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
@@ -3772,8 +3771,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
 
     def test_datetimelike_setitem_with_inference(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("numpy < 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         # GH 7592
         # assignment of timedeltas with NaT
@@ -13036,6 +13034,7 @@ starting,ending,measure
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
+        tm._skip_if_not_numpy17_friendly()
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),

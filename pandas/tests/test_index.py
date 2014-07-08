@@ -32,11 +32,6 @@ from pandas.lib import Timestamp
 
 from pandas import _np_version_under1p7
 
-def _skip_if_need_numpy_1_7():
-    if _np_version_under1p7:
-        raise nose.SkipTest('numpy >= 1.7 required')
-
-
 class TestIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -340,7 +335,7 @@ class TestIndex(tm.TestCase):
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_nanosecond_index_access(self):
-        _skip_if_need_numpy_1_7()
+        tm._skip_if_not_numpy17_friendly()
 
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
         r = DatetimeIndex([s + 50 + i for i in range(100)])

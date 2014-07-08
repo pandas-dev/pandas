@@ -509,8 +509,7 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_timedelta(self):
         # see #6921
-        if _np_version_under1p7:
-            raise nose.SkipTest("test only valid in numpy >= 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         df = to_timedelta(Series(['00:00:01', '00:00:03'], name='foo')).to_frame()
         with tm.assert_produces_warning(UserWarning):
@@ -659,7 +658,7 @@ class TestSQLApi(_TestSQLApi):
         self.conn.execute(qry)
         qry = """CREATE TABLE other_table (x INTEGER, y INTEGER);"""
         self.conn.execute(qry)
-        
+
         with warnings.catch_warnings(record=True) as w:
             # Cause all warnings to always be triggered.
             warnings.simplefilter("always")

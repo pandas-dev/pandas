@@ -198,8 +198,7 @@ class TestIndexOps(Ops):
         self.not_valid_objs = [ o for o in self.objs if not o._allow_index_ops ]
 
     def test_ops(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("test only valid in numpy >= 1.7")
+        tm._skip_if_not_numpy17_friendly()
         for op in ['max','min']:
             for o in self.objs:
                 result = getattr(o,op)()

@@ -264,8 +264,7 @@ class TestArrayToDatetime(tm.TestCase):
 
 class TestTimestampNsOperations(tm.TestCase):
     def setUp(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest('numpy >= 1.7 required')
+        tm._skip_if_not_numpy17_friendly()
         self.timestamp = Timestamp(datetime.datetime.utcnow())
 
     def assert_ns_timedelta(self, modified_timestamp, expected_value):

@@ -812,8 +812,7 @@ class TestMerge(tm.TestCase):
 
         # timedelta64 issues with join/merge
         # GH 5695
-        if _np_version_under1p7:
-            raise nose.SkipTest("numpy < 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         d = {'d': dt.datetime(2013, 11, 5, 5, 56), 't': dt.timedelta(0, 22500)}
         df = DataFrame(columns=list('dt'))
@@ -2005,9 +2004,7 @@ class TestConcatenate(tm.TestCase):
     def test_concat_timedelta64_block(self):
 
         # not friendly for < 1.7
-        if _np_version_under1p7:
-            raise nose.SkipTest("numpy < 1.7")
-
+        tm._skip_if_not_numpy17_friendly()
         from pandas import to_timedelta
 
         rng = to_timedelta(np.arange(10),unit='s')

@@ -137,8 +137,7 @@ class TestFrequencyInference(tm.TestCase):
         self._check_tick(timedelta(microseconds=1), 'U')
 
     def test_nanosecond(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("requires numpy >= 1.7 to run")
+        tm._skip_if_not_numpy17_friendly()
         self._check_tick(np.timedelta64(1, 'ns'), 'N')
 
     def _check_tick(self, base_delta, code):

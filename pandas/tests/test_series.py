@@ -2721,8 +2721,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 self.assertRaises(TypeError, sop, s2.values)
 
     def test_timedelta64_conversions(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("cannot use 2 argument form of timedelta64 conversions with numpy < 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
@@ -2835,8 +2834,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         dt1 + td1
 
     def test_ops_datetimelike_align(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("timedelta broken in np < 1.7")
+        tm._skip_if_not_numpy17_friendly()
 
         # GH 7500
         # datetimelike ops need to align
@@ -2899,8 +2897,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_timedelta_fillna(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("timedelta broken in np 1.6.1")
+        tm._skip_if_not_numpy17_friendly()
 
         #GH 3371
         s = Series([Timestamp('20130101'), Timestamp('20130101'),
@@ -3107,8 +3104,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        if _np_version_under1p7:
-            raise nose.SkipTest("timedelta broken in np 1.6.1")
+        tm._skip_if_not_numpy17_friendly()
 
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
         from datetime import datetime

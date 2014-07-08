@@ -41,7 +41,8 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
-from pandas import _testing
+from pandas import _testing, _np_version_under1p7
+
 
 from pandas.io.common import urlopen
 
@@ -208,6 +209,12 @@ def mplskip(cls):
 
     cls.setUpClass = setUpClass
     return cls
+
+def _skip_if_not_numpy17_friendly():
+    # not friendly for < 1.7
+    if _np_version_under1p7:
+        import nose
+        raise nose.SkipTest("numpy >= 1.7 is required")
 
 def _skip_if_no_scipy():
     try:
