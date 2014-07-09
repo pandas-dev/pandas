@@ -59,6 +59,52 @@ of all API changes, enhancements and bugs that have been fixed in 0.14.1.
 Thanks
 ~~~~~~
 
+- Andrew Rosenfeld
+- Andy Hayden
+- Benjamin Adams
+- Benjamin M. Gross
+- Brian Quistorff
+- Brian Wignall
+- bwignall
+- clham
+- Daniel Waeber
+- David Bew
+- David Stephens
+- DSM
+- dsm054
+- helger
+- immerrr
+- Jacob Schaer
+- jaimefrio
+- Jan Schulz
+- John David Reaver
+- John W. O'Brien
+- Joris Van den Bossche
+- jreback
+- Julien Danjou
+- Kevin Sheppard
+- K.-Michael Aye
+- Kyle Meyer
+- lexual
+- Matthew Brett
+- Matt Wittmann
+- Michael Mueller
+- Mortada Mehyar
+- onesandzeroes
+- Phillip Cloud
+- Rob Levy
+- rockg
+- sanguineturtle
+- Schaer, Jacob C
+- seth-p
+- sinhrks
+- Stephan Hoyer
+- Thomas Kluyver
+- Todd Jennings
+- TomAugspurger
+- unknown
+- yelite
+
 pandas 0.14.0
 -------------
 
