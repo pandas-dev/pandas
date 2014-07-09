@@ -1996,7 +1996,7 @@ Excel writer engines
 By default, ``pandas`` uses the `XlsxWriter`_  for ``.xlsx`` and `openpyxl`_
 for ``.xlsm`` files and `xlwt`_ for ``.xls`` files.  If you have multiple
 engines installed, you can set the default engine through :ref:`setting the
-config options <basics.working_with_options>` ``io.excel.xlsx.writer`` and
+config options <options>` ``io.excel.xlsx.writer`` and
 ``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
 files if `Xlsxwriter`_ is not available.
 

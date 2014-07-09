@@ -640,7 +640,7 @@ def _build_option_description(k):
                                                          _get_option(k, True))
 
     if d:
-        s += u('\n\t(Deprecated')
+        s += u('\n    (Deprecated')
         s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
         s += u(')')
 
