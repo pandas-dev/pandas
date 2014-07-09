@@ -2067,6 +2067,10 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
+    table : boolean, Series or DataFrame, default False
+        If True, draw a table using the data in the DataFrame and the data will
+        be transposed to meet matplotlib’s default layout.
+        If a Series or DataFrame is passed, use passed data to draw a table.
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -2210,6 +2214,10 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
+    table : boolean, Series or DataFrame, default False
+        If True, draw a table using the data in the Series and the data will
+        be transposed to meet matplotlib’s default layout.
+        If a Series or DataFrame is passed, use passed data to draw a table.
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -2795,7 +2803,7 @@ def table(ax, data, rowLabels=None, colLabels=None,
     elif isinstance(data, DataFrame):
         pass
     else:
-        raise ValueError('Input data must be dataframe or series')
+        raise ValueError('Input data must be DataFrame or Series')
 
     if rowLabels is None:
         rowLabels = data.index
