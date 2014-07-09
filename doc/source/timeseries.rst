@@ -493,7 +493,7 @@ The basic ``DateOffset`` takes the same arguments as
 
 .. ipython:: python
 
-   d = datetime(2008, 8, 18)
+   d = datetime(2008, 8, 18, 9, 0)
    d + relativedelta(months=4, days=5)
 
 We could have done the same thing with ``DateOffset``:
@@ -568,9 +568,20 @@ particular day of the week:
 
 .. ipython:: python
 
+   d
    d + Week()
    d + Week(weekday=4)
    (d + Week(weekday=4)).weekday()
+
+   d - Week()
+
+``normalize`` option will be effective for addition and subtraction.
+
+.. ipython:: python
+
+   d + Week(normalize=True)
+   d - Week(normalize=True)
+
 
 Another example is parameterizing ``YearEnd`` with the specific ending month:
 

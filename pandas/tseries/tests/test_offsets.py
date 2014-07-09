@@ -361,6 +361,42 @@ class TestCommon(Base):
             date = datetime(dt.year, dt.month, dt.day)
             self.assert_(offset_n.onOffset(date))
 
+    def test_add(self):
+        dt = datetime(2011, 1, 1, 9, 0)
+
+        for offset in self.offset_types:
+            offset_s = self._get_offset(offset)
+            expected = self.expecteds[offset.__name__]
+
+            result_dt = dt + offset_s
+            result_ts = Timestamp(dt) + offset_s
+            for result in [result_dt, result_ts]:
+                self.assertTrue(isinstance(result, Timestamp))
+                self.assertEqual(result, expected)
+
+            tm._skip_if_no_pytz()
+            for tz in self.timezones:
+                expected_localize = expected.tz_localize(tz)
+                result = Timestamp(dt, tz=tz) + offset_s
+                self.assert_(isinstance(result, Timestamp))
+                self.assertEqual(result, expected_localize)
+
+            # normalize=True
+            offset_s = self._get_offset(offset, normalize=True)
+            expected = Timestamp(expected.date())
+
+            result_dt = dt + offset_s
+            result_ts = Timestamp(dt) + offset_s
+            for result in [result_dt, result_ts]:
+                self.assertTrue(isinstance(result, Timestamp))
+                self.assertEqual(result, expected)
+
+            for tz in self.timezones:
+                expected_localize = expected.tz_localize(tz)
+                result = Timestamp(dt, tz=tz) + offset_s
+                self.assert_(isinstance(result, Timestamp))
+                self.assertEqual(result, expected_localize)
+
 
 class TestDateOffset(Base):
     _multiprocess_can_split_ = True

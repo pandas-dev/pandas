@@ -753,7 +753,10 @@ cdef class _Timestamp(datetime):
 
         elif isinstance(other, timedelta) or hasattr(other, 'delta'):
             nanos = _delta_to_nanoseconds(other)
-            return Timestamp(self.value + nanos, tz=self.tzinfo, offset=self.offset)
+            result = Timestamp(self.value + nanos, tz=self.tzinfo, offset=self.offset)
+            if getattr(other, 'normalize', False):
+                result = Timestamp(normalize_date(result))
+            return result
 
         result = datetime.__add__(self, other)
         if isinstance(result, datetime):
