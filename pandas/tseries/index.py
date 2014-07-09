@@ -1477,7 +1477,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                              tz=self.tz)
 
     def __iter__(self):
-        return iter(self.asobject)
+        return (self._box_func(v) for v in self.asi8)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):

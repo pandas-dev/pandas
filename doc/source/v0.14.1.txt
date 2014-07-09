@@ -292,3 +292,4 @@ Bug Fixes
 - Bug in ``to_sql`` taking the boolean column as text column (:issue:`7678`)
 - Bug in grouped `hist` doesn't handle `rot` kw and `sharex` kw properly (:issue:`7234`)
 
+- Bug in ``DatetimeIndex``, ``__iter__`` creates a temp array of ``Timestamp`` (:issue:`7683`)
