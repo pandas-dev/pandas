@@ -1195,6 +1195,8 @@ _network_error_messages = (
     'HTTP Error 502',
     'HTTP Error 503',
     'HTTP Error 403',
+    'Temporary failure in name resolution',
+    'Name or service not known',
     )
 
 # or this e.errno/e.reason.errno
