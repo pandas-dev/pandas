@@ -157,7 +157,7 @@ class DateOffset(object):
         return (self.n == 1)
 
     def copy(self):
-        return self.__class__(self.n, **self.kwds)
+        return self.__class__(self.n, normalize=self.normalize, **self.kwds)
 
     def _should_cache(self):
         return self.isAnchored() and self._cacheable
@@ -251,34 +251,34 @@ class DateOffset(object):
         if isinstance(other, datetime):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
-            return self.__class__(self.n - other.n, **self.kwds)
+            return self.__class__(self.n - other.n, normalize=self.normalize, **self.kwds)
         else:  # pragma: no cover
             return NotImplemented
 
     def __rsub__(self, other):
-        return self.__class__(-self.n, **self.kwds) + other
+        return self.__class__(-self.n, normalize=self.normalize, **self.kwds) + other
 
     def __mul__(self, someInt):
-        return self.__class__(n=someInt * self.n, **self.kwds)
+        return self.__class__(n=someInt * self.n, normalize=self.normalize, **self.kwds)
 
     def __rmul__(self, someInt):
         return self.__mul__(someInt)
 
     def __neg__(self):
-        return self.__class__(-self.n, **self.kwds)
+        return self.__class__(-self.n, normalize=self.normalize, **self.kwds)
 
     @apply_wraps
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
         if not self.onOffset(dt):
-            dt = dt - self.__class__(1, **self.kwds)
+            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
     @apply_wraps
     def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
         if not self.onOffset(dt):
-            dt = dt + self.__class__(1, **self.kwds)
+            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def onOffset(self, dt):
