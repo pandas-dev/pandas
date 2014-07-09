@@ -13020,9 +13020,14 @@ starting,ending,measure
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
-                        'e': [True, False, True]})
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc'))})
         ri = df.select_dtypes(include=[np.number])
         ei = df[['b', 'c', 'd']]
+        tm.assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=[np.number,'category'])
+        ei = df[['b', 'c', 'd', 'f']]
         tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude(self):

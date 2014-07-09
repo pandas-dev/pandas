@@ -106,7 +106,15 @@ def bind_method(cls, name, func):
     else:
         setattr(cls, name, func)
 
+class CategoricalDtypeType(type):
+    """
+    the type of CategoricalDtype, this metaclass determines subclass ability
+    """
+    def __init__(cls, name, bases, attrs):
+        pass
+
 class CategoricalDtype(object):
+    __meta__ = CategoricalDtypeType
     """
     A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
 
@@ -114,7 +122,7 @@ class CategoricalDtype(object):
     """
     name = 'category'
     names = None
-    type = np.object_
+    type = CategoricalDtypeType
     subdtype = None
     kind = 'O'
     str = '|O08'
@@ -1702,6 +1710,8 @@ def _get_dtype_from_object(dtype):
     elif isinstance(dtype, compat.string_types):
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
+        elif dtype == 'category':
+            return CategoricalDtypeType
         try:
             return _get_dtype_from_object(getattr(np, dtype))
         except AttributeError:
@@ -1710,10 +1720,6 @@ def _get_dtype_from_object(dtype):
             # types, in general)
             pass
     return _get_dtype_from_object(np.dtype(dtype))
-
-
-_string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
-                                                        compat.text_type)))
 
 
 def _get_info_slice(obj, indexer):
@@ -2383,6 +2389,7 @@ def is_bool_dtype(arr_or_dtype):
 def is_categorical_dtype(arr_or_dtype):
     if hasattr(arr_or_dtype,'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
+
     if isinstance(arr_or_dtype, CategoricalDtype):
         return True
     try:
@@ -2425,6 +2432,10 @@ def _is_sequence(x):
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
+
+_string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
+                                                        compat.text_type)))
 
 
 _ensure_float64 = algos.ensure_float64
