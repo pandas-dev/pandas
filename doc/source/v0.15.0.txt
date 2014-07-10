@@ -152,6 +152,7 @@ There are no experimental changes in 0.15.0
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``DatetimeIndex``, ``__iter__`` creates a temp array of ``Timestamp`` (:issue:`7683`)
 
 
 

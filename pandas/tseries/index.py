@@ -1476,9 +1476,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         return DatetimeIndex(new_values, freq='infer', name=self.name,
                              tz=self.tz)
 
-    def __iter__(self):
-        return iter(self.asobject)
-
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
             key = np.array(key, dtype=_NS_DTYPE, copy=False)

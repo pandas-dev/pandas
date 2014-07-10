@@ -387,6 +387,9 @@ class DatetimeIndexOpsMixin(object):
     is_year_start = _field_accessor('is_year_start', "Logical indicating if first day of year (defined by frequency)")
     is_year_end = _field_accessor('is_year_end', "Logical indicating if last day of year (defined by frequency)")
 
+    def __iter__(self):
+        return (self._box_func(v) for v in self.asi8)
+
     @property
     def _box_func(self):
         """

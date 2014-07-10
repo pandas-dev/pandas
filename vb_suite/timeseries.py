@@ -333,3 +333,28 @@ rng = date_range('1/1/1', periods=N, freq='B')
 
 timeseries_is_month_start = Benchmark('rng.is_month_start', setup,
                                   start_date=datetime(2014, 4, 1))
+
+#----------------------------------------------------------------------
+# iterate over DatetimeIndex/PeriodIndex
+setup = common_setup + """
+N = 1000000
+M = 10000
+idx1 = date_range(start='20140101', freq='T', periods=N)
+idx2 = period_range(start='20140101', freq='T', periods=N)
+
+def iter_n(iterable, n=None):
+  i = 0
+  for _ in iterable:
+    i += 1
+    if n is not None and i > n:
+      break
+"""
+
+timeseries_iter_datetimeindex = Benchmark('iter_n(idx1)', setup)
+
+timeseries_iter_periodindex = Benchmark('iter_n(idx2)', setup)
+
+timeseries_iter_datetimeindex_preexit = Benchmark('iter_n(idx1, M)', setup)
+
+timeseries_iter_periodindex_preexit = Benchmark('iter_n(idx2, M)', setup)
+
