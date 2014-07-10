@@ -653,11 +653,14 @@ To globally provide aliases for axis names, one can define these 2 functions:
             raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
         cls._AXIS_ALIASES[alias] = axis
 
+.. ipython:: python
+
    def clear_axis_alias(cls, axis, alias):
         if axis not in cls._AXIS_NUMBERS:
             raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
         cls._AXIS_ALIASES.pop(alias,None)
 
+.. ipython:: python
 
    set_axis_alias(DataFrame,'columns', 'myaxis2')
    df2 = DataFrame(randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
