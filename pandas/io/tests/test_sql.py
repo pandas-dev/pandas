@@ -1079,6 +1079,16 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64),
                          "DateCol loaded with incorrect type")
 
+    def test_bigint_warning(self):
+        # test no warning for BIGINT (to support int64) is raised (GH7433)
+        df = DataFrame({'a':[1,2]}, dtype='int64')
+        df.to_sql('test_bigintwarning', self.conn, index=False)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sql.read_sql_table('test_bigintwarning', self.conn)
+            self.assertEqual(len(w), 0, "Warning triggered for other table")
+
 
 class TestMySQLAlchemy(_TestSQLAlchemy):
     """
