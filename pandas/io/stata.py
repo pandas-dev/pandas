@@ -206,6 +206,7 @@ column names in your DataFrame (strings only, max 32 characters, only alphanumer
 underscores, no Stata reserved words)
 """
 
+
 def _cast_to_stata_types(data):
     """Checks the dtypes of the columns of a pandas DataFrame for
     compatibility with the data types and ranges supported by Stata, and
@@ -218,18 +219,44 @@ def _cast_to_stata_types(data):
 
     Notes
     -----
-    Numeric columns must be one of int8, int16, int32, float32 or float64, with
-    some additional value restrictions on the integer data types.  int8 and
-    int16 columns are checked for violations of the value restrictions and
+    Numeric columns in Stata must be one of int8, int16, int32, float32 or
+    float64, with some additional value restrictions.  int8 and int16 columns
+    are checked for violations of the value restrictions and
     upcast if needed.  int64 data is not usable in Stata, and so it is
     downcast to int32 whenever the value are in the int32 range, and
     sidecast to float64 when larger than this range.  If the int64 values
     are outside of the range of those perfectly representable as float64 values,
     a warning is raised.
+
+    bool columns are cast to int8.  uint colums are converted to int of the same
+    size if there is no loss in precision, other wise are upcast to a larger
+    type.  uint64 is currently not supported since it is concerted to object in
+    a DataFrame.
     """
     ws = ''
+    #                  original, if small, if large
+    conversion_data = ((np.bool, np.int8, np.int8),
+                       (np.uint8, np.int8, np.int16),
+                       (np.uint16, np.int16, np.int32),
+                       (np.uint32, np.int32, np.int64))
+
     for col in data:
         dtype = data[col].dtype
+        # Cast from unsupported types to supported types
+        for c_data in conversion_data:
+            if dtype == c_data[0]:
+                if data[col].max() <= np.iinfo(c_data[1]).max:
+                    dtype = c_data[1]
+                else:
+                    dtype = c_data[2]
+                if c_data[2] == np.float64:  # Warn if necessary
+                        if data[col].max() >= 2 * 53:
+                            ws = precision_loss_doc % ('uint64', 'float64')
+
+                data[col] = data[col].astype(dtype)
+
+
+        # Check values and upcast if necessary
         if dtype == np.int8:
             if data[col].max() > 100 or data[col].min() < -127:
                 data[col] = data[col].astype(np.int16)
@@ -241,7 +268,7 @@ def _cast_to_stata_types(data):
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
-                if data[col].max() <= 2 * 53 or data[col].min() >= -2 ** 53:
+                if data[col].max() >= 2 ** 53 or data[col].min() <= -2 ** 53:
                     ws = precision_loss_doc % ('int64', 'float64')
 
     if ws:
