@@ -20,7 +20,7 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
-from pandas.compat import map, zip, u
+from pandas.compat import zip, u
 
 
 #---------------
@@ -546,13 +546,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     end   : end value, period-like, optional
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
-    year : int or array, default None
-    month : int or array, default None
-    quarter : int or array, default None
-    day : int or array, default None
-    hour : int or array, default None
-    minute : int or array, default None
-    second : int or array, default None
+    year : int, array, or Series, default None
+    month : int, array, or Series, default None
+    quarter : int, array, or Series, default None
+    day : int, array, or Series, default None
+    hour : int, array, or Series, default None
+    minute : int, array, or Series, default None
+    second : int, array, or Series, default None
     tz : object, default None
         Timezone for converting datetime64 data to Periods
 
