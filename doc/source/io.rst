@@ -3504,6 +3504,31 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
+*Stata* data files have limited data type support; only strings with 244 or
+fewer characters, ``int8``, ``int16``, ``int32`` and ``float64`` can be stored
+in ``.dta`` files.  Additionally, *Stata* reserveds certain values to represent
+missing data, and when a value is encountered outside of the
+permitted range, the data type is upcast to the next larger size.  For
+example, ``int8`` values are restricted to lie between -127 and 100, and so
+variables with values above 100 will trigger a conversion to ``int16``. ``nan``
+values in floating points data types are stored as the basic missing data type
+(``.`` in *Stata*).  Tt is not possible to indicate missing data values for
+integer data types.
+
+The *Stata* writer gracefully handles other data types including ``int64``,
+``bool``, ``uint8``, ``uint16``, ``uint32`` and ``float32`` by upcasting to
+the smallest supported type that can represent the data.  For example, data
+with a type of ``uint8`` will be cast to ``int8`` if all values are less than
+100 (the upper bound for non-missing ``int8`` data in *Stata*), or, if values are
+outside of this range, the data is cast to ``int16``.
+
+
+.. warning::
+
+   Conversion from ``int64`` to ``float64`` may result in a loss of precision
+   if ``int64`` values are larger than 2**53.
+
+
 .. _io.stata_reader:
 
 Reading from STATA format
