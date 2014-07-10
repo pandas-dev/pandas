@@ -18,8 +18,6 @@ import pandas.core.common as com
 from pandas.tseries.converter import (PeriodConverter, TimeSeries_DateLocator,
                                       TimeSeries_DateFormatter)
 
-from pandas.tools.plotting import _get_all_lines, _get_xlim
-
 #----------------------------------------------------------------------
 # Plotting functions and monkey patches
 
@@ -59,25 +57,15 @@ def tsplot(series, plotf, **kwargs):
     # Set ax with freq info
     _decorate_axes(ax, freq, kwargs)
 
-    # mask missing values
-    args = _maybe_mask(series)
-
     # how to make sure ax.clear() flows through?
     if not hasattr(ax, '_plot_data'):
         ax._plot_data = []
     ax._plot_data.append((series, kwargs))
 
-    # styles
-    style = kwargs.pop('style', None)
-    if style is not None:
-        args.append(style)
-
-    lines = plotf(ax, *args, **kwargs)
+    lines = plotf(ax, series.index, series.values, **kwargs)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
-    left, right = _get_xlim(_get_all_lines(ax))
-    ax.set_xlim(left, right)
 
     # x and y coord info
     ax.format_coord = lambda t, y: ("t = {0}  "
@@ -165,8 +153,7 @@ def _replot_ax(ax, freq, plotf, kwargs):
             idx = series.index.asfreq(freq, how='S')
             series.index = idx
             ax._plot_data.append(series)
-            args = _maybe_mask(series)
-            lines.append(plotf(ax, *args, **kwds)[0])
+            lines.append(plotf(ax, series.index, series.values, **kwds)[0])
             labels.append(com.pprint_thing(series.name))
 
     return lines, labels
@@ -182,17 +169,6 @@ def _decorate_axes(ax, freq, kwargs):
         ax.legendlabels.append(kwargs.get('label', None))
     ax.view_interval = None
     ax.date_axis_info = None
-
-
-def _maybe_mask(series):
-    mask = isnull(series)
-    if mask.any():
-        masked_array = np.ma.array(series.values)
-        masked_array = np.ma.masked_where(mask, masked_array)
-        args = [series.index, masked_array]
-    else:
-        args = [series.index, series.values]
-    return args
 
 
 def _get_freq(ax, series):
