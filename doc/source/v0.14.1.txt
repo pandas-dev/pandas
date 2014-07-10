@@ -7,16 +7,21 @@ This is a minor release from 0.14.0 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
-- New Documentation section on :ref:`Options and Settings <options>`
+- Highlights include:
+
+    - New methods :meth:`~pandas.DataFrame.select_dtypes` to select columns
+      based on the dtype and :meth:`~pandas.Series.sem` to calculate the
+      standard error of the mean.
+    - Support for dateutil timezones (see :ref:`docs <timeseries.timezone>`).
+    - Support for ignoring full line comments in the :func:`~pandas.read_csv`
+      text parser.
+    - New documentation section on :ref:`Options and Settings <options>`.
+    - Lots of bug fixes.
 
 - :ref:`Enhancements <whatsnew_0141.enhancements>`
-
 - :ref:`API Changes <whatsnew_0141.api>`
-
 - :ref:`Performance Improvements <whatsnew_0141.performance>`
-
 - :ref:`Experimental Changes <whatsnew_0141.experimental>`
-
 - :ref:`Bug Fixes <whatsnew_0141.bug_fixes>`
 
 .. _whatsnew_0141.api:
@@ -24,8 +29,68 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
-- All ``offsets`` suppports ``normalize`` keyword to specify whether ``offsets.apply``, ``rollforward`` and ``rollback`` resets time (hour, minute, etc) or not (default ``False``, preserves time) (:issue:`7156`)
+- Openpyxl now raises a ValueError on construction of the openpyxl writer
+  instead of warning on pandas import (:issue:`7284`).
 
+- For ``StringMethods.extract``, when no match is found, the result - only
+  containing ``NaN`` values - now also has ``dtype=object`` instead of
+  ``float`` (:issue:`7242`)
+
+- ``Period`` objects no longer raise a ``TypeError`` when compared using ``==``
+  with another object that *isn't* a ``Period``. Instead
+  when comparing a ``Period`` with another object using ``==`` if the other
+  object isn't a ``Period`` ``False`` is returned. (:issue:`7376`)
+
+- Previously, the behaviour on resetting the time or not in
+  ``offsets.apply``, ``rollforward`` and ``rollback`` operations differed
+  between offsets. With the support of the ``normalize`` keyword for all offsets(see
+  below) with a default value of False (preserve time), the behaviour changed for certain
+  offsets (BusinessMonthBegin, MonthEnd, BusinessMonthEnd, CustomBusinessMonthEnd,
+  BusinessYearBegin, LastWeekOfMonth, FY5253Quarter, LastWeekOfMonth, Easter):
+
+  .. code-block:: python
+
+     In [6]: from pandas.tseries import offsets
+
+     In [7]: d = pd.Timestamp('2014-01-01 09:00')
+
+     # old behaviour < 0.14.1
+     In [8]: d + offsets.MonthEnd()
+     Out[8]: Timestamp('2014-01-31 00:00:00')
+
+  Starting from 0.14.1 all offsets preserve time by default. The old
+  behaviour can be obtained with ``normalize=True``
+
+  .. ipython:: python
+     :suppress:
+
+     import pandas.tseries.offsets as offsets
+     d = pd.Timestamp('2014-01-01 09:00')
+
+  .. ipython:: python
+
+     # new behaviour
+     d + offsets.MonthEnd()
+     d + offsets.MonthEnd(normalize=True)
+
+  Note that for the other offsets the default behaviour did not change.
+
+- Add back ``#N/A N/A`` as a default NA value in text parsing, (regresion from 0.12) (:issue:`5521`)
+- Raise a ``TypeError`` on inplace-setting with a ``.where`` and a non ``np.nan`` value as this is inconsistent
+  with a set-item expression like ``df[mask] = None`` (:issue:`7656`)
+
+
+.. _whatsnew_0141.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+- Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
+- Add :meth:`~pandas.DataFrame.select_dtypes` method to allow selection of
+  columns based on dtype (:issue:`7316`). See :ref:`the docs <basics.selectdtypes>`.
+- All ``offsets`` suppports the ``normalize`` keyword to specify whether
+  ``offsets.apply``, ``rollforward`` and ``rollback`` resets the time (hour,
+  minute, etc) or not (default ``False``, preserves time) (:issue:`7156`):
 
   .. ipython:: python
 
@@ -37,78 +102,19 @@ API changes
    day = offsets.Day(normalize=True)
    day.apply(Timestamp('2014-01-01 09:00'))
 
-- Improved inference of datetime/timedelta with mixed null objects. Regression from 0.13.1 in interpretation of an object Index
-  with all null elements (:issue:`7431`)
-
-- Openpyxl now raises a ValueError on construction of the openpyxl writer
-  instead of warning on pandas import (:issue:`7284`).
-
-- For ``StringMethods.extract``, when no match is found, the result - only
-  containing ``NaN`` values - now also has ``dtype=object`` instead of
-  ``float`` (:issue:`7242`)
-
-- ``StringMethods`` now work on empty Series (:issue:`7242`)
-- ``Period`` objects no longer raise a ``TypeError`` when compared using ``==``
-  with another object that *isn't* a ``Period``. Instead
-  when comparing a ``Period`` with another object using ``==`` if the other
-  object isn't a ``Period`` ``False`` is returned. (:issue:`7376`)
-
-- Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
-- Add back ``#N/A N/A`` as a default NA value in text parsing, (regresion from 0.12) (:issue:`5521`)
-- Raise a ``TypeError`` on inplace-setting with a ``.where`` and a non ``np.nan`` value as this is inconsistent
-  with a set-item expression like ``df[mask] = None`` (:issue:`7656`)
-
-.. _whatsnew_0141.prior_deprecations:
-
-Prior Version Deprecations/Changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There are no prior version deprecations that are taking effect as of 0.14.1.
-
-.. _whatsnew_0141.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
-
-There are no deprecations that are taking effect as of 0.14.1.
-
-.. _whatsnew_0141.enhancements:
-
-Enhancements
-~~~~~~~~~~~~
-
-
-
-- Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
-- Add ``NotImplementedError`` for simultaneous use of ``chunksize`` and ``nrows``
-  for read_csv() (:issue:`6774`).
-
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
-
-
-
-
-
-
-
-
-
-- Add :meth:`~pandas.DataFrame.select_dtypes` method to allow selection of
-  columns based on dtype (:issue:`7316`). See :ref:`the docs <basics.selectdtypes>`.
-
-
-
+- ``StringMethods`` now work on empty Series (:issue:`7242`)
 - The file parsers ``read_csv`` and ``read_table`` now ignore line comments provided by
   the parameter `comment`, which accepts only a single character for the C reader.
   In particular, they allow for comments before file data begins (:issue:`2685`)
+- Add ``NotImplementedError`` for simultaneous use of ``chunksize`` and ``nrows``
+  for read_csv() (:issue:`6774`).
 - Tests for basic reading of public S3 buckets now exist (:issue:`7281`).
 - ``read_html`` now sports an ``encoding`` argument that is passed to the
   underlying parser library. You can use this to read non-ascii encoded web
   pages (:issue:`7323`).
 - ``read_excel`` now supports reading from URLs in the same way
   that ``read_csv`` does.  (:issue:`6809`)
-
-
 - Support for dateutil timezones, which can now be used in the same way as
   pytz timezones across pandas. (:issue:`4688`)
 
@@ -125,16 +131,13 @@ Enhancements
 - Add ``nlargest`` and ``nsmallest`` to the ``Series`` ``groupby`` whitelist,
   which means you can now use these methods on a ``SeriesGroupBy`` object
   (:issue:`7053`).
-
-
-
 - All offsets ``apply``, ``rollforward`` and ``rollback`` can now handle ``np.datetime64``, previously results in ``ApplyTypeError`` (:issue:`7452`)
-
 - ``Period`` and ``PeriodIndex`` can contain ``NaT`` in its values (:issue:`7485`)
 - Support pickling ``Series``, ``DataFrame`` and ``Panel`` objects with
   non-unique labels along *item* axis (``index``, ``columns`` and ``items``
   respectively) (:issue:`7370`).
-
+- Improved inference of datetime/timedelta with mixed null objects. Regression from 0.13.1 in interpretation of an object Index
+  with all null elements (:issue:`7431`)
 
 .. _whatsnew_0141.performance:
 
@@ -147,24 +150,19 @@ Performance
 - Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
 
 
-
 .. _whatsnew_0141.experimental:
-
-
-
-
 
 Experimental
 ~~~~~~~~~~~~
 
 - ``pandas.io.data.Options`` has a new method, ``get_all_data`` method, and now consistently returns a
   multi-indexed ``DataFrame``, see :ref:`the docs <remote_data.yahoo_options>`. (:issue:`5602`)
-
 - ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
   dependency on the Google ``bq.py`` command line client. This submodule
   now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client
   libraries which should be more stable and, therefore, reliable than
   ``bq.py``. See :ref:`the docs <io.bigquery>`. (:issue:`6937`).
+
 
 .. _whatsnew_0141.bug_fixes:
 
@@ -185,10 +183,7 @@ Bug Fixes
 - Bug in plotting subplots with ``DataFrame.plot``, ``hist`` clears passed ``ax`` even if the number of subplots is one (:issue:`7391`).
 - Bug in plotting subplots with ``DataFrame.boxplot`` with ``by`` kw raises ``ValueError`` if the number of subplots exceeds 1 (:issue:`7391`).
 - Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
-
 - Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
-
-
 - Bug in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
 - Bug in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
 - Bug in multi-index slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
@@ -246,49 +241,31 @@ Bug Fixes
 - Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
 - Bug in when reading Stata 13 (117) files containing fixed width strings (:issue:`7360`)
 - Bug in when writing Stata files where the encoding was ignored (:issue:`7286`)
-
-
 - Bug in ``DatetimeIndex`` comparison doesn't handle ``NaT`` properly (:issue:`7529`)
-
-
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
 - Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
-
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
-
-
 - Bug in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
-
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)
 - Bug in ``DatetimeIndex.asobject`` raises ``ValueError`` when it contains ``NaT`` (:issue:`7539`)
 - Bug in ``Timestamp.__new__`` doesn't preserve nanosecond properly (:issue:`7610`)
-
 - Bug in ``Index.astype(float)`` where it would return an ``object`` dtype
   ``Index`` (:issue:`7464`).
 - Bug in ``DataFrame.reset_index`` loses ``tz`` (:issue:`3950`)
 - Bug in ``DatetimeIndex.freqstr`` raises ``AttributeError`` when ``freq`` is ``None`` (:issue:`7606`)
 - Bug in ``GroupBy.size`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`7453`)
-
 - Bug in single column bar plot is misaligned (:issue:`7498`).
-
-
-
 - Bug in area plot with tz-aware time series raises ``ValueError`` (:issue:`7471`)
-
 - Bug in non-monotonic ``Index.union`` may preserve ``name`` incorrectly (:issue:`7458`)
 - Bug in ``DatetimeIndex.intersection`` doesn't preserve timezone (:issue:`4690`)
-
 - Bug in ``rolling_var`` where a window larger than the array would raise an error(:issue:`7297`)
-
 - Bug with last plotted timeseries dictating ``xlim`` (:issue:`2960`)
 - Bug with ``secondary_y`` axis not being considered for timeseries ``xlim`` (:issue:`3490`)
-
 - Bug in ``Float64Index`` assignment with a non scalar indexer (:issue:`7586`)
 - Bug in ``pandas.core.strings.str_contains`` does not properly match in a case insensitive fashion when ``regex=False`` and ``case=False`` (:issue:`7505`)
-
 - Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, and ``rolling_corr`` for two arguments with mismatched index  (:issue:`7512`)
-
 - Bug in ``to_sql`` taking the boolean column as text column (:issue:`7678`)
 - Bug in grouped `hist` doesn't handle `rot` kw and `sharex` kw properly (:issue:`7234`)
+- Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
 - Bug (regression) in ``PeriodIndex`` constructor when passed ``Series`` objects (:issue:`7701`).
