@@ -29,6 +29,37 @@ class DatabaseError(IOError):
 #------------------------------------------------------------------------------
 # Helper functions
 
+_SQLALCHEMY_INSTALLED = None
+
+def _is_sqlalchemy_engine(con):
+    global _SQLALCHEMY_INSTALLED
+    if _SQLALCHEMY_INSTALLED is None:
+        try:
+            import sqlalchemy
+            _SQLALCHEMY_INSTALLED = True
+            
+            from distutils.version import LooseVersion
+            ver = LooseVersion(sqlalchemy.__version__)
+            # For sqlalchemy versions < 0.8.2, the BIGINT type is recognized
+            # for a sqlite engine, which results in a warning when trying to
+            # read/write a DataFrame with int64 values. (GH7433)
+            if ver < '0.8.2':
+                from sqlalchemy import BigInteger
+                from sqlalchemy.ext.compiler import compiles
+        
+                @compiles(BigInteger, 'sqlite')
+                def compile_big_int_sqlite(type_, compiler, **kw):
+                    return 'INTEGER'
+        except ImportError:
+            _SQLALCHEMY_INSTALLED = False
+
+    if _SQLALCHEMY_INSTALLED:
+        import sqlalchemy
+        return isinstance(con, sqlalchemy.engine.Engine)
+    else:
+        return False
+
+
 def _convert_params(sql, params):
     """convert sql and params args to DBAPI2.0 compliant format"""
     args = [sql]
@@ -74,17 +105,6 @@ def _parse_date_columns(data_frame, parse_dates):
         data_frame[col_name] = _handle_date_column(df_col, format=fmt)
 
     return data_frame
-
-
-def _is_sqlalchemy_engine(con):
-    try:
-        import sqlalchemy
-        if isinstance(con, sqlalchemy.engine.Engine):
-            return True
-        else:
-            return False
-    except ImportError:
-        return False
 
 
 def execute(sql, con, cur=None, params=None):
@@ -271,8 +291,10 @@ def read_sql_table(table_name, con, index_col=None, coerce_float=True,
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
 
-
     """
+    if not _is_sqlalchemy_engine(con):
+        raise NotImplementedError("read_sql_table only supported for "
+                                  "SQLAlchemy engines.")
     import sqlalchemy
     from sqlalchemy.schema import MetaData
     meta = MetaData(con)
