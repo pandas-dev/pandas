@@ -50,8 +50,19 @@ pandas 0.14.1
 
 **Release date:** (July 11, 2014)
 
-This is a minor release from 0.14.0 and includes a number of API changes, several new features, enhancements, and
+This is a minor release from 0.14.0 and includes a small number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
+
+Highlights include:
+
+- New methods :meth:`~pandas.DataFrame.select_dtypes` to select columns
+  based on the dtype and :meth:`~pandas.Series.sem` to calculate the
+  standard error of the mean.
+- Support for dateutil timezones (see :ref:`docs <timeseries.timezone>`).
+- Support for ignoring full line comments in the :func:`~pandas.read_csv`
+  text parser.
+- New documentation section on :ref:`Options and Settings <options>`.
+- Lots of bug fixes.
 
 See the :ref:`v0.14.1 Whatsnew <whatsnew_0141>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.14.1.
