@@ -1281,6 +1281,15 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaises(
             ValueError, period_range, start='2011-01-01', end='NaT', freq='M')
 
+    def test_constructor_year_and_quarter(self):
+        year = pd.Series([2001, 2002, 2003])
+        quarter = year - 2000
+        idx = PeriodIndex(year=year, quarter=quarter)
+        strs = ['%dQ%d' % t for t in zip(quarter, year)]
+        lops = list(map(Period, strs))
+        p = PeriodIndex(lops)
+        tm.assert_index_equal(p, idx)
+
     def test_is_(self):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
                                            end='12/1/2009')

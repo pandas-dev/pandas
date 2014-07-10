@@ -14,7 +14,7 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
-                                _values_from_object)
+                                _values_from_object, ABCSeries)
 from pandas import compat
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -1261,13 +1261,13 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 def _make_field_arrays(*fields):
     length = None
     for x in fields:
-        if isinstance(x, (list, np.ndarray)):
+        if isinstance(x, (list, np.ndarray, ABCSeries)):
             if length is not None and len(x) != length:
                 raise ValueError('Mismatched Period array lengths')
             elif length is None:
                 length = len(x)
 
-    arrays = [np.asarray(x) if isinstance(x, (np.ndarray, list))
+    arrays = [np.asarray(x) if isinstance(x, (np.ndarray, list, ABCSeries))
               else np.repeat(x, length) for x in fields]
 
     return arrays
