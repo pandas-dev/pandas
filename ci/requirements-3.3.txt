@@ -11,9 +11,6 @@ tables==3.1.0
 bottleneck==0.8.0
 matplotlib==1.2.1
 patsy==0.1.0
-sqlalchemy==0.9.1
-pymysql==0.6.1
-psycopg2==2.5.2
 lxml==3.2.1
 scipy==0.13.3
 beautifulsoup4==4.2.1
