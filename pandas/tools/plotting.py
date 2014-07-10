@@ -1564,10 +1564,8 @@ class LinePlot(MPLPlot):
 
             label = com.pprint_thing(label)  # .encode('utf-8')
             kwds['label'] = label
-            y_values = self._get_stacked_values(y, label)
 
-            newlines = plotf(ax, x, y_values, style=style, **kwds)
-            self._update_prior(y)
+            newlines = plotf(ax, x, y, style=style, column_num=i, **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
             lines = _get_all_lines(ax)
@@ -1585,6 +1583,18 @@ class LinePlot(MPLPlot):
                                  '{0} contains both positive and negative values'.format(label))
         else:
             return y
+
+    def _get_plot_function(self):
+        f = MPLPlot._get_plot_function(self)
+        def plotf(ax, x, y, style=None, column_num=None, **kwds):
+            # column_num is used to get the target column from protf in line and area plots
+            if column_num == 0:
+                self._initialize_prior(len(self.data))
+            y_values = self._get_stacked_values(y, kwds['label'])
+            lines = f(ax, x, y_values, style=style, **kwds)
+            self._update_prior(y)
+            return lines
+        return plotf
 
     def _get_ts_plot_function(self):
         from pandas.tseries.plotting import tsplot
@@ -1678,11 +1688,13 @@ class AreaPlot(LinePlot):
             raise ValueError("Log-y scales are not supported in area plot")
         else:
             f = MPLPlot._get_plot_function(self)
-            def plotf(ax, x, y, style=None, **kwds):
-                lines = f(ax, x, y, style=style, **kwds)
+            def plotf(ax, x, y, style=None, column_num=0, **kwds):
+                if column_num == 0:
+                    self._initialize_prior(len(self.data))
+                y_values = self._get_stacked_values(y, kwds['label'])
+                lines = f(ax, x, y_values, style=style, **kwds)
 
-                # get data from the line
-                # insert fill_between starting point
+                # get data from the line to get coordinates for fill_between
                 xdata, y_values = lines[0].get_data(orig=False)
 
                 if (y >= 0).all():
@@ -1696,6 +1708,7 @@ class AreaPlot(LinePlot):
                     kwds['color'] = lines[0].get_color()
 
                 self.plt.Axes.fill_between(ax, xdata, start, y_values, **kwds)
+                self._update_prior(y)
                 return lines
 
         return plotf

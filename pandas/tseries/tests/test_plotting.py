@@ -704,8 +704,80 @@ class TestTSPlot(tm.TestCase):
         low = Series(np.random.randn(len(idxl)), idxl)
         low.plot()
         ax = high.plot()
+
+        expected_h = idxh.to_period().asi8
+        expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
+                               1553, 1558, 1562])
         for l in ax.get_lines():
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+
+            xdata = l.get_xdata(orig=False)
+            if len(xdata) == 12: # idxl lines
+                self.assert_numpy_array_equal(xdata, expected_l)
+            else:
+                self.assert_numpy_array_equal(xdata, expected_h)
+
+    @slow
+    def test_from_resampling_area_line_mixed(self):
+        idxh = date_range('1/1/1999', periods=52, freq='W')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = DataFrame(np.random.rand(len(idxh), 3),
+                         index=idxh, columns=[0, 1, 2])
+        low = DataFrame(np.random.rand(len(idxl), 3),
+                     index=idxl, columns=[0, 1, 2])
+
+        # low to high
+        for kind1, kind2 in [('line', 'area'), ('area', 'line')]:
+            ax = low.plot(kind=kind1, stacked=True)
+            ax = high.plot(kind=kind2, stacked=True, ax=ax)
+
+            # check low dataframe result
+            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
+                                   1553, 1558, 1562])
+            expected_y = np.zeros(len(expected_x))
+            for i in range(3):
+                l = ax.lines[i]
+                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                # check stacked values are correct
+                expected_y += low[i].values
+                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+
+            # check high dataframe result
+            expected_x = idxh.to_period().asi8
+            expected_y = np.zeros(len(expected_x))
+            for i in range(3):
+                l = ax.lines[3 + i]
+                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                expected_y += high[i].values
+                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+
+        # high to low
+        for kind1, kind2 in [('line', 'area'), ('area', 'line')]:
+            ax = high.plot(kind=kind1, stacked=True)
+            ax = low.plot(kind=kind2, stacked=True, ax=ax)
+
+            # check high dataframe result
+            expected_x = idxh.to_period().asi8
+            expected_y = np.zeros(len(expected_x))
+            for i in range(3):
+                l = ax.lines[i]
+                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                expected_y += high[i].values
+                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+
+            # check low dataframe result
+            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
+                                   1553, 1558, 1562])
+            expected_y = np.zeros(len(expected_x))
+            for i in range(3):
+                l = ax.lines[3 + i]
+                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                expected_y += low[i].values
+                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
 
     @slow
     def test_mixed_freq_second_millisecond(self):
