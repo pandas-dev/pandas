@@ -1898,7 +1898,7 @@ class DataFrame(NDFrame):
         * To select strings you must use the ``object`` dtype, but note that
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
-        <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+          <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
 
         Examples
         --------
