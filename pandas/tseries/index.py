@@ -1603,12 +1603,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def delete(self, loc):
         """
-        Make new DatetimeIndex with passed location deleted
-        Returns
+        Make a new DatetimeIndex with passed location(s) deleted.
 
+        Parameters
+        ----------
         loc: int, slice or array of ints
             Indicate which sub-arrays to remove.
 
+        Returns
         -------
         new_index : DatetimeIndex
         """
