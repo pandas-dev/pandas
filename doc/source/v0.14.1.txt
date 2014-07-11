@@ -9,14 +9,14 @@ users upgrade to this version.
 
 - Highlights include:
 
-    - New methods :meth:`~pandas.DataFrame.select_dtypes` to select columns
-      based on the dtype and :meth:`~pandas.Series.sem` to calculate the
-      standard error of the mean.
-    - Support for dateutil timezones (see :ref:`docs <timeseries.timezone>`).
-    - Support for ignoring full line comments in the :func:`~pandas.read_csv`
-      text parser.
-    - New documentation section on :ref:`Options and Settings <options>`.
-    - Lots of bug fixes.
+  - New methods :meth:`~pandas.DataFrame.select_dtypes` to select columns
+    based on the dtype and :meth:`~pandas.Series.sem` to calculate the
+    standard error of the mean.
+  - Support for dateutil timezones (see :ref:`docs <timeseries.timezone>`).
+  - Support for ignoring full line comments in the :func:`~pandas.read_csv`
+    text parser.
+  - New documentation section on :ref:`Options and Settings <options>`.
+  - Lots of bug fixes.
 
 - :ref:`Enhancements <whatsnew_0141.enhancements>`
 - :ref:`API Changes <whatsnew_0141.api>`
