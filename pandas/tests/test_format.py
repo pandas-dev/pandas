@@ -29,6 +29,10 @@ from datetime import datetime
 
 _frame = DataFrame(tm.getSeriesData())
 
+# Truncation symbols
+horiz_ellips = u('\u22ef')  # ⋯
+vert_ellips = u('\u22ee')   # ⋮
+diag_ellips = u('\u22f1')   # ⋱
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
@@ -48,22 +52,24 @@ def has_non_verbose_info_repr(df):
 
 def has_horizontally_truncated_repr(df):
     try: # Check header row
-        fst_line = np.array(repr(df).splitlines()[0].split())
-        cand_col = np.where(fst_line=='...')[0][0]
+        fst_line = np.array(df.__unicode__().splitlines()[0].split())
+        cand_col = np.where(fst_line==horiz_ellips)[0][0]
     except:
         return False
     # Make sure each row has this ... in the same place
-    r = repr(df)
+    r = df.__unicode__()
     for ix,l in enumerate(r.splitlines()):
-        if not r.split()[cand_col] == '...':
+        ele = r.split()[cand_col]
+        if not (ele == horiz_ellips or ele == diag_ellips):
             return False
     return True
 
 def has_vertically_truncated_repr(df):
-    r = repr(df)
+    regex = u('^[') + vert_ellips + diag_ellips + u('\s]+$')
+    r = df.__unicode__()
     only_dot_row = False
-    for row in r.splitlines():
-        if re.match('^[\.\ ]+$',row):
+    for ix_row,row in enumerate(r.splitlines()):
+        if re.match(regex,row):
             only_dot_row = True
     return only_dot_row
 
@@ -788,7 +794,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th></th>
       <th>0</th>
       <th>1</th>
-      <th>...</th>
+      <th>⋯</th>
       <th>18</th>
       <th>19</th>
     </tr>
@@ -798,7 +804,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-01</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -806,7 +812,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-02</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -814,7 +820,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-03</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -822,23 +828,23 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-04</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
     <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
+      <th>⋮</th>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋱</td>
+      <td>⋮</td>
+      <td>⋮</td>
     </tr>
     <tr>
       <th>2001-01-17</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -846,7 +852,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-18</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -854,7 +860,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-19</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -862,7 +868,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>2001-01-20</th>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
@@ -890,7 +896,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th></th>
       <th colspan="2" halign="left">bar</th>
       <th>baz</th>
-      <th>...</th>
+      <th>⋯</th>
       <th>foo</th>
       <th colspan="2" halign="left">qux</th>
     </tr>
@@ -900,7 +906,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>one</th>
       <th>two</th>
       <th>one</th>
-      <th>...</th>
+      <th>⋯</th>
       <th>two</th>
       <th>one</th>
       <th>two</th>
@@ -913,7 +919,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -923,7 +929,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -934,21 +940,21 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
     <tr>
-      <th>...</th>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
+      <th>⋮</th>
+      <th>⋮</th>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋱</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
     </tr>
     <tr>
       <th>foo</th>
@@ -956,7 +962,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -967,7 +973,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -977,7 +983,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -994,7 +1000,7 @@ class TestDataFrameFormatting(tm.TestCase):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = pd.DataFrame(index=arrays,columns=arrays)
-        fmt.set_option('display.max_rows',7)
+        fmt.set_option('display.max_rows',4)
         fmt.set_option('display.max_columns',7)
         fmt.set_option('display.multi_sparse',False)
         result = df._repr_html_()
@@ -1008,7 +1014,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>bar</th>
       <th>bar</th>
       <th>baz</th>
-      <th>...</th>
+      <th>⋯</th>
       <th>foo</th>
       <th>qux</th>
       <th>qux</th>
@@ -1019,7 +1025,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <th>one</th>
       <th>two</th>
       <th>one</th>
-      <th>...</th>
+      <th>⋯</th>
       <th>two</th>
       <th>one</th>
       <th>two</th>
@@ -1032,7 +1038,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -1043,32 +1049,21 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
     </tr>
-    <tr>
-      <th>baz</th>
-      <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+    <tr style="text-align: center;">
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋱</td>
+      <td>⋮</td>
+      <td>⋮</td>
+      <td>⋮</td>
     </tr>
     <tr>
       <th>qux</th>
@@ -1076,7 +1071,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -1087,7 +1082,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
-      <td>...</td>
+      <td>⋯</td>
       <td> NaN</td>
       <td> NaN</td>
       <td> NaN</td>
@@ -1844,11 +1839,11 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         df = DataFrame([row(max_cols-1, 25) for _ in range(10)])
         reg_repr = df._repr_html_()
-        assert "..." not in reg_repr
+        assert horiz_ellips not in reg_repr
 
         wide_df = DataFrame([row(max_cols+1, 25) for _ in range(10)])
         wide_repr = wide_df._repr_html_()
-        assert "..." in wide_repr
+        assert horiz_ellips in wide_repr
 
     def test_repr_html_wide_multiindex_cols(self):
         row = lambda l, k: [tm.rands(k) for _ in range(l)]
@@ -1865,20 +1860,20 @@ c  10  11  12  13  14\
         mcols = pandas.MultiIndex.from_tuples(tuples, names=['first', 'second'])
         df = DataFrame([row(len(mcols), 25) for _ in range(10)], columns=mcols)
         wide_repr = df._repr_html_()
-        assert '...' in wide_repr
+        assert horiz_ellips in wide_repr
 
     def test_repr_html_long(self):
         max_rows = get_option('display.max_rows')
         h = max_rows - 1
         df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         reg_repr = df._repr_html_()
-        assert '..' not in reg_repr
+        assert vert_ellips not in reg_repr
         assert str(41 + max_rows // 2) in reg_repr
 
         h = max_rows + 1
         df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         long_repr = df._repr_html_()
-        assert '..' in long_repr
+        assert vert_ellips in long_repr
         assert str(41 + max_rows // 2) not in long_repr
         assert u('%d rows ') % h in long_repr
         assert u('2 columns') in long_repr
@@ -1888,13 +1883,13 @@ c  10  11  12  13  14\
         h = max_rows - 1
         df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         reg_repr = df._repr_html_()
-        assert '..' not in reg_repr
+        assert vert_ellips not in reg_repr
         assert str(40 + h) in reg_repr
 
         h = max_rows + 1
         df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         long_repr = df._repr_html_()
-        assert '..' in long_repr
+        assert vert_ellips in long_repr
         assert '31' not in long_repr
         assert u('%d rows ') % h in long_repr
         assert u('2 columns') in long_repr
@@ -1915,7 +1910,7 @@ c  10  11  12  13  14\
         df = DataFrame(np.random.randn((max_L1+1)*2, 2), index=idx,
                        columns=['A', 'B'])
         long_repr = df._repr_html_()
-        assert '...' in long_repr
+        assert vert_ellips in long_repr
 
     def test_repr_html_long_and_wide(self):
         max_cols = get_option('display.max_columns')
@@ -1927,7 +1922,8 @@ c  10  11  12  13  14\
 
         h, w = max_rows+1, max_cols+1
         df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
-        assert '...'  in df._repr_html_()
+        df_html = df._repr_html_()
+        assert horiz_ellips in df_html and vert_ellips in df_html and diag_ellips in df_html
 
     def test_info_repr(self):
         max_rows = get_option('display.max_rows')

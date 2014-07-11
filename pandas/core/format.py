@@ -26,6 +26,10 @@ from datetime import time
 
 from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
+horiz_ellips = u('\u22ef')  # ⋯
+vert_ellips = u('\u22ee')   # ⋮
+diag_ellips = u('\u22f1')   # ⋱
+
 docstring_to_string = """
      Parameters
      ----------
@@ -314,6 +318,10 @@ class DataFrameFormatter(TableFormatter):
         self._chk_truncate()
 
     def _chk_truncate(self):
+        '''
+        If truncation necessary, prepare data and additional
+        information.
+        '''
         from pandas.tools.merge import concat
 
         truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
@@ -354,7 +362,6 @@ class DataFrameFormatter(TableFormatter):
 
         # may include levels names also
         str_index = self._get_formatted_index(frame)
-
         str_columns = self._get_formatted_column_labels(frame)
 
         if self.header:
@@ -369,7 +376,6 @@ class DataFrameFormatter(TableFormatter):
 
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=max_colwidth)
-
 
                 max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
@@ -395,32 +401,26 @@ class DataFrameFormatter(TableFormatter):
         # Add ... to signal truncated
         truncate_h = self.truncate_h
         truncate_v = self.truncate_v
-
+        nlevels_row = frame.index.nlevels
+        nlevels_col = frame.columns.nlevels #len(str_index) - len(frame)
         if truncate_h:
             col_num = self.tr_col_num
             col_width = len(strcols[col_num][0])  # infer from column header
-            strcols.insert(col_num + 1, ['...'.center(col_width)] * (len(str_index)))
-        if truncate_v:
-            n_header_rows = len(str_index) - len(frame)
+            strcols.insert(col_num + 1, [ horiz_ellips.center(col_width) ] * (len(str_index)))
+        if truncate_v: 
             row_num = self.tr_row_num
             for ix,col in enumerate(strcols):
-                cwidth = len(strcols[ix][row_num])  # infer from above row
-                is_dot_col = False
-                if truncate_h:
-                    is_dot_col = ix == col_num + 1
-                if cwidth > 3 or is_dot_col:
-                    my_str = '...'
-                else:
-                    my_str = '..'
-
+                cwidth = max(len(ele) for ele in strcols[ix][:row_num + nlevels_col])  # infer from above rows
                 if ix == 0:
-                    dot_str = my_str.ljust(cwidth)
-                elif is_dot_col:
-                    dot_str = my_str.center(cwidth)
+                    cwidth_split = ( cwidth - ( nlevels_row - 1 ) ) // nlevels_row
+                    dot_str = vert_ellips.center(cwidth_split)
+                    for lvl in range(2,nlevels_row):
+                        dot_str += ' ' + vert_ellips.center(cwidth_split)
                 else:
-                    dot_str = my_str.rjust(cwidth)
-
-                strcols[ix].insert(row_num + n_header_rows, dot_str)
+                    dot_str = vert_ellips.center(cwidth)
+                strcols[ix].insert(row_num + nlevels_row, dot_str)
+        if truncate_h and truncate_v:
+            strcols[col_num + 1][nlevels_col + row_num] = diag_ellips.center(col_width)
 
         return strcols
 
@@ -428,7 +428,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -464,7 +463,7 @@ class DataFrameFormatter(TableFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.max_rows and len(self.frame) > self.max_rows:
+        if self.truncate_v:
             nrows = self.max_rows + 1
         else:
             nrows = len(self.frame)
@@ -836,7 +835,7 @@ class HTMLFormatter(TableFormatter):
                             elif tag + span > ins_col:
                                 recs_new[tag] = span + 1
                                 if lnum == inner_lvl:
-                                    values = values[:ins_col] + (u('...'),) + \
+                                    values = values[:ins_col] + (horiz_ellips,) + \
                                         values[ins_col:]
                                 else:  # sparse col headers do not receive a ...
                                     values = values[:ins_col] + \
@@ -846,7 +845,7 @@ class HTMLFormatter(TableFormatter):
                             # if ins_col lies between tags, all col headers get ...
                             if tag + span == ins_col:  
                                 recs_new[ins_col] = 1
-                                values = values[:ins_col] + (u('...'),) + \
+                                values = values[:ins_col] + (horiz_ellips,) + \
                                     values[ins_col:]
                         records = recs_new
                         inner_lvl = len(level_lengths) - 1
@@ -861,8 +860,7 @@ class HTMLFormatter(TableFormatter):
                                 recs_new[tag] = span
                         recs_new[ins_col] = 1
                         records = recs_new
-                        values = values[:ins_col] + [u('...')] + values[ins_col:]
-
+                        values = values[:ins_col] + [horiz_ellips] + values[ins_col:]
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
                                                  else com.pprint_thing(name)]
@@ -876,6 +874,7 @@ class HTMLFormatter(TableFormatter):
                         continue
                     j += 1
                     row.append(v)
+
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
@@ -884,8 +883,7 @@ class HTMLFormatter(TableFormatter):
 
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
-                col_row.insert(ins_col, '...')
-
+                col_row.insert(ins_col, horiz_ellips)
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
@@ -931,6 +929,8 @@ class HTMLFormatter(TableFormatter):
     def _write_regular_rows(self, fmt_values, indent):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
+        if truncate_h:
+            dot_col_ix = self.fmt.tr_col_num + 1
 
         ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
@@ -941,19 +941,21 @@ class HTMLFormatter(TableFormatter):
             index_values = self.fmt.tr_frame.index.format()
 
         for i in range(nrows):
-
             if truncate_v and i == (self.fmt.tr_row_num):
-                str_sep_row = [ '...' for ele in row ]
+                str_sep_row = [ vert_ellips for ele in row ]
+                if truncate_h:
+                    str_sep_row = str_sep_row[:dot_col_ix] + \
+                                              [diag_ellips] + \
+                                              str_sep_row[dot_col_ix+1:]
                 self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
                               nindex_levels=1)
-
             row = []
             row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + 1
-                row.insert(dot_col_ix, '...')
+                row.insert(dot_col_ix, horiz_ellips)
+            
             self.write_tr(row, indent, self.indent_delta, tags=None,
                           nindex_levels=1)
 
@@ -962,6 +964,8 @@ class HTMLFormatter(TableFormatter):
 
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
+        if truncate_h:
+            dot_col_ix = self.fmt.tr_col_num + 1
         frame = self.fmt.tr_frame
         ncols = len(frame.columns)
         nrows = len(frame)
@@ -991,7 +995,7 @@ class HTMLFormatter(TableFormatter):
                         elif tag + span > ins_row:
                             rec_new[tag] = span + 1
                             dot_row = list(idx_values[ins_row - 1])
-                            dot_row[-1] = u('...')
+                            dot_row[-1] = vert_ellips
                             idx_values.insert(ins_row,tuple(dot_row))
                         else:
                             rec_new[tag] = span
@@ -999,12 +1003,12 @@ class HTMLFormatter(TableFormatter):
                         if tag + span == ins_row:
                             rec_new[ins_row] = 1
                             if lnum == 0:
-                                idx_values.insert(ins_row,tuple([u('...')]*len(level_lengths)))                            
+                                idx_values.insert(ins_row,tuple([vert_ellips]*len(level_lengths)))                            
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
                 for ix_col in range(len(fmt_values)):
-                    fmt_values[ix_col].insert(ins_row,'...')
+                    fmt_values[ix_col].insert(ins_row,vert_ellips)
                 nrows += 1
 
             for i in range(nrows):
@@ -1026,19 +1030,33 @@ class HTMLFormatter(TableFormatter):
 
                 row.extend(fmt_values[j][i] for j in range(ncols))
                 if truncate_h:
-                    row.insert(row_levels - sparse_offset + self.fmt.tr_col_num, '...')
+                    if i == self.fmt.tr_row_num:
+                        row.insert(row_levels - sparse_offset + self.fmt.tr_col_num, 
+                                   diag_ellips)
+                    else:
+                        row.insert(row_levels - sparse_offset + self.fmt.tr_col_num, 
+                                   horiz_ellips)
+
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
-                              nindex_levels=len(levels) - sparse_offset)
+                          nindex_levels=len(levels) - sparse_offset)
         else:
             for i in range(len(frame)):
                 idx_values = list(zip(*frame.index.format(sparsify=False,
                                                           adjoin=False,
                                                           names=False)))
+                if truncate_v and i == self.fmt.tr_row_num:
+                    str_sep_row = vert_ellips * row_levels + \
+                                  vert_ellips * ( dot_col_ix - 1 ) + \
+                                  diag_ellips + \
+                                  vert_ellips * (dot_col_ix - 1)
+                    self.write_tr(str_sep_row, indent, self.indent_delta, 
+                                  tags=None, align='center')
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
                 if truncate_h:
-                    row.insert(row_levels + self.fmt.tr_col_num, '...')
+                    row.insert(row_levels + self.fmt.tr_col_num, 
+                               horiz_ellips)
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
 

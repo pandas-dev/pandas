@@ -852,6 +852,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Internal function, should always return unicode string
         """
+        vert_ellips = fmt.vert_ellips
         if max_vals > 1:
             num = max_vals // 2
         else:
@@ -863,7 +864,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                                        length=False,
                                                        name=False,
                                                        dtype=False)
-        result = head + '\n...\n' + tail
+        wdth = len(head.split(u('\n'))[0])
+        # from IPython.core.debugger import Tracer
+        # Tracer()()
+        result = head + u('\n') + vert_ellips.center(wdth) + u('\n') + tail
         result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
