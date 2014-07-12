@@ -166,6 +166,9 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
 
+- ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
+  as the ``left`` argument.  (:issue:`7737`)
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
