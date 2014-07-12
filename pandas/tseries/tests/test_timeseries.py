@@ -1235,13 +1235,6 @@ class TestTimeSeries(tm.TestCase):
         result = ts[:0].last('3M')
         assert_series_equal(result, ts[:0])
 
-    def test_add_offset(self):
-        rng = date_range('1/1/2000', '2/1/2000')
-
-        result = rng + offsets.Hour(2)
-        expected = date_range('1/1/2000 02:00', '2/1/2000 02:00')
-        self.assertTrue(result.equals(expected))
-
     def test_format_pre_1900_dates(self):
         rng = date_range('1/1/1850', '1/1/1950', freq='A-DEC')
         rng.format()
@@ -2313,14 +2306,6 @@ class TestDatetimeIndex(tm.TestCase):
         result = rng.map(f)
         exp = [f(x) for x in rng]
         self.assert_numpy_array_equal(result, exp)
-
-    def test_add_union(self):
-        rng = date_range('1/1/2000', periods=5)
-        rng2 = date_range('1/6/2000', periods=5)
-
-        result = rng + rng2
-        expected = rng.union(rng2)
-        self.assertTrue(result.equals(expected))
 
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)

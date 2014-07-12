@@ -2450,6 +2450,20 @@ class TestPeriodIndex(tm.TestCase):
             idx = PeriodIndex(org.values, freq=o)
             self.assertTrue(idx.equals(org))
 
+    def test_combine_first(self):
+        # GH 3367
+        didx = pd.DatetimeIndex(start='1950-01-31', end='1950-07-31', freq='M')
+        pidx = pd.PeriodIndex(start=pd.Period('1950-1'), end=pd.Period('1950-7'), freq='M')
+        # check to be consistent with DatetimeIndex
+        for idx in [didx, pidx]:
+            a = pd.Series([1, np.nan, np.nan, 4, 5, np.nan, 7], index=idx)
+            b = pd.Series([9, 9, 9, 9, 9, 9, 9], index=idx)
+
+            result = a.combine_first(b)
+            expected = pd.Series([1, 9, 9, 4, 5, 9, 7], index=idx, dtype=np.float64)
+            tm.assert_series_equal(result, expected)
+
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 

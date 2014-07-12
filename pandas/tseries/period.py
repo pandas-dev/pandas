@@ -872,19 +872,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values[mask] = tslib.iNaT
         return PeriodIndex(data=values, name=self.name, freq=self.freq)
 
-    def __add__(self, other):
-        try:
-            return self.shift(other)
-        except TypeError:
-            # self.values + other raises TypeError for invalid input
-            return NotImplemented
-
-    def __sub__(self, other):
-        try:
-            return self.shift(-other)
-        except TypeError:
-            return NotImplemented
-
     @property
     def inferred_type(self):
         # b/c data is represented as ints make sure we can't have ambiguous
