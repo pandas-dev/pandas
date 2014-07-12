@@ -848,18 +848,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             return self[maybe_slice]
         return super(DatetimeIndex, self).take(indices, axis)
 
-    def unique(self):
-        """
-        Index.unique with handling for DatetimeIndex metadata
-
-        Returns
-        -------
-        result : DatetimeIndex
-        """
-        result = Int64Index.unique(self)
-        return DatetimeIndex._simple_new(result, tz=self.tz,
-                                         name=self.name)
-
     def union(self, other):
         """
         Specialized union for DatetimeIndex objects. If combine

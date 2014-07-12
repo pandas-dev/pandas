@@ -250,11 +250,13 @@ class TestIndexOps(Ops):
             expected_s = Series(range(10, 0, -1), index=values[::-1], dtype='int64')
             tm.assert_series_equal(o.value_counts(), expected_s)
 
-            if isinstance(o, DatetimeIndex):
-                # DatetimeIndex.unique returns DatetimeIndex
-                self.assertTrue(o.unique().equals(klass(values)))
-            else:
-                self.assert_numpy_array_equal(o.unique(), values)
+            result = o.unique()
+            if isinstance(o, (DatetimeIndex, PeriodIndex)):
+                self.assertTrue(isinstance(result, o.__class__))
+                self.assertEqual(result.name, o.name)
+                self.assertEqual(result.freq, o.freq)
+
+            self.assert_numpy_array_equal(result, values)
 
             self.assertEqual(o.nunique(), len(np.unique(o.values)))
 
@@ -263,17 +265,13 @@ class TestIndexOps(Ops):
                 klass = type(o)
                 values = o.values
 
-                if o.values.dtype == 'int64':
-                    # skips int64 because it doesn't allow to include nan or None
-                    continue
-
                 if ((isinstance(o, Int64Index) and not isinstance(o,
                     (DatetimeIndex, PeriodIndex)))):
                     # skips int64 because it doesn't allow to include nan or None
                     continue
 
                 # special assign to the numpy array
-                if o.values.dtype == 'datetime64[ns]':
+                if o.values.dtype == 'datetime64[ns]' or isinstance(o, PeriodIndex):
                     values[0:2] = pd.tslib.iNaT
                 else:
                     values[0:2] = null_obj
@@ -294,8 +292,8 @@ class TestIndexOps(Ops):
                 result = o.unique()
                 self.assert_numpy_array_equal(result[1:], values[2:])
 
-                if isinstance(o, DatetimeIndex):
-                    self.assertTrue(result[0] is pd.NaT)
+                if isinstance(o, (DatetimeIndex, PeriodIndex)):
+                    self.assertTrue(result.asi8[0] == pd.tslib.iNaT)
                 else:
                     self.assertTrue(pd.isnull(result[0]))
 
@@ -706,7 +704,7 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
             rng -= 1
             tm.assert_index_equal(rng, expected)
 
-    def test_value_counts(self):
+    def test_value_counts_unique(self):
         # GH 7735
         for tz in [None, 'UTC', 'Asia/Tokyo', 'US/Eastern']:
             idx = pd.date_range('2011-01-01 09:00', freq='H', periods=10)
@@ -716,6 +714,9 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
             exp_idx = pd.date_range('2011-01-01 18:00', freq='-1H', periods=10, tz=tz)
             expected = Series(range(10, 0, -1), index=exp_idx, dtype='int64')
             tm.assert_series_equal(idx.value_counts(), expected)
+
+            expected = pd.date_range('2011-01-01 09:00', freq='H', periods=10, tz=tz)
+            tm.assert_index_equal(idx.unique(), expected)
 
             idx = DatetimeIndex(['2013-01-01 09:00', '2013-01-01 09:00', '2013-01-01 09:00',
                                  '2013-01-01 08:00', '2013-01-01 08:00', pd.NaT], tz=tz)
@@ -727,6 +728,8 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
             exp_idx = DatetimeIndex(['2013-01-01 09:00', '2013-01-01 08:00', pd.NaT], tz=tz)
             expected = Series([3, 2, 1], index=exp_idx)
             tm.assert_series_equal(idx.value_counts(dropna=False), expected)
+
+            tm.assert_index_equal(idx.unique(), exp_idx)
 
 
 class TestPeriodIndexOps(Ops):
@@ -987,7 +990,7 @@ Length: 3, Freq: Q-DEC"""
         rng -= 1
         tm.assert_index_equal(rng, expected)
 
-    def test_value_counts(self):
+    def test_value_counts_unique(self):
         # GH 7735
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
@@ -1000,6 +1003,9 @@ Length: 3, Freq: Q-DEC"""
         expected = Series(range(10, 0, -1), index=exp_idx, dtype='int64')
         tm.assert_series_equal(idx.value_counts(), expected)
 
+        expected = pd.period_range('2011-01-01 09:00', freq='H', periods=10)
+        tm.assert_index_equal(idx.unique(), expected)
+
         idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 09:00', '2013-01-01 09:00',
                            '2013-01-01 08:00', '2013-01-01 08:00', pd.NaT], freq='H')
 
@@ -1010,6 +1016,8 @@ Length: 3, Freq: Q-DEC"""
         exp_idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 08:00', pd.NaT], freq='H')
         expected = Series([3, 2, 1], index=exp_idx)
         tm.assert_series_equal(idx.value_counts(dropna=False), expected)
+
+        tm.assert_index_equal(idx.unique(), exp_idx)
 
 
 if __name__ == '__main__':

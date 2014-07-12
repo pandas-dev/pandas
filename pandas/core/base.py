@@ -552,3 +552,17 @@ class DatetimeIndexOpsMixin(object):
 
     def _add_delta(self, other):
         return NotImplemented
+
+    def unique(self):
+        """
+        Index.unique with handling for DatetimeIndex/PeriodIndex metadata
+
+        Returns
+        -------
+        result : DatetimeIndex or PeriodIndex
+        """
+        from pandas.core.index import Int64Index
+        result = Int64Index.unique(self)
+        return self._simple_new(result, name=self.name, freq=self.freq,
+                                tz=getattr(self, 'tz', None))
+
