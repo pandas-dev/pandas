@@ -88,10 +88,10 @@ of multi-axis indexing.
   See more at :ref:`Selection by Position <indexing.integer>`
 
 - ``.ix`` supports mixed integer and label based access. It is primarily label
-  based, but will fallback to integer positional access. ``.ix`` is the most
+  based, but will fall back to integer positional access. ``.ix`` is the most
   general and will support any of the inputs to ``.loc`` and ``.iloc``, as well
   as support for floating point label schemes. ``.ix`` is especially useful
-  when dealing with mixed positional and label based hierarchial indexes.
+  when dealing with mixed positional and label based hierarchical indexes.
   As using integer slices with ``.ix`` have different behavior depending on
   whether the slice is interpreted as position based or label based, it's
   usually better to be explicit and use ``.iloc`` or ``.loc``.
@@ -230,7 +230,7 @@ new column.
    - The ``Series/Panel`` accesses are available starting in 0.13.0.
 
 If you are using the IPython environment, you may also use tab-completion to
-see these accessable attributes.
+see these accessible attributes.
 
 Slicing ranges
 --------------
@@ -328,7 +328,7 @@ For getting values with a boolean array
    df1.loc['a']>0
    df1.loc[:,df1.loc['a']>0]
 
-For getting a value explicity (equiv to deprecated ``df.get_value('a','A')``)
+For getting a value explicitly (equiv to deprecated ``df.get_value('a','A')``)
 
 .. ipython:: python
 
@@ -415,7 +415,7 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``)
 
    df1.iloc[1]
 
-There is one signficant departure from standard python/numpy slicing semantics.
+There is one significant departure from standard python/numpy slicing semantics.
 python/numpy allow slicing past the end of an array without an associated error.
 
 .. ipython:: python
@@ -494,7 +494,7 @@ out what you're asking for. If you only want to access a scalar value, the
 fastest way is to use the ``at`` and ``iat`` methods, which are implemented on
 all of the data structures.
 
-Similary to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analagously to ``iloc``
+Similarly to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analogously to ``iloc``
 
 .. ipython:: python
 
@@ -643,7 +643,7 @@ To return a Series of the same shape as the original
 
    s.where(s > 0)
 
-Selecting values from a DataFrame with a boolean critierion now also preserves
+Selecting values from a DataFrame with a boolean criterion now also preserves
 input data shape. ``where`` is used under the hood as the implementation.
 Equivalent is ``df.where(df < 0)``
 
@@ -690,7 +690,7 @@ without creating a copy:
 **alignment**
 
 Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame),
-such that partial selection with setting is possible. This is analagous to
+such that partial selection with setting is possible. This is analogous to
 partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
 .. ipython:: python
@@ -756,7 +756,7 @@ between the values of columns ``a`` and ``c``. For example:
    # query
    df.query('(a < b) & (b < c)')
 
-Do the same thing but fallback on a named index if there is no column
+Do the same thing but fall back on a named index if there is no column
 with the name ``a``.
 
 .. ipython:: python
@@ -899,7 +899,7 @@ The ``in`` and ``not in`` operators
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :meth:`~pandas.DataFrame.query` also supports special use of Python's ``in`` and
-``not in`` comparison operators, providing a succint syntax for calling the
+``not in`` comparison operators, providing a succinct syntax for calling the
 ``isin`` method of a ``Series`` or ``DataFrame``.
 
 .. ipython:: python
@@ -1416,7 +1416,7 @@ faster, and allows one to index *both* axes if so desired.
 Why does the assignment when using chained indexing fail!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-So, why does this show the ``SettingWithCopy`` warning / and possibly not work when you do chained indexing and assignement:
+So, why does this show the ``SettingWithCopy`` warning / and possibly not work when you do chained indexing and assignment:
 
 .. code-block:: python
 
@@ -2149,7 +2149,7 @@ metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
 
 You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_labels``
 to set these attributes directly. They default to returning a copy; however,
-you can specify ``inplace=True`` to have the data change inplace.
+you can specify ``inplace=True`` to have the data change in place.
 
 .. ipython:: python
 

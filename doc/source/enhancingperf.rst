@@ -553,7 +553,7 @@ standard Python.
 :func:`pandas.eval` Parsers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are two different parsers and and two different engines you can use as
+There are two different parsers and two different engines you can use as
 the backend.
 
 The default ``'pandas'`` parser allows a more intuitive syntax for expressing

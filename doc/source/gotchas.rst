@@ -183,7 +183,7 @@ Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
-present in the more domain-specific statistical programming langauge `R
+present in the more domain-specific statistical programming language `R
 <http://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::

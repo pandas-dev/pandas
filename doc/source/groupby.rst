@@ -969,7 +969,7 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df.groupby(df.sum(), axis=1).sum()
 
 
-Returning a Series to propogate names
+Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Group DataFrame columns, compute a set of metrics and return a named Series.

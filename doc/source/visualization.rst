@@ -317,7 +317,7 @@ The return type of ``boxplot`` depends on two keyword arguments: ``by`` and ``re
 When ``by`` is ``None``:
 
 * if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
-   This is the deafult.
+   This is the default.
 * if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
 * if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
    and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
@@ -763,7 +763,7 @@ layout and formatting of the returned plot:
    plt.figure(); ts.plot(style='k--', label='Series');
 
 For each kind of plot (e.g. `line`, `bar`, `scatter`) any additional arguments
-keywords are passed alogn to the corresponding matplotlib function
+keywords are passed along to the corresponding matplotlib function
 (:meth:`ax.plot() <matplotlib.axes.Axes.plot>`,
 :meth:`ax.bar() <matplotlib.axes.Axes.bar>`,
 :meth:`ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used

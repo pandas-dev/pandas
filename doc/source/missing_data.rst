@@ -548,7 +548,7 @@ will be replaced with a scalar (list of regex -> regex)
 
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
-argument must be passed explicity by name or ``regex`` must be a nested
+argument must be passed explicitly by name or ``regex`` must be a nested
 dictionary. The previous example, in this case, would then be
 
 .. ipython:: python
@@ -566,7 +566,7 @@ want to use a regular expression.
 Numeric Replacement
 ~~~~~~~~~~~~~~~~~~~
 
-Similiar to ``DataFrame.fillna``
+Similar to ``DataFrame.fillna``
 
 .. ipython:: python
    :suppress:

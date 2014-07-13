@@ -260,7 +260,7 @@ For slicing columns explicitly
 
    df.iloc[:,1:3]
 
-For getting a value explicity
+For getting a value explicitly
 
 .. ipython:: python
 

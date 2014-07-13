@@ -33,8 +33,8 @@ Some other important things to know about the docs:
   itself and the docs in this folder ``pandas/doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
-  functions, while the documentation in this filder consists of tutorial-like
-  overviews per topic together with some other information (whatsnew,
+  functions, while the documentation in this folder consists of tutorial-like
+  overviews per topic together with some other information (what's new,
   installation, etc).
 
 - The docstrings follow the **Numpy Docstring Standard** which is used widely
@@ -56,7 +56,7 @@ Some other important things to know about the docs:
           x = 2
           x**3
 
-  will be renderd as
+  will be rendered as
 
   ::
 
@@ -66,7 +66,7 @@ Some other important things to know about the docs:
       Out[2]: 8
 
   This means that almost all code examples in the docs are always run (and the
-  ouptut saved) during the doc build. This way, they will always be up to date,
+  output saved) during the doc build. This way, they will always be up to date,
   but it makes the doc building a bit more complex.
 
 
@@ -135,8 +135,8 @@ If you want to do a full clean build, do::
 
 Staring with 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
-You will be prompted to delete unrequired `.rst` files, since the last commited
-version can always be restored from git.
+You will be prompted to delete `.rst` files that aren't required, since the
+last committed version can always be restored from git.
 
 ::
 
