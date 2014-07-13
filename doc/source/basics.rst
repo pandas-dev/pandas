@@ -1253,11 +1253,11 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
     ``upper``,Equivalent to ``str.upper``
 
 
-Getting indicator variables from seperated strings
+Getting indicator variables from separated strings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can extract dummy variables from string columns.
-For example if they are seperated by a ``'|'``:
+For example if they are separated by a ``'|'``:
 
   .. ipython:: python
 
