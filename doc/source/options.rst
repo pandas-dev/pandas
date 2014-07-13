@@ -166,7 +166,7 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
    pd.reset_option('max_rows')
 
 ``display.max_columnwidth`` sets the maximum width of columns.  Cells
-of this length or longer will be truncated with an elipsis.
+of this length or longer will be truncated with an ellipsis.
 
 .. ipython:: python
 

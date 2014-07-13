@@ -183,7 +183,7 @@ Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
-present in the more domain-specific statistical programming langauge `R
+present in the more domain-specific statistical programming language `R
 <http://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
@@ -500,7 +500,7 @@ parse HTML tables in the top-level pandas io function ``read_html``.
        molasses.  However consider the fact that many tables on the web are not
        big enough for the parsing algorithm runtime to matter. It is more
        likely that the bottleneck will be in the process of reading the raw
-       text from the url over the web, i.e., IO (input-output). For very large
+       text from the URL over the web, i.e., IO (input-output). For very large
        tables, this might not be true.
 
 **Issues with using** |Anaconda|_

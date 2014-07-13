@@ -144,7 +144,7 @@ Frequency conversion
 
 Frequency conversion is implemented using the ``resample`` method on TimeSeries
 and DataFrame objects (multiple time series). ``resample`` also works on panels
-(3D). Here is some code that resamples daily data to montly:
+(3D). Here is some code that resamples daily data to monthly:
 
 .. ipython:: python
 

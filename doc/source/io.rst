@@ -29,7 +29,7 @@
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
-The pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
+The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
 object.
 
     * :ref:`read_csv<io.read_csv_table>`
@@ -78,8 +78,8 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, url
-    (including http, ftp, and s3 locations), or any object with a ``read``
+  - ``filepath_or_buffer``: Either a string path to a file, URL
+    (including http, ftp, and S3 locations), or any object with a ``read``
     method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
@@ -511,7 +511,7 @@ data columns:
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
 Finally, the parser allows you can specify a custom ``date_parser`` function to
-take full advantage of the flexiblity of the date parsing API:
+take full advantage of the flexibility of the date parsing API:
 
 .. ipython:: python
 
@@ -964,7 +964,7 @@ Reading columns with a ``MultiIndex``
 
 By specifying list of row locations for the ``header`` argument, you
 can read in a ``MultiIndex`` for the columns. Specifying non-consecutive
-rows will skip the interveaning rows. In order to have the pre-0.13 behavior
+rows will skip the intervening rows. In order to have the pre-0.13 behavior
 of tupleizing columns, specify ``tupleize_cols=True``.
 
 .. ipython:: python
@@ -1038,7 +1038,7 @@ rather than reading the entire file into memory, such as the following:
    table
 
 
-By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
+By specifying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
@@ -1100,7 +1100,7 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ascii, for python versions prior to 3
+    non-ASCII, for python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
   - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL)
   - ``quotechar``: Character used to quote fields (default '"')
@@ -1184,7 +1184,7 @@ with optional parameters:
 - ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
 - ``force_ascii`` : force encoded string to be ASCII, default True.
 - ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
-- ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serialisable object.
+- ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -1208,7 +1208,7 @@ file / string. Consider the following DataFrame and Series:
   sjo = Series(dict(x=15, y=16, z=17), name='D')
   sjo
 
-**Column oriented** (the default for ``DataFrame``) serialises the data as
+**Column oriented** (the default for ``DataFrame``) serializes the data as
 nested JSON objects with column labels acting as the primary index:
 
 .. ipython:: python
@@ -1224,7 +1224,7 @@ but the index labels are now primary:
   dfjo.to_json(orient="index")
   sjo.to_json(orient="index")
 
-**Record oriented** serialises the data to a JSON array of column -> value records,
+**Record oriented** serializes the data to a JSON array of column -> value records,
 index labels are not included. This is useful for passing DataFrame data to plotting
 libraries, for example the JavaScript library d3.js:
 
@@ -1233,7 +1233,7 @@ libraries, for example the JavaScript library d3.js:
   dfjo.to_json(orient="records")
   sjo.to_json(orient="records")
 
-**Value oriented** is a bare-bones option which serialises to nested JSON arrays of
+**Value oriented** is a bare-bones option which serializes to nested JSON arrays of
 values only, column and index labels are not included:
 
 .. ipython:: python
@@ -1241,7 +1241,7 @@ values only, column and index labels are not included:
   dfjo.to_json(orient="values")
   # Not available for Series
 
-**Split oriented** serialises to a JSON object containing separate entries for
+**Split oriented** serializes to a JSON object containing separate entries for
 values, index and columns. Name is also included for ``Series``:
 
 .. ipython:: python
@@ -1252,13 +1252,13 @@ values, index and columns. Name is also included for ``Series``:
 .. note::
 
   Any orient option that encodes to a JSON object will not preserve the ordering of
-  index and column labels during round-trip serialisation. If you wish to preserve
+  index and column labels during round-trip serialization. If you wish to preserve
   label ordering use the `split` option as it uses ordered containers.
 
 Date Handling
 +++++++++++++
 
-Writing in iso date format
+Writing in ISO date format
 
 .. ipython:: python
 
@@ -1268,7 +1268,7 @@ Writing in iso date format
    json = dfd.to_json(date_format='iso')
    json
 
-Writing in iso date format, with microseconds
+Writing in ISO date format, with microseconds
 
 .. ipython:: python
 
@@ -1297,17 +1297,17 @@ Writing to a file, with a date index and a date column
 Fallback Behavior
 +++++++++++++++++
 
-If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
+If the JSON serializer cannot handle the container contents directly it will fallback in the following manner:
 
 - if a ``toDict`` method is defined by the unrecognised object then that
-  will be called and its returned ``dict`` will be JSON serialised.
+  will be called and its returned ``dict`` will be JSON serialized.
 - if a ``default_handler`` has been passed to ``to_json`` that will
   be called to convert the object.
 - otherwise an attempt is made to convert the object to a ``dict`` by
   parsing its contents. However if the object is complex this will often fail
   with an ``OverflowError``.
 
-Your best bet when encountering ``OverflowError`` during serialisation
+Your best bet when encountering ``OverflowError`` during serialization
 is to specify a ``default_handler``. For example ``timedelta`` can cause
 problems:
 
@@ -1346,10 +1346,10 @@ Reading JSON
 
 Reading a JSON string to pandas object can take a number of parameters.
 The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
-is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
+is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
 - ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
-  a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
+  a URL. Valid URL schemes include http, ftp, S3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
 - ``typ``    : type of object to recover (series or frame), default 'frame'
@@ -1377,8 +1377,8 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
-- ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
-- ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
+- ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse date-like columns, default is True
+- ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default date-like columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
@@ -1387,7 +1387,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
   seconds, milliseconds, microseconds or nanoseconds respectively.
 
-The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parsable.
+The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
 If a non-default ``orient`` was used when encoding to JSON be sure to pass the same
 option here so that decoding produces sensible results, see `Orient Options`_ for an
@@ -1438,7 +1438,7 @@ Specify dtypes for conversion:
 
    pd.read_json('test.json', dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
 
-Preserve string indicies:
+Preserve string indices:
 
 .. ipython:: python
 
@@ -1480,7 +1480,7 @@ The Numpy Parameter
   This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
-an appropriate dtype during deserialisation and to subsequently decode directly
+an appropriate dtype during deserialization and to subsequently decode directly
 to numpy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
@@ -1502,7 +1502,7 @@ data:
 
    timeit read_json(jsonfloats, numpy=True)
 
-The speedup is less noticable for smaller datasets:
+The speedup is less noticeable for smaller datasets:
 
 .. ipython:: python
 
@@ -1586,7 +1586,7 @@ Reading HTML Content
 .. versionadded:: 0.12.0
 
 The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
-string/file/url and will parse HTML tables into list of pandas DataFrames.
+string/file/URL and will parse HTML tables into list of pandas DataFrames.
 Let's look at a few examples.
 
 .. note::
@@ -2381,7 +2381,7 @@ hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
 generate a hierarchy of sub-stores (or ``Groups`` in PyTables
 parlance). Keys can be specified with out the leading '/' and are ALWAYS
 absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
-everying in the sub-store and BELOW, so be *careful*.
+everything in the sub-store and BELOW, so be *careful*.
 
 .. ipython:: python
 
@@ -2516,7 +2516,7 @@ The ``indexers`` are on the left-hand side of the sub-expression:
 
    - ``columns``, ``major_axis``, ``ts``
 
-The right-hand side of the sub-expression (after a comparsion operator) can be:
+The right-hand side of the sub-expression (after a comparison operator) can be:
 
    - functions that will be evaluated, e.g. ``Timestamp('2012-02-01')``
    - strings, e.g. ``"bar"``
@@ -2696,7 +2696,7 @@ be data_columns
    # columns are stored separately as ``PyTables`` columns
    store.root.df_dc.table
 
-There is some performance degredation by making lots of columns into
+There is some performance degradation by making lots of columns into
 `data columns`, so it is up to the user to designate these. In addition,
 you cannot change data columns (nor indexables) after the first
 append/put operation (Of course you can simply read in the data and
@@ -2935,7 +2935,7 @@ after the fact.
    - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
 
 Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow
-you to reuse previously deleted space. Aalternatively, one can simply
+you to reuse previously deleted space. Alternatively, one can simply
 remove the file and write again, or use the ``copy`` method.
 
 .. _io.hdf5-notes:
@@ -2996,7 +2996,7 @@ Currently, ``unicode`` and ``datetime`` columns (represented with a
 dtype of ``object``), **WILL FAIL**. In addition, even though a column
 may look like a ``datetime64[ns]``, if it contains ``np.nan``, this
 **WILL FAIL**. You can try to convert datetimelike columns to proper
-``datetime64[ns]`` columns, that possibily contain ``NaT`` to represent
+``datetime64[ns]`` columns, that possibly contain ``NaT`` to represent
 invalid values. (Some of these issues have been addressed and these
 conversion may not be necessary in future versions of pandas)
 
@@ -3025,7 +3025,7 @@ may introduce a string for a column **larger** than the column can hold, an Exce
 could have a silent truncation of these columns, leading to loss of information). In the future we may relax this and
 allow a user-specified truncation to occur.
 
-Pass ``min_itemsize`` on the first table creation to a-priori specifiy the minimum length of a particular string column.
+Pass ``min_itemsize`` on the first table creation to a-priori specify the minimum length of a particular string column.
 ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
 allow all *indexables* or *data_columns* to have this min_itemsize.
 
@@ -3070,7 +3070,7 @@ External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
 ``HDFStore`` write ``table`` format objects in specific formats suitable for
-producing loss-less roundtrips to pandas objects. For external
+producing loss-less round trips to pandas objects. For external
 compatibility, ``HDFStore`` can read native ``PyTables`` format
 tables. It is possible to write an ``HDFStore`` object that can easily
 be imported into ``R`` using the ``rhdf5`` library. Create a table
@@ -3136,7 +3136,7 @@ Performance
      generally longer as compared with regular stores. Query times can
      be quite fast, especially on an indexed axis.
    - You can pass ``chunksize=<int>`` to ``append``, specifying the
-     write chunksize (default is 50000). This will signficantly lower
+     write chunksize (default is 50000). This will significantly lower
      your memory usage on writing.
    - You can pass ``expectedrows=<int>`` to the first ``append``,
      to set the TOTAL number of expected rows that ``PyTables`` will
@@ -3304,7 +3304,7 @@ And you can explicitly force columns to be parsed as dates:
 
    pd.read_sql_table('data', engine, parse_dates=['Date'])
 
-If needed you can explicitly specifiy a format string, or a dict of arguments
+If needed you can explicitly specify a format string, or a dict of arguments
 to pass to :func:`pandas.to_datetime`:
 
 .. code-block:: python
@@ -3456,7 +3456,7 @@ response code of Google BigQuery can be successful (200) even if the
 append failed. For this reason, if there is a failure to append to the
 table, the complete error response from BigQuery is returned which
 can be quite long given it provides a status for each row. You may want
-to start with smaller chuncks to test that the size and types of your
+to start with smaller chunks to test that the size and types of your
 dataframe match your destination table to make debugging simpler.
 
 .. code-block:: python
@@ -3470,7 +3470,7 @@ The BigQuery SQL query language has some oddities, see `here <https://developers
 
 While BigQuery uses SQL-like syntax, it has some important differences
 from traditional databases both in functionality, API limitations (size and
-qunatity of queries or uploads), and how Google charges for use of the service.
+quantity of queries or uploads), and how Google charges for use of the service.
 You should refer to Google documentation often as the service seems to
 be changing and evolving. BiqQuery is best for analyzing large sets of
 data quickly, but it is not a direct replacement for a transactional database.
@@ -3522,7 +3522,7 @@ converting them to a DataFrame which is returned:
 
 Currently the ``index`` is retrieved as a column on read back.
 
-The parameter ``convert_categoricals`` indicates wheter value labels should be
+The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
 also be retrieved by the function ``variable_labels``, which requires data to be
 called before (see ``pandas.io.stata.StataReader``).

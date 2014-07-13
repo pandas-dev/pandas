@@ -346,7 +346,7 @@ General DataFrame Combine
 The ``combine_first`` method above calls the more general DataFrame method
 ``combine``. This method takes another DataFrame and a combiner function,
 aligns the input DataFrame and then passes the combiner function pairs of
-Series (ie, columns whose names are the same).
+Series (i.e., columns whose names are the same).
 
 So, for instance, to reproduce ``combine_first`` as above:
 
@@ -1461,7 +1461,7 @@ from the current type (say ``int`` to ``float``)
    df3.dtypes
 
 The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
-the dtype that can accommodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can
+the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped numpy array. This can
 force some *upcasting*.
 
 .. ipython:: python

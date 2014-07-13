@@ -379,9 +379,9 @@ We are stopping on the included end-point as its part of the index
 Datetime Indexing
 ~~~~~~~~~~~~~~~~~
 
-Indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the frequency of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the sematics of *including both endpoints*.
+Indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the frequency of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the semantics of *including both endpoints*.
 
-These ``datetime`` objects  are specific ``hours, minutes,`` and ``seconds`` even though they were not explicity specified (they are ``0``).
+These ``datetime`` objects  are specific ``hours, minutes,`` and ``seconds`` even though they were not explicitly specified (they are ``0``).
 
 .. ipython:: python
 
@@ -1460,7 +1460,7 @@ Series of timedeltas with ``NaT`` values are supported
    y = s - s.shift()
    y
 
-Elements can be set to ``NaT`` using ``np.nan`` analagously to datetimes
+Elements can be set to ``NaT`` using ``np.nan`` analogously to datetimes
 
 .. ipython:: python
 

@@ -499,7 +499,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Merging on-disk tables with millions of rows
 <http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
 
-Deduplicating a large store by chunks, essentially a recursive reduction operation. Shows a function for taking in data from
+De-duplicating a large store by chunks, essentially a recursive reduction operation. Shows a function for taking in data from
 csv file and creating a store by chunks, with date parsing as well.
 `See here
 <http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__

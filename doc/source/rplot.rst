@@ -99,7 +99,7 @@ The plot above shows that it is possible to have two or more plots for the same 
    @savefig rplot4_tips.png
    plot.render(plt.gcf())
 
-Above is a similar plot but with 2D kernel desnity estimation plot superimposed.
+Above is a similar plot but with 2D kernel density estimation plot superimposed.
 
 .. ipython:: python
 
