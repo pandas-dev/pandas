@@ -1436,7 +1436,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         all_nans = np.where(invalid)[0]
         violate = [invalid[x:x + limit + 1] for x in all_nans]
         violate = np.array([x.all() & (x.size > limit) for x in violate],
-                  dtype='int')
+                           dtype=bool)
         return all_nans[violate] + limit
 
     xvalues = getattr(xvalues, 'values', xvalues)
