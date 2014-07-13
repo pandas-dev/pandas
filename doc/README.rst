@@ -140,7 +140,7 @@ last committed version can always be restored from git.
 
 ::
 
-    #omit autosummary and api section
+    #omit autosummary and API section
     python make.py clean
     python make.py --no-api
 

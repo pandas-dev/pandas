@@ -329,7 +329,7 @@ Bug Fixes
 - Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
 - Regression in handling of empty Series as indexers to Series  (:issue:`5877`)
 - Bug in internal caching, related to (:issue:`5727`)
-- Testing bug in reading json/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
+- Testing bug in reading JSON/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
 - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
 - Bug in fully reindexing a Panel (:issue:`5905`)
 - Bug in idxmin/max with object dtypes (:issue:`5914`)
@@ -649,7 +649,7 @@ API Changes
     Options are seconds, milliseconds, microseconds and nanoseconds.
     (:issue:`4362`, :issue:`4498`).
   - added ``default_handler`` parameter to allow a callable to be passed
-    which will be responsible for handling otherwise unserialisable objects.
+    which will be responsible for handling otherwise unserialiable objects.
     (:issue:`5138`)
 
 - ``Index`` and ``MultiIndex`` changes (:issue:`4039`):
@@ -802,7 +802,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
  - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
  - support attribute access for setting
- - ``filter`` supports same api as original ``DataFrame`` filter
+ - ``filter`` supports same API as original ``DataFrame`` filter
  - ``fillna`` refactored to ``core/generic.py``, while > 3ndim is
    ``NotImplemented``
 
@@ -927,7 +927,7 @@ Bug Fixes
   as the docstring says (:issue:`4362`).
 - ``as_index`` is no longer ignored when doing groupby apply (:issue:`4648`,
   :issue:`3417`)
-- JSON NaT handling fixed, NaTs are now serialised to `null` (:issue:`4498`)
+- JSON NaT handling fixed, NaTs are now serialized to `null` (:issue:`4498`)
 - Fixed JSON handling of escapable characters in JSON object keys
   (:issue:`4593`)
 - Fixed passing ``keep_default_na=False`` when ``na_values=None``
@@ -1760,7 +1760,7 @@ Bug Fixes
 - Fixed a bug in the legend of plotting.andrews_curves() (:issue:`3278`)
 - Produce a series on apply if we only generate a singular series and have
   a simple index (:issue:`2893`)
-- Fix Python ascii file parsing when integer falls outside of floating point
+- Fix Python ASCII file parsing when integer falls outside of floating point
   spacing (:issue:`3258`)
 - fixed pretty priniting of sets (:issue:`3294`)
 - Panel() and Panel.from_dict() now respects ordering when give OrderedDict (:issue:`3303`)
@@ -2783,7 +2783,7 @@ Bug Fixes
   (:issue:`1013`)
 - DataFrame.plot(logy=True) has no effect (:issue:`1011`).
 - Broken arithmetic operations between SparsePanel-Panel (:issue:`1015`)
-- Unicode repr issues in MultiIndex with non-ascii characters (:issue:`1010`)
+- Unicode repr issues in MultiIndex with non-ASCII characters (:issue:`1010`)
 - DataFrame.lookup() returns inconsistent results if exact match not present
   (:issue:`1001`)
 - DataFrame arithmetic operations not treating None as NA (:issue:`992`)

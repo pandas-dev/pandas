@@ -29,7 +29,7 @@
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
-The pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
+The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
 object.
 
     * :ref:`read_csv<io.read_csv_table>`
@@ -78,8 +78,8 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, url
-    (including http, ftp, and s3 locations), or any object with a ``read``
+  - ``filepath_or_buffer``: Either a string path to a file, URL
+    (including http, ftp, and S3 locations), or any object with a ``read``
     method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
@@ -1100,7 +1100,7 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ascii, for python versions prior to 3
+    non-ASCII, for python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
   - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL)
   - ``quotechar``: Character used to quote fields (default '"')
@@ -1184,7 +1184,7 @@ with optional parameters:
 - ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
 - ``force_ascii`` : force encoded string to be ASCII, default True.
 - ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
-- ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serialisable object.
+- ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -1208,7 +1208,7 @@ file / string. Consider the following DataFrame and Series:
   sjo = Series(dict(x=15, y=16, z=17), name='D')
   sjo
 
-**Column oriented** (the default for ``DataFrame``) serialises the data as
+**Column oriented** (the default for ``DataFrame``) serializes the data as
 nested JSON objects with column labels acting as the primary index:
 
 .. ipython:: python
@@ -1224,7 +1224,7 @@ but the index labels are now primary:
   dfjo.to_json(orient="index")
   sjo.to_json(orient="index")
 
-**Record oriented** serialises the data to a JSON array of column -> value records,
+**Record oriented** serializes the data to a JSON array of column -> value records,
 index labels are not included. This is useful for passing DataFrame data to plotting
 libraries, for example the JavaScript library d3.js:
 
@@ -1233,7 +1233,7 @@ libraries, for example the JavaScript library d3.js:
   dfjo.to_json(orient="records")
   sjo.to_json(orient="records")
 
-**Value oriented** is a bare-bones option which serialises to nested JSON arrays of
+**Value oriented** is a bare-bones option which serializes to nested JSON arrays of
 values only, column and index labels are not included:
 
 .. ipython:: python
@@ -1241,7 +1241,7 @@ values only, column and index labels are not included:
   dfjo.to_json(orient="values")
   # Not available for Series
 
-**Split oriented** serialises to a JSON object containing separate entries for
+**Split oriented** serializes to a JSON object containing separate entries for
 values, index and columns. Name is also included for ``Series``:
 
 .. ipython:: python
@@ -1252,13 +1252,13 @@ values, index and columns. Name is also included for ``Series``:
 .. note::
 
   Any orient option that encodes to a JSON object will not preserve the ordering of
-  index and column labels during round-trip serialisation. If you wish to preserve
+  index and column labels during round-trip serialization. If you wish to preserve
   label ordering use the `split` option as it uses ordered containers.
 
 Date Handling
 +++++++++++++
 
-Writing in iso date format
+Writing in ISO date format
 
 .. ipython:: python
 
@@ -1268,7 +1268,7 @@ Writing in iso date format
    json = dfd.to_json(date_format='iso')
    json
 
-Writing in iso date format, with microseconds
+Writing in ISO date format, with microseconds
 
 .. ipython:: python
 
@@ -1297,17 +1297,17 @@ Writing to a file, with a date index and a date column
 Fallback Behavior
 +++++++++++++++++
 
-If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
+If the JSON serializer cannot handle the container contents directly it will fallback in the following manner:
 
 - if a ``toDict`` method is defined by the unrecognised object then that
-  will be called and its returned ``dict`` will be JSON serialised.
+  will be called and its returned ``dict`` will be JSON serialized.
 - if a ``default_handler`` has been passed to ``to_json`` that will
   be called to convert the object.
 - otherwise an attempt is made to convert the object to a ``dict`` by
   parsing its contents. However if the object is complex this will often fail
   with an ``OverflowError``.
 
-Your best bet when encountering ``OverflowError`` during serialisation
+Your best bet when encountering ``OverflowError`` during serialization
 is to specify a ``default_handler``. For example ``timedelta`` can cause
 problems:
 
@@ -1349,7 +1349,7 @@ The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
 - ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
-  a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
+  a URL. Valid URL schemes include http, ftp, S3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
 - ``typ``    : type of object to recover (series or frame), default 'frame'
@@ -1480,7 +1480,7 @@ The Numpy Parameter
   This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
-an appropriate dtype during deserialisation and to subsequently decode directly
+an appropriate dtype during deserialization and to subsequently decode directly
 to numpy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
@@ -1586,7 +1586,7 @@ Reading HTML Content
 .. versionadded:: 0.12.0
 
 The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
-string/file/url and will parse HTML tables into list of pandas DataFrames.
+string/file/URL and will parse HTML tables into list of pandas DataFrames.
 Let's look at a few examples.
 
 .. note::
