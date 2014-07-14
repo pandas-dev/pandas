@@ -429,7 +429,7 @@ Time series-related
    Series.tz_localize
 
 String handling
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 ``Series.str`` can be used to access the values of the series as
 strings and apply several methods to it. Due to implementation
 details the methods show up here as methods of the
@@ -467,6 +467,60 @@ details the methods show up here as methods of the
    StringMethods.title
    StringMethods.upper
    StringMethods.get_dummies
+
+.. _api.categorical:
+
+Categorical
+~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.categorical
+
+If the Series is of dtype ``category``, ``Series.cat`` can be used to access the the underlying
+``Categorical``. This data type is similar to the otherwise underlying numpy array
+and has the following usable methods and properties (all available as
+``Series.cat.<method_or_property>``).
+
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical
+   Categorical.from_codes
+   Categorical.levels
+   Categorical.ordered
+   Categorical.reorder_levels
+   Categorical.remove_unused_levels
+   Categorical.min
+   Categorical.max
+   Categorical.mode
+   Categorical.describe
+
+``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
+the Categorical back to a numpy array, so levels and order information is not preserved!
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.__array__
+
+To create compatibility with `pandas.Series` and `numpy` arrays, the following (non-API) methods
+are also introduced.
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.from_array
+   Categorical.get_values
+   Categorical.copy
+   Categorical.dtype
+   Categorical.ndim
+   Categorical.sort
+   Categorical.equals
+   Categorical.unique
+   Categorical.order
+   Categorical.argsort
+   Categorical.fillna
+
 
 Plotting
 ~~~~~~~~

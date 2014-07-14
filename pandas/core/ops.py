@@ -456,10 +456,12 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], y[mask])
-            else:
+            elif isinstance(x, pa.Array):
                 result = pa.empty(len(x), dtype=x.dtype)
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
+            else:
+                raise TypeError("{typ} cannot perform the operation {op}".format(typ=type(x).__name__,op=str_rep))
 
             result, changed = com._maybe_upcast_putmask(result, ~mask, pa.NA)
 
@@ -562,7 +564,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
             mask = isnull(self)
 
-            values = self.values
+            values = self.get_values()
             other = _index.convert_scalar(values, other)
 
             if issubclass(values.dtype.type, np.datetime64):
@@ -749,12 +751,15 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 yrav = yrav[mask]
                 if np.prod(xrav.shape) and np.prod(yrav.shape):
                     result[mask] = op(xrav, yrav)
-            else:
+            elif hasattr(x,'size'):
                 result = np.empty(x.size, dtype=x.dtype)
                 mask = notnull(xrav)
                 xrav = xrav[mask]
                 if np.prod(xrav.shape):
                     result[mask] = op(xrav, y)
+            else:
+                raise TypeError("cannot perform operation {op} between objects "
+                                "of type {x} and {y}".format(op=name,x=type(x),y=type(y)))
 
             result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)

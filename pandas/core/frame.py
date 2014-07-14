@@ -36,6 +36,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
+from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
 from numpy import percentile as _quantile
@@ -1539,7 +1540,7 @@ class DataFrame(NDFrame):
 
         series = self._get_item_cache(col)
         engine = self.index._engine
-        return engine.get_value(series.values, index)
+        return engine.get_value(series.get_values(), index)
 
     def set_value(self, index, col, value, takeable=False):
         """
@@ -1567,7 +1568,7 @@ class DataFrame(NDFrame):
             engine = self.index._engine
             engine.set_value(series.values, index, value)
             return self
-        except KeyError:
+        except (KeyError, TypeError):
 
             # set using a non-recursive method & reset the cache
             self.loc[index, col] = value
@@ -2114,10 +2115,10 @@ class DataFrame(NDFrame):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
 
-        if isinstance(value, (Series, DataFrame)):
-            is_frame = isinstance(value, DataFrame)
+        def reindexer(value):
+            # reindex if necessary
+
             if value.index.equals(self.index) or not len(self.index):
-                # copy the values
                 value = value.values.copy()
             else:
 
@@ -2133,10 +2134,18 @@ class DataFrame(NDFrame):
                     # other
                     raise TypeError('incompatible index of inserted column '
                                     'with frame index')
+            return value
 
-            if is_frame:
-                value = value.T
-        elif isinstance(value, Index) or _is_sequence(value):
+        if isinstance(value, Series):
+            value = reindexer(value)
+
+        elif isinstance(value, DataFrame):
+            value = reindexer(value).T
+
+        elif isinstance(value, Categorical):
+            value = value.copy()
+
+        elif (isinstance(value, Index) or _is_sequence(value)):
             if len(value) != len(self.index):
                 raise ValueError('Length of values does not match length of '
                                  'index')
@@ -2159,6 +2168,10 @@ class DataFrame(NDFrame):
             dtype, value = _infer_dtype_from_scalar(value)
             value = np.repeat(value, len(self.index)).astype(dtype)
             value = com._possibly_cast_to_datetime(value, dtype)
+
+        # return categoricals directly
+        if isinstance(value, Categorical):
+            return value
 
         # broadcast across multiple columns if necessary
         if key in self.columns and value.ndim == 1:
@@ -2757,6 +2770,7 @@ class DataFrame(NDFrame):
                                      % str(by))
                 if isinstance(ascending, (tuple, list)):
                     ascending = ascending[0]
+
                 indexer = _nargsort(k, kind=kind, ascending=ascending,
                                     na_position=na_position)
 
@@ -4069,7 +4083,7 @@ class DataFrame(NDFrame):
                             numeric_only=bool_only, filter_type='bool')
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+                filter_type=None, name=None, **kwds):
         axis = self._get_axis_number(axis)
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
@@ -4541,74 +4555,6 @@ DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
 DataFrame._add_numeric_operations()
 
 _EMPTY_SERIES = Series([])
-
-
-def group_agg(values, bounds, f):
-    """
-    R-style aggregator
-
-    Parameters
-    ----------
-    values : N-length or N x K ndarray
-    bounds : B-length ndarray
-    f : ndarray aggregation function
-
-    Returns
-    -------
-    ndarray with same length as bounds array
-    """
-    if values.ndim == 1:
-        N = len(values)
-        result = np.empty(len(bounds), dtype=float)
-    elif values.ndim == 2:
-        N, K = values.shape
-        result = np.empty((len(bounds), K), dtype=float)
-
-    testagg = f(values[:min(1, len(values))])
-    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
-        raise AssertionError('Function must reduce')
-
-    for i, left_bound in enumerate(bounds):
-        if i == len(bounds) - 1:
-            right_bound = N
-        else:
-            right_bound = bounds[i + 1]
-
-        result[i] = f(values[left_bound:right_bound])
-
-    return result
-
-
-def factor_agg(factor, vec, func):
-    """
-    Aggregate array based on Categorical
-
-    Parameters
-    ----------
-    factor : Categorical
-        length n
-    vec : sequence
-        length n
-    func : function
-        1D array aggregation function
-
-    Returns
-    -------
-    ndarray corresponding to factor levels
-
-    See Also
-    --------
-    pandas.Categorical
-    """
-    indexer = np.argsort(factor.labels)
-    unique_labels = np.arange(len(factor.levels))
-
-    ordered_labels = factor.labels.take(indexer)
-    ordered_vec = np.asarray(vec).take(indexer)
-    bounds = ordered_labels.searchsorted(unique_labels)
-
-    return group_agg(ordered_vec, bounds, func)
-
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     """

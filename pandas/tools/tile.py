@@ -189,7 +189,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         levels = np.asarray(levels, dtype=object)
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, name=name)
+        fac = Categorical(ids - 1, levels, name=name, fastpath=True)
     else:
         fac = ids - 1
         if has_nas:

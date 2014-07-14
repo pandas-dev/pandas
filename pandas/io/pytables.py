@@ -1773,6 +1773,9 @@ class DataCol(IndexCol):
             raise TypeError(
                 "[unicode] is not implemented as a table column")
 
+        elif dtype == 'category':
+            raise NotImplementedError
+
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
@@ -3494,7 +3497,7 @@ class LegacyTable(Table):
         factors = [Categorical.from_array(a.values) for a in self.index_axes]
         levels = [f.levels for f in factors]
         N = [len(f.levels) for f in factors]
-        labels = [f.labels for f in factors]
+        labels = [f.codes for f in factors]
 
         # compute the key
         key = factor_indexer(N[1:], labels)

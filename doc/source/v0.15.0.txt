@@ -9,7 +9,7 @@ users upgrade to this version.
 
 - Highlights include:
 
-  - Add highlites here
+  - The ``Categorical`` type was integrated as a first-class pandas type, see here: :ref:`Categorical Changes <whatsnew_0150.cat>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -30,13 +30,45 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
+.. _whatsnew_0150.cat:
 
+Categoricals in Series/DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+:class:`~pandas.Categorical` can now be included in `Series` and `DataFrames` and gained new
+methods to manipulate. Thanks to Jan Schultz for much of this API/implementation. (:issue:`3943`, :issue:`5313`, :issue:`5314`, :issue:`7444`).
 
+.. ipython:: python
 
+    df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
+    # convert the raw grades to a categorical
+    df["grade"] = pd.Categorical(df["raw_grade"])
 
+    # Alternative: df["grade"] = df["raw_grade"].astype("category")
+    df["grade"]
 
+    # Rename the levels
+    df["grade"].cat.levels = ["very good", "good", "very bad"]
+
+    # Reorder the levels and simultaneously add the missing levels
+    df["grade"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    df["grade"]
+    df.sort("grade")
+    df.groupby("grade").size()
+
+See the :ref:`Categorical introduction<_categorical>` and the :ref:`API documentation<api.categorical>`.
+
+- `pandas.core.group_agg` and `pandas.core.factor_agg` were removed. As an alternative, construct
+  a dataframe and use `df.groupby(<group>).agg(<func>)`.
+
+- Supplying "codes/labels and levels" to the `pandas.Categorical` constructor is deprecated and does
+  not work without supplying ``compat=True``. The default mode now uses "values and levels".
+  Please change your code to use the ``Categorical.from_codes(...)`` constructor.
+
+- The `pandas.Categorical.labels` attribute was renamed to `pandas.Categorical.codes` and is read
+  only. If you want to manipulate the `Categorical`, please use one of the
+  :ref:`API methods on Categoricals<api.categorical>`.
 
 
 

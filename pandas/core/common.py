@@ -23,7 +23,6 @@ from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 from pandas.core.config import get_option
 from pandas.core import array as pa
 
-
 class PandasError(Exception):
     pass
 
@@ -107,6 +106,77 @@ def bind_method(cls, name, func):
     else:
         setattr(cls, name, func)
 
+class CategoricalDtypeType(type):
+    """
+    the type of CategoricalDtype, this metaclass determines subclass ability
+    """
+    def __init__(cls, name, bases, attrs):
+        pass
+
+class CategoricalDtype(object):
+    __meta__ = CategoricalDtypeType
+    """
+    A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
+
+    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
+    """
+    name = 'category'
+    names = None
+    type = CategoricalDtypeType
+    subdtype = None
+    kind = 'O'
+    str = '|O08'
+    num = 100
+    shape = tuple()
+    itemsize = 8
+    base = np.dtype('O')
+    isbuiltin = 0
+    isnative = 0
+
+    def __unicode__(self):
+        return self.name
+
+    def __str__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular object.
+
+        Invoked by bytes(obj) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        from pandas.core.config import get_option
+
+        encoding = get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular object.
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
+
+    def __hash__(self):
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            return other == self.name
+
+        return isinstance(other, CategoricalDtype)
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -1640,6 +1710,8 @@ def _get_dtype_from_object(dtype):
     elif isinstance(dtype, compat.string_types):
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
+        elif dtype == 'category':
+            return CategoricalDtypeType
         try:
             return _get_dtype_from_object(getattr(np, dtype))
         except AttributeError:
@@ -1648,10 +1720,6 @@ def _get_dtype_from_object(dtype):
             # types, in general)
             pass
     return _get_dtype_from_object(np.dtype(dtype))
-
-
-_string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
-                                                        compat.text_type)))
 
 
 def _get_info_slice(obj, indexer):
@@ -2318,6 +2386,16 @@ def is_bool_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.bool_)
 
+def is_categorical_dtype(arr_or_dtype):
+    if hasattr(arr_or_dtype,'dtype'):
+        arr_or_dtype = arr_or_dtype.dtype
+
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        return True
+    try:
+        return arr_or_dtype == 'category'
+    except:
+        return False
 
 def is_complex_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2354,6 +2432,10 @@ def _is_sequence(x):
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
+
+_string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
+                                                        compat.text_type)))
 
 
 _ensure_float64 = algos.ensure_float64

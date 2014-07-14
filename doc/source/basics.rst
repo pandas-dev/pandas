@@ -1574,7 +1574,8 @@ dtypes:
                    'float64': np.arange(4.0, 7.0),
                    'bool1': [True, False, True],
                    'bool2': [False, True, False],
-                   'dates': pd.date_range('now', periods=3).values})
+                   'dates': pd.date_range('now', periods=3).values}),
+                   'category': pd.Categorical(list("ABC))
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
    df['other_dates'] = pd.date_range('20130101', periods=3).values
@@ -1629,6 +1630,11 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 .. ipython:: python
 
     subdtypes(np.generic)
+
+.. note::
+
+    Pandas also defines an additional ``category`` dtype, which is not integrated into the normal
+    numpy hierarchy and wont show up with the above function.
 
 .. note::
 

@@ -405,7 +405,9 @@ class _NDFrameIndexer(object):
 
                 return False
 
-            if _is_list_like(value):
+            # we need an interable, with a ndim of at least 1
+            # eg. don't pass thru np.array(0)
+            if _is_list_like(value) and getattr(value,'ndim',1) > 0:
 
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
@@ -1675,7 +1677,7 @@ def _is_label_like(key):
 
 def _is_list_like(obj):
     # Consider namedtuples to be not list like as they are useful as indices
-    return (np.iterable(obj)
+    return (hasattr(obj, '__iter__')
             and not isinstance(obj, compat.string_types)
             and not (isinstance(obj, tuple) and type(obj) is not tuple))
 

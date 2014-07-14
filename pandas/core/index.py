@@ -2796,7 +2796,7 @@ class MultiIndex(Index):
 
         cats = [Categorical.from_array(arr) for arr in arrays]
         levels = [c.levels for c in cats]
-        labels = [c.labels for c in cats]
+        labels = [c.codes for c in cats]
         if names is None:
             names = [c.name for c in cats]
 
@@ -2888,7 +2888,7 @@ class MultiIndex(Index):
         from pandas.tools.util import cartesian_product
 
         categoricals = [Categorical.from_array(it) for it in iterables]
-        labels = cartesian_product([c.labels for c in categoricals])
+        labels = cartesian_product([c.codes for c in categoricals])
 
         return MultiIndex(levels=[c.levels for c in categoricals],
                           labels=labels, sortorder=sortorder, names=names)

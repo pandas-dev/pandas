@@ -23,7 +23,8 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
-                               is_timedelta64_dtype, is_datetime64_dtype)
+                               is_timedelta64_dtype, is_datetime64_dtype,
+                               is_categorical_dtype)
 
 from pandas import _np_version_under1p7
 import pandas.lib as lib
@@ -147,8 +148,10 @@ def _last_compat(x, axis=0):
 
 
 def _count_compat(x, axis=0):
-    return x.size
-
+    try:
+        return x.size
+    except:
+        return x.count()
 
 class Grouper(object):
     """
@@ -1358,7 +1361,9 @@ class BaseGrouper(object):
         name_list = []
         for ping, labels in zip(self.groupings, recons_labels):
             labels = com._ensure_platform_int(labels)
-            name_list.append(ping.group_index.take(labels))
+            levels = ping.group_index.take(labels)
+
+            name_list.append(levels)
 
         return name_list
 
@@ -1704,6 +1709,11 @@ class BinGrouper(BaseGrouper):
     def names(self):
         return [self.binlabels.name]
 
+    @property
+    def groupings(self):
+        # for compat
+        return None
+
     def size(self):
         """
         Compute group sizes
@@ -1866,7 +1876,7 @@ class Grouping(object):
                 # Is there any way to avoid this?
                 self.grouper = np.asarray(factor)
 
-                self._labels = factor.labels
+                self._labels = factor.codes
                 self._group_index = factor.levels
                 if self.name is None:
                     self.name = factor.name
@@ -2629,7 +2639,7 @@ class NDFrameGroupBy(GroupBy):
         if isinstance(values[0], DataFrame):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
-        elif hasattr(self.grouper, 'groupings'):
+        elif self.grouper.groupings is not None:
             if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)
 
@@ -3055,7 +3065,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return result.convert_objects()
+        return self._reindex_output(result).convert_objects()
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
@@ -3077,7 +3087,27 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return result.convert_objects()
+        return self._reindex_output(result).convert_objects()
+
+    def _reindex_output(self, result):
+        """
+        if we have categorical groupers, then we want to make sure that
+        we have a fully reindex-output to the levels. These may have not participated in
+        the groupings (e.g. may have all been nan groups)
+
+        This can re-expand the output space
+        """
+        groupings = self.grouper.groupings
+        if groupings is None:
+            return result
+        elif len(groupings) == 1:
+            return result
+        elif not any([ping._was_factor for ping in groupings]):
+            return result
+
+        levels_list = [ ping._group_index for ping in groupings ]
+        index = MultiIndex.from_product(levels_list, names=self.grouper.names)
+        return result.reindex(**{ self.obj._get_axis_name(self.axis) : index, 'copy' : False }).sortlevel()
 
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
@@ -3419,6 +3449,11 @@ def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     It adds ascending and na_position parameters.
     GH #6399, #5231
     """
+
+    # specially handle Categorical
+    if is_categorical_dtype(items):
+        return items.argsort(ascending=ascending)
+
     items = np.asanyarray(items)
     idx = np.arange(len(items))
     mask = isnull(items)

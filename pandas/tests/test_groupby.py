@@ -2901,9 +2901,9 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']
-        labels = np.random.randint(0, 4, size=100)
+        codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical(labels, levels, name='myfactor')
+        cats = Categorical.from_codes(codes, levels, name='myfactor')
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -2919,7 +2919,7 @@ class TestGroupBy(tm.TestCase):
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
 
-        idx = cats.labels.argsort()
+        idx = cats.codes.argsort()
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels, sort=False).describe()
@@ -3049,19 +3049,28 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_categorical_no_compress(self):
         data = Series(np.random.randn(9))
 
-        labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
-        cats = Categorical(labels, [0, 1, 2])
+        codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
+        cats = Categorical.from_codes(codes, [0, 1, 2])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(labels).mean()
+        exp = data.groupby(codes).mean()
         assert_series_equal(result, exp)
 
-        labels = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
-        cats = Categorical(labels, [0, 1, 2, 3])
+        codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
+        cats = Categorical.from_codes(codes, [0, 1, 2, 3])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(labels).mean().reindex(cats.levels)
+        exp = data.groupby(codes).mean().reindex(cats.levels)
         assert_series_equal(result, exp)
+
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])
+        data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
+
+        result = data.groupby("b").mean()
+        result = result["a"].values
+        exp = np.array([1,2,4,np.nan])
+        self.assert_numpy_array_equivalent(result, exp)
+
 
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])

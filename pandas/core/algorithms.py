@@ -93,6 +93,8 @@ def _unique_generic(values, table_type, type_caster):
     return type_caster(uniques)
 
 
+
+
 def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     Encode input values as an enumerated type or categorical variable
@@ -160,7 +162,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     if is_datetime:
         uniques = uniques.astype('M8[ns]')
     if isinstance(values, Index):
-        uniques = values._simple_new(uniques, None, freq=getattr(values, 'freq', None), 
+        uniques = values._simple_new(uniques, None, freq=getattr(values, 'freq', None),
                                      tz=getattr(values, 'tz', None))
     elif isinstance(values, Series):
         uniques = Index(uniques)
@@ -196,13 +198,18 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.tools.tile import cut
 
     values = Series(values).values
+    is_category = com.is_categorical_dtype(values.dtype)
 
     if bins is not None:
         try:
             cat, bins = cut(values, bins, retbins=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
-        values = cat.labels
+        values = cat.codes
+    elif is_category:
+        bins = values.levels
+        cat = values
+        values = cat.codes
 
     dtype = values.dtype
     if com.is_integer_dtype(dtype):
@@ -232,7 +239,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     if bins is not None:
         # TODO: This next line should be more efficient
         result = result.reindex(np.arange(len(cat.levels)), fill_value=0)
-        result.index = bins[:-1]
+        if not is_category:
+            result.index = bins[:-1]
+        else:
+            result.index = cat.levels
 
     if sort:
         result.sort()
@@ -258,7 +268,7 @@ def mode(values):
         constructor = Series
 
     dtype = values.dtype
-    if com.is_integer_dtype(values.dtype):
+    if com.is_integer_dtype(values):
         values = com._ensure_int64(values)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
 
@@ -267,6 +277,8 @@ def mode(values):
         values = values.view(np.int64)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
 
+    elif com.is_categorical_dtype(values):
+        result = constructor(values.mode())
     else:
         mask = com.isnull(values)
         values = com._ensure_object(values)
