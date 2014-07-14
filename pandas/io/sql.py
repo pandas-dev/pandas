@@ -264,7 +264,7 @@ def read_sql_table(table_name, con, index_col=None, coerce_float=True,
     table_name : string
         Name of SQL table in database
     con : SQLAlchemy engine
-        Sqlite DBAPI conncection mode not supported
+        Sqlite DBAPI connection mode not supported
     index_col : string, optional
         Column to set as index
     coerce_float : boolean, default True
