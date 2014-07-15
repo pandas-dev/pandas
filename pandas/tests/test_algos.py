@@ -95,6 +95,11 @@ class TestFactorize(tm.TestCase):
         self.assert_numpy_array_equal(labels, np.array([ 2,  2, -1,  3,  0,  1],dtype=np.int64))
         self.assert_numpy_array_equal(uniques, np.array([3.14, np.inf, 'A', 'B'], dtype=object))
 
+    def test_multidimensional(self):
+        labels, uniques = algos.factorize([['a', 'b'], ['a', 'c']])
+        self.assert_numpy_array_equal(labels, np.array([[0, 1], [0, 2]], dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array(['a', 'b', 'c'], dtype=object))
+
     def test_datelike(self):
 
         # M8

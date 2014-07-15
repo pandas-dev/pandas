@@ -101,7 +101,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     Parameters
     ----------
-    values : ndarray (1-d)
+    values : ndarray
         Sequence
     sort : boolean, default False
         Sort by values
@@ -129,7 +129,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     table = hash_klass(len(vals))
     uniques = vec_klass()
-    labels = table.get_labels(vals, uniques, 0, na_sentinel)
+    labels = table.get_labels(
+        vals.ravel(), uniques, 0, na_sentinel).reshape(vals.shape)
 
     labels = com._ensure_platform_int(labels)
 
