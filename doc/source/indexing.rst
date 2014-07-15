@@ -415,20 +415,29 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``)
 
    df1.iloc[1]
 
-There is one significant departure from standard python/numpy slicing semantics.
-python/numpy allow slicing past the end of an array without an associated error.
+Out of range slice indexes are handled gracefully just as in Python/Numpy.
 
 .. ipython:: python
 
     # these are allowed in python/numpy.
+    # Only works in Pandas starting from v0.14.0.
     x = list('abcdef')
+    x
     x[4:10]
     x[8:10]
+    s = Series(x)
+    s
+    s.iloc[4:10]
+    s.iloc[8:10]
 
-- as of v0.14.0, ``iloc`` will now accept out-of-bounds indexers for slices, e.g. a value that exceeds the length of the object being
-  indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
-  values. A single indexer / list of indexers that is out-of-bounds will still raise
-  ``IndexError`` (:issue:`6296`, :issue:`6299`). This could result in an empty axis (e.g. an empty DataFrame being returned)
+.. note::
+
+    Prior to v0.14.0, ``iloc`` would not accept out of bounds indexers for
+    slices, e.g. a value that exceeds the length of the object being indexed.
+
+
+Note that this could result in an empty axis (e.g. an empty DataFrame being
+returned)
 
 .. ipython:: python
 
@@ -438,7 +447,9 @@ python/numpy allow slicing past the end of an array without an associated error.
    dfl.iloc[:,1:3]
    dfl.iloc[4:6]
 
-These are out-of-bounds selections
+A single indexer that is out of bounds will raise an ``IndexError``.
+A list of indexers where any element is out of bounds will raise an
+``IndexError``
 
 .. code-block:: python
 
