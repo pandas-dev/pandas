@@ -781,6 +781,16 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
     return result
 
+cpdef ndarray[object] astype_unicode(ndarray arr):
+    cdef:
+        Py_ssize_t i, n = arr.size
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        util.set_value_at(result, i, unicode(arr[i]))
+
+    return result
+
 cpdef ndarray[object] astype_str(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size

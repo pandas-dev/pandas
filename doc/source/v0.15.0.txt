@@ -185,8 +185,7 @@ There are no experimental changes in 0.15.0
 Bug Fixes
 ~~~~~~~~~
 
-
-
+- Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
 
 
 
