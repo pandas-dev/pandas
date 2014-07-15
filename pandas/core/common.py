@@ -2492,6 +2492,9 @@ def _astype_nansafe(arr, dtype, copy=True):
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+    elif issubclass(dtype.type, compat.text_type):
+        # in Py3 that's str, in Py2 that's unicode
+        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
     elif issubclass(dtype.type, compat.string_types):
         return lib.astype_str(arr.ravel()).reshape(arr.shape)
 
