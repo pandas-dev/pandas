@@ -230,13 +230,13 @@ def _cast_to_stata_types(data):
     ws = ''
     for col in data:
         dtype = data[col].dtype
-        if dtype == np.int8:
+        if dtype in (np.int8, np.uint8):
             if data[col].max() > 100 or data[col].min() < -127:
                 data[col] = data[col].astype(np.int16)
-        elif dtype == np.int16:
+        elif dtype in (np.int16, np.uint16):
             if data[col].max() > 32740 or data[col].min() < -32767:
                 data[col] = data[col].astype(np.int32)
-        elif dtype == np.int64:
+        elif dtype in (np.int32, np.uint32, np.int64, np.uint64):
             if data[col].max() <= 2147483620 and data[col].min() >= -2147483647:
                 data[col] = data[col].astype(np.int32)
             else:
@@ -995,11 +995,11 @@ def _dtype_to_stata_type(dtype):
         return chr(255)
     elif dtype == np.float32:
         return chr(254)
-    elif dtype == np.int32:
+    elif dtype in (np.int32, np.uint32):
         return chr(253)
-    elif dtype == np.int16:
+    elif dtype in (np.int16, np.uint16):
         return chr(252)
-    elif dtype == np.int8:
+    elif dtype in (np.int8, np.uint8):
         return chr(251)
     else:  # pragma : no cover
         raise ValueError("Data type %s not currently understood. "
@@ -1028,9 +1028,9 @@ def _dtype_to_default_stata_fmt(dtype):
         return "%10.0g"
     elif dtype == np.float32:
         return "%9.0g"
-    elif dtype == np.int32:
+    elif dtype in (np.int32, np.uint32):
         return "%12.0g"
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype in (np.int8, np.uint8, np.int16, np.uint16):
         return "%8.0g"
     else:  # pragma : no cover
         raise ValueError("Data type %s not currently understood. "
