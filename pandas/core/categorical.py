@@ -2,6 +2,7 @@
 
 import numpy as np
 from warnings import warn
+import types
 
 from pandas import compat
 from pandas.compat import u
@@ -208,8 +209,25 @@ class Categorical(PandasObject):
             # under certain versions of numpy as well
             inferred = com._possibly_infer_to_datetimelike(values)
             if not isinstance(inferred, np.ndarray):
+
+                # Input sanitation...
+                if com._is_sequence(values) or isinstance(values, types.GeneratorType):
+                    # isnull doesn't work with generators/xrange, so convert all to lists
+                    # TODO: prevent allocation of two times the array/list be converting directly
+                    values = list(values)
+                elif np.isscalar(values):
+                    values = [values]
+
                 from pandas.core.series import _sanitize_array
-                values = _sanitize_array(values, None)
+                # On list with NaNs, int values will be converted to float. Use "object" dtype
+                # to prevent this. In the end objects will be casted to int/... in the level
+                # assignment step.
+                # tuple are list_like but com.isnull(<tuple>) will return a single bool,
+                # which then raises an AttributeError: 'bool' object has no attribute 'any'
+                has_null = (com.is_list_like(values) and not isinstance(values, tuple)
+                            and com.isnull(values).any())
+                dtype = 'object' if has_null else None
+                values = _sanitize_array(values, None, dtype=dtype)
 
         if levels is None:
             try:

@@ -111,6 +111,50 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([1,2,3,np.nan], levels=[1,2,3])
         self.assertTrue(com.is_integer_dtype(cat.levels))
 
+        # https://github.com/pydata/pandas/issues/3678
+        cat = pd.Categorical([np.nan,1, 2, 3])
+        self.assertTrue(com.is_integer_dtype(cat.levels))
+
+        # this should result in floats
+        cat = pd.Categorical([np.nan, 1, 2., 3 ])
+        self.assertTrue(com.is_float_dtype(cat.levels))
+
+        cat = pd.Categorical([np.nan, 1., 2., 3. ])
+        self.assertTrue(com.is_float_dtype(cat.levels))
+
+        # corner cases
+        cat = pd.Categorical([1])
+        self.assertTrue(len(cat.levels) == 1)
+        self.assertTrue(cat.levels[0] == 1)
+        self.assertTrue(len(cat.codes) == 1)
+        self.assertTrue(cat.codes[0] == 0)
+
+        cat = pd.Categorical(["a"])
+        self.assertTrue(len(cat.levels) == 1)
+        self.assertTrue(cat.levels[0] == "a")
+        self.assertTrue(len(cat.codes) == 1)
+        self.assertTrue(cat.codes[0] == 0)
+
+        # Scalars should be converted to lists
+        cat = pd.Categorical(1)
+        self.assertTrue(len(cat.levels) == 1)
+        self.assertTrue(cat.levels[0] == 1)
+        self.assertTrue(len(cat.codes) == 1)
+        self.assertTrue(cat.codes[0] == 0)
+
+
+    def test_constructor_with_generator(self):
+        # This was raising an Error in isnull(single_val).any() because isnull returned a scalar
+        # for a generator
+
+        a = (a for x in [1,2])
+        cat = Categorical(a)
+
+        # This does actually a xrange, which is a sequence instead of a generator
+        from pandas.core.index import MultiIndex
+        MultiIndex.from_product([range(5), ['a', 'b', 'c']])
+
+
     def test_from_codes(self):
 
         # too few levels
