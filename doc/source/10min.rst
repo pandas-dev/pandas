@@ -66,7 +66,8 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
                         'B' : pd.Timestamp('20130102'),
                         'C' : pd.Series(1,index=list(range(4)),dtype='float32'),
                         'D' : np.array([3] * 4,dtype='int32'),
-                        'E' : 'foo' })
+                        'E' : pd.Categorical(["test","train","test","train"]),
+                        'F' : 'foo' })
    df2
 
 Having specific :ref:`dtypes <basics.dtypes>`
@@ -634,6 +635,32 @@ the quarter end:
    ts = pd.Series(np.random.randn(len(prng)), prng)
    ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
    ts.head()
+
+Categoricals
+------------
+
+Since version 0.15, pandas can include categorical data in a `DataFrame`. For full docs, see the
+:ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>` .
+
+.. ipython:: python
+
+    df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+
+    # convert the raw grades to a categorical
+    df["grade"] = pd.Categorical(df["raw_grade"])
+
+    # Alternative: df["grade"] = df["raw_grade"].astype("category")
+    df["grade"]
+
+    # Rename the levels
+    df["grade"].cat.levels = ["very good", "good", "very bad"]
+
+    # Reorder the levels and simultaneously add the missing levels
+    df["grade"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    df["grade"]
+    df.sort("grade")
+    df.groupby("grade").size()
+
 
 
 Plotting

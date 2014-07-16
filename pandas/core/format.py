@@ -177,7 +177,7 @@ class SeriesFormatter(object):
         # level infos are added to the end and in a new line, like it is done for Categoricals
         # Only added when we request a name
         if self.name and com.is_categorical_dtype(self.series.dtype):
-            level_info = self.series.cat._repr_level_info()
+            level_info = self.series.values._repr_level_info()
             if footer:
                 footer += "\n"
             footer += level_info

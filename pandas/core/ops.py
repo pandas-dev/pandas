@@ -524,6 +524,10 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
     code duplication.
     """
     def na_op(x, y):
+        if com.is_categorical_dtype(x) != com.is_categorical_dtype(y):
+            msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
+                  "compare values, use 'series <op> np.asarray(cat)'."
+            raise TypeError(msg.format(op=op,typ=type(y)))
         if x.dtype == np.object_:
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
@@ -555,11 +559,16 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                                      index=self.index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (pa.Array, pd.Series, pd.Index)):
+        elif isinstance(other, (pa.Array, pd.Index)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
+        elif isinstance(other, pd.Categorical):
+            if not com.is_categorical_dtype(self):
+                msg = "Cannot compare a Categorical for op {op} with Series of dtype {typ}.\n"\
+                      "If you want to compare values, use 'series <op> np.asarray(other)'."
+                raise TypeError(msg.format(op=op,typ=self.dtype))
         else:
 
             mask = isnull(self)
