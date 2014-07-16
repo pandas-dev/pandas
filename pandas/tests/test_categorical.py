@@ -249,6 +249,16 @@ class TestCategorical(tm.TestCase):
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
 
+        # check unused levels
+        cat = self.factor.copy()
+        cat.levels = ["a","b","c","d"]
+        desc = cat.describe()
+        expected = DataFrame.from_dict(dict(counts=[3, 2, 3, np.nan],
+                                            freqs=[3/8., 2/8., 3/8., np.nan],
+                                            levels=['a', 'b', 'c', 'd'])
+                                            ).set_index('levels')
+        tm.assert_frame_equal(desc, expected)
+
         # check an integer one
         desc = Categorical([1,2,3,1,2,3,3,2,1,1,1]).describe()
         expected = DataFrame.from_dict(dict(counts=[5, 3, 3],
@@ -257,6 +267,29 @@ class TestCategorical(tm.TestCase):
                                             )
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
+
+        # https://github.com/pydata/pandas/issues/3678
+        # describe should work with NaN
+        cat = pd.Categorical([np.nan,1, 2, 2])
+        desc = cat.describe()
+        expected = DataFrame.from_dict(dict(counts=[1, 2, 1],
+                                            freqs=[1/4., 2/4., 1/4.],
+                                            levels=[1,2,np.nan]
+                                            )
+                                            ).set_index('levels')
+        tm.assert_frame_equal(desc, expected)
+
+        # having NaN as level and as "not available" should also print two NaNs in describe!
+        cat = pd.Categorical([np.nan,1, 2, 2])
+        cat.levels = [1,2,np.nan]
+        desc = cat.describe()
+        expected = DataFrame.from_dict(dict(counts=[1, 2, np.nan, 1],
+                                            freqs=[1/4., 2/4., np.nan, 1/4.],
+                                            levels=[1,2,np.nan,np.nan]
+                                            )
+                                            ).set_index('levels')
+        tm.assert_frame_equal(desc, expected)
+
 
     def test_print(self):
         expected = [" a", " b", " b", " a", " a", " c", " c", " c",

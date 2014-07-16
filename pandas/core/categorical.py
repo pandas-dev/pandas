@@ -934,14 +934,29 @@ class Categorical(PandasObject):
             'values' : self._codes }
                            ).groupby('codes').count()
 
-        counts.index = self.levels.take(counts.index)
-        counts = counts.reindex(self.levels)
         freqs = counts / float(counts.sum())
 
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
-        result.index.name = 'levels'
         result.columns = ['counts','freqs']
+
+        # fill in the real levels
+        check = result.index == -1
+        if check.any():
+            # Sort -1 (=NaN) to the last position
+            index = np.arange(0, len(self.levels)+1)
+            index[-1] = -1
+            result = result.reindex(index)
+            # build new index
+            levels = np.arange(0,len(self.levels)+1 ,dtype=object)
+            levels[:-1] = self.levels
+            levels[-1] = np.nan
+            result.index = levels.take(result.index)
+        else:
+            result.index = self.levels.take(result.index)
+            result = result.reindex(self.levels)
+        result.index.name = 'levels'
+
         return result
 
 ##### utility routines #####
