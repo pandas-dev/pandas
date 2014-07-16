@@ -1,3 +1,4 @@
+# coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
 import sys
@@ -4851,12 +4852,40 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s1 = Series([digits * 10, tm.rands(63), tm.rands(64),
                     tm.rands(1000)])
         s2 = Series([digits * 10, tm.rands(63), tm.rands(64), nan, 1.0])
-        types = (compat.text_type,) + (np.str_, np.unicode_)
+        types = (compat.text_type, np.str_)
         for typ in types:
             for s in (s1, s2):
                 res = s.astype(typ)
                 expec = s.map(compat.text_type)
                 assert_series_equal(res, expec)
+
+    def test_astype_unicode(self):
+        # a bit of magic is required to set default encoding encoding to utf-8
+        digits = string.digits
+        test_series = [
+            Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([u"データーサイエンス、お前はもう死んでいる"]),
+            
+        ]
+        
+        former_encoding = None
+        if not compat.PY3:
+            # in python we can force the default encoding 
+            # for this test
+            former_encoding = sys.getdefaultencoding()
+            reload(sys)
+            sys.setdefaultencoding("utf-8")
+        if sys.getdefaultencoding() == "utf-8":
+            test_series.append(Series([u"野菜食べないとやばい".encode("utf-8")]))
+        for s in test_series:
+            res = s.astype("unicode")
+            expec = s.map(compat.text_type)
+            assert_series_equal(res, expec)
+        # restore the former encoding
+        if former_encoding is not None and former_encoding != "utf-8":
+            reload(sys)
+            sys.setdefaultencoding(former_encoding)
+
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()
