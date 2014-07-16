@@ -573,6 +573,13 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(sliced._codes, expected._codes)
         tm.assert_index_equal(sliced.levels, expected.levels)
 
+    def test_set_item_nan(self):
+        cat = pd.Categorical([1,2,3])
+        exp = pd.Categorical([1,np.nan,3], levels=[1,2,3])
+        cat[1] = np.nan
+        self.assertTrue(cat.equals(exp))
+
+
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -1549,6 +1556,12 @@ class TestCategoricalAsBlock(tm.TestCase):
         df.loc[1:2,"a"] = pd.Categorical(["b","b"], levels=["a","b"])
         df.loc[2:3,"b"] = pd.Categorical(["b","b"], levels=["a","b"])
         tm.assert_frame_equal(df, exp)
+
+        # ensure that one can set something to np.nan
+        s = Series(Categorical([1,2,3]))
+        exp = Series(Categorical([1,np.nan,3]))
+        s[1] = np.nan
+        tm.assert_series_equal(s, exp)
 
 
     def test_concat(self):

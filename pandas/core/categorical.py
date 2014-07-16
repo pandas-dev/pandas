@@ -7,7 +7,7 @@ import types
 from pandas import compat
 from pandas.compat import u
 
-from pandas.core.algorithms import factorize, unique
+from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, _ensure_index
 from pandas.core.indexing import _is_null_slice
@@ -778,7 +778,8 @@ class Categorical(PandasObject):
 
         rvalue = value if com.is_list_like(value) else [value]
         to_add = Index(rvalue)-self.levels
-        if len(to_add):
+        # no assignments of values not in levels, but it's always ok to set something to np.nan
+        if len(to_add) and not com.isnull(to_add).all():
             raise ValueError("cannot setitem on a Categorical with a new level,"
                              " set the levels first")
 
