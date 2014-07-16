@@ -738,10 +738,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return Index(self.values, dtype)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
-    def __iter__(self):
-        for val in self.values:
-            yield Period(ordinal=val, freq=self.freq)
-
     def searchsorted(self, key, side='left'):
         if isinstance(key, compat.string_types):
             key = Period(key, freq=self.freq).ordinal

@@ -150,6 +150,7 @@ Enhancements
 Performance
 ~~~~~~~~~~~
 
+- Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
 
 
 

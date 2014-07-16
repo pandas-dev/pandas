@@ -1027,7 +1027,6 @@ class TestTimeZones(tm.TestCase):
 
     def test_timestamp_equality_different_timezones(self):
         utc_range = date_range('1/1/2000', periods=20, tz='UTC')
-
         eastern_range = utc_range.tz_convert('US/Eastern')
         berlin_range = utc_range.tz_convert('Europe/Berlin')
 

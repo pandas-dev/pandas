@@ -1093,6 +1093,27 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
 
+    def __iter__(self):
+        """
+        Return an iterator over the boxed values
+
+        Returns
+        -------
+        Timestamps : ndarray
+        """
+
+        # convert in chunks of 10k for efficiency
+        data = self.asi8
+        l = len(self)
+        chunksize = 10000
+        chunks = int(l / chunksize) + 1
+        for i in range(chunks):
+            start_i = i*chunksize
+            end_i = min((i+1)*chunksize,l)
+            converted = tslib.ints_to_pydatetime(data[start_i:end_i], tz=self.tz, offset=self.offset, box=True)
+            for v in converted:
+                yield v
+
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
         if self.tz != other.tz:
@@ -1475,9 +1496,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         new_values = tslib.date_normalize(self.asi8, self.tz)
         return DatetimeIndex(new_values, freq='infer', name=self.name,
                              tz=self.tz)
-
-    def __iter__(self):
-        return iter(self.asobject)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
