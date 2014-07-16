@@ -1649,15 +1649,6 @@ analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies
 
-.. note::
-
-   Given that hierarchical indexing is so new to the library, it is definitely
-   "bleeding-edge" functionality but is certainly suitable for production. But,
-   there may inevitably be some minor API changes as more use cases are
-   explored and any weaknesses in the design / implementation are identified.
-   pandas aims to be "eminently usable" so any feedback about new
-   functionality like this is extremely helpful.
-
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
