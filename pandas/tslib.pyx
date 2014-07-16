@@ -1907,9 +1907,13 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         Py_ssize_t i, pos, n = len(vals)
         int64_t v, offset
         pandas_datetimestruct dts
+        Py_ssize_t trans_len
 
     if not have_pytz:
         import pytz
+
+    if len(vals) == 0:
+        return np.array([], dtype=np.int64)
 
     # Convert to UTC
 
@@ -1927,6 +1931,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         else:
             deltas = _get_deltas(tz1)
             trans = _get_transitions(tz1)
+            trans_len = len(trans)
             pos = trans.searchsorted(vals[0]) - 1
             if pos < 0:
                 raise ValueError('First time before start of DST info')
@@ -1934,7 +1939,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             offset = deltas[pos]
             for i in range(n):
                 v = vals[i]
-                if v >= [pos + 1]:
+                while pos + 1 < trans_len and v >= trans[pos + 1]:
                     pos += 1
                     offset = deltas[pos]
                 utc_dates[i] = v - offset
@@ -1957,29 +1962,23 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # Convert UTC to other timezone
     trans = _get_transitions(tz2)
+    trans_len = len(trans)
     deltas = _get_deltas(tz2)
-    pos = trans.searchsorted(utc_dates[0])
-    if pos == 0:
+    pos = trans.searchsorted(utc_dates[0]) - 1
+    if pos < 0:
         raise ValueError('First time before start of DST info')
-    elif pos == len(trans):
-        return utc_dates + deltas[-1]
 
     # TODO: this assumed sortedness :/
-    pos -= 1
-
     offset = deltas[pos]
-    cdef Py_ssize_t trans_len = len(trans)
-
     for i in range(n):
         v = utc_dates[i]
         if vals[i] == NPY_NAT:
             result[i] = vals[i]
         else:
-            if (pos + 1) < trans_len and v >= trans[pos + 1]:
+            while pos + 1 < trans_len and v >= trans[pos + 1]:
                 pos += 1
                 offset = deltas[pos]
             result[i] = v + offset
-
     return result
 
 def tz_convert_single(int64_t val, object tz1, object tz2):
@@ -2005,7 +2004,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     elif _get_zone(tz1) != 'UTC':
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
-        pos = trans.searchsorted(val) - 1
+        pos = trans.searchsorted(val, side='right') - 1
         if pos < 0:
             raise ValueError('First time before start of DST info')
         offset = deltas[pos]
@@ -2024,7 +2023,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     # Convert UTC to other timezone
     trans = _get_transitions(tz2)
     deltas = _get_deltas(tz2)
-    pos = trans.searchsorted(utc_date) - 1
+    pos = trans.searchsorted(utc_date, side='right') - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
 

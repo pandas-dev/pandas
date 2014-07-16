@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, _tz_convert_with_transitions)
+    Resolution)
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
@@ -1569,7 +1569,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
             if self.tz is not None:
-                new_dates = _tz_convert_with_transitions(new_dates,'UTC',self.tz)
+                new_dates = tslib.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
         except (AttributeError, TypeError):
@@ -1606,7 +1606,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     freq = self.freq
 
         if self.tz is not None:
-            new_dates = _tz_convert_with_transitions(new_dates, 'UTC', self.tz)
+            new_dates = tslib.tz_convert(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
     def _view_like(self, ndarray):

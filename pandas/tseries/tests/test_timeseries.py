@@ -3203,8 +3203,8 @@ class TestSeriesDatetime64(tm.TestCase):
 
     def test_intersection(self):
         # GH 4690 (with tz)
-        for tz in [None, 'Asia/Tokyo']:
-            rng = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
+        for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
+            base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
             # if target has the same name, it is preserved
             rng2 = date_range('5/15/2000', '6/20/2000', freq='D', name='idx')
@@ -3214,16 +3214,18 @@ class TestSeriesDatetime64(tm.TestCase):
             rng3 = date_range('5/15/2000', '6/20/2000', freq='D', name='other')
             expected3 = date_range('6/1/2000', '6/20/2000', freq='D', name=None)
 
-            result2 = rng.intersection(rng2)
-            result3 = rng.intersection(rng3)
-            for (result, expected) in [(result2, expected2), (result3, expected3)]:
+            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', name='idx')
+            expected4 = DatetimeIndex([], name='idx')
+
+            for (rng, expected) in [(rng2, expected2), (rng3, expected3), (rng4, expected4)]:
+                result = base.intersection(rng)
                 self.assertTrue(result.equals(expected))
                 self.assertEqual(result.name, expected.name)
                 self.assertEqual(result.freq, expected.freq)
                 self.assertEqual(result.tz, expected.tz)
 
             # non-monotonic
-            rng = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-02', '2011-01-03'],
+            base = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-02', '2011-01-03'],
                                 tz=tz, name='idx')
 
             rng2 = DatetimeIndex(['2011-01-04', '2011-01-02', '2011-02-02', '2011-02-03'],
@@ -3234,10 +3236,12 @@ class TestSeriesDatetime64(tm.TestCase):
                                  tz=tz, name='other')
             expected3 = DatetimeIndex(['2011-01-04', '2011-01-02'], tz=tz, name=None)
 
-            result2 = rng.intersection(rng2)
-            result3 = rng.intersection(rng3)
-            for (result, expected) in [(result2, expected2), (result3, expected3)]:
-                print(result, expected)
+            # GH 7880
+            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', tz=tz, name='idx')
+            expected4 = DatetimeIndex([], tz=tz, name='idx')
+
+            for (rng, expected) in [(rng2, expected2), (rng3, expected3), (rng4, expected4)]:
+                result = base.intersection(rng)
                 self.assertTrue(result.equals(expected))
                 self.assertEqual(result.name, expected.name)
                 self.assertIsNone(result.freq)
