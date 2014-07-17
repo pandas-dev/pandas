@@ -30,6 +30,11 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
+- Passing multiple levels to `DataFrame.stack()` will now work when multiple level
+  numbers are passed (:issue:`7660`), and will raise a ``ValueError`` when the
+  levels aren't all level names or all level numbers. See
+  :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
+
 .. _whatsnew_0150.cat:
 
 Categoricals in Series/DataFrame

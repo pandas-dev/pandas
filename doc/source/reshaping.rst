@@ -160,9 +160,33 @@ the level numbers:
 
    stacked.unstack('second')
 
+.. _reshaping.stack_multiple:
+
 You may also stack or unstack more than one level at a time by passing a list
 of levels, in which case the end result is as if each level in the list were
 processed individually.
+
+.. ipython:: python
+
+    columns = MultiIndex.from_tuples([
+            ('A', 'cat', 'long'), ('B', 'cat', 'long'),
+            ('A', 'dog', 'short'), ('B', 'dog', 'short')
+        ],
+        names=['exp', 'animal', 'hair_length']
+    )
+    df = DataFrame(randn(4, 4), columns=columns)
+    df
+
+    df.stack(level=['animal', 'hair_length'])
+
+The list of levels can contain either level names or level numbers (but
+not a mixture of the two).
+
+.. ipython:: python
+
+    # df.stack(level=['animal', 'hair_length'])
+    # from above is equivalent to:
+    df.stack(level=[1, 2])
 
 These functions are intelligent about handling missing data and do not expect
 each subgroup within the hierarchical index to have the same set of labels.

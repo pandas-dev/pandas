@@ -834,6 +834,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                              columns=df.columns).fillna(0).astype(np.int64)
         assert_frame_equal(result, expected)
 
+    def test_get_level_number_out_of_bounds(self):
+        with assertRaisesRegexp(IndexError, "Too many levels"):
+            self.frame.index._get_level_number(2)
+        with assertRaisesRegexp(IndexError, "not a valid level number"):
+            self.frame.index._get_level_number(-3)
+
     def test_unstack(self):
         # just check that it works for now
         unstacked = self.ymd.unstack()
@@ -1004,6 +1010,22 @@ Thur,Lunch,Yes,51.51,17"""
         unstacked = self.ymd.unstack([2, 1])
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
+
+    def test_stack_names_and_numbers(self):
+        unstacked = self.ymd.unstack(['year', 'month'])
+
+        # Can't use mixture of names and numbers to stack
+        with assertRaisesRegexp(ValueError, "level should contain"):
+            unstacked.stack([0, 'month'])
+
+    def test_stack_multiple_out_of_bounds(self):
+        # nlevels == 3
+        unstacked = self.ymd.unstack(['year', 'month'])
+
+        with assertRaisesRegexp(IndexError, "Too many levels"):
+            unstacked.stack([2, 3])
+        with assertRaisesRegexp(IndexError, "not a valid level number"):
+            unstacked.stack([-4, -3])
 
     def test_unstack_period_series(self):
         # GH 4342

@@ -2490,6 +2490,12 @@ class MultiIndex(Index):
                 raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
+                if level < 0:
+                    orig_level = level - self.nlevels
+                    raise IndexError(
+                        'Too many levels: Index has only %d levels, '
+                        '%d is not a valid level number' % (self.nlevels, orig_level)
+                    )
             # Note: levels are zero-based
             elif level >= self.nlevels:
                 raise IndexError('Too many levels: Index has only %d levels, '
