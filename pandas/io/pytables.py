@@ -2680,6 +2680,9 @@ class BlockManagerFixed(GenericFixed):
 
         self.attrs.ndim = data.ndim
         for i, ax in enumerate(data.axes):
+            if i == 0:
+                if not ax.is_unique:
+                    raise ValueError("Columns index has to be unique for fixed format")
             self.write_index('axis%d' % i, ax)
 
         # Supporting mixed-type DataFrame objects...nontrivial
