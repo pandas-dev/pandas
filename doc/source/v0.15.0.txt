@@ -191,6 +191,8 @@ Bug Fixes
 
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)
 
+- Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
+  when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
 
 
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
