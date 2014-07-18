@@ -1,6 +1,7 @@
 """ self-contained to write legacy pickle files """
 from __future__ import print_function
 
+
 def _create_sp_series():
 
     import numpy as np
@@ -53,6 +54,7 @@ def _create_sp_frame():
 def create_data():
     """ create the pickle data """
 
+    from distutils.version import LooseVersion
     import numpy as np
     import pandas
     from pandas import (Series,TimeSeries,DataFrame,Panel,
@@ -92,13 +94,23 @@ def create_data():
                                 index=MultiIndex.from_tuples(tuple(zip(*[['bar','bar','baz','baz','baz'],
                                                                        ['one','two','one','two','three']])),
                                                              names=['first','second'])),
-                 dup = DataFrame(np.arange(15).reshape(5, 3).astype(np.float64),
-                                 columns=['A', 'B', 'A']))
+                 dup=DataFrame(np.arange(15).reshape(5, 3).astype(np.float64),
+                               columns=['A', 'B', 'A']))
     panel = dict(float = Panel(dict(ItemA = frame['float'], ItemB = frame['float']+1)),
                  dup = Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
                              items=['A', 'B', 'A']))
 
+    if LooseVersion(pandas.__version__) >= '0.14.1':
+        # Pre-0.14.1 versions generated non-unpicklable mixed-type frames and
+        # panels if their columns/items were non-unique.
+        mixed_dup_df = DataFrame(data)
+        mixed_dup_df.columns = list("ABCDA")
 
+        mixed_dup_panel = Panel(dict(ItemA=frame['float'], ItemB=frame['int']))
+        mixed_dup_panel.items = ['ItemA', 'ItemA']
+
+        frame['mixed_dup'] = mixed_dup_df
+        panel['mixed_dup'] = mixed_dup_panel
 
     return dict( series = series,
                  frame = frame,
