@@ -104,7 +104,7 @@ By using some special functions:
 
 .. note::
 
-    I contrast to R's `factor` function, there is currently no way to assign/change labels at
+    In contrast to R's `factor` function, there is currently no way to assign/change labels at
     creation time. Use `levels` to change the levels after creation time.
 
 To get back to the original Series or `numpy` array, use ``Series.astype(original_dtype)`` or
@@ -397,7 +397,7 @@ that only values already in the levels can be assigned.
 Getting
 ~~~~~~~
 
-If the slicing operation returns either a `DataFrame` or a a column of type `Series`,
+If the slicing operation returns either a `DataFrame` or a column of type `Series`,
 the ``category`` dtype is preserved.
 
 .. ipython:: python
@@ -509,7 +509,7 @@ The same applies to ``df.append(df)``.
 Getting Data In/Out
 -------------------
 
-Writing data (`Series`, `Frames`) to a HDF store and reading it in entirety works. Querying the hdf
+Writing data (`Series`, `Frames`) to a HDF store and reading it in entirety works. Querying the HDF
 store does not yet work.
 
 .. ipython:: python
@@ -539,8 +539,8 @@ store does not yet work.
         pass
 
 
-Writing to a csv file will convert the data, effectively removing any information about the
-`Categorical` (levels and ordering). So if you read back the csv file you have to convert the
+Writing to a CSV file will convert the data, effectively removing any information about the
+`Categorical` (levels and ordering). So if you read back the CSV file you have to convert the
 relevant columns back to `category` and assign the right levels and level ordering.
 
 .. ipython:: python
