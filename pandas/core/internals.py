@@ -25,7 +25,7 @@ import pandas.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 
 from pandas.tslib import Timestamp
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 from pandas.compat import range, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
@@ -1289,6 +1289,16 @@ class TimeDeltaBlock(IntBlock):
                                        dtype=object)
         return rvalues.tolist()
 
+
+    def get_values(self, dtype=None):
+        # return object dtypes as datetime.timedeltas
+        if dtype == object:
+            if _np_version_under1p7:
+                return self.values.astype('object')
+            return lib.map_infer(self.values.ravel(),
+                                 lambda x: timedelta(microseconds=x.item()/1000)
+                                 ).reshape(self.values.shape)
+        return self.values
 
 class BoolBlock(NumericBlock):
     __slots__ = ()
@@ -2595,7 +2605,7 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block:
+        if self._is_single_block or not self.is_mixed_type:
             return mgr.blocks[0].get_values()
         else:
             return mgr._interleave()
@@ -3647,9 +3657,11 @@ def _interleaved_dtype(blocks):
     has_non_numeric = have_dt64 or have_td64 or have_cat
 
     if (have_object or
-        (have_bool and have_numeric) or
+        (have_bool and (have_numeric or have_dt64 or have_td64)) or
         (have_numeric and has_non_numeric) or
-        have_cat):
+        have_cat or
+        have_dt64 or
+        have_td64):
         return np.dtype(object)
     elif have_bool:
         return np.dtype(bool)
@@ -3670,10 +3682,6 @@ def _interleaved_dtype(blocks):
             return np.dtype('int%s' % (lcd.itemsize * 8 * 2))
         return lcd
 
-    elif have_dt64 and not have_float and not have_complex:
-        return np.dtype('M8[ns]')
-    elif have_td64 and not have_float and not have_complex:
-        return np.dtype('m8[ns]')
     elif have_complex:
         return np.dtype('c16')
     else:

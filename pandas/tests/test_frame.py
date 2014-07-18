@@ -9635,6 +9635,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         self.assertRaises(ValueError, df.apply, lambda x: x, 2)
 
+    def test_apply_mixed_datetimelike(self):
+        tm._skip_if_not_numpy17_friendly()
+
+        # mixed datetimelike
+        # GH 7778
+        df = DataFrame({ 'A' : date_range('20130101',periods=3), 'B' : pd.to_timedelta(np.arange(3),unit='s') })
+        result = df.apply(lambda x: x, axis=1)
+        assert_frame_equal(result, df)
+
     def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)

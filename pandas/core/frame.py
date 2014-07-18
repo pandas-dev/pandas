@@ -3539,6 +3539,7 @@ class DataFrame(NDFrame):
             except Exception:
                 pass
 
+        dtype = object if self._is_mixed_type else None
         if axis == 0:
             series_gen = (self.icol(i) for i in range(len(self.columns)))
             res_index = self.columns
@@ -3547,7 +3548,7 @@ class DataFrame(NDFrame):
             res_index = self.index
             res_columns = self.columns
             values = self.values
-            series_gen = (Series.from_array(arr, index=res_columns, name=name)
+            series_gen = (Series.from_array(arr, index=res_columns, name=name, dtype=dtype)
                           for i, (arr, name) in
                           enumerate(zip(values, res_index)))
         else:  # pragma : no cover
