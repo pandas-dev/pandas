@@ -222,7 +222,8 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(actual, expected)
 
     def test_big_print(self):
-        factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat', fastpath=True)
+        factor = Categorical(np.array([0,1,2,0,1,2]*100), ['a', 'b', 'c'],
+                             name='cat', fastpath=True)
         expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
                     " a", " b", " c", " a", "...", " c", " a", " b", " c",
                     " a", " b", " c", " a", " b", " c", " a", " b", " c",
@@ -507,8 +508,9 @@ class TestCategorical(tm.TestCase):
 
         # test indexing
         self.assertEqual(cat[0, 0], 'a')
+        self.assert_numpy_array_equal(cat[0], exp_arr[0])
         self.assert_numpy_array_equal(cat[:, :2], exp_arr)
-        self.assert_numpy_array_equal(cat[[0, 1], [0, 1]], exp_arr)
+        self.assert_numpy_array_equal(cat[[0, 1], [0, 1]], np.diag(exp_arr))
         self.assert_numpy_array_equal(cat[0, :], ['a', 'b'])
         self.assert_numpy_array_equal(cat[0, [0, 1]], ['a', 'b'])
 
