@@ -869,7 +869,7 @@ class Categorical(PandasObject):
                              fastpath=True)
         return result
 
-    def unique(self):
+    def unique(self, **kwargs):
         """
         Return the unique values.
 

@@ -288,21 +288,29 @@ class IndexOpsMixin(object):
                                             tz=getattr(self, 'tz', None))
         return result
 
-    def unique(self):
+    def unique(self, dropna=False):
         """
         Return array of unique values in the object. Significantly faster than
         numpy.unique. Includes NA values.
+
+        Parameters
+        ----------
+        dropna : boolean, default False
+            Don't include NaN in the result.
 
         Returns
         -------
         uniques : ndarray
         """
-        from pandas.core.nanops import unique1d
-        values = self.values
-        if hasattr(values,'unique'):
-            return values.unique()
-
-        return unique1d(values)
+        if dropna:
+            return self.dropna().unique()
+        else:
+            if hasattr(self.values, 'unique'):
+                # Categorical Series not supported by unique1d
+                return self.values.unique()
+            else:
+                from pandas.core.nanops import unique1d
+                return unique1d(self.values)
 
     def nunique(self, dropna=True):
         """
@@ -319,7 +327,7 @@ class IndexOpsMixin(object):
         -------
         nunique : int
         """
-        return len(self.value_counts(dropna=dropna))
+        return len(self.unique(dropna=dropna))
 
     def factorize(self, sort=False, na_sentinel=-1):
         """

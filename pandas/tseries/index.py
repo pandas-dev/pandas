@@ -852,6 +852,23 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             return self[maybe_slice]
         return super(DatetimeIndex, self).take(indices, axis)
 
+    def unique(self, dropna=False):
+        """
+        Index.unique with handling for DatetimeIndex metadata
+
+        Parameters
+        ----------
+        dropna : boolean, default False
+            Don't include NaN in the result.
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        result = Int64Index.unique(self, dropna=dropna)
+        return DatetimeIndex._simple_new(result, tz=self.tz,
+                                         name=self.name)
+
     def union(self, other):
         """
         Specialized union for DatetimeIndex objects. If combine
