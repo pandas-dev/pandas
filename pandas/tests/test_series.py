@@ -4871,11 +4871,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 assert_series_equal(res, expec)
 
     def test_astype_unicode(self):
+
+        # GH7758
         # a bit of magic is required to set default encoding encoding to utf-8
         digits = string.digits
         test_series = [
             Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([u"データーサイエンス、お前はもう死んでいる"]),
+            Series([u('データーサイエンス、お前はもう死んでいる')]),
 
         ]
 
@@ -4887,7 +4889,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             reload(sys)
             sys.setdefaultencoding("utf-8")
         if sys.getdefaultencoding() == "utf-8":
-            test_series.append(Series([u"野菜食べないとやばい".encode("utf-8")]))
+            test_series.append(Series([u('野菜食べないとやばい').encode("utf-8")]))
         for s in test_series:
             res = s.astype("unicode")
             expec = s.map(compat.text_type)
