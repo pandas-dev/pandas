@@ -62,6 +62,18 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
+def _set_tz(values, tz, preserve_UTC=False):
+    """ set the timezone if values are an Index """
+    if tz is not None and isinstance(values, Index):
+        tz = _ensure_decoded(tz)
+        if values.tz is None:
+            values = values.tz_localize('UTC').tz_convert(tz)
+        if preserve_UTC:
+            if tslib.get_timezone(tz) == 'UTC':
+                values = list(values)
+
+    return values
+
 
 Term = Expr
 
@@ -1464,11 +1476,7 @@ class IndexCol(StringMixin):
                 kwargs['freq'] = None
             self.values = Index(values, **kwargs)
 
-        # set the timezone if indicated
-        # we stored in utc, so reverse to local timezone
-        if self.tz is not None:
-            self.values = self.values.tz_localize(
-                'UTC').tz_convert(_ensure_decoded(self.tz))
+        self.values = _set_tz(self.values, self.tz)
 
         return self
 
@@ -3443,8 +3451,11 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(a.convert(c[start:stop], nan_rep=self.nan_rep,
-                                        encoding=self.encoding).take_data())
+                return Series(_set_tz(a.convert(c[start:stop], 
+                                                nan_rep=self.nan_rep,
+                                                encoding=self.encoding
+                                                ).take_data(), 
+                                      a.tz, True))
 
         raise KeyError("column [%s] not found in the table" % column)
 
