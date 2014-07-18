@@ -2362,6 +2362,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([np.nan,np.inf,-np.inf])
         assert_series_equal(result, expected)
 
+        # float/integer issue
+        # GH 7785
+        p = DataFrame({'first': (1,0), 'second': (-0.01,-0.02)})
+        expected = Series([-0.01,-np.inf])
+
+        result = p['second'].div(p['first'])
+        assert_series_equal(result, expected)
+
+        result = p['second'] / p['first']
+        assert_series_equal(result, expected)
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
@@ -4865,12 +4876,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         test_series = [
             Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
             Series([u"データーサイエンス、お前はもう死んでいる"]),
-            
+
         ]
-        
+
         former_encoding = None
         if not compat.PY3:
-            # in python we can force the default encoding 
+            # in python we can force the default encoding
             # for this test
             former_encoding = sys.getdefaultencoding()
             reload(sys)

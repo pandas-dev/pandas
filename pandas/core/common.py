@@ -1328,7 +1328,7 @@ def _fill_zeros(result, x, y, name, fill):
                 # correctly
                 # GH 6178
                 if np.isinf(fill):
-                    np.putmask(result,signs<0 & mask, -fill)
+                    np.putmask(result,(signs<0) & mask, -fill)
 
                 result = result.reshape(shape)
 
