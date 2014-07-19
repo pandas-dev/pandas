@@ -700,6 +700,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "S", "secondly frequency"
     "L", "milliseonds"
     "U", "microseconds"
+    "N", "nanoseconds"
 
 Combining Aliases
 ~~~~~~~~~~~~~~~~~
