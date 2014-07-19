@@ -2118,6 +2118,33 @@ Thur,Lunch,Yes,51.51,17"""
             expected['idx3'] = expected['idx3'].apply(lambda d: pd.Timestamp(d, tz='Europe/Paris'))
             assert_frame_equal(df.reset_index(), expected)
 
+            # GH 7793
+            idx = pd.MultiIndex.from_product([['a','b'], pd.date_range('20130101', periods=3, tz=tz)])
+            df = pd.DataFrame(np.arange(6).reshape(6,1), columns=['a'], index=idx)
+
+            expected = pd.DataFrame({'level_0': 'a a a b b b'.split(),
+                                     'level_1': [datetime.datetime(2013, 1, 1),
+                                                 datetime.datetime(2013, 1, 2),
+                                                 datetime.datetime(2013, 1, 3)] * 2, 
+                                     'a': np.arange(6, dtype='int64')},
+                                     columns=['level_0', 'level_1', 'a'])
+            expected['level_1'] = expected['level_1'].apply(lambda d: pd.Timestamp(d, offset='D', tz=tz))
+            assert_frame_equal(df.reset_index(), expected)
+
+    def test_reset_index_period(self):
+        # GH 7746
+        idx = pd.MultiIndex.from_product([pd.period_range('20130101', periods=3, freq='M'),
+                                         ['a','b','c']], names=['month', 'feature'])
+
+        df = pd.DataFrame(np.arange(9).reshape(-1,1), index=idx, columns=['a'])
+        expected = pd.DataFrame({'month': [pd.Period('2013-01', freq='M')] * 3 +
+                                          [pd.Period('2013-02', freq='M')] * 3 +
+                                          [pd.Period('2013-03', freq='M')] * 3,
+                                 'feature': ['a', 'b', 'c'] * 3,
+                                 'a': np.arange(9, dtype='int64')},
+                                columns=['month', 'feature', 'a'])
+        assert_frame_equal(df.reset_index(), expected)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))

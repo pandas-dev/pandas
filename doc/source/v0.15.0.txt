@@ -194,6 +194,8 @@ Bug Fixes
 
 
 
+- Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
+
 
 
 

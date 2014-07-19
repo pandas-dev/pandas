@@ -2452,13 +2452,13 @@ class DataFrame(NDFrame):
                 if values.dtype == np.object_:
                     values = lib.maybe_convert_objects(values)
 
-                # if we have the labels, extract the values with a mask
-                if labels is not None:
-                    mask = labels == -1
-                    values = values.take(labels)
-                    if mask.any():
-                        values, changed = com._maybe_upcast_putmask(values,
-                                                                    mask, np.nan)
+            # if we have the labels, extract the values with a mask
+            if labels is not None:
+                mask = labels == -1
+                values = values.take(labels)
+                if mask.any():
+                    values, changed = com._maybe_upcast_putmask(values,
+                                                                mask, np.nan)
             return values
 
         new_index = np.arange(len(new_obj))
