@@ -2972,16 +2972,35 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
         axarr[i] = ax
 
     if nplots > 1:
+        
         if sharex and nrows > 1:
             for ax in axarr[:naxes][:-ncols]:    # only bottom row
                 for label in ax.get_xticklabels():
                     label.set_visible(False)
+                try:
+                    # set_visible will not be effective if
+                    # minor axis has NullLocator and NullFormattor (default)
+                    import matplotlib.ticker as ticker
+                    ax.xaxis.set_minor_locator(ticker.AutoLocator())
+                    ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+                    for label in ax.get_xticklabels(minor=True):
+                        label.set_visible(False)
+                except Exception:   # pragma no cover
+                    pass
                 ax.xaxis.get_label().set_visible(False)
         if sharey and ncols > 1:
             for i, ax in enumerate(axarr):
                 if (i % ncols) != 0:  # only first column
                     for label in ax.get_yticklabels():
                         label.set_visible(False)
+                    try:
+                        import matplotlib.ticker as ticker
+                        ax.yaxis.set_minor_locator(ticker.AutoLocator())
+                        ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+                        for label in ax.get_yticklabels(minor=True):
+                            label.set_visible(False)
+                    except Exception:   # pragma no cover
+                        pass
                     ax.yaxis.get_label().set_visible(False)
 
     if naxes != nplots:

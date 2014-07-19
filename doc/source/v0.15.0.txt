@@ -199,6 +199,7 @@ Bug Fixes
 
 
 
+- Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
 
 
 
