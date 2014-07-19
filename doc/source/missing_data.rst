@@ -267,9 +267,8 @@ data. To do this, use the **dropna** method:
    df.dropna(axis=1)
    df['one'].dropna()
 
-**dropna** is presently only implemented for Series and DataFrame, but will be
-eventually added to Panel. Series.dropna is a simpler method as it only has one
-axis to consider. DataFrame.dropna has considerably more options, which can be
+Series.dropna is a simpler method as it only has one axis to consider.
+DataFrame.dropna has considerably more options than Series.dropna, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
 .. _missing_data.interpolate:
