@@ -192,6 +192,7 @@ Bug Fixes
 
 
 
+- Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 
 
 

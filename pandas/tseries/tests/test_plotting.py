@@ -708,6 +708,28 @@ class TestTSPlot(tm.TestCase):
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
+    def test_mixed_freq_second_millisecond(self):
+        # GH 7772, GH 7760
+        idxh = date_range('2014-07-01 09:00', freq='S', periods=50)
+        idxl = date_range('2014-07-01 09:00', freq='100L', periods=500)
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        # high to low
+        high.plot()
+        ax = low.plot()
+        self.assertEqual(len(ax.get_lines()), 2)
+        for l in ax.get_lines():
+            self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, 'L')
+        tm.close()
+
+        # low to high
+        low.plot()
+        ax = high.plot()
+        self.assertEqual(len(ax.get_lines()), 2)
+        for l in ax.get_lines():
+            self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, 'L')
+
+    @slow
     def test_irreg_dtypes(self):
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
