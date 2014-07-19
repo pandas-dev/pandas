@@ -9,7 +9,7 @@ from numpy.testing.decorators import slow
 from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import DateOffset, Week
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
 
@@ -758,7 +758,7 @@ class TestTSPlot(tm.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
 
         # tsplot
         from pandas.tseries.plotting import tsplot
@@ -767,7 +767,7 @@ class TestTSPlot(tm.TestCase):
         tsplot(high, plt.Axes.plot)
         lines = tsplot(low, plt.Axes.plot)
         for l in lines:
-            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
 
     @slow
     def test_from_weekly_resampling(self):
@@ -782,7 +782,7 @@ class TestTSPlot(tm.TestCase):
         expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
                                1553, 1558, 1562])
         for l in ax.get_lines():
-            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12: # idxl lines
                 self.assert_numpy_array_equal(xdata, expected_l)
@@ -796,9 +796,8 @@ class TestTSPlot(tm.TestCase):
 
         tsplot(low, plt.Axes.plot)
         lines = tsplot(high, plt.Axes.plot)
-
         for l in lines:
-            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12: # idxl lines
                 self.assert_numpy_array_equal(xdata, expected_l)
@@ -825,7 +824,7 @@ class TestTSPlot(tm.TestCase):
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[i]
-                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assertEqual(PeriodIndex(l.get_xdata()).freq, idxh.freq)
                 self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
                 # check stacked values are correct
                 expected_y += low[i].values
@@ -836,7 +835,7 @@ class TestTSPlot(tm.TestCase):
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[3 + i]
-                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
                 self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
                 expected_y += high[i].values
                 self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
@@ -851,7 +850,7 @@ class TestTSPlot(tm.TestCase):
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[i]
-                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
                 self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
                 expected_y += high[i].values
                 self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
@@ -862,7 +861,7 @@ class TestTSPlot(tm.TestCase):
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[3 + i]
-                self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
                 self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
                 expected_y += low[i].values
                 self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
