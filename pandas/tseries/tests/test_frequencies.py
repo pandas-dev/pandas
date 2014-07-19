@@ -342,6 +342,16 @@ def test_is_superperiod_subperiod():
     assert(fmod.is_superperiod(offsets.Hour(), offsets.Minute()))
     assert(fmod.is_subperiod(offsets.Minute(), offsets.Hour()))
 
+    assert(fmod.is_superperiod(offsets.Second(), offsets.Milli()))
+    assert(fmod.is_subperiod(offsets.Milli(), offsets.Second()))
+
+    assert(fmod.is_superperiod(offsets.Milli(), offsets.Micro()))
+    assert(fmod.is_subperiod(offsets.Micro(), offsets.Milli()))
+
+    assert(fmod.is_superperiod(offsets.Micro(), offsets.Nano()))
+    assert(fmod.is_subperiod(offsets.Nano(), offsets.Micro()))
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
