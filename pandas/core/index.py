@@ -215,6 +215,16 @@ class Index(IndexOpsMixin, FrozenNDArray):
         # use something other than None to be clearer
         return self._id is getattr(other, '_id', Ellipsis)
 
+    def dropna(self):
+        """
+        Return Index without null values
+
+        Returns
+        -------
+        dropped : Index
+        """
+        return self[~isnull(self.values)]
+
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
         self._id = _Identity()
