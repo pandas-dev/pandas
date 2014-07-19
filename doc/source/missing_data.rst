@@ -68,7 +68,7 @@ detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
 arise and we wish to also consider that "missing" or "null".
 
-Until recently, for legacy reasons ``inf`` and ``-inf`` were also
+Prior to version v0.10.0 ``inf`` and ``-inf`` were also
 considered to be "null" in computations. This is no longer the case by
 default; use the ``mode.use_inf_as_null`` option to recover it.
 
