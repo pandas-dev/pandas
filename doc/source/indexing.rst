@@ -2170,7 +2170,7 @@ add an index after you've already done so. There are a couple of different
 ways.
 
 Add an index using DataFrame columns
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.set_index:
 
@@ -2213,7 +2213,7 @@ the index in-place (without creating a new object):
    data
 
 Remove / reset the index,  ``reset_index``
-------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As a convenience, there is a new function on DataFrame called ``reset_index``
 which transfers the index values into the DataFrame's columns and sets a simple
@@ -2244,7 +2244,7 @@ discards the index, instead of putting index values in the DataFrame's columns.
    deprecated.
 
 Adding an ad hoc index
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 If you create an index yourself, you can just assign it to the ``index`` field:
 
