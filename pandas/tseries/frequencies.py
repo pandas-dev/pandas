@@ -175,7 +175,7 @@ def get_to_timestamp_base(base):
 
 def get_freq_group(freq):
     """
-    Return frequency code group of given frequency str.
+    Return frequency code group of given frequency str or offset.
 
     Example
     -------
@@ -185,9 +185,16 @@ def get_freq_group(freq):
     >>> get_freq_group('W-FRI')
     4000
     """
+    if isinstance(freq, offsets.DateOffset):
+        freq = freq.rule_code
+
     if isinstance(freq, compat.string_types):
         base, mult = get_freq_code(freq)
         freq = base
+    elif isinstance(freq, int):
+        pass
+    else:
+        raise ValueError('input must be str, offset or int')
     return (freq // 1000) * 1000
 
 
@@ -592,7 +599,7 @@ def get_standard_freq(freq):
         return None
 
     if isinstance(freq, DateOffset):
-        return get_offset_name(freq)
+        return freq.rule_code
 
     code, stride = get_freq_code(freq)
     return _get_freq_str(code, stride)

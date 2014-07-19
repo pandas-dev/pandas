@@ -129,9 +129,48 @@ def test_anchored_shortcuts():
     expected = frequencies.to_offset('W-SUN')
     assert(result == expected)
 
-    result = frequencies.to_offset('Q')
-    expected = frequencies.to_offset('Q-DEC')
-    assert(result == expected)
+    result1 = frequencies.to_offset('Q')
+    result2 = frequencies.to_offset('Q-DEC')
+    expected = offsets.QuarterEnd(startingMonth=12)
+    assert(result1 == expected)
+    assert(result2 == expected)
+
+    result1 = frequencies.to_offset('Q-MAY')
+    expected = offsets.QuarterEnd(startingMonth=5)
+    assert(result1 == expected)
+
+
+def test_get_rule_month():
+    result = frequencies._get_rule_month('W')
+    assert(result == 'DEC')
+    result = frequencies._get_rule_month(offsets.Week())
+    assert(result == 'DEC')
+
+    result = frequencies._get_rule_month('D')
+    assert(result == 'DEC')
+    result = frequencies._get_rule_month(offsets.Day())
+    assert(result == 'DEC')
+
+    result = frequencies._get_rule_month('Q')
+    assert(result == 'DEC')
+    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=12))
+    print(result == 'DEC')
+
+    result = frequencies._get_rule_month('Q-JAN')
+    assert(result == 'JAN')
+    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=1))
+    assert(result == 'JAN')
+
+    result = frequencies._get_rule_month('A-DEC')
+    assert(result == 'DEC')
+    result = frequencies._get_rule_month(offsets.YearEnd())
+    assert(result == 'DEC')
+
+    result = frequencies._get_rule_month('A-MAY')
+    assert(result == 'MAY')
+    result = frequencies._get_rule_month(offsets.YearEnd(month=5))
+    assert(result == 'MAY')
+
 
 class TestFrequencyCode(tm.TestCase):
 
@@ -153,6 +192,23 @@ class TestFrequencyCode(tm.TestCase):
 
             result = frequencies.get_freq_group(code)
             self.assertEqual(result, code // 1000 * 1000)
+
+    def test_freq_group(self):
+        self.assertEqual(frequencies.get_freq_group('A'), 1000)
+        self.assertEqual(frequencies.get_freq_group('3A'), 1000)
+        self.assertEqual(frequencies.get_freq_group('-1A'), 1000)
+        self.assertEqual(frequencies.get_freq_group('A-JAN'), 1000)
+        self.assertEqual(frequencies.get_freq_group('A-MAY'), 1000)
+        self.assertEqual(frequencies.get_freq_group(offsets.YearEnd()), 1000)
+        self.assertEqual(frequencies.get_freq_group(offsets.YearEnd(month=1)), 1000)
+        self.assertEqual(frequencies.get_freq_group(offsets.YearEnd(month=5)), 1000)
+
+        self.assertEqual(frequencies.get_freq_group('W'), 4000)
+        self.assertEqual(frequencies.get_freq_group('W-MON'), 4000)
+        self.assertEqual(frequencies.get_freq_group('W-FRI'), 4000)
+        self.assertEqual(frequencies.get_freq_group(offsets.Week()), 4000)
+        self.assertEqual(frequencies.get_freq_group(offsets.Week(weekday=1)), 4000)
+        self.assertEqual(frequencies.get_freq_group(offsets.Week(weekday=5)), 4000)
 
     def test_get_to_timestamp_base(self):
         tsb = frequencies.get_to_timestamp_base

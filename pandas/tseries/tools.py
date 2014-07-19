@@ -449,6 +449,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, compat.string_types):
         return arg
 
+    from pandas.tseries.offsets import DateOffset
+    if isinstance(freq, DateOffset):
+        freq = freq.rule_code
+
     if dayfirst is None:
         dayfirst = get_option("display.date_dayfirst")
     if yearfirst is None:

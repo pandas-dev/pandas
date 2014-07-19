@@ -13,7 +13,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
 from pandas.util.decorators import Appender, cache_readonly
-from pandas.tseries.frequencies import infer_freq, to_offset, Resolution
+import pandas.tseries.frequencies as frequencies
 import pandas.algos as _algos
 
 
@@ -136,7 +136,7 @@ class DatetimeIndexOpsMixin(object):
         frequency.
         """
         try:
-            return infer_freq(self)
+            return frequencies.infer_freq(self)
         except ValueError:
             return None
 
@@ -260,7 +260,7 @@ class DatetimeIndexOpsMixin(object):
 
             if self.hasnans:
                 mask = i8 == tslib.iNaT
-                min_stamp = self[~mask].asi8.min()
+                min_stamp = i8[~mask].min()
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
@@ -303,7 +303,7 @@ class DatetimeIndexOpsMixin(object):
 
             if self.hasnans:
                 mask = i8 == tslib.iNaT
-                max_stamp = self[~mask].asi8.max()
+                max_stamp = i8[~mask].max()
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
@@ -352,15 +352,14 @@ class DatetimeIndexOpsMixin(object):
 
     @cache_readonly
     def _resolution(self):
-        from pandas.tseries.frequencies import Resolution
-        return Resolution.get_reso_from_freq(self.freqstr)
+        return frequencies.Resolution.get_reso_from_freq(self.freqstr)
 
     @cache_readonly
     def resolution(self):
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return Resolution.get_str(self._resolution)
+        return frequencies.Resolution.get_str(self._resolution)
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -509,7 +508,7 @@ class DatetimeIndexOpsMixin(object):
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
-                freq = to_offset(freq)
+                freq = frequencies.to_offset(freq)
             result = Index.shift(self, n, freq)
 
             if hasattr(self,'tz'):

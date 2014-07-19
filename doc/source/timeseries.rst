@@ -591,7 +591,7 @@ various docstrings for the classes.
 These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when creating the offset instance. If ``normalize=True``, result is normalized after the function is applied.
 
 
-  .. ipython:: python
+.. ipython:: python
 
    day = Day()
    day.apply(Timestamp('2014-01-01 09:00'))
@@ -1257,8 +1257,10 @@ be created with the convenience function ``period_range``.
 
 Period
 ~~~~~~
+
 A ``Period`` represents a span of time (e.g., a day, a month, a quarter, etc).
-It can be created using a frequency alias:
+You can specify the span via ``freq`` keyword using a frequency alias like below.
+Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3D".
 
 .. ipython:: python
 
@@ -1268,11 +1270,10 @@ It can be created using a frequency alias:
 
    Period('2012-1-1 19:00', freq='H')
 
-Unlike time stamped data, pandas does not support frequencies at multiples of
-DateOffsets (e.g., '3Min') for periods.
+   Period('2012-1-1 19:00', freq='5H')
 
 Adding and subtracting integers from periods shifts the period by its own
-frequency.
+frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).
 
 .. ipython:: python
 
@@ -1281,6 +1282,15 @@ frequency.
    p + 1
 
    p - 3
+
+   p = Period('2012-01', freq='2M')
+
+   p + 2
+
+   p - 1
+
+   p == Period('2012-01', freq='3M')
+
 
 If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherise, ``ValueError`` will be raised.
 
@@ -1334,6 +1344,13 @@ The ``PeriodIndex`` constructor can also be used directly:
 .. ipython:: python
 
    PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
+
+Passing multiplied frequency outputs a sequence of ``Period`` which
+has multiplied span.
+
+.. ipython:: python
+
+   PeriodIndex(start='2014-01', freq='3M', periods=4)
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:

@@ -615,6 +615,9 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     return result
 
 
+_DIFFERENT_FREQ_ERROR = "Input has different freq={1} from Period(freq={0})"
+
+
 cdef class Period(object):
     """
     Represents an period of time
@@ -624,8 +627,7 @@ cdef class Period(object):
     value : Period or compat.string_types, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
-        e.g., 'B' for businessday. Must be a singular rule-code (e.g. 5T is not
-        allowed).
+        One of pandas period strings or corresponding objects
     year : int, default None
     month : int, default 1
     quarter : int, default None
@@ -642,11 +644,32 @@ cdef class Period(object):
     _typ = 'period'
 
     @classmethod
+    def _maybe_convert_freq(cls, object freq):
+
+        if isinstance(freq, compat.string_types):
+            from pandas.tseries.frequencies import _period_alias_dict
+            freq = _period_alias_dict.get(freq, freq)
+        elif isinstance(freq, (int, tuple)):
+            from pandas.tseries.frequencies import get_freq_code as _gfc
+            from pandas.tseries.frequencies import _get_freq_str
+            code, stride = _gfc(freq)
+            freq = _get_freq_str(code, stride)
+
+        from pandas.tseries.frequencies import to_offset
+        freq = to_offset(freq)
+
+        if freq.n <= 0:
+            raise ValueError('Frequency must be positive, because it'
+                             ' represents span: {0}'.format(freq.freqstr))
+
+        return freq
+
+    @classmethod
     def _from_ordinal(cls, ordinal, freq):
         """ fast creation from an ordinal and freq that are already validated! """
         self = Period.__new__(cls)
         self.ordinal = ordinal
-        self.freq = freq
+        self.freq = cls._maybe_convert_freq(freq)
         return self
 
     def __init__(self, value=None, freq=None, ordinal=None,
@@ -658,8 +681,6 @@ cdef class Period(object):
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'
-
-        self.freq = None
 
         # ordinal is the period offset from the gregorian proleptic epoch
 
@@ -675,9 +696,8 @@ cdef class Period(object):
         elif value is None:
             if freq is None:
                 raise ValueError("If value is None, freq cannot be None")
-
             ordinal = _ordinal_from_fields(year, month, quarter, day,
-                                                hour, minute, second, freq)
+                                           hour, minute, second, freq)
 
         elif isinstance(value, Period):
             other = value
@@ -698,8 +718,8 @@ cdef class Period(object):
             if lib.is_integer(value):
                 value = str(value)
             value = value.upper()
-
             dt, _, reso = parse_time_string(value, freq)
+
             if freq is None:
                 try:
                     freq = frequencies.Resolution.get_freq(reso)
@@ -723,24 +743,22 @@ cdef class Period(object):
             raise ValueError(msg)
 
         base, mult = _gfc(freq)
-        if mult != 1:
-            # TODO: Better error message - this is slightly confusing
-            raise ValueError('Only mult == 1 supported')
 
         if ordinal is None:
             self.ordinal = get_period_ordinal(dt.year, dt.month, dt.day,
-                                                dt.hour, dt.minute, dt.second, dt.microsecond, 0,
-                                                base)
+                                              dt.hour, dt.minute, dt.second,
+                                              dt.microsecond, 0, base)
         else:
             self.ordinal = ordinal
 
-        self.freq = frequencies._get_freq_str(base)
+        self.freq = self._maybe_convert_freq(freq)
 
     def __richcmp__(self, other, op):
         if isinstance(other, Period):
             from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
-                raise ValueError("Cannot compare non-conforming periods")
+                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+                raise ValueError(msg)
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                 return _nat_scalar_rules[op]
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
@@ -758,7 +776,7 @@ cdef class Period(object):
     def _add_delta(self, other):
         from pandas.tseries import frequencies
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
-            offset = frequencies.to_offset(self.freq)
+            offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
@@ -769,18 +787,21 @@ cdef class Period(object):
                     else:
                         ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
+            msg = 'Input cannnot be converted to Period(freq={0})'
+            raise ValueError(msg)
         elif isinstance(other, offsets.DateOffset):
             freqstr = frequencies.get_standard_freq(other)
             base = frequencies.get_base_alias(freqstr)
-
-            if base == self.freq:
+            if base == self.freq.rule_code:
                 if self.ordinal == tslib.iNaT:
                     ordinal = self.ordinal
                 else:
                     ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-
-        raise ValueError("Input has different freq from Period(freq={0})".format(self.freq))
+            msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+            raise ValueError(msg)
+        else: # pragma no cover
+            return NotImplemented
 
     def __add__(self, other):
         if isinstance(other, (timedelta, np.timedelta64,
@@ -790,7 +811,7 @@ cdef class Period(object):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
-                ordinal = self.ordinal + other
+                ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
         else:  # pragma: no cover
             return NotImplemented
@@ -804,7 +825,7 @@ cdef class Period(object):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
-                ordinal = self.ordinal - other
+                ordinal = self.ordinal - other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
         elif isinstance(other, Period):
             if other.freq != self.freq:
@@ -836,13 +857,18 @@ cdef class Period(object):
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
-        if mult2 != 1:
-            raise ValueError('Only mult == 1 supported')
+        if self.ordinal == tslib.iNaT:
+            ordinal = self.ordinal
+        else:
+            # mult1 can't be negative or 0
+            end = how == 'E'
+            if end:
+                ordinal = self.ordinal + mult1 - 1
+            else:
+                ordinal = self.ordinal
+            ordinal = period_asfreq(ordinal, base1, base2, end)
 
-        end = how == 'E'
-        new_ordinal = period_asfreq(self.ordinal, base1, base2, end)
-
-        return Period(ordinal=new_ordinal, freq=base2)
+        return Period(ordinal=ordinal, freq=freq)
 
     @property
     def start_time(self):
@@ -853,7 +879,8 @@ cdef class Period(object):
         if self.ordinal == tslib.iNaT:
             ordinal = self.ordinal
         else:
-            ordinal = (self + 1).start_time.value - 1
+            # freq.n can't be negative or 0
+            ordinal = (self + self.freq.n).start_time.value - 1
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
@@ -947,14 +974,15 @@ cdef class Period(object):
     def __str__(self):
         return self.__unicode__()
 
+    @property
+    def freqstr(self):
+        return self.freq.freqstr
+
     def __repr__(self):
-        from pandas.tseries import frequencies
         from pandas.tseries.frequencies import get_freq_code as _gfc
         base, mult = _gfc(self.freq)
         formatted = period_format(self.ordinal, base)
-        freqstr = frequencies._reverse_period_code_map[base]
-
-        return "Period('%s', '%s')" % (formatted, freqstr)
+        return "Period('%s', '%s')" % (formatted, self.freqstr)
 
     def __unicode__(self):
         """
@@ -1123,9 +1151,6 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
                          second, freq):
     from pandas.tseries.frequencies import get_freq_code as _gfc
     base, mult = _gfc(freq)
-    if mult != 1:
-        raise ValueError('Only mult == 1 supported')
-
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
