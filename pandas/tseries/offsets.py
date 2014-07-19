@@ -130,6 +130,9 @@ class DateOffset(object):
     _cacheable = False
     _normalize_cache = True
 
+    # default for prior pickles
+    normalize = False
+
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
         self.normalize = normalize
