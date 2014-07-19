@@ -905,6 +905,13 @@ class TestIndex(tm.TestCase):
         exp = Index([idx[-1], idx[0], idx[1]])
         tm.assert_index_equal(res, exp)
 
+    def test_dropna(self):
+        idx = Index([np.nan, 'a', np.nan, np.nan, 'b', 'c', np.nan],
+                    name='idx')
+        expected = Index(['a', 'b', 'c'], name='idx')
+        result = idx.dropna()
+        tm.assert_index_equal(result, expected)
+
 
 class TestFloat64Index(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -1047,6 +1054,13 @@ class TestFloat64Index(tm.TestCase):
         result = index.astype(float)
         expected = Float64Index([1.0, np.nan, 0.2])
         tm.assert_equal(result.dtype, expected.dtype)
+        tm.assert_index_equal(result, expected)
+
+    def test_dropna(self):
+        idx = Index([np.nan, 1.0, np.nan, np.nan, 2.0, 3.0, np.nan],
+                    name='idx')
+        expected = Index([1.0, 2.0, 3.0], name='idx')
+        result = idx.dropna()
         tm.assert_index_equal(result, expected)
 
 
@@ -1473,6 +1487,12 @@ class TestInt64Index(tm.TestCase):
     def test_slice_keep_name(self):
         idx = Int64Index([1, 2], name='asdf')
         self.assertEqual(idx.name, idx[1:].name)
+
+    def test_dropna_does_nothing(self):
+        idx = Index([1, 2, 3], name='idx')
+        expected = Index([1, 2, 3], name='idx')
+        result = idx.dropna()
+        tm.assert_index_equal(result, expected)
 
 
 class TestMultiIndex(tm.TestCase):
@@ -2823,6 +2843,12 @@ class TestMultiIndex(tm.TestCase):
                        inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
+
+    def test_dropna_does_nothing(self):
+        idx = MultiIndex.from_tuples([('bar', 'two')])
+        expected = idx
+        result = idx.dropna()
+        tm.assert_index_equal(result, expected)
 
 
 def test_get_combined_index():
