@@ -3311,13 +3311,10 @@ class DataFrame(NDFrame):
         -------
         stacked : DataFrame or Series
         """
-        from pandas.core.reshape import stack
+        from pandas.core.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
-            result = self
-            for lev in level:
-                result = stack(result, lev, dropna=dropna)
-            return result
+            return stack_multiple(self, level, dropna=dropna)
         else:
             return stack(self, level, dropna=dropna)
 

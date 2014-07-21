@@ -11725,6 +11725,29 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(unstacked_cols.T, self.frame)
         assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
 
+    def test_stack_ints(self):
+        df = DataFrame(
+             np.random.randn(30, 27),
+             columns=MultiIndex.from_tuples(
+                list(itertools.product(range(3), repeat=3))
+            )
+        )
+        assert_frame_equal(
+            df.stack(level=[1, 2]),
+            df.stack(level=1).stack(level=1)
+        )
+        assert_frame_equal(
+            df.stack(level=[-2, -1]),
+            df.stack(level=1).stack(level=1)
+        )
+
+        df_named = df.copy()
+        df_named.columns.set_names(range(3), inplace=True)
+        assert_frame_equal(
+            df_named.stack(level=[1, 2]),
+            df_named.stack(level=1).stack(level=1)
+        )
+
     def test_unstack_bool(self):
         df = DataFrame([False, False],
                        index=MultiIndex.from_arrays([['a', 'b'], ['c', 'l']]),
