@@ -162,6 +162,9 @@ the level numbers:
 
 .. _reshaping.stack_multiple:
 
+Multiple Levels
+~~~~~~~~~~~~~~~
+
 You may also stack or unstack more than one level at a time by passing a list
 of levels, in which case the end result is as if each level in the list were
 processed individually.
@@ -188,6 +191,9 @@ not a mixture of the two).
     # from above is equivalent to:
     df.stack(level=[1, 2])
 
+Missing Data
+~~~~~~~~~~~~
+
 These functions are intelligent about handling missing data and do not expect
 each subgroup within the hierarchical index to have the same set of labels.
 They also can handle the index being unsorted (but you can make it sorted by
@@ -209,6 +215,9 @@ which level in the columns to stack:
 
    df2.stack('exp')
    df2.stack('animal')
+
+With a MultiIndex
+~~~~~~~~~~~~~~~~~
 
 Unstacking when the columns are a ``MultiIndex`` is also careful about doing
 the right thing:
