@@ -45,7 +45,9 @@ class Resolution(object):
     RESO_HR: 'hour',
     RESO_DAY: 'day'}
 
-    _reso_period_map = {
+    _str_reso_map = dict([(v, k) for k, v in compat.iteritems(_reso_str_map)])
+
+    _reso_freq_map = {
     'year': 'A',
     'quarter': 'Q',
     'month': 'M',
@@ -57,13 +59,28 @@ class Resolution(object):
     'microsecond': 'U',
     'nanosecond': 'N'}
 
+    _freq_reso_map = dict([(v, k) for k, v in compat.iteritems(_reso_freq_map)])
+
     @classmethod
     def get_str(cls, reso):
         return cls._reso_str_map.get(reso, 'day')
 
     @classmethod
+    def get_reso(cls, resostr):
+        return cls._str_reso_map.get(resostr, cls.RESO_DAY)
+
+    @classmethod
     def get_freq(cls, resostr):
-        return cls._reso_period_map[resostr]
+        return cls._reso_freq_map[resostr]
+
+    @classmethod
+    def get_str_from_freq(cls, freq):
+        return cls._freq_reso_map.get(freq, 'day')
+
+    @classmethod
+    def get_reso_from_freq(cls, freq):
+        return cls.get_reso(cls.get_str_from_freq(freq))
+
 
 def get_reso_string(reso):
     return Resolution.get_str(reso)
@@ -593,7 +610,7 @@ def _period_alias_dictionary():
 
 
 def _infer_period_group(freqstr):
-    return _period_group(Resolution._reso_period_map[freqstr])
+    return _period_group(Resolution._reso_freq_map[freqstr])
 
 
 def _period_group(freqstr):
