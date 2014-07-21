@@ -4370,6 +4370,17 @@ class TestHDFStore(tm.TestCase):
             # FIXME: TypeError: cannot pass a where specification when reading from a Fixed format store. this store must be selected in its entirety
             #result = store.select('df', where = ['index>2'])
             #tm.assert_frame_equal(df[df.index>2],result)
+    
+    def test_duplicate_column_name(self):
+        df = DataFrame(columns=["a", "a"], data=[[0, 0]])
+        
+        with ensure_clean_path(self.path) as path:
+            self.assertRaises(ValueError, df.to_hdf, path, 'df', format='fixed')
+            
+            df.to_hdf(path, 'df', format='table')
+            other = read_hdf(path, 'df')
+            tm.assert_frame_equal(df, other)
+        
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

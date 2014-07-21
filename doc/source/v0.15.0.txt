@@ -187,6 +187,7 @@ Bug Fixes
 - Bug in Series 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
 - Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)
+- Raise a ``ValueError`` in ``df.to_hdf`` if ``df`` has non-unique columns as the resulting file will be broken (:issue:`7761`)
 
 
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)

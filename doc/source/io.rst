@@ -2311,7 +2311,8 @@ Fixed Format
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
 the ``fixed`` format. These types of stores are are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
-retrieved in their entirety. These offer very fast writing and slightly faster reading than ``table`` stores.
+retrieved in their entirety. They also do not support dataframes with non-unique column names.
+The ``fixed`` format stores offer very fast writing and slightly faster reading than ``table`` stores.
 This format is specified by default when using ``put`` or ``to_hdf`` or by ``format='fixed'`` or ``format='f'``
 
 .. warning::
