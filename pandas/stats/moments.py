@@ -211,9 +211,8 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
     arg2 = _conv_timerule(arg2, freq, how)
 
     def _get_cov(X, Y):
-        adj_window = min(window, len(X), len(Y))
-        mean = lambda x: rolling_mean(x, adj_window, min_periods, center=center)
-        count = rolling_count(X + Y, adj_window, center=center)
+        mean = lambda x: rolling_mean(x, window, min_periods, center=center)
+        count = rolling_count(X + Y, window, center=center)
         bias_adj = count / (count - 1)
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     rs = _flex_binary_moment(arg1, arg2, _get_cov, pairwise=bool(pairwise))
@@ -236,12 +235,11 @@ def rolling_corr(arg1, arg2=None, window=None, min_periods=None, freq=None,
     arg2 = _conv_timerule(arg2, freq, how)
 
     def _get_corr(a, b):
-        adj_window = min(window, len(a), len(b))
-        num = rolling_cov(a, b, adj_window, min_periods, freq=freq,
+        num = rolling_cov(a, b, window, min_periods, freq=freq,
                           center=center)
-        den = (rolling_std(a, adj_window, min_periods, freq=freq,
+        den = (rolling_std(a, window, min_periods, freq=freq,
                            center=center) *
-               rolling_std(b, adj_window, min_periods, freq=freq,
+               rolling_std(b, window, min_periods, freq=freq,
                            center=center))
         return num / den
 

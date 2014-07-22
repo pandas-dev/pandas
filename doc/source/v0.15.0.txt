@@ -37,6 +37,30 @@ API changes
 
 - Raise a ``ValueError`` in ``df.to_hdf`` with 'fixed' format, if ``df`` has non-unique columns as the resulting file will be broken (:issue:`7761`)
 
+- :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
+  now return objects with all ``NaN``s when ``len(arg) < min_periods <= window``
+  (like all other rolling functions do) rather than producing an error message.  (:issue:`7766`)
+  For example, this is the old behavior:
+	.. ipython:: python
+		In [14]: s = Series([10, 11, 12, 13])
+
+		In [15]: rolling_min(s, window=10, min_periods=5)
+		---------------------------------------------------------------------------
+		ValueError                                Traceback (most recent call last)
+		<ipython-input-15-f622819d7987> in <module>()
+		----> 1 rolling_min(s, window=10, min_periods=5)
+		...
+		ValueError: min_periods (5) must be <= window (4)
+  whereas this is the new behavior:
+	.. ipython:: python
+		In [16]: rolling_min(s, window=10, min_periods=5)
+		Out[16]:
+		0   NaN
+		1   NaN
+		2   NaN
+		3   NaN
+		dtype: float64
+
 .. _whatsnew_0150.cat:
 
 Categoricals in Series/DataFrame
