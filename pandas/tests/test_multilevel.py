@@ -2117,6 +2117,7 @@ Thur,Lunch,Yes,51.51,17"""
                                      'a': np.arange(5,dtype='int64'), 'b': ['A', 'B', 'C', 'D', 'E']},
                                      columns=['idx1', 'idx2', 'a', 'b'])
             expected['idx1'] = expected['idx1'].apply(lambda d: pd.Timestamp(d, tz=tz))
+
             assert_frame_equal(df.reset_index(), expected)
 
             idx3 = pd.date_range('1/1/2012', periods=5, freq='MS', tz='Europe/Paris', name='idx3')
@@ -2142,7 +2143,7 @@ Thur,Lunch,Yes,51.51,17"""
 
             # GH 7793
             idx = pd.MultiIndex.from_product([['a','b'], pd.date_range('20130101', periods=3, tz=tz)])
-            df = pd.DataFrame(np.arange(6).reshape(6,1), columns=['a'], index=idx)
+            df = pd.DataFrame(np.arange(6,dtype='int64').reshape(6,1), columns=['a'], index=idx)
 
             expected = pd.DataFrame({'level_0': 'a a a b b b'.split(),
                                      'level_1': [datetime.datetime(2013, 1, 1),
@@ -2158,7 +2159,7 @@ Thur,Lunch,Yes,51.51,17"""
         idx = pd.MultiIndex.from_product([pd.period_range('20130101', periods=3, freq='M'),
                                          ['a','b','c']], names=['month', 'feature'])
 
-        df = pd.DataFrame(np.arange(9).reshape(-1,1), index=idx, columns=['a'])
+        df = pd.DataFrame(np.arange(9,dtype='int64').reshape(-1,1), index=idx, columns=['a'])
         expected = pd.DataFrame({'month': [pd.Period('2013-01', freq='M')] * 3 +
                                           [pd.Period('2013-02', freq='M')] * 3 +
                                           [pd.Period('2013-03', freq='M')] * 3,
