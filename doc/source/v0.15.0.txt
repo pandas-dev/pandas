@@ -212,7 +212,7 @@ Bug Fixes
 
 
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
-
+- Bug in ``StataReader`` which did not read variable labels in 117 files due to difference between Stata documentation and implementation (:issue:`7816`)
 
 
 
