@@ -6,9 +6,9 @@ from datetime import datetime
 from numpy.random import randn
 import numpy as np
 
-from pandas import Series, DataFrame, bdate_range, isnull, notnull
+from pandas import Series, DataFrame, Panel, bdate_range, isnull, notnull
 from pandas.util.testing import (
-    assert_almost_equal, assert_series_equal, assert_frame_equal
+    assert_almost_equal, assert_series_equal, assert_frame_equal, assert_panel_equal
 )
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
@@ -840,6 +840,46 @@ class TestMoments(tm.TestCase):
         s2a = Series([1, None, 3], index=[0, 1, 2])
         result = mom.rolling_corr(s1, s2a, window=3, min_periods=2)
         assert_series_equal(result, expected)
+
+    def test_rolling_functions_window_non_shrinkage(self):
+        # GH 7764
+        s = Series(range(4))
+        s_expected = Series(np.nan, index=s.index)
+        df = DataFrame([[1,5], [3, 2], [3,9], [-1,0]], columns=['A','B'])
+        df_expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+        df_expected_panel = Panel(items=df.index, major_axis=df.columns, minor_axis=df.columns)
+
+        functions = [lambda x: mom.rolling_cov(x, x, pairwise=False, window=10, min_periods=5),
+                     lambda x: mom.rolling_corr(x, x, pairwise=False, window=10, min_periods=5),
+                     lambda x: mom.rolling_max(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_min(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_sum(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_mean(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_std(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_var(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_skew(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_kurt(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_quantile(x, quantile=0.5, window=10, min_periods=5),
+                     lambda x: mom.rolling_median(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_apply(x, func=sum, window=10, min_periods=5),
+                     lambda x: mom.rolling_window(x, win_type='boxcar', window=10, min_periods=5),
+                    ]
+        for f in functions:
+            s_result = f(s)
+            assert_series_equal(s_result, s_expected)
+            
+            df_result = f(df)
+            assert_frame_equal(df_result, df_expected)
+        
+        functions = [lambda x: mom.rolling_cov(x, x, pairwise=True, window=10, min_periods=5),
+                     lambda x: mom.rolling_corr(x, x, pairwise=True, window=10, min_periods=5),
+                     # rolling_corr_pairwise is depracated, so the following line should be deleted
+                     # when rolling_corr_pairwise is removed.
+                     lambda x: mom.rolling_corr_pairwise(x, x, window=10, min_periods=5),
+                    ]
+        for f in functions:
+            df_result_panel = f(df)
+            assert_panel_equal(df_result_panel, df_expected_panel)
 
     def test_expanding_cov_pairwise_diff_length(self):
         # GH 7512
