@@ -4299,6 +4299,38 @@ class TestHDFStore(tm.TestCase):
             self.assertEqual(type(result.index), type(df.index))
             self.assertEqual(result.index.freq, df.index.freq)
 
+    def test_tseries_select_index_column(self):
+        # GH7777
+        # selecting a UTC datetimeindex column did
+        # not preserve UTC tzinfo set before storing
+
+        # check that no tz still works
+        rng = date_range('1/1/2000', '1/30/2000')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        
+        with ensure_clean_store(self.path) as store:
+            store.append('frame', frame)
+            result = store.select_column('frame', 'index')
+            self.assertEqual(rng.tz, DatetimeIndex(result.values).tz)
+
+        # check utc
+        rng = date_range('1/1/2000', '1/30/2000', tz='UTC')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        
+        with ensure_clean_store(self.path) as store:
+            store.append('frame', frame)
+            result = store.select_column('frame', 'index')
+            self.assertEqual(rng.tz, DatetimeIndex(result.values).tz)
+
+        # double check non-utc
+        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+
+        with ensure_clean_store(self.path) as store:
+            store.append('frame', frame)
+            result = store.select_column('frame', 'index')
+            self.assertEqual(rng.tz, DatetimeIndex(result.values).tz)
+
     def test_unicode_index(self):
 
         unicode_values = [u('\u03c3'), u('\u03c3\u03c3')]
