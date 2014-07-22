@@ -126,11 +126,14 @@ class TestPlotBase(tm.TestCase):
 
         Parameters
         ----------
-        collections : list-like
-            list or collection of target artist
+        collections : matplotlib Artist or its list-like
+            target Artist or its list or collection
         visible : bool
             expected visibility
         """
+        from matplotlib.collections import Collection
+        if not isinstance(collections, Collection) and not com.is_list_like(collections):
+            collections = [collections]
 
         for patch in collections:
             self.assertEqual(patch.get_visible(), visible)
@@ -861,9 +864,12 @@ class TestDataFramePlots(TestPlotBase):
         axes = _check_plot_works(df.plot, subplots=True, title='blah')
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes[:2]:
+            self._check_visible(ax.xaxis)   # xaxis must be visible for grid
             self._check_visible(ax.get_xticklabels(), visible=False)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=False)
             self._check_visible([ax.xaxis.get_label()], visible=False)
         for ax in [axes[2]]:
+            self._check_visible(ax.xaxis)
             self._check_visible(ax.get_xticklabels())
             self._check_visible([ax.xaxis.get_label()])
 
@@ -1017,20 +1023,60 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_legend_labels(ax, labels=[com.pprint_thing(column)])
 
             for ax in axes[:-2]:
+                self._check_visible(ax.xaxis)   # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=False)
+                self._check_visible(ax.xaxis.get_label(), visible=False)
                 self._check_visible(ax.get_yticklabels())
 
+            self._check_visible(axes[-1].xaxis)
             self._check_visible(axes[-1].get_xticklabels())
+            self._check_visible(axes[-1].get_xticklabels(minor=True))
+            self._check_visible(axes[-1].xaxis.get_label())
             self._check_visible(axes[-1].get_yticklabels())
 
             axes = df.plot(kind=kind, subplots=True, sharex=False)
             for ax in axes:
+                self._check_visible(ax.xaxis)
                 self._check_visible(ax.get_xticklabels())
+                self._check_visible(ax.get_xticklabels(minor=True))
+                self._check_visible(ax.xaxis.get_label())
                 self._check_visible(ax.get_yticklabels())
 
             axes = df.plot(kind=kind, subplots=True, legend=False)
             for ax in axes:
                 self.assertTrue(ax.get_legend() is None)
+
+    @slow
+    def test_subplots_timeseries(self):
+        idx = date_range(start='2014-07-01', freq='M', periods=10)
+        df = DataFrame(np.random.rand(10, 3), index=idx)
+
+        for kind in ['line', 'area']:
+            axes = df.plot(kind=kind, subplots=True, sharex=True)
+            self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+
+            for ax in axes[:-2]:
+                # GH 7801
+                self._check_visible(ax.xaxis)   # xaxis must be visible for grid
+                self._check_visible(ax.get_xticklabels(), visible=False)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=False)
+                self._check_visible(ax.xaxis.get_label(), visible=False)
+                self._check_visible(ax.get_yticklabels())
+
+            self._check_visible(axes[-1].xaxis)
+            self._check_visible(axes[-1].get_xticklabels())
+            self._check_visible(axes[-1].get_xticklabels(minor=True))
+            self._check_visible(axes[-1].xaxis.get_label())
+            self._check_visible(axes[-1].get_yticklabels())
+
+            axes = df.plot(kind=kind, subplots=True, sharex=False)
+            for ax in axes:
+                self._check_visible(ax.xaxis)
+                self._check_visible(ax.get_xticklabels())
+                self._check_visible(ax.get_xticklabels(minor=True))
+                self._check_visible(ax.xaxis.get_label())
+                self._check_visible(ax.get_yticklabels())
 
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
