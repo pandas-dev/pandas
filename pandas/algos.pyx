@@ -1551,8 +1551,6 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
 
     minp = _check_minp(window, minp, n0)
 
-    window = min(window, n0)
-
     ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
     end = ring + window
     last = ring
@@ -1649,8 +1647,6 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
     if minp > window:
         raise ValueError('Invalid min_periods size %d greater than window %d'
                         % (minp, window))
-
-    window = min(window, n0)
 
     minp = _check_minp(window, minp, n0)
 
