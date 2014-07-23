@@ -865,12 +865,17 @@ class TestMoments(tm.TestCase):
                      lambda x: mom.rolling_window(x, win_type='boxcar', window=10, min_periods=5),
                     ]
         for f in functions:
-            s_result = f(s)
-            assert_series_equal(s_result, s_expected)
-            
-            df_result = f(df)
-            assert_frame_equal(df_result, df_expected)
-        
+            try:
+                s_result = f(s)
+                assert_series_equal(s_result, s_expected)
+
+                df_result = f(df)
+                assert_frame_equal(df_result, df_expected)
+            except (ImportError):
+
+                # scipy needed for rolling_window
+                continue
+
         functions = [lambda x: mom.rolling_cov(x, x, pairwise=True, window=10, min_periods=5),
                      lambda x: mom.rolling_corr(x, x, pairwise=True, window=10, min_periods=5),
                      # rolling_corr_pairwise is depracated, so the following line should be deleted
@@ -896,7 +901,7 @@ class TestMoments(tm.TestCase):
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected)
         assert_frame_equal(result4, expected)
-    
+
     def test_expanding_corr_pairwise_diff_length(self):
         # GH 7512
         df1 = DataFrame([[1,2], [3, 2], [3,4]], columns=['A','B'])
@@ -912,7 +917,7 @@ class TestMoments(tm.TestCase):
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected)
         assert_frame_equal(result4, expected)
-    
+
     def test_rolling_skew_edge_cases(self):
 
         all_nan = Series([np.NaN] * 5)
