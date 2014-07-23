@@ -68,6 +68,9 @@ class TestStata(tm.TestCase):
         self.dta15_115 = os.path.join(self.dirpath, 'stata6_115.dta')
         self.dta15_117 = os.path.join(self.dirpath, 'stata6_117.dta')
 
+        self.dta16_115 = os.path.join(self.dirpath, 'stata7_115.dta')
+        self.dta16_117 = os.path.join(self.dirpath, 'stata7_117.dta')
+
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
 
@@ -199,7 +202,7 @@ class TestStata(tm.TestCase):
                      'labeled_with_missings', 'float_labelled'])
 
         # these are all categoricals
-        expected = pd.concat([ Series(pd.Categorical(value)) for col, value in expected.iteritems() ],axis=1)
+        expected = pd.concat([ Series(pd.Categorical(value)) for col, value in compat.iteritems(expected)],axis=1)
 
         tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
@@ -550,6 +553,18 @@ class TestStata(tm.TestCase):
             written_and_read_again = self.read_dta(path)
             written_and_read_again = written_and_read_again.set_index('index')
             tm.assert_frame_equal(written_and_read_again, expected)
+
+    def test_variable_labels(self):
+        sr_115 = StataReader(self.dta16_115).variable_labels()
+        sr_117 = StataReader(self.dta16_117).variable_labels()
+        keys = ('var1', 'var2', 'var3')
+        labels = ('label1', 'label2', 'label3')
+        for k,v in compat.iteritems(sr_115):
+            self.assertTrue(k in sr_117)
+            self.assertTrue(v == sr_117[k])
+            self.assertTrue(k in keys)
+            self.assertTrue(v in labels)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

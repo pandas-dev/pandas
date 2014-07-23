@@ -520,8 +520,15 @@ class StataReader(StataParser):
                 self.byteorder + 'q', self.path_or_buf.read(8))[0] + 9
             seek_value_label_names = struct.unpack(
                 self.byteorder + 'q', self.path_or_buf.read(8))[0] + 19
-            seek_variable_labels = struct.unpack(
-                self.byteorder + 'q', self.path_or_buf.read(8))[0] + 17
+            # Stata 117 data files do not follow the described format.  This is
+            # a work around that uses the previous label, 33 bytes for each
+            # variable, 20 for the closing tag and 17 for the opening tag
+            self.path_or_buf.read(8)  # <variable_lables>, throw away
+            seek_variable_labels = seek_value_label_names + (33*self.nvar) + 20 + 17
+            # Below is the original, correct code (per Stata sta format doc,
+            # although this is not followed in actual 117 dtas)
+            #seek_variable_labels = struct.unpack(
+            #    self.byteorder + 'q', self.path_or_buf.read(8))[0] + 17
             self.path_or_buf.read(8)  # <characteristics>
             self.data_location = struct.unpack(
                 self.byteorder + 'q', self.path_or_buf.read(8))[0] + 6
