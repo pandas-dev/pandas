@@ -579,6 +579,37 @@ class TestCategorical(tm.TestCase):
         cat[1] = np.nan
         self.assertTrue(cat.equals(exp))
 
+        # if nan in levels, the proper code should be set!
+        cat = pd.Categorical([1,2,3, np.nan], levels=[1,2,3])
+        cat.levels = [1,2,3, np.nan]
+        cat[1] = np.nan
+        exp = np.array([0,3,2,-1])
+        self.assert_numpy_array_equal(cat.codes, exp)
+
+        cat = pd.Categorical([1,2,3, np.nan], levels=[1,2,3])
+        cat.levels = [1,2,3, np.nan]
+        cat[1:3] = np.nan
+        exp = np.array([0,3,3,-1])
+        self.assert_numpy_array_equal(cat.codes, exp)
+
+        cat = pd.Categorical([1,2,3, np.nan], levels=[1,2,3])
+        cat.levels = [1,2,3, np.nan]
+        cat[1:3] = [np.nan, 1]
+        exp = np.array([0,3,0,-1])
+        self.assert_numpy_array_equal(cat.codes, exp)
+
+        cat = pd.Categorical([1,2,3, np.nan], levels=[1,2,3])
+        cat.levels = [1,2,3, np.nan]
+        cat[1:3] = [np.nan, np.nan]
+        exp = np.array([0,3,3,-1])
+        self.assert_numpy_array_equal(cat.codes, exp)
+
+        cat = pd.Categorical([1,2,3, np.nan], levels=[1,2,3])
+        cat.levels = [1,2,3, np.nan]
+        cat[pd.isnull(cat)] = np.nan
+        exp = np.array([0,1,2,3])
+        self.assert_numpy_array_equal(cat.codes, exp)
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True

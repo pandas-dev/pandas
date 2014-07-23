@@ -805,6 +805,13 @@ class Categorical(PandasObject):
             key = self._codes[key]
 
         lindexer = self.levels.get_indexer(rvalue)
+
+        # float levels do currently return -1 for np.nan, even if np.nan is included in the index
+        # "repair" this here
+        if com.isnull(rvalue).any() and com.isnull(self.levels).any():
+            nan_pos = np.where(com.isnull(self.levels))
+            lindexer[lindexer == -1] = nan_pos
+
         self._codes[key] = lindexer
 
     #### reduction ops ####
