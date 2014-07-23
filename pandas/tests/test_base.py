@@ -481,6 +481,8 @@ class TestIndexOps(Ops):
 
 class TestDatetimeIndexOps(Ops):
     _allowed = '_allow_datetime_index_ops'
+    tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
+          'dateutil/Asia/Singapore', 'dateutil/US/Pacific']
 
     def setUp(self):
         super(TestDatetimeIndexOps, self).setUp()
@@ -545,7 +547,7 @@ class TestDatetimeIndexOps(Ops):
         self.assertEqual(idx.tolist(), expected_list)
 
     def test_minmax(self):
-        for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+        for tz in self.tz:
             # monotonic
             idx1 = pd.DatetimeIndex([pd.NaT, '2011-01-01', '2011-01-02',
                                      '2011-01-03'], tz=tz)
@@ -612,6 +614,100 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
             for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
                 idx = pd.date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
                 self.assertEqual(idx.resolution, expected)
+
+    def test_add_iadd(self):
+        for tz in self.tz:
+            # union
+            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
+            expected1 = pd.date_range('1/1/2000', freq='D', periods=10, tz=tz)
+
+            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
+            expected2 = pd.date_range('1/1/2000', freq='D', periods=8, tz=tz)
+
+            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other3 = pd.DatetimeIndex([], tz=tz)
+            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
+                                         (rng3, other3, expected3)]:
+                result_add = rng + other
+                result_union = rng.union(other)
+
+                tm.assert_index_equal(result_add, expected)
+                tm.assert_index_equal(result_union, expected)
+                rng += other
+                tm.assert_index_equal(rng, expected)
+
+            # offset
+            if _np_version_under1p7:
+                offsets = [pd.offsets.Hour(2), timedelta(hours=2)]
+            else:
+                offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
+
+            for delta in offsets:
+                rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+                result = rng + delta
+                expected = pd.date_range('2000-01-01 02:00', '2000-02-01 02:00', tz=tz)
+                tm.assert_index_equal(result, expected)
+                rng += delta
+                tm.assert_index_equal(rng, expected)
+
+            # int
+            rng = pd.date_range('2000-01-01 09:00', freq='H', periods=10, tz=tz)
+            result = rng + 1
+            expected = pd.date_range('2000-01-01 10:00', freq='H', periods=10, tz=tz)
+            tm.assert_index_equal(result, expected)
+            rng += 1
+            tm.assert_index_equal(rng, expected)
+
+    def test_sub_isub(self):
+        for tz in self.tz:
+            # diff
+            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
+            expected1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
+            expected2 = pd.date_range('1/1/2000', freq='D', periods=3, tz=tz)
+
+            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other3 = pd.DatetimeIndex([], tz=tz)
+            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
+                                         (rng3, other3, expected3)]:
+                result_add = rng - other
+                result_union = rng.diff(other)
+
+                tm.assert_index_equal(result_add, expected)
+                tm.assert_index_equal(result_union, expected)
+                rng -= other
+                tm.assert_index_equal(rng, expected)
+
+            # offset
+            if _np_version_under1p7:
+                offsets = [pd.offsets.Hour(2), timedelta(hours=2)]
+            else:
+                offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
+
+            for delta in offsets:
+                rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+                result = rng - delta
+                expected = pd.date_range('1999-12-31 22:00', '2000-01-31 22:00', tz=tz)
+                tm.assert_index_equal(result, expected)
+                rng -= delta
+                tm.assert_index_equal(rng, expected)
+
+            # int
+            rng = pd.date_range('2000-01-01 09:00', freq='H', periods=10, tz=tz)
+            result = rng - 1
+            expected = pd.date_range('2000-01-01 08:00', freq='H', periods=10, tz=tz)
+            tm.assert_index_equal(result, expected)
+            rng -= 1
+            tm.assert_index_equal(rng, expected)
 
 
 class TestPeriodIndexOps(Ops):
@@ -744,6 +840,133 @@ Length: 3, Freq: Q-DEC"""
 
             idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
             self.assertEqual(idx.resolution, expected)
+
+    def test_add_iadd(self):
+        # union
+        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
+        expected1 = pd.period_range('1/1/2000', freq='D', periods=10)
+
+        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
+        expected2 = pd.period_range('1/1/2000', freq='D', periods=8)
+
+        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other3 = pd.PeriodIndex([], freq='D')
+        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
+        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
+        expected4 = pd.PeriodIndex(['2000-01-01 09:00', '2000-01-01 10:00',
+                                    '2000-01-01 11:00', '2000-01-01 12:00',
+                                    '2000-01-01 13:00', '2000-01-02 09:00',
+                                    '2000-01-02 10:00', '2000-01-02 11:00',
+                                    '2000-01-02 12:00', '2000-01-02 13:00'],
+                                   freq='H')
+
+        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                               '2000-01-01 09:05'], freq='T')
+        other5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:05'
+                                 '2000-01-01 09:08'], freq='T')
+        expected5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                                    '2000-01-01 09:05', '2000-01-01 09:08'],
+                                   freq='T')
+
+        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
+        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
+        expected6 = pd.period_range('2000-01-01', freq='M', periods=10)
+
+        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
+        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
+        expected7 = pd.period_range('1998-01-01', freq='A', periods=10)
+
+        for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
+                                     (rng3, other3, expected3), (rng4, other4, expected4),
+                                     (rng5, other5, expected5), (rng6, other6, expected6),
+                                     (rng7, other7, expected7)]:
+
+            result_add = rng + other
+            result_union = rng.union(other)
+
+            tm.assert_index_equal(result_add, expected)
+            tm.assert_index_equal(result_union, expected)
+            # GH 6527
+            rng += other
+            tm.assert_index_equal(rng, expected)
+
+        # offset
+        for delta in [pd.offsets.Hour(2), timedelta(hours=2)]:
+            rng = pd.period_range('2000-01-01', '2000-02-01')
+            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+                result = rng + delta
+            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+                rng += delta
+
+        # int
+        rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
+        result = rng + 1
+        expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)
+        tm.assert_index_equal(result, expected)
+        rng += 1
+        tm.assert_index_equal(rng, expected)
+
+    def test_sub_isub(self):
+        # diff
+        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
+        expected1 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
+        expected2 = pd.period_range('1/1/2000', freq='D', periods=3)
+
+        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other3 = pd.PeriodIndex([], freq='D')
+        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
+        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
+        expected4 = rng4
+
+        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                               '2000-01-01 09:05'], freq='T')
+        other5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:05'], freq='T')
+        expected5 = pd.PeriodIndex(['2000-01-01 09:03'], freq='T')
+
+        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
+        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
+        expected6 = pd.period_range('2000-01-01', freq='M', periods=3)
+
+        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
+        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
+        expected7 = pd.period_range('2006-01-01', freq='A', periods=2)
+
+        for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
+                                     (rng3, other3, expected3), (rng4, other4, expected4),
+                                     (rng5, other5, expected5), (rng6, other6, expected6),
+                                     (rng7, other7, expected7),]:
+            result_add = rng - other
+            result_union = rng.diff(other)
+
+            tm.assert_index_equal(result_add, expected)
+            tm.assert_index_equal(result_union, expected)
+            rng -= other
+            tm.assert_index_equal(rng, expected)
+
+        # offset
+        for delta in [pd.offsets.Hour(2), timedelta(hours=2)]:
+            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+                result = rng + delta
+            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+                rng += delta
+
+        # int
+        rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
+        result = rng - 1
+        expected = pd.period_range('2000-01-01 08:00', freq='H', periods=10)
+        tm.assert_index_equal(result, expected)
+        rng -= 1
+        tm.assert_index_equal(rng, expected)
 
 
 if __name__ == '__main__':

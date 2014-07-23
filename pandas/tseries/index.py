@@ -595,30 +595,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 
-    def __add__(self, other):
-        if isinstance(other, Index):
-            return self.union(other)
-        elif isinstance(other, (DateOffset, timedelta)):
-            return self._add_delta(other)
-        elif isinstance(other, np.timedelta64):
-            return self._add_delta(other)
-        elif com.is_integer(other):
-            return self.shift(other)
-        else:  # pragma: no cover
-            raise TypeError(other)
-
-    def __sub__(self, other):
-        if isinstance(other, Index):
-            return self.diff(other)
-        elif isinstance(other, (DateOffset, timedelta)):
-            return self._add_delta(-other)
-        elif isinstance(other, np.timedelta64):
-            return self._add_delta(-other)
-        elif com.is_integer(other):
-            return self.shift(-other)
-        else:  # pragma: no cover
-            raise TypeError(other)
-
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):
             inc = offsets._delta_to_nanoseconds(delta)

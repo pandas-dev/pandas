@@ -1,6 +1,8 @@
 """
 Base and utility classes for pandas objects.
 """
+import datetime
+
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
@@ -510,5 +512,35 @@ class DatetimeIndexOpsMixin(object):
         """
         from pandas.tseries.frequencies import get_reso_string
         return get_reso_string(self._resolution)
+
+    def __add__(self, other):
+        from pandas.core.index import Index
+        from pandas.tseries.offsets import DateOffset
+        if isinstance(other, Index):
+            return self.union(other)
+        elif isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
+            return self._add_delta(other)
+        elif com.is_integer(other):
+            return self.shift(other)
+        else:  # pragma: no cover
+            return NotImplemented
+
+    def __sub__(self, other):
+        from pandas.core.index import Index
+        from pandas.tseries.offsets import DateOffset
+        if isinstance(other, Index):
+            return self.diff(other)
+        elif isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
+            return self._add_delta(-other)
+        elif com.is_integer(other):
+            return self.shift(-other)
+        else:  # pragma: no cover
+            return NotImplemented
+
+    __iadd__ = __add__
+    __isub__ = __sub__
+
+    def _add_delta(self, other):
+        return NotImplemented
 
 
