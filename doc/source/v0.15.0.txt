@@ -9,7 +9,7 @@ users upgrade to this version.
 
 - Highlights include:
 
-  - The ``Categorical`` type was integrated as a first-class pandas type, see here: :ref:`Categorical Changes <whatsnew_0150.cat>`
+  - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -38,7 +38,7 @@ API changes
 - Raise a ``ValueError`` in ``df.to_hdf`` with 'fixed' format, if ``df`` has non-unique columns as the resulting file will be broken (:issue:`7761`)
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
-  now return objects with all ``NaN``s when ``len(arg) < min_periods <= window`` rather
+  now return objects with all ``NaN`` when ``len(arg) < min_periods <= window`` rather
   than raising. (This makes all rolling functions consistent in this behavior), (:issue:`7766`)
 
   Prior to 0.15.0
@@ -66,6 +66,8 @@ Categoricals in Series/DataFrame
 :class:`~pandas.Categorical` can now be included in `Series` and `DataFrames` and gained new
 methods to manipulate. Thanks to Jan Schultz for much of this API/implementation. (:issue:`3943`, :issue:`5313`, :issue:`5314`, :issue:`7444`).
 
+For full docs, see the :ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
+
 .. ipython:: python
 
     df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
@@ -85,18 +87,16 @@ methods to manipulate. Thanks to Jan Schultz for much of this API/implementation
     df.sort("grade")
     df.groupby("grade").size()
 
-See the :ref:`Categorical introduction<_categorical>` and the :ref:`API documentation<api.categorical>`.
+- ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct
+  a dataframe and use ``df.groupby(<group>).agg(<func>)``.
 
-- `pandas.core.group_agg` and `pandas.core.factor_agg` were removed. As an alternative, construct
-  a dataframe and use `df.groupby(<group>).agg(<func>)`.
-
-- Supplying "codes/labels and levels" to the `pandas.Categorical` constructor is deprecated and does
+- Supplying "codes/labels and levels" to the :class:`~pandas.Categorical` constructor is deprecated and does
   not work without supplying ``compat=True``. The default mode now uses "values and levels".
-  Please change your code to use the ``Categorical.from_codes(...)`` constructor.
+  Please change your code to use the :meth:`~pandas.Categorical.from_codes` constructor.
 
-- The `pandas.Categorical.labels` attribute was renamed to `pandas.Categorical.codes` and is read
-  only. If you want to manipulate the `Categorical`, please use one of the
-  :ref:`API methods on Categoricals<api.categorical>`.
+- The ``Categorical.labels`` attribute was renamed to ``Categorical.codes`` and is read
+  only. If you want to manipulate codes, please use one of the
+  :ref:`API methods on Categoricals <api.categorical>`.
 
 
 
@@ -126,7 +126,7 @@ See the :ref:`Categorical introduction<_categorical>` and the :ref:`API document
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are prior version deprecations that are taking effect as of 0.15.0.
+There are no prior version deprecations that are taking effect as of 0.15.0.
 
 .. _whatsnew_0150.deprecations:
 
