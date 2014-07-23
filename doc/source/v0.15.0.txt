@@ -225,7 +225,8 @@ Categoricals in Series/DataFrame
 methods to manipulate. Thanks to Jan Schultz for much of this API/implementation. (:issue:`3943`, :issue:`5313`, :issue:`5314`,
 :issue:`7444`, :issue:`7839`, :issue:`7848`, :issue:`7864`, :issue:`7914`).
 
-For full docs, see the :ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
+For full docs, see the :ref:`Categorical introduction <categorical>` and the
+:ref:`API documentation <api.categorical>`.
 
 .. ipython:: python
 

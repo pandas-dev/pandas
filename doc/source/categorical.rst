@@ -90,6 +90,7 @@ By using some special functions:
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
+See :ref:`documentation <reshaping.tile.cut>` for :func:`~pandas.cut`.
 
 `Categoricals` have a specific ``category`` :ref:`dtype <basics.dtypes>`:
 
