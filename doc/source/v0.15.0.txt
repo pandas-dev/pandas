@@ -58,6 +58,27 @@ API changes
 
      rolling_min(s, window=10, min_periods=5)
 
+- Bug in passing a ``DatetimeIndex`` with a timezone that was not being retained in DataFrame construction from a dict (:issue:`7822`)
+
+  In prior versions this would drop the timezone.
+
+  .. ipython:: python
+
+        i = date_range('1/1/2011', periods=3, freq='10s', tz = 'US/Eastern')
+        i
+        df = DataFrame( {'a' : i } )
+        df
+        df.dtypes
+
+  This behavior is unchanged.
+
+  .. ipython:: python
+
+        df = DataFrame( )
+        df['a'] = i
+        df
+        df.dtypes
+
 .. _whatsnew_0150.cat:
 
 Categoricals in Series/DataFrame

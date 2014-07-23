@@ -2146,19 +2146,13 @@ class DataFrame(NDFrame):
             value = value.copy()
 
         elif (isinstance(value, Index) or _is_sequence(value)):
-            if len(value) != len(self.index):
-                raise ValueError('Length of values does not match length of '
-                                 'index')
-
+            from pandas.core.series import _sanitize_index
+            value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = com._possibly_convert_platform(value)
                 else:
                     value = com._asarray_tuplesafe(value)
-            elif isinstance(value, PeriodIndex):
-                value = value.asobject
-            elif isinstance(value, DatetimeIndex):
-                value = value._to_embed(keep_tz=True).copy()
             elif value.ndim == 2:
                 value = value.copy().T
             else:

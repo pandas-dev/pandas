@@ -598,10 +598,13 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
     def test_frame_no_datetime64_dtype(self):
 
+        # after 7822
+        # these retain the timezones on dict construction
+
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize(self.tzstr('US/Eastern'))
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        self.assertEqual(e['B'].dtype, 'M8[ns]')
+        self.assertEqual(e['B'].dtype, 'O')
 
         # GH 2810 (with timezones)
         datetimes_naive   = [ ts.to_pydatetime() for ts in dr ]
@@ -610,7 +613,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
                         'datetimes_naive': datetimes_naive,
                         'datetimes_with_tz' : datetimes_with_tz })
         result = df.get_dtype_counts()
-        expected = Series({ 'datetime64[ns]' : 3, 'object' : 1 })
+        expected = Series({ 'datetime64[ns]' : 2, 'object' : 2 })
         tm.assert_series_equal(result, expected)
 
     def test_hongkong_tz_convert(self):

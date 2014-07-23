@@ -2431,8 +2431,26 @@ def remove_na(series):
     return series[notnull(_values_from_object(series))]
 
 
+def _sanitize_index(data, index, copy=False):
+    """ sanitize an index type to return an ndarray of the underlying, pass thru a non-Index """
+
+    if len(data) != len(index):
+        raise ValueError('Length of values does not match length of '
+                         'index')
+
+    if isinstance(data, PeriodIndex):
+        data = data.asobject
+    elif isinstance(data, DatetimeIndex):
+        data = data._to_embed(keep_tz=True)
+        if copy:
+            data = data.copy()
+
+    return data
+
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
+    """ sanitize input data to an ndarray, copy if specified, coerce to the dtype if specified """
+
     if dtype is not None:
         dtype = np.dtype(dtype)
 
@@ -2482,11 +2500,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                         raise TypeError('Cannot cast datetime64 to %s' % dtype)
                 else:
                     subarr = _try_cast(data, True)
-        else:
+        elif isinstance(data, Index):
             # don't coerce Index types
             # e.g. indexes can have different conversions (so don't fast path them)
             # GH 6140
-            subarr = _try_cast(data, not isinstance(data, Index))
+            subarr = _sanitize_index(data, index, copy=True)
+        else:
+            subarr = _try_cast(data, True)
 
         if copy:
             subarr = data.copy()

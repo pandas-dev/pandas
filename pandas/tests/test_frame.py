@@ -3599,6 +3599,23 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(df.iat[0,0],dt)
         assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
 
+        # GH 7822
+        # preserver an index with a tz on dict construction
+        i = date_range('1/1/2011', periods=5, freq='10s', tz = 'US/Eastern')
+
+        expected = DataFrame( {'a' : i.to_series(keep_tz=True).reset_index(drop=True) })
+        df = DataFrame()
+        df['a'] = i
+        assert_frame_equal(df, expected)
+        df = DataFrame( {'a' : i } )
+        assert_frame_equal(df, expected)
+
+        # multiples
+        i_no_tz = date_range('1/1/2011', periods=5, freq='10s')
+        df = DataFrame( {'a' : i, 'b' :  i_no_tz } )
+        expected = DataFrame( {'a' : i.to_series(keep_tz=True).reset_index(drop=True), 'b': i_no_tz })
+        assert_frame_equal(df, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
