@@ -178,7 +178,7 @@ class TestCategorical(tm.TestCase):
         self.assertRaises(ValueError, f)
 
 
-        exp = Categorical(["a","b","c"])
+        exp = Categorical(["a","b","c"], ordered=False)
         res = Categorical.from_codes([0,1,2], ["a","b","c"])
         self.assertTrue(exp.equals(res))
 

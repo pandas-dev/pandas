@@ -110,9 +110,9 @@ class Categorical(PandasObject):
 
     Attributes
     ----------
-    levels : ndarray
+    levels : Index
         The levels of this categorical
-    codes : Index
+    codes : ndarray
         The codes (integer positions, which point to the levels) of this categorical, read only
     ordered : boolean
         Whether or not this Categorical is ordered
@@ -295,7 +295,7 @@ class Categorical(PandasObject):
         return Categorical(data)
 
     @classmethod
-    def from_codes(cls, codes, levels, ordered=True, name=None):
+    def from_codes(cls, codes, levels, ordered=False, name=None):
         """
         Make a Categorical type from codes and levels arrays.
 
@@ -312,7 +312,7 @@ class Categorical(PandasObject):
             The levels for the categorical. Items need to be unique.
         ordered : boolean, optional
             Whether or not this categorical is treated as a ordered categorical. If not given,
-            the resulting categorical will be ordered.
+            the resulting categorical will be unordered.
         name : str, optional
             Name for the Categorical variable.
         """
