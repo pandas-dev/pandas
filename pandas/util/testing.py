@@ -156,6 +156,14 @@ class TestCase(unittest.TestCase):
             "%sExpected object to be of type %r, found %r instead" % (
                 msg, cls, type(obj)))
 
+    def assertRaises(self, _exception, _callable=None, *args, **kwargs):
+        """ compat with 2.6; assert that an exception is raised """
+        assertRaises(_exception, _callable, *args, **kwargs)
+
+    def assertRaisesRegexp(self, _exception, _regexp, _callable=None, *args, **kwargs):
+        """ Port of assertRaisesRegexp from unittest in Python 2.7 - used in with statement """
+        assertRaisesRegexp(_exception, _regexp, _callable, *args, **kwargs)
+
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
 assert_almost_equal = _testing.assert_almost_equal
