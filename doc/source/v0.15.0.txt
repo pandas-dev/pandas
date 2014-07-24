@@ -265,7 +265,7 @@ Bug Fixes
 
 
 
-- Bug in repeated timeseries line and area plot may result in ``ValueError`` or  incorrect kind (:issue:`7733`)
+- Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
 
 
 
@@ -278,7 +278,10 @@ Bug Fixes
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
 - Bug in ``StataReader`` which did not read variable labels in 117 files due to difference between Stata documentation and implementation (:issue:`7816`)
 
-
+- Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, ``rolling_cov``, ``ewmcov``, and ``ewmcorr``
+  returning results with columns sorted by name and producing an error for non-unique columns;
+  now handles non-unique columns and returns columns in original order
+  (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
 
 
 
