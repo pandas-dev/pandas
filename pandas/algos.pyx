@@ -979,7 +979,7 @@ def roll_mean(ndarray[double_t] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(ndarray[double_t] input, double_t com, int adjust):
+def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na):
     '''
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -987,6 +987,8 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     ----------
     input : ndarray (float64 type)
     com : float64
+    adjust: int
+    ignore_na: int
 
     Returns
     -------
@@ -1002,37 +1004,27 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     if N == 0:
         return output
 
-    neww = 1. / (1. + com)
-    oldw = 1. - neww
-    adj = oldw
+    alpha = 1. / (1. + com)
+    old_wt_factor = 1. - alpha
+    new_wt = 1.0 if adjust else alpha
 
-    if adjust:
-        output[0] = neww * input[0]
-    else:
-        output[0] = input[0]
+    output[0] = input[0]
+    weighted_avg = output[0]
+    old_wt = 1.
 
     for i from 1 <= i < N:
         cur = input[i]
-        prev = output[i - 1]
-
-        if cur == cur:
-            if prev == prev:
-                output[i] = oldw * prev + neww * cur
-            else:
-                output[i] = neww * cur
-        else:
-            output[i] = prev
-
-    if adjust:
-        for i from 0 <= i < N:
-            cur = input[i]
-
+        if weighted_avg == weighted_avg:
             if cur == cur:
-                output[i] = output[i] / (1. - adj)
-                adj *= oldw
-            else:
-                if i >= 1:
-                    output[i] = output[i - 1]
+                old_wt *= old_wt_factor
+                weighted_avg = ((old_wt * weighted_avg) + (new_wt * cur)) / (old_wt + new_wt)
+                old_wt += new_wt
+            elif not ignore_na:
+                old_wt *= old_wt_factor
+        else:
+            weighted_avg = cur
+
+        output[i] = weighted_avg
 
     return output
 
