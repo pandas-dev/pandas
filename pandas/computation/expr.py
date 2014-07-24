@@ -430,7 +430,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         name = self.env.add_tmp([self.visit(e).value for e in node.elts])
         return self.term_type(name, self.env)
 
-    visit_Tuple = visit_List
+    def visit_Tuple(self, node, **kwargs):
+        name = self.env.add_tmp(tuple(self.visit(e).value for e in node.elts))
+        return self.term_type(name, self.env)
 
     def visit_Index(self, node, **kwargs):
         """ df.index[4] """
