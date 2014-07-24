@@ -595,18 +595,28 @@ def _lang_enc(filename):
 
 class TestReadHtmlEncoding(tm.TestCase):
     files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
+    flavor = 'bs4'
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestReadHtmlEncoding, cls).setUpClass()
+        _skip_if_none_of((cls.flavor, 'html5lib'))
+
+    def read_html(self, *args, **kwargs):
+        kwargs['flavor'] = self.flavor
+        return read_html(*args, **kwargs)
 
     def read_filename(self, f, encoding):
-        return read_html(f, encoding=encoding, index_col=0)
+        return self.read_html(f, encoding=encoding, index_col=0)
 
     def read_file_like(self, f, encoding):
         with open(f, 'rb') as fobj:
-            return read_html(BytesIO(fobj.read()), encoding=encoding,
-                             index_col=0)
+            return self.read_html(BytesIO(fobj.read()), encoding=encoding,
+                                  index_col=0)
 
     def read_string(self, f, encoding):
         with open(f, 'rb') as fobj:
-            return read_html(fobj.read(), encoding=encoding, index_col=0)
+            return self.read_html(fobj.read(), encoding=encoding, index_col=0)
 
     def test_encode(self):
         for f in self.files:
@@ -616,6 +626,15 @@ class TestReadHtmlEncoding(tm.TestCase):
             from_filename = self.read_filename(f, encoding).pop()
             tm.assert_frame_equal(from_string, from_file_like)
             tm.assert_frame_equal(from_string, from_filename)
+
+
+class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
+    flavor = 'lxml'
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestReadHtmlEncoding, cls).setUpClass()
+        _skip_if_no(cls.flavor)
 
 
 class TestReadHtmlLxml(tm.TestCase):
