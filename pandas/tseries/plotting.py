@@ -60,8 +60,7 @@ def tsplot(series, plotf, **kwargs):
     # how to make sure ax.clear() flows through?
     if not hasattr(ax, '_plot_data'):
         ax._plot_data = []
-    ax._plot_data.append((series, kwargs))
-
+    ax._plot_data.append((series, plotf, kwargs))
     lines = plotf(ax, series.index, series.values, **kwargs)
 
     # set date formatter, locators and rescale limits
@@ -118,7 +117,7 @@ def _is_sup(f1, f2):
 
 def _upsample_others(ax, freq, plotf, kwargs):
     legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, plotf, kwargs)
+    lines, labels = _replot_ax(ax, freq, kwargs)
 
     other_ax = None
     if hasattr(ax, 'left_ax'):
@@ -127,7 +126,7 @@ def _upsample_others(ax, freq, plotf, kwargs):
         other_ax = ax.right_ax
 
     if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, plotf, kwargs)
+        rlines, rlabels = _replot_ax(other_ax, freq, kwargs)
         lines.extend(rlines)
         labels.extend(rlabels)
 
@@ -139,7 +138,7 @@ def _upsample_others(ax, freq, plotf, kwargs):
         ax.legend(lines, labels, loc='best', title=title)
 
 
-def _replot_ax(ax, freq, plotf, kwargs):
+def _replot_ax(ax, freq, kwargs):
     data = getattr(ax, '_plot_data', None)
     ax._plot_data = []
     ax.clear()
@@ -148,7 +147,7 @@ def _replot_ax(ax, freq, plotf, kwargs):
     lines = []
     labels = []
     if data is not None:
-        for series, kwds in data:
+        for series, plotf, kwds in data:
             series = series.copy()
             idx = series.index.asfreq(freq, how='S')
             series.index = idx
