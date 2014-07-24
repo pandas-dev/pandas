@@ -633,7 +633,7 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
 
     @classmethod
     def setUpClass(cls):
-        super(TestReadHtmlEncoding, cls).setUpClass()
+        super(TestReadHtmlEncodingLxml, cls).setUpClass()
         _skip_if_no(cls.flavor)
 
 
