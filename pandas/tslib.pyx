@@ -1051,6 +1051,26 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
             obj.tzinfo = tz
 
 
+def _localize_pydatetime(object dt, object tz):
+    '''
+    Take a datetime/Timestamp in UTC and localizes to timezone tz.
+    '''
+    if tz is None:
+        return dt
+    elif isinstance(dt, Timestamp):
+        return dt.tz_localize(tz)
+    elif tz == 'UTC' or tz is UTC:
+        return UTC.localize(dt)
+
+    elif _treat_tz_as_pytz(tz):
+        # datetime.replace may return incorrect result in pytz
+        return tz.localize(dt)
+    elif _treat_tz_as_dateutil(tz):
+        return dt.replace(tzinfo=tz)
+    else:
+        raise ValueError(type(tz), tz)
+
+
 def get_timezone(tz):
     return _get_zone(tz)
 

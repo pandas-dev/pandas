@@ -22,13 +22,14 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
-           'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano']
+           'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
+           'DateOffset']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to pass thru
 def as_timestamp(obj):
+    if isinstance(obj, Timestamp):
+        return obj
     try:
-        if isinstance(obj, Timestamp):
-            return obj
         return Timestamp(obj)
     except (OutOfBoundsDatetime):
         pass
@@ -45,22 +46,46 @@ def apply_wraps(func):
     def wrapper(self, other):
         if other is tslib.NaT:
             return tslib.NaT
-        if type(other) == date:
-            other = datetime(other.year, other.month, other.day)
-        if isinstance(other, (np.datetime64, datetime)):
+        elif isinstance(other, (timedelta, Tick, DateOffset)):
+            # timedelta path
+            return func(self, other)
+        elif isinstance(other, (np.datetime64, datetime, date)):
             other = as_timestamp(other)
 
         tz = getattr(other, 'tzinfo', None)
-        result = func(self, other)
+        nano = getattr(other, 'nanosecond', 0)
 
-        if self.normalize:
-            result = tslib.normalize_date(result)
+        try:
+            result = func(self, other)
 
-        if isinstance(other, Timestamp) and not isinstance(result, Timestamp):
-            result = as_timestamp(result)
+            if self.normalize:
+                # normalize_date returns normal datetime
+                result = tslib.normalize_date(result)
+            result = Timestamp(result)
 
-        if tz is not None and result.tzinfo is None:
-            result = result.tz_localize(tz)
+            # nanosecond may be deleted depending on offset process
+            if not self.normalize and nano != 0:
+                if not isinstance(self, Nano) and result.nanosecond != nano:
+                    if result.tz is not None:
+                        # convert to UTC
+                        value = tslib.tz_convert_single(result.value, 'UTC', result.tz)
+                    else:
+                        value = result.value
+                    result = Timestamp(value + nano)
+
+            if tz is not None and result.tzinfo is None:
+                result = tslib._localize_pydatetime(result, tz)
+
+        except OutOfBoundsDatetime:
+            result = func(self, as_datetime(other))
+
+            if self.normalize:
+                # normalize_date returns normal datetime
+                result = tslib.normalize_date(result)
+
+            if tz is not None and result.tzinfo is None:
+                result = tslib._localize_pydatetime(result, tz)
+
         return result
     return wrapper
 
@@ -144,7 +169,6 @@ class DateOffset(object):
 
     @apply_wraps
     def apply(self, other):
-        other = as_datetime(other)
         if len(self.kwds) > 0:
             if self.n > 0:
                 for i in range(self.n):
@@ -152,9 +176,9 @@ class DateOffset(object):
             else:
                 for i in range(-self.n):
                     other = other - self._offset
-            return as_timestamp(other)
+            return other
         else:
-            return as_timestamp(other + timedelta(self.n))
+            return other + timedelta(self.n)
 
     def isAnchored(self):
         return (self.n == 1)
@@ -270,16 +294,16 @@ class DateOffset(object):
     def __neg__(self):
         return self.__class__(-self.n, normalize=self.normalize, **self.kwds)
 
-    @apply_wraps
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
+        dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    @apply_wraps
     def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
+        dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -452,8 +476,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
             if self.offset:
                 result = result + self.offset
-
-            return as_timestamp(result)
+            return result
 
         elif isinstance(other, (timedelta, Tick)):
             return BDay(self.n, offset=self.offset + other,
@@ -550,7 +573,6 @@ class CustomBusinessDay(BusinessDay):
         else:
             roll = 'backward'
 
-        # Distinguish input cases to enhance performance
         if isinstance(other, datetime):
             date_in = other
             np_dt = np.datetime64(date_in.date())
@@ -563,8 +585,7 @@ class CustomBusinessDay(BusinessDay):
 
             if self.offset:
                 result = result + self.offset
-
-            return as_timestamp(result)
+            return result
 
         elif isinstance(other, (timedelta, Tick)):
             return BDay(self.n, offset=self.offset + other,
@@ -613,11 +634,11 @@ class MonthEnd(MonthOffset):
         n = self.n
         _, days_in_month = tslib.monthrange(other.year, other.month)
         if other.day != days_in_month:
-            other = as_datetime(other) + relativedelta(months=-1, day=31)
+            other = other + relativedelta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
-        other = as_datetime(other) + relativedelta(months=n, day=31)
-        return as_timestamp(other)
+        other = other + relativedelta(months=n, day=31)
+        return other
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -638,8 +659,7 @@ class MonthBegin(MonthOffset):
         if other.day > 1 and n <= 0:  # then roll forward if n<=0
             n += 1
 
-        other = as_datetime(other) + relativedelta(months=n, day=1)
-        return as_timestamp(other)
+        return other + relativedelta(months=n, day=1)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -657,9 +677,7 @@ class BusinessMonthEnd(MonthOffset):
 
     @apply_wraps
     def apply(self, other):
-
         n = self.n
-
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1)
                                         % 7) - 4, 0)
@@ -668,11 +686,11 @@ class BusinessMonthEnd(MonthOffset):
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = as_datetime(other) + relativedelta(months=n, day=31)
+        other = other + relativedelta(months=n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
-        return as_timestamp(other)
+        return other
 
     _prefix = 'BM'
 
@@ -683,7 +701,6 @@ class BusinessMonthBegin(MonthOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-
         wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
 
@@ -691,15 +708,15 @@ class BusinessMonthBegin(MonthOffset):
             # as if rolled forward already
             n += 1
         elif other.day < first and n > 0:
-            other = as_datetime(other) + timedelta(days=first - other.day)
+            other = other + timedelta(days=first - other.day)
             n -= 1
 
-        other = as_datetime(other) + relativedelta(months=n)
+        other = other + relativedelta(months=n)
         wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first, other.hour, other.minute,
                           other.second, other.microsecond)
-        return as_timestamp(result)
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -746,30 +763,29 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize, **kwds)
-        self.m_offset = MonthEnd(normalize=normalize)
+        self.cbday = CustomBusinessDay(n=self.n, **kwds)
+        self.m_offset = MonthEnd()
 
     @apply_wraps
     def apply(self,other):
         n = self.n
-        dt_in = other
         # First move to month offset
-        cur_mend = self.m_offset.rollforward(dt_in)
+        cur_mend = self.m_offset.rollforward(other)
         # Find this custom month offset
         cur_cmend = self.cbday.rollback(cur_mend)
-        
+
         # handle zero case. arbitrarily rollforward
-        if n == 0 and dt_in != cur_cmend:
+        if n == 0 and other != cur_cmend:
             n += 1
 
-        if dt_in < cur_cmend and n >= 1:
+        if other < cur_cmend and n >= 1:
             n -= 1
-        elif dt_in > cur_cmend and n <= -1:
+        elif other > cur_cmend and n <= -1:
             n += 1
  
         new = cur_mend + n * MonthEnd()
         result = self.cbday.rollback(new)
-        return as_timestamp(result)
+        return result
         
 class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
@@ -824,7 +840,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
  
         new = cur_mbegin + n * MonthBegin()
         result = self.cbday.rollforward(new)
-        return as_timestamp(result)
+        return result
 
 class Week(DateOffset):
     """
@@ -856,23 +872,22 @@ class Week(DateOffset):
     def apply(self, other):
         base = other
         if self.weekday is None:
-            return as_timestamp(as_datetime(other) + self.n * self._inc)
+            return other + self.n * self._inc
 
         if self.n > 0:
             k = self.n
             otherDay = other.weekday()
             if otherDay != self.weekday:
-                other = as_datetime(other) + timedelta((self.weekday - otherDay) % 7)
+                other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
-            other = as_datetime(other)
+            other = other
             for i in range(k):
                 other = other + self._inc
         else:
             k = self.n
             otherDay = other.weekday()
             if otherDay != self.weekday:
-                other = as_datetime(other) + timedelta((self.weekday - otherDay) % 7)
-            other = as_datetime(other)
+                other = other + timedelta((self.weekday - otherDay) % 7)
             for i in range(-k):
                 other = other - self._inc
 
@@ -979,20 +994,14 @@ class WeekOfMonth(DateOffset):
             else:
                 months = self.n + 1
 
-        other = self.getOffsetOfMonth(as_datetime(other) + relativedelta(months=months, day=1))
+        other = self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
         other = datetime(other.year, other.month, other.day, base.hour,
                          base.minute, base.second, base.microsecond)
-        if getattr(other, 'tzinfo', None) is not None:
-            other = other.tzinfo.localize(other)
         return other
 
     def getOffsetOfMonth(self, dt):
         w = Week(weekday=self.weekday)
-
-        d = datetime(dt.year, dt.month, 1)
-        if getattr(dt, 'tzinfo', None) is not None:
-            d = dt.tzinfo.localize(d)
-
+        d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
         d = w.rollforward(d)
 
         for i in range(self.week):
@@ -1003,9 +1012,7 @@ class WeekOfMonth(DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        d = datetime(dt.year, dt.month, dt.day)
-        if getattr(dt, 'tzinfo', None) is not None:
-            d = dt.tzinfo.localize(d)
+        d = datetime(dt.year, dt.month, dt.day, tzinfo=dt.tzinfo)
         return d == self.getOffsetOfMonth(dt)
 
     @property
@@ -1072,18 +1079,14 @@ class LastWeekOfMonth(DateOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(as_datetime(other) + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
 
     def getOffsetOfMonth(self, dt):
         m =  MonthEnd()
-        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute, dt.second, dt.microsecond)
-        if getattr(dt, 'tzinfo', None) is not None:
-            d = dt.tzinfo.localize(d)
-
+        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
+                     dt.second, dt.microsecond, tzinfo=dt.tzinfo)
         eom = m.rollforward(d)
-
         w = Week(weekday=self.weekday)
-
         return w.rollback(eom)
 
     def onOffset(self, dt):
@@ -1175,13 +1178,11 @@ class BQuarterEnd(QuarterOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = as_datetime(other) + relativedelta(months=monthsToGo + 3 * n, day=31)
-        if getattr(base, 'tzinfo', None) is not None:
-            other = base.tzinfo.localize(other)
+        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
+        other = tslib._localize_pydatetime(other, base.tzinfo)
         if other.weekday() > 4:
             other = other - BDay()
-
-        return as_timestamp(other)
+        return other
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1219,8 +1220,6 @@ class BQuarterBegin(QuarterOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        other = as_datetime(other)
-
         wkday, _ = tslib.monthrange(other.year, other.month)
 
         first = _get_firstbday(wkday)
@@ -1244,9 +1243,7 @@ class BQuarterBegin(QuarterOffset):
         result = datetime(other.year, other.month, first,
                           other.hour, other.minute, other.second,
                           other.microsecond)
-        if getattr(other, 'tzinfo', None) is not None:
-            result = other.tzinfo.localize(result)
-        return as_timestamp(result)
+        return result
 
 
 class QuarterEnd(QuarterOffset):
@@ -1272,12 +1269,9 @@ class QuarterEnd(QuarterOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        base = other
         other = datetime(other.year, other.month, other.day,
                          other.hour, other.minute, other.second,
                          other.microsecond)
-        other = as_datetime(other)
-
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
@@ -1288,9 +1282,7 @@ class QuarterEnd(QuarterOffset):
             n = n - 1
 
         other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
-        if getattr(base, 'tzinfo', None) is not None:
-            other = base.tzinfo.localize(other)
-        return as_timestamp(other)
+        return other
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1311,8 +1303,6 @@ class QuarterBegin(QuarterOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        other = as_datetime(other)
-
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
 
         monthsSince = (other.month - self.startingMonth) % 3
@@ -1326,7 +1316,7 @@ class QuarterBegin(QuarterOffset):
             n = n + 1
 
         other = other + relativedelta(months=3 * n - monthsSince, day=1)
-        return as_timestamp(other)
+        return other
 
 
 class YearOffset(DateOffset):
@@ -1361,8 +1351,6 @@ class BYearEnd(YearOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        other = as_datetime(other)
-
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
         lastBDay = (days_in_month -
                     max(((wkday + days_in_month - 1) % 7) - 4, 0))
@@ -1387,7 +1375,7 @@ class BYearEnd(YearOffset):
         if result.weekday() > 4:
             result = result - BDay()
 
-        return as_timestamp(result)
+        return result
 
 
 class BYearBegin(YearOffset):
@@ -1399,8 +1387,6 @@ class BYearBegin(YearOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        other = as_datetime(other)
-
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
 
         first = _get_firstbday(wkday)
@@ -1420,8 +1406,8 @@ class BYearBegin(YearOffset):
         other = other + relativedelta(years=years)
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
         first = _get_firstbday(wkday)
-        return as_timestamp(datetime(other.year, self.month, first, other.hour,
-                                     other.minute, other.second, other.microsecond))
+        return datetime(other.year, self.month, first, other.hour,
+                        other.minute, other.second, other.microsecond)
 
 
 class YearEnd(YearOffset):
@@ -1473,8 +1459,7 @@ class YearEnd(YearOffset):
         else:
             # n == 0, roll forward
             result = _rollf(result)
-
-        return as_timestamp(result)
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1490,15 +1475,15 @@ class YearBegin(YearOffset):
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date):
-            year = date.year
+        def _increment(date, n):
+            year = date.year + n - 1
             if date.month >= self.month:
                 year += 1
             return datetime(year, self.month, 1, date.hour, date.minute,
                             date.second, date.microsecond)
 
-        def _decrement(date):
-            year = date.year
+        def _decrement(date, n):
+            year = date.year + n + 1
             if date.month < self.month or (date.month == self.month and
                                            date.day == 1):
                 year -= 1
@@ -1507,24 +1492,19 @@ class YearBegin(YearOffset):
 
         def _rollf(date):
             if (date.month != self.month) or date.day > 1:
-                date = _increment(date)
+                date = _increment(date, 1)
             return date
 
         n = self.n
         result = other
         if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
+            result = _increment(result, n)
         elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
+            result = _decrement(result, n)
         else:
             # n == 0, roll forward
             result = _rollf(result)
-
-        return as_timestamp(result)
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1624,10 +1604,9 @@ class FY5253(DateOffset):
                         datetime(other.year, self.startingMonth, 1))
         next_year = self.get_year_end(
                         datetime(other.year + 1, self.startingMonth, 1))
-        if getattr(other, 'tzinfo', None) is not None:
-            prev_year = other.tzinfo.localize(prev_year)
-            cur_year = other.tzinfo.localize(cur_year)
-            next_year = other.tzinfo.localize(next_year)
+        prev_year = tslib._localize_pydatetime(prev_year, other.tzinfo)
+        cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
+        next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
 
         if n > 0:
             if other == prev_year:
@@ -1686,9 +1665,7 @@ class FY5253(DateOffset):
             return self._get_year_end_last(dt)
 
     def get_target_month_end(self, dt):
-        target_month = datetime(dt.year, self.startingMonth, 1)
-        if getattr(dt, 'tzinfo', None) is not None:
-            target_month = dt.tzinfo.localize(target_month)
+        target_month = datetime(dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
         next_month_first_of = target_month + relativedelta(months=+1)
         return next_month_first_of + relativedelta(days=-1)
 
@@ -1706,9 +1683,7 @@ class FY5253(DateOffset):
                 return backward
 
     def _get_year_end_last(self, dt):
-        current_year = datetime(dt.year, self.startingMonth, 1)
-        if getattr(dt, 'tzinfo', None) is not None:
-            current_year = dt.tzinfo.localize(current_year)
+        current_year = datetime(dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
         return current_year + self._offset_lwom
 
     @property
@@ -1822,8 +1797,6 @@ class FY5253Quarter(DateOffset):
     @apply_wraps
     def apply(self, other):
         base = other
-        other = as_datetime(other)
-
         n = self.n
 
         if n > 0:
@@ -1926,8 +1899,7 @@ class Easter(DateOffset):
     def apply(self, other):
         currentEaster = easter(other.year)
         currentEaster = datetime(currentEaster.year, currentEaster.month, currentEaster.day)
-        if getattr(other, 'tzinfo', None) is not None:
-            currentEaster = other.tzinfo.localize(currentEaster)
+        currentEaster = tslib._localize_pydatetime(currentEaster, other.tzinfo)
 
         # NOTE: easter returns a datetime.date so we have to convert to type of other
         if self.n >= 0:
@@ -2021,19 +1993,9 @@ class Tick(SingleConstructorOffset):
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if type(other) == date:
-            other = datetime(other.year, other.month, other.day)
-        elif isinstance(other, (np.datetime64, datetime)):
-            other = as_timestamp(other)
-
-        if isinstance(other, datetime):
-            result = other + self.delta
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
-            return as_timestamp(result)
-
-        elif isinstance(other, timedelta):
+        if isinstance(other, (datetime, np.datetime64, date)):
+            return as_timestamp(other) + self
+        if isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
@@ -2067,16 +2029,7 @@ def _delta_to_tick(delta):
         else:  # pragma: no cover
             return Nano(nanos)
 
-
-def _delta_to_nanoseconds(delta):
-    if isinstance(delta, np.timedelta64):
-        return delta.astype('timedelta64[ns]').item()
-    elif isinstance(delta, Tick):
-        delta = delta.delta
-
-    return (delta.days * 24 * 60 * 60 * 1000000
-            + delta.seconds * 1000000
-            + delta.microseconds) * 1000
+_delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
 
 class Day(Tick):
