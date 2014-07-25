@@ -305,7 +305,7 @@ Bug Fixes
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
 
 
-
+- Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
 
 
 - Bug in ``DatetimeIndex.value_counts`` doesn't preserve tz  (:issue:`7735`)

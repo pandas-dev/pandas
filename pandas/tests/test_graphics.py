@@ -240,21 +240,33 @@ class TestPlotBase(tm.TestCase):
         yrot : number
             expected yticks rotation
         """
+        from matplotlib.ticker import NullFormatter
         axes = self._flatten_visible(axes)
         for ax in axes:
             if xlabelsize or xrot:
-                xtick = ax.get_xticklabels()[0]
-                if xlabelsize is not None:
-                    self.assertAlmostEqual(xtick.get_fontsize(), xlabelsize)
-                if xrot is not None:
-                    self.assertAlmostEqual(xtick.get_rotation(), xrot)
+                if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
+                    # If minor ticks has NullFormatter, rot / fontsize are not retained
+                    labels = ax.get_xticklabels()
+                else:
+                    labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
+
+                for label in labels:
+                    if xlabelsize is not None:
+                        self.assertAlmostEqual(label.get_fontsize(), xlabelsize)
+                    if xrot is not None:
+                        self.assertAlmostEqual(label.get_rotation(), xrot)
 
             if ylabelsize or yrot:
-                ytick = ax.get_yticklabels()[0]
-                if ylabelsize is not None:
-                    self.assertAlmostEqual(ytick.get_fontsize(), ylabelsize)
-                if yrot is not None:
-                    self.assertAlmostEqual(ytick.get_rotation(), yrot)
+                if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
+                    labels = ax.get_yticklabels()
+                else:
+                    labels = ax.get_yticklabels() + ax.get_yticklabels(minor=True)
+
+                for label in labels:
+                    if ylabelsize is not None:
+                        self.assertAlmostEqual(label.get_fontsize(), ylabelsize)
+                    if yrot is not None:
+                        self.assertAlmostEqual(label.get_rotation(), yrot)
 
     def _check_ax_scales(self, axes, xaxis='linear', yaxis='linear'):
         """
@@ -872,6 +884,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.xaxis)
             self._check_visible(ax.get_xticklabels())
             self._check_visible([ax.xaxis.get_label()])
+            self._check_ticks_props(ax, xrot=30)
 
         _check_plot_works(df.plot, title='blah')
 
@@ -1069,14 +1082,16 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(axes[-1].get_xticklabels(minor=True))
             self._check_visible(axes[-1].xaxis.get_label())
             self._check_visible(axes[-1].get_yticklabels())
+            self._check_ticks_props(axes, xrot=30)
 
-            axes = df.plot(kind=kind, subplots=True, sharex=False)
+            axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
             for ax in axes:
                 self._check_visible(ax.xaxis)
                 self._check_visible(ax.get_xticklabels())
                 self._check_visible(ax.get_xticklabels(minor=True))
                 self._check_visible(ax.xaxis.get_label())
                 self._check_visible(ax.get_yticklabels())
+                self._check_ticks_props(ax, xlabelsize=7, xrot=45)
 
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
@@ -1363,7 +1378,17 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, kind='bar')
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
-        _check_plot_works(df.plot, kind='bar')
+        ax = _check_plot_works(df.plot, kind='bar')
+        self._check_ticks_props(ax, xrot=90)
+
+        ax = df.plot(kind='bar', rot=35, fontsize=10)
+        self._check_ticks_props(ax, xrot=35, xlabelsize=10)
+
+        ax = _check_plot_works(df.plot, kind='barh')
+        self._check_ticks_props(ax, yrot=0)
+
+        ax = df.plot(kind='barh', rot=55, fontsize=11)
+        self._check_ticks_props(ax, yrot=55, ylabelsize=11)
 
     def _check_bar_alignment(self, df, kind='bar', stacked=False,
                              subplots=False, align='center',
@@ -1591,6 +1616,10 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, kind='kde')
         expected = [com.pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
+        self._check_ticks_props(ax, xrot=0)
+
+        ax = df.plot(kind='kde', rot=20, fontsize=5)
+        self._check_ticks_props(ax, xrot=20, xlabelsize=5)
 
         axes = _check_plot_works(df.plot, kind='kde', subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))

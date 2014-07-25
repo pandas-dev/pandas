@@ -753,6 +753,7 @@ class MPLPlot(object):
 
     """
     _default_rot = 0
+    orientation = None
 
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
@@ -788,7 +789,14 @@ class MPLPlot(object):
         self.use_index = use_index
 
         self.fontsize = fontsize
-        self.rot = rot
+
+        if rot is not None:
+            self.rot = rot
+        else:
+            if isinstance(self._default_rot, dict):
+                self.rot = self._default_rot[self.kind]
+            else:
+                self.rot = self._default_rot
 
         if grid is None:
             grid = False if secondary_y else True
@@ -1018,14 +1026,30 @@ class MPLPlot(object):
             else:
                 self.axes[0].set_title(self.title)
 
-        if self._need_to_set_index:
-            labels = [com.pprint_thing(key) for key in self.data.index]
-            labels = dict(zip(range(len(self.data.index)), labels))
+        labels = [com.pprint_thing(key) for key in self.data.index]
+        labels = dict(zip(range(len(self.data.index)), labels))
 
-            for ax_ in self.axes:
-                # ax_.set_xticks(self.xticks)
-                xticklabels = [labels.get(x, '') for x in ax_.get_xticks()]
-                ax_.set_xticklabels(xticklabels, rotation=self.rot)
+        for ax in self.axes:
+            if self.orientation == 'vertical' or self.orientation is None:
+                if self._need_to_set_index:
+                    xticklabels = [labels.get(x, '') for x in ax.get_xticks()]
+                    ax.set_xticklabels(xticklabels)
+                self._apply_axis_properties(ax.xaxis, rot=self.rot,
+                                           fontsize=self.fontsize)
+            elif self.orientation == 'horizontal':
+                if self._need_to_set_index:
+                    yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
+                    ax.set_yticklabels(yticklabels)
+                self._apply_axis_properties(ax.yaxis, rot=self.rot,
+                                           fontsize=self.fontsize)
+
+    def _apply_axis_properties(self, axis, rot=None, fontsize=None):
+        labels = axis.get_majorticklabels() + axis.get_minorticklabels()
+        for label in labels:
+            if rot is not None:
+                label.set_rotation(rot)
+            if fontsize is not None:
+                label.set_fontsize(fontsize)
 
     @property
     def legend_title(self):
@@ -1336,6 +1360,8 @@ class MPLPlot(object):
 
 
 class KdePlot(MPLPlot):
+    orientation = 'vertical'
+
     def __init__(self, data, bw_method=None, ind=None, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         self.bw_method=bw_method
@@ -1479,6 +1505,9 @@ class HexBinPlot(MPLPlot):
 
 
 class LinePlot(MPLPlot):
+
+    _default_rot = 30
+    orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -1657,16 +1686,9 @@ class LinePlot(MPLPlot):
 
         index_name = self._get_index_name()
 
-        rot = 30
-        if self.rot is not None:
-            rot = self.rot
-
         for ax in self.axes:
             if condition:
-                format_date_labels(ax, rot=rot)
-            elif self.rot is not None:
-                for l in ax.get_xticklabels():
-                    l.set_rotation(self.rot)
+                format_date_labels(ax, rot=self.rot)
 
             if index_name is not None:
                 ax.set_xlabel(index_name)
@@ -1767,9 +1789,6 @@ class BarPlot(MPLPlot):
         self.ax_pos = self.tick_pos - self.tickoffset
 
     def _args_adjust(self):
-        if self.rot is None:
-            self.rot = self._default_rot[self.kind]
-
         if com.is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
         if com.is_list_like(self.left):
@@ -1859,8 +1878,7 @@ class BarPlot(MPLPlot):
             if self.kind == 'bar':
                 ax.set_xlim((s_edge, e_edge))
                 ax.set_xticks(self.tick_pos)
-                ax.set_xticklabels(str_index, rotation=self.rot,
-                                   fontsize=self.fontsize)
+                ax.set_xticklabels(str_index)
                 if not self.log: # GH3254+
                     ax.axhline(0, color='k', linestyle='--')
                 if name is not None:
@@ -1869,13 +1887,21 @@ class BarPlot(MPLPlot):
                 # horizontal bars
                 ax.set_ylim((s_edge, e_edge))
                 ax.set_yticks(self.tick_pos)
-                ax.set_yticklabels(str_index, rotation=self.rot,
-                                   fontsize=self.fontsize)
+                ax.set_yticklabels(str_index)
                 ax.axvline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_ylabel(name)
             else:
                 raise NotImplementedError(self.kind)
+
+    @property
+    def orientation(self):
+        if self.kind == 'bar':
+            return 'vertical'
+        elif self.kind == 'barh':
+            return 'horizontal'
+        else:
+            raise NotImplementedError(self.kind)
 
 
 class PiePlot(MPLPlot):
