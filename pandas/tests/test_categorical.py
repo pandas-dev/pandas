@@ -647,6 +647,27 @@ class TestCategoricalAsBlock(tm.TestCase):
                                       np.array(["a","b",np.nan], dtype=np.object_))
         self.assert_numpy_array_equal(s3.cat._codes, np.array([0,1,2,0]))
 
+    def test_sequence_like(self):
+
+        # GH 7839
+        # make sure can iterate
+        df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+        df['grade'] = Categorical(df['raw_grade'])
+
+        # basic sequencing testing
+        result = list(df.grade.cat)
+        expected = np.array(df.grade.cat).tolist()
+        tm.assert_almost_equal(result,expected)
+
+        # iteration
+        for t in df.itertuples(index=False):
+            str(t)
+
+        for row, s in df.iterrows():
+            str(s)
+
+        for c, col in df.iteritems():
+            str(s)
 
     def test_series_delegations(self):
 
