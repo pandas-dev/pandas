@@ -1359,58 +1359,6 @@ class MPLPlot(object):
         return errors
 
 
-class KdePlot(MPLPlot):
-    orientation = 'vertical'
-
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
-        MPLPlot.__init__(self, data, **kwargs)
-        self.bw_method=bw_method
-        self.ind=ind
-
-    def _make_plot(self):
-        from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
-        from distutils.version import LooseVersion
-        plotf = self.plt.Axes.plot
-        colors = self._get_colors()
-        for i, (label, y) in enumerate(self._iter_data()):
-            ax = self._get_ax(i)
-            style = self._get_style(i, label)
-
-            label = com.pprint_thing(label)
-
-            if LooseVersion(spv) >= '0.11.0':
-                gkde = gaussian_kde(y, bw_method=self.bw_method)
-            else:
-                gkde = gaussian_kde(y)
-                if self.bw_method is not None:
-                    msg = ('bw_method was added in Scipy 0.11.0.' +
-                           ' Scipy version in use is %s.' % spv)
-                    warnings.warn(msg)
-
-            sample_range = max(y) - min(y)
-
-            if self.ind is None:
-                ind = np.linspace(min(y) - 0.5 * sample_range,
-                                  max(y) + 0.5 * sample_range, 1000)
-            else:
-                ind = self.ind
-
-            ax.set_ylabel("Density")
-
-            y = gkde.evaluate(ind)
-            kwds = self.kwds.copy()
-            kwds['label'] = label
-            self._maybe_add_color(colors, kwds, style, i)
-            if style is None:
-                args = (ax, ind, y)
-            else:
-                args = (ax, ind, y, style)
-
-            newlines = plotf(*args, **kwds)
-            self._add_legend_handle(newlines[0], label)
-
-
 class ScatterPlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -1903,6 +1851,119 @@ class BarPlot(MPLPlot):
             raise NotImplementedError(self.kind)
 
 
+class HistPlot(LinePlot):
+
+    def __init__(self, data, bins=10, bottom=0, **kwargs):
+        self.bins = bins        # use mpl default
+        self.bottom = bottom
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _args_adjust(self):
+        if com.is_integer(self.bins):
+            # create common bin edge
+            values = np.ravel(self.data.values)
+            values = values[~com.isnull(values)]
+
+            hist, self.bins = np.histogram(values, bins=self.bins,
+                                        range=self.kwds.get('range', None),
+                                        weights=self.kwds.get('weights', None))
+
+        if com.is_list_like(self.bottom):
+            self.bottom = np.array(self.bottom)
+
+    def _get_plot_function(self):
+        def plotf(ax, y, style=None, column_num=None, **kwds):
+            if column_num == 0:
+                self._initialize_prior(len(self.bins) - 1)
+            y = y[~com.isnull(y)]
+            bottom = self._pos_prior + self.bottom
+            # ignore style
+            n, bins, patches = self.plt.Axes.hist(ax, y, bins=self.bins,
+                                                  bottom=bottom, **kwds)
+            self._update_prior(n)
+            return patches
+        return plotf
+
+    def _make_plot(self):
+        plotf = self._get_plot_function()
+        colors = self._get_colors()
+        for i, (label, y) in enumerate(self._iter_data()):
+            ax = self._get_ax(i)
+            style = self._get_style(i, label)
+            label = com.pprint_thing(label)
+
+            kwds = self.kwds.copy()
+            kwds['label'] = label
+            self._maybe_add_color(colors, kwds, style, i)
+
+            if style is not None:
+                kwds['style'] = style
+
+            artists = plotf(ax, y, column_num=i, **kwds)
+            self._add_legend_handle(artists[0], label)
+
+    def _post_plot_logic(self):
+        if self.orientation == 'horizontal':
+            for ax in self.axes:
+                ax.set_xlabel('Degree')
+        else:
+            for ax in self.axes:
+                ax.set_ylabel('Degree')
+
+    @property
+    def orientation(self):
+        if self.kwds.get('orientation', None) == 'horizontal':
+            return 'horizontal'
+        else:
+            return 'vertical'
+
+
+class KdePlot(HistPlot):
+    orientation = 'vertical'
+
+    def __init__(self, data, bw_method=None, ind=None, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+        self.bw_method = bw_method
+        self.ind = ind
+
+    def _args_adjust(self):
+        pass
+
+    def _get_ind(self, y):
+        if self.ind is None:
+            sample_range = max(y) - min(y)
+            ind = np.linspace(min(y) - 0.5 * sample_range,
+                              max(y) + 0.5 * sample_range, 1000)
+        else:
+            ind = self.ind
+        return ind
+
+    def _get_plot_function(self):
+        from scipy.stats import gaussian_kde
+        from scipy import __version__ as spv
+        f = MPLPlot._get_plot_function(self)
+        def plotf(ax, y, style=None, column_num=None, **kwds):
+            if LooseVersion(spv) >= '0.11.0':
+                gkde = gaussian_kde(y, bw_method=self.bw_method)
+            else:
+                gkde = gaussian_kde(y)
+                if self.bw_method is not None:
+                    msg = ('bw_method was added in Scipy 0.11.0.' +
+                           ' Scipy version in use is %s.' % spv)
+                    warnings.warn(msg)
+
+            ind = self._get_ind(y)
+            y = gkde.evaluate(ind)
+            lines = f(ax, ind, y, style=style, **kwds)
+            return lines
+        return plotf
+
+    def _post_plot_logic(self):
+        for ax in self.axes:
+            ax.set_ylabel('Density')
+
+
 class PiePlot(MPLPlot):
 
     def __init__(self, data, kind=None, **kwargs):
@@ -1964,11 +2025,8 @@ class BoxPlot(MPLPlot):
     pass
 
 
-class HistPlot(MPLPlot):
-    pass
-
 # kinds supported by both dataframe and series
-_common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area']
+_common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area', 'hist']
 # kinds supported by dataframe
 _dataframe_kinds = ['scatter', 'hexbin']
 # kinds supported only by series or dataframe single column
@@ -1976,7 +2034,7 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
-               'kde': KdePlot,
+               'kde': KdePlot, 'hist': HistPlot,
                'scatter': ScatterPlot, 'hexbin': HexBinPlot,
                'area': AreaPlot, 'pie': PiePlot}
 
@@ -2023,10 +2081,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'kde', 'density', 'area', scatter', 'hexbin'}
+    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'scatter', 'hexbin'}
         line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
+        hist : histogram
         kde/density : Kernel Density Estimation plot
         area : area plot
         scatter : scatter plot
@@ -2170,10 +2229,11 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh', 'kde', 'density', 'area'}
+    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area'}
         line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
+        hist : histogram
         kde/density : Kernel Density Estimation plot
         area : area plot
     use_index : boolean, default True
