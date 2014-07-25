@@ -197,6 +197,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.core.series import Series
     from pandas.tools.tile import cut
 
+    is_period = getattr(values, 'inferred_type', None) == 'period'
     values = Series(values).values
     is_category = com.is_categorical_dtype(values.dtype)
 
@@ -212,11 +213,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         values = cat.codes
 
     dtype = values.dtype
-    if com.is_integer_dtype(dtype):
-        values = com._ensure_int64(values)
-        keys, counts = htable.value_count_int64(values)
 
-    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+    if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)) or is_period:
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
 
@@ -226,6 +224,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             keys, counts = keys[msk], counts[msk]
         # convert the keys back to the dtype we came in
         keys = keys.astype(dtype)
+
+    elif com.is_integer_dtype(dtype):
+        values = com._ensure_int64(values)
+        keys, counts = htable.value_count_int64(values)
 
     else:
         values = com._ensure_object(values)

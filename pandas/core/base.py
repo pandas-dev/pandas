@@ -275,8 +275,18 @@ class IndexOpsMixin(object):
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        return value_counts(self.values, sort=sort, ascending=ascending,
-                            normalize=normalize, bins=bins, dropna=dropna)
+        from pandas.tseries.api import DatetimeIndex, PeriodIndex
+        result = value_counts(self, sort=sort, ascending=ascending,
+                              normalize=normalize, bins=bins, dropna=dropna)
+
+        if isinstance(self, PeriodIndex):
+            # preserve freq
+            result.index = self._simple_new(result.index.values, self.name,
+                                            freq=self.freq)
+        elif isinstance(self, DatetimeIndex):
+            result.index = self._simple_new(result.index.values, self.name,
+                                            tz=getattr(self, 'tz', None))
+        return result
 
     def unique(self):
         """
@@ -542,5 +552,3 @@ class DatetimeIndexOpsMixin(object):
 
     def _add_delta(self, other):
         return NotImplemented
-
-

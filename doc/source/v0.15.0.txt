@@ -290,6 +290,12 @@ Bug Fixes
 
 
 
+- Bug in ``DatetimeIndex.value_counts`` doesn't preserve tz  (:issue:`7735`)
+- Bug in ``PeriodIndex.value_counts`` results in ``Int64Index`` (:issue:`7735`)
+
+
+
+
 
 
 
