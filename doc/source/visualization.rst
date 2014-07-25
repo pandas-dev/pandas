@@ -124,6 +124,7 @@ These include:
 
 * :ref:`'bar' <visualization.barplot>` or :ref:`'barh' <visualization.barplot>` for bar plots
 * :ref:`'hist' <visualization.hist>` for histogram
+* :ref:`'box' <visualization.box>` for boxplot
 * :ref:`'kde' <visualization.kde>` or ``'density'`` for density plots
 * :ref:`'area' <visualization.area_plot>` for area plots
 * :ref:`'scatter' <visualization.scatter>` for scatter plots
@@ -244,7 +245,7 @@ See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
 `matplotlib hist documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
 
 
-The previous interface ``DataFrame.hist`` to plot histogram still can be used.
+The existing interface ``DataFrame.hist`` to plot histogram still can be used.
 
 .. ipython:: python
 
@@ -288,11 +289,64 @@ The ``by`` keyword can be specified to plot grouped histograms:
 Box Plots
 ~~~~~~~~~
 
-DataFrame has a :meth:`~DataFrame.boxplot` method that allows you to visualize the
-distribution of values within each column.
+Boxplot can be drawn calling a ``Series`` and ``DataFrame.plot`` with ``kind='box'``,
+or ``DataFrame.boxplot`` to visualize the distribution of values within each column.
+
+.. versionadded:: 0.15.0
+
+``plot`` method now supports ``kind='box'`` to draw boxplot.
 
 For instance, here is a boxplot representing five trials of 10 observations of
 a uniform random variable on [0,1).
+
+.. ipython:: python
+   :suppress:
+
+   np.random.seed(123456)
+
+.. ipython:: python
+
+   df = DataFrame(rand(10, 5), columns=['A', 'B', 'C', 'D', 'E'])
+
+   @savefig box_plot_new.png
+   df.plot(kind='box')
+
+Boxplot can be colorized by passing ``color`` keyword. You can pass a ``dict``
+whose keys are ``boxes``, ``whiskers``, ``medians`` and ``caps``.
+If some keys are missing in the ``dict``, default colors are used
+for the corresponding artists. Also, boxplot has ``sym`` keyword to specify fliers style.
+
+When you pass other type of arguments via ``color`` keyword, it will be directly
+passed to matplotlib for all the ``boxes``, ``whiskers``, ``medians`` and ``caps``
+colorization.
+
+The colors are applied to every boxes to be drawn. If you want
+more complicated colorization, you can get each drawn artists by passing
+:ref:`return_type <visualization.box.return>`.
+
+.. ipython:: python
+
+   color = dict(boxes='DarkGreen', whiskers='DarkOrange',
+                medians='DarkBlue', caps='Gray')
+
+   @savefig box_new_colorize.png
+   df.plot(kind='box', color=color, sym='r+')
+
+Also, you can pass other keywords supported by matplotlib ``boxplot``.
+For example, horizontal and custom-positioned boxplot can be drawn by
+``vert=False`` and ``positions`` keywords.
+
+.. ipython:: python
+
+   @savefig box_new_kwargs.png
+   df.plot(kind='box', vert=False, positions=[1, 4, 5, 6, 8])
+
+
+See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
+`matplotlib boxplot documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
+
+
+The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
 
 .. ipython:: python
    :suppress:
@@ -354,18 +408,23 @@ columns:
 
 .. _visualization.box.return:
 
-The return type of ``boxplot`` depends on two keyword arguments: ``by`` and ``return_type``.
-When ``by`` is ``None``:
+Basically, plot functions return :class:`matplotlib Axes <matplotlib.axes.Axes>` as a return value.
+In ``boxplot``, the return type can be changed by argument ``return_type``, and whether the subplots is enabled (``subplots=True`` in ``plot`` or ``by`` is specified in ``boxplot``).
+
+When ``subplots=False`` / ``by`` is ``None``:
 
 * if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
-   This is the default.
+   This is the default of ``boxplot`` in historical reason.
+   Note that ``plot(kind='box')`` returns ``Axes`` as default as the same as other plots.
 * if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
 * if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
    and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
 
-When ``by`` is some column of the DataFrame, a dict of ``return_type`` is returned, where
-the keys are the columns of the DataFrame. The plot has a facet for each column of
-the DataFrame, with a separate box for each value of ``by``.
+When ``subplots=True`` / ``by`` is some column of the DataFrame:
+
+* A dict of ``return_type`` is returned, where the keys are the columns
+  of the DataFrame. The plot has a facet for each column of
+  the DataFrame, with a separate box for each value of ``by``.
 
 Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
 is returned, where the keys are the same as the Groupby object. The plot has a

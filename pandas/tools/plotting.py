@@ -1256,10 +1256,7 @@ class MPLPlot(object):
     def _get_colors(self, num_colors=None, color_kwds='color'):
         from pandas.core.frame import DataFrame
         if num_colors is None:
-            if isinstance(self.data, DataFrame):
-                num_colors = len(self.data.columns)
-            else:
-                num_colors = 1
+            num_colors = self.nseries
 
         return _get_standard_colors(num_colors=num_colors,
                                     colormap=self.colormap,
@@ -1980,7 +1977,6 @@ class KdePlot(HistPlot):
 
 
 class PiePlot(MPLPlot):
-
     _layout_type = 'horizontal'
 
     def __init__(self, data, kind=None, **kwargs):
@@ -2031,12 +2027,152 @@ class PiePlot(MPLPlot):
                 self._add_legend_handle(p, l)
 
 
-class BoxPlot(MPLPlot):
-    pass
+class BoxPlot(LinePlot):
+    _layout_type = 'horizontal'
+
+    _valid_return_types = (None, 'axes', 'dict', 'both')
+    # namedtuple to hold results
+    BP = namedtuple("Boxplot", ['ax', 'lines'])
+
+    def __init__(self, data, return_type=None, **kwargs):
+        # Do not call LinePlot.__init__ which may fill nan
+        if return_type not in self._valid_return_types:
+            raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
+
+        self.return_type = return_type
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _args_adjust(self):
+        if self.subplots:
+            # Disable label ax sharing. Otherwise, all subplots shows last column label
+            if self.orientation == 'vertical':
+                self.sharex = False
+            else:
+                self.sharey = False
+
+    def _get_plot_function(self):
+        def plotf(ax, y, column_num=None, **kwds):
+            if y.ndim == 2:
+                y = [remove_na(v) for v in y]
+            else:
+                y = remove_na(y)
+            bp = ax.boxplot(y, **kwds)
+
+            if self.return_type == 'dict':
+                return bp, bp
+            elif self.return_type == 'both':
+                return self.BP(ax=ax, lines=bp), bp
+            else:
+                return ax, bp
+        return plotf
+
+    def _validate_color_args(self):
+        if 'color' in self.kwds:
+            if self.colormap is not None:
+                warnings.warn("'color' and 'colormap' cannot be used "
+                              "simultaneously. Using 'color'")
+            self.color = self.kwds.pop('color')
+
+            if isinstance(self.color, dict):
+                valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
+                for key, values in compat.iteritems(self.color):
+                    if key not in valid_keys:
+                        raise ValueError("color dict contains invalid key '{0}' "
+                                         "The key must be either {1}".format(key, valid_keys))
+        else:
+            self.color = None
+
+        # get standard colors for default
+        colors = _get_standard_colors(num_colors=3,
+                                      colormap=self.colormap,
+                                      color=None)
+        # use 2 colors by default, for box/whisker and median
+        # flier colors isn't needed here
+        # because it can be specified by ``sym`` kw
+        self._boxes_c = colors[0]
+        self._whiskers_c = colors[0]
+        self._medians_c = colors[2]
+        self._caps_c = 'k'          # mpl default
+
+    def _get_colors(self, num_colors=None, color_kwds='color'):
+        pass
+
+    def maybe_color_bp(self, bp):
+        if isinstance(self.color, dict):
+            boxes = self.color.get('boxes', self._boxes_c)
+            whiskers = self.color.get('whiskers', self._whiskers_c)
+            medians = self.color.get('medians', self._medians_c)
+            caps = self.color.get('caps', self._caps_c)
+        else:
+            # Other types are forwarded to matplotlib
+            # If None, use default colors
+            boxes = self.color or self._boxes_c
+            whiskers = self.color or self._whiskers_c
+            medians = self.color or self._medians_c
+            caps = self.color or self._caps_c
+
+        from matplotlib.artist import setp
+        setp(bp['boxes'], color=boxes, alpha=1)
+        setp(bp['whiskers'], color=whiskers, alpha=1)
+        setp(bp['medians'], color=medians, alpha=1)
+        setp(bp['caps'], color=caps, alpha=1)
+
+    def _make_plot(self):
+        plotf = self._get_plot_function()
+        if self.subplots:
+            self._return_obj = compat.OrderedDict()
+
+            for i, (label, y) in enumerate(self._iter_data()):
+                ax = self._get_ax(i)
+                kwds = self.kwds.copy()
+
+                ret, bp = plotf(ax, y, column_num=i, **kwds)
+                self.maybe_color_bp(bp)
+                self._return_obj[label] = ret
+
+                label = [com.pprint_thing(label)]
+                self._set_ticklabels(ax, label)
+        else:
+            y = self.data.values.T
+            ax = self._get_ax(0)
+            kwds = self.kwds.copy()
+
+            ret, bp = plotf(ax, y, column_num=0, **kwds)
+            self.maybe_color_bp(bp)
+            self._return_obj = ret
+
+            labels = [l for l, y in self._iter_data()]
+            labels = [com.pprint_thing(l) for l in labels]
+            if not self.use_index:
+                labels = [com.pprint_thing(key) for key in range(len(labels))]
+            self._set_ticklabels(ax, labels)
+
+    def _set_ticklabels(self, ax, labels):
+        if self.orientation == 'vertical':
+            ax.set_xticklabels(labels)
+        else:
+            ax.set_yticklabels(labels)
+
+    def _post_plot_logic(self):
+        pass
+
+    @property
+    def orientation(self):
+        if self.kwds.get('vert', True):
+            return 'vertical'
+        else:
+            return 'horizontal'
+
+    @property
+    def result(self):
+        if self.return_type is None:
+            return super(BoxPlot, self).result
+        else:
+            return self._return_obj
 
 
 # kinds supported by both dataframe and series
-_common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area', 'hist']
+_common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area', 'hist', 'box']
 # kinds supported by dataframe
 _dataframe_kinds = ['scatter', 'hexbin']
 # kinds supported only by series or dataframe single column
@@ -2044,7 +2180,7 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
-               'kde': KdePlot, 'hist': HistPlot,
+               'kde': KdePlot, 'hist': HistPlot, 'box': BoxPlot,
                'scatter': ScatterPlot, 'hexbin': HexBinPlot,
                'area': AreaPlot, 'pie': PiePlot}
 
@@ -2091,13 +2227,14 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'scatter', 'hexbin'}
+    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'box', 'scatter', 'hexbin'}
         line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
         hist : histogram
         kde/density : Kernel Density Estimation plot
         area : area plot
+        box : box plot
         scatter : scatter plot
         hexbin : hexbin plot
     logx : boolean, default False
@@ -2237,13 +2374,14 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area'}
+    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'box'}
         line : line plot
         bar : vertical bar plot
         barh : horizontal bar plot
         hist : histogram
         kde/density : Kernel Density Estimation plot
         area : area plot
+        box : box plot
     use_index : boolean, default True
         Plot index as axis tick labels
     rot : int, default None
@@ -2373,8 +2511,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     # validate return_type:
     valid_types = (None, 'axes', 'dict', 'both')
-    if return_type not in valid_types:
-        raise ValueError("return_type")
+    if return_type not in BoxPlot._valid_return_types:
+        raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
     from pandas import Series, DataFrame
     if isinstance(data, Series):
@@ -2391,8 +2529,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             setp(bp['whiskers'],color=colors[0],alpha=1)
             setp(bp['medians'],color=colors[2],alpha=1)
 
-    BP = namedtuple("Boxplot", ['ax', 'lines'])  # namedtuple to hold results
-
     def plot_group(keys, values, ax):
         keys = [com.pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
@@ -2407,7 +2543,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         if return_type == 'dict':
             return bp
         elif return_type == 'both':
-            return BP(ax=ax, lines=bp)
+            return BoxPlot.BP(ax=ax, lines=bp)
         else:
             return ax
 
