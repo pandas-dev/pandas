@@ -13,6 +13,7 @@ from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
 from pandas.core.series import Series
+from pandas.core.config import option_context
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  assert_index_equal, assertRaisesRegexp)
@@ -2299,9 +2300,11 @@ class TestGroupBy(tm.TestCase):
 
         self.assertEqual(result['d'].dtype, np.float64)
 
-        for key, group in grouped:
-            res = f(group)
-            assert_frame_equal(res, result.ix[key])
+        # this is by definition a mutating operation!
+        with option_context('mode.chained_assignment',None):
+            for key, group in grouped:
+                res = f(group)
+                assert_frame_equal(res, result.ix[key])
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv

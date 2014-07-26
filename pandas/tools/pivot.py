@@ -228,9 +228,14 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_m
         if len(rows) > 0:
             margin = data[rows + values].groupby(rows).agg(aggfunc)
             cat_axis = 1
+
             for key, piece in table.groupby(level=0, axis=cat_axis):
                 all_key = _all_key(key)
+
+                # we are going to mutate this, so need to copy!
+                piece = piece.copy()
                 piece[all_key] = margin[key]
+
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:

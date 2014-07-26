@@ -91,6 +91,22 @@ API changes
         df
         df.dtypes
 
+- ``SettingWithCopy`` raise/warnings (according to the option ``mode.chained_assignment``) will now be issued when setting a value on a sliced mixed-dtype DataFrame using chained-assignment. (:issue:`7845`)
+
+  .. code-block:: python
+
+     In [1]: df = DataFrame(np.arange(0,9), columns=['count'])
+
+     In [2]: df['group'] = 'b'
+
+     In [3]: df.iloc[0:5]['group'] = 'a'
+     /usr/local/bin/ipython:1: SettingWithCopyWarning:
+     A value is trying to be set on a copy of a slice from a DataFrame.
+     Try using .loc[row_indexer,col_indexer] = value instead
+
+     See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+
+
 .. _whatsnew_0150.cat:
 
 Categoricals in Series/DataFrame

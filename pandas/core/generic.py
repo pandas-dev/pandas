@@ -1133,7 +1133,13 @@ class NDFrame(PandasObject):
 
         """
         axis = self._get_block_manager_axis(axis)
-        return self._constructor(self._data.get_slice(slobj, axis=axis))
+        result = self._constructor(self._data.get_slice(slobj, axis=axis))
+
+        # this could be a view
+        # but only in a single-dtyped view slicable case
+        is_copy = axis!=0 or result._is_view
+        result._set_is_copy(self, copy=is_copy)
+        return result
 
     def _set_item(self, key, value):
         self._data.set(key, value)
@@ -1149,10 +1155,28 @@ class NDFrame(PandasObject):
                 self.is_copy = None
 
     def _check_setitem_copy(self, stacklevel=4, t='setting'):
-        """ validate if we are doing a settitem on a chained copy.
+        """
+
+        validate if we are doing a settitem on a chained copy.
 
         If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*"""
+        user will see the error *at the level of setting*
+
+        It is technically possible to figure out that we are setting on
+        a copy even WITH a multi-dtyped pandas object. In other words, some blocks
+        may be views while other are not. Currently _is_view will ALWAYS return False
+        for multi-blocks to avoid having to handle this case.
+
+        df = DataFrame(np.arange(0,9), columns=['count'])
+        df['group'] = 'b'
+
+        # this technically need not raise SettingWithCopy if both are view (which is not
+        # generally guaranteed but is usually True
+        # however, this is in general not a good practice and we recommend using .loc
+        df.iloc[0:5]['group'] = 'a'
+
+        """
+
         if self.is_copy:
 
             value = config.get_option('mode.chained_assignment')
@@ -1170,14 +1194,18 @@ class NDFrame(PandasObject):
                 pass
 
             if t == 'referant':
-                t = ("A value is trying to be set on a copy of a slice from a "
+                t = ("\n"
+                     "A value is trying to be set on a copy of a slice from a "
                      "DataFrame\n\n"
-                     "See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
+                     "See the the caveats in the documentation: "
+                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
             else:
-                t = ("A value is trying to be set on a copy of a slice from a "
-                     "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
-                     "instead\n\n"
-                     "See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
+                t = ("\n"
+                     "A value is trying to be set on a copy of a slice from a "
+                     "DataFrame.\n"
+                     "Try using .loc[row_indexer,col_indexer] = value instead\n\n"
+                     "See the the caveats in the documentation: "
+                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
 
             if value == 'raise':
                 raise SettingWithCopyError(t)
