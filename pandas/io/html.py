@@ -607,11 +607,6 @@ def _data_to_frame(data, header, index_col, skiprows, infer_types,
                     parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                     thousands=thousands)
     df = tp.read()
-
-    if infer_types:  # TODO: rm this code so infer_types has no effect in 0.14
-        df = df.convert_objects(convert_dates='coerce')
-    else:
-        df = df.applymap(text_type)
     return df
 
 
@@ -757,9 +752,8 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
 
-    infer_types : bool, optional
-        This option is deprecated in 0.13, an will have no effect in 0.14. It
-        defaults to ``True``.
+    infer_types : None, optional
+        This has no effect since 0.15.0. It is here for backwards compatibility.
 
     attrs : dict or None, optional
         This is a dictionary of attributes that you can pass to use to identify
@@ -838,9 +832,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     pandas.io.parsers.read_csv
     """
     if infer_types is not None:
-        warnings.warn("infer_types will have no effect in 0.14", FutureWarning)
-    else:
-        infer_types = True  # TODO: remove effect of this in 0.14
+        warnings.warn("infer_types has no effect since 0.15", FutureWarning)
 
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.

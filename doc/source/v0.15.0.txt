@@ -106,6 +106,9 @@ API changes
 
      See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
+- The ``infer_types`` argument to :func:`~pandas.io.html.read_html` now has no
+  effect (:issue:`7762`, :issue:`7032`).
+
 
 .. _whatsnew_0150.cat:
 
@@ -320,6 +323,8 @@ Bug Fixes
 
 
 
+- Bug in ``read_html`` where the ``infer_types`` argument forced coercion of
+  date-likes incorrectly (:issue:`7762`, :issue:`7032`).
 
 
 
