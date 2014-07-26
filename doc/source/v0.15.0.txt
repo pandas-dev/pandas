@@ -290,6 +290,8 @@ Bug Fixes
 
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 
+- Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
+
 - Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
 
 
