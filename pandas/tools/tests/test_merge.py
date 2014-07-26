@@ -967,6 +967,98 @@ class TestMergeMulti(tm.TestCase):
                        right_on=['k1', 'k2'], how='right')
         tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
 
+    def test_left_join_index_multi_match_multiindex(self):
+        left = DataFrame([
+            ['X', 'Y', 'C', 'a'],
+            ['W', 'Y', 'C', 'e'],
+            ['V', 'Q', 'A', 'h'],
+            ['V', 'R', 'D', 'i'],
+            ['X', 'Y', 'D', 'b'],
+            ['X', 'Y', 'A', 'c'],
+            ['W', 'Q', 'B', 'f'],
+            ['W', 'R', 'C', 'g'],
+            ['V', 'Y', 'C', 'j'],
+            ['X', 'Y', 'B', 'd']],
+            columns=['cola', 'colb', 'colc', 'tag'],
+            index=[3, 2, 0, 1, 7, 6, 4, 5, 9, 8])
+
+        right = DataFrame([
+            ['W', 'R', 'C',  0],
+            ['W', 'Q', 'B',  3],
+            ['W', 'Q', 'B',  8],
+            ['X', 'Y', 'A',  1],
+            ['X', 'Y', 'A',  4],
+            ['X', 'Y', 'B',  5],
+            ['X', 'Y', 'C',  6],
+            ['X', 'Y', 'C',  9],
+            ['X', 'Q', 'C', -6],
+            ['X', 'R', 'C', -9],
+            ['V', 'Y', 'C',  7],
+            ['V', 'R', 'D',  2],
+            ['V', 'R', 'D', -1],
+            ['V', 'Q', 'A', -3]],
+            columns=['col1', 'col2', 'col3', 'val'])
+
+        right.set_index(['col1', 'col2', 'col3'], inplace=True)
+        result = left.join(right, on=['cola', 'colb', 'colc'], how='left')
+
+        expected = DataFrame([
+            ['X', 'Y', 'C', 'a',   6],
+            ['X', 'Y', 'C', 'a',   9],
+            ['W', 'Y', 'C', 'e', nan],
+            ['V', 'Q', 'A', 'h',  -3],
+            ['V', 'R', 'D', 'i',   2],
+            ['V', 'R', 'D', 'i',  -1],
+            ['X', 'Y', 'D', 'b', nan],
+            ['X', 'Y', 'A', 'c',   1],
+            ['X', 'Y', 'A', 'c',   4],
+            ['W', 'Q', 'B', 'f',   3],
+            ['W', 'Q', 'B', 'f',   8],
+            ['W', 'R', 'C', 'g',   0],
+            ['V', 'Y', 'C', 'j',   7],
+            ['X', 'Y', 'B', 'd',   5]],
+            columns=['cola', 'colb', 'colc', 'tag', 'val'],
+            index=[3, 3, 2, 0, 1, 1, 7, 6, 6, 4, 4, 5, 9, 8])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_left_join_index_multi_match(self):
+        left = DataFrame([
+            ['c', 0],
+            ['b', 1],
+            ['a', 2],
+            ['b', 3]],
+            columns=['tag', 'val'],
+            index=[2, 0, 1, 3])
+
+        right = DataFrame([
+            ['a', 'v'],
+            ['c', 'w'],
+            ['c', 'x'],
+            ['d', 'y'],
+            ['a', 'z'],
+            ['c', 'r'],
+            ['e', 'q'],
+            ['c', 's']],
+            columns=['tag', 'char'])
+
+        right.set_index('tag', inplace=True)
+        result = left.join(right, on='tag', how='left')
+
+        expected = DataFrame([
+            ['c', 0, 'w'],
+            ['c', 0, 'x'],
+            ['c', 0, 'r'],
+            ['c', 0, 's'],
+            ['b', 1, nan],
+            ['a', 2, 'v'],
+            ['a', 2, 'z'],
+            ['b', 3, nan]],
+            columns=['tag', 'val', 'char'],
+            index=[2, 2, 2, 2, 0, 1, 1, 3])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_join_multi_dtypes(self):
 
         # test with multi dtypes in the join index

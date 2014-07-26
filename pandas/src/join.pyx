@@ -103,12 +103,18 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
     left_indexer = _get_result_indexer(left_sorter, left_indexer)
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
 
-    if not sort:
-        if left_sorter.dtype != np.int_:
-            left_sorter = left_sorter.astype(np.int_)
+    if not sort:  # if not asked to sort, revert to original order
+        if len(left) == len(left_indexer):
+            # no multiple matches for any row on the left
+            # this is a short-cut to avoid np.argsort;
+            # otherwise, the `else` path also works in this case
+            if left_sorter.dtype != np.int_:
+                left_sorter = left_sorter.astype(np.int_)
 
-        rev = np.empty(len(left), dtype=np.int_)
-        rev.put(left_sorter, np.arange(len(left)))
+            rev = np.empty(len(left), dtype=np.int_)
+            rev.put(left_sorter, np.arange(len(left)))
+        else:
+            rev = np.argsort(left_indexer)
 
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
