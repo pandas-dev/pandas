@@ -863,6 +863,7 @@ class TestTimeZoneCacheKey(tm.TestCase):
 
 class TestTimeZones(tm.TestCase):
     _multiprocess_can_split_ = True
+    timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
     def setUp(self):
         tm._skip_if_no_pytz()
@@ -881,6 +882,24 @@ class TestTimeZones(tm.TestCase):
         exp = date_range('1/1/2011', periods=100, freq='H', tz='US/Pacific')
 
         self.assertTrue(conv.equals(exp))
+
+    def test_tz_localize_roundtrip(self):
+        for tz in self.timezones:
+            idx1 = date_range(start='2014-01-01', end='2014-12-31', freq='M')
+            idx2 = date_range(start='2014-01-01', end='2014-12-31', freq='D')
+            idx3 = date_range(start='2014-01-01', end='2014-03-01', freq='H')
+            idx4 = date_range(start='2014-08-01', end='2014-10-31', freq='T')
+            for idx in [idx1, idx2, idx3, idx4]:
+                localized = idx.tz_localize(tz)
+                expected = date_range(start=idx[0], end=idx[-1], freq=idx.freq, tz=tz)
+                tm.assert_index_equal(localized, expected)
+
+                with tm.assertRaises(TypeError):
+                    localized.tz_localize(tz)
+
+                reset = localized.tz_localize(None)
+                tm.assert_index_equal(reset, idx)
+                self.assertTrue(reset.tzinfo is None)
 
     def test_series_frame_tz_localize(self):
 
@@ -929,6 +948,29 @@ class TestTimeZones(tm.TestCase):
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
         tm.assertRaisesRegexp(TypeError, "Cannot convert tz-naive", ts.tz_convert, 'US/Eastern')
+
+    def test_tz_convert_roundtrip(self):
+        for tz in self.timezones:
+            idx1 = date_range(start='2014-01-01', end='2014-12-31', freq='M', tz='UTC')
+            exp1 = date_range(start='2014-01-01', end='2014-12-31', freq='M')
+
+            idx2 = date_range(start='2014-01-01', end='2014-12-31', freq='D', tz='UTC')
+            exp2 = date_range(start='2014-01-01', end='2014-12-31', freq='D')
+
+            idx3 = date_range(start='2014-01-01', end='2014-03-01', freq='H', tz='UTC')
+            exp3 = date_range(start='2014-01-01', end='2014-03-01', freq='H')
+
+            idx4 = date_range(start='2014-08-01', end='2014-10-31', freq='T', tz='UTC')
+            exp4 = date_range(start='2014-08-01', end='2014-10-31', freq='T')
+
+
+            for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3), (idx4, exp4)]:
+                converted = idx.tz_convert(tz)
+                reset = converted.tz_convert(None)
+                tm.assert_index_equal(reset, expected)
+                self.assertTrue(reset.tzinfo is None)
+                tm.assert_index_equal(reset, converted.tz_convert('UTC').tz_localize(None))
+
 
     def test_join_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')

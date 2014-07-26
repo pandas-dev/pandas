@@ -1618,7 +1618,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def tz_convert(self, tz):
         """
-        Convert DatetimeIndex from one time zone to another (using pytz/dateutil)
+        Convert tz-aware DatetimeIndex from one time zone to another (using pytz/dateutil)
+
+        Parameters
+        ----------
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time. Corresponding timestamps would be converted to
+            time zone of the TimeSeries.
+            None will remove timezone holding UTC time.
 
         Returns
         -------
@@ -1636,13 +1643,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def tz_localize(self, tz, infer_dst=False):
         """
-        Localize tz-naive DatetimeIndex to given time zone (using pytz/dateutil)
+        Localize tz-naive DatetimeIndex to given time zone (using pytz/dateutil),
+        or remove timezone from tz-aware DatetimeIndex
 
         Parameters
         ----------
-        tz : string or pytz.timezone or dateutil.tz.tzfile
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries
+            time zone of the TimeSeries.
+            None will remove timezone holding local time.
         infer_dst : boolean, default False
             Attempt to infer fall dst-transition hours based on order
 
@@ -1651,13 +1660,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         localized : DatetimeIndex
         """
         if self.tz is not None:
-            raise TypeError("Already tz-aware, use tz_convert to convert.")
-        tz = tslib.maybe_get_tz(tz)
-
-        # Convert to UTC
-        new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)
+            if tz is None:
+                new_dates = tslib.tz_convert(self.asi8, 'UTC', self.tz)
+            else:
+                raise TypeError("Already tz-aware, use tz_convert to convert.")
+        else:
+            tz = tslib.maybe_get_tz(tz)
+            # Convert to UTC
+            new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)
         new_dates = new_dates.view(_NS_DTYPE)
-
         return self._simple_new(new_dates, self.name, self.offset, tz)
 
     def indexer_at_time(self, time, asof=False):

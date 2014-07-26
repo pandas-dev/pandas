@@ -1454,6 +1454,19 @@ to determine the right offset.
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', infer_dst=True)
    rng_hourly_eastern.values
 
+
+To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or ``tz_convert(None)``. ``tz_localize(None)`` will remove timezone holding local time representations. ``tz_convert(None)`` will remove timezone after converting to UTC time.
+
+.. ipython:: python
+
+   didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
+   didx
+   didx.tz_localize(None)
+   didx.tz_convert(None)
+
+   # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
+   didx.tz_convert('UCT').tz_localize(None)
+
 .. _timeseries.timedeltas:
 
 Time Deltas

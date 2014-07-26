@@ -373,11 +373,14 @@ class Timestamp(_Timestamp):
 
     def tz_localize(self, tz, infer_dst=False):
         """
-        Convert naive Timestamp to local time zone
+        Convert naive Timestamp to local time zone, or remove
+        timezone from tz-aware Timestamp.
 
         Parameters
         ----------
-        tz : pytz.timezone or dateutil.tz.tzfile
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding local time.
         infer_dst : boolean, default False
             Attempt to infer fall dst-transition hours based on order
 
@@ -392,8 +395,13 @@ class Timestamp(_Timestamp):
                                        infer_dst=infer_dst)[0]
             return Timestamp(value, tz=tz)
         else:
-            raise Exception('Cannot localize tz-aware Timestamp, use '
-                            'tz_convert for conversions')
+            if tz is None:
+                # reset tz
+                value = tz_convert_single(self.value, 'UTC', self.tz)
+                return Timestamp(value, tz=None)
+            else:
+                raise Exception('Cannot localize tz-aware Timestamp, use '
+                                'tz_convert for conversions')
 
     def tz_convert(self, tz):
         """
@@ -402,7 +410,9 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        tz : pytz.timezone or dateutil.tz.tzfile
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding UTC time.
 
         Returns
         -------
