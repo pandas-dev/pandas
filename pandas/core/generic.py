@@ -1171,11 +1171,14 @@ class NDFrame(PandasObject):
 
             if t == 'referant':
                 t = ("A value is trying to be set on a copy of a slice from a "
-                     "DataFrame")
+                     "DataFrame\n\n"
+                     "See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
             else:
                 t = ("A value is trying to be set on a copy of a slice from a "
                      "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
-                     "instead")
+                     "instead\n\n"
+                     "See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
+
             if value == 'raise':
                 raise SettingWithCopyError(t)
             elif value == 'warn':
