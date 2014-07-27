@@ -852,16 +852,13 @@ class MPLPlot(object):
         self._validate_color_args()
 
     def _validate_color_args(self):
-        from pandas import DataFrame
         if 'color' not in self.kwds and 'colors' in self.kwds:
             warnings.warn(("'colors' is being deprecated. Please use 'color'"
                            "instead of 'colors'"))
             colors = self.kwds.pop('colors')
             self.kwds['color'] = colors
 
-        if ('color' in self.kwds and
-            (isinstance(self.data, Series) or
-             isinstance(self.data, DataFrame) and len(self.data.columns) == 1)):
+        if ('color' in self.kwds and self.nseries == 1):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
 
@@ -1264,7 +1261,6 @@ class MPLPlot(object):
         return style or None
 
     def _get_colors(self, num_colors=None, color_kwds='color'):
-        from pandas.core.frame import DataFrame
         if num_colors is None:
             num_colors = self.nseries
 
@@ -1709,7 +1705,7 @@ class AreaPlot(LinePlot):
             raise ValueError("Log-y scales are not supported in area plot")
         else:
             f = MPLPlot._get_plot_function(self)
-            def plotf(ax, x, y, style=None, column_num=0, **kwds):
+            def plotf(ax, x, y, style=None, column_num=None, **kwds):
                 if column_num == 0:
                     self._initialize_prior(len(self.data))
                 y_values = self._get_stacked_values(y, kwds['label'])
@@ -1764,8 +1760,8 @@ class BarPlot(MPLPlot):
         kwargs.setdefault('align', 'center')
         self.tick_pos = np.arange(len(data))
 
-        self.bottom = kwargs.pop('bottom', None)
-        self.left = kwargs.pop('left', None)
+        self.bottom = kwargs.pop('bottom', 0)
+        self.left = kwargs.pop('left', 0)
 
         self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
@@ -1796,13 +1792,11 @@ class BarPlot(MPLPlot):
     def _get_plot_function(self):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
-                if self.bottom is not None:
-                    start = start + self.bottom
+                start = start + self.bottom
                 return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
         elif self.kind == 'barh':
             def f(ax, x, y, w, start=None, log=self.log, **kwds):
-                if self.left is not None:
-                    start = start + self.left
+                start = start + self.left
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
             raise NotImplementedError
@@ -2243,58 +2237,145 @@ _plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
                'area': AreaPlot, 'pie': PiePlot}
 
 
-def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
-               sharey=False, use_index=True, figsize=None, grid=None,
-               legend=True, rot=None, ax=None, style=None, title=None,
-               xlim=None, ylim=None, logx=False, logy=False, xticks=None,
-               yticks=None, kind='line', sort_columns=False, fontsize=None,
-               secondary_y=False, layout=None, **kwds):
+def _plot(data, x=None, y=None, subplots=False,
+          ax=None, kind='line', **kwds):
+    kind = _get_standard_kind(kind.lower().strip())
+    if kind in _all_kinds:
+        klass = _plot_klass[kind]
+    else:
+        raise ValueError('Invalid chart type given %s' % kind)
 
-    """
-    Make line, bar, or scatter plots of DataFrame series with the index on the x-axis
-    using matplotlib / pylab.
+    from pandas import DataFrame
+    if kind in _dataframe_kinds:
+        if isinstance(data, DataFrame):
+            plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
+                             kind=kind, **kwds)
+        else:
+            raise ValueError('Invalid chart type given %s' % kind)
 
-    Parameters
-    ----------
-    frame : DataFrame
-    x : label or position, default None
+    elif kind in _series_kinds:
+        if isinstance(data, DataFrame):
+            if y is None and subplots is False:
+                msg = "{0} requires either y column or 'subplots=True'"
+                raise ValueError(msg.format(kind))
+            elif y is not None:
+                if com.is_integer(y) and not data.columns.holds_integer():
+                    y = data.columns[y]
+                data = data[y]  # converted to series actually
+                data.index.name = y
+        plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
+    else:
+        if isinstance(data, DataFrame):
+            if x is not None:
+                if com.is_integer(x) and not data.columns.holds_integer():
+                    x = data.columns[x]
+                data = data.set_index(x)
+
+            if y is not None:
+                if com.is_integer(y) and not data.columns.holds_integer():
+                    y = data.columns[y]
+                label = x if x is not None else data.index.name
+                label = kwds.pop('label', label)
+                series = data[y]
+                series.index.name = label
+
+                for kw in ['xerr', 'yerr']:
+                    if (kw in kwds) and \
+                    (isinstance(kwds[kw], string_types) or com.is_integer(kwds[kw])):
+                        try:
+                            kwds[kw] = data[kwds[kw]]
+                        except (IndexError, KeyError, TypeError):
+                            pass
+                data = series
+        plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
+
+    plot_obj.generate()
+    plot_obj.draw()
+    return plot_obj.result
+
+
+df_kind = """- 'scatter' : scatter plot
+        - 'hexbin' : hexbin plot"""
+series_kind = ""
+
+df_coord = """x : label or position, default None
     y : label or position, default None
-        Allows plotting of one column versus another
-    yerr : DataFrame (with matching labels), Series, list-type (tuple, list,
-        ndarray), or str of column name containing y error values
-    xerr : similar functionality as yerr, but for x error values
+        Allows plotting of one column versus another"""
+series_coord = ""
+
+df_unique = """stacked : boolean, default False in line and bar plots, and True in area plot.
+        If True, create stacked plot.
+    sort_columns : boolean, default False
+        Sort column names to determine plot ordering
+    secondary_y : boolean or sequence, default False
+        Whether to plot on the secondary y-axis
+        If a list/tuple, which columns to plot on secondary y-axis
+"""
+series_unique = """label : label argument to provide to plot
+    secondary_y : boolean or sequence of ints, default False
+        If True then y-axis will be on the right"""
+
+df_ax = """ax : matplotlib axes object, default None
     subplots : boolean, default False
-        Make separate subplots for each time series
+        Make separate subplots for each column
     sharex : boolean, default True
         In case subplots=True, share x axis
     sharey : boolean, default False
         In case subplots=True, share y axis
+    layout : tuple (optional)
+        (rows, columns) for the layout of subplots"""
+series_ax = """ax : matplotlib axes object
+        If not passed, uses gca()"""
+
+df_note = """- If `kind`='bar' or 'barh', you can specify relative alignments
+      for bar plot layout by `position` keyword.
+      From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
+    - If `kind`='hexbin', you can control the size of the bins with the
+      `gridsize` argument. By default, a histogram of the counts around each
+      `(x, y)` point is computed. You can specify alternative aggregations
+      by passing values to the `C` and `reduce_C_function` arguments.
+      `C` specifies the value at each `(x, y)` point and `reduce_C_function`
+      is a function of one argument that reduces all the values in a bin to
+      a single number (e.g. `mean`, `max`, `sum`, `std`)."""
+series_note = ""
+
+_shared_doc_df_kwargs = dict(klass='DataFrame', klass_kind=df_kind,
+                             klass_coord=df_coord, klass_ax=df_ax,
+                             klass_unique=df_unique, klass_note=df_note)
+_shared_doc_series_kwargs = dict(klass='Series', klass_kind=series_kind,
+                                 klass_coord=series_coord, klass_ax=series_ax,
+                                 klass_unique=series_unique, klass_note=series_note)
+
+_shared_docs['plot'] = """
+    Make plots of %(klass)s using matplotlib / pylab.
+
+    Parameters
+    ----------
+    data : %(klass)s
+    %(klass_coord)s
+    kind : str
+        - 'line' : line plot (default)
+        - 'bar' : vertical bar plot
+        - 'barh' : horizontal bar plot
+        - 'hist' : histogram
+        - 'box' : boxplot
+        - 'kde' : Kernel Density Estimation plot
+        - 'density' : same as 'kde'
+        - 'area' : area plot
+        - 'pie' : pie plot
+        %(klass_kind)s
+    %(klass_ax)s
+    figsize : a tuple (width, height) in inches
     use_index : boolean, default True
         Use index as ticks for x axis
-    stacked : boolean, default False
-        If True, create stacked bar plot. Only valid for DataFrame input
-    sort_columns: boolean, default False
-        Sort column names to determine plot ordering
     title : string
         Title to use for the plot
     grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
         Place legend on axis subplots
-
-    ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'box', 'scatter', 'hexbin'}
-        line : line plot
-        bar : vertical bar plot
-        barh : horizontal bar plot
-        hist : histogram
-        kde/density : Kernel Density Estimation plot
-        area : area plot
-        box : box plot
-        scatter : scatter plot
-        hexbin : hexbin plot
     logx : boolean, default False
         Use log scaling on x axis
     logy : boolean, default False
@@ -2309,12 +2390,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ylim : 2-tuple/list
     rot : int, default None
         Rotation for ticks
-    secondary_y : boolean or sequence, default False
-        Whether to plot on the secondary y-axis
-        If a list/tuple, which columns to plot on secondary y-axis
-    mark_right: boolean, default True
-        When using a secondary_y axis, should the legend label the axis of
-        the various columns automatically
+    fontsize : int, default None
+        Font size for ticks
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
@@ -2329,12 +2406,19 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
         If a Series or DataFrame is passed, use passed data to draw a table.
+    yerr : DataFrame, Series, array-like, dict and str
+        See :ref:`Plotting with Error Bars <visualization.errorbars>` for detail.
+    xerr : same types as yerr.
+    %(klass_unique)s
+    mark_right : boolean, default True
+        When using a secondary_y axis, automatically mark the column
+        labels with "(right)" in the legend
     kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
     -------
-    ax_or_axes : matplotlib.AxesSubplot or list of them
+    axes : matplotlib.AxesSubplot or np.array of them
 
     Notes
     -----
@@ -2349,178 +2433,64 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     If `kind`='scatter' and the argument `c` is the name of a dataframe column,
     the values of that column are used to color each point.
+    - See matplotlib documentation online for more on this subject
+    %(klass_note)s
     """
 
-    kind = _get_standard_kind(kind.lower().strip())
-    if kind in _all_kinds:
-        klass = _plot_klass[kind]
-    else:
-        raise ValueError('Invalid chart type given %s' % kind)
-
-    if kind in _dataframe_kinds:
-        plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
-                         rot=rot,legend=legend, ax=ax, style=style,
-                         fontsize=fontsize, use_index=use_index, sharex=sharex,
-                         sharey=sharey, xticks=xticks, yticks=yticks,
-                         xlim=xlim, ylim=ylim, title=title, grid=grid,
-                         figsize=figsize, logx=logx, logy=logy,
-                         sort_columns=sort_columns, secondary_y=secondary_y,
-                         layout=layout, **kwds)
-    elif kind in _series_kinds:
-        if y is None and subplots is False:
-            msg = "{0} requires either y column or 'subplots=True'"
-            raise ValueError(msg.format(kind))
-        elif y is not None:
-            if com.is_integer(y) and not frame.columns.holds_integer():
-                y = frame.columns[y]
-            frame = frame[y]  # converted to series actually
-            frame.index.name = y
-
-        plot_obj = klass(frame,  kind=kind, subplots=subplots,
-                         rot=rot,legend=legend, ax=ax, style=style,
-                         fontsize=fontsize, use_index=use_index, sharex=sharex,
-                         sharey=sharey, xticks=xticks, yticks=yticks,
-                         xlim=xlim, ylim=ylim, title=title, grid=grid,
-                         figsize=figsize, layout=layout,
-                         sort_columns=sort_columns, **kwds)
-    else:
-        if x is not None:
-            if com.is_integer(x) and not frame.columns.holds_integer():
-                x = frame.columns[x]
-            frame = frame.set_index(x)
-
-        if y is not None:
-            if com.is_integer(y) and not frame.columns.holds_integer():
-                y = frame.columns[y]
-            label = x if x is not None else frame.index.name
-            label = kwds.pop('label', label)
-            ser = frame[y]
-            ser.index.name = label
-
-            for kw in ['xerr', 'yerr']:
-                if (kw in kwds) and \
-                (isinstance(kwds[kw], string_types) or com.is_integer(kwds[kw])):
-                    try:
-                        kwds[kw] = frame[kwds[kw]]
-                    except (IndexError, KeyError, TypeError):
-                        pass
-
-            return plot_series(ser, label=label, kind=kind,
-                               use_index=use_index,
-                               rot=rot, xticks=xticks, yticks=yticks,
-                               xlim=xlim, ylim=ylim, ax=ax, style=style,
-                               grid=grid, logx=logx, logy=logy,
-                               secondary_y=secondary_y, title=title,
-                               figsize=figsize, fontsize=fontsize, **kwds)
-
-        else:
-            plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
-                             legend=legend, ax=ax, style=style, fontsize=fontsize,
-                             use_index=use_index, sharex=sharex, sharey=sharey,
-                             xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                             title=title, grid=grid, figsize=figsize, logx=logx,
-                             logy=logy, sort_columns=sort_columns,
-                             secondary_y=secondary_y, layout=layout, **kwds)
-
-    plot_obj.generate()
-    plot_obj.draw()
-    return plot_obj.result
+@Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
+def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
+               subplots=False, sharex=True, sharey=False, layout=None,     # Dataframe unique
+               figsize=None, use_index=True, title=None, grid=None, legend=True,
+               style=None, logx=False, logy=False, loglog=False,
+               xticks=None, yticks=None, xlim=None, ylim=None,
+               rot=None, fontsize=None, colormap=None, table=False,
+               yerr=None, xerr=None,
+               secondary_y=False, sort_columns=False,        # Dataframe unique
+               **kwds):
+    return _plot(data, kind=kind, x=x, y=y, ax=ax,
+               subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
+               figsize=figsize, use_index=use_index, title=title,
+               grid=grid, legend=legend,
+               style=style, logx=logx, logy=logy, loglog=loglog,
+               xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+               rot=rot, fontsize=fontsize, colormap=colormap, table=table,
+               yerr=yerr, xerr=xerr,
+               secondary_y=secondary_y, sort_columns=sort_columns,
+               **kwds)
 
 
-def plot_series(series, label=None, kind='line', use_index=True, rot=None,
+@Appender(_shared_docs['plot'] % _shared_doc_series_kwargs)
+def plot_series(data, kind='line', ax=None,                                 # Series unique
+                figsize=None, use_index=True, title=None, grid=None, legend=True,
+                style=None, logx=False, logy=False, loglog=False,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=None, legend=False, logx=False,
-                logy=False, secondary_y=False, **kwds):
+                rot=None, fontsize=None, colormap=None, table=False,
+                yerr=None, xerr=None,
+                label=None, secondary_y=False,                              # Series unique
+                **kwds):
+
+    import matplotlib.pyplot as plt
     """
-    Plot the input series with the index on the x-axis using matplotlib
-
-    Parameters
-    ----------
-    label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh', 'hist', 'kde', 'density', 'area', 'box'}
-        line : line plot
-        bar : vertical bar plot
-        barh : horizontal bar plot
-        hist : histogram
-        kde/density : Kernel Density Estimation plot
-        area : area plot
-        box : box plot
-    use_index : boolean, default True
-        Plot index as axis tick labels
-    rot : int, default None
-        Rotation for tick labels
-    xticks : sequence
-        Values to use for the xticks
-    yticks : sequence
-        Values to use for the yticks
-    xlim : 2-tuple/list
-    ylim : 2-tuple/list
-    ax : matplotlib axis object
-        If not passed, uses gca()
-    style : string, default matplotlib default
-        matplotlib line style to use
-    grid : matplotlib grid
-    legend: matplotlib legend
-    logx : boolean, default False
-        Use log scaling on x axis
-    logy : boolean, default False
-        Use log scaling on y axis
-    loglog : boolean, default False
-        Use log scaling on both x and y axes
-    secondary_y : boolean or sequence of ints, default False
-        If True then y-axis will be on the right
-    figsize : a tuple (width, height) in inches
-    position : float
-        Specify relative alignments for bar plot layout.
-        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    table : boolean, Series or DataFrame, default False
-        If True, draw a table using the data in the Series and the data will
-        be transposed to meet matplotlib's default layout.
-        If a Series or DataFrame is passed, use passed data to draw a table.
-    kwds : keywords
-        Options to pass to matplotlib plotting method
-
-    Notes
-    -----
-    See matplotlib documentation online for more on this subject
-    """
-
-    kind = _get_standard_kind(kind.lower().strip())
-    if kind in _common_kinds or kind in _series_kinds:
-        klass = _plot_klass[kind]
-    else:
-        raise ValueError('Invalid chart type given %s' % kind)
-
-    """
-    If no axis is specified, we check whether there are existing figures.
-    If so, we get the current axis and check whether yaxis ticks are on the
-    right. Ticks for the plot of the series will be on the right unless
-    there is at least one axis with ticks on the left.
-
-    If we do not check for whether there are existing figures, _gca() will
-    create a figure with the default figsize, causing the figsize= parameter to
+    If no axes is specified, check whether there are existing figures
+    If there is no existing figures, _gca() will
+    create a figure with the default figsize, causing the figsize=parameter to
     be ignored.
     """
-    import matplotlib.pyplot as plt
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         ax = getattr(ax, 'left_ax', ax)
-
     # is there harm in this?
     if label is None:
-        label = series.name
-
-    plot_obj = klass(series, kind=kind, rot=rot, logx=logx, logy=logy,
-                     ax=ax, use_index=use_index, style=style,
-                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     legend=legend, grid=grid, label=label,
-                     secondary_y=secondary_y, **kwds)
-
-    plot_obj.generate()
-    plot_obj.draw()
-
-    # plot_obj.ax is None if we created the first figure
-    return plot_obj.result
+        label = data.name
+    return _plot(data, kind=kind, ax=ax,
+                 figsize=figsize, use_index=use_index, title=title,
+                 grid=grid, legend=legend,
+                 style=style, logx=logx, logy=logy, loglog=loglog,
+                 xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                 rot=rot, fontsize=fontsize, colormap=colormap, table=table,
+                 yerr=yerr, xerr=xerr,
+                 label=label, secondary_y=secondary_y,
+                 **kwds)
 
 
 _shared_docs['boxplot'] = """
