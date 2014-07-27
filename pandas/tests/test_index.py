@@ -1049,6 +1049,18 @@ class TestFloat64Index(tm.TestCase):
         tm.assert_equal(result.dtype, expected.dtype)
         tm.assert_index_equal(result, expected)
 
+    def test_get_indexer_nans(self):
+        index = Index([1, 2, np.nan])
+        result = index.get_indexer([np.nan])
+        np.testing.assert_array_equal(result, np.array([2]))
+
+        index = Index([1, np.nan, 2, np.nan])
+        with tm.assertRaisesRegexp(InvalidIndexError, 'Reindexing.*valid.*'):
+            index.get_indexer([np.nan])
+
+        index = Index([1, np.nan, 2])
+        result = index.get_indexer([np.nan, np.nan])
+        np.testing.assert_array_equal(result, np.array([1, 1]))
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
