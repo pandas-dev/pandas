@@ -239,8 +239,8 @@ Bug Fixes
 - Bug where ``nanops._has_infs`` doesn't work with many dtypes
   (:issue:`7357`)
 - Bug in ``StataReader.data`` where reading a 0-observation dta failed (:issue:`7369`)
-- Bug in when reading Stata 13 (117) files containing fixed width strings (:issue:`7360`)
-- Bug in when writing Stata files where the encoding was ignored (:issue:`7286`)
+- Bug in ``StataReader`` when reading Stata 13 (117) files containing fixed width strings (:issue:`7360`)
+- Bug in ``StataWriter`` where encoding was ignored (:issue:`7286`)
 - Bug in ``DatetimeIndex`` comparison doesn't handle ``NaT`` properly (:issue:`7529`)
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
