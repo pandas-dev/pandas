@@ -23,6 +23,7 @@ from pandas import compat
 from pandas.compat import long, lrange, lmap, lzip, text_type, string_types
 from pandas import isnull
 from pandas.io.common import get_filepath_or_buffer
+from pandas.lib import max_len_string_array, is_string_array
 from pandas.tslib import NaT
 
 def read_stata(filepath_or_buffer, convert_dates=True,
@@ -180,6 +181,11 @@ def _datetime_to_stata_elapsed(date, fmt):
     else:
         raise ValueError("fmt %s not understood" % fmt)
 
+
+excessive_string_length_error = """
+Fixed width strings in Stata .dta files are limited to 244 (or fewer) characters.
+Column '%s' does not satisfy this restriction.
+"""
 
 class PossiblePrecisionLoss(Warning):
     pass
@@ -1040,12 +1046,14 @@ def _dtype_to_stata_type(dtype):
                          "Please report an error to the developers." % dtype)
 
 
-def _dtype_to_default_stata_fmt(dtype):
+def _dtype_to_default_stata_fmt(dtype, column):
     """
     Maps numpy dtype to stata's default format for this type. Not terribly
     important since users can change this in Stata. Semantics are
 
     string  -> "%DDs" where DD is the length of the string
+    object  -> "%DDs" where DD is the length of the string, if a string, or 244
+                for anything that cannot be converted to a string.
     float64 -> "%10.0g"
     float32 -> "%9.0g"
     int64   -> "%9.0g"
@@ -1055,9 +1063,21 @@ def _dtype_to_default_stata_fmt(dtype):
     """
     #TODO: expand this to handle a default datetime format?
     if dtype.type == np.string_:
+        if max_len_string_array(column.values) > 244:
+            raise ValueError(excessive_string_length_error % column.name)
+
         return "%" + str(dtype.itemsize) + "s"
     elif dtype.type == np.object_:
-        return "%244s"
+        try:
+            # Try to use optimal size if available
+            itemsize = max_len_string_array(column.values)
+        except:
+            # Default size
+            itemsize = 244
+        if itemsize > 244:
+            raise ValueError(excessive_string_length_error % column.name)
+
+        return "%" + str(itemsize) + "s"
     elif dtype == np.float64:
         return "%10.0g"
     elif dtype == np.float32:
@@ -1264,7 +1284,9 @@ class StataWriter(StataParser):
                 )
                 dtypes[key] = np.dtype(new_type)
         self.typlist = [_dtype_to_stata_type(dt) for dt in dtypes]
-        self.fmtlist = [_dtype_to_default_stata_fmt(dt) for dt in dtypes]
+        self.fmtlist = []
+        for col, dtype in dtypes.iteritems():
+            self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, data[col]))
         # set the given format for the datetime cols
         if self._convert_dates is not None:
             for key in self._convert_dates:

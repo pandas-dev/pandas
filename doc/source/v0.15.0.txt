@@ -119,6 +119,11 @@ API changes
 - The ``infer_types`` argument to :func:`~pandas.io.html.read_html` now has no
   effect (:issue:`7762`, :issue:`7032`).
 
+- ``DataFrame.to_stata`` and ``StataWriter`` check string length for
+  compatibility with limitations imposed in dta files where fixed-width
+  strings must contain 244 or fewer characters.  Attempting to write Stata
+  dta files with strings longer than 244 characters raises a ``ValueError``. (:issue:`7858`)
+
 
 .. _whatsnew_0150.cat:
 
@@ -312,7 +317,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
 - Bug in ``StataReader`` which did not read variable labels in 117 files due to difference between Stata documentation and implementation (:issue:`7816`)
-
+- Bug in ``StataReader`` where strings were always converted to 244 characters-fixed width irrespective of underlying string size (:issue:`7858`)
 - Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, ``rolling_cov``, ``ewmcov``, and ``ewmcorr``
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
