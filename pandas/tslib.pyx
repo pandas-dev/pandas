@@ -1121,9 +1121,10 @@ cpdef inline object maybe_get_tz(object tz):
                 tz._filename = zone
         else:
             tz = pytz.timezone(tz)
-        return tz
-    else:
-        return tz
+    elif util.is_integer_object(tz):
+        tz = pytz.FixedOffset(tz / 60)
+    return tz
+
 
 
 class OutOfBoundsDatetime(ValueError):
@@ -2223,7 +2224,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
     result_b.fill(NPY_NAT)
 
     # left side
-    idx_shifted = _ensure_int64(
+    idx_shifted = ensure_int64(
         np.maximum(0, trans.searchsorted(vals - DAY_NS, side='right') - 1))
 
     for i in range(n):
@@ -2235,7 +2236,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
             result_a[i] = v
 
     # right side
-    idx_shifted = _ensure_int64(
+    idx_shifted = ensure_int64(
         np.maximum(0, trans.searchsorted(vals + DAY_NS, side='right') - 1))
 
     for i in range(n):
@@ -2313,14 +2314,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
 
     return result
 
-cdef _ensure_int64(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_INT64:
-            return arr
-        else:
-            return arr.astype(np.int64)
-    else:
-        return np.array(arr, dtype=np.int64)
+import pandas.algos as algos
+ensure_int64 = algos.ensure_int64
 
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):

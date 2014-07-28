@@ -16,7 +16,7 @@ from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
-from pandas.tseries.frequencies import get_period_alias, get_base_alias
+import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
@@ -1504,8 +1504,8 @@ class LinePlot(MPLPlot):
         if isinstance(freq, DateOffset):
             freq = freq.rule_code
         else:
-            freq = get_base_alias(freq)
-        freq = get_period_alias(freq)
+            freq = frequencies.get_base_alias(freq)
+        freq = frequencies.get_period_alias(freq)
         return freq is not None and self._no_base(freq)
 
     def _no_base(self, freq):
@@ -1513,10 +1513,9 @@ class LinePlot(MPLPlot):
         from pandas.core.frame import DataFrame
         if (isinstance(self.data, (Series, DataFrame))
             and isinstance(self.data.index, DatetimeIndex)):
-            import pandas.tseries.frequencies as freqmod
-            base = freqmod.get_freq(freq)
+            base = frequencies.get_freq(freq)
             x = self.data.index
-            if (base <= freqmod.FreqGroup.FR_DAY):
+            if (base <= frequencies.FreqGroup.FR_DAY):
                 return x[:1].is_normalized
 
             return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
@@ -1632,8 +1631,8 @@ class LinePlot(MPLPlot):
                 freq = getattr(data.index, 'inferred_freq', None)
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
-            freq = get_base_alias(freq)
-            freq = get_period_alias(freq)
+            freq = frequencies.get_base_alias(freq)
+            freq = frequencies.get_period_alias(freq)
 
             if freq is None:
                 ax = self._get_ax(0)

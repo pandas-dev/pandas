@@ -19,7 +19,7 @@ from pandas.core.datetools import (
 
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
-from pandas.tseries.tools import parse_time_string, _maybe_get_tz
+from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas.tslib import NaT, Timestamp
@@ -243,7 +243,7 @@ class TestCommon(Base):
 
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
-            tz_obj = _maybe_get_tz(tz)
+            tz_obj = tslib.maybe_get_tz(tz)
             dt_tz = tslib._localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
