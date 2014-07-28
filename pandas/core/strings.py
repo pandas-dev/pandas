@@ -12,7 +12,7 @@ import textwrap
 
 
 def _get_array_list(arr, others):
-    if len(others) and isinstance(others[0], (list, np.ndarray)):
+    if len(others) and isinstance(others.values[0], (list, np.ndarray)):
         arrays = [arr] + list(others)
     else:
         arrays = [arr, others]
