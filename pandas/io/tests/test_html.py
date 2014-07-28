@@ -86,26 +86,21 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
-class TestReadHtml(tm.TestCase):
+class ReadHtmlMixin(object):
+    def read_html(self, *args, **kwargs):
+        kwargs.setdefault('flavor', self.flavor)
+        return read_html(*args, **kwargs)
+
+
+class TestReadHtml(tm.TestCase, ReadHtmlMixin):
+    flavor = 'bs4'
+    spam_data = os.path.join(DATA_PATH, 'spam.html')
+    banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+
     @classmethod
     def setUpClass(cls):
         super(TestReadHtml, cls).setUpClass()
         _skip_if_none_of(('bs4', 'html5lib'))
-
-    def read_html(self, *args, **kwargs):
-        kwargs['flavor'] = kwargs.get('flavor', self.flavor)
-        return read_html(*args, **kwargs)
-
-    def setup_data(self):
-        self.spam_data = os.path.join(DATA_PATH, 'spam.html')
-        self.banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-
-    def setup_flavor(self):
-        self.flavor = 'bs4'
-
-    def setUp(self):
-        self.setup_data()
-        self.setup_flavor()
 
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
@@ -262,8 +257,7 @@ class TestReadHtml(tm.TestCase):
             df2 = self.read_html(self.spam_data, 'Unit', index_col=0,
                                  infer_types=True)
 
-        with tm.assertRaises(AssertionError):
-            assert_framelist_equal(df1, df2)
+        assert_framelist_equal(df1, df2)
 
     def test_string_io(self):
         with open(self.spam_data) as f:
@@ -568,7 +562,9 @@ class TestReadHtml(tm.TestCase):
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[0], index_col=0)
+        res = self.read_html(expected, parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(df, res[0])
+        res = self.read_html(expected, parse_dates=['date'], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
     def test_parse_dates_combine(self):
@@ -587,6 +583,13 @@ class TestReadHtml(tm.TestCase):
                                    "of columns"):
             with tm.assert_produces_warning(FutureWarning):
                 self.read_html(data, infer_types=False, header=[0, 1])
+
+    def test_wikipedia_states_table(self):
+        data = os.path.join(DATA_PATH, 'wikipedia_states.html')
+        assert os.path.isfile(data), '%r is not a file' % data
+        assert os.path.getsize(data), '%r is an empty file' % data
+        result = self.read_html(data, 'Arizona', header=1)[0]
+        nose.tools.assert_equal(result['sq mi'].dtype, np.dtype('float64'))
 
 
 def _lang_enc(filename):
@@ -637,16 +640,13 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
         _skip_if_no(cls.flavor)
 
 
-class TestReadHtmlLxml(tm.TestCase):
+class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
+    flavor = 'lxml'
+
     @classmethod
     def setUpClass(cls):
         super(TestReadHtmlLxml, cls).setUpClass()
         _skip_if_no('lxml')
-
-    def read_html(self, *args, **kwargs):
-        self.flavor = ['lxml']
-        kwargs['flavor'] = kwargs.get('flavor', self.flavor)
-        return read_html(*args, **kwargs)
 
     def test_data_fail(self):
         from lxml.etree import XMLSyntaxError
@@ -654,14 +654,14 @@ class TestReadHtmlLxml(tm.TestCase):
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
         with tm.assertRaises(XMLSyntaxError):
-            self.read_html(spam_data, flavor=['lxml'])
+            self.read_html(spam_data)
 
         with tm.assertRaises(XMLSyntaxError):
-            self.read_html(banklist_data, flavor=['lxml'])
+            self.read_html(banklist_data)
 
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
-        dfs = self.read_html(filename, index_col=0, flavor=['lxml'])
+        dfs = self.read_html(filename, index_col=0)
         tm.assert_isinstance(dfs, list)
         tm.assert_isinstance(dfs[0], DataFrame)
 
@@ -674,7 +674,9 @@ class TestReadHtmlLxml(tm.TestCase):
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[0], index_col=0)
+        res = self.read_html(expected, parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(df, res[0])
+        res = self.read_html(expected, parse_dates=['date'], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
     def test_parse_dates_combine(self):
@@ -694,8 +696,8 @@ class TestReadHtmlLxml(tm.TestCase):
 
 def test_invalid_flavor():
     url = 'google.com'
-    nose.tools.assert_raises(ValueError, read_html, url, 'google',
-                             flavor='not a* valid**++ flaver')
+    with tm.assertRaises(ValueError):
+        read_html(url, 'google', flavor='not a* valid**++ flaver')
 
 
 def get_elements_from_file(url, element='table'):
