@@ -1470,6 +1470,22 @@ class TestCategoricalAsBlock(tm.TestCase):
             pd.concat([df,df_wrong_levels])
         self.assertRaises(ValueError, f)
 
+        # GH 7864
+        # make sure ordering is preserverd
+        df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+        df["grade"] = pd.Categorical(df["raw_grade"])
+        df['grade'].cat.reorder_levels(['e', 'a', 'b'])
+
+        df1 = df[0:3]
+        df2 = df[3:]
+
+        self.assert_numpy_array_equal(df['grade'].cat.levels, df1['grade'].cat.levels)
+        self.assert_numpy_array_equal(df['grade'].cat.levels, df2['grade'].cat.levels)
+
+        dfx = pd.concat([df1, df2])
+        dfx['grade'].cat.levels
+        self.assert_numpy_array_equal(df['grade'].cat.levels, dfx['grade'].cat.levels)
+
     def test_append(self):
         cat = pd.Categorical(["a","b"], levels=["a","b"])
         vals = [1,2]

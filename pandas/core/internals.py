@@ -451,9 +451,9 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values.tolist()
 
-    def _validate_merge(self, blocks):
-        """ validate that we can merge these blocks """
-        return True
+    def _concat_blocks(self, blocks, values):
+        """ return the block concatenation """
+        return self._holder(values[0])
 
     # block actions ####
     def copy(self, deep=True):
@@ -1639,15 +1639,19 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                           ndim=self.ndim,
                           placement=self.mgr_locs)
 
-    def _validate_merge(self, blocks):
-        """ validate that we can merge these blocks """
+    def _concat_blocks(self, blocks, values):
+        """
+        validate that we can merge these blocks
+
+        return the block concatenation
+        """
 
         levels = self.values.levels
         for b in blocks:
             if not levels.equals(b.values.levels):
                 raise ValueError("incompatible levels in categorical block merge")
 
-        return True
+        return self._holder(values[0], levels=levels)
 
     def to_native_types(self, slicer=None, na_rep='', **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -4026,17 +4030,11 @@ def concatenate_join_units(join_units, concat_axis, copy):
     else:
         concat_values = com._concat_compat(to_concat, axis=concat_axis)
 
-    # FIXME: optimization potential: if len(join_units) == 1, single join unit
-    # is densified and sparsified back.
     if any(unit.needs_block_conversion for unit in join_units):
 
         # need to ask the join unit block to convert to the underlying repr for us
         blocks = [ unit.block for unit in join_units if unit.block is not None ]
-
-        # may need to validate this combination
-        blocks[0]._validate_merge(blocks)
-
-        return blocks[0]._holder(concat_values[0])
+        return blocks[0]._concat_blocks(blocks, concat_values)
     else:
         return concat_values
 
