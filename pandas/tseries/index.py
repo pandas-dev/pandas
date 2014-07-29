@@ -59,10 +59,10 @@ def _field_accessor(name, field, docstring=None):
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
     def wrapper(left, right):
-        if isinstance(left, (np.ndarray, ABCSeries)):
-            left = left.view('i8', type=np.ndarray)
-        if isinstance(right, (np.ndarray, ABCSeries)):
-            right = right.view('i8', type=np.ndarray)
+        if isinstance(left, (np.ndarray, Index, ABCSeries)):
+            left = left.view('i8')
+        if isinstance(right, (np.ndarray, Index, ABCSeries)):
+            right = right.view('i8')
         results = joinf(left, right)
         if with_indexers:
             join_index, left_indexer, right_indexer = results
@@ -86,9 +86,10 @@ def _dt_index_cmp(opname, nat_result=False):
         else:
             if isinstance(other, list):
                 other = DatetimeIndex(other)
-            elif not isinstance(other, (np.ndarray, ABCSeries)):
+            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
                 other = _ensure_datetime64(other)
             result = func(other)
+            result = _values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == tslib.iNaT
@@ -101,7 +102,11 @@ def _dt_index_cmp(opname, nat_result=False):
         mask = self.asi8 == tslib.iNaT
         if mask.any():
             result[mask] = nat_result
-        return result.view(np.ndarray)
+
+        # support of bool dtype indexers
+        if com.is_bool_dtype(result):
+            return result
+        return Index(result)
 
     return wrapper
 
@@ -143,8 +148,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     name : object
         Name to be stored in the index
     """
-    _join_precedence = 10
 
+    _typ = 'datetimeindex'
+    _join_precedence = 10
     _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
     _left_indexer = _join_i8_wrapper(_algos.left_join_indexer_int64)
@@ -167,17 +173,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     tz = None
     offset = None
     _comparables = ['name','freqstr','tz']
+    _attributes = ['name','freq','tz']
     _allow_datetime_index_ops = True
+    _is_numeric_dtype = False
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None, tz=None,
                 verify_integrity=True, normalize=False,
-                closed=None, **kwds):
+                closed=None, **kwargs):
 
-        dayfirst = kwds.pop('dayfirst', None)
-        yearfirst = kwds.pop('yearfirst', None)
-        infer_dst = kwds.pop('infer_dst', False)
+        dayfirst = kwargs.pop('dayfirst', None)
+        yearfirst = kwargs.pop('yearfirst', None)
+        infer_dst = kwargs.pop('infer_dst', False)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -205,7 +213,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                                  tz=tz, normalize=normalize, closed=closed,
                                  infer_dst=infer_dst)
 
-        if not isinstance(data, (np.ndarray, ABCSeries)):
+        if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if np.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
@@ -262,7 +270,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             else:
                 subarr = data.view(_NS_DTYPE)
         else:
-            if isinstance(data, ABCSeries):
+            if isinstance(data, (ABCSeries, Index)):
                 values = data.values
             else:
                 values = data
@@ -302,10 +310,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
                 subarr = subarr.view(_NS_DTYPE)
 
-        subarr = subarr.view(cls)
-        subarr.name = name
-        subarr.offset = freq
-        subarr.tz = tz
+        subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
 
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
@@ -442,10 +447,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                                                  infer_dst=infer_dst)
                 index = index.view(_NS_DTYPE)
 
-        index = index.view(cls)
-        index.name = name
-        index.offset = offset
-        index.tz = tz
+        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
 
         if not left_closed:
             index = index[1:]
@@ -474,15 +476,18 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             return result.take(reverse)
 
     @classmethod
-    def _simple_new(cls, values, name, freq=None, tz=None):
+    def _simple_new(cls, values, name=None, freq=None, tz=None):
+        if not getattr(values,'dtype',None):
+            values = np.array(values,copy=False)
         if values.dtype != _NS_DTYPE:
             values = com._ensure_int64(values).view(_NS_DTYPE)
 
-        result = values.view(cls)
+        result = object.__new__(cls)
+        result._data = values
         result.name = name
         result.offset = freq
         result.tz = tslib.maybe_get_tz(tz)
-
+        result._reset_identity()
         return result
 
     @property
@@ -517,7 +522,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
             arr = tools.to_datetime(list(xdr), box=False)
 
-            cachedRange = arr.view(DatetimeIndex)
+            cachedRange = DatetimeIndex._simple_new(arr)
             cachedRange.offset = offset
             cachedRange.tz = None
             cachedRange.name = None
@@ -575,29 +580,37 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: formatter(x, tz=self.tz)
 
-    def __reduce__(self):
-        """Necessary for making this object picklable"""
-        object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = self.name, self.offset, self.tz
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
-
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        if len(state) == 2:
-            nd_state, own_state = state
-            self.name = own_state[0]
-            self.offset = own_state[1]
-            self.tz = own_state[2]
-            np.ndarray.__setstate__(self, nd_state)
+        if isinstance(state, dict):
+            super(DatetimeIndex, self).__setstate__(state)
 
-            # provide numpy < 1.7 compat
-            if nd_state[2] == 'M8[us]':
-                new_state = np.ndarray.__reduce__(self.values.astype('M8[ns]'))
-                np.ndarray.__setstate__(self, new_state[2])
+        elif isinstance(state, tuple):
 
-        else:  # pragma: no cover
-            np.ndarray.__setstate__(self, state)
+            # < 0.15 compat
+            if len(state) == 2:
+                nd_state, own_state = state
+                data = np.empty(nd_state[1], dtype=nd_state[2])
+                np.ndarray.__setstate__(data, nd_state)
+
+                self.name = own_state[0]
+                self.offset = own_state[1]
+                self.tz = own_state[2]
+
+                # provide numpy < 1.7 compat
+                if nd_state[2] == 'M8[us]':
+                    new_state = np.ndarray.__reduce__(data.astype('M8[ns]'))
+                    np.ndarray.__setstate__(data, new_state[2])
+
+            else:  # pragma: no cover
+                data = np.empty(state)
+                np.ndarray.__setstate__(data, state)
+
+            self._data = data
+
+        else:
+            raise Exception("invalid pickle state")
+    _unpickle_compat = __setstate__
 
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):
@@ -662,7 +675,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         return self.copy()
 
     def groupby(self, f):
-        objs = self.asobject
+        objs = self.asobject.values
         return _algos.groupby_object(objs, f)
 
     def summary(self, name=None):
@@ -982,7 +995,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         if (isinstance(other, DatetimeIndex)
             and self.offset == other.offset
                 and self._can_fast_union(other)):
-            joined = self._view_like(joined)
+            joined = self._shallow_copy(joined)
             joined.name = name
             return joined
         else:
@@ -1044,7 +1057,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 loc = right.searchsorted(left_end, side='right')
                 right_chunk = right.values[loc:]
                 dates = com._concat_compat((left.values, right_chunk))
-                return self._view_like(dates)
+                return self._shallow_copy(dates)
             else:
                 return left
         else:
@@ -1140,7 +1153,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left.values[lslice]
-            return self._view_like(left_chunk)
+            return self._shallow_copy(left_chunk)
 
     def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
 
@@ -1357,10 +1370,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         return Index.slice_locs(self, start, end)
 
     def __getitem__(self, key):
-        """Override numpy.ndarray's __getitem__ method to work as desired"""
-        arr_idx = self.view(np.ndarray)
+        getitem = self._data.__getitem__
         if np.isscalar(key):
-            val = arr_idx[key]
+            val = getitem(key)
             return Timestamp(val, offset=self.offset, tz=self.tz)
         else:
             if com._is_bool_indexer(key):
@@ -1377,7 +1389,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 else:
                     new_offset = self.offset
 
-            result = arr_idx[key]
+            result = getitem(key)
             if result.ndim > 1:
                 return result
 
@@ -1388,17 +1400,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def map(self, f):
         try:
             result = f(self)
-            if not isinstance(result, np.ndarray):
+            if not isinstance(result, (np.ndarray, Index)):
                 raise TypeError
             return result
         except Exception:
-            return _algos.arrmap_object(self.asobject, f)
+            return _algos.arrmap_object(self.asobject.values, f)
 
     # alias to offset
-    @property
-    def freq(self):
-        """ return the frequency object if its set, otherwise None """
+    def _get_freq(self):
         return self.offset
+
+    def _set_freq(self, value):
+        self.offset = value
+    freq = property(fget=_get_freq, fset=_set_freq, doc="get/set the frequncy of the Index")
 
     @cache_readonly
     def inferred_freq(self):
@@ -1443,14 +1457,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         # can't call self.map() which tries to treat func as ufunc
         # and causes recursion warnings on python 2.6
-        return _algos.arrmap_object(self.asobject, lambda x: x.time())
+        return _algos.arrmap_object(self.asobject.values, lambda x: x.time())
 
     @property
     def _date(self):
         """
         Returns numpy array of datetime.date. The date part of the Timestamps.
         """
-        return _algos.arrmap_object(self.asobject, lambda x: x.date())
+        return _algos.arrmap_object(self.asobject.values, lambda x: x.date())
 
 
     def normalize(self):
@@ -1466,7 +1480,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                              tz=self.tz)
 
     def searchsorted(self, key, side='left'):
-        if isinstance(key, np.ndarray):
+        if isinstance(key, (np.ndarray, Index)):
             key = np.array(key, dtype=_NS_DTYPE, copy=False)
         else:
             key = _to_m8(key, tz=self.tz)
@@ -1609,13 +1623,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             new_dates = tslib.tz_convert(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
-    def _view_like(self, ndarray):
-        result = ndarray.view(type(self))
-        result.offset = self.offset
-        result.tz = self.tz
-        result.name = self.name
-        return result
-
     def tz_convert(self, tz):
         """
         Convert tz-aware DatetimeIndex from one time zone to another (using pytz/dateutil)
@@ -1639,7 +1646,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
-        return self._simple_new(self.values, self.name, self.offset, tz)
+        return self._shallow_copy(tz=tz)
 
     def tz_localize(self, tz, infer_dst=False):
         """
@@ -1669,7 +1676,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             # Convert to UTC
             new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)
         new_dates = new_dates.view(_NS_DTYPE)
-        return self._simple_new(new_dates, self.name, self.offset, tz)
+        return self._shallow_copy(new_dates, tz=tz)
 
     def indexer_at_time(self, time, asof=False):
         """
@@ -1782,7 +1789,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                              self.microsecond/3600.0/1e+6 +
                              self.nanosecond/3600.0/1e+9
                             )/24.0)
-
+DatetimeIndex._add_numeric_methods_disabled()
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):

@@ -98,6 +98,13 @@ class TestCase(unittest.TestCase):
             return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
 
+    def round_trip_pickle(self, obj, path=None):
+        if path is None:
+            path = u('__%s__.pickle' % rands(10))
+        with ensure_clean(path) as path:
+            pd.to_pickle(obj, path)
+            return pd.read_pickle(path)
+
     def assert_numpy_array_equivalent(self, np_array, assert_equal):
         """Checks that 'np_array' is equivalent to 'assert_equal'
 

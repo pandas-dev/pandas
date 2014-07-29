@@ -1000,7 +1000,8 @@ class TestDataFramePlots(TestPlotBase):
         pd.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
-        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
+        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
+        self.assertIsInstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
         tm.close()
         # useful if you're plotting a bunch together
@@ -1012,7 +1013,8 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
         ax = df.plot()
         lines = ax.get_lines()
-        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
+        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
+        self.assertIsInstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
     def test_unsorted_index(self):
         df = DataFrame({'y': np.arange(100)},

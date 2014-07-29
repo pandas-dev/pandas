@@ -12,7 +12,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas import compat
-from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
+from pandas.compat import range, lrange, StringIO, OrderedDict
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -31,8 +31,7 @@ class PanelTests(object):
     panel = None
 
     def test_pickle(self):
-        pickled = cPickle.dumps(self.panel)
-        unpickled = cPickle.loads(pickled)
+        unpickled = self.round_trip_pickle(self.panel)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
     def test_cumsum(self):

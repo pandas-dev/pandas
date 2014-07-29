@@ -18,11 +18,6 @@ from pandas.compat import u
 from pandas.util.misc import is_little_endian
 import pandas
 
-def _read_pickle(vf, encoding=None, compat=False):
-    from pandas.compat import pickle_compat as pc
-    with open(vf,'rb') as fh:
-        pc.load(fh, encoding=encoding, compat=compat)
-
 class TestPickle(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -97,16 +92,54 @@ class TestPickle(tm.TestCase):
         self.read_pickles('0.14.0')
 
     def test_round_trip_current(self):
-        for typ, dv in self.data.items():
 
+        try:
+            import cPickle as c_pickle
+            def c_pickler(obj,path):
+                with open(path,'wb') as fh:
+                    c_pickle.dump(obj,fh,protocol=-1)
+
+            def c_unpickler(path):
+                with open(path,'rb') as fh:
+                    fh.seek(0)
+                    return c_pickle.load(fh)
+        except:
+            c_pickler = None
+            c_unpickler = None
+
+        import pickle as python_pickle
+
+        def python_pickler(obj,path):
+            with open(path,'wb') as fh:
+                python_pickle.dump(obj,fh,protocol=-1)
+
+        def python_unpickler(path):
+            with open(path,'rb') as fh:
+                fh.seek(0)
+                return python_pickle.load(fh)
+
+        for typ, dv in self.data.items():
             for dt, expected in dv.items():
 
-                with tm.ensure_clean(self.path) as path:
+                for writer in [pd.to_pickle, c_pickler, python_pickler ]:
+                    if writer is None:
+                        continue
 
-                    pd.to_pickle(expected,path)
+                    with tm.ensure_clean(self.path) as path:
 
-                    result = pd.read_pickle(path)
-                    self.compare_element(typ, result, expected)
+                        # test writing with each pickler
+                        writer(expected,path)
+
+                        # test reading with each unpickler
+                        result = pd.read_pickle(path)
+                        self.compare_element(typ, result, expected)
+
+                        if c_unpickler is not None:
+                            result = c_unpickler(path)
+                            self.compare_element(typ, result, expected)
+
+                        result = python_unpickler(path)
+                        self.compare_element(typ, result, expected)
 
     def _validate_timeseries(self, pickled, current):
         # GH 7748

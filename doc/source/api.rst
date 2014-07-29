@@ -1104,6 +1104,8 @@ Modifying and Computations
    Index.order
    Index.reindex
    Index.repeat
+   Index.take
+   Index.putmask
    Index.set_names
    Index.unique
    Index.nunique

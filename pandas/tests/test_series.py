@@ -27,7 +27,7 @@ import pandas.lib as lib
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
-from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
+from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long, PY3_2
 from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
@@ -61,6 +61,7 @@ class CheckNameIntegration(object):
         self.ts.index.name = None
         self.assertIsNone(self.ts.index.name)
         self.assertIs(self.ts, self.ts)
+
         cp = self.ts.copy()
         cp.index.name = 'foo'
         com.pprint_thing(self.ts.index.name)
@@ -1867,7 +1868,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         from pandas import period_range
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = pickle.loads(pickle.dumps(ts))
+        new_ts = self.round_trip_pickle(ts)
         self.assertEqual(new_ts.index.freq, 'M')
 
     def test_iter(self):
@@ -5232,9 +5233,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # self.assertIsNot(b.index, self.ts.index)
 
     def test_reindex(self):
+
         identity = self.series.reindex(self.series.index)
-        self.assertTrue(np.may_share_memory(self.series.index, identity.index))
+
+        # the older numpies / 3.2 call __array_inteface__ which we don't define
+        if not _np_version_under1p7 and not PY3_2:
+            self.assertTrue(np.may_share_memory(self.series.index, identity.index))
+
         self.assertTrue(identity.index.is_(self.series.index))
+        self.assertTrue(identity.index.identical(self.series.index))
 
         subIndex = self.series.index[10:20]
         subSeries = self.series.reindex(subIndex)
@@ -6083,7 +6090,7 @@ class TestSeriesNonUnique(tm.TestCase):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
 
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
+

@@ -517,10 +517,10 @@ class TestPivotTable(tm.TestCase):
         exp_col3 = pd.DatetimeIndex(['2013-01-01 15:00:00', '2013-02-01 15:00:00'] * 4,
                                     tz='Asia/Tokyo', name='dt2')
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2, exp_col3])
-        expected = DataFrame(np.array([[0, 3, 1, 2, 0, 3, 1, 2], 
+        expected = DataFrame(np.array([[0, 3, 1, 2, 0, 3, 1, 2],
                                        [1, 4, 2, 1, 1, 4, 2, 1],
-                                       [2, 5, 1, 2, 2, 5, 1, 2]], dtype='int64'), 
-                             index=exp_idx, 
+                                       [2, 5, 1, 2, 2, 5, 1, 2]], dtype='int64'),
+                             index=exp_idx,
                              columns=exp_col)
 
         result = pivot_table(df, index=['dt1'], columns=['dt2'], values=['value1', 'value2'],

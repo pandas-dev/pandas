@@ -27,7 +27,7 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
+from pandas.compat import range, long, StringIO, lrange, lmap, zip, product, PY3_2
 from numpy.random import rand
 from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
@@ -871,11 +871,11 @@ class TestTimeSeries(tm.TestCase):
 
         result2 = to_datetime(strings)
         tm.assert_isinstance(result2, DatetimeIndex)
-        assert_almost_equal(result, result2)
+        self.assert_numpy_array_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
         result = to_datetime(malformed)
-        assert_almost_equal(result, malformed)
+        self.assert_numpy_array_equal(result, malformed)
 
         self.assertRaises(ValueError, to_datetime, malformed,
                           errors='raise')
@@ -2058,18 +2058,15 @@ class TestTimeSeries(tm.TestCase):
 
     def test_pickle(self):
         #GH4606
-        from pandas.compat import cPickle
-        import pickle
 
-        for pick in [pickle, cPickle]:
-            p = pick.loads(pick.dumps(NaT))
-            self.assertTrue(p is NaT)
+        p = self.round_trip_pickle(NaT)
+        self.assertTrue(p is NaT)
 
-            idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
-            idx_p = pick.loads(pick.dumps(idx))
-            self.assertTrue(idx_p[0] == idx[0])
-            self.assertTrue(idx_p[1] is NaT)
-            self.assertTrue(idx_p[2] == idx[2])
+        idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
+        idx_p = self.round_trip_pickle(idx)
+        self.assertTrue(idx_p[0] == idx[0])
+        self.assertTrue(idx_p[1] is NaT)
+        self.assertTrue(idx_p[2] == idx[2])
 
 
 def _simple_ts(start, end, freq='D'):
@@ -2212,6 +2209,9 @@ class TestDatetimeIndex(tm.TestCase):
         self.assert_numpy_array_equal(result, exp)
 
     def test_comparisons_nat(self):
+        if PY3_2:
+            raise nose.SkipTest('nat comparisons on 3.2 broken')
+
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
         fidx2 = pd.Index([2.0, 3.0, np.nan, np.nan, 6.0, 7.0])
 
@@ -2233,9 +2233,11 @@ class TestDatetimeIndex(tm.TestCase):
 
         # Check pd.NaT is handles as the same as np.nan
         for idx1, idx2 in cases:
+
             result = idx1 < idx2
             expected = np.array([True, False, False, False, True, False])
             self.assert_numpy_array_equal(result, expected)
+
             result = idx2 > idx1
             expected = np.array([True, False, False, False, True, False])
             self.assert_numpy_array_equal(result, expected)
@@ -2243,6 +2245,7 @@ class TestDatetimeIndex(tm.TestCase):
             result = idx1 <= idx2
             expected = np.array([True, False, False, False, True, True])
             self.assert_numpy_array_equal(result, expected)
+
             result = idx2 >= idx1
             expected = np.array([True, False, False, False, True, True])
             self.assert_numpy_array_equal(result, expected)

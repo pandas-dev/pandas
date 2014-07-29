@@ -3564,7 +3564,7 @@ class LegacyTable(Table):
                 # need a better algorithm
                 tuple_index = long_index._tuple_index
 
-                unique_tuples = lib.fast_unique(tuple_index)
+                unique_tuples = lib.fast_unique(tuple_index.values)
                 unique_tuples = _asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)

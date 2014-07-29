@@ -247,7 +247,7 @@ class _TimeOp(object):
 
         # need to make sure that we are aligning the data
         if isinstance(left, pd.Series) and isinstance(right, pd.Series):
-            left, right = left.align(right)
+            left, right = left.align(right,copy=False)
 
         self.left = left
         self.right = right
@@ -331,12 +331,12 @@ class _TimeOp(object):
                 values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = tslib.iNaT
 
-            # a datetlike
+            # a datelike
+            elif isinstance(values, pd.DatetimeIndex):
+                values = values.to_series()
             elif not (isinstance(values, (pa.Array, pd.Series)) and
                       com.is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
-            elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = _possibly_cast_to_timedelta(values, coerce=coerce, dtype='timedelta64[ns]')
@@ -451,11 +451,11 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
-            if isinstance(y, (pa.Array, pd.Series)):
+            if isinstance(y, (pa.Array, pd.Series, pd.Index)):
                 dtype = np.find_common_type([x.dtype, y.dtype], [])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
-                result[mask] = op(x[mask], y[mask])
+                result[mask] = op(x[mask], _values_from_object(y[mask]))
             elif isinstance(x, pa.Array):
                 result = pa.empty(len(x), dtype=x.dtype)
                 mask = notnull(x)
@@ -555,7 +555,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                                      index=self.index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (pa.Array, pd.Series)):
+        elif isinstance(other, (pa.Array, pd.Series, pd.Index)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
@@ -565,7 +565,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             mask = isnull(self)
 
             values = self.get_values()
-            other = _index.convert_scalar(values, other)
+            other = _index.convert_scalar(values,_values_from_object(other))
 
             if issubclass(values.dtype.type, np.datetime64):
                 values = values.view('i8')

@@ -2052,7 +2052,7 @@ class TestPeriodIndex(tm.TestCase):
 
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
-            empty = DataFrame(index=DatetimeIndex([], freq='D'), columns=['units'])
+            empty = DataFrame(index=idx.__class__([], freq='D'), columns=['units'])
 
             tm.assert_frame_equal(df['2013/09/01':'2013/09/30'], empty)
             tm.assert_frame_equal(df['2013/09/30':'2013/10/02'], df.iloc[:2])
@@ -2408,7 +2408,7 @@ class TestPeriodIndex(tm.TestCase):
         # GH2891
         import pickle
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
-        new_prng = pickle.loads(pickle.dumps(prng))
+        new_prng = self.round_trip_pickle(prng)
         self.assertEqual(new_prng.freq,'M')
 
     def test_slice_keep_name(self):

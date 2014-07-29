@@ -1,6 +1,5 @@
 from datetime import datetime
 from pandas.compat import range
-import pickle
 import nose
 import sys
 import numpy as np
@@ -168,9 +167,7 @@ class TestDateRange(tm.TestCase):
         self.assertEqual(shifted[0], rng[0] + datetools.bday)
 
     def test_pickle_unpickle(self):
-        pickled = pickle.dumps(self.rng)
-        unpickled = pickle.loads(pickled)
-
+        unpickled = self.round_trip_pickle(self.rng)
         self.assertIsNotNone(unpickled.offset)
 
     def test_union(self):
@@ -561,9 +558,7 @@ class TestCustomDateRange(tm.TestCase):
         self.assertEqual(shifted[0], rng[0] + datetools.cday)
 
     def test_pickle_unpickle(self):
-        pickled = pickle.dumps(self.rng)
-        unpickled = pickle.loads(pickled)
-
+        unpickled = self.round_trip_pickle(self.rng)
         self.assertIsNotNone(unpickled.offset)
 
     def test_union(self):

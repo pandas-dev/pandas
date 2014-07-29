@@ -220,7 +220,7 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
 
-        elif isinstance(data, (np.ndarray, Series)):
+        elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 data_columns = list(data.dtype.names)
                 data = dict((k, data[k]) for k in data_columns)
@@ -593,7 +593,7 @@ class DataFrame(NDFrame):
                                      columns=other.columns)
         elif isinstance(other, Series):
             return Series(np.dot(lvals, rvals), index=left.index)
-        elif isinstance(rvals, np.ndarray):
+        elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
             if result.ndim == 2:
                 return self._constructor(result, index=left.index)
@@ -1668,7 +1668,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._getitem_slice(indexer)
 
-        if isinstance(key, (Series, np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, Index, list)):
             # either boolean or fancy integer index
             return self._getitem_array(key)
         elif isinstance(key, DataFrame):
@@ -1719,7 +1719,7 @@ class DataFrame(NDFrame):
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
-        if isinstance(loc, (slice, Series, np.ndarray)):
+        if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
             result_columns = _maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
@@ -1999,7 +1999,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (Series, np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, list, Index)):
             self._setitem_array(key, value)
         elif isinstance(key, DataFrame):
             self._setitem_frame(key, value)
@@ -2371,7 +2371,7 @@ class DataFrame(NDFrame):
             elif isinstance(col, Index):
                 level = col
                 names.append(col.name)
-            elif isinstance(col, (list, np.ndarray)):
+            elif isinstance(col, (list, np.ndarray, Index)):
                 level = col
                 names.append(None)
             else:
@@ -2436,7 +2436,7 @@ class DataFrame(NDFrame):
 
         def _maybe_casted_values(index, labels=None):
             if isinstance(index, PeriodIndex):
-                values = index.asobject
+                values = index.asobject.values
             elif (isinstance(index, DatetimeIndex) and
                   index.tz is not None):
                 values = index.asobject
@@ -3020,7 +3020,7 @@ class DataFrame(NDFrame):
 
     def _flex_compare_frame(self, other, func, str_rep, level):
         if not self._indexed_same(other):
-            self, other = self.align(other, 'outer', level=level)
+            self, other = self.align(other, 'outer', level=level, copy=False)
         return self._compare_frame_evaluate(other, func, str_rep)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
@@ -4622,7 +4622,7 @@ def extract_index(data):
 
 
 def _prep_ndarray(values, copy=True):
-    if not isinstance(values, (np.ndarray, Series)):
+    if not isinstance(values, (np.ndarray, Series, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
 
@@ -4685,7 +4685,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
-    elif (isinstance(data, (np.ndarray, Series))
+    elif (isinstance(data, (np.ndarray, Series, Index))
           and data.dtype.names is not None):
 
         columns = list(data.dtype.names)
@@ -4865,9 +4865,9 @@ def _homogenize(data, index, dtype=None):
                     oindex = index.astype('O')
                 if type(v) == dict:
                     # fast cython method
-                    v = lib.fast_multiget(v, oindex, default=NA)
+                    v = lib.fast_multiget(v, oindex.values, default=NA)
                 else:
-                    v = lib.map_infer(oindex, v.get)
+                    v = lib.map_infer(oindex.values, v.get)
 
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)

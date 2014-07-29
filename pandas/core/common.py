@@ -205,7 +205,7 @@ def _isnull_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
         raise NotImplementedError("isnull is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, pd.Index)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isnull(func=isnull))
@@ -231,7 +231,7 @@ def _isnull_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
         raise NotImplementedError("isnull is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, pd.Index)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isnull(func=_isnull_old))
@@ -2024,8 +2024,7 @@ def _is_bool_indexer(key):
 def _default_index(n):
     from pandas.core.index import Int64Index
     values = np.arange(n, dtype=np.int64)
-    result = values.view(Int64Index)
-    result.name = None
+    result = Int64Index(values,name=None)
     result.is_unique = True
     return result
 

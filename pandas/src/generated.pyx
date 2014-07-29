@@ -49,6 +49,17 @@ cpdef ensure_platform_int(object arr):
     else:
         return np.array(arr, dtype=np.int_)
 
+cpdef ensure_object(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
+            return arr
+        else:
+            return arr.astype(np.object_)
+    elif hasattr(arr,'asobject'):
+        return arr.asobject
+    else:
+        return np.array(arr, dtype=np.object_)
+
 
 
 cpdef ensure_float64(object arr):
@@ -109,16 +120,6 @@ cpdef ensure_int64(object arr):
             return arr.astype(np.int64)
     else:
         return np.array(arr, dtype=np.int64)
-
-
-cpdef ensure_object(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
-            return arr
-        else:
-            return arr.astype(np.object_)
-    else:
-        return np.array(arr, dtype=np.object_)
 
 
 @cython.wraparound(False)
@@ -5932,7 +5933,7 @@ def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             count = nobs[i, j]
-            if nobs[i, j] == 0:
+            if count == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count
@@ -5985,7 +5986,7 @@ def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             count = nobs[i, j]
-            if nobs[i, j] == 0:
+            if count == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count

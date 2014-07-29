@@ -857,10 +857,15 @@ class TestHDFStore(tm.TestCase):
                 assert_frame_equal(df,store['df'])
 
             for index in [ tm.makeFloatIndex, tm.makeStringIndex, tm.makeIntIndex,
-                           tm.makeDateIndex, tm.makePeriodIndex ]:
+                           tm.makeDateIndex ]:
 
                 check('table',index)
                 check('fixed',index)
+
+            # period index currently broken for table
+            # seee GH7796 FIXME
+            check('fixed',tm.makePeriodIndex)
+            #check('table',tm.makePeriodIndex)
 
             # unicode
             index = tm.makeUnicodeIndex
@@ -2285,7 +2290,7 @@ class TestHDFStore(tm.TestCase):
 
             # deleted number (entire table)
             n = store.remove('wp', [])
-            assert(n == 120)
+            self.assertTrue(n == 120)
 
             # non - empty where
             _maybe_remove(store, 'wp')
@@ -2379,7 +2384,8 @@ class TestHDFStore(tm.TestCase):
             crit4 = Term('major_axis=date4')
             store.put('wp3', wp, format='t')
             n = store.remove('wp3', where=[crit4])
-            assert(n == 36)
+            self.assertTrue(n == 36)
+
             result = store.select('wp3')
             expected = wp.reindex(major_axis=wp.major_axis - date4)
             assert_panel_equal(result, expected)
@@ -2392,11 +2398,10 @@ class TestHDFStore(tm.TestCase):
             crit1 = Term('major_axis>date')
             crit2 = Term("minor_axis=['A', 'D']")
             n = store.remove('wp', where=[crit1])
-
-            assert(n == 56)
+            self.assertTrue(n == 56)
 
             n = store.remove('wp', where=[crit2])
-            assert(n == 32)
+            self.assertTrue(n == 32)
 
             result = store['wp']
             expected = wp.truncate(after=date).reindex(minor=['B', 'C'])

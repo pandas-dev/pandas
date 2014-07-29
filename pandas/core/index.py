@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
+import operator
 from functools import partial
 from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
@@ -11,12 +12,12 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
-from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
-from pandas.util.decorators import cache_readonly, deprecate, Appender
+from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin
+from pandas.util.decorators import Appender, cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
-                                ABCSeries)
+                                ABCSeries, _ensure_object)
 from pandas.core.config import get_option
 
 # simplify
@@ -44,10 +45,15 @@ def _indexOp(opname):
     """
 
     def wrapper(self, other):
-        func = getattr(self.view(np.ndarray), opname)
-        result = func(other)
+        func = getattr(self._data.view(np.ndarray), opname)
+        result = func(np.asarray(other))
+
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        if com.is_bool_dtype(result):
+            return result
         try:
-            return result.view(np.ndarray)
+            return Index(result)
         except:  # pragma: no cover
             return result
     return wrapper
@@ -56,19 +62,15 @@ def _indexOp(opname):
 class InvalidIndexError(Exception):
     pass
 
-
 _o_dtype = np.dtype(object)
-
-
-def _shouldbe_timestamp(obj):
-    return (tslib.is_datetime_array(obj)
-            or tslib.is_datetime64_array(obj)
-            or tslib.is_timestamp_array(obj))
-
 _Identity = object
 
+def _new_Index(cls, d):
+    """ This is called upon unpickling, rather than the default which doesn't have arguments
+        and breaks __new__ """
+    return cls.__new__(cls, **d)
 
-class Index(IndexOpsMixin, FrozenNDArray):
+class Index(IndexOpsMixin, PandasObject):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -102,16 +104,21 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     _box_scalars = False
 
+    _typ = 'index'
+    _data = None
+    _id = None
     name = None
     asi8 = None
     _comparables = ['name']
+    _attributes = ['name']
     _allow_index_ops = True
     _allow_datetime_index_ops = False
     _allow_period_index_ops = False
+    _is_numeric_dtype = False
 
     _engine_type = _index.ObjectEngine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False,
+    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
 
         # no class inference!
@@ -119,7 +126,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
             return cls._simple_new(data, name)
 
         from pandas.tseries.period import PeriodIndex
-        if isinstance(data, (np.ndarray, ABCSeries)):
+        if isinstance(data, (np.ndarray, Index, ABCSeries)):
             if issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
@@ -143,7 +150,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
             if issubclass(data.dtype.type, np.floating):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
 
-            subarr = com._asarray_tuplesafe(data, dtype=object)
+            if com.is_bool_dtype(data):
+                subarr = data
+            else:
+                subarr = com._asarray_tuplesafe(data, dtype=object)
 
             # _asarray_tuplesafe does not always copy underlying data,
             # so need to make sure that this happens
@@ -153,7 +163,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         elif hasattr(data, '__array__'):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
                          **kwargs)
-        elif np.isscalar(data):
+        elif data is None or np.isscalar(data):
             cls._scalar_data_error(data)
         else:
             if tupleize_cols and isinstance(data, list) and data:
@@ -177,6 +187,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
                 return Int64Index(subarr.astype('i8'), copy=copy, name=name)
             elif inferred in ['floating', 'mixed-integer-float']:
                 return Float64Index(subarr, copy=copy, name=name)
+            elif inferred == 'boolean':
+                # don't support boolean explicity ATM
+                pass
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
@@ -185,15 +198,16 @@ class Index(IndexOpsMixin, FrozenNDArray):
                 elif inferred == 'period':
                     return PeriodIndex(subarr, name=name, **kwargs)
 
-        subarr = subarr.view(cls)
-        # could also have a _set_name, but I don't think it's really necessary
-        subarr._set_names([name])
-        return subarr
+        return cls._simple_new(subarr, name)
 
     @classmethod
-    def _simple_new(cls, values, name, **kwargs):
-        result = values.view(cls)
+    def _simple_new(cls, values, name=None, **kwargs):
+        result = object.__new__(cls)
+        result._data = values
         result.name = name
+        for k, v in compat.iteritems(kwargs):
+            setattr(result,k,v)
+        result._reset_identity()
         return result
 
     def is_(self, other):
@@ -219,11 +233,66 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """Initializes or resets ``_id`` attribute with new object"""
         self._id = _Identity()
 
-    def view(self, *args, **kwargs):
-        result = super(Index, self).view(*args, **kwargs)
-        if isinstance(result, Index):
-            result._id = self._id
-        return result
+    # ndarray compat
+    def __len__(self):
+        """
+        return the length of the Index
+        """
+        return len(self._data)
+
+    def __array__(self, result=None):
+        """ the array interface, return my values """
+        return self._data.view(np.ndarray)
+
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc
+        """
+        return self._shallow_copy(result)
+
+    @cache_readonly
+    def dtype(self):
+        """ return the dtype object of the underlying data """
+        return self._data.dtype
+
+    @property
+    def values(self):
+        """ return the underlying data as an ndarray """
+        return self._data.view(np.ndarray)
+
+    def get_values(self):
+        """ return the underlying data as an ndarray """
+        return self.values
+
+    def _array_values(self):
+        return self._data
+
+    # ops compat
+    def tolist(self):
+        """
+        return a list of the Index values
+        """
+        return list(self.values)
+
+    def repeat(self, n):
+        """
+        return a new Index of the values repeated n times
+
+        See also
+        --------
+        numpy.ndarray.repeat
+        """
+        return self._shallow_copy(self.values.repeat(n))
+
+    def ravel(self, order='C'):
+        """
+        return an ndarray of the flattened values of the underlying data
+
+        See also
+        --------
+        numpy.ndarray.ravel
+        """
+        return self.values.ravel(order=order)
 
     # construction helpers
     @classmethod
@@ -243,8 +312,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """coerces data to ndarray, raises on scalar data. Converts other
         iterables to list first and then to array. Does not touch ndarrays."""
 
-        if not isinstance(data, np.ndarray):
-            if np.isscalar(data):
+        if not isinstance(data, (np.ndarray, Index)):
+            if data is None or np.isscalar(data):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
@@ -253,16 +322,27 @@ class Index(IndexOpsMixin, FrozenNDArray):
             data = np.asarray(data)
         return data
 
-    def __array_finalize__(self, obj):
-        self._reset_identity()
-        if not isinstance(obj, type(self)):
-            # Only relevant if array being created from an Index instance
-            return
+    def _get_attributes_dict(self):
+        """ return an attributes dict for my class """
+        return dict([ (k,getattr(self,k,None)) for k in self._attributes])
 
-        self.name = getattr(obj, 'name', None)
+    def view(self, cls=None):
+        if cls is not None and not issubclass(cls, Index):
+            result = self._data.view(cls)
+        else:
+            result = self._shallow_copy()
+        if isinstance(result, Index):
+            result._id = self._id
+        return result
 
-    def _shallow_copy(self):
-        return self.view()
+    def _shallow_copy(self, values=None, **kwargs):
+        """ create a new Index, don't copy the data, use the same object attributes
+            with passed in attributes taking precedence """
+        if values is None:
+            values = self.values
+        attributes = self._get_attributes_dict()
+        attributes.update(kwargs)
+        return self.__class__._simple_new(values,**attributes)
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
         """
@@ -287,10 +367,11 @@ class Index(IndexOpsMixin, FrozenNDArray):
             raise TypeError("Can only provide one of `names` and `name`")
         if deep:
             from copy import deepcopy
-            new_index = np.ndarray.__deepcopy__(self, {}).view(self.__class__)
+            new_index = self._shallow_copy(self._data.copy())
             name = name or deepcopy(self.name)
         else:
-            new_index = super(Index, self).copy()
+            new_index = self._shallow_copy()
+            name = self.name
         if name is not None:
             names = [name]
         if names:
@@ -298,6 +379,19 @@ class Index(IndexOpsMixin, FrozenNDArray):
         if dtype:
             new_index = new_index.astype(dtype)
         return new_index
+
+    __copy__ = copy
+
+    def __unicode__(self):
+        """
+        Return a string representation for this object.
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
+        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
+                                 quote_strings=True)
+        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
     def to_series(self, keep_tz=False):
         """
@@ -343,21 +437,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def _assert_can_do_setop(self, other):
         return True
 
-    def tolist(self):
-        """
-        Overridden version of ndarray.tolist
-        """
-        return list(self.values)
-
-    @cache_readonly
-    def dtype(self):
-        return self.values.dtype
-
     @property
     def nlevels(self):
         return 1
-
-    # for compat with multindex code
 
     def _get_names(self):
         return FrozenList((self.name,))
@@ -395,7 +477,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         >>> Index([1, 2, 3, 4]).set_names(['foo'])
         Int64Index([1, 2, 3, 4], dtype='int64')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')], 
+                                          (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_names(['baz', 'quz'])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
@@ -471,13 +553,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.values
-
-    @property
-    def values(self):
-        return np.asarray(self)
-
-    def get_values(self):
         return self.values
 
     _na_value = np.nan
@@ -720,26 +795,42 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     @cache_readonly
     def is_all_dates(self):
-        return is_datetime_array(self.values)
+        if self._data is None:
+            return False
+        return is_datetime_array(_ensure_object(self.values))
 
     def __iter__(self):
         return iter(self.values)
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
-        object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = self.name,
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
+        d = dict(data=self._data)
+        d.update(self._get_attributes_dict())
+        return _new_Index, (self.__class__, d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        if len(state) == 2:
-            nd_state, own_state = state
-            np.ndarray.__setstate__(self, nd_state)
-            self.name = own_state[0]
-        else:  # pragma: no cover
-            np.ndarray.__setstate__(self, state)
+
+        if isinstance(state, dict):
+            self._data = state.pop('data')
+            for k, v in compat.iteritems(state):
+                setattr(self, k, v)
+
+        elif isinstance(state, tuple):
+
+            if len(state) == 2:
+                nd_state, own_state = state
+                data = np.empty(nd_state[1], dtype=nd_state[2])
+                np.ndarray.__setstate__(data, nd_state)
+                self.name = own_state[0]
+
+            else:  # pragma: no cover
+                data = np.empty(state)
+                np.ndarray.__setstate__(data, state)
+
+            self._data = data
+        else:
+            raise Exception("invalid pickle state")
+    _unpickle_compat = __setstate__
 
     def __deepcopy__(self, memo={}):
         return self.copy(deep=True)
@@ -755,6 +846,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def __hash__(self):
         raise TypeError("unhashable type: %r" % type(self).__name__)
 
+    def __setitem__(self, key, value):
+        raise TypeError("Indexes does not support mutable operations")
+
     def __getitem__(self, key):
         """
         Override numpy.ndarray's __getitem__ method to work as desired.
@@ -768,21 +862,24 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         # There's no custom logic to be implemented in __getslice__, so it's
         # not overloaded intentionally.
-        __getitem__ = super(Index, self).__getitem__
+        getitem = self._data.__getitem__
+        promote = self._shallow_copy
+
         if np.isscalar(key):
-            return __getitem__(key)
+            return getitem(key)
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization of basic indexing.
-            return __getitem__(key)
+            return promote(getitem(key))
 
         if com._is_bool_indexer(key):
-            return __getitem__(np.asarray(key))
+            key = np.asarray(key)
 
-        result = __getitem__(key)
-        if result.ndim > 1:
-            return result.view(np.ndarray)
+        key = _values_from_object(key)
+        result = getitem(key)
+        if not np.isscalar(result):
+            return promote(result)
         else:
             return result
 
@@ -831,12 +928,30 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def take(self, indexer, axis=0):
         """
-        Analogous to ndarray.take
+        return a new Index of the values selected by the indexer
+
+        See also
+        --------
+        numpy.ndarray.take
         """
+
         indexer = com._ensure_platform_int(indexer)
-        taken = self.view(np.ndarray).take(indexer)
-        return self._simple_new(taken, name=self.name, freq=None,
-                                tz=getattr(self, 'tz', None))
+        taken = np.array(self).take(indexer)
+
+        # by definition cannot propogate freq
+        return self._shallow_copy(taken, freq=None)
+
+    def putmask(self, mask, value):
+        """
+        return a new Index of the values set with the mask
+
+        See also
+        --------
+        numpy.ndarray.putmask
+        """
+        values = self.values.copy()
+        np.putmask(values, mask, value)
+        return self._shallow_copy(values)
 
     def format(self, name=False, formatter=None, **kwargs):
         """
@@ -985,18 +1100,22 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def argsort(self, *args, **kwargs):
         """
-        See docstring for ndarray.argsort
+        return an ndarray indexer of the underlying data
+
+        See also
+        --------
+        numpy.ndarray.argsort
         """
         result = self.asi8
         if result is None:
-            result = self.view(np.ndarray)
+            result = np.array(self)
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
         if isinstance(other, Index):
             return self.union(other)
         else:
-            return Index(self.view(np.ndarray) + other)
+            return Index(np.array(self) + other)
 
     __iadd__ = __add__
     __eq__ = _indexOp('__eq__')
@@ -1048,7 +1167,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._outer_indexer(self, other.values)[0]
+                result = self._outer_indexer(self.values, other.values)[0]
             except TypeError:
                 # incomparable objects
                 result = list(self.values)
@@ -1122,7 +1241,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self, other.values)[0]
+                result = self._inner_indexer(self.values, other.values)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
@@ -1381,7 +1500,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return self, other
 
     def groupby(self, to_groupby):
-        return self._groupby(self.values, to_groupby)
+        return self._groupby(self.values, _values_from_object(to_groupby))
 
     def map(self, mapper):
         return self._arrmap(self.values, mapper)
@@ -1415,9 +1534,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
         if level is not None:
             self._validate_index_level(level)
         return lib.ismember(self._array_values(), value_set)
-
-    def _array_values(self):
-        return self
 
     def _get_method(self, method):
         if method:
@@ -1778,7 +1894,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
             return slice(start_slice, end_slice, step)
 
         # loc indexers
-        return Index(start_slice) & Index(end_slice)
+        return (Index(start_slice) & Index(end_slice)).values
 
     def slice_locs(self, start=None, end=None):
         """
@@ -1814,7 +1930,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
                     # get_loc will return a boolean array for non_uniques
                     # if we are not monotonic
-                    if isinstance(slc, np.ndarray):
+                    if isinstance(slc, (np.ndarray, Index)):
                         raise KeyError("cannot peform a slice operation "
                                        "on a non-unique non-monotonic index")
 
@@ -1853,7 +1969,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         -------
         new_index : Index
         """
-        return np.delete(self, loc)
+        return Index(np.delete(self._data, loc), name=self.name)
 
     def insert(self, loc, item):
         """
@@ -1894,8 +2010,75 @@ class Index(IndexOpsMixin, FrozenNDArray):
             raise ValueError('labels %s not contained in axis' % labels[mask])
         return self.delete(indexer)
 
+    @classmethod
+    def _add_numeric_methods_disabled(cls):
+        """ add in numeric methods to disable """
 
-class Int64Index(Index):
+        def _make_invalid_op(opstr):
+
+            def _invalid_op(self, other):
+                raise TypeError("cannot perform {opstr} with this index type: {typ}".format(opstr=opstr,
+                                                                                         typ=type(self)))
+            return _invalid_op
+
+        cls.__mul__ = cls.__rmul__ = _make_invalid_op('multiplication')
+        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('floor division')
+        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('true division')
+        if not compat.PY3:
+            cls.__div__ = cls.__rdiv__ = _make_invalid_op('division')
+
+    @classmethod
+    def _add_numeric_methods(cls):
+        """ add in numeric methods """
+
+        def _make_evaluate_binop(op, opstr):
+
+            def _evaluate_numeric_binop(self, other):
+
+                # if we are an inheritor of numeric, but not actually numeric (e.g. DatetimeIndex/PeriodInde)
+                if not self._is_numeric_dtype:
+                    raise TypeError("cannot evaluate a numeric op {opstr} for type: {typ}".format(opstr=opstr,
+                                                                                                  typ=type(self)))
+
+                if isinstance(other, Index):
+                    if not other._is_numeric_dtype:
+                        raise TypeError("cannot evaluate a numeric op {opstr} with type: {typ}".format(opstr=type(self),
+                                                                                                       typ=type(other)))
+                elif isinstance(other, np.ndarray) and not other.ndim:
+                    other = other.item()
+
+                if isinstance(other, (Index, ABCSeries, np.ndarray)):
+                    if len(self) != len(other):
+                        raise ValueError("cannot evaluate a numeric op with unequal lengths")
+                    other = _values_from_object(other)
+                    if other.dtype.kind not in ['f','i']:
+                        raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
+                else:
+                    if not (com.is_float(other) or com.is_integer(other)):
+                        raise TypeError("can only perform ops with scalar values")
+                return self._shallow_copy(op(self.values, other))
+
+            return _evaluate_numeric_binop
+
+
+        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'multiplication')
+        cls.__floordiv__ = cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'floor division')
+        cls.__truediv__ = cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'true division')
+        if not compat.PY3:
+            cls.__div__ = cls.__rdiv__ = _make_evaluate_binop(operator.div,'division')
+Index._add_numeric_methods_disabled()
+
+class NumericIndex(Index):
+    """
+    Provide numeric type operations
+
+    This is an abstract class
+
+    """
+    _is_numeric_dtype = True
+
+
+class Int64Index(NumericIndex):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -1918,6 +2101,7 @@ class Int64Index(Index):
     An Index instance can **only** contain hashable objects
     """
 
+    _typ = 'int64index'
     _groupby = _algos.groupby_int64
     _arrmap = _algos.arrmap_int64
     _left_indexer_unique = _algos.left_join_indexer_unique_int64
@@ -1927,12 +2111,10 @@ class Int64Index(Index):
 
     _engine_type = _index.Int64Engine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
         if fastpath:
-            subarr = data.view(cls)
-            subarr.name = name
-            return subarr
+            return cls._simple_new(data, name=name)
 
         # isscalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
@@ -1955,9 +2137,7 @@ class Int64Index(Index):
                     raise TypeError('Unsafe NumPy casting to integer, you must'
                                     ' explicitly cast')
 
-        subarr = subarr.view(cls)
-        subarr.name = name
-        return subarr
+        return cls._simple_new(subarr, name=name)
 
     @property
     def inferred_type(self):
@@ -1994,9 +2174,9 @@ class Int64Index(Index):
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
+Int64Index._add_numeric_methods()
 
-
-class Float64Index(Index):
+class Float64Index(NumericIndex):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -2017,7 +2197,7 @@ class Float64Index(Index):
     An Float64Index instance can **only** contain hashable objects
     """
 
-    # when this is not longer object dtype this can be changed
+    _typ = 'float64index'
     _engine_type = _index.Float64Engine
     _groupby = _algos.groupby_float64
     _arrmap = _algos.arrmap_float64
@@ -2026,12 +2206,10 @@ class Float64Index(Index):
     _inner_indexer = _algos.inner_join_indexer_float64
     _outer_indexer = _algos.outer_join_indexer_float64
 
-    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
         if fastpath:
-            subarr = data.view(cls)
-            subarr.name = name
-            return subarr
+            return cls._simple_new(data, name)
 
         data = cls._coerce_to_ndarray(data)
 
@@ -2051,9 +2229,7 @@ class Float64Index(Index):
         if subarr.dtype != np.float64:
             subarr = subarr.astype(np.float64)
 
-        subarr = subarr.view(cls)
-        subarr.name = name
-        return subarr
+        return cls._simple_new(subarr, name)
 
     @property
     def inferred_type(self):
@@ -2186,6 +2362,7 @@ class Float64Index(Index):
             self._validate_index_level(level)
         return lib.ismember_nans(self._array_values(), value_set,
                                  isnull(list(value_set)).any())
+Float64Index._add_numeric_methods()
 
 
 class MultiIndex(Index):
@@ -2205,8 +2382,14 @@ class MultiIndex(Index):
         level)
     names : optional sequence of objects
         Names for each of the index levels.
+    copy : boolean, default False
+        Copy the meta-data
+    verify_integrity : boolean, default True
+        Check that the levels/labels are consistent and valid
     """
+
     # initialize to zero-length tuples to make everything work
+    _typ = 'multiindex'
     _names = FrozenList()
     _levels = FrozenList()
     _labels = FrozenList()
@@ -2214,7 +2397,8 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
-                copy=False, verify_integrity=True):
+                copy=False, verify_integrity=True, _set_identity=True, **kwargs):
+
         if levels is None or labels is None:
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
@@ -2226,28 +2410,29 @@ class MultiIndex(Index):
                 name = names[0]
             else:
                 name = None
-
             return Index(levels[0], name=name, copy=True).take(labels[0])
 
-        # v3, 0.8.0
-        subarr = np.empty(0, dtype=object).view(cls)
+        result = object.__new__(MultiIndex)
+
         # we've already validated levels and labels, so shortcut here
-        subarr._set_levels(levels, copy=copy, validate=False)
-        subarr._set_labels(labels, copy=copy, validate=False)
+        result._set_levels(levels, copy=copy, validate=False)
+        result._set_labels(labels, copy=copy, validate=False)
 
         if names is not None:
             # handles name validation
-            subarr._set_names(names)
+            result._set_names(names)
 
         if sortorder is not None:
-            subarr.sortorder = int(sortorder)
+            result.sortorder = int(sortorder)
         else:
-            subarr.sortorder = sortorder
+            result.sortorder = sortorder
 
         if verify_integrity:
-            subarr._verify_integrity()
+            result._verify_integrity()
+        if _set_identity:
+            result._reset_identity()
 
-        return subarr
+        return result
 
     def _verify_integrity(self):
         """Raises ValueError if length of levels and labels don't match or any
@@ -2329,7 +2514,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')], 
+                                          (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
@@ -2381,7 +2566,7 @@ class MultiIndex(Index):
 
     def _set_labels(self, labels, level=None, copy=False, validate=True,
                     verify_integrity=False):
-        
+
         if validate and level is None and len(labels) != self.nlevels:
             raise ValueError("Length of labels must match number of levels")
         if validate and level is not None and len(labels) != len(level):
@@ -2427,7 +2612,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')], 
+                                          (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
@@ -2474,7 +2659,7 @@ class MultiIndex(Index):
     labels = property(fget=_get_labels, fset=__set_labels)
 
     def copy(self, names=None, dtype=None, levels=None, labels=None,
-             deep=False):
+             deep=False, _set_identity=False):
         """
         Make a copy of this object. Names, dtype, levels and labels can be
         passed and will be set on new copy.
@@ -2496,39 +2681,33 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
-        new_index = np.ndarray.copy(self)
         if deep:
             from copy import deepcopy
             levels = levels if levels is not None else deepcopy(self.levels)
             labels = labels if labels is not None else deepcopy(self.labels)
             names = names if names is not None else deepcopy(self.names)
-        if levels is not None:
-            new_index = new_index.set_levels(levels)
-        if labels is not None:
-            new_index = new_index.set_labels(labels)
-        if names is not None:
-            new_index = new_index.set_names(names)
-        if dtype:
-            new_index = new_index.astype(dtype)
-        return new_index
+        else:
+            levels = self.levels
+            labels = self.labels
+            names = self.names
+        return MultiIndex(levels=levels,
+                          labels=labels,
+                          names=names,
+                          sortorder=self.sortorder,
+                          verify_integrity=False,
+                          _set_identity=_set_identity)
 
-    def __array_finalize__(self, obj):
-        """
-        Update custom MultiIndex attributes when a new array is created by
-        numpy, e.g. when calling ndarray.view()
-        """
-        # overriden if a view
-        self._reset_identity()
-        if not isinstance(obj, type(self)):
-            # Only relevant if this array is being created from an Index
-            # instance.
-            return
+    def __array__(self, result=None):
+        """ the array interface, return my values """
+        return self.values
 
-        # skip the validation on first, rest will catch the errors
-        self._set_levels(getattr(obj, 'levels', []), validate=False)
-        self._set_labels(getattr(obj, 'labels', []))
-        self._set_names(getattr(obj, 'names', []))
-        self.sortorder = getattr(obj, 'sortorder', None)
+    def view(self, cls=None):
+        """ this is defined as a copy with the same identity """
+        result = self.copy()
+        result._id = self._id
+        return result
+
+    _shallow_copy = view
 
     def _array_values(self):
         # hack for various methods
@@ -2628,12 +2807,7 @@ class MultiIndex(Index):
     @staticmethod
     def _from_elements(values, labels=None, levels=None, names=None,
                        sortorder=None):
-        index = values.view(MultiIndex)
-        index._set_levels(levels)
-        index._set_labels(labels)
-        index._set_names(names)
-        index.sortorder = sortorder
-        return index
+        return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
         try:
@@ -2663,33 +2837,28 @@ class MultiIndex(Index):
 
     @property
     def values(self):
-        if self._is_v2:
-            return self.view(np.ndarray)
-        else:
-            if self._tuples is not None:
-                return self._tuples
-
-            values = []
-            for lev, lab in zip(self.levels, self.labels):
-                taken = com.take_1d(lev.values, lab)
-                # Need to box timestamps, etc.
-                if hasattr(lev, '_box_values'):
-                    taken = lev._box_values(taken)
-                values.append(taken)
-
-            self._tuples = lib.fast_zip(values)
+        if self._tuples is not None:
             return self._tuples
+
+        values = []
+        for lev, lab in zip(self.levels, self.labels):
+            taken = com.take_1d(lev.values, lab)
+            # Need to box timestamps, etc.
+            if hasattr(lev, '_box_values'):
+                taken = lev._box_values(taken)
+            values.append(taken)
+
+        self._tuples = lib.fast_zip(values)
+        return self._tuples
 
     # fml
     @property
     def _is_v1(self):
-        contents = self.view(np.ndarray)
-        return len(contents) > 0 and not isinstance(contents[0], tuple)
+        return False
 
     @property
     def _is_v2(self):
-        contents = self.view(np.ndarray)
-        return len(contents) > 0 and isinstance(contents[0], tuple)
+        return False
 
     @property
     def _has_complex_internals(self):
@@ -3000,7 +3169,7 @@ class MultiIndex(Index):
             # I think this is right? Not quite sure...
             raise TypeError('Cannot infer number of levels from empty list')
 
-        if isinstance(tuples, np.ndarray):
+        if isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples.values
 
@@ -3075,18 +3244,25 @@ class MultiIndex(Index):
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
-        object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = ([lev.view(np.ndarray) for lev in self.levels],
-                          [label.view(np.ndarray) for label in self.labels],
-                          self.sortorder, list(self.names))
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
+        d = dict(levels = [lev.view(np.ndarray) for lev in self.levels],
+                 labels = [label.view(np.ndarray) for label in self.labels],
+                 sortorder = self.sortorder,
+                 names = list(self.names))
+        return _new_Index, (self.__class__, d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        nd_state, own_state = state
-        np.ndarray.__setstate__(self, nd_state)
-        levels, labels, sortorder, names = own_state
+
+        if isinstance(state, dict):
+            levels = state.get('levels')
+            labels = state.get('labels')
+            sortorder = state.get('sortorder')
+            names = state.get('names')
+
+        elif isinstance(state, tuple):
+
+            nd_state, own_state = state
+            levels, labels, sortorder, names = own_state
 
         self._set_levels([Index(x) for x in levels], validate=False)
         self._set_labels(labels)
@@ -3112,21 +3288,15 @@ class MultiIndex(Index):
                 # cannot be sure whether the result will be sorted
                 sortorder = None
 
-            result = np.empty(0, dtype=object).view(type(self))
             new_labels = [lab[key] for lab in self.labels]
 
-            # an optimization
-            result._set_levels(self.levels, validate=False)
-            result._set_labels(new_labels)
-            result.sortorder = sortorder
-            result._set_names(self.names)
-
-            return result
+            return MultiIndex(levels=self.levels,
+                              labels=new_labels,
+                              names=self.names,
+                              sortorder=sortorder,
+                              verify_integrity=False)
 
     def take(self, indexer, axis=None):
-        """
-        Analogous to ndarray.take
-        """
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
@@ -3167,6 +3337,13 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
 
+    def repeat(self, n):
+        return MultiIndex(levels=self.levels,
+                          labels=[label.view(np.ndarray).repeat(n) for label in self.labels],
+                          names=self.names,
+                          sortorder=self.sortorder,
+                          verify_integrity=False)
+
     def drop(self, labels, level=None):
         """
         Make new MultiIndex with passed list of labels deleted
@@ -3185,7 +3362,7 @@ class MultiIndex(Index):
             return self._drop_from_level(labels, level)
 
         try:
-            if not isinstance(labels, np.ndarray):
+            if not isinstance(labels, (np.ndarray, Index)):
                 labels = com._index_labels_to_array(labels)
             indexer = self.get_indexer(labels)
             mask = indexer == -1
@@ -3254,7 +3431,7 @@ class MultiIndex(Index):
             mask = new_labels[0] == -1
             result = new_levels[0].take(new_labels[0])
             if mask.any():
-                np.putmask(result, mask, np.nan)
+                result = result.putmask(mask, np.nan)
 
             result.name = new_names[0]
             return result
@@ -3414,16 +3591,16 @@ class MultiIndex(Index):
             if not self.is_unique or not self.is_monotonic:
                 raise AssertionError(('Must be unique and monotonic to '
                                       'use forward fill getting the indexer'))
-            indexer = self_index._engine.get_pad_indexer(target_index,
+            indexer = self_index._engine.get_pad_indexer(target_index.values,
                                                          limit=limit)
         elif method == 'backfill':
             if not self.is_unique or not self.is_monotonic:
                 raise AssertionError(('Must be unique and monotonic to '
                                       'use backward fill getting the indexer'))
-            indexer = self_index._engine.get_backfill_indexer(target_index,
+            indexer = self_index._engine.get_backfill_indexer(target_index.values,
                                                               limit=limit)
         else:
-            indexer = self_index._engine.get_indexer(target_index)
+            indexer = self_index._engine.get_indexer(target_index.values)
 
         return com._ensure_platform_int(indexer)
 
@@ -4087,6 +4264,7 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
+MultiIndex._add_numeric_methods_disabled()
 
 
 # For utility purposes
@@ -4192,6 +4370,12 @@ def _union_indexes(indexes):
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
+    def _unique_indices(inds):
+        def conv(i):
+            if isinstance(i, Index):
+                i = i.tolist()
+            return i
+        return Index(lib.fast_unique_multiple_list([ conv(i) for i in inds ]))
 
     if kind == 'special':
         result = indexes[0]
@@ -4206,11 +4390,11 @@ def _union_indexes(indexes):
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
-                return Index(lib.fast_unique_multiple(indexes))
+                return _unique_indices(indexes)
 
         return index
     else:
-        return Index(lib.fast_unique_multiple_list(indexes))
+        return _unique_indices(indexes)
 
 
 def _trim_front(strings):

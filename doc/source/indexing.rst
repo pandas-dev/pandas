@@ -52,6 +52,12 @@ indexing.
    should be avoided.  See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`
 
+.. warning::
+
+   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
+   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
+
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
 Different Choices for Indexing (``loc``, ``iloc``, and ``ix``)
@@ -2175,7 +2181,7 @@ you can specify ``inplace=True`` to have the data change in place.
 
 .. versionadded:: 0.15.0
 
-``set_names``, ``set_levels``, and ``set_labels`` also take an optional 
+``set_names``, ``set_levels``, and ``set_labels`` also take an optional
 `level`` argument
 
 .. ipython:: python

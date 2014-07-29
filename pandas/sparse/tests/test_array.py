@@ -4,7 +4,6 @@ from numpy import nan, ndarray
 import numpy as np
 
 import operator
-import pickle
 
 from pandas.core.series import Series
 from pandas.core.common import notnull
@@ -169,8 +168,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_pickle(self):
         def _check_roundtrip(obj):
-            pickled = pickle.dumps(obj)
-            unpickled = pickle.loads(pickled)
+            unpickled = self.round_trip_pickle(obj)
             assert_sp_array_equal(unpickled, obj)
 
         _check_roundtrip(self.arr)

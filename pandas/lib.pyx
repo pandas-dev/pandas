@@ -813,7 +813,7 @@ def clean_index_list(list obj):
 
     for i in range(n):
         v = obj[i]
-        if not (PyList_Check(v) or np.PyArray_Check(v)):
+        if not (PyList_Check(v) or np.PyArray_Check(v) or hasattr(v,'_data')):
             all_arrays = 0
             break
 
@@ -823,7 +823,7 @@ def clean_index_list(list obj):
     converted = np.empty(n, dtype=object)
     for i in range(n):
         v = obj[i]
-        if PyList_Check(v) or np.PyArray_Check(v):
+        if PyList_Check(v) or np.PyArray_Check(v) or hasattr(v,'_data'):
             converted[i] = tuple(v)
         else:
             converted[i] = v

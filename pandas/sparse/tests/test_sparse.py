@@ -21,7 +21,7 @@ from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 from pandas.core.common import isnull
 import pandas.util.testing as tm
-from pandas.compat import range, lrange, cPickle as pickle, StringIO, lrange
+from pandas.compat import range, lrange, StringIO, lrange
 from pandas import compat
 
 import pandas.sparse.frame as spf
@@ -315,8 +315,7 @@ class TestSparseSeries(tm.TestCase,
 
     def test_pickle(self):
         def _test_roundtrip(series):
-            pickled = pickle.dumps(series, protocol=pickle.HIGHEST_PROTOCOL)
-            unpickled = pickle.loads(pickled)
+            unpickled = self.round_trip_pickle(series)
             assert_sp_series_equal(series, unpickled)
             assert_series_equal(series.to_dense(), unpickled.to_dense())
 
@@ -793,7 +792,10 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         cp = self.frame.copy()
         tm.assert_isinstance(cp, SparseDataFrame)
         assert_sp_frame_equal(cp, self.frame)
-        self.assertTrue(cp.index.is_(self.frame.index))
+
+        # as of v0.15.0
+        # this is now identical (but not is_a )
+        self.assertTrue(cp.index.identical(self.frame.index))
 
     def test_constructor(self):
         for col, series in compat.iteritems(self.frame):
@@ -918,9 +920,8 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
     def test_pickle(self):
         def _test_roundtrip(frame):
-            pickled = pickle.dumps(frame, protocol=pickle.HIGHEST_PROTOCOL)
-            unpickled = pickle.loads(pickled)
-            assert_sp_frame_equal(frame, unpickled)
+            result = self.round_trip_pickle(frame)
+            assert_sp_frame_equal(frame, result)
 
         _test_roundtrip(SparseDataFrame())
         self._check_all(_test_roundtrip)
@@ -1608,12 +1609,11 @@ class TestSparsePanel(tm.TestCase,
 
     def test_pickle(self):
         def _test_roundtrip(panel):
-            pickled = pickle.dumps(panel, protocol=pickle.HIGHEST_PROTOCOL)
-            unpickled = pickle.loads(pickled)
-            tm.assert_isinstance(unpickled.items, Index)
-            tm.assert_isinstance(unpickled.major_axis, Index)
-            tm.assert_isinstance(unpickled.minor_axis, Index)
-            assert_sp_panel_equal(panel, unpickled)
+            result = self.round_trip_pickle(panel)
+            tm.assert_isinstance(result.items, Index)
+            tm.assert_isinstance(result.major_axis, Index)
+            tm.assert_isinstance(result.minor_axis, Index)
+            assert_sp_panel_equal(panel, result)
 
         _test_roundtrip(self.panel)
 
