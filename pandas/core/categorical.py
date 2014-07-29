@@ -16,7 +16,6 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 from pandas.core import format as fmt
 
-
 def _cat_compare_op(op):
     def f(self, other):
         if isinstance(other, (Categorical, np.ndarray)):
@@ -44,16 +43,6 @@ def _maybe_to_categorical(array):
         return array.values
     return array
 
-
-def _get_codes_for_values(values, levels):
-    from pandas.core.algorithms import _get_data_algo, _hashtables
-    if values.dtype != levels.dtype:
-        values = com._ensure_object(values)
-        levels = com._ensure_object(levels)
-    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    t = hash_klass(len(levels))
-    t.map_locations(levels)
-    return com._ensure_platform_int(t.lookup(values))
 
 _codes_doc = """The level codes of this categorical.
 
@@ -484,7 +473,7 @@ class Categorical(PandasObject):
             result = result[::-1]
         return result
 
-    def order(self, inplace=False, ascending=True, **kwargs):
+    def order(self, inplace=False, ascending=True, na_position='last', **kwargs):
         """ Sorts the Category by level value returning a new Categorical by default.
 
         Only ordered Categoricals can be sorted!
@@ -495,11 +484,11 @@ class Categorical(PandasObject):
         ----------
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
+        inplace : boolean, default False
+            Do operation in place.
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
-        inplace : boolean, default False
-            Do operation in place.
 
         Returns
         -------
@@ -511,18 +500,22 @@ class Categorical(PandasObject):
         """
         if not self.ordered:
             raise TypeError("Categorical not ordered")
-        _sorted = np.sort(self._codes.copy())
+        if na_position not in ['last','first']:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
+
+        codes = np.sort(self._codes.copy())
         if not ascending:
-            _sorted = _sorted[::-1]
+            codes = codes[::-1]
+
         if inplace:
-            self._codes = _sorted
+            self._codes = codes
             return
         else:
-            return Categorical(values=_sorted,levels=self.levels, ordered=self.ordered,
+            return Categorical(values=codes,levels=self.levels, ordered=self.ordered,
                                name=self.name, fastpath=True)
 
 
-    def sort(self, inplace=True, ascending=True, **kwargs):
+    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
         """ Sorts the Category inplace by level value.
 
         Only ordered Categoricals can be sorted!
@@ -533,11 +526,11 @@ class Categorical(PandasObject):
         ----------
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
+        inplace : boolean, default False
+            Do operation in place.
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
-        inplace : boolean, default False
-            Do operation in place.
 
         Returns
         -------
@@ -932,3 +925,20 @@ class Categorical(PandasObject):
         result.index.name = 'levels'
         result.columns = ['counts','freqs']
         return result
+
+##### utility routines #####
+
+def _get_codes_for_values(values, levels):
+    """"
+    utility routine to turn values into codes given the specified levels
+    """
+
+    from pandas.core.algorithms import _get_data_algo, _hashtables
+    if values.dtype != levels.dtype:
+        values = com._ensure_object(values)
+        levels = com._ensure_object(levels)
+    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
+    t = hash_klass(len(levels))
+    t.map_locations(levels)
+    return com._ensure_platform_int(t.lookup(values))
+

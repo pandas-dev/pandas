@@ -3415,34 +3415,38 @@ def _lexsort_indexer(keys, orders=None, na_position='last'):
         orders = [True] * len(keys)
 
     for key, order in zip(keys, orders):
-        key = np.asanyarray(key)
-        rizer = _hash.Factorizer(len(key))
 
-        if not key.dtype == np.object_:
-            key = key.astype('O')
+        # we are already a Categorical
+        if is_categorical_dtype(key):
+            c = key
 
-        # factorize maps nans to na_sentinel=-1
-        ids = rizer.factorize(key, sort=True)
-        n = len(rizer.uniques)
-        mask = (ids == -1)
+        # create the Categorical
+        else:
+            c = Categorical(key,ordered=True)
+
+        if na_position not in ['last','first']:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
+
+        n = len(c.levels)
+        codes = c.codes.copy()
+
+        mask = (c.codes == -1)
         if order: # ascending
             if na_position == 'last':
-                ids = np.where(mask, n, ids)
+                codes = np.where(mask, n, codes)
             elif na_position == 'first':
-                ids += 1
-            else:
-                raise ValueError('invalid na_position: {!r}'.format(na_position))
+                codes += 1
         else: # not order means descending
             if na_position == 'last':
-                ids = np.where(mask, n, n-ids-1)
+                codes = np.where(mask, n, n-codes-1)
             elif na_position == 'first':
-                ids = np.where(mask, 0, n-ids)
-            else:
-                raise ValueError('invalid na_position: {!r}'.format(na_position))
+                codes = np.where(mask, 0, n-codes)
         if mask.any():
             n += 1
+
         shape.append(n)
-        labels.append(ids)
+        labels.append(codes)
+
     return _indexer_from_factorized(labels, shape)
 
 def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):

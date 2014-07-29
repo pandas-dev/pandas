@@ -983,6 +983,47 @@ class TestCategoricalAsBlock(tm.TestCase):
             df.sort(columns=["unsort"], ascending=False)
         self.assertRaises(TypeError, f)
 
+        # multi-columns sort
+        # GH 7848
+        df = DataFrame({"id":[6,5,4,3,2,1], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+        df["grade"] = pd.Categorical(df["raw_grade"])
+        df['grade'].cat.reorder_levels(['b', 'e', 'a'])
+
+        # sorts 'grade' according to the order of the levels
+        result = df.sort(columns=['grade'])
+        expected = df.iloc[[1,2,5,0,3,4]]
+        tm.assert_frame_equal(result,expected)
+
+        # multi
+        result = df.sort(columns=['grade', 'id'])
+        expected = df.iloc[[2,1,5,4,3,0]]
+        tm.assert_frame_equal(result,expected)
+
+        # reverse
+        cat = Categorical(["a","c","c","b","d"], ordered=True)
+        res = cat.order(ascending=False)
+        exp_val = np.array(["d","c", "c", "b","a"],dtype=object)
+        exp_levels = np.array(["a","b","c","d"],dtype=object)
+        self.assert_numpy_array_equal(res.__array__(), exp_val)
+        self.assert_numpy_array_equal(res.levels, exp_levels)
+
+        # some NaN positions
+
+        cat = Categorical(["a","c","b","d", np.nan], ordered=True)
+        res = cat.order(ascending=False, na_position='last')
+        exp_val = np.array(["d","c","b","a", np.nan],dtype=object)
+        exp_levels = np.array(["a","b","c","d"],dtype=object)
+        # FIXME: IndexError: Out of bounds on buffer access (axis 0)
+        #self.assert_numpy_array_equal(res.__array__(), exp_val)
+        #self.assert_numpy_array_equal(res.levels, exp_levels)
+
+        cat = Categorical(["a","c","b","d", np.nan], ordered=True)
+        res = cat.order(ascending=False, na_position='first')
+        exp_val = np.array([np.nan, "d","c","b","a"],dtype=object)
+        exp_levels = np.array(["a","b","c","d"],dtype=object)
+        # FIXME: IndexError: Out of bounds on buffer access (axis 0)
+        #self.assert_numpy_array_equal(res.__array__(), exp_val)
+        #self.assert_numpy_array_equal(res.levels, exp_levels)
 
     def test_slicing(self):
         cat = Series(Categorical([1,2,3,4]))
@@ -1428,6 +1469,22 @@ class TestCategoricalAsBlock(tm.TestCase):
         def f():
             pd.concat([df,df_wrong_levels])
         self.assertRaises(ValueError, f)
+
+        # GH 7864
+        # make sure ordering is preserverd
+        df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+        df["grade"] = pd.Categorical(df["raw_grade"])
+        df['grade'].cat.reorder_levels(['e', 'a', 'b'])
+
+        df1 = df[0:3]
+        df2 = df[3:]
+
+        self.assert_numpy_array_equal(df['grade'].cat.levels, df1['grade'].cat.levels)
+        self.assert_numpy_array_equal(df['grade'].cat.levels, df2['grade'].cat.levels)
+
+        dfx = pd.concat([df1, df2])
+        dfx['grade'].cat.levels
+        self.assert_numpy_array_equal(df['grade'].cat.levels, dfx['grade'].cat.levels)
 
     def test_append(self):
         cat = pd.Categorical(["a","b"], levels=["a","b"])
