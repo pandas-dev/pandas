@@ -1941,6 +1941,39 @@ class TestIndexing(tm.TestCase):
             df.val['X']
         self.assertRaises(KeyError, f)
 
+
+        # GH 7866
+        # multi-index slicing with missing indexers
+        s = pd.Series(np.arange(9),
+                      index=pd.MultiIndex.from_product([['A','B','C'],['foo','bar','baz']],
+                                                       names=['one','two'])
+                      ).sortlevel()
+
+        expected = pd.Series(np.arange(3),
+                             index=pd.MultiIndex.from_product([['A'],['foo','bar','baz']],
+                                                              names=['one','two'])
+                             ).sortlevel()
+
+        result = s.loc[['A']]
+        assert_series_equal(result,expected)
+        result = s.loc[['A','D']]
+        assert_series_equal(result,expected)
+
+        # empty series
+        result = s.loc[['D']]
+        expected = s.loc[[]]
+        assert_series_equal(result,expected)
+
+        idx = pd.IndexSlice
+        expected = pd.Series([0,3,6],
+                             index=pd.MultiIndex.from_product([['A','B','C'],['foo']],
+                                                              names=['one','two'])
+                             ).sortlevel()
+        result = s.loc[idx[:,['foo']]]
+        assert_series_equal(result,expected)
+        result = s.loc[idx[:,['foo','bah']]]
+        assert_series_equal(result,expected)
+
     def test_setitem_dtype_upcast(self):
 
         # GH3216
