@@ -362,7 +362,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def _get_names(self):
         return FrozenList((self.name,))
 
-    def _set_names(self, values):
+    def _set_names(self, values, level=None):
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d'
                              % len(values))
@@ -370,28 +370,61 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     names = property(fset=_set_names, fget=_get_names)
 
-    def set_names(self, names, inplace=False):
+    def set_names(self, names, level=None, inplace=False):
         """
         Set new names on index. Defaults to returning new index.
 
         Parameters
         ----------
-        names : sequence
-            names to set
+        names : str or sequence
+            name(s) to set
+        level : int or level name, or sequence of int / level names (default None)
+            If the index is a MultiIndex (hierarchical), level(s) to set (None for all levels)
+            Otherwise level must be None
         inplace : bool
             if True, mutates in place
 
         Returns
         -------
         new index (of same type and class...etc) [if inplace, returns None]
+
+        Examples
+        --------
+        >>> Index([1, 2, 3, 4]).set_names('foo')
+        Int64Index([1, 2, 3, 4], dtype='int64')
+        >>> Index([1, 2, 3, 4]).set_names(['foo'])
+        Int64Index([1, 2, 3, 4], dtype='int64')
+        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                          (2, u'one'), (2, u'two')], 
+                                          names=['foo', 'bar'])
+        >>> idx.set_names(['baz', 'quz'])
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'baz', u'quz'])
+        >>> idx.set_names('baz', level=0)
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'baz', u'bar'])
         """
-        if not com.is_list_like(names):
+        if level is not None and self.nlevels == 1:
+            raise ValueError('Level must be None for non-MultiIndex')
+
+        if level is not None and not com.is_list_like(level) and com.is_list_like(names):
+            raise TypeError("Names must be a string")
+
+        if not com.is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
+
+        if not com.is_list_like(names):
+            names = [names]
+        if level is not None and not com.is_list_like(level):
+            level = [level]
+
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
-        idx._set_names(names)
+        idx._set_names(names, level=level)
         if not inplace:
             return idx
 
@@ -2218,19 +2251,30 @@ class MultiIndex(Index):
     def _get_levels(self):
         return self._levels
 
-    def _set_levels(self, levels, copy=False, validate=True,
+    def _set_levels(self, levels, level=None, copy=False, validate=True,
                     verify_integrity=False):
         # This is NOT part of the levels property because it should be
         # externally not allowed to set levels. User beware if you change
         # _levels directly
         if validate and len(levels) == 0:
             raise ValueError('Must set non-zero number of levels.')
-        if validate and len(levels) != len(self._labels):
-            raise ValueError('Length of levels must match length of labels.')
-        levels = FrozenList(_ensure_index(lev, copy=copy)._shallow_copy()
-                            for lev in levels)
+        if validate and level is None and len(levels) != self.nlevels:
+            raise ValueError('Length of levels must match number of levels.')
+        if validate and level is not None and len(levels) != len(level):
+            raise ValueError('Length of levels must match length of level.')
+
+        if level is None:
+            new_levels = FrozenList(_ensure_index(lev, copy=copy)._shallow_copy()
+                                    for lev in levels)
+        else:
+            level = [self._get_level_number(l) for l in level]
+            new_levels = list(self._levels)
+            for l, v in zip(level, levels):
+                new_levels[l] = _ensure_index(v, copy=copy)._shallow_copy()
+            new_levels = FrozenList(new_levels)
+
         names = self.names
-        self._levels = levels
+        self._levels = new_levels
         if any(names):
             self._set_names(names)
 
@@ -2240,15 +2284,17 @@ class MultiIndex(Index):
         if verify_integrity:
             self._verify_integrity()
 
-    def set_levels(self, levels, inplace=False, verify_integrity=True):
+    def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
         """
         Set new levels on MultiIndex. Defaults to returning
         new index.
 
         Parameters
         ----------
-        levels : sequence
-            new levels to apply
+        levels : sequence or list of sequence
+            new level(s) to apply
+        level : int or level name, or sequence of int / level names (default None)
+            level(s) to set (None for all levels)
         inplace : bool
             if True, mutates in place
         verify_integrity : bool (default True)
@@ -2257,15 +2303,47 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
+
+
+        Examples
+        --------
+        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                          (2, u'one'), (2, u'two')], 
+                                          names=['foo', 'bar'])
+        >>> idx.set_levels([['a','b'], [1,2]])
+        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_levels(['a','b'], level=0)
+        MultiIndex(levels=[[u'a', u'b'], [u'one', u'two']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_levels(['a','b'], level='bar')
+        MultiIndex(levels=[[1, 2], [u'a', u'b']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
+        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   names=[u'foo', u'bar'])
         """
-        if not com.is_list_like(levels) or not com.is_list_like(levels[0]):
-            raise TypeError("Levels must be list of lists-like")
+        if level is not None and not com.is_list_like(level):
+            if not com.is_list_like(levels):
+                raise TypeError("Levels must be list-like")
+            if com.is_list_like(levels[0]):
+                raise TypeError("Levels must be list-like")
+            level = [level]
+            levels = [levels]
+        elif level is None or com.is_list_like(level):
+            if not com.is_list_like(levels) or not com.is_list_like(levels[0]):
+                raise TypeError("Levels must be list of lists-like")
+
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_levels(levels, validate=True,
+        idx._set_levels(levels, level=level, validate=True,
                         verify_integrity=verify_integrity)
         if not inplace:
             return idx
@@ -2280,27 +2358,42 @@ class MultiIndex(Index):
     def _get_labels(self):
         return self._labels
 
-    def _set_labels(self, labels, copy=False, validate=True,
+    def _set_labels(self, labels, level=None, copy=False, validate=True,
                     verify_integrity=False):
-        if validate and len(labels) != self.nlevels:
-            raise ValueError("Length of labels must match length of levels")
-        self._labels = FrozenList(
-            _ensure_frozen(labs, copy=copy)._shallow_copy() for labs in labels)
+        
+        if validate and level is None and len(labels) != self.nlevels:
+            raise ValueError("Length of labels must match number of levels")
+        if validate and level is not None and len(labels) != len(level):
+            raise ValueError('Length of labels must match length of levels.')
+
+        if level is None:
+            new_labels = FrozenList(_ensure_frozen(v, copy=copy)._shallow_copy()
+                                    for v in labels)
+        else:
+            level = [self._get_level_number(l) for l in level]
+            new_labels = list(self._labels)
+            for l, v in zip(level, labels):
+                new_labels[l] = _ensure_frozen(v, copy=copy)._shallow_copy()
+            new_labels = FrozenList(new_labels)
+
+        self._labels = new_labels
         self._tuples = None
         self._reset_cache()
 
         if verify_integrity:
             self._verify_integrity()
 
-    def set_labels(self, labels, inplace=False, verify_integrity=True):
+    def set_labels(self, labels, level=None, inplace=False, verify_integrity=True):
         """
         Set new labels on MultiIndex. Defaults to returning
         new index.
 
         Parameters
         ----------
-        labels : sequence of arrays
+        labels : sequence or list of sequence
             new labels to apply
+        level : int or level name, or sequence of int / level names (default None)
+            level(s) to set (None for all levels)
         inplace : bool
             if True, mutates in place
         verify_integrity : bool (default True)
@@ -2309,15 +2402,46 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
+
+        Examples
+        --------
+        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                          (2, u'one'), (2, u'two')], 
+                                          names=['foo', 'bar'])
+        >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_labels([1,0,1,0], level=0)
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[1, 0, 1, 0], [0, 1, 0, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_labels([0,0,1,1], level='bar')
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[0, 0, 1, 1], [0, 0, 1, 1]],
+                   names=[u'foo', u'bar'])
+        >>> idx.set_labels([[1,0,1,0], [0,0,1,1]], level=[0,1])
+        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                   labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
+                   names=[u'foo', u'bar'])
         """
-        if not com.is_list_like(labels) or not com.is_list_like(labels[0]):
-            raise TypeError("Labels must be list of lists-like")
+        if level is not None and not com.is_list_like(level):
+            if not com.is_list_like(labels):
+                raise TypeError("Labels must be list-like")
+            if com.is_list_like(labels[0]):
+                raise TypeError("Labels must be list-like")
+            level = [level]
+            labels = [labels]
+        elif level is None or com.is_list_like(level):
+            if not com.is_list_like(labels) or not com.is_list_like(labels[0]):
+                raise TypeError("Labels must be list of lists-like")
+
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_labels(labels, verify_integrity=verify_integrity)
+        idx._set_labels(labels, level=level, verify_integrity=verify_integrity)
         if not inplace:
             return idx
 
@@ -2434,18 +2558,30 @@ class MultiIndex(Index):
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
 
-    def _set_names(self, values, validate=True):
+    def _set_names(self, names, level=None, validate=True):
         """
         sets names on levels. WARNING: mutates!
 
         Note that you generally want to set this *after* changing levels, so
-        that it only acts on copies"""
-        values = list(values)
-        if validate and len(values) != self.nlevels:
-            raise ValueError('Length of names must match length of levels')
+        that it only acts on copies
+        """
+
+        names = list(names)
+
+        if validate and level is not None and len(names) != len(level):
+            raise ValueError('Length of names must match length of level.')
+        if validate and level is None and len(names) != self.nlevels:
+            raise ValueError(
+                'Length of names must match number of levels in MultiIndex.')
+
+        if level is None:
+            level = range(self.nlevels)
+        else:
+            level = [self._get_level_number(l) for l in level]
+
         # set the name
-        for name, level in zip(values, self.levels):
-            level.rename(name, inplace=True)
+        for l, name in zip(level, names):
+            self.levels[l].rename(name, inplace=True)
 
     names = property(
         fset=_set_names, fget=_get_names, doc="Names of levels in MultiIndex")

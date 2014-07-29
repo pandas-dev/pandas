@@ -70,9 +70,11 @@ class TestIndex(tm.TestCase):
             self.assertIsNone(res)
             self.assertEqual(ind.name, new_name)
             self.assertEqual(ind.names, [new_name])
-            with assertRaisesRegexp(TypeError, "list-like"):
-                # should still fail even if it would be the right length
-                ind.set_names("a")
+            #with assertRaisesRegexp(TypeError, "list-like"):
+            #    # should still fail even if it would be the right length
+            #    ind.set_names("a")
+            with assertRaisesRegexp(ValueError, "Level must be None"):
+                ind.set_names("a", level=0)
         # rename in place just leaves tuples and other containers alone
         name = ('A', 'B')
         ind = self.intIndex
@@ -1509,15 +1511,30 @@ class TestMultiIndex(tm.TestCase):
         self.assertIsNone(res)
         self.assertEqual(ind.names, new_names2)
 
-    def test_set_levels_and_set_labels(self):
+        # set names for specific level (# GH7792)
+        ind = self.index.set_names(new_names[0], level=0)
+        self.assertEqual(self.index.names, self.index_names)
+        self.assertEqual(ind.names, [new_names[0], self.index_names[1]])
+
+        res = ind.set_names(new_names2[0], level=0, inplace=True)
+        self.assertIsNone(res)
+        self.assertEqual(ind.names, [new_names2[0], self.index_names[1]])
+
+        # set names for multiple levels
+        ind = self.index.set_names(new_names, level=[0, 1])
+        self.assertEqual(self.index.names, self.index_names)
+        self.assertEqual(ind.names, new_names)
+
+        res = ind.set_names(new_names2, level=[0, 1], inplace=True)
+        self.assertIsNone(res)
+        self.assertEqual(ind.names, new_names2)
+
+
+    def test_set_levels(self):
         # side note - you probably wouldn't want to use levels and labels
         # directly like this - but it is possible.
         levels, labels = self.index.levels, self.index.labels
         new_levels = [[lev + 'a' for lev in level] for level in levels]
-        major_labels, minor_labels = labels
-        major_labels = [(x + 1) % 3 for x in major_labels]
-        minor_labels = [(x + 1) % 1 for x in minor_labels]
-        new_labels = [major_labels, minor_labels]
 
         def assert_matching(actual, expected):
             # avoid specifying internal representation
@@ -1539,6 +1556,58 @@ class TestMultiIndex(tm.TestCase):
         self.assertIsNone(inplace_return)
         assert_matching(ind2.levels, new_levels)
 
+        # level changing specific level [w/o mutation]
+        ind2 = self.index.set_levels(new_levels[0], level=0)
+        assert_matching(ind2.levels, [new_levels[0], levels[1]])
+        assert_matching(self.index.levels, levels)
+
+        ind2 = self.index.set_levels(new_levels[1], level=1)
+        assert_matching(ind2.levels, [levels[0], new_levels[1]])
+        assert_matching(self.index.levels, levels)
+
+        # level changing multiple levels [w/o mutation]
+        ind2 = self.index.set_levels(new_levels, level=[0, 1])
+        assert_matching(ind2.levels, new_levels)
+        assert_matching(self.index.levels, levels)
+
+        # level changing specific level [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_levels(new_levels[0], level=0, inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.levels, [new_levels[0], levels[1]])
+        assert_matching(self.index.levels, levels)
+
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_levels(new_levels[1], level=1, inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.levels, [levels[0], new_levels[1]])
+        assert_matching(self.index.levels, levels)
+
+        # level changing multiple levels [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_levels(new_levels, level=[0, 1], inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.levels, new_levels)
+        assert_matching(self.index.levels, levels)
+
+    def test_set_labels(self):
+        # side note - you probably wouldn't want to use levels and labels
+        # directly like this - but it is possible.
+        levels, labels = self.index.levels, self.index.labels
+        major_labels, minor_labels = labels
+        major_labels = [(x + 1) % 3 for x in major_labels]
+        minor_labels = [(x + 1) % 1 for x in minor_labels]
+        new_labels = [major_labels, minor_labels]
+
+        def assert_matching(actual, expected):
+            # avoid specifying internal representation
+            # as much as possible
+            self.assertEqual(len(actual), len(expected))
+            for act, exp in zip(actual, expected):
+                act = np.asarray(act)
+                exp = np.asarray(exp)
+                assert_almost_equal(act, exp)
+
         # label changing [w/o mutation]
         ind2 = self.index.set_labels(new_labels)
         assert_matching(ind2.labels, new_labels)
@@ -1549,6 +1618,40 @@ class TestMultiIndex(tm.TestCase):
         inplace_return = ind2.set_labels(new_labels, inplace=True)
         self.assertIsNone(inplace_return)
         assert_matching(ind2.labels, new_labels)
+
+        # label changing specific level [w/o mutation]
+        ind2 = self.index.set_labels(new_labels[0], level=0)
+        assert_matching(ind2.labels, [new_labels[0], labels[1]])
+        assert_matching(self.index.labels, labels)
+
+        ind2 = self.index.set_labels(new_labels[1], level=1)
+        assert_matching(ind2.labels, [labels[0], new_labels[1]])
+        assert_matching(self.index.labels, labels)
+
+        # label changing multiple levels [w/o mutation]
+        ind2 = self.index.set_labels(new_labels, level=[0, 1])
+        assert_matching(ind2.labels, new_labels)
+        assert_matching(self.index.labels, labels)
+
+        # label changing specific level [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_labels(new_labels[0], level=0, inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.labels, [new_labels[0], labels[1]])
+        assert_matching(self.index.labels, labels)
+
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_labels(new_labels[1], level=1, inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.labels, [labels[0], new_labels[1]])
+        assert_matching(self.index.labels, labels)
+
+        # label changing multiple levels [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_labels(new_labels, level=[0, 1], inplace=True)
+        self.assertIsNone(inplace_return)
+        assert_matching(ind2.labels, new_labels)
+        assert_matching(self.index.labels, labels)
 
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
@@ -1574,6 +1677,27 @@ class TestMultiIndex(tm.TestCase):
         # shouldn't scalar data error, instead should demand list-like
         with tm.assertRaisesRegexp(TypeError, 'list-like'):
             self.index.set_names(names[0])
+
+        # should have equal lengths
+        with tm.assertRaisesRegexp(TypeError, 'list of lists-like'):
+            self.index.set_levels(levels[0], level=[0, 1])
+
+        with tm.assertRaisesRegexp(TypeError, 'list-like'):
+            self.index.set_levels(levels, level=0)
+
+        # should have equal lengths
+        with tm.assertRaisesRegexp(TypeError, 'list of lists-like'):
+            self.index.set_labels(labels[0], level=[0, 1])
+
+        with tm.assertRaisesRegexp(TypeError, 'list-like'):
+            self.index.set_labels(labels, level=0)
+
+        # should have equal lengths
+        with tm.assertRaisesRegexp(ValueError, 'Length of names'):
+            self.index.set_names(names[0], level=[0, 1])
+
+        with tm.assertRaisesRegexp(TypeError, 'string'):
+            self.index.set_names(names, level=0)
 
     def test_metadata_immutable(self):
         levels, labels = self.index.levels, self.index.labels

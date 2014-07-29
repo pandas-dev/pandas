@@ -35,6 +35,16 @@ API changes
   levels aren't all level names or all level numbers. See
   :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
 
+- :func:`set_names`, :func:`set_labels`, and :func:`set_levels` methods now take an optional ``level`` keyword argument to all modification of specific level(s) of a MultiIndex. Additionally :func:`set_names` now accepts a scalar string value when operating on an ``Index`` or on a specific level of a ``MultiIndex`` (:issue:`7792`)
+
+  .. ipython:: python
+
+      idx = pandas.MultiIndex.from_product([['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
+      idx.set_names('qux', level=0)
+      idx.set_names(['qux','baz'], level=[0,1])
+      idx.set_levels(['a','b','c'], level='bar')
+      idx.set_levels([['a','b','c'],[1,2,3]], level=[1,2])
+
 - Raise a ``ValueError`` in ``df.to_hdf`` with 'fixed' format, if ``df`` has non-unique columns as the resulting file will be broken (:issue:`7761`)
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`

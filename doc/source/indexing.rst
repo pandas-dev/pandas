@@ -2162,6 +2162,17 @@ you can specify ``inplace=True`` to have the data change in place.
   ind.name = "bob"
   ind
 
+.. versionadded:: 0.15.0
+
+``set_names``, ``set_levels``, and ``set_labels`` also take an optional 
+`level`` argument
+
+.. ipython:: python
+
+  index
+  index.levels[1]
+  index.set_levels(["a", "b"], level=1)
+
 Adding an index to an existing DataFrame
 ----------------------------------------
 
