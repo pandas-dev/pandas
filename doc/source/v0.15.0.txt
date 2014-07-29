@@ -336,7 +336,8 @@ Bug Fixes
 
 
 
-
+- Bug in ``GroupBy.filter()`` where fast path vs. slow path made the filter
+  return a non scalar value that appeared valid but wasnt' (:issue:`7870`).
 
 
 

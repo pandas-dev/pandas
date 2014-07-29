@@ -3968,6 +3968,32 @@ class TestGroupBy(tm.TestCase):
         filt = g.filter(lambda x: x['A'].sum() == 2)
         assert_frame_equal(filt, df.iloc[[0, 1]])
 
+    def test_filter_enforces_scalarness(self):
+        df  = pd.DataFrame([
+            ['best', 'a', 'x'],
+            ['worst', 'b', 'y'],
+            ['best', 'c', 'x'],
+            ['best','d', 'y'],
+            ['worst','d', 'y'],
+            ['worst','d', 'y'],
+            ['best','d', 'z'],
+        ], columns=['a', 'b', 'c'])
+        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+            df.groupby('c').filter(lambda g: g['a'] == 'best')
+
+    def test_filter_non_bool_raises(self):
+        df  = pd.DataFrame([
+            ['best', 'a', 1],
+            ['worst', 'b', 1],
+            ['best', 'c', 1],
+            ['best','d', 1],
+            ['worst','d', 1],
+            ['worst','d', 1],
+            ['best','d', 1],
+        ], columns=['a', 'b', 'c'])
+        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+            df.groupby('a').filter(lambda g: g.c.mean())
+
     def test_index_label_overlaps_location(self):
         # checking we don't have any label/location confusion in the
         # the wake of GH5375
