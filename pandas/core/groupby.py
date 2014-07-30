@@ -2945,48 +2945,34 @@ class NDFrameGroupBy(GroupBy):
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
         """
-        from pandas.tools.merge import concat
 
         indices = []
 
         obj = self._selected_obj
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
-        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
-
-        path = None
         for name, group in gen:
             object.__setattr__(group, 'name', name)
 
-            if path is None:
-                # Try slow path and fast path.
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except Exception:  # pragma: no cover
-                    res = fast_path(group)
-                    path = fast_path
-            else:
-                res = path(group)
+            res = func(group)
 
-            def add_indices():
-                indices.append(self._get_index(name))
+            try:
+                res = res.squeeze()
+            except AttributeError:  # allow e.g., scalars and frames to pass
+                pass
 
             # interpret the result of the filter
-            if isinstance(res, (bool, np.bool_)):
-                if res:
-                    add_indices()
+            if (isinstance(res, (bool, np.bool_)) or
+                np.isscalar(res) and isnull(res)):
+                if res and notnull(res):
+                    indices.append(self._get_index(name))
             else:
-                if getattr(res, 'ndim', None) == 1:
-                    val = res.ravel()[0]
-                    if val and notnull(val):
-                        add_indices()
-                else:
+                # non scalars aren't allowed
+                raise TypeError("filter function returned a %s, "
+                                "but expected a scalar bool" %
+                                type(res).__name__)
 
-                    # in theory you could do .all() on the boolean result ?
-                    raise TypeError("the filter must return a boolean result")
-
-        filtered = self._apply_filter(indices, dropna)
-        return filtered
+        return self._apply_filter(indices, dropna)
 
 
 class DataFrameGroupBy(NDFrameGroupBy):
