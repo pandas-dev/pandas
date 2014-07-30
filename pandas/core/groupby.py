@@ -635,11 +635,11 @@ class GroupBy(PandasObject):
 
         @wraps(func)
         def f(g):
-            # ignore SettingWithCopy here in case the user mutates
-            with option_context('mode.chained_assignment',None):
-                return func(g, *args, **kwargs)
+            return func(g, *args, **kwargs)
 
-        return self._python_apply_general(f)
+        # ignore SettingWithCopy here in case the user mutates
+        with option_context('mode.chained_assignment',None):
+            return self._python_apply_general(f)
 
     def _python_apply_general(self, f):
         keys, values, mutated = self.grouper.apply(f, self._selected_obj,
