@@ -3774,9 +3774,17 @@ class MultiIndex(Index):
                 ranges.append(k)
             elif com.is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
-                ranges.append(reduce(
-                    np.logical_or,[ _convert_indexer(self._get_level_indexer(x, level=i)
-                                                     ) for x in k ]))
+                indexers = []
+                for x in k:
+                    try:
+                        indexers.append(_convert_indexer(self._get_level_indexer(x, level=i)))
+                    except (KeyError):
+
+                        # ignore not founds
+                        continue
+
+                ranges.append(reduce(np.logical_or,indexers))
+
             elif _is_null_slice(k):
                 # empty slice
                 pass

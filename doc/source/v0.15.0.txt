@@ -285,7 +285,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
 - Bug in adding and subtracting ``PeriodIndex`` with ``PeriodIndex`` raise ``TypeError`` (:issue:`7741`)
 - Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
-
+- Bug in multi-index slicing with missing indexers (:issue:`7866`)
 
 
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)
