@@ -445,7 +445,10 @@ class TestFred(tm.TestCase):
         end = datetime(2013, 1, 27)
 
         received = web.DataReader("GDP", "fred", start, end)['GDP'].tail(1)[0]
-        self.assertEqual(int(received), 16535)
+
+        # < 7/30/14 16535 was returned
+        #self.assertEqual(int(received), 16535)
+        self.assertEqual(int(received), 16502)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT SERIES",
                           'fred', start, end)
