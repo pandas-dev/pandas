@@ -243,7 +243,7 @@ class Block(PandasObject):
         mask = isnull(self.values)
         if limit is not None:
             if self.ndim > 2:
-                raise NotImplementedError
+                raise NotImplementedError("fillna function not implemented for more than 2 dimensions")
             mask[mask.cumsum(self.ndim-1)>limit]=False
 
         value = self._try_fill(value)
@@ -363,10 +363,10 @@ class Block(PandasObject):
         return [self.copy()] if copy else [self]
 
     def _can_hold_element(self, value):
-        raise NotImplementedError()
+        raise NotImplementedError("Block _can_hold_element function")
 
     def _try_cast(self, value):
-        raise NotImplementedError()
+        raise NotImplementedError("Block _try_cast")
 
     def _try_cast_result(self, result, dtype=None):
         """ try to cast the result to our original type,
@@ -1519,7 +1519,7 @@ class DatetimeBlock(Block):
         value = self._try_fill(value)
         if limit is not None:
             if self.ndim > 2:
-                raise NotImplementedError
+                raise NotImplementedError("fillna function not implemented for more than 2 dimensions")
             mask[mask.cumsum(self.ndim-1)>limit]=False
 
         np.putmask(values, mask, value)
@@ -1741,7 +1741,7 @@ class SparseBlock(Block):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("fillna currently implemented only for limit=None")
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
         values = self.values if inplace else self.values.copy()

@@ -46,7 +46,7 @@ class SparseList(PandasObject):
         return self._chunks[j][i - passed]
 
     def __setitem__(self, i, value):
-        raise NotImplementedError
+        raise NotImplementedError("set item in SparseList is not implemented")
 
     @property
     def nchunks(self):

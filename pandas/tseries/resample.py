@@ -346,11 +346,11 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         return Series(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, DataFrame):
         if axis == 1:
-            raise NotImplementedError
+            raise NotImplementedError("Taking new index of a Dataframe not implemented for axis=1")
         return DataFrame(obj._data.reindex_indexer(
             new_axis=new_index, indexer=indexer, axis=1))
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Taking new index implemented only for Series and DataFrame")
 
 
 def _get_range_edges(axis, offset, closed='left', base=0):
@@ -429,7 +429,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Currently utility frequency conversion implemented for method=None")
 
         if how is None:
             how = 'E'

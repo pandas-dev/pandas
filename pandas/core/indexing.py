@@ -120,7 +120,7 @@ class _NDFrameIndexer(object):
         self._setitem_with_indexer(indexer, value)
 
     def _has_valid_type(self, k, axis):
-        raise NotImplementedError()
+        raise NotImplementedError("Valid type checking for _NDFrameIndexer is not implemented")
 
     def _has_valid_tuple(self, key):
         """ check the key for valid keys across my indexer """
@@ -1141,7 +1141,7 @@ class _LocationIndexer(_NDFrameIndexer):
             return self._getitem_axis(key, axis=0)
 
     def _getitem_axis(self, key, axis=0, validate_iterable=False):
-        raise NotImplementedError()
+        raise NotImplementedError("Get item along given axis in _LocationIndexer is not implemented")
 
     def _getbool_axis(self, key, axis=0):
         labels = self.obj._get_axis(axis)

@@ -727,10 +727,10 @@ class _TestSQLAlchemy(PandasSQLTest):
             raise nose.SkipTest('SQLAlchemy not installed')
 
     def setup_driver(self):
-        raise NotImplementedError()
+        raise NotImplementedError("SQLAlchemy Setup Driver test not implemented")
 
     def connect(self):
-        raise NotImplementedError()
+        raise NotImplementedError("SQLAlchemy Connect test not implemented")
 
     def setup_connect(self):
         try:
@@ -740,7 +740,7 @@ class _TestSQLAlchemy(PandasSQLTest):
             raise nose.SkipTest("Can't connect to {0} server".format(self.flavor))
 
     def tearDown(self):
-        raise NotImplementedError()
+        raise NotImplementedError("SQLAlchemy Tear Down test not implemented")
 
     def test_aread_sql(self):
         self._read_sql_iris()

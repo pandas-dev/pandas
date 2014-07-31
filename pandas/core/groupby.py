@@ -283,7 +283,7 @@ class Grouper(object):
         return self.grouper
 
     def _get_binner_for_grouping(self, obj):
-        raise NotImplementedError
+        raise NotImplementedError("Binner for grouping")
 
     @property
     def groups(self):
@@ -644,7 +644,7 @@ class GroupBy(PandasObject):
                                          not_indexed_same=mutated)
 
     def aggregate(self, func, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Groupby aggregrate")
 
     @Appender(_agg_doc)
     def agg(self, func, *args, **kwargs):
@@ -654,7 +654,7 @@ class GroupBy(PandasObject):
         yield self.name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Groupby transform")
 
     def mean(self):
         """
@@ -1041,7 +1041,7 @@ class GroupBy(PandasObject):
         return self._wrap_aggregated_output(output)
 
     def _wrap_applied_output(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Groupby wrap applied output")
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.tools.merge import concat
@@ -1404,7 +1404,7 @@ class BaseGrouper(object):
                 swapped = True
                 values = values.swapaxes(0, axis)
             if arity > 1:
-                raise NotImplementedError
+                raise NotImplementedError("BaseGrouper aggregate for arity > 1")
             out_shape = (self.ngroups,) + values.shape[1:]
 
         if is_numeric_dtype(values.dtype):
@@ -1459,7 +1459,7 @@ class BaseGrouper(object):
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError
+            raise NotImplementedError("BaseGrouper aggregrate for > 3 dimensions")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
@@ -1695,7 +1695,7 @@ class BinGrouper(BaseGrouper):
 
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError
+            raise NotImplementedError("BinGrouper aggregate for > 3 dimensions")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
                 agg_func(result[:, :, i], counts, chunk, self.bins)
@@ -2399,7 +2399,7 @@ class NDFrameGroupBy(GroupBy):
             if self._selection is not None:
                 subset = obj
                 if isinstance(subset, DataFrame):
-                    raise NotImplementedError
+                    raise NotImplementedError("aggregate not implemented for subset being a Dataframe")
 
                 for fname, agg_how in compat.iteritems(arg):
                     colg = SeriesGroupBy(subset, selection=self._selection,
@@ -2459,7 +2459,7 @@ class NDFrameGroupBy(GroupBy):
         from pandas.tools.merge import concat
 
         if self.axis != 0:
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for axis = 0")
 
         obj = self._obj_with_exclusions
 
@@ -2509,7 +2509,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise NotImplementedError
+        raise NotImplementedError("NDFrameGroupBy wrap aggregated output")
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -3050,7 +3050,7 @@ class PanelGroupBy(NDFrameGroupBy):
                 slice_axis = self._selection_list
             slicer = lambda x: self._selected_obj[x]
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for axis = 0")
 
         for val in slice_axis:
             if val in self.exclusions:
@@ -3115,10 +3115,10 @@ class PanelGroupBy(NDFrameGroupBy):
             new_axes[self.axis] = self.grouper.result_index
             return Panel._from_axes(result, new_axes)
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for axis>0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise NotImplementedError
+        raise NotImplementedError("PanelGroupBy _wrap_aggregated_output")
 
 
 class NDArrayGroupBy(GroupBy):
@@ -3172,7 +3172,7 @@ class DataSplitter(object):
         return sdata.iloc[slice_obj]
 
     def apply(self, f):
-        raise NotImplementedError
+        raise NotImplementedError("DataSplitter apply function")
 
 
 class ArraySplitter(DataSplitter):

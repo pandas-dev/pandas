@@ -156,7 +156,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 dtype = self._validate_dtype(dtype)
 
             if isinstance(data, MultiIndex):
-                raise NotImplementedError
+                raise NotImplementedError("Series initialization currently is not implemented for MultiIndex")
             elif isinstance(data, Index):
                 # need to copy to avoid aliasing issues
                 if name is None:

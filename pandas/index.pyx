@@ -234,10 +234,10 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     def _call_monotonic(self, values):
-        raise NotImplementedError
+        raise NotImplementedError("IndexEngine _call_monotonic is not implemented")
 
     cdef _make_hash_table(self, n):
-        raise NotImplementedError
+        raise NotImplementedError("IndexEngine _make_hash_table is not implemented")
 
     cdef _check_type(self, object val):
         hash(val)

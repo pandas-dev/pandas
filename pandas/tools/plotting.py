@@ -127,7 +127,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
 
             colors = lmap(random_color, lrange(num_colors))
         else:
-            raise NotImplementedError
+            raise NotImplementedError("color_type = default/random are only implemented")
 
     if len(colors) != num_colors:
         multiple = num_colors//len(colors) - 1
@@ -989,7 +989,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise NotImplementedError
+        raise NotImplementedError("MPLPlot _make_plot not implemented")
 
     def _add_table(self):
         if self.table is False:
@@ -1828,7 +1828,7 @@ class BarPlot(MPLPlot):
                     start = start + self.left
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Plot with kind = 'bar'/'barh' are only implemented")
 
         return f
 

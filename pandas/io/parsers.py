@@ -679,7 +679,7 @@ class TextFileReader(object):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise NotImplementedError
+        raise NotImplementedError("Failover to Python not implemented")
 
     def read(self, nrows=None):
         if nrows is not None:

@@ -1619,7 +1619,7 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     b = 0
     if K > 1:
-        raise NotImplementedError
+        raise NotImplementedError("group aggregation for K>1 is not implemented")
     else:
         for i in range(N):
             while b < ngroups - 1 and i >= bins[b]:

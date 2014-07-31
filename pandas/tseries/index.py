@@ -1717,14 +1717,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         from dateutil.parser import parse
 
         if asof:
-            raise NotImplementedError
+            raise NotImplementedError("Currently selection of values is implemented for asof=False")
 
         if isinstance(time, compat.string_types):
             time = parse(time).time()
 
         if time.tzinfo:
             # TODO
-            raise NotImplementedError
+            raise NotImplementedError("Currently datetime.time or string is supported")
 
         time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
@@ -1756,7 +1756,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             end_time = parse(end_time).time()
 
         if start_time.tzinfo or end_time.tzinfo:
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for datetime.time and string")
 
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
@@ -1858,7 +1858,7 @@ def _generate_regular_range(start, end, periods, offset):
             b = e - periods * stride
             tz = end.tz
         else:
-            raise NotImplementedError
+            raise NotImplementedError("start and end are None, periods is not None is not currently implemented")
 
         data = np.arange(b, e, stride, dtype=np.int64)
         data = DatetimeIndex._simple_new(data, None, tz=tz)

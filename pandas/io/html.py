@@ -215,7 +215,7 @@ class _HtmlFrameParser(object):
         text : str or unicode
             The text from an individual DOM node.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Text from an individual DOM node")
 
     def _parse_td(self, obj):
         """Return the td elements from a row element.
@@ -229,7 +229,7 @@ class _HtmlFrameParser(object):
         columns : list of node-like
             These are the elements of each row, i.e., the columns.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Elements of each row, i.e the columns")
 
     def _parse_tables(self, doc, match, attrs):
         """Return all tables from the parsed DOM.
@@ -256,7 +256,7 @@ class _HtmlFrameParser(object):
         tables : list of node-like
             A list of <table> elements to be parsed into raw data.
         """
-        raise NotImplementedError
+        raise NotImplementedError("All tables from the parsed DOM")
 
     def _parse_tr(self, table):
         """Return the list of row elements from the parsed table element.
@@ -271,7 +271,7 @@ class _HtmlFrameParser(object):
         rows : list of node-like
             A list row elements of a table, usually <tr> or <th> elements.
         """
-        raise NotImplementedError
+        raise NotImplementedError("List of row elements from parsed table element")
 
     def _parse_thead(self, table):
         """Return the header of a table.
@@ -286,7 +286,7 @@ class _HtmlFrameParser(object):
         thead : node-like
             A <thead>...</thead> element.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Header of HTML table")
 
     def _parse_tbody(self, table):
         """Return the body of the table.
@@ -301,7 +301,7 @@ class _HtmlFrameParser(object):
         tbody : node-like
             A <tbody>...</tbody> element.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Body of HTML table")
 
     def _parse_tfoot(self, table):
         """Return the footer of the table if any.
@@ -316,7 +316,7 @@ class _HtmlFrameParser(object):
         tfoot : node-like
             A <tfoot>...</tfoot> element.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Footer of HTML table")
 
     def _build_doc(self):
         """Return a tree-like object that can be used to iterate over the DOM.
@@ -325,7 +325,7 @@ class _HtmlFrameParser(object):
         -------
         obj : tree-like
         """
-        raise NotImplementedError
+        raise NotImplementedError("Tree-like object to iterate over the DOM")
 
     def _build_table(self, table):
         header = self._parse_raw_thead(table)
