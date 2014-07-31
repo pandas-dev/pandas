@@ -8517,13 +8517,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_replace_datetime(self):
         d = {'fname':
-             {'out_augmented_AUG_2011.json': pd.Timestamp('2011/08'),
-              'out_augmented_JAN_2011.json': pd.Timestamp('2011/01'),
-              'out_augmented_MAY_2012.json': pd.Timestamp('2012/05'),
-              'out_augmented_SUBSIDY_WEEK.json': pd.Timestamp('2011/04'),
-              'out_augmented_AUG_2012.json': pd.Timestamp('2012/08'),
-              'out_augmented_MAY_2011.json': pd.Timestamp('2011/05'),
-              'out_augmented_SEP_2013.json': pd.Timestamp('2013/09')}}
+             {'out_augmented_AUG_2011.json': pd.Timestamp('2011-08'),
+              'out_augmented_JAN_2011.json': pd.Timestamp('2011-01'),
+              'out_augmented_MAY_2012.json': pd.Timestamp('2012-05'),
+              'out_augmented_SUBSIDY_WEEK.json': pd.Timestamp('2011-04'),
+              'out_augmented_AUG_2012.json': pd.Timestamp('2012-08'),
+              'out_augmented_MAY_2011.json': pd.Timestamp('2011-05'),
+              'out_augmented_SEP_2013.json': pd.Timestamp('2013-09')}}
 
         df = pd.DataFrame(['out_augmented_AUG_2012.json',
                            'out_augmented_SEP_2013.json',
