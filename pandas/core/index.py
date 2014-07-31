@@ -12,7 +12,7 @@ import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
-from pandas.util.decorators import cache_readonly, deprecate
+from pandas.util.decorators import cache_readonly, deprecate, Appender
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
@@ -687,13 +687,29 @@ class Index(IndexOpsMixin, FrozenNDArray):
         # property, for now, slow to look up
         return self._engine_type(lambda: self.values, len(self))
 
+    def _validate_index_level(self, level):
+        """
+        Validate index level.
+
+        For single-level Index getting level number is a no-op, but some
+        verification must be done like in MultiIndex.
+
+        """
+        if isinstance(level, int):
+            if level < 0 and level != -1:
+                raise IndexError("Too many levels: Index has only 1 level,"
+                                 " %d is not a valid level number" % (level,))
+            elif level > 0:
+                raise IndexError("Too many levels:"
+                                 " Index has only 1 level, not %d" %
+                                 (level + 1))
+        elif level != self.name:
+            raise KeyError('Level %s must be same as name (%s)'
+                           % (level, self.name))
+
     def _get_level_number(self, level):
-        if not isinstance(level, int):
-            if level != self.name:
-                raise AssertionError('Level %s must be same as name (%s)'
-                                     % (level, self.name))
-            level = 0
-        return level
+        self._validate_index_level(level)
+        return 0
 
     @cache_readonly
     def inferred_type(self):
@@ -1271,7 +1287,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         values : ndarray
         """
         # checks that level number is actually just 1
-        self._get_level_number(level)
+        self._validate_index_level(level)
         return self
 
     def get_indexer(self, target, method=None, limit=None):
@@ -1370,7 +1386,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
     def map(self, mapper):
         return self._arrmap(self.values, mapper)
 
-    def isin(self, values):
+    def isin(self, values, level=None):
         """
         Compute boolean array of whether each index value is found in the
         passed set of values
@@ -1378,12 +1394,26 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Parameters
         ----------
         values : set or sequence of values
+            Sought values.
+        level : str or int, optional
+            Name or position of the index level to use (if the index is a
+            MultiIndex).
+
+        Notes
+        -----
+        If `level` is specified:
+
+        - if it is the name of one *and only one* index level, use that level;
+        - otherwise it should be a number indicating level position.
 
         Returns
         -------
         is_contained : ndarray (boolean dtype)
+
         """
         value_set = set(values)
+        if level is not None:
+            self._validate_index_level(level)
         return lib.ismember(self._array_values(), value_set)
 
     def _array_values(self):
@@ -2149,20 +2179,11 @@ class Float64Index(Index):
     def is_unique(self):
         return super(Float64Index, self).is_unique and self._nan_idxs.size < 2
 
-    def isin(self, values):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values
-
-        Parameters
-        ----------
-        values : set or sequence of values
-
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
-        """
+    @Appender(Index.isin.__doc__)
+    def isin(self, values, level=None):
         value_set = set(values)
+        if level is not None:
+            self._validate_index_level(level)
         return lib.ismember_nans(self._array_values(), value_set,
                                  isnull(list(value_set)).any())
 
@@ -4051,6 +4072,21 @@ class MultiIndex(Index):
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None
         return MultiIndex.from_tuples(joined, names=names)
+
+    @Appender(Index.isin.__doc__)
+    def isin(self, values, level=None):
+        if level is None:
+            return lib.ismember(self._array_values(), set(values))
+        else:
+            num = self._get_level_number(level)
+            levs = self.levels[num]
+            labs = self.labels[num]
+
+            sought_labels = levs.isin(values).nonzero()[0]
+            if levs.size == 0:
+                return np.zeros(len(labs), dtype=np.bool_)
+            else:
+                return np.lib.arraysetops.in1d(labs, sought_labels)
 
 
 # For utility purposes

@@ -129,6 +129,19 @@ API changes
   strings must contain 244 or fewer characters.  Attempting to write Stata
   dta files with strings longer than 244 characters raises a ``ValueError``. (:issue:`7858`)
 
+- ``Index.isin`` now supports a ``level`` argument to specify which index level
+  to use for membership tests (:issue:`7892`, :issue:`7890`)
+
+  .. code-block:: python
+
+     In [1]: idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
+
+     In [2]: idx.values
+     Out[2]: array([(0, 'a'), (0, 'b'), (0, 'c'), (1, 'a'), (1, 'b'), (1, 'c')], dtype=object)
+
+     In [3]: idx.isin(['a', 'c', 'e'], level=1)
+     Out[3]: array([ True, False,  True,  True, False,  True], dtype=bool)
+
 
 .. _whatsnew_0150.cat:
 
