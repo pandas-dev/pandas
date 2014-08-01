@@ -565,6 +565,30 @@ class TestStata(tm.TestCase):
             self.assertTrue(k in keys)
             self.assertTrue(v in labels)
 
+    def test_minimal_size_col(self):
+        str_lens = (1, 100, 244)
+        s = {}
+        for str_len in str_lens:
+            s['s' + str(str_len)] = Series(['a' * str_len, 'b' * str_len, 'c' * str_len])
+        original = DataFrame(s)
+        with tm.ensure_clean() as path:
+            original.to_stata(path, write_index=False)
+            sr = StataReader(path)
+            variables = sr.varlist
+            formats = sr.fmtlist
+            for variable, fmt in zip(variables, formats):
+                self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
+
+    def test_excessively_long_string(self):
+        str_lens = (1, 244, 500)
+        s = {}
+        for str_len in str_lens:
+            s['s' + str(str_len)] = Series(['a' * str_len, 'b' * str_len, 'c' * str_len])
+        original = DataFrame(s)
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

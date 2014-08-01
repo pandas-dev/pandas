@@ -3529,6 +3529,13 @@ outside of this range, the data is cast to ``int16``.
    Conversion from ``int64`` to ``float64`` may result in a loss of precision
    if ``int64`` values are larger than 2**53.
 
+.. warning::
+  :class:`~pandas.io.stata.StataWriter`` and
+  :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
+  strings containing up to 244 characters, a limitation imposed by the version
+  115 dta file format. Attempting to write *Stata* dta files with strings
+  longer than 244 characters raises a ``ValueError``.
+
 
 .. _io.stata_reader:
 
