@@ -1018,7 +1018,10 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na):
             if cur == cur:
                 old_wt *= old_wt_factor
                 weighted_avg = ((old_wt * weighted_avg) + (new_wt * cur)) / (old_wt + new_wt)
-                old_wt += new_wt
+                if adjust:
+                    old_wt += new_wt
+                else:
+                    old_wt = 1.
             elif not ignore_na:
                 old_wt *= old_wt_factor
         else:

@@ -107,6 +107,23 @@ where `c` is the center of mass. Given a span, the associated center of mass is
 :math:`c = (s - 1) / 2`
 
 So a "20-day EWMA" would have center 9.5.
+
+When adjust is True (default), weighted averages are calculated using weights
+    (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
+
+When adjust is False, weighted averages are calculated recursively as:
+    weighted_average[0] = arg[0];
+    weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
+
+When ignore_na is False (default), weights are based on absolute positions.
+For example, the weights of x and y used in calculating the final weighted
+average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
+(1-alpha)**2 and alpha (if adjust is False).
+
+When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
+relative positions. For example, the weights of x and y used in calculating
+the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is 
+True), and 1-alpha and alpha (if adjust is False).
 """
 
 _expanding_kw = """min_periods : int, default None
