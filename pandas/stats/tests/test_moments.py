@@ -629,8 +629,37 @@ class TestMoments(tm.TestCase):
         arr = randn(50)
         arr[:10] = np.NaN
         arr[-10:] = np.NaN
+        s = Series(arr)
 
-        # ??? check something
+        # check min_periods
+        # GH 7898
+        result = func(s, 50, min_periods=2)
+        self.assertTrue(np.isnan(result.values[:11]).all())
+        self.assertFalse(np.isnan(result.values[11:]).any())
+
+        for min_periods in (0, 1):
+            result = func(s, 50, min_periods=min_periods)
+            if func == mom.ewma:
+                self.assertTrue(np.isnan(result.values[:10]).all())
+                self.assertFalse(np.isnan(result.values[10:]).any())
+            else:
+                # ewmstd, ewmvol, ewmvar *should* require at least two values,
+                # but currently require only one, for some reason
+                self.assertTrue(np.isnan(result.values[:10]).all())
+                self.assertFalse(np.isnan(result.values[10:]).any())
+
+            # check series of length 0
+            result = func(Series([]), 50, min_periods=min_periods)
+            assert_series_equal(result, Series([]))
+
+            # check series of length 1
+            result = func(Series([1.]), 50, min_periods=min_periods)
+            if func == mom.ewma:
+                assert_series_equal(result, Series([1.]))
+            else:
+                # ewmstd, ewmvol, ewmvar *should* require at least two values,
+                # so should return NaN, but currently require one, so return 0.
+                assert_series_equal(result, Series([0.]))
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
@@ -752,9 +781,32 @@ class TestMoments(tm.TestCase):
         B[-10:] = np.NaN
 
         result = func(A, B, 20, min_periods=5)
+        self.assertTrue(np.isnan(result.values[:14]).all())
+        self.assertFalse(np.isnan(result.values[14:]).any())
 
-        self.assertTrue(np.isnan(result.values[:15]).all())
-        self.assertFalse(np.isnan(result.values[15:]).any())
+        # GH 7898
+        for min_periods in (0, 1, 2):
+            result = func(A, B, 20, min_periods=min_periods)
+            # binary functions (ewmcov, ewmcorr) *should* require at least two values
+            if (func == mom.ewmcov) and (min_periods <= 1):
+                # currenty ewmcov requires only one value, for some reason.
+                self.assertTrue(np.isnan(result.values[:10]).all())
+                self.assertFalse(np.isnan(result.values[10:]).any())
+            else:
+                self.assertTrue(np.isnan(result.values[:11]).all())
+                self.assertFalse(np.isnan(result.values[11:]).any())
+
+            # check series of length 0
+            result = func(Series([]), Series([]), 50, min_periods=min_periods)
+            assert_series_equal(result, Series([]))
+
+            # check series of length 1
+            result = func(Series([1.]), Series([1.]), 50, min_periods=min_periods)
+            if (func == mom.ewmcov) and (min_periods <= 1):
+                # currenty ewmcov requires only one value, for some reason.
+                assert_series_equal(result, Series([0.]))
+            else:
+                assert_series_equal(result, Series([np.NaN]))
 
         self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 
