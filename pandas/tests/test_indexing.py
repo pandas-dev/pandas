@@ -1944,12 +1944,12 @@ class TestIndexing(tm.TestCase):
 
         # GH 7866
         # multi-index slicing with missing indexers
-        s = pd.Series(np.arange(9),
+        s = pd.Series(np.arange(9,dtype='int64'),
                       index=pd.MultiIndex.from_product([['A','B','C'],['foo','bar','baz']],
                                                        names=['one','two'])
                       ).sortlevel()
 
-        expected = pd.Series(np.arange(3),
+        expected = pd.Series(np.arange(3,dtype='int64'),
                              index=pd.MultiIndex.from_product([['A'],['foo','bar','baz']],
                                                               names=['one','two'])
                              ).sortlevel()
