@@ -312,6 +312,30 @@ class TestGroupBy(tm.TestCase):
         expected = g.B.first()
         assert_series_equal(result,expected)
 
+        # test multiple nth values
+        df = DataFrame([[1, np.nan], [1, 3], [1, 4], [5, 6], [5, 7]],
+                       columns=['A', 'B'])
+        g = df.groupby('A')
+
+        assert_frame_equal(g.nth(0), df.iloc[[0, 3]].set_index('A'))
+        assert_frame_equal(g.nth([0]), df.iloc[[0, 3]].set_index('A'))
+        assert_frame_equal(g.nth([0, 1]), df.iloc[[0, 1, 3, 4]].set_index('A'))
+        assert_frame_equal(g.nth([0, -1]), df.iloc[[0, 2, 3, 4]].set_index('A'))
+        assert_frame_equal(g.nth([0, 1, 2]), df.iloc[[0, 1, 2, 3, 4]].set_index('A'))
+        assert_frame_equal(g.nth([0, 1, -1]), df.iloc[[0, 1, 2, 3, 4]].set_index('A'))
+        assert_frame_equal(g.nth([2]), df.iloc[[2]].set_index('A'))
+        assert_frame_equal(g.nth([3, 4]), df.loc[[],['B']])
+
+        business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
+        df = DataFrame(1, index=business_dates, columns=['a', 'b'])
+        # get the first, fourth and last two business days for each month
+        result = df.groupby((df.index.year, df.index.month)).nth([0, 3, -2, -1])
+        expected_dates = pd.to_datetime(['2014/4/1', '2014/4/4', '2014/4/29', '2014/4/30',
+                                         '2014/5/1', '2014/5/6', '2014/5/29', '2014/5/30',
+                                         '2014/6/2', '2014/6/5', '2014/6/27', '2014/6/30'])
+        expected = DataFrame(1, columns=['a', 'b'], index=expected_dates)
+        assert_frame_equal(result, expected)
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index

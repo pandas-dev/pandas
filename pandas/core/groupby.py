@@ -756,11 +756,20 @@ class GroupBy(PandasObject):
 
     def nth(self, n, dropna=None):
         """
-        Take the nth row from each group.
+        Take the nth row from each group if n is an int, or a subset of rows
+        if n is a list of ints.
 
-        If dropna, will not show nth non-null row, dropna is either
+        If dropna, will take the nth non-null row, dropna is either
         Truthy (if a Series) or 'all', 'any' (if a DataFrame); this is equivalent
         to calling dropna(how=dropna) before the groupby.
+
+        Parameters
+        ----------
+        n : int or list of ints
+            a single nth value for the row or a list of nth values
+        dropna : None or str, optional
+            apply the specified dropna operation before counting which row is
+            the nth row. Needs to be None, 'any' or 'all'
 
         Examples
         --------
@@ -789,19 +798,36 @@ class GroupBy(PandasObject):
         5 NaN
 
         """
+        if isinstance(n, int):
+            nth_values = [n]
+        elif isinstance(n, (set, list, tuple)):
+            nth_values = list(set(n))
+            if dropna is not None:
+                raise ValueError("dropna option with a list of nth values is not supported")
+        else:
+            raise TypeError("n needs to be an int or a list/set/tuple of ints")
+
+        m = self.grouper._max_groupsize
+        # filter out values that are outside [-m, m)
+        pos_nth_values = [i for i in nth_values if i >= 0 and i < m]
+        neg_nth_values = [i for i in nth_values if i < 0 and i >= -m]
 
         self._set_selection_from_grouper()
         if not dropna:  # good choice
-            m = self.grouper._max_groupsize
-            if n >= m or n < -m:
+            if not pos_nth_values and not neg_nth_values:
+                # no valid nth values
                 return self._selected_obj.loc[[]]
+
             rng = np.zeros(m, dtype=bool)
-            if n >= 0:
-                rng[n] = True
-                is_nth = self._cumcount_array(rng)
-            else:
-                rng[- n - 1] = True
-                is_nth = self._cumcount_array(rng, ascending=False)
+            for i in pos_nth_values:
+                rng[i] = True
+            is_nth = self._cumcount_array(rng)
+
+            if neg_nth_values:
+                rng = np.zeros(m, dtype=bool)
+                for i in neg_nth_values:
+                    rng[- i - 1] = True
+                is_nth |= self._cumcount_array(rng, ascending=False)
 
             result = self._selected_obj[is_nth]
 
