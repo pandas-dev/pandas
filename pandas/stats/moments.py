@@ -463,8 +463,9 @@ def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
 
     def _ewma(v):
         result = algos.ewma(v, com, int(adjust), int(ignore_na))
-        first_index = _first_valid_index(v)
-        result[first_index: first_index + min_periods] = NaN
+        if min_periods > 1:
+            first_index = _first_valid_index(v)
+            result[first_index: first_index + min_periods - 1] = NaN
         return result
 
     return_hook, values = _process_data_structure(arg)

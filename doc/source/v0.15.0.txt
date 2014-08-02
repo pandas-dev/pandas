@@ -68,7 +68,7 @@ API changes
 
      rolling_min(s, window=10, min_periods=5)
 
-- :func:`ewma`, :func:`ewmastd`, :func:`ewmavar`, :func:`ewmacorr`, and :func:`ewmacov`
+- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcorr`, and :func:`ewmcov`
   now have an optional ``ignore_na`` argument.
   When ``ignore_na=False`` (the default), missing values are taken into account in the weights calculation.
   When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
@@ -79,6 +79,11 @@ API changes
      ewma(Series([None, 1., 100.]), com=2.5)
      ewma(Series([1., None, 100.]), com=2.5, ignore_na=True) # pre-0.15.0 behavior
      ewma(Series([1., None, 100.]), com=2.5, ignore_na=False) # default
+
+- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcorr`, and :func:`ewmcov`
+  now set to ``NaN`` the first ``min_periods-1`` entries of the result (for ``min_periods>1``).
+  Previously the first ``min_periods`` entries of the result were set to ``NaN``.
+  The new behavior accords with the existing documentation. (:issue:`7884`)
 
 - Bug in passing a ``DatetimeIndex`` with a timezone that was not being retained in DataFrame construction from a dict (:issue:`7822`)
 
