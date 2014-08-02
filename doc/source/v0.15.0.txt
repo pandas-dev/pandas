@@ -327,6 +327,7 @@ Bug Fixes
   date-likes incorrectly (:issue:`7762`, :issue:`7032`).
 
 
+- Bug in ``Series.str.cat`` with an index which was filtered as to not include the first item (:issue:`7857`)
 
 
 
