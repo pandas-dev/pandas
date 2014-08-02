@@ -4,7 +4,7 @@
 .. ipython:: python
    :suppress:
 
-   from datetime import datetime, timedelta
+   from datetime import datetime, timedelta, time
    import numpy as np
    np.random.seed(123456)
    from pandas import *
@@ -482,6 +482,7 @@ frequency increment. Specific offset logic like "month", "business day", or
     BYearEnd, "business year end"
     BYearBegin, "business year begin"
     FY5253, "retail (aka 52-53 week) year"
+    BusinessHour, "business hour"
     Hour, "one hour"
     Minute, "one minute"
     Second, "one second"
@@ -667,6 +668,102 @@ in the usual way.
     have to change to fix the timezone issues, the behaviour of the
     ``CustomBusinessDay`` class may have to change in future versions.
 
+.. _timeseries.businesshour:
+
+Business Hour
+~~~~~~~~~~~~~
+
+The ``BusinessHour`` class provides a business hour representation on ``BusinessDay``,
+allowing to use specific start and end times.
+
+By default, ``BusinessHour`` uses 9:00 - 17:00 as business hours.
+Adding ``BusinessHour`` will increment ``Timestamp`` by hourly.
+If target ``Timestamp`` is out of business hours, move to the next business hour then increment it.
+If the result exceeds the business hours end, remaining is added to the next business day.
+
+.. ipython:: python
+
+    bh = BusinessHour()
+    bh
+
+    # 2014-08-01 is Friday
+    Timestamp('2014-08-01 10:00').weekday()
+    Timestamp('2014-08-01 10:00') + bh
+
+    # Below example is the same as Timestamp('2014-08-01 09:00') + bh
+    Timestamp('2014-08-01 08:00') + bh
+
+    # If the results is on the end time, move to the next business day
+    Timestamp('2014-08-01 16:00') + bh
+
+    # Remainings are added to the next day
+    Timestamp('2014-08-01 16:30') + bh
+
+    # Adding 2 business hours
+    Timestamp('2014-08-01 10:00') + BusinessHour(2)
+
+    # Subtracting 3 business hours
+    Timestamp('2014-08-01 10:00') + BusinessHour(-3)
+
+Also, you can specify ``start`` and ``end`` time by keywords.
+Argument must be ``str`` which has ``hour:minute`` representation or ``datetime.time`` instance.
+Specifying seconds, microseconds and nanoseconds as business hour results in ``ValueError``.
+
+.. ipython:: python
+
+    bh = BusinessHour(start='11:00', end=time(20, 0))
+    bh
+
+    Timestamp('2014-08-01 13:00') + bh
+    Timestamp('2014-08-01 09:00') + bh
+    Timestamp('2014-08-01 18:00') + bh
+
+Passing ``start`` time later than ``end`` represents midnight business hour.
+In this case, business hour exceeds midnight and overlap to the next day.
+Valid business hours are distinguished by whether it started from valid ``BusinessDay``.
+
+.. ipython:: python
+
+    bh = BusinessHour(start='17:00', end='09:00')
+    bh
+
+    Timestamp('2014-08-01 17:00') + bh
+    Timestamp('2014-08-01 23:00') + bh
+
+    # Although 2014-08-02 is Satuaday,
+    # it is valid because it starts from 08-01 (Friday).
+    Timestamp('2014-08-02 04:00') + bh
+
+    # Although 2014-08-04 is Monday,
+    # it is out of business hours because it starts from 08-03 (Sunday).
+    Timestamp('2014-08-04 04:00') + bh
+
+Applying ``BusinessHour.rollforward`` and ``rollback`` to out of business hours results in
+the next business hour start or previous day's end. Different from other offsets, ``BusinessHour.rollforward``
+may output different results from ``apply`` by definition.
+
+This is because one day's business hour end is equal to next day's business hour start. For example,
+under the default business hours (9:00 - 17:00), there is no gap (0 minutes) between ``2014-08-01 17:00`` and
+``2014-08-04 09:00``.
+
+.. ipython:: python
+
+    # This adjusts a Timestamp to business hour edge
+    BusinessHour().rollback(Timestamp('2014-08-02 15:00'))
+    BusinessHour().rollforward(Timestamp('2014-08-02 15:00'))
+
+    # It is the same as BusinessHour().apply(Timestamp('2014-08-01 17:00')).
+    # And it is the same as BusinessHour().apply(Timestamp('2014-08-04 09:00'))
+    BusinessHour().apply(Timestamp('2014-08-02 15:00'))
+
+    # BusinessDay results (for reference)
+    BusinessHour().rollforward(Timestamp('2014-08-02'))
+
+    # It is the same as BusinessDay().apply(Timestamp('2014-08-01'))
+    # The result is the same as rollworward because BusinessDay never overlap.
+    BusinessHour().apply(Timestamp('2014-08-02'))
+
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -696,6 +793,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "BA", "business year end frequency"
     "AS", "year start frequency"
     "BAS", "business year start frequency"
+    "BH", "business hour frequency"
     "H", "hourly frequency"
     "T", "minutely frequency"
     "S", "secondly frequency"
