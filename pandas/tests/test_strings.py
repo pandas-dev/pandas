@@ -16,7 +16,7 @@ from numpy.random import randint
 from pandas.compat import range, lrange, u
 import pandas.compat as compat
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
-                    bdate_range, date_range)
+                    bdate_range, date_range, MultiIndex)
 import pandas.core.common as com
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -1192,6 +1192,23 @@ class TestStringMethods(tm.TestCase):
         exp = decodeBase.map(f)
 
         tm.assert_series_equal(result, exp)
+
+    def test_cat_on_filtered_index(self):
+        df = DataFrame(index=MultiIndex.from_product([[2011, 2012], [1,2,3]],
+                                                     names=['year', 'month']))
+
+        df = df.reset_index()
+        df = df[df.month > 1]
+
+        str_year = df.year.astype('str')
+        str_month = df.month.astype('str')
+        str_both = str_year.str.cat(str_month, sep=' ')
+
+        self.assertEqual(str_both.loc[1], '2011 2')
+
+        str_multiple = str_year.str.cat([str_month, str_month], sep=' ')
+
+        self.assertEqual(str_multiple.loc[1], '2011 2 2')
 
 
 if __name__ == '__main__':
