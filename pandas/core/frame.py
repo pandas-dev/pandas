@@ -471,7 +471,7 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        # qtconsole doesn't report it's line width, and also
+        # qtconsole doesn't report its line width, and also
         # behaves badly when outputting an HTML table
         # that doesn't fit the window, so disable it.
         # XXX: In IPython 3.x and above, the Qt console will not attempt to
