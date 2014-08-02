@@ -36,7 +36,7 @@ everything and calculate a ration for the timing information.
 # in some cases then running vbench directly (think perf bisection).
 #
 # *please*, when you modify this script for whatever reason,
-# make sure you do not break it's functionality when running under older
+# make sure you do not break its functionality when running under older
 # pandas versions.
 # Note that depreaction warnings are turned off in main(), so there's
 # no need to change the actual code to supress such warnings.

@@ -971,7 +971,7 @@ class GroupBy(PandasObject):
 
     def _cumcount_array(self, arr=None, **kwargs):
         """
-        arr is where cumcount gets it's values from
+        arr is where cumcount gets its values from
 
         note: this is currently implementing sort=False (though the default is sort=True)
               for groupby in general

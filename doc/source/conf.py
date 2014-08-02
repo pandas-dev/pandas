@@ -293,7 +293,7 @@ ipython_exec_lines = [
     'import numpy as np',
     'import pandas as pd',
     # This ensures correct rendering on system with console encoding != utf8
-    # (windows). It forces pandas to encode it's output reprs using utf8
+    # (windows). It forces pandas to encode its output reprs using utf8
     # whereever the docs are built. The docs' target is the browser, not
     # the console, so this is fine.
     'pd.options.display.encoding="utf8"'

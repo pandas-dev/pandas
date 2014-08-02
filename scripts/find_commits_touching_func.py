@@ -178,7 +178,7 @@ def main():
         print("""
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 WARNING: this script uses git clean -f, running it on a repo with untracked files.
-It's recommended that you make a fresh clone and run from it's root directory.
+It's recommended that you make a fresh clone and run from its root directory.
 You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
