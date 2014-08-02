@@ -7,7 +7,7 @@ import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
-                                ABCSeries, ABCDataFrame, ABCPanel, is_float)
+                                ABCSeries, ABCDataFrame, ABCPanel, is_float, AbstractMethodError)
 import pandas.lib as lib
 
 import numpy as np
@@ -55,7 +55,7 @@ class _NDFrameIndexer(object):
         return self
 
     def __iter__(self):
-        raise NotImplementedError('ix is not iterable')
+        raise AbstractMethodError('ix is not iterable')
 
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -120,7 +120,7 @@ class _NDFrameIndexer(object):
         self._setitem_with_indexer(indexer, value)
 
     def _has_valid_type(self, k, axis):
-        raise NotImplementedError("Valid type checking for _NDFrameIndexer is not implemented")
+        raise AbstractMethodError("Valid type checking for _NDFrameIndexer is not implemented")
 
     def _has_valid_tuple(self, key):
         """ check the key for valid keys across my indexer """
@@ -644,7 +644,7 @@ class _NDFrameIndexer(object):
     def _align_panel(self, indexer, df):
         is_frame = self.obj.ndim == 2
         is_panel = self.obj.ndim >= 3
-        raise NotImplementedError("cannot set using an indexer with a Panel "
+        raise AbstractMethodError("cannot set using an indexer with a Panel "
                                   "yet!")
 
     def _getitem_tuple(self, tup):
@@ -1141,7 +1141,7 @@ class _LocationIndexer(_NDFrameIndexer):
             return self._getitem_axis(key, axis=0)
 
     def _getitem_axis(self, key, axis=0, validate_iterable=False):
-        raise NotImplementedError("Get item along given axis in _LocationIndexer is not implemented")
+        raise AbstractMethodError("Get item along given axis in _LocationIndexer is not implemented")
 
     def _getbool_axis(self, key, axis=0):
         labels = self.obj._get_axis(axis)
@@ -1299,7 +1299,7 @@ class _iLocIndexer(_LocationIndexer):
         if com._is_bool_indexer(key):
             if hasattr(key, 'index') and isinstance(key.index, Index):
                 if key.index.inferred_type == 'integer':
-                    raise NotImplementedError(
+                    raise AbstractMethodError(
                         "iLocation based boolean indexing on an integer type "
                         "is not available"
                     )
