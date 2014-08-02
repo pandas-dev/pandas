@@ -742,7 +742,7 @@ class _FrequencyInferer(object):
     @cache_readonly
     def deltas(self):
         return tslib.unique_deltas(self.values)
-    
+
     @cache_readonly
     def deltas_asi8(self):
         return tslib.unique_deltas(self.index.asi8)
@@ -750,7 +750,7 @@ class _FrequencyInferer(object):
     @cache_readonly
     def is_unique(self):
         return len(self.deltas) == 1
-    
+
     @cache_readonly
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
@@ -763,10 +763,13 @@ class _FrequencyInferer(object):
         if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
         else:
-            # Possibly intraday frequency.  Here we use the 
+            # Business hourly, maybe. 17: one day / 65: one weekend
+            if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
+                return 'BH'
+            # Possibly intraday frequency.  Here we use the
             # original .asi8 values as the modified values
             # will not work around DST transitions.  See #8772
-            if not self.is_unique_asi8:
+            elif not self.is_unique_asi8:
                 return None
             delta = self.deltas_asi8[0]
             if _is_multiple(delta, _ONE_HOUR):
@@ -791,6 +794,10 @@ class _FrequencyInferer(object):
     @cache_readonly
     def day_deltas(self):
         return [x / _ONE_DAY for x in self.deltas]
+
+    @cache_readonly
+    def hour_deltas(self):
+        return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
     def fields(self):

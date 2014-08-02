@@ -10,7 +10,7 @@ from nose.tools import assert_raises
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, CDay, BQuarterEnd, BMonthEnd,
+    bday, BDay, CDay, BQuarterEnd, BMonthEnd, BusinessHour,
     CBMonthEnd, CBMonthBegin,
     BYearEnd, MonthEnd, MonthBegin, BYearBegin, CustomBusinessDay,
     QuarterBegin, BQuarterBegin, BMonthBegin, DateOffset, Week,
@@ -23,7 +23,6 @@ from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
 from pandas.tseries.tools import parse_time_string, DateParseError
 import pandas.tseries.offsets as offsets
-
 from pandas.io.pickle import read_pickle
 from pandas.tslib import NaT, Timestamp, Timedelta
 import pandas.tslib as tslib
@@ -133,7 +132,11 @@ class Base(tm.TestCase):
         # try to create an out-of-bounds result timestamp; if we can't create the offset
         # skip
         try:
-            offset = self._get_offset(self._offset, value=10000)
+            if self._offset is BusinessHour:
+                # Using 10000 in BusinessHour fails in tz check because of DST difference
+                offset = self._get_offset(self._offset, value=100000)
+            else:
+                offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp('20080101') + offset
             self.assertIsInstance(result, datetime)
@@ -179,6 +182,7 @@ class TestCommon(Base):
                           'BQuarterBegin': Timestamp('2011-03-01 09:00:00'),
                           'QuarterEnd': Timestamp('2011-03-31 09:00:00'),
                           'BQuarterEnd': Timestamp('2011-03-31 09:00:00'),
+                          'BusinessHour': Timestamp('2011-01-03 10:00:00'),
                           'WeekOfMonth': Timestamp('2011-01-08 09:00:00'),
                           'LastWeekOfMonth': Timestamp('2011-01-29 09:00:00'),
                           'FY5253Quarter': Timestamp('2011-01-25 09:00:00'),
@@ -278,6 +282,8 @@ class TestCommon(Base):
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
+        expecteds['BusinessHour'] = Timestamp('2011-01-03 09:00:00')
+
         # but be changed when normalize=True
         norm_expected = expecteds.copy()
         for k in norm_expected:
@@ -321,6 +327,7 @@ class TestCommon(Base):
                      'BQuarterBegin': Timestamp('2010-12-01 09:00:00'),
                      'QuarterEnd': Timestamp('2010-12-31 09:00:00'),
                      'BQuarterEnd': Timestamp('2010-12-31 09:00:00'),
+                     'BusinessHour': Timestamp('2010-12-31 17:00:00'),
                      'WeekOfMonth': Timestamp('2010-12-11 09:00:00'),
                      'LastWeekOfMonth': Timestamp('2010-12-25 09:00:00'),
                      'FY5253Quarter': Timestamp('2010-10-26 09:00:00'),
@@ -371,6 +378,10 @@ class TestCommon(Base):
             offset_n = self._get_offset(offset, normalize=True)
             self.assertFalse(offset_n.onOffset(dt))
 
+            if offset is BusinessHour:
+                # In default BusinessHour (9:00-17:00), normalized time
+                # cannot be in business hour range
+                continue
             date = datetime(dt.year, dt.month, dt.day)
             self.assertTrue(offset_n.onOffset(date))
 
@@ -640,6 +651,593 @@ class TestBusinessDay(Base):
         offset1 = BDay()
         offset2 = BDay()
         self.assertFalse(offset1 != offset2)
+
+
+class TestBusinessHour(Base):
+    _multiprocess_can_split_ = True
+    _offset = BusinessHour
+
+    def setUp(self):
+        self.d = datetime(2014, 7, 1, 10, 00)
+
+        self.offset1 = BusinessHour()
+        self.offset2 = BusinessHour(n=3)
+
+        self.offset3 = BusinessHour(n=-1)
+        self.offset4 = BusinessHour(n=-4)
+
+        from datetime import time as dt_time
+        self.offset5 = BusinessHour(start=dt_time(11, 0), end=dt_time(14, 30))
+        self.offset6 = BusinessHour(start='20:00', end='05:00')
+        self.offset7 = BusinessHour(n=-2, start=dt_time(21, 30), end=dt_time(6, 30))
+
+    def test_constructor_errors(self):
+        from datetime import time as dt_time
+        with tm.assertRaises(ValueError):
+            BusinessHour(start=dt_time(11, 0, 5))
+        with tm.assertRaises(ValueError):
+            BusinessHour(start='AAA')
+        with tm.assertRaises(ValueError):
+            BusinessHour(start='14:00:05')
+
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = self._offset()
+        offset2 = self._offset()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
+
+    def test_repr(self):
+        self.assertEqual(repr(self.offset1), '<BusinessHour: BH=09:00-17:00>')
+        self.assertEqual(repr(self.offset2), '<3 * BusinessHours: BH=09:00-17:00>')
+        self.assertEqual(repr(self.offset3), '<-1 * BusinessHour: BH=09:00-17:00>')
+        self.assertEqual(repr(self.offset4), '<-4 * BusinessHours: BH=09:00-17:00>')
+
+        self.assertEqual(repr(self.offset5), '<BusinessHour: BH=11:00-14:30>')
+        self.assertEqual(repr(self.offset6), '<BusinessHour: BH=20:00-05:00>')
+        self.assertEqual(repr(self.offset7), '<-2 * BusinessHours: BH=21:30-06:30>')
+
+    def test_with_offset(self):
+        expected = Timestamp('2014-07-01 13:00')
+
+        self.assertEqual(self.d + BusinessHour() * 3, expected)
+        self.assertEqual(self.d + BusinessHour(n=3), expected)
+
+    def testEQ(self):
+        for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
+            self.assertEqual(offset, offset)
+
+        self.assertNotEqual(BusinessHour(), BusinessHour(-1))
+        self.assertEqual(BusinessHour(start='09:00'), BusinessHour())
+        self.assertNotEqual(BusinessHour(start='09:00'), BusinessHour(start='09:01'))
+        self.assertNotEqual(BusinessHour(start='09:00', end='17:00'),
+                                         BusinessHour(start='17:00', end='09:01'))
+
+    def test_hash(self):
+        self.assertEqual(hash(self.offset2), hash(self.offset2))
+
+    def testCall(self):
+        self.assertEqual(self.offset1(self.d), datetime(2014, 7, 1, 11))
+        self.assertEqual(self.offset2(self.d), datetime(2014, 7, 1, 13))
+        self.assertEqual(self.offset3(self.d), datetime(2014, 6, 30, 17))
+        self.assertEqual(self.offset4(self.d), datetime(2014, 6, 30, 14))
+
+    def testRAdd(self):
+        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
+
+    def testSub(self):
+        off = self.offset2
+        self.assertRaises(Exception, off.__sub__, self.d)
+        self.assertEqual(2 * off - off, off)
+
+        self.assertEqual(self.d - self.offset2, self.d + self._offset(-3))
+
+    def testRSub(self):
+        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
+
+    def testMult1(self):
+        self.assertEqual(self.d + 5 * self.offset1, self.d + self._offset(5))
+
+    def testMult2(self):
+        self.assertEqual(self.d + (-3 * self._offset(-2)),
+                         self.d + self._offset(6))
+
+    def testRollback1(self):
+        self.assertEqual(self.offset1.rollback(self.d), self.d)
+        self.assertEqual(self.offset2.rollback(self.d), self.d)
+        self.assertEqual(self.offset3.rollback(self.d), self.d)
+        self.assertEqual(self.offset4.rollback(self.d), self.d)
+        self.assertEqual(self.offset5.rollback(self.d), datetime(2014, 6, 30, 14, 30))
+        self.assertEqual(self.offset6.rollback(self.d), datetime(2014, 7, 1, 5, 0))
+        self.assertEqual(self.offset7.rollback(self.d), datetime(2014, 7, 1, 6, 30))
+
+        d = datetime(2014, 7, 1, 0)
+        self.assertEqual(self.offset1.rollback(d), datetime(2014, 6, 30, 17))
+        self.assertEqual(self.offset2.rollback(d), datetime(2014, 6, 30, 17))
+        self.assertEqual(self.offset3.rollback(d), datetime(2014, 6, 30, 17))
+        self.assertEqual(self.offset4.rollback(d), datetime(2014, 6, 30, 17))
+        self.assertEqual(self.offset5.rollback(d), datetime(2014, 6, 30, 14, 30))
+        self.assertEqual(self.offset6.rollback(d), d)
+        self.assertEqual(self.offset7.rollback(d), d)
+
+        self.assertEqual(self._offset(5).rollback(self.d), self.d)
+
+    def testRollback2(self):
+        self.assertEqual(self._offset(-3).rollback(datetime(2014, 7, 5, 15, 0)),
+                         datetime(2014, 7, 4, 17, 0))
+
+    def testRollforward1(self):
+        self.assertEqual(self.offset1.rollforward(self.d), self.d)
+        self.assertEqual(self.offset2.rollforward(self.d), self.d)
+        self.assertEqual(self.offset3.rollforward(self.d), self.d)
+        self.assertEqual(self.offset4.rollforward(self.d), self.d)
+        self.assertEqual(self.offset5.rollforward(self.d), datetime(2014, 7, 1, 11, 0))
+        self.assertEqual(self.offset6.rollforward(self.d), datetime(2014, 7, 1, 20, 0))
+        self.assertEqual(self.offset7.rollforward(self.d), datetime(2014, 7, 1, 21, 30))
+
+        d = datetime(2014, 7, 1, 0)
+        self.assertEqual(self.offset1.rollforward(d), datetime(2014, 7, 1, 9))
+        self.assertEqual(self.offset2.rollforward(d), datetime(2014, 7, 1, 9))
+        self.assertEqual(self.offset3.rollforward(d), datetime(2014, 7, 1, 9))
+        self.assertEqual(self.offset4.rollforward(d), datetime(2014, 7, 1, 9))
+        self.assertEqual(self.offset5.rollforward(d), datetime(2014, 7, 1, 11))
+        self.assertEqual(self.offset6.rollforward(d), d)
+        self.assertEqual(self.offset7.rollforward(d), d)
+
+        self.assertEqual(self._offset(5).rollforward(self.d), self.d)
+
+    def testRollforward2(self):
+        self.assertEqual(self._offset(-3).rollforward(datetime(2014, 7, 5, 16, 0)),
+                         datetime(2014, 7, 7, 9))
+
+    def test_roll_date_object(self):
+        offset = BusinessHour()
+
+        dt = datetime(2014, 7, 6, 15, 0)
+
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2014, 7, 4, 17))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2014, 7, 7, 9))
+
+    def test_normalize(self):
+        tests = []
+
+        tests.append((BusinessHour(normalize=True),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 2),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2),
+                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+                       datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
+                       datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
+                       datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
+                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
+                       datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
+                       datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
+
+        tests.append((BusinessHour(-1, normalize=True),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 6, 30),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 10): datetime(2014, 6, 30),
+                       datetime(2014, 7, 1, 0): datetime(2014, 6, 30),
+                       datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+                       datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
+                       datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
+                       datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
+
+        tests.append((BusinessHour(1, normalize=True, start='17:00', end='04:00'),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+                       datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
+                       datetime(2014, 7, 2, 3): datetime(2014, 7, 2),
+                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
+                       datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
+                       datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
+                       datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
+
+        for offset, cases in tests:
+            for dt, expected in compat.iteritems(cases):
+                self.assertEqual(offset.apply(dt), expected)
+
+    def test_onOffset(self):
+        tests = []
+
+        tests.append((BusinessHour(),
+                     {datetime(2014, 7, 1, 9): True,
+                      datetime(2014, 7, 1, 8, 59): False,
+                      datetime(2014, 7, 1, 8): False,
+                      datetime(2014, 7, 1, 17): True,
+                      datetime(2014, 7, 1, 17, 1): False,
+                      datetime(2014, 7, 1, 18): False,
+                      datetime(2014, 7, 5, 9): False,
+                      datetime(2014, 7, 6, 12): False}))
+
+        tests.append((BusinessHour(start='10:00', end='15:00'),
+                     {datetime(2014, 7, 1, 9): False,
+                      datetime(2014, 7, 1, 10): True,
+                      datetime(2014, 7, 1, 15): True,
+                      datetime(2014, 7, 1, 15, 1): False,
+                      datetime(2014, 7, 5, 12): False,
+                      datetime(2014, 7, 6, 12): False}))
+
+        tests.append((BusinessHour(start='19:00', end='05:00'),
+                     {datetime(2014, 7, 1, 9, 0): False,
+                      datetime(2014, 7, 1, 10, 0): False,
+                      datetime(2014, 7, 1, 15): False,
+                      datetime(2014, 7, 1, 15, 1): False,
+                      datetime(2014, 7, 5, 12, 0): False,
+                      datetime(2014, 7, 6, 12, 0): False,
+                      datetime(2014, 7, 1, 19, 0): True,
+                      datetime(2014, 7, 2, 0, 0): True,
+                      datetime(2014, 7, 4, 23): True,
+                      datetime(2014, 7, 5, 1): True,
+                      datetime(2014, 7, 5, 5, 0): True,
+                      datetime(2014, 7, 6, 23, 0): False,
+                      datetime(2014, 7, 7, 3, 0): False}))
+
+        for offset, cases in tests:
+            for dt, expected in compat.iteritems(cases):
+                self.assertEqual(offset.onOffset(dt), expected)
+
+    def test_opening_time(self):
+        tests = []
+
+        # opening time should be affected by sign of n, not by n's value and end
+        tests.append(([BusinessHour(), BusinessHour(n=2), BusinessHour(n=4),
+                       BusinessHour(end='10:00'), BusinessHour(n=2, end='4:00'),
+                       BusinessHour(n=4, end='15:00')],
+                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 2, 9), datetime(2014, 7, 1, 9)),
+                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 9), datetime(2014, 7, 1, 9)),
+                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 9), datetime(2014, 7, 1, 9)),
+                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 9), datetime(2014, 7, 1, 9)),
+                       # if timestamp is on opening time, next opening time is as it is
+                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 2, 10): (datetime(2014, 7, 3, 9), datetime(2014, 7, 2, 9)),
+                       # 2014-07-05 is saturday
+                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 9), datetime(2014, 7, 4, 9)),
+                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 7, 9), datetime(2014, 7, 4, 9)),
+                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 9), datetime(2014, 7, 4, 9)),
+                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 9), datetime(2014, 7, 4, 9)),
+                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 9), datetime(2014, 7, 4, 9)),
+                       datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 8, 9), datetime(2014, 7, 7, 9))}))
+
+        tests.append(([BusinessHour(start='11:15'), BusinessHour(n=2, start='11:15'),
+                       BusinessHour(n=3, start='11:15'),
+                       BusinessHour(start='11:15', end='10:00'),
+                       BusinessHour(n=2, start='11:15', end='4:00'),
+                       BusinessHour(n=3, start='11:15', end='15:00')],
+                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 11, 15), datetime(2014, 6, 30, 11, 15)),
+                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
+                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
+                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
+                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
+                       datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
+                       datetime(2014, 7, 2, 11, 15): (datetime(2014, 7, 2, 11, 15), datetime(2014, 7, 2, 11, 15)),
+                       datetime(2014, 7, 2, 11, 15, 1): (datetime(2014, 7, 3, 11, 15), datetime(2014, 7, 2, 11, 15)),
+                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
+                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 11, 15), datetime(2014, 7, 3, 11, 15)),
+                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
+                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
+                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
+                       datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15))}))
+
+        tests.append(([BusinessHour(-1), BusinessHour(n=-2), BusinessHour(n=-4),
+                       BusinessHour(n=-1, end='10:00'), BusinessHour(n=-2, end='4:00'),
+                       BusinessHour(n=-4, end='15:00')],
+                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9), datetime(2014, 7, 2, 9)),
+                       datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 9), datetime(2014, 7, 3, 9)),
+                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 7, 9): (datetime(2014, 7, 7, 9), datetime(2014, 7, 7, 9)),
+                       datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 9), datetime(2014, 7, 8, 9))}))
+
+        tests.append(([BusinessHour(start='17:00', end='05:00'),
+                       BusinessHour(n=3, start='17:00', end='03:00')],
+                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 17), datetime(2014, 6, 30, 17)),
+                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 17), datetime(2014, 7, 1, 17)),
+                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 17), datetime(2014, 7, 1, 17)),
+                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 17), datetime(2014, 7, 1, 17)),
+                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 17), datetime(2014, 7, 1, 17)),
+                       datetime(2014, 7, 4, 17): (datetime(2014, 7, 4, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 17), datetime(2014, 7, 3, 17)),
+                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 7, 17, 1): (datetime(2014, 7, 8, 17), datetime(2014, 7, 7, 17)),}))
+
+        tests.append(([BusinessHour(-1, start='17:00', end='05:00'),
+                       BusinessHour(n=-2, start='17:00', end='03:00')],
+                      {datetime(2014, 7, 1, 11): (datetime(2014, 6, 30, 17), datetime(2014, 7, 1, 17)),
+                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
+                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
+                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
+                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
+                       datetime(2014, 7, 2, 16, 59): (datetime(2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
+                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 17), datetime(2014, 7, 7, 17)),
+                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 3, 17), datetime(2014, 7, 4, 17)),
+                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 17), datetime(2014, 7, 7, 17)),
+                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 17), datetime(2014, 7, 7, 17)),
+                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 17), datetime(2014, 7, 7, 17)),
+                       datetime(2014, 7, 7, 18): (datetime(2014, 7, 7, 17), datetime(2014, 7, 8, 17))}))
+
+        for offsets, cases in tests:
+            for offset in offsets:
+                for dt, (exp_next, exp_prev) in compat.iteritems(cases):
+                    self.assertEqual(offset._next_opening_time(dt), exp_next)
+                    self.assertEqual(offset._prev_opening_time(dt), exp_prev)
+
+    def test_apply(self):
+        tests = []
+
+        tests.append((BusinessHour(),
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
+                       datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 10),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 9),
+                       datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 2, 9, 30, 15),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 10),
+                       datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 12),
+                       # out of business hours
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 10),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+                       datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+                       # saturday
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+                       datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
+                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
+                       datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30, 30)}))
+
+        tests.append((BusinessHour(4),
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
+                       datetime(2014, 7, 1, 13): datetime(2014, 7, 2, 9),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 11),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 12),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 15),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
+                       datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
+                       datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
+                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
+                       datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30, 30)}))
+
+        tests.append((BusinessHour(-1),
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 10),
+                       datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 12),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 14),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 15),
+                       datetime(2014, 7, 1, 10): datetime(2014, 6, 30, 17),
+                       datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 1, 15, 30, 15),
+                       datetime(2014, 7, 1, 9, 30, 15): datetime(2014, 6, 30, 16, 30, 15),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 1, 5): datetime(2014, 6, 30, 16),
+                       datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 10),
+                       # out of business hours
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 16),
+                       datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 16),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 16),
+                       # saturday
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 16),
+                       datetime(2014, 7, 7, 9): datetime(2014, 7, 4, 16),
+                       datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 16, 30),
+                       datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 16, 30, 30)}))
+
+        tests.append((BusinessHour(-4),
+                      {datetime(2014, 7, 1, 11): datetime(2014, 6, 30, 15),
+                       datetime(2014, 7, 1, 13): datetime(2014, 6, 30, 17),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 11),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 12),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
+                       datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
+                       datetime(2014, 7, 4, 18): datetime(2014, 7, 4, 13),
+                       datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 13, 30),
+                       datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 13, 30, 30)}))
+
+        tests.append((BusinessHour(start='13:00', end='16:00'),
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 14),
+                       datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 14),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 14),
+                       datetime(2014, 7, 1, 15, 30, 15): datetime(2014, 7, 2, 13, 30, 15),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 14),
+                       datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 14)}))
+
+        tests.append((BusinessHour(n=2, start='13:00', end='16:00'),
+                      {datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 15),
+                       datetime(2014, 7, 2, 14): datetime(2014, 7, 3, 13),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 15),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 15),
+                       datetime(2014, 7, 2, 14, 30): datetime(2014, 7, 3, 13, 30),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 15),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 15),
+                       datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 15),
+                       datetime(2014, 7, 4, 14, 30): datetime(2014, 7, 7, 13, 30),
+                       datetime(2014, 7, 4, 14, 30, 30): datetime(2014, 7, 7, 13, 30, 30)}))
+
+        tests.append((BusinessHour(n=-1, start='13:00', end='16:00'),
+                      {datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
+                       datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 15),
+                       datetime(2014, 7, 2, 14): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 2, 15): datetime(2014, 7, 2, 14),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 15),
+                       datetime(2014, 7, 2, 16): datetime(2014, 7, 2, 15),
+                       datetime(2014, 7, 2, 13, 30, 15): datetime(2014, 7, 1, 15, 30, 15),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 15),
+                       datetime(2014, 7, 7, 11): datetime(2014, 7, 4, 15)}))
+
+        tests.append((BusinessHour(n=-3, start='10:00', end='16:00'),
+                      {datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
+                       datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 11),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
+                       datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 2, 11, 30): datetime(2014, 7, 1, 14, 30),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
+                       datetime(2014, 7, 4, 10): datetime(2014, 7, 3, 13),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
+                       datetime(2014, 7, 4, 16): datetime(2014, 7, 4, 13),
+                       datetime(2014, 7, 4, 12, 30): datetime(2014, 7, 3, 15, 30),
+                       datetime(2014, 7, 4, 12, 30, 30): datetime(2014, 7, 3, 15, 30, 30)}))
+
+        tests.append((BusinessHour(start='19:00', end='05:00'),
+                      {datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 20),
+                       datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 20),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 20),
+                       datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 20),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 20),
+                       datetime(2014, 7, 2, 4, 30): datetime(2014, 7, 2, 19, 30),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 1),
+                       datetime(2014, 7, 4, 10): datetime(2014, 7, 4, 20),
+                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5, 0),
+                       datetime(2014, 7, 5, 0): datetime(2014, 7, 5, 1),
+                       datetime(2014, 7, 5, 4): datetime(2014, 7, 7, 19),
+                       datetime(2014, 7, 5, 4, 30): datetime(2014, 7, 7, 19, 30),
+                       datetime(2014, 7, 5, 4, 30, 30): datetime(2014, 7, 7, 19, 30, 30)}))
+
+        tests.append((BusinessHour(n=-1, start='19:00', end='05:00'),
+                      {datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 4),
+                       datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 4),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 4),
+                       datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 4),
+                       datetime(2014, 7, 2, 20): datetime(2014, 7, 2, 5),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 4),
+                       datetime(2014, 7, 2, 19, 30): datetime(2014, 7, 2, 4, 30),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 23),
+                       datetime(2014, 7, 3, 6): datetime(2014, 7, 3, 4),
+                       datetime(2014, 7, 4, 23): datetime(2014, 7, 4, 22),
+                       datetime(2014, 7, 5, 0): datetime(2014, 7, 4, 23),
+                       datetime(2014, 7, 5, 4): datetime(2014, 7, 5, 3),
+                       datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 5, 4, 30),
+                       datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 5, 4, 30, 30)}))
+
+        for offset, cases in tests:
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_apply_large_n(self):
+        tests = []
+
+        tests.append((BusinessHour(40), # A week later
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 8, 11),
+                       datetime(2014, 7, 1, 13): datetime(2014, 7, 8, 13),
+                       datetime(2014, 7, 1, 15): datetime(2014, 7, 8, 15),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 8, 16),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 9, 9),
+                       datetime(2014, 7, 2, 11): datetime(2014, 7, 9, 11),
+                       datetime(2014, 7, 2, 8): datetime(2014, 7, 9, 9),
+                       datetime(2014, 7, 2, 19): datetime(2014, 7, 10, 9),
+                       datetime(2014, 7, 2, 23): datetime(2014, 7, 10, 9),
+                       datetime(2014, 7, 3, 0): datetime(2014, 7, 10, 9),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 14, 9),
+                       datetime(2014, 7, 4, 18): datetime(2014, 7, 14, 9),
+                       datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 14, 9, 30),
+                       datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 14, 9, 30, 30)}))
+
+        tests.append((BusinessHour(-25), # 3 days and 1 hour before
+                      {datetime(2014, 7, 1, 11): datetime(2014, 6, 26, 10),
+                       datetime(2014, 7, 1, 13): datetime(2014, 6, 26, 12),
+                       datetime(2014, 7, 1, 9): datetime(2014, 6, 25, 16),
+                       datetime(2014, 7, 1, 10): datetime(2014, 6, 25, 17),
+                       datetime(2014, 7, 3, 11): datetime(2014, 6, 30, 10),
+                       datetime(2014, 7, 3, 8): datetime(2014, 6, 27, 16),
+                       datetime(2014, 7, 3, 19): datetime(2014, 6, 30, 16),
+                       datetime(2014, 7, 3, 23): datetime(2014, 6, 30, 16),
+                       datetime(2014, 7, 4, 9): datetime(2014, 6, 30, 16),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 6, 18): datetime(2014, 7, 1, 16),
+                       datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 1, 16, 30),
+                       datetime(2014, 7, 7, 10, 30, 30): datetime(2014, 7, 2, 9, 30, 30)}))
+
+        tests.append((BusinessHour(28, start='21:00', end='02:00'), # 5 days and 3 hours later
+                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 9, 0),
+                       datetime(2014, 7, 1, 22): datetime(2014, 7, 9, 1),
+                       datetime(2014, 7, 1, 23): datetime(2014, 7, 9, 21),
+                       datetime(2014, 7, 2, 2): datetime(2014, 7, 10, 0),
+                       datetime(2014, 7, 3, 21): datetime(2014, 7, 11, 0),
+                       datetime(2014, 7, 4, 1): datetime(2014, 7, 11, 23),
+                       datetime(2014, 7, 4, 2): datetime(2014, 7, 12, 0),
+                       datetime(2014, 7, 4, 3): datetime(2014, 7, 12, 0),
+                       datetime(2014, 7, 5, 1): datetime(2014, 7, 14, 23),
+                       datetime(2014, 7, 5, 15): datetime(2014, 7, 15, 0),
+                       datetime(2014, 7, 6, 18): datetime(2014, 7, 15, 0),
+                       datetime(2014, 7, 7, 1): datetime(2014, 7, 15, 0),
+                       datetime(2014, 7, 7, 23, 30): datetime(2014, 7, 15, 21, 30)}))
+
+        for offset, cases in tests:
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_apply_nanoseconds(self):
+        tests = []
+
+        tests.append((BusinessHour(),
+                      {Timestamp('2014-07-04 15:00') + Nano(5): Timestamp('2014-07-04 16:00') + Nano(5),
+                       Timestamp('2014-07-04 16:00') + Nano(5): Timestamp('2014-07-07 09:00') + Nano(5),
+                       Timestamp('2014-07-04 16:00') - Nano(5): Timestamp('2014-07-04 17:00') - Nano(5)
+                       }))
+
+        tests.append((BusinessHour(-1),
+                      {Timestamp('2014-07-04 15:00') + Nano(5): Timestamp('2014-07-04 14:00') + Nano(5),
+                       Timestamp('2014-07-04 10:00') + Nano(5): Timestamp('2014-07-04 09:00') + Nano(5),
+                       Timestamp('2014-07-04 10:00') - Nano(5): Timestamp('2014-07-03 17:00') - Nano(5),
+                       }))
+
+        for offset, cases in tests:
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = self._offset()
+        offset2 = self._offset()
+        self.assertFalse(offset1 != offset2)
+
+    def test_datetimeindex(self):
+        idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00', freq='BH')
+        idx2 = DatetimeIndex(start='2014-07-04 15:00', periods=12, freq='BH')
+        idx3 = DatetimeIndex(end='2014-07-08 10:00', periods=12, freq='BH')
+        expected = DatetimeIndex(['2014-07-04 15:00', '2014-07-04 16:00', '2014-07-07 09:00',
+                                  '2014-07-07 10:00', '2014-07-07 11:00', '2014-07-07 12:00',
+                                  '2014-07-07 13:00', '2014-07-07 14:00', '2014-07-07 15:00',
+                                  '2014-07-07 16:00', '2014-07-08 09:00', '2014-07-08 10:00'],
+                                  freq='BH')
+        for idx in [idx1, idx2, idx3]:
+            tm.assert_index_equal(idx, expected)
+
+        idx1 = DatetimeIndex(start='2014-07-04 15:45', end='2014-07-08 10:45', freq='BH')
+        idx2 = DatetimeIndex(start='2014-07-04 15:45', periods=12, freq='BH')
+        idx3 = DatetimeIndex(end='2014-07-08 10:45', periods=12, freq='BH')
+
+        expected = DatetimeIndex(['2014-07-04 15:45', '2014-07-04 16:45', '2014-07-07 09:45',
+                                  '2014-07-07 10:45', '2014-07-07 11:45', '2014-07-07 12:45',
+                                  '2014-07-07 13:45', '2014-07-07 14:45', '2014-07-07 15:45',
+                                  '2014-07-07 16:45', '2014-07-08 09:45', '2014-07-08 10:45'],
+                                  freq='BH')
+        expected = idx1
+        for idx in [idx1, idx2, idx3]:
+            tm.assert_index_equal(idx, expected)
 
 
 class TestCustomBusinessDay(Base):

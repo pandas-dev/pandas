@@ -11,15 +11,24 @@ Highlights include:
 
 - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
 
+- ``BusinessHour`` offset is supported, see :ref:`here <timeseries.businesshour>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
-
 
 .. _whatsnew_0161.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
+
+- ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
+
+  .. ipython:: python
+
+     Timestamp('2014-08-01 09:00') + BusinessHour()
+     Timestamp('2014-08-01 07:00') + BusinessHour()
+     Timestamp('2014-08-01 16:30') + BusinessHour()
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
