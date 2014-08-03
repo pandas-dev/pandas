@@ -1364,6 +1364,12 @@ tz-aware data to another time zone:
        is localized using one version and operated on with a different version.  
        See :ref:`here<io.hdf5-notes>` for how to handle such a situation.
 
+.. warning::
+
+       It is incorrect to pass a timezone directly into the ``datetime.datetime`` constructor (e.g.,
+       ``datetime.datetime(2011, 1, 1, tz=timezone('US/Eastern'))``.  Instead, the datetime
+       needs to be localized using the the localize method on the timezone.
+
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
 localized to the time zone. However, timestamps with the same UTC value are

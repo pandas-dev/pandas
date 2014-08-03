@@ -358,7 +358,9 @@ Bug Fixes
 
 
 - Bug in ``GroupBy.filter()`` where fast path vs. slow path made the filter
-  return a non scalar value that appeared valid but wasnt' (:issue:`7870`).
+  return a non scalar value that appeared valid but wasn't (:issue:`7870`).
+- Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
+  times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).  
 
 
 

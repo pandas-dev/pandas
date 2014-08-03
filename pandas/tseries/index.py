@@ -416,7 +416,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         else:
 
-            if inferred_tz is None and tz is not None:
+            if tz is not None:
                 # naive dates
                 if start is not None and start.tz is not None:
                     start = start.replace(tzinfo=None)
