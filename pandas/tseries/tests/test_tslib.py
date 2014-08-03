@@ -425,6 +425,44 @@ class TestTslib(tm.TestCase):
         # Tuesday
         self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
 
+    def test_tslib_tz_convert(self):
+        def compare_utc_to_local(tz_didx, utc_didx):
+            f = lambda x: tslib.tz_convert_single(x, 'UTC', tz_didx.tz)
+            result = tslib.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
+            result_single = np.vectorize(f)(tz_didx.asi8)
+            self.assert_numpy_array_equal(result, result_single)
+
+        def compare_local_to_utc(tz_didx, utc_didx):
+            f = lambda x: tslib.tz_convert_single(x, tz_didx.tz, 'UTC')
+            result = tslib.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
+            result_single = np.vectorize(f)(utc_didx.asi8)
+            self.assert_numpy_array_equal(result, result_single)
+
+        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'Europe/Moscow']:
+            # US: 2014-03-09 - 2014-11-11
+            # MOSCOW: 2014-10-26  /  2014-12-31
+            tz_didx = date_range('2014-03-01', '2015-01-10', freq='H', tz=tz)
+            utc_didx = date_range('2014-03-01', '2015-01-10', freq='H')
+            compare_utc_to_local(tz_didx, utc_didx)
+            # local tz to UTC can be differ in hourly (or higher) freqs because of DST
+            compare_local_to_utc(tz_didx, utc_didx)
+
+            tz_didx = date_range('2000-01-01', '2020-01-01', freq='D', tz=tz)
+            utc_didx = date_range('2000-01-01', '2020-01-01', freq='D')
+            compare_utc_to_local(tz_didx, utc_didx)
+            compare_local_to_utc(tz_didx, utc_didx)
+
+            tz_didx = date_range('2000-01-01', '2100-01-01', freq='A', tz=tz)
+            utc_didx = date_range('2000-01-01', '2100-01-01', freq='A')
+            compare_utc_to_local(tz_didx, utc_didx)
+            compare_local_to_utc(tz_didx, utc_didx)
+
+        # Check empty array
+        result = tslib.tz_convert(np.array([], dtype=np.int64),
+                                  tslib.maybe_get_tz('US/Eastern'),
+                                  tslib.maybe_get_tz('Asia/Tokyo'))
+        self.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
+
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
         self.assertEqual((Timestamp(datetime.datetime(2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)

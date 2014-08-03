@@ -787,6 +787,64 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         # check that the time hasn't changed.
         self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
 
+    def test_tslib_tz_convert_trans_pos_plus_1__bug(self):
+        # Regression test for tslib.tz_convert(vals, tz1, tz2).
+        # See https://github.com/pydata/pandas/issues/4496 for details.
+        for freq, n in [('H', 1), ('T', 60), ('S', 3600)]:
+            idx = date_range(datetime(2011, 3, 26, 23), datetime(2011, 3, 27, 1), freq=freq)
+            idx = idx.tz_localize('UTC')
+            idx = idx.tz_convert('Europe/Moscow')
+
+            expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
+            self.assert_numpy_array_equal(idx.hour, expected)
+
+    def test_tslib_tz_convert_dst(self):
+        for freq, n in [('H', 1), ('T', 60), ('S', 3600)]:
+            # Start DST
+            idx = date_range('2014-03-08 23:00', '2014-03-09 09:00', freq=freq, tz='UTC')
+            idx = idx.tz_convert('US/Eastern')
+            expected = np.repeat(np.array([18, 19, 20, 21, 22, 23, 0, 1, 3, 4, 5]),
+                                 np.array([n, n, n, n, n, n, n, n, n, n, 1]))
+            self.assert_numpy_array_equal(idx.hour, expected)
+
+            idx = date_range('2014-03-08 18:00', '2014-03-09 05:00', freq=freq, tz='US/Eastern')
+            idx = idx.tz_convert('UTC')
+            expected = np.repeat(np.array([23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+                                 np.array([n, n, n, n, n, n, n, n, n, n, 1]))
+            self.assert_numpy_array_equal(idx.hour, expected)
+
+            # End DST
+            idx = date_range('2014-11-01 23:00', '2014-11-02 09:00', freq=freq, tz='UTC')
+            idx = idx.tz_convert('US/Eastern')
+            expected = np.repeat(np.array([19, 20, 21, 22, 23, 0, 1, 1, 2, 3, 4]),
+                                 np.array([n, n, n, n, n, n, n, n, n, n, 1]))
+            self.assert_numpy_array_equal(idx.hour, expected)
+
+            idx = date_range('2014-11-01 18:00', '2014-11-02 05:00', freq=freq, tz='US/Eastern')
+            idx = idx.tz_convert('UTC')
+            expected = np.repeat(np.array([22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+                                 np.array([n, n, n, n, n, n, n, n, n, n, n, n, 1]))
+            self.assert_numpy_array_equal(idx.hour, expected)
+
+        # daily
+        # Start DST
+        idx = date_range('2014-03-08 00:00', '2014-03-09 00:00', freq='D', tz='UTC')
+        idx = idx.tz_convert('US/Eastern')
+        self.assert_numpy_array_equal(idx.hour, np.array([19, 19]))
+
+        idx = date_range('2014-03-08 00:00', '2014-03-09 00:00', freq='D', tz='US/Eastern')
+        idx = idx.tz_convert('UTC')
+        self.assert_numpy_array_equal(idx.hour, np.array([5, 5]))
+
+        # End DST
+        idx = date_range('2014-11-01 00:00', '2014-11-02 00:00', freq='D', tz='UTC')
+        idx = idx.tz_convert('US/Eastern')
+        self.assert_numpy_array_equal(idx.hour, np.array([20, 20]))
+
+        idx = date_range('2014-11-01 00:00', '2014-11-02 000:00', freq='D', tz='US/Eastern')
+        idx = idx.tz_convert('UTC')
+        self.assert_numpy_array_equal(idx.hour, np.array([4, 4]))
+
 
 class TestTimeZoneCacheKey(tm.TestCase):
     def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self):

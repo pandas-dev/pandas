@@ -233,8 +233,8 @@ Enhancements
 
 
 
-
-
+- Bug in ``tslib.tz_convert`` and ``tslib.tz_convert_single`` may return different results (:issue:`7798`)
+- Bug in ``DatetimeIndex.intersection`` of non-overlapping timestamps with tz raises ``IndexError`` (:issue:`7880`)
 
 
 

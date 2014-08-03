@@ -683,25 +683,6 @@ _ONE_MINUTE = 60 * _ONE_SECOND
 _ONE_HOUR = 60 * _ONE_MINUTE
 _ONE_DAY = 24 * _ONE_HOUR
 
-def _tz_convert_with_transitions(values, to_tz, from_tz):
-    """
-    convert i8 values from the specificed timezone to the to_tz zone, taking
-    into account DST transitions
-    """
-
-    # vectorization is slow, so tests if we can do this via the faster tz_convert
-    f = lambda x: tslib.tz_convert_single(x, to_tz, from_tz)
-
-    if len(values) > 2:
-        first_slow, last_slow = f(values[0]),f(values[-1])
-
-        first_fast, last_fast = tslib.tz_convert(np.array([values[0],values[-1]],dtype='i8'),to_tz,from_tz)
-
-        # don't cross a DST, so ok
-        if first_fast == first_slow and last_fast == last_slow:
-            return tslib.tz_convert(values,to_tz,from_tz)
-
-    return np.vectorize(f)(values)
 
 class _FrequencyInferer(object):
     """
@@ -713,7 +694,7 @@ class _FrequencyInferer(object):
         self.values = np.asarray(index).view('i8')
 
         if index.tz is not None:
-            self.values = _tz_convert_with_transitions(self.values,'UTC',index.tz)
+            self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
 
         self.warn = warn
 
