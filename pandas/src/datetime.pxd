@@ -109,7 +109,8 @@ cdef extern from "datetime/np_datetime_strings.h":
 
     int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
                                 NPY_CASTING casting, pandas_datetimestruct *out,
-                                npy_bool *out_local, PANDAS_DATETIMEUNIT *out_bestunit,
+                                int *out_local, int *out_tzoffset,
+                                PANDAS_DATETIMEUNIT *out_bestunit,
                                 npy_bool *out_special)
 
     int make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
@@ -123,7 +124,8 @@ cdef extern from "datetime/np_datetime_strings.h":
 
 
 
-cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
+cdef inline _string_to_dts(object val, pandas_datetimestruct* dts,
+                           int* out_local, int* out_tzoffset):
     cdef int result
     cdef char *tmp
 
@@ -131,21 +133,22 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
         val = PyUnicode_AsASCIIString(val);
 
     tmp = val
-    result = _cstring_to_dts(tmp, len(val), dts)
+    result = _cstring_to_dts(tmp, len(val), dts, out_local, out_tzoffset)
 
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
 
 cdef inline int _cstring_to_dts(char *val, int length,
-                                pandas_datetimestruct* dts):
+                                pandas_datetimestruct* dts,
+                                int* out_local, int* out_tzoffset):
     cdef:
-        npy_bool islocal, special
+        npy_bool special
         PANDAS_DATETIMEUNIT out_bestunit
         int result
 
     result = parse_iso_8601_datetime(val, length, PANDAS_FR_ns,
                                      NPY_UNSAFE_CASTING,
-                                     dts, &islocal, &out_bestunit, &special)
+                                     dts, out_local, out_tzoffset, &out_bestunit, &special)
     return result
 
 

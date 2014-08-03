@@ -2173,10 +2173,31 @@ class TestDatetimeIndex(tm.TestCase):
     def test_constructor_datetime64_tzformat(self):
         # GH 6572
         tm._skip_if_no_pytz()
-        tm._skip_if_no_dateutil()
-        from dateutil.tz import tzoffset
+        import pytz
+        # ISO 8601 format results in pytz.FixedOffset
         for freq in ['AS', 'W-SUN']:
             idx = date_range('2013-01-01T00:00:00-05:00', '2016-01-01T23:59:59-05:00', freq=freq)
+            expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
+                                  freq=freq, tz=pytz.FixedOffset(-300))
+            tm.assert_index_equal(idx, expected)
+            # Unable to use `US/Eastern` because of DST
+            expected_i8 = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
+                                     freq=freq, tz='America/Lima')
+            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+
+            idx = date_range('2013-01-01T00:00:00+09:00', '2016-01-01T23:59:59+09:00', freq=freq)
+            expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
+                                  freq=freq, tz=pytz.FixedOffset(540))
+            tm.assert_index_equal(idx, expected)
+            expected_i8 = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
+                                     freq=freq, tz='Asia/Tokyo')
+            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+
+        tm._skip_if_no_dateutil()
+        from dateutil.tz import tzoffset
+        # Non ISO 8601 format results in dateutil.tz.tzoffset
+        for freq in ['AS', 'W-SUN']:
+            idx = date_range('2013/1/1 0:00:00-5:00', '2016/1/1 23:59:59-5:00', freq=freq)
             expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
                                   freq=freq, tz=tzoffset(None, -18000))
             tm.assert_index_equal(idx, expected)
@@ -2185,7 +2206,7 @@ class TestDatetimeIndex(tm.TestCase):
                                      freq=freq, tz='America/Lima')
             self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
-            idx = date_range('2013-01-01T00:00:00+09:00', '2016-01-01T23:59:59+09:00', freq=freq)
+            idx = date_range('2013/1/1 0:00:00+9:00', '2016/1/1 23:59:59+09:00', freq=freq)
             expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
                                   freq=freq, tz=tzoffset(None, 32400))
             tm.assert_index_equal(idx, expected)

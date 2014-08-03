@@ -15,40 +15,180 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 class TestTimestamp(tm.TestCase):
+
+    def test_constructor(self):
+        base_str = '2014-07-01 09:00'
+        base_dt = datetime.datetime(2014, 7, 1, 9)
+        base_expected = 1404205200000000000
+
+        # confirm base representation is correct
+        import calendar
+        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000, base_expected)
+
+        tests = [(base_str, base_dt, base_expected),
+                 ('2014-07-01 10:00', datetime.datetime(2014, 7, 1, 10),
+                  base_expected + 3600 * 1000000000),
+                 ('2014-07-01 09:00:00.000008000',
+                  datetime.datetime(2014, 7, 1, 9, 0, 0, 8), base_expected + 8000),
+                 ('2014-07-01 09:00:00.000000005',
+                  Timestamp('2014-07-01 09:00:00.000000005'), base_expected + 5)]
+
+        tm._skip_if_no_pytz()
+        tm._skip_if_no_dateutil()
+        import pytz
+        import dateutil
+        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0),
+                     ('Asia/Tokyo', 9), ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
+                     (pytz.FixedOffset(-180), -3), (dateutil.tz.tzoffset(None, 18000), 5)]
+
+        for date_str, date, expected in tests:
+            for result in [Timestamp(date_str), Timestamp(date)]:
+                # only with timestring
+                self.assertEqual(result.value, expected)
+                self.assertEqual(tslib.pydt_to_i8(result), expected)
+
+                # re-creation shouldn't affect to internal value
+                result = Timestamp(result)
+                self.assertEqual(result.value, expected)
+                self.assertEqual(tslib.pydt_to_i8(result), expected)
+
+            # with timezone
+            for tz, offset in timezones:
+                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
+                    expected_tz = expected - offset * 3600 * 1000000000
+                    self.assertEqual(result.value, expected_tz)
+                    self.assertEqual(tslib.pydt_to_i8(result), expected_tz)
+
+                    # should preserve tz
+                    result = Timestamp(result)
+                    self.assertEqual(result.value, expected_tz)
+                    self.assertEqual(tslib.pydt_to_i8(result), expected_tz)
+
+                    # should convert to UTC
+                    result = Timestamp(result, tz='UTC')
+                    expected_utc = expected - offset * 3600 * 1000000000
+                    self.assertEqual(result.value, expected_utc)
+                    self.assertEqual(tslib.pydt_to_i8(result), expected_utc)
+
+    def test_constructor_with_stringoffset(self):
+        # GH 7833
+        base_str = '2014-07-01 11:00:00+02:00'
+        base_dt = datetime.datetime(2014, 7, 1, 9)
+        base_expected = 1404205200000000000
+
+        # confirm base representation is correct
+        import calendar
+        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000, base_expected)
+
+        tests = [(base_str, base_expected),
+                 ('2014-07-01 12:00:00+02:00', base_expected + 3600 * 1000000000),
+                 ('2014-07-01 11:00:00.000008000+02:00', base_expected + 8000),
+                 ('2014-07-01 11:00:00.000000005+02:00', base_expected + 5)]
+
+        tm._skip_if_no_pytz()
+        tm._skip_if_no_dateutil()
+        import pytz
+        import dateutil
+        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0),
+                     ('Asia/Tokyo', 9), ('US/Eastern', -4),
+                     ('dateutil/US/Pacific', -7),
+                     (pytz.FixedOffset(-180), -3), (dateutil.tz.tzoffset(None, 18000), 5)]
+
+        for date_str, expected in tests:
+            for result in [Timestamp(date_str)]:
+                # only with timestring
+                self.assertEqual(result.value, expected)
+                self.assertEqual(tslib.pydt_to_i8(result), expected)
+
+                # re-creation shouldn't affect to internal value
+                result = Timestamp(result)
+                self.assertEqual(result.value, expected)
+                self.assertEqual(tslib.pydt_to_i8(result), expected)
+
+            # with timezone
+            for tz, offset in timezones:
+                result = Timestamp(date_str, tz=tz)
+                expected_tz = expected
+                self.assertEqual(result.value, expected_tz)
+                self.assertEqual(tslib.pydt_to_i8(result), expected_tz)
+
+                # should preserve tz
+                result = Timestamp(result)
+                self.assertEqual(result.value, expected_tz)
+                self.assertEqual(tslib.pydt_to_i8(result), expected_tz)
+
+                # should convert to UTC
+                result = Timestamp(result, tz='UTC')
+                expected_utc = expected
+                self.assertEqual(result.value, expected_utc)
+                self.assertEqual(tslib.pydt_to_i8(result), expected_utc)
+
+        # This should be 2013-11-01 05:00 in UTC -> converted to Chicago tz
+        result = Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')
+        self.assertEqual(result.value, Timestamp('2013-11-01 05:00').value)
+        expected_repr = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"
+        self.assertEqual(repr(result), expected_repr)
+        self.assertEqual(result, eval(repr(result)))
+
+        # This should be 2013-11-01 05:00 in UTC -> converted to Tokyo tz (+09:00)
+        result = Timestamp('2013-11-01 00:00:00-0500', tz='Asia/Tokyo')
+        self.assertEqual(result.value, Timestamp('2013-11-01 05:00').value)
+        expected_repr = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
+        self.assertEqual(repr(result), expected_repr)
+        self.assertEqual(result, eval(repr(result)))
+
     def test_repr(self):
-        date = '2014-03-07'
-        tz = 'US/Eastern'
-        freq = 'M'
+        dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
+        timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
+        if _np_version_under1p7:
+            freqs = ['D', 'M', 'S']
+        else:
+            freqs = ['D', 'M', 'S', 'N']
 
-        date_only = Timestamp(date)
-        self.assertIn(date, repr(date_only))
-        self.assertNotIn(tz, repr(date_only))
-        self.assertNotIn(freq, repr(date_only))
-        self.assertEqual(date_only, eval(repr(date_only)))
+        for date in dates:
+            for tz in timezones:
+                for freq in freqs:
+                    # avoid to match with timezone name
+                    freq_repr = "'{0}'".format(freq)
+                    if tz.startswith('dateutil'):
+                        tz_repr = tz.replace('dateutil', '')
+                    else:
+                        tz_repr = tz
 
-        date_tz = Timestamp(date, tz=tz)
-        self.assertIn(date, repr(date_tz))
-        self.assertIn(tz, repr(date_tz))
-        self.assertNotIn(freq, repr(date_tz))
-        self.assertEqual(date_tz, eval(repr(date_tz)))
+                    date_only = Timestamp(date)
+                    self.assertIn(date, repr(date_only))
+                    self.assertNotIn(tz_repr, repr(date_only))
+                    self.assertNotIn(freq_repr, repr(date_only))
+                    self.assertEqual(date_only, eval(repr(date_only)))
 
-        date_freq = Timestamp(date, offset=freq)
-        self.assertIn(date, repr(date_freq))
-        self.assertNotIn(tz, repr(date_freq))
-        self.assertIn(freq, repr(date_freq))
-        self.assertEqual(date_freq, eval(repr(date_freq)))
+                    date_tz = Timestamp(date, tz=tz)
+                    self.assertIn(date, repr(date_tz))
+                    self.assertIn(tz_repr, repr(date_tz))
+                    self.assertNotIn(freq_repr, repr(date_tz))
+                    self.assertEqual(date_tz, eval(repr(date_tz)))
 
-        date_tz_freq = Timestamp(date, tz=tz, offset=freq)
-        self.assertIn(date, repr(date_tz_freq))
-        self.assertIn(tz, repr(date_tz_freq))
-        self.assertIn(freq, repr(date_tz_freq))
-        self.assertEqual(date_tz_freq, eval(repr(date_tz_freq)))
+                    date_freq = Timestamp(date, offset=freq)
+                    self.assertIn(date, repr(date_freq))
+                    self.assertNotIn(tz_repr, repr(date_freq))
+                    self.assertIn(freq_repr, repr(date_freq))
+                    self.assertEqual(date_freq, eval(repr(date_freq)))
+
+                    date_tz_freq = Timestamp(date, tz=tz, offset=freq)
+                    self.assertIn(date, repr(date_tz_freq))
+                    self.assertIn(tz_repr, repr(date_tz_freq))
+                    self.assertIn(freq_repr, repr(date_tz_freq))
+                    self.assertEqual(date_tz_freq, eval(repr(date_tz_freq)))
 
         # this can cause the tz field to be populated, but it's redundant to information in the datestring
+        tm._skip_if_no_pytz()
+        import pytz
         date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
         self.assertIn('2014-03-13 00:00:00-0400', repr(date_with_utc_offset))
         self.assertNotIn('tzoffset', repr(date_with_utc_offset))
-        self.assertEqual(date_with_utc_offset, eval(repr(date_with_utc_offset)))
+        self.assertIn('pytz.FixedOffset(-240)', repr(date_with_utc_offset))
+        expr = repr(date_with_utc_offset).replace("'pytz.FixedOffset(-240)'",
+                    'pytz.FixedOffset(-240)')
+        self.assertEqual(date_with_utc_offset, eval(expr))
 
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = (
@@ -314,8 +454,24 @@ class TestTimestampNsOperations(tm.TestCase):
         self.assert_ns_timedelta(time, -123000000)
 
     def test_nanosecond_string_parsing(self):
-        self.timestamp = Timestamp('2013-05-01 07:15:45.123456789')
-        self.assertEqual(self.timestamp.value, 1367392545123456000)
+        ts = Timestamp('2013-05-01 07:15:45.123456789')
+        # GH 7878
+        expected_repr = '2013-05-01 07:15:45.123456789'
+        expected_value = 1367392545123456789
+        self.assertEqual(ts.value, expected_value)
+        self.assertIn(expected_repr, repr(ts))
+
+        ts = Timestamp('2013-05-01 07:15:45.123456789+09:00', tz='Asia/Tokyo')
+        self.assertEqual(ts.value, expected_value - 9 * 3600 * 1000000000)
+        self.assertIn(expected_repr, repr(ts))
+
+        ts = Timestamp('2013-05-01 07:15:45.123456789', tz='UTC')
+        self.assertEqual(ts.value, expected_value)
+        self.assertIn(expected_repr, repr(ts))
+
+        ts = Timestamp('2013-05-01 07:15:45.123456789', tz='US/Eastern')
+        self.assertEqual(ts.value, expected_value + 4 * 3600 * 1000000000)
+        self.assertIn(expected_repr, repr(ts))
 
     def test_nanosecond_timestamp(self):
         # GH 7610

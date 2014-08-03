@@ -363,7 +363,9 @@ convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
  *           to be cast to the 'unit' parameter.
  *
  * 'out' gets filled with the parsed date-time.
- * 'out_local' gets set to 1 if the parsed time was in local time,
+ * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
+ * 'out_tzoffset' gets set to timezone offset by minutes
+ *      if the parsed time was in local time,
  *      to 0 otherwise. The values 'now' and 'today' don't get counted
  *      as local, and neither do UTC +/-#### timezone offsets, because
  *      they aren't using the computer's local timezone offset.
@@ -381,7 +383,8 @@ parse_iso_8601_datetime(char *str, int len,
                     PANDAS_DATETIMEUNIT unit,
                     NPY_CASTING casting,
                     pandas_datetimestruct *out,
-                    npy_bool *out_local,
+                    int *out_local,
+                    int *out_tzoffset,
                     PANDAS_DATETIMEUNIT *out_bestunit,
                     npy_bool *out_special)
 {
@@ -778,19 +781,6 @@ parse_timezone:
     if (sublen == 0) {
         // Unlike NumPy, treating no time zone as naive
         goto finish;
-
-/*
-        if (convert_datetimestruct_local_to_utc(out, out) < 0) {
-            goto error;
-        }
-
-        // Since neither "Z" nor a time-zone was specified, it's local
-        if (out_local != NULL) {
-            *out_local = 1;
-        }
-
-        goto finish;
-*/
     }
 
     /* UTC specifier */
@@ -816,9 +806,6 @@ parse_timezone:
          * Since "local" means local with respect to the current
          * machine, we say this is non-local.
          */
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
 
         if (*substr == '-') {
             offset_neg = 1;
@@ -872,7 +859,11 @@ parse_timezone:
             offset_hour = -offset_hour;
             offset_minute = -offset_minute;
         }
-        add_minutes_to_datetimestruct(out, -60 * offset_hour - offset_minute);
+        if (out_local != NULL) {
+            *out_local = 1;
+            // Unlike NumPy, do not change internal value to local time
+            *out_tzoffset = 60 * offset_hour - offset_minute;
+        }
     }
 
     /* Skip trailing whitespace */

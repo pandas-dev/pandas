@@ -166,6 +166,8 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
 
+- ``Timestamp.__repr__`` displays ``dateutil.tz.tzoffset`` info (:issue:`7907`)
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
@@ -443,7 +445,8 @@ Bug Fixes
 - Bug in ``Series.str.cat`` with an index which was filtered as to not include the first item (:issue:`7857`)
 
 
-
+- Bug in ``Timestamp`` cannot parse ``nanosecond`` from string (:issue:`7878`)
+- Bug in ``Timestamp`` with string offset and ``tz`` results incorrect (:issue:`7833`)
 
 - Bug in ``tslib.tz_convert`` and ``tslib.tz_convert_single`` may return different results (:issue:`7798`)
 - Bug in ``DatetimeIndex.intersection`` of non-overlapping timestamps with tz raises ``IndexError`` (:issue:`7880`)
