@@ -1974,6 +1974,15 @@ class TestIndexing(tm.TestCase):
         result = s.loc[idx[:,['foo','bah']]]
         assert_series_equal(result,expected)
 
+        # regression from < 0.14.0
+        # GH 7914
+        df = DataFrame([[np.mean, np.median],['mean','median']],
+                       columns=MultiIndex.from_tuples([('functs','mean'),
+                                                       ('functs','median')]),
+                       index=['function', 'name'])
+        result = df.loc['function',('functs','mean')]
+        self.assertEqual(result,np.mean)
+
     def test_setitem_dtype_upcast(self):
 
         # GH3216

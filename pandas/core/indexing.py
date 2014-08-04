@@ -838,7 +838,7 @@ class _NDFrameIndexer(object):
             axis += 1
 
             # if we have a scalar, we are done
-            if np.isscalar(obj):
+            if np.isscalar(obj) or not hasattr(obj,'ndim'):
                 break
 
             # has the dim of the obj changed?
