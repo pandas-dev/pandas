@@ -3018,6 +3018,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
+    def test_empty_product(self):
+        tm.assert_equal(Series().prod(), 1)
 
 # TimeSeries-specific
 
