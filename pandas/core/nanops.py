@@ -1,4 +1,3 @@
-import sys
 import itertools
 import functools
 
@@ -10,7 +9,6 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-import pandas.core.common as com
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
 from pandas.compat import builtins
@@ -49,53 +47,48 @@ class disallow(object):
         return _f
 
 
-class bottleneck_switch(object):
+def bottleneck_switch(alt=None, zero_value=None, **kwargs):
+    if alt is None:
+        return functools.partial(bottleneck_switch, zero_value=zero_value,
+                                 **kwargs)
 
-    def __init__(self, zero_value=None, **kwargs):
-        self.zero_value = zero_value
-        self.kwargs = kwargs
+    bn_name = alt.__name__
 
-    def __call__(self, alt):
-        bn_name = alt.__name__
+    try:
+        bn_func = getattr(bn, bn_name)
+    except (AttributeError, NameError):  # pragma: no cover
+        bn_func = None
 
+    @functools.wraps(alt)
+    def f(values, axis=None, skipna=True, **kwds):
+        for k, v in compat.iteritems(kwargs):
+            kwds.setdefault(k, v)
         try:
-            bn_func = getattr(bn, bn_name)
-        except (AttributeError, NameError):  # pragma: no cover
-            bn_func = None
-
-        @functools.wraps(alt)
-        def f(values, axis=None, skipna=True, **kwds):
-            if len(self.kwargs) > 0:
-                for k, v in compat.iteritems(self.kwargs):
-                    if k not in kwds:
-                        kwds[k] = v
-            try:
-                if self.zero_value is not None and values.size == 0:
-                    if values.ndim == 1:
-                        return 0
-                    else:
-                        result_shape = (values.shape[:axis] +
-                                        values.shape[axis + 1:])
-                        result = np.empty(result_shape)
-                        result.fill(0)
-                        return result
-
-                if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype,
-                                                               bn_name):
-                    result = bn_func(values, axis=axis, **kwds)
-
-                    # prefer to treat inf/-inf as NA, but must compute the func
-                    # twice :(
-                    if _has_infs(result):
-                        result = alt(values, axis=axis, skipna=skipna, **kwds)
+            if zero_value is not None and values.size == 0:
+                if values.ndim == 1:
+                    return zero_value
                 else:
+                    result_shape = (values.shape[:axis] +
+                                    values.shape[axis + 1:])
+                    result = np.empty(result_shape)
+                    result.fill(zero_value)
+                    return result
+
+            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype,
+                                                           bn_name):
+                result = bn_func(values, axis=axis, **kwds)
+
+                # prefer to treat inf/-inf as NA, but must compute the func
+                # twice :(
+                if _has_infs(result):
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
-            except Exception:
+            else:
                 result = alt(values, axis=axis, skipna=skipna, **kwds)
+        except (ValueError, TypeError, ZeroDivisionError):
+            result = alt(values, axis=axis, skipna=skipna, **kwds)
 
-            return result
-
-        return f
+        return result
+    return f
 
 
 def _bn_ok_dtype(dt, name):
@@ -121,7 +114,7 @@ def _has_infs(result):
             return lib.has_infs_f4(result.ravel())
     try:
         return np.isinf(result).any()
-    except (TypeError, NotImplementedError) as e:
+    except (TypeError, NotImplementedError):
         # if it doesn't support infs, then it can't have infs
         return False
 
@@ -260,7 +253,7 @@ def nansum(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch()
+@bottleneck_switch
 def nanmean(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_max))
@@ -278,7 +271,7 @@ def nanmean(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch()
+@bottleneck_switch
 def nanmedian(values, axis=None, skipna=True):
 
     values, mask, dtype, dtype_max = _get_values(values, skipna)
@@ -365,7 +358,7 @@ def nansem(values, axis=None, skipna=True, ddof=1):
     return np.sqrt(var)/np.sqrt(count)
 
 
-@bottleneck_switch()
+@bottleneck_switch
 def nanmin(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna,
                                                  fill_value_typ='+inf')
@@ -395,7 +388,7 @@ def nanmin(values, axis=None, skipna=True):
     return _maybe_null_out(result, axis, mask)
 
 
-@bottleneck_switch()
+@bottleneck_switch
 def nanmax(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna,
                                                  fill_value_typ='-inf')
@@ -517,6 +510,7 @@ def nankurt(values, axis=None, skipna=True):
 
 
 @disallow('M8')
+@bottleneck_switch(zero_value=1)
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not _is_any_int_dtype(values):

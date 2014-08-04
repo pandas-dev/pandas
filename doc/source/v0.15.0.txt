@@ -129,6 +129,10 @@ API changes
   strings must contain 244 or fewer characters.  Attempting to write Stata
   dta files with strings longer than 244 characters raises a ``ValueError``. (:issue:`7858`)
 
+- Empty product computations now have a default value of 1. This means that
+  during resampling, for example, now instead of ``nan``, the value for empty
+  Periods, Timestamps, etc. will be 1 (:issue:`7889`).
+
 
 .. _whatsnew_0150.cat:
 

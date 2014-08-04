@@ -1363,22 +1363,36 @@ class TestTimeGrouper(tm.TestCase):
         normal_grouped = normal_df.groupby('key')
         dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
 
-        for func in ['min', 'max', 'prod']:
+        for func in ['min', 'max']:
             normal_result = getattr(normal_grouped, func)()
             dt_result = getattr(dt_grouped, func)()
             pad = DataFrame([[np.nan, np.nan, np.nan, np.nan]],
                             index=[3], columns=['A', 'B', 'C', 'D'])
             expected = normal_result.append(pad)
             expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5,
+                                        name='key')
+            assert_frame_equal(expected, dt_result)
+
+        for func in ['prod']:
+            normal_result = getattr(normal_grouped, func)()
+            dt_result = getattr(dt_grouped, func)()
+            pad = DataFrame([[1] * 4],
+                            index=[3], columns=['A', 'B', 'C', 'D'])
+            expected = normal_result.append(pad)
+            expected = expected.sort_index()
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5,
+                                        name='key')
             assert_frame_equal(expected, dt_result)
 
         for func in ['count', 'sum']:
             normal_result = getattr(normal_grouped, func)()
-            pad = DataFrame([[0, 0, 0, 0]], index=[3], columns=['A', 'B', 'C', 'D'])
+            pad = DataFrame([[0, 0, 0, 0]], index=[3], columns=['A', 'B', 'C',
+                                                                'D'])
             expected = normal_result.append(pad)
             expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5,
+                                        name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
 
@@ -1387,7 +1401,8 @@ class TestTimeGrouper(tm.TestCase):
             pad = Series([0], index=[3])
             expected = normal_result.append(pad)
             expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D', periods=5, name='key')
+            expected.index = date_range(start='2013-01-01', freq='D', periods=5,
+                                        name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_series_equal(expected, dt_result)
 
