@@ -248,7 +248,7 @@ class Grouper(object):
             key = self.key
             if key not in obj._info_axis:
                 raise KeyError("The grouper name {0} is not found".format(key))
-            ax = Index(obj[key],name=key)
+            ax = Index(obj[key], name=key)
 
         else:
             ax = obj._get_axis(self.axis)
@@ -258,18 +258,12 @@ class Grouper(object):
                 # if a level is given it must be a mi level or
                 # equivalent to the axis name
                 if isinstance(ax, MultiIndex):
-
-                    if isinstance(level, compat.string_types):
-                        if obj.index.name != level:
-                            raise ValueError('level name %s is not the name of the '
-                                             'index' % level)
-                    elif level > 0:
-                        raise ValueError('level > 0 only valid with MultiIndex')
-                    ax = Index(ax.get_level_values(level), name=level)
+                    level = ax._get_level_number(level)
+                    ax = Index(ax.get_level_values(level), name=ax.names[level])
 
                 else:
-                    if not (level == 0 or level == ax.name):
-                        raise ValueError("The grouper level {0} is not valid".format(level))
+                    if level not in (0, ax.name):
+                        raise ValueError("The level {0} is not valid".format(level))
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
