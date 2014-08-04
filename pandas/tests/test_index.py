@@ -840,7 +840,7 @@ class TestIndex(tm.TestCase):
         self.assertEqual(values[67], 10)
 
     def test_isin(self):
-        values = ['foo', 'bar']
+        values = ['foo', 'bar', 'quux']
 
         idx = Index(['qux', 'baz', 'foo', 'bar'])
         result = idx.isin(values)
@@ -852,6 +852,49 @@ class TestIndex(tm.TestCase):
         result = idx.isin(values)
         self.assertEqual(len(result), 0)
         self.assertEqual(result.dtype, np.bool_)
+
+    def test_isin_nan(self):
+        self.assert_numpy_array_equal(
+            Index(['a', np.nan]).isin([np.nan]), [False, True])
+        self.assert_numpy_array_equal(
+            Index(['a', pd.NaT]).isin([pd.NaT]), [False, True])
+        self.assert_numpy_array_equal(
+            Index(['a', np.nan]).isin([float('nan')]), [False, False])
+        self.assert_numpy_array_equal(
+            Index(['a', np.nan]).isin([pd.NaT]), [False, False])
+        # Float64Index overrides isin, so must be checked separately
+        self.assert_numpy_array_equal(
+            Float64Index([1.0, np.nan]).isin([np.nan]), [False, True])
+        self.assert_numpy_array_equal(
+            Float64Index([1.0, np.nan]).isin([float('nan')]), [False, True])
+        self.assert_numpy_array_equal(
+            Float64Index([1.0, np.nan]).isin([pd.NaT]), [False, True])
+
+    def test_isin_level_kwarg(self):
+        def check_idx(idx):
+            values = idx.tolist()[-2:] + ['nonexisting']
+
+            expected = np.array([False, False, True, True])
+            self.assert_numpy_array_equal(expected, idx.isin(values, level=0))
+            self.assert_numpy_array_equal(expected, idx.isin(values, level=-1))
+
+            self.assertRaises(IndexError, idx.isin, values, level=1)
+            self.assertRaises(IndexError, idx.isin, values, level=10)
+            self.assertRaises(IndexError, idx.isin, values, level=-2)
+
+            self.assertRaises(KeyError, idx.isin, values, level=1.0)
+            self.assertRaises(KeyError, idx.isin, values, level='foobar')
+
+            idx.name = 'foobar'
+            self.assert_numpy_array_equal(expected,
+                                          idx.isin(values, level='foobar'))
+
+            self.assertRaises(KeyError, idx.isin, values, level='xyzzy')
+            self.assertRaises(KeyError, idx.isin, values, level=np.nan)
+
+        check_idx(Index(['qux', 'baz', 'foo', 'bar']))
+        # Float64Index overrides isin, so must be checked separately
+        check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
 
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
@@ -2947,6 +2990,55 @@ class TestMultiIndex(tm.TestCase):
                        inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
+
+    def test_isin(self):
+        values = [('foo', 2), ('bar', 3), ('quux', 4)]
+
+        idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'],
+                                      np.arange(4)])
+        result = idx.isin(values)
+        expected = np.array([False, False, True, True])
+        self.assert_numpy_array_equal(result, expected)
+
+        # empty, return dtype bool
+        idx = MultiIndex.from_arrays([[], []])
+        result = idx.isin(values)
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.dtype, np.bool_)
+
+    def test_isin_nan(self):
+        idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
+        self.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
+                                      [False, False])
+        self.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
+                                      [False, False])
+
+    def test_isin_level_kwarg(self):
+        idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'],
+                                      np.arange(4)])
+
+        vals_0 = ['foo', 'bar', 'quux']
+        vals_1 = [2, 3, 10]
+
+        expected = np.array([False, False, True, True])
+        self.assert_numpy_array_equal(expected, idx.isin(vals_0, level=0))
+        self.assert_numpy_array_equal(expected, idx.isin(vals_0, level=-2))
+
+        self.assert_numpy_array_equal(expected, idx.isin(vals_1, level=1))
+        self.assert_numpy_array_equal(expected, idx.isin(vals_1, level=-1))
+
+        self.assertRaises(IndexError, idx.isin, vals_0, level=5)
+        self.assertRaises(IndexError, idx.isin, vals_0, level=-5)
+
+        self.assertRaises(KeyError, idx.isin, vals_0, level=1.0)
+        self.assertRaises(KeyError, idx.isin, vals_1, level=-1.0)
+        self.assertRaises(KeyError, idx.isin, vals_1, level='A')
+
+        idx.names = ['A', 'B']
+        self.assert_numpy_array_equal(expected, idx.isin(vals_0, level='A'))
+        self.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
+
+        self.assertRaises(KeyError, idx.isin, vals_1, level='C')
 
 
 def test_get_combined_index():
