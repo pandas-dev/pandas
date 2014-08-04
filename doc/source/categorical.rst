@@ -228,11 +228,11 @@ Appending levels can be done by assigning a levels list longer than the current 
     Adding levels in other positions can be done with ``.reorder_levels(<levels_including_new>)``.
 
 Removing a level is also possible, but only the last level(s) can be removed by assigning a
-shorter list than current levels. Values which are omitted are replaced by `np.nan`.
+shorter list than current levels. Values which are omitted are replaced by ``np.nan``.
 
 .. ipython:: python
 
-    s.levels = [1,2]
+    s.cat.levels = [1,2]
     s
 
 .. note::
@@ -322,7 +322,7 @@ old levels:
 .. ipython:: python
 
     s3 = pd.Series(pd.Categorical(["a","b","d"]))
-    s3.cat.reorder_levels(["a","b","c",d"])
+    s3.cat.reorder_levels(["a","b","c","d"])
     s3
 
 
