@@ -3934,6 +3934,16 @@ class TimeConversionFormats(tm.TestCase):
         result = to_datetime(s,format='%Y%m%d')
         assert_series_equal(result, expected)
 
+        # coercion
+        # GH 7930
+        s = Series([20121231, 20141231, 99991231])
+        result = pd.to_datetime(s,format='%Y%m%d')
+        expected = np.array([ datetime(2012,12,31), datetime(2014,12,31), datetime(9999,12,31) ], dtype=object)
+        self.assert_numpy_array_equal(result, expected)
+
+        result = pd.to_datetime(s,format='%Y%m%d', coerce=True)
+        expected = Series(['20121231','20141231','NaT'],dtype='M8[ns]')
+        assert_series_equal(result, expected)
 
     def test_to_datetime_format_microsecond(self):
         val = '01-Apr-2011 00:00:01.978'

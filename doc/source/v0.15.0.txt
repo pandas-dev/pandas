@@ -303,7 +303,8 @@ Bug Fixes
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
 - Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)
 - Bug in ``HDFStore.select_column()`` not preserving UTC timezone info when selecting a DatetimeIndex (:issue:`7777`)
-
+- Bug in ``to_datetime`` when ``format='%Y%m%d'`` and ``coerce=True`` are specified, where previously an object array was returned (rather than
+  a coerced time-series with ``NaT``), (:issue:`7930`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
 - Bug in adding and subtracting ``PeriodIndex`` with ``PeriodIndex`` raise ``TypeError`` (:issue:`7741`)
 - Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
