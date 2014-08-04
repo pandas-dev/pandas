@@ -262,7 +262,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 # shortcut formatting here
                 if format == '%Y%m%d':
                     try:
-                        result = _attempt_YYYYMMDD(arg)
+                        result = _attempt_YYYYMMDD(arg, coerce=coerce)
                     except:
                         raise ValueError("cannot convert the input to '%Y%m%d' date format")
 
@@ -313,14 +313,14 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 class DateParseError(ValueError):
     pass
 
-def _attempt_YYYYMMDD(arg):
+def _attempt_YYYYMMDD(arg, coerce):
     """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
         arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan) """
 
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        return lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100)
+        return tslib.array_to_datetime(lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100), coerce=coerce)
 
     def calc_with_mask(carg,mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
