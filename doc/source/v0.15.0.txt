@@ -162,6 +162,9 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
      didx
      didx.tz_localize(None)
 
+- ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument 
+  for localizing a specific level of a MultiIndex (:issue:`7846`)
+
 .. _whatsnew_0150.refactoring:
 
 Internal Refactoring
