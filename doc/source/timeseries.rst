@@ -1272,6 +1272,39 @@ the quarter end:
 
    ts.head()
 
+.. _timeseries.oob:
+
+Representing out-of-bounds spans
+--------------------------------
+
+If you have data that is outside of the ``Timestamp`` bounds, see :ref:`Timestamp limitations <gotchas.timestamp-limits>`,
+then you can use a ``PeriodIndex`` and/or ``Series`` of ``Periods`` to do computations.
+
+.. ipython:: python
+
+   span = period_range('1215-01-01', '1381-01-01', freq='D')
+   span
+
+To convert from a ``int64`` based YYYYMMDD representation.
+
+.. ipython:: python
+
+   s = Series([20121231, 20141130, 99991231])
+   s
+
+   def conv(x):
+       return Period(year = x // 10000, month = x//100 % 100, day = x%100, freq='D')
+
+   s.apply(conv)
+   s.apply(conv)[2]
+
+These can easily be converted to a ``PeriodIndex``
+
+.. ipython:: python
+
+   span = PeriodIndex(s.apply(conv))
+   span
+
 .. _timeseries.timezone:
 
 Time Zone Handling
@@ -1355,13 +1388,13 @@ tz-aware data to another time zone:
 
 	Be wary of conversions between libraries. For some zones ``pytz`` and ``dateutil`` have different
 	definitions of the zone. This is more of a problem for unusual timezones than for
-	'standard' zones like ``US/Eastern``.  
+	'standard' zones like ``US/Eastern``.
 
-.. warning:: 
+.. warning::
 
-       Be aware that a timezone definition across versions of timezone libraries may not 
-       be considered equal.  This may cause problems when working with stored data that 
-       is localized using one version and operated on with a different version.  
+       Be aware that a timezone definition across versions of timezone libraries may not
+       be considered equal.  This may cause problems when working with stored data that
+       is localized using one version and operated on with a different version.
        See :ref:`here<io.hdf5-notes>` for how to handle such a situation.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a

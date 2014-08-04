@@ -358,6 +358,8 @@ such as ``numpy.logical_and``.
 See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
 detailed discussion.
 
+.. _gotchas.timestamp-limits:
+
 Timestamp limitations
 ---------------------
 
@@ -375,14 +377,7 @@ can be represented using a 64-bit integer is limited to approximately 584 years:
    end = Timestamp.max
    end
 
-If you need to represent time series data outside the nanosecond timespan, use
-PeriodIndex:
-
-.. ipython:: python
-
-   span = period_range('1215-01-01', '1381-01-01', freq='D')
-   span
-
+See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
 
 Parsing Dates from Text Files
 -----------------------------
