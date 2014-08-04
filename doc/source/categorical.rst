@@ -509,35 +509,7 @@ The same applies to ``df.append(df)``.
 Getting Data In/Out
 -------------------
 
-Writing data (`Series`, `Frames`) to a HDF store and reading it in entirety works. Querying the HDF
-store does not yet work.
-
-.. ipython:: python
-   :suppress:
-
-    hdf_file = "test.h5"
-
-.. ipython:: python
-
-    hdf_file = "test.h5"
-    s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
-    df = pd.DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
-    df.to_hdf(hdf_file, "frame")
-    df2 = pd.read_hdf(hdf_file, "frame")
-    df2
-    try:
-        pd.read_hdf(hdf_file, "frame", where = ['index>2'])
-    except TypeError as e:
-        print("TypeError: " + str(e))
-
-.. ipython:: python
-   :suppress:
-
-    try:
-        os.remove(hdf_file)
-    except:
-        pass
-
+Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype will currently raise ``NotImplementedError``.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 `Categorical` (levels and ordering). So if you read back the CSV file you have to convert the
