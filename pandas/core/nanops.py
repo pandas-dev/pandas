@@ -84,7 +84,7 @@ def bottleneck_switch(alt=None, zero_value=None, **kwargs):
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             else:
                 result = alt(values, axis=axis, skipna=skipna, **kwds)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, ZeroDivisionError):
             result = alt(values, axis=axis, skipna=skipna, **kwds)
 
         return result
