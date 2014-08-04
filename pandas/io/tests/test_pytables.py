@@ -4318,7 +4318,7 @@ class TestHDFStore(tm.TestCase):
         # check that no tz still works
         rng = date_range('1/1/2000', '1/30/2000')
         frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-        
+
         with ensure_clean_store(self.path) as store:
             store.append('frame', frame)
             result = store.select_column('frame', 'index')
@@ -4327,7 +4327,7 @@ class TestHDFStore(tm.TestCase):
         # check utc
         rng = date_range('1/1/2000', '1/30/2000', tz='UTC')
         frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-        
+
         with ensure_clean_store(self.path) as store:
             store.append('frame', frame)
             result = store.select_column('frame', 'index')
@@ -4398,13 +4398,15 @@ class TestHDFStore(tm.TestCase):
 
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
 
-            self.assertRaises(NotImplementedError, store.append, 's', s, format='table')
+            self.assertRaises(NotImplementedError, store.put, 's_fixed', s, format='fixed')
+            self.assertRaises(NotImplementedError, store.append, 's_table', s, format='table')
             #store.append('s', s, format='table')
             #result = store.select('s')
             #tm.assert_series_equal(s, result)
 
             df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
-            self.assertRaises(NotImplementedError, store.append, 'df', df, format='table')
+            self.assertRaises(NotImplementedError, store.put, 'df_fixed', df, format='fixed')
+            self.assertRaises(NotImplementedError, store.append, 'df_table', df, format='table')
             #store.append('df', df, format='table')
             #result = store.select('df')
             #tm.assert_frame_equal(df, df2)
@@ -4413,17 +4415,17 @@ class TestHDFStore(tm.TestCase):
             # FIXME: TypeError: cannot pass a where specification when reading from a Fixed format store. this store must be selected in its entirety
             #result = store.select('df', where = ['index>2'])
             #tm.assert_frame_equal(df[df.index>2],result)
-    
+
     def test_duplicate_column_name(self):
         df = DataFrame(columns=["a", "a"], data=[[0, 0]])
-        
+
         with ensure_clean_path(self.path) as path:
             self.assertRaises(ValueError, df.to_hdf, path, 'df', format='fixed')
-            
+
             df.to_hdf(path, 'df', format='table')
             other = read_hdf(path, 'df')
             tm.assert_frame_equal(df, other)
-        
+
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

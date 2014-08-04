@@ -1782,7 +1782,7 @@ class DataCol(IndexCol):
                 "[unicode] is not implemented as a table column")
 
         elif dtype == 'category':
-            raise NotImplementedError
+            raise NotImplementedError("cannot store a category dtype")
 
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
@@ -2419,6 +2419,9 @@ class GenericFixed(Fixed):
         # Transform needed to interface with pytables row/col notation
         empty_array = self._is_empty_array(value.shape)
         transposed = False
+
+        if com.is_categorical_dtype(value):
+            raise NotImplementedError("cannot store a category dtype")
 
         if not empty_array:
             value = value.T
@@ -3451,10 +3454,10 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(_set_tz(a.convert(c[start:stop], 
+                return Series(_set_tz(a.convert(c[start:stop],
                                                 nan_rep=self.nan_rep,
                                                 encoding=self.encoding
-                                                ).take_data(), 
+                                                ).take_data(),
                                       a.tz, True))
 
         raise KeyError("column [%s] not found in the table" % column)

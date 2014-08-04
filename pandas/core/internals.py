@@ -83,6 +83,11 @@ class Block(PandasObject):
         return self.ndim == 1
 
     @property
+    def is_view(self):
+        """ return a boolean if I am possibly a view """
+        return self.values.base is not None
+
+    @property
     def is_datelike(self):
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
@@ -1558,6 +1563,11 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                                                fastpath=True, placement=placement,
                                                **kwargs)
 
+    @property
+    def is_view(self):
+        """ I am never a view """
+        return False
+
     def to_dense(self):
         return self.values.to_dense().view()
 
@@ -2522,7 +2532,7 @@ class BlockManager(PandasObject):
     def is_view(self):
         """ return a boolean if we are a single block and are a view """
         if len(self.blocks) == 1:
-            return self.blocks[0].values.base is not None
+            return self.blocks[0].is_view
 
         # It is technically possible to figure out which blocks are views
         # e.g. [ b.values.base is not None for b in self.blocks ]
