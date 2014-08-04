@@ -2,6 +2,7 @@ from pandas import DateOffset, DatetimeIndex, Series, Timestamp
 from pandas.compat import add_metaclass
 from datetime import datetime, timedelta
 from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU
+from pandas.tseries.offsets import Easter, Day
 
 def next_monday(dt):
     """
@@ -46,6 +47,20 @@ def sunday_to_monday(dt):
         return dt + timedelta(1)
     return dt
 
+
+def weekend_to_monday(dt):
+    """
+    If holiday falls on Sunday or Saturday,
+    use day thereafter (Monday) instead.
+    Needed for holidays such as Christmas observation in Europe
+    """
+    if dt.weekday() == 6:
+        return dt + timedelta(1)
+    elif dt.weekday() == 5:
+        return dt + timedelta(2)
+    return dt
+
+
 def nearest_workday(dt):
     """
     If holiday falls on Saturday, use day before (Friday) instead;
@@ -57,6 +72,44 @@ def nearest_workday(dt):
         return dt + timedelta(1)
     return dt
 
+
+def next_workday(dt):
+    """
+    returns next weekday used for observances
+    """
+    dt += timedelta(days=1)
+    while dt.weekday() > 4:
+        # Mon-Fri are 0-4
+        dt += timedelta(days=1)
+    return dt
+
+
+def previous_workday(dt):
+    """
+    returns previous weekday used for observances
+    """
+    dt -= timedelta(days=1)
+    while dt.weekday() > 4:
+        # Mon-Fri are 0-4
+        dt -= timedelta(days=1)
+    return dt
+
+
+def before_nearest_workday(dt):
+    """
+    returns previous workday after nearest workday
+    """
+    return previous_workday(nearest_workday(dt))
+
+
+def after_nearest_workday(dt):
+    """
+    returns next workday after nearest workday
+    needed for Boxing day or multiple holidays in a series
+    """
+    return next_workday(nearest_workday(dt))
+
+
 class Holiday(object):
     """
     Class that defines a holiday with start/end dates and rules
@@ -64,6 +117,17 @@ class Holiday(object):
     """
     def __init__(self, name, year=None, month=None, day=None, offset=None,
                  observance=None, start_date=None, end_date=None):
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the holiday , defaults to class name
+        offset : array of pandas.tseries.offsets or
+                class from pandas.tseries.offsets
+            computes offset from  date
+        observance: function
+            computes when holiday is given a pandas Timestamp
+        """
         self.name   =   name
         self.year   =   year
         self.month  =   month
@@ -149,7 +213,7 @@ class Holiday(object):
             offsets =   self.offset
 
         for offset in offsets:
-            dates = map(lambda d: d + offset, dates)
+            dates = list(map(lambda d: d + offset, dates))
 
         return dates
 
@@ -330,6 +394,11 @@ USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.', month=1, day=1,
                                offset=DateOffset(weekday=MO(3)))
 USPresidentsDay      = Holiday('President''s Day', month=2, day=1,
                                offset=DateOffset(weekday=MO(3)))
+GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
+
+EasterMonday = Holiday("Easter Monday", month=1, day=1, offset=[Easter(), Day(1)])
+
+
 
 class USFederalHolidayCalendar(AbstractHolidayCalendar):
     """
