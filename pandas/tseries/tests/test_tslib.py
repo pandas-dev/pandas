@@ -97,6 +97,33 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
 
+    def test_tz_localize_roundtrip(self):
+        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
+            for t in ['2014-02-01 09:00', '2014-07-08 09:00', '2014-11-01 17:00',
+                      '2014-11-05 00:00']:
+                ts = Timestamp(t)
+                localized = ts.tz_localize(tz)
+                self.assertEqual(localized, Timestamp(t, tz=tz))
+
+                with tm.assertRaises(Exception):
+                    localized.tz_localize(tz)
+
+                reset = localized.tz_localize(None)
+                self.assertEqual(reset, ts)
+                self.assertTrue(reset.tzinfo is None)
+
+    def test_tz_convert_roundtrip(self):
+        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
+            for t in ['2014-02-01 09:00', '2014-07-08 09:00', '2014-11-01 17:00',
+                      '2014-11-05 00:00']:
+                ts = Timestamp(t, tz='UTC')
+                converted = ts.tz_convert(tz)
+
+                reset = converted.tz_convert(None)
+                self.assertEqual(reset, Timestamp(t))
+                self.assertTrue(reset.tzinfo is None)
+                self.assertEqual(reset, converted.tz_convert('UTC').tz_localize(None))
+
     def test_barely_oob_dts(self):
         one_us = np.timedelta64(1).astype('timedelta64[us]')
 
