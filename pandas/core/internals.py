@@ -494,6 +494,11 @@ class Block(PandasObject):
         compatible shape
         """
 
+        # coerce None values, if appropriate
+        if value is None:
+            if self.is_numeric:
+                value = np.nan
+
         # coerce args
         values, value = self._try_coerce_args(self.values, value)
         arr_value = np.array(value)
@@ -587,7 +592,7 @@ class Block(PandasObject):
             mask = mask.values.T
 
         # if we are passed a scalar None, convert it here
-        if not is_list_like(new) and isnull(new):
+        if not is_list_like(new) and isnull(new) and not self.is_object:
             new = self.fill_value
 
         if self._can_hold_element(new):

@@ -105,7 +105,7 @@ class TestCase(unittest.TestCase):
             pd.to_pickle(obj, path)
             return pd.read_pickle(path)
 
-    def assert_numpy_array_equivalent(self, np_array, assert_equal):
+    def assert_numpy_array_equivalent(self, np_array, assert_equal, strict_nan=False):
         """Checks that 'np_array' is equivalent to 'assert_equal'
 
         Two numpy arrays are equivalent if the arrays have equal non-NaN elements, and
@@ -115,7 +115,7 @@ class TestCase(unittest.TestCase):
         similar to `assert_numpy_array_equal()`. If the expected array includes `np.nan` use this
         function.
         """
-        if array_equivalent(np_array, assert_equal):
+        if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
             return
         raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
 
