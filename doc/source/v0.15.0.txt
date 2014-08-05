@@ -142,6 +142,7 @@ API changes
      In [3]: idx.isin(['a', 'c', 'e'], level=1)
      Out[3]: array([ True, False,  True,  True, False,  True], dtype=bool)
 
+- Consistency in ``.where()`` when setting with ``None`` for both ``inplace=True`` and ``inplace=False`` in a Series (:issue:`7939`)
 
 .. _whatsnew_0150.cat:
 

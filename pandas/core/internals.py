@@ -967,6 +967,10 @@ class Block(PandasObject):
                     values = values.T
                     is_transposed = True
 
+        # if we are passed a scalar None, convert it here
+        if not is_list_like(other) and isnull(other):
+            other = self.fill_value
+
         # see if we can align cond
         if not hasattr(cond, 'shape'):
             raise ValueError(

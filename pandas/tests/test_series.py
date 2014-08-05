@@ -1597,6 +1597,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         rs.where(cond, -s, inplace=True)
         assert_series_equal(rs, s.where(cond, -s))
 
+        # GH 7939
+        # treatment of None different in where inplace
+        s1 = Series(['a', 'b', 'c'])
+        result = s1.where(s1 != 'a', None)
+
+        s2 = Series(['a', 'b', 'c'])
+        s2.where(s1 != 'a', None, inplace=True)
+        assert_series_equal(result, s2)
+
+        # this sets None directly, a little bit inconsistent
+        # but no easy way to deal with this in object arrays
+        s3 = Series(['a', 'b', 'c'])
+        s3[0] = None
+        s3[s3 == 'b'] = None
+        expected = Series([None,np.nan,'c'])
+        assert_series_equal(s3, expected)
+
+
     def test_where_dups(self):
         # GH 4550
         # where crashes with dups in index
