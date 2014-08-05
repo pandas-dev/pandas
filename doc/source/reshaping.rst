@@ -151,6 +151,20 @@ unstacks the **last level**:
    stacked.unstack(1)
    stacked.unstack(0)
 
+Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
+levels involved. Hence a call to ``stack`` and then ``unstack``, or viceversa,
+will result in a **sorted** copy of the original DataFrame or Series:
+
+.. ipython:: python
+
+   index = MultiIndex.from_product([[2,1], ['a', 'b']])
+   df = DataFrame(randn(4), index=index, columns=['A'])
+   df
+   all(df.unstack().stack() == df.sort())
+
+while the above code will raise a ``TypeError`` if the call to ``sort`` is
+removed.
+
 .. _reshaping.unstack_by_name:
 
 If the indexes have names, you can use the level names instead of specifying
