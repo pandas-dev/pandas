@@ -354,25 +354,51 @@ class TestDateRange(tm.TestCase):
     def test_range_tz_pytz(self):
         # GH 2906
         tm._skip_if_no_pytz()
-        from pytz import timezone as tz
+        from pytz import timezone
 
-        start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
-        end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
+        tz = timezone('US/Eastern')
+        start = tz.localize(datetime(2011, 1, 1))
+        end = tz.localize(datetime(2011, 1, 3))
 
         dr = date_range(start=start, periods=3)
-        self.assertEqual(dr.tz, tz('US/Eastern'))
+        self.assertEqual(dr.tz.zone, tz.zone)
         self.assertEqual(dr[0], start)
         self.assertEqual(dr[2], end)
 
         dr = date_range(end=end, periods=3)
-        self.assertEqual(dr.tz, tz('US/Eastern'))
+        self.assertEqual(dr.tz.zone, tz.zone)
         self.assertEqual(dr[0], start)
         self.assertEqual(dr[2], end)
 
         dr = date_range(start=start, end=end)
-        self.assertEqual(dr.tz, tz('US/Eastern'))
+        self.assertEqual(dr.tz.zone, tz.zone)
         self.assertEqual(dr[0], start)
         self.assertEqual(dr[2], end)
+    
+    def test_range_tz_dst_straddle_pytz(self):
+        
+        tm._skip_if_no_pytz()
+        from pytz import timezone
+        tz = timezone('US/Eastern')
+        dates = [(tz.localize(datetime(2014, 3, 6)), 
+                  tz.localize(datetime(2014, 3, 12))),
+                 (tz.localize(datetime(2013, 11, 1)), 
+                  tz.localize(datetime(2013, 11, 6)))]
+        for (start, end) in dates:
+            dr = date_range(start, end, freq='D')
+            self.assertEqual(dr[0], start)
+            self.assertEqual(dr[-1], end)
+            self.assertEqual(np.all(dr.hour==0), True)
+            
+            dr = date_range(start, end, freq='D', tz='US/Eastern')
+            self.assertEqual(dr[0], start)
+            self.assertEqual(dr[-1], end)
+            self.assertEqual(np.all(dr.hour==0), True)        
+            
+            dr = date_range(start.replace(tzinfo=None), end.replace(tzinfo=None), freq='D', tz='US/Eastern')
+            self.assertEqual(dr[0], start)
+            self.assertEqual(dr[-1], end)
+            self.assertEqual(np.all(dr.hour==0), True)        
 
     def test_range_tz_dateutil(self):
         # GH 2906
