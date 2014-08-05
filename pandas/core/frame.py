@@ -3278,6 +3278,7 @@ class DataFrame(NDFrame):
         DataFrame (or Series in the case of an object with a single level of
         column labels) having a hierarchical index with a new inner-most level
         of row labels.
+        The level involved will automatically get sorted.
 
         Parameters
         ----------
@@ -3317,7 +3318,8 @@ class DataFrame(NDFrame):
         a DataFrame having a new level of column labels whose inner-most level
         consists of the pivoted index labels. If the index is not a MultiIndex,
         the output will be a Series (the analogue of stack when the columns are
-        not a MultiIndex)
+        not a MultiIndex).
+        The level involved will automatically get sorted.
 
         Parameters
         ----------

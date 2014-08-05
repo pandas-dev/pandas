@@ -1884,7 +1884,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def unstack(self, level=-1):
         """
-        Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame
+        Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        The level involved will automatically get sorted.
 
         Parameters
         ----------
