@@ -2956,6 +2956,9 @@ Notes & Caveats
      need to serialize these operations in a single thread in a single
      process. You will corrupt your data otherwise. See the issue
      (:`2397`) for more information.
+   - ``HDFStore`` may not support concurrent reads either, depending on the
+     underlying version of ``PyTables`` being used. See issue (:`7838`)
+     for more information.
    - If you use locks to manage write access between multiple processes, you
      may want to use :py:func:`~os.fsync` before releasing write locks. For
      convenience you can use ``store.flush(fsync=True)`` to do this for you.
