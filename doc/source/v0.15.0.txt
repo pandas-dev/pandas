@@ -621,11 +621,11 @@ Bug Fixes
   return a non scalar value that appeared valid but wasn't (:issue:`7870`).
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
-
-
+- Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue`7949`)
 - Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
-
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
+  times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).  
+- Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue`7949`)
 
 - ``Holiday`` bug in Holiday with no offset or observance (:issue:`7987`)
 

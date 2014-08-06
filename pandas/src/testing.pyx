@@ -122,6 +122,10 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
 
         if np.isinf(a):
             assert np.isinf(b), "First object is inf, second isn't"
+            if np.isposinf(a):
+                assert np.isposinf(b), "First object is positive inf, second is negative inf"
+            else:
+                assert np.isneginf(b), "First object is negative inf, second is positive inf"
         else:
             fa, fb = a, b
 
