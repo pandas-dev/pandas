@@ -1088,11 +1088,10 @@ class NDFrame(PandasObject):
     @property
     def _is_cached(self):
         """ boolean : return if I am cached """
-        cacher = getattr(self, '_cacher', None)
-        return cacher is not None
+        return getattr(self, '_cacher', None) is not None
 
     def _get_cacher(self):
-        """ return my cahcer or None """
+        """ return my cacher or None """
         cacher = getattr(self, '_cacher', None)
         if cacher is not None:
             cacher = cacher[1]()
@@ -1167,13 +1166,18 @@ class NDFrame(PandasObject):
         if so, then force a setitem_copy check
 
         should be called just near setting a value
+
+        will return a boolean if it we are a view and are cached, but a single-dtype
+        meaning that the cacher should be updated following setting
         """
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=5, t='referant', force=True)
+                self._check_setitem_copy(stacklevel=4, t='referant', force=True)
+            return True
         elif self.is_copy:
-            self._check_setitem_copy(stacklevel=5, t='referant')
+            self._check_setitem_copy(stacklevel=4, t='referant')
+        return False
 
     def _check_setitem_copy(self, stacklevel=4, t='setting', force=False):
         """

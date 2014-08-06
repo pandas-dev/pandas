@@ -4438,8 +4438,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         biggie = DataFrame({'A': randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
+        biggie.loc[:20,'A'] = nan
+        biggie.loc[:20,'B'] = nan
 
         foo = repr(biggie)
 
@@ -7412,19 +7412,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df,expected)
 
     def test_fillna(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        self.tsframe.ix[:5,'A'] = nan
+        self.tsframe.ix[-5:,'A'] = nan
 
         zero_filled = self.tsframe.fillna(0)
-        self.assertTrue((zero_filled['A'][:5] == 0).all())
+        self.assertTrue((zero_filled.ix[:5,'A'] == 0).all())
 
         padded = self.tsframe.fillna(method='pad')
-        self.assertTrue(np.isnan(padded['A'][:5]).all())
-        self.assertTrue((padded['A'][-5:] == padded['A'][-5]).all())
+        self.assertTrue(np.isnan(padded.ix[:5,'A']).all())
+        self.assertTrue((padded.ix[-5:,'A'] == padded.ix[-5,'A']).all())
 
         # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
         result = self.mixed_frame.fillna(value=0)
         result = self.mixed_frame.fillna(method='pad')
 
@@ -7433,7 +7433,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # mixed numeric (but no float16)
         mf = self.mixed_float.reindex(columns=['A','B','D'])
-        mf['A'][-10:] = nan
+        mf.ix[-10:,'A'] = nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype = dict(C = None))
 
@@ -7605,8 +7605,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         result = self.mixed_frame.replace(np.nan, 0)
         expected = self.mixed_frame.fillna(value=0)
@@ -8194,8 +8194,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(expec, res)
 
     def test_replace_mixed(self):
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         result = self.mixed_frame.replace(np.nan, -18)
         expected = self.mixed_frame.fillna(value=-18)
@@ -11717,11 +11717,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertNotIn('foo', renamed)
 
     def test_fill_corner(self):
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         filled = self.mixed_frame.fillna(value=0)
-        self.assertTrue((filled['foo'][5:20] == 0).all())
+        self.assertTrue((filled.ix[5:20,'foo'] == 0).all())
         del self.mixed_frame['foo']
 
         empty_float = self.frame.reindex(columns=[])
@@ -12716,6 +12716,7 @@ starting,ending,measure
                 self.assertTrue(r1.all())
 
     def test_strange_column_corruption_issue(self):
+
         df = DataFrame(index=[0, 1])
         df[0] = nan
         wasCol = {}

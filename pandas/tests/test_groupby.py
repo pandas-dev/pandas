@@ -1664,7 +1664,7 @@ class TestGroupBy(tm.TestCase):
                 'B': ['A', 'B'] * 6,
                 'C': np.random.randn(12)}
         df = DataFrame(data)
-        df['C'][2:10:2] = nan
+        df.loc[2:10:2,'C'] = nan
 
         def _testit(op):
             # single column

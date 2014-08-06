@@ -1278,8 +1278,8 @@ class TestHDFStore(tm.TestCase):
             # data column selection with a string data_column
             df_new = df.copy()
             df_new['string'] = 'foo'
-            df_new['string'][1:4] = np.nan
-            df_new['string'][5:6] = 'bar'
+            df_new.loc[1:4,'string'] = np.nan
+            df_new.loc[5:6,'string'] = 'bar'
             _maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string'])
             result = store.select('df', [Term('string=foo')])
@@ -1317,14 +1317,14 @@ class TestHDFStore(tm.TestCase):
         with ensure_clean_store(self.path) as store:
             # multiple data columns
             df_new = df.copy()
-            df_new.loc[:,'A'].iloc[0] = 1.
-            df_new.loc[:,'B'].iloc[0] = -1.
+            df_new.ix[0,'A'] = 1.
+            df_new.ix[0,'B'] = -1.
             df_new['string'] = 'foo'
-            df_new['string'][1:4] = np.nan
-            df_new['string'][5:6] = 'bar'
+            df_new.loc[1:4,'string'] = np.nan
+            df_new.loc[5:6,'string'] = 'bar'
             df_new['string2'] = 'foo'
-            df_new['string2'][2:5] = np.nan
-            df_new['string2'][7:8] = 'bar'
+            df_new.loc[2:5,'string2'] = np.nan
+            df_new.loc[7:8,'string2'] = 'bar'
             _maybe_remove(store, 'df')
             store.append(
                 'df', df_new, data_columns=['A', 'B', 'string', 'string2'])

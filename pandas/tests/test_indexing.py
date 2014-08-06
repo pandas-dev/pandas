@@ -3079,6 +3079,7 @@ class TestIndexing(tm.TestCase):
 
         # GH 7084
         # not updating cache on series setting with slices
+        expected = DataFrame({'A': [600, 600, 600]}, index=date_range('5/7/2014', '5/9/2014'))
         out = DataFrame({'A': [0, 0, 0]}, index=date_range('5/7/2014', '5/9/2014'))
         df = DataFrame({'C': ['A', 'A', 'A'], 'D': [100, 200, 300]})
 
@@ -3086,9 +3087,18 @@ class TestIndexing(tm.TestCase):
         six = Timestamp('5/7/2014')
         eix = Timestamp('5/9/2014')
         for ix, row in df.iterrows():
-            out[row['C']][six:eix] = out[row['C']][six:eix] + row['D']
+            out.loc[six:eix,row['C']] = out.loc[six:eix,row['C']] + row['D']
 
-        expected = DataFrame({'A': [600, 600, 600]}, index=date_range('5/7/2014', '5/9/2014'))
+        assert_frame_equal(out, expected)
+        assert_series_equal(out['A'], expected['A'])
+
+        # try via a chain indexing
+        # this actually works
+        out = DataFrame({'A': [0, 0, 0]}, index=date_range('5/7/2014', '5/9/2014'))
+        for ix, row in df.iterrows():
+            v = out[row['C']][six:eix] + row['D']
+            out[row['C']][six:eix] = v
+
         assert_frame_equal(out, expected)
         assert_series_equal(out['A'], expected['A'])
 
@@ -3176,8 +3186,6 @@ class TestIndexing(tm.TestCase):
             indexer = df.a.str.startswith('o')
             df[indexer]['c'] = 42
         self.assertRaises(com.SettingWithCopyError, f)
-        df['c'][df.a.str.startswith('o')] = 42
-        assert_frame_equal(df,expected)
 
         expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
@@ -3187,6 +3195,8 @@ class TestIndexing(tm.TestCase):
         def f():
             df.loc[0]['A'] = 111
         self.assertRaises(com.SettingWithCopyError, f)
+
+        df.loc[0,'A'] = 111
         assert_frame_equal(df,expected)
 
         # make sure that is_copy is picked up reconstruction
