@@ -1091,6 +1091,13 @@ class NDFrame(PandasObject):
         cacher = getattr(self, '_cacher', None)
         return cacher is not None
 
+    def _get_cacher(self):
+        """ return my cahcer or None """
+        cacher = getattr(self, '_cacher', None)
+        if cacher is not None:
+            cacher = cacher[1]()
+        return cacher
+
     @property
     def _is_view(self):
         """ boolean : return if I am a view of another array """
@@ -1154,8 +1161,30 @@ class NDFrame(PandasObject):
             else:
                 self.is_copy = None
 
-    def _check_setitem_copy(self, stacklevel=4, t='setting'):
+    def _check_is_chained_assignment_possible(self):
         """
+        check if we are a view, have a cacher, and are of mixed type
+        if so, then force a setitem_copy check
+
+        should be called just near setting a value
+        """
+        if self._is_view and self._is_cached:
+            ref = self._get_cacher()
+            if ref is not None and ref._is_mixed_type:
+                self._check_setitem_copy(stacklevel=5, t='referant', force=True)
+        elif self.is_copy:
+            self._check_setitem_copy(stacklevel=5, t='referant')
+
+    def _check_setitem_copy(self, stacklevel=4, t='setting', force=False):
+        """
+
+        Parameters
+        ----------
+        stacklevel : integer, default 4
+           the level to show of the stack when the error is output
+        t : string, the type of setting error
+        force : boolean, default False
+           if True, then force showing an error
 
         validate if we are doing a settitem on a chained copy.
 
@@ -1177,7 +1206,7 @@ class NDFrame(PandasObject):
 
         """
 
-        if self.is_copy:
+        if force or self.is_copy:
 
             value = config.get_option('mode.chained_assignment')
             if value is None:

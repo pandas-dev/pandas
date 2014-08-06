@@ -32,7 +32,8 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, notnull, isnull,
-                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv)
+                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv,
+                    option_context)
 import pandas as pd
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
@@ -4469,13 +4470,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2,], [3, 4]])
-        with pd.option_context('display.show_dimensions', True):
+        with option_context('display.show_dimensions', True):
             self.assertTrue("2 rows x 2 columns" in repr(df))
 
-        with pd.option_context('display.show_dimensions', False):
+        with option_context('display.show_dimensions', False):
             self.assertFalse("2 rows x 2 columns" in repr(df))
 
-        with pd.option_context('display.show_dimensions', 'truncate'):
+        with option_context('display.show_dimensions', 'truncate'):
             self.assertFalse("2 rows x 2 columns" in repr(df))
 
     @slow
@@ -6475,7 +6476,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(10, 5))
         for len_, verbose in [(4, None), (4, False), (9, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
-            with pd.option_context('max_info_columns', 4):
+            with option_context('max_info_columns', 4):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
@@ -6484,7 +6485,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         for len_, verbose in [(9, None), (4, False), (9, True)]:
 
             # max_cols no exceeded
-            with pd.option_context('max_info_columns', 5):
+            with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
@@ -6492,14 +6493,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         for len_, max_cols in [(9, 5), (4, 4)]:
             # setting truncates
-            with pd.option_context('max_info_columns', 4):
+            with option_context('max_info_columns', 4):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
                 self.assertEqual(len(res.split('\n')), len_)
 
             # setting wouldn't truncate
-            with pd.option_context('max_info_columns', 5):
+            with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
@@ -9872,7 +9873,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           'E': np.random.randn(11),
                           'F': np.random.randn(11)})
 
-        data['C'][4] = np.nan
+        data.loc[4,'C'] = np.nan
 
         def transform(row):
             if row['C'].startswith('shin') and row['A'] == 'foo':
@@ -12551,15 +12552,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, frame.idxmax, axis=2)
 
     def test_stale_cached_series_bug_473(self):
-        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
-                      columns=('e', 'f', 'g', 'h'))
-        repr(Y)
-        Y['e'] = Y['e'].astype('object')
-        Y['g']['c'] = np.NaN
-        repr(Y)
-        result = Y.sum()
-        exp = Y['g'].sum()
-        self.assertTrue(isnull(Y['g']['c']))
+
+        # this is chained, but ok
+        with option_context('chained_assignment',None):
+            Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
+                          columns=('e', 'f', 'g', 'h'))
+            repr(Y)
+            Y['e'] = Y['e'].astype('object')
+            Y['g']['c'] = np.NaN
+            repr(Y)
+            result = Y.sum()
+            exp = Y['g'].sum()
+            self.assertTrue(isnull(Y['g']['c']))
 
     def test_index_namedtuple(self):
         from collections import namedtuple

@@ -10,6 +10,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.core.common as com
+from pandas import option_context
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Float64Index, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
@@ -2320,10 +2321,12 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df,expected)
 
         # ok, but chained assignments are dangerous
-        df = pd.DataFrame({'a': lrange(4) })
-        df['b'] = np.nan
-        df['b'].ix[[1,3]] = [100,-100]
-        assert_frame_equal(df,expected)
+        # if we turn off chained assignement it will work
+        with option_context('chained_assignment',None):
+            df = pd.DataFrame({'a': lrange(4) })
+            df['b'] = np.nan
+            df['b'].ix[[1,3]] = [100,-100]
+            assert_frame_equal(df,expected)
 
     def test_ix_get_set_consistency(self):
 
@@ -3036,22 +3039,26 @@ class TestIndexing(tm.TestCase):
         self.assertEqual(result, 2)
 
     def test_slice_consolidate_invalidate_item_cache(self):
-        # #3970
-        df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
 
-        # Creates a second float block
-        df["cc"] = 0.0
+        # this is chained assignment, but will 'work'
+        with option_context('chained_assignment',None):
 
-        # caches a reference to the 'bb' series
-        df["bb"]
+            # #3970
+            df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
 
-        # repr machinery triggers consolidation
-        repr(df)
+            # Creates a second float block
+            df["cc"] = 0.0
 
-        # Assignment to wrong series
-        df['bb'].iloc[0] = 0.17
-        df._clear_item_cache()
-        self.assertAlmostEqual(df['bb'][0], 0.17)
+            # caches a reference to the 'bb' series
+            df["bb"]
+
+            # repr machinery triggers consolidation
+            repr(df)
+
+            # Assignment to wrong series
+            df['bb'].iloc[0] = 0.17
+            df._clear_item_cache()
+            self.assertAlmostEqual(df['bb'][0], 0.17)
 
     def test_setitem_cache_updating(self):
         # GH 5424
@@ -3135,17 +3142,19 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
         self.assertIsNone(df.is_copy)
-
         df['A'][0] = -5
         df['A'][1] = -6
         assert_frame_equal(df, expected)
 
-        expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
+        # test with the chaining
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
         self.assertIsNone(df.is_copy)
-        df['A'][0] = -5
-        df['A'][1] = np.nan
-        assert_frame_equal(df, expected)
+        def f():
+            df['A'][0] = -5
+        self.assertRaises(com.SettingWithCopyError, f)
+        def f():
+            df['A'][1] = np.nan
+        self.assertRaises(com.SettingWithCopyError, f)
         self.assertIsNone(df['A'].is_copy)
 
         # using a copy (the chain), fails
@@ -3172,17 +3181,13 @@ class TestIndexing(tm.TestCase):
 
         expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        df['A'][0] = 111
+        def f():
+            df['A'][0] = 111
+        self.assertRaises(com.SettingWithCopyError, f)
         def f():
             df.loc[0]['A'] = 111
         self.assertRaises(com.SettingWithCopyError, f)
         assert_frame_equal(df,expected)
-
-        # warnings
-        pd.set_option('chained_assignment','warn')
-        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
-            df.loc[0]['A'] = 111
 
         # make sure that is_copy is picked up reconstruction
         # GH5475
@@ -3196,7 +3201,6 @@ class TestIndexing(tm.TestCase):
 
         # a suprious raise as we are setting the entire column here
         # GH5597
-        pd.set_option('chained_assignment','raise')
         from string import ascii_letters as letters
 
         def random_text(nobs=100):
@@ -3294,6 +3298,28 @@ class TestIndexing(tm.TestCase):
         def f():
             df.iloc[0:5]['group'] = 'a'
         self.assertRaises(com.SettingWithCopyError, f)
+
+        # mixed type setting
+        # same dtype & changing dtype
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+
+        def f():
+            df.ix[2]['D'] = 'foo'
+        self.assertRaises(com.SettingWithCopyError, f)
+        def f():
+            df.ix[2]['C'] = 'foo'
+        self.assertRaises(com.SettingWithCopyError, f)
+        def f():
+            df['C'][2] = 'foo'
+        self.assertRaises(com.SettingWithCopyError, f)
+
+    def test_detect_chained_assignment_warnings(self):
+
+        # warnings
+        with option_context('chained_assignment','warn'):
+            df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+            with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
+                df.loc[0]['A'] = 111
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index

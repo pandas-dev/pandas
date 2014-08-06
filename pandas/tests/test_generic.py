@@ -734,8 +734,8 @@ class TestDataFrame(tm.TestCase, Generic):
 
         result = df.set_index('C').interpolate()
         expected = df.set_index('C')
-        expected.A.loc[3] = 3
-        expected.B.loc[5] = 9
+        expected.loc[3,'A'] = 3
+        expected.loc[5,'B'] = 9
         assert_frame_equal(result, expected)
 
     def test_interp_bad_method(self):
@@ -810,8 +810,8 @@ class TestDataFrame(tm.TestCase, Generic):
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         result = df.interpolate(method='barycentric')
         expected = df.copy()
-        expected['A'].iloc[2] = 3
-        expected['A'].iloc[5] = 6
+        expected.ix[2,'A'] = 3
+        expected.ix[5,'A'] = 6
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='barycentric', downcast='infer')
@@ -819,15 +819,13 @@ class TestDataFrame(tm.TestCase, Generic):
 
         result = df.interpolate(method='krogh')
         expectedk = df.copy()
-        # expectedk['A'].iloc[2] = 3
-        # expectedk['A'].iloc[5] = 6
         expectedk['A'] = expected['A']
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
         result = df.interpolate(method='pchip')
-        expected['A'].iloc[2] = 3
-        expected['A'].iloc[5] = 6.125
+        expected.ix[2,'A'] = 3
+        expected.ix[5,'A'] = 6.125
         assert_frame_equal(result, expected)
 
     def test_interp_rowwise(self):
@@ -838,9 +836,9 @@ class TestDataFrame(tm.TestCase, Generic):
                         4: [1, 2, 3, 4]})
         result = df.interpolate(axis=1)
         expected = df.copy()
-        expected[1].loc[3] = 5
-        expected[2].loc[0] = 3
-        expected[3].loc[1] = 3
+        expected.loc[3,1] = 5
+        expected.loc[0,2] = 3
+        expected.loc[1,3] = 3
         expected[4] = expected[4].astype(np.float64)
         assert_frame_equal(result, expected)
 

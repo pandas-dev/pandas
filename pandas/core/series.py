@@ -641,7 +641,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         values = self.values
         try:
             self.index._engine.set_value(values, key, value)
-            self._check_setitem_copy()
+            self._check_is_chained_assignment_possible()
             return
         except KeyError:
             values[self.index.get_loc(key)] = value

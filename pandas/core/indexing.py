@@ -472,6 +472,9 @@ class _NDFrameIndexer(object):
             if isinstance(value, ABCPanel):
                 value = self._align_panel(indexer, value)
 
+            # check for chained assignment
+            self.obj._check_is_chained_assignment_possible()
+
             # actually do the set
             self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
