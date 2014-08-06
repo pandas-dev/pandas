@@ -48,7 +48,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name):
         def wrapper(*args, **kwargs):
             old_arg_value = kwargs.pop(old_arg_name, None)
             if old_arg_value is not None:
-                msg = "%s is deprecated, use %s instead" % \
+                msg = "the '%s' keyword is deprecated, use '%s' instead" % \
                       (old_arg_name, new_arg_name)
                 warnings.warn(msg, FutureWarning)
                 if kwargs.get(new_arg_name, None) is not None:
