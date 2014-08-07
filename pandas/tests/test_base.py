@@ -4,8 +4,9 @@ import numpy as np
 import pandas.compat as compat
 import pandas as pd
 from pandas.compat import u, StringIO
-from pandas.core.base import FrozenList, FrozenNDArray, DatetimeIndexOpsMixin
+from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate, DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
+from pandas.tseries.common import is_datetimelike
 from pandas import Series, Index, Int64Index, DatetimeIndex, PeriodIndex
 from pandas import _np_version_under1p7
 import pandas.tslib as tslib
@@ -126,6 +127,53 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
         vals[0] = n
         self.assert_numpy_array_equal(self.container, original)
         self.assertEqual(vals[0], n)
+
+class TestPandasDelegate(tm.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_invalida_delgation(self):
+        # these show that in order for the delegation to work
+        # the _delegate_* methods need to be overriden to not raise a TypeError
+
+        class Delegator(object):
+            _properties = ['foo']
+            _methods = ['bar']
+
+            def _set_foo(self, value):
+                self.foo = value
+
+            def _get_foo(self):
+                return self.foo
+
+            foo = property(_get_foo, _set_foo, doc="foo property")
+
+            def bar(self, *args, **kwargs):
+                """ a test bar method """
+                pass
+
+        class Delegate(PandasDelegate):
+            def __init__(self, obj):
+                self.obj = obj
+        Delegate._add_delegate_accessors(delegate=Delegator,
+                                         accessors=Delegator._properties,
+                                         typ='property')
+        Delegate._add_delegate_accessors(delegate=Delegator,
+                                         accessors=Delegator._methods,
+                                         typ='method')
+
+        delegate = Delegate(Delegator())
+
+        def f():
+            delegate.foo
+        self.assertRaises(TypeError, f)
+        def f():
+            delegate.foo = 5
+        self.assertRaises(TypeError, f)
+        def f():
+            delegate.foo()
+        self.assertRaises(TypeError, f)
 
 class Ops(tm.TestCase):
     def setUp(self):
@@ -526,13 +574,12 @@ class TestIndexOps(Ops):
 
 
 class TestDatetimeIndexOps(Ops):
-    _allowed = '_allow_datetime_index_ops'
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
           'dateutil/Asia/Singapore', 'dateutil/US/Pacific']
 
     def setUp(self):
         super(TestDatetimeIndexOps, self).setUp()
-        mask = lambda x: x._allow_datetime_index_ops or x._allow_period_index_ops
+        mask = lambda x: isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex) or is_datetimelike(x)
         self.is_valid_objs  = [ o for o in self.objs if mask(o) ]
         self.not_valid_objs = [ o for o in self.objs if not mask(o) ]
 
@@ -784,11 +831,10 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
 
 
 class TestPeriodIndexOps(Ops):
-    _allowed = '_allow_period_index_ops'
 
     def setUp(self):
         super(TestPeriodIndexOps, self).setUp()
-        mask = lambda x: x._allow_datetime_index_ops or x._allow_period_index_ops
+        mask = lambda x: isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex) or is_datetimelike(x)
         self.is_valid_objs  = [ o for o in self.objs if mask(o) ]
         self.not_valid_objs = [ o for o in self.objs if not mask(o) ]
 

@@ -33,13 +33,13 @@ def _period_field_accessor(name, alias):
     return property(f)
 
 
-def _field_accessor(name, alias):
+def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = _gfc(self.freq)
         return tslib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
+    f.__doc__ = docstring
     return property(f)
-
 
 class Period(PandasObject):
     """
@@ -572,8 +572,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
     """
     _box_scalars = True
-    _allow_period_index_ops = True
     _attributes = ['name','freq']
+    _datetimelike_ops = ['year','month','day','hour','minute','second',
+                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear']
     _is_numeric_dtype = False
 
     __eq__ = _period_index_cmp('__eq__')
@@ -786,19 +787,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_datetime(self, dayfirst=False):
         return self.to_timestamp()
 
-    _year = _field_accessor('year', 0)
-    _month = _field_accessor('month', 3)
-    _day = _field_accessor('day', 4)
-    _hour = _field_accessor('hour', 5)
-    _minute = _field_accessor('minute', 6)
-    _second = _field_accessor('second', 7)
-    _weekofyear = _field_accessor('week', 8)
-    _week = _weekofyear
-    _dayofweek = _field_accessor('dayofweek', 10)
-    _weekday = _dayofweek
-    _dayofyear = day_of_year = _field_accessor('dayofyear', 9)
-    _quarter = _field_accessor('quarter', 2)
-    _qyear = _field_accessor('qyear', 1)
+    year = _field_accessor('year', 0, "The year of the period")
+    month = _field_accessor('month', 3, "The month as January=1, December=12")
+    day = _field_accessor('day', 4, "The days of the period")
+    hour = _field_accessor('hour', 5, "The hour of the period")
+    minute = _field_accessor('minute', 6, "The minute of the period")
+    second = _field_accessor('second', 7, "The second of the period")
+    weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
+    week = weekofyear
+    dayofweek = _field_accessor('dayofweek', 10, "The day of the week with Monday=0, Sunday=6")
+    weekday = dayofweek
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9, "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 2, "The quarter of the date")
+    qyear = _field_accessor('qyear', 1)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

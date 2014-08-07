@@ -37,7 +37,6 @@ def _try_get_item(x):
     except AttributeError:
         return x
 
-
 def _indexOp(opname):
     """
     Wrapper function for index comparison operations, to avoid
@@ -4280,7 +4279,6 @@ class MultiIndex(Index):
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
 MultiIndex._add_numeric_methods_disabled()
-
 
 # For utility purposes
 

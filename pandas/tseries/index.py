@@ -174,7 +174,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     offset = None
     _comparables = ['name','freqstr','tz']
     _attributes = ['name','freq','tz']
-    _allow_datetime_index_ops = True
+    _datetimelike_ops = ['year','month','day','hour','minute','second',
+                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter',
+                         'date','time','microsecond','nanosecond','is_month_start','is_month_end',
+                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end']
     _is_numeric_dtype = False
 
     def __new__(cls, data=None,
@@ -1428,30 +1431,31 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             return None
         return self.offset.freqstr
 
-    _year = _field_accessor('year', 'Y')
-    _month = _field_accessor('month', 'M', "The month as January=1, December=12")
-    _day = _field_accessor('day', 'D')
-    _hour = _field_accessor('hour', 'h')
-    _minute = _field_accessor('minute', 'm')
-    _second = _field_accessor('second', 's')
-    _microsecond = _field_accessor('microsecond', 'us')
-    _nanosecond = _field_accessor('nanosecond', 'ns')
-    _weekofyear = _field_accessor('weekofyear', 'woy')
-    _week = _weekofyear
-    _dayofweek = _field_accessor('dayofweek', 'dow',
+    year = _field_accessor('year', 'Y', "The year of the datetime")
+    month = _field_accessor('month', 'M', "The month as January=1, December=12")
+    day = _field_accessor('day', 'D', "The days of the datetime")
+    hour = _field_accessor('hour', 'h', "The hours of the datetime")
+    minute = _field_accessor('minute', 'm', "The minutes of the datetime")
+    second = _field_accessor('second', 's', "The seconds of the datetime")
+    millisecond = _field_accessor('millisecond', 'ms', "The milliseconds of the datetime")
+    microsecond = _field_accessor('microsecond', 'us', "The microseconds of the datetime")
+    nanosecond = _field_accessor('nanosecond', 'ns', "The nanoseconds of the datetime")
+    weekofyear = _field_accessor('weekofyear', 'woy', "The week ordinal of the year")
+    week = weekofyear
+    dayofweek = _field_accessor('dayofweek', 'dow',
                                  "The day of the week with Monday=0, Sunday=6")
-    _weekday = _dayofweek
-    _dayofyear = _field_accessor('dayofyear', 'doy')
-    _quarter = _field_accessor('quarter', 'q')
-    _is_month_start = _field_accessor('is_month_start', 'is_month_start')
-    _is_month_end = _field_accessor('is_month_end', 'is_month_end')
-    _is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start')
-    _is_quarter_end = _field_accessor('is_quarter_end', 'is_quarter_end')
-    _is_year_start = _field_accessor('is_year_start', 'is_year_start')
-    _is_year_end = _field_accessor('is_year_end', 'is_year_end')
+    weekday = dayofweek
+    dayofyear = _field_accessor('dayofyear', 'doy', "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
+    is_month_start = _field_accessor('is_month_start', 'is_month_start', "Logical indicating if first day of month (defined by frequency)")
+    is_month_end = _field_accessor('is_month_end', 'is_month_end', "Logical indicating if last day of month (defined by frequency)")
+    is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start', "Logical indicating if first day of quarter (defined by frequency)")
+    is_quarter_end = _field_accessor('is_quarter_end', 'is_quarter_end', "Logical indicating if last day of quarter (defined by frequency)")
+    is_year_start = _field_accessor('is_year_start', 'is_year_start', "Logical indicating if first day of year (defined by frequency)")
+    is_year_end = _field_accessor('is_year_end', 'is_year_end', "Logical indicating if last day of year (defined by frequency)")
 
     @property
-    def _time(self):
+    def time(self):
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1460,7 +1464,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         return _algos.arrmap_object(self.asobject.values, lambda x: x.time())
 
     @property
-    def _date(self):
+    def date(self):
         """
         Returns numpy array of datetime.date. The date part of the Timestamps.
         """
