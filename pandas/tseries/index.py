@@ -1490,13 +1490,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def is_type_compatible(self, typ):
         return typ == self.inferred_type or typ == 'datetime'
 
-    def argmin(self):
-        # hack to workaround argmin failure
-        try:
-            return self.values.argmin()
-        except Exception:  # pragma: no cover
-            return self.asi8.argmin()
-
     @property
     def inferred_type(self):
         # b/c datetime is represented as microseconds since the epoch, make

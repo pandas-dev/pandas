@@ -74,6 +74,15 @@ class Base(object):
                               "cannot perform floor division",
                               lambda : 1 // idx)
 
+    def test_boolean_context_compat(self):
+
+        # boolean context compat
+        idx = self.create_index()
+        def f():
+            if idx:
+                pass
+        tm.assertRaisesRegexp(ValueError,'The truth value of a',f)
+
 class TestIndex(Base, tm.TestCase):
     _holder = Index
     _multiprocess_can_split_ = True
@@ -1655,6 +1664,19 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def create_index(self):
         return self.index
+
+    def test_boolean_context_compat2(self):
+
+        # boolean context compat
+        # GH7897
+        i1 = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+        i2 = MultiIndex.from_tuples([('A', 1), ('A', 3)])
+        common = i1.intersection(i2)
+
+        def f():
+            if common:
+                pass
+        tm.assertRaisesRegexp(ValueError,'The truth value of a',f)
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,

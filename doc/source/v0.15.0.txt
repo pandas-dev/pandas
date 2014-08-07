@@ -169,10 +169,11 @@ Internal Refactoring
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
 but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
-a transparent change with only very limited API implications (:issue:`5080`,:issue:`7439`,:issue:`7796`)
+a transparent change with only very limited API implications (:issue:`5080`, :issue:`7439`, :issue:`7796`)
 
 - you may need to unpickle pandas version < 0.15.0 pickles using ``pd.read_pickle`` rather than ``pickle.load``. See :ref:`pickle docs <io.pickle>`
-- when plotting with a ``PeriodIndex``. The ``matplotlib`` internal axes will now be arrays of ``Period`` rather than a ``PeriodIndex``. (this is similar to how a ``DatetimeIndex`` passess arrays of ``datetimes`` now)
+- when plotting with a ``PeriodIndex``. The ``matplotlib`` internal axes will now be arrays of ``Period`` rather than a ``PeriodIndex``. (this is similar to how a ``DatetimeIndex`` passes arrays of ``datetimes`` now)
+- MultiIndexes will now raise similary to other pandas objects w.r.t. truth testing, See :ref:`here <gotchas.truth>` (:issue:`7897`).
 
 .. _whatsnew_0150.cat:
 

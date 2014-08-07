@@ -235,8 +235,8 @@ Constructor
 
    Series
 
-Attributes and underlying data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Attributes
+~~~~~~~~~~
 **Axes**
   * **index**: axis labels
 
@@ -246,6 +246,14 @@ Attributes and underlying data
    Series.values
    Series.dtype
    Series.ftype
+   Series.shape
+   Series.size
+   Series.nbytes
+   Series.ndim
+   Series.strides
+   Series.itemsize
+   Series.base
+   Series.T
 
 Conversion
 ~~~~~~~~~~
@@ -1087,11 +1095,36 @@ used before calling these methods directly.**
 
    Index
 
+Attributes
+~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Index.values
+   Index.is_monotonic
+   Index.is_unique
+   Index.dtype
+   Index.inferred_type
+   Index.is_all_dates
+   Index.shape
+   Index.size
+   Index.nbytes
+   Index.ndim
+   Index.strides
+   Index.itemsize
+   Index.base
+   Index.T
+
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
+   Index.all
+   Index.any
+   Index.argmin
+   Index.argmax
    Index.copy
    Index.delete
    Index.diff
@@ -1101,6 +1134,8 @@ Modifying and Computations
    Index.factorize
    Index.identical
    Index.insert
+   Index.min
+   Index.max
    Index.order
    Index.reindex
    Index.repeat
@@ -1160,14 +1195,6 @@ Selecting
    Index.isin
    Index.slice_indexer
    Index.slice_locs
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.is_monotonic
-   Index.is_numeric
 
 .. _api.datetimeindex:
 

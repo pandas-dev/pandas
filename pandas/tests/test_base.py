@@ -261,6 +261,27 @@ class TestIndexOps(Ops):
                 # check DatetimeIndex non-monotonic path
                 self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
 
+        # argmin/max
+        obj = Index(np.arange(5,dtype='int64'))
+        self.assertEqual(obj.argmin(),0)
+        self.assertEqual(obj.argmax(),4)
+
+        obj = Index([np.nan, 1, np.nan, 2])
+        self.assertEqual(obj.argmin(),1)
+        self.assertEqual(obj.argmax(),3)
+
+        obj = Index([np.nan])
+        self.assertEqual(obj.argmin(),-1)
+        self.assertEqual(obj.argmax(),-1)
+
+        obj = Index([pd.NaT, datetime(2011, 11, 1), datetime(2011,11,2),pd.NaT])
+        self.assertEqual(obj.argmin(),1)
+        self.assertEqual(obj.argmax(),2)
+
+        obj = Index([pd.NaT])
+        self.assertEqual(obj.argmin(),-1)
+        self.assertEqual(obj.argmax(),-1)
+
     def test_value_counts_unique_nunique(self):
         for o in self.objs:
             klass = type(o)
