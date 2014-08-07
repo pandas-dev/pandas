@@ -61,7 +61,7 @@ def tsplot(series, plotf, **kwargs):
     if not hasattr(ax, '_plot_data'):
         ax._plot_data = []
     ax._plot_data.append((series, plotf, kwargs))
-    lines = plotf(ax, series.index, series.values, **kwargs)
+    lines = plotf(ax, series.index._mpl_repr(), series.values, **kwargs)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
@@ -152,7 +152,7 @@ def _replot_ax(ax, freq, kwargs):
             idx = series.index.asfreq(freq, how='S')
             series.index = idx
             ax._plot_data.append(series)
-            lines.append(plotf(ax, series.index, series.values, **kwds)[0])
+            lines.append(plotf(ax, series.index._mpl_repr(), series.values, **kwds)[0])
             labels.append(com.pprint_thing(series.name))
 
     return lines, labels

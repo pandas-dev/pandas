@@ -60,12 +60,22 @@ class Period(PandasObject):
     minute : int, default 0
     second : int, default 0
     """
+    _typ = 'periodindex'
     __slots__ = ['freq', 'ordinal']
     _comparables = ['name','freqstr']
+
+    @classmethod
+    def _from_ordinal(cls, ordinal, freq):
+        """ fast creation from an ordinal and freq that are already validated! """
+        self = object.__new__(cls)
+        self.ordinal = ordinal
+        self.freq = freq
+        return self
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
+
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'
@@ -563,6 +573,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     _box_scalars = True
     _allow_period_index_ops = True
+    _attributes = ['name','freq']
+    _is_numeric_dtype = False
 
     __eq__ = _period_index_cmp('__eq__')
     __ne__ = _period_index_cmp('__ne__', nat_result=True)
@@ -572,9 +584,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     __ge__ = _period_index_cmp('__ge__')
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, copy=False, name=None, year=None, month=None,
-                quarter=None, day=None, hour=None, minute=None, second=None,
-                tz=None):
+                periods=None, copy=False, name=None, tz=None, **kwargs):
 
         freq = frequencies.get_standard_freq(freq)
 
@@ -589,32 +599,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
-                fields = [year, month, quarter, day, hour, minute, second]
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq, fields)
+                                                 freq, kwargs)
         else:
             ordinal, freq = cls._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
-        subarr = data.view(cls)
-        subarr.name = name
-        subarr.freq = freq
-
-        return subarr
+        return cls._simple_new(data, name=name, freq=freq)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
-        field_count = com._count_not_none(*fields)
+        field_count = len(fields)
         if com._count_not_none(start, end) > 0:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
         elif field_count > 0:
-            y, mth, q, d, h, minute, s = fields
-            subarr, freq = _range_from_fields(year=y, month=mth, quarter=q,
-                                              day=d, hour=h, minute=minute,
-                                              second=s, freq=freq)
+            subarr, freq = _range_from_fields(freq=freq, **fields)
         else:
             raise ValueError('Not enough parameters to construct '
                              'Period range')
@@ -623,7 +625,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _from_arraylike(cls, data, freq, tz):
-        if not isinstance(data, np.ndarray):
+
+        if not isinstance(data, (np.ndarray, PeriodIndex, DatetimeIndex, Int64Index)):
             if np.isscalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
                                  'collection of some kind, %s was passed'
@@ -681,10 +684,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return data, freq
 
     @classmethod
-    def _simple_new(cls, values, name, freq=None, **kwargs):
-        result = values.view(cls)
+    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+        result = object.__new__(cls)
+        result._data = values
         result.name = name
         result.freq = freq
+        result._reset_identity()
         return result
 
     @property
@@ -704,7 +709,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def _box_func(self):
-        return lambda x: Period(ordinal=x, freq=self.freq)
+        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asof_locs(self, where, mask):
         """
@@ -800,17 +805,15 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def map(self, f):
         try:
             result = f(self)
-            if not isinstance(result, np.ndarray):
+            if not isinstance(result, (np.ndarray, Index)):
                 raise TypeError
             return result
         except Exception:
-            return _algos.arrmap_object(self.asobject, f)
+            return _algos.arrmap_object(self.asobject.values, f)
 
     def _get_object_array(self):
         freq = self.freq
-        boxfunc = lambda x: Period(ordinal=x, freq=freq)
-        boxer = np.frompyfunc(boxfunc, 1, 1)
-        return boxer(self.values)
+        return np.array([ Period._from_ordinal(ordinal=x, freq=freq) for x in self.values], copy=False)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -822,6 +825,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if self.is_(other):
             return True
+
+        if (not hasattr(other, 'inferred_type') or
+                other.inferred_type != 'int64'):
+            try:
+                other = PeriodIndex(other)
+            except:
+                return False
 
         return np.array_equal(self.asi8, other.asi8)
 
@@ -1042,21 +1052,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = rawarr.view(PeriodIndex)
-        rawarr.freq = self.freq
+            rawarr = PeriodIndex(rawarr, freq=self.freq)
         return rawarr
 
     def __getitem__(self, key):
-        """Override numpy.ndarray's __getitem__ method to work as desired"""
-        arr_idx = self.view(np.ndarray)
+        getitem = self._data.__getitem__
         if np.isscalar(key):
-            val = arr_idx[key]
+            val = getitem(key)
             return Period(ordinal=val, freq=self.freq)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
-            result = arr_idx[key]
+            result = getitem(key)
             if result.ndim > 1:
                 # MPL kludge
                 # values = np.asarray(list(values), dtype=object)
@@ -1129,7 +1137,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if isinstance(to_concat[0], PeriodIndex):
             if len(set([x.freq for x in to_concat])) > 1:
                 # box
-                to_concat = [x.asobject for x in to_concat]
+                to_concat = [x.asobject.values for x in to_concat]
             else:
                 cat_values = np.concatenate([x.values for x in to_concat])
                 return PeriodIndex(cat_values, freq=self.freq, name=name)
@@ -1138,26 +1146,35 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
-    def __reduce__(self):
-        """Necessary for making this object picklable"""
-        object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = (self.name, self.freq)
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
-
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        if len(state) == 2:
-            nd_state, own_state = state
-            np.ndarray.__setstate__(self, nd_state)
-            self.name = own_state[0]
-            try:  # backcompat
-                self.freq = own_state[1]
-            except:
-                pass
-        else:  # pragma: no cover
-            np.ndarray.__setstate__(self, state)
 
+        if isinstance(state, dict):
+            super(PeriodIndex, self).__setstate__(state)
+
+        elif isinstance(state, tuple):
+
+            # < 0.15 compat
+            if len(state) == 2:
+                nd_state, own_state = state
+                data = np.empty(nd_state[1], dtype=nd_state[2])
+                np.ndarray.__setstate__(data, nd_state)
+
+                try:  # backcompat
+                    self.freq = own_state[1]
+                except:
+                    pass
+
+            else:  # pragma: no cover
+                data = np.empty(state)
+                np.ndarray.__setstate__(self, state)
+
+            self._data = data
+
+        else:
+            raise Exception("invalid pickle state")
+    _unpickle_compat = __setstate__
+PeriodIndex._add_numeric_methods_disabled()
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:

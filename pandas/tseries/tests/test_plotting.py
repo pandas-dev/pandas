@@ -298,7 +298,7 @@ class TestTSPlot(tm.TestCase):
         bts = DataFrame({'a': tm.makeTimeSeries()})
         ax = bts.plot()
         idx = ax.get_lines()[0].get_xdata()
-        assert_array_equal(bts.index.to_period(), idx)
+        assert_array_equal(bts.index.to_period(), PeriodIndex(idx))
 
     @slow
     def test_axis_limits(self):
@@ -605,8 +605,8 @@ class TestTSPlot(tm.TestCase):
         ax = s1.plot()
         ax2 = s2.plot(style='g')
         lines = ax2.get_lines()
-        idx1 = lines[0].get_xdata()
-        idx2 = lines[1].get_xdata()
+        idx1 = PeriodIndex(lines[0].get_xdata())
+        idx2 = PeriodIndex(lines[1].get_xdata())
         self.assertTrue(idx1.equals(s1.index.to_period('B')))
         self.assertTrue(idx2.equals(s2.index.to_period('B')))
         left, right = ax2.get_xlim()
@@ -881,9 +881,9 @@ class TestTSPlot(tm.TestCase):
         low.plot()
         ax = high.plot(secondary_y=True)
         for l in ax.get_lines():
-            self.assertEqual(l.get_xdata().freq, 'D')
+            self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
         for l in ax.right_ax.get_lines():
-            self.assertEqual(l.get_xdata().freq, 'D')
+            self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
 
     @slow
     def test_secondary_legend(self):

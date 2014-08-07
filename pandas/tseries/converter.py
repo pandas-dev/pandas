@@ -59,7 +59,7 @@ class TimeConverter(units.ConversionInterface):
             return time2num(value)
         if isinstance(value, Index):
             return value.map(time2num)
-        if isinstance(value, (list, tuple, np.ndarray)):
+        if isinstance(value, (list, tuple, np.ndarray, Index)):
             return [time2num(x) for x in value]
         return value
 
@@ -116,8 +116,8 @@ class PeriodConverter(dates.DateConverter):
             return values.asfreq(axis.freq).values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if isinstance(values, (list, tuple, np.ndarray)):
-            return [get_datevalue(x, axis.freq) for x in values]
+        if isinstance(values, (list, tuple, np.ndarray, Index)):
+            return PeriodIndex(values, freq=axis.freq).values
         return values
 
 
@@ -127,7 +127,7 @@ def get_datevalue(date, freq):
     elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
         return Period(date, freq).ordinal
     elif (com.is_integer(date) or com.is_float(date) or
-          (isinstance(date, np.ndarray) and (date.size == 1))):
+          (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
         return date
     elif date is None:
         return None
@@ -145,7 +145,7 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if isinstance(dt, (np.ndarray, Series)) and com.is_datetime64_ns_dtype(dt):
+    if isinstance(dt, (np.ndarray, Index, Series)) and com.is_datetime64_ns_dtype(dt):
         base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
         base = dates.date2num(dt)
@@ -171,7 +171,9 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+            if isinstance(values, Index):
+                values = values.values
             if not isinstance(values, np.ndarray):
                 values = com._asarray_tuplesafe(values)
 

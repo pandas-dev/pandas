@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from pandas.compat import range, lrange, lzip, u, zip
 import operator
-import pickle
 import re
 import nose
 import warnings
@@ -12,9 +11,12 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
+from pandas import period_range, date_range
+
 from pandas.core.index import (Index, Float64Index, Int64Index, MultiIndex,
-                               InvalidIndexError)
+                               InvalidIndexError, NumericIndex)
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
@@ -32,7 +34,48 @@ from pandas.lib import Timestamp
 
 from pandas import _np_version_under1p7
 
-class TestIndex(tm.TestCase):
+class Base(object):
+    """ base class for index sub-class tests """
+    _holder = None
+
+    def verify_pickle(self,index):
+        unpickled = self.round_trip_pickle(index)
+        self.assertTrue(index.equals(unpickled))
+
+    def test_pickle_compat_construction(self):
+        # this is testing for pickle compat
+        if self._holder is None:
+            return
+
+        # need an object to create with
+        self.assertRaises(TypeError, self._holder)
+
+    def test_numeric_compat(self):
+
+        idx = self.create_index()
+        tm.assertRaisesRegexp(TypeError,
+                              "cannot perform multiplication",
+                              lambda : idx * 1)
+        tm.assertRaisesRegexp(TypeError,
+                              "cannot perform multiplication",
+                              lambda : 1 * idx)
+
+        div_err = "cannot perform true division" if compat.PY3 else "cannot perform division"
+        tm.assertRaisesRegexp(TypeError,
+                              div_err,
+                              lambda : idx / 1)
+        tm.assertRaisesRegexp(TypeError,
+                              div_err,
+                              lambda : 1 / idx)
+        tm.assertRaisesRegexp(TypeError,
+                              "cannot perform floor division",
+                              lambda : idx // 1)
+        tm.assertRaisesRegexp(TypeError,
+                              "cannot perform floor division",
+                              lambda : 1 // idx)
+
+class TestIndex(Base, tm.TestCase):
+    _holder = Index
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -48,6 +91,9 @@ class TestIndex(tm.TestCase):
         )
         for name, ind in self.indices.items():
             setattr(self, name, ind)
+
+    def create_index(self):
+        return Index(list('abcde'))
 
     def test_wrong_number_names(self):
         def testit(ind):
@@ -123,7 +169,7 @@ class TestIndex(tm.TestCase):
 
         # casting
         arr = np.array(self.strIndex)
-        index = arr.view(Index)
+        index = Index(arr)
         tm.assert_contains_all(arr, index)
         self.assert_numpy_array_equal(self.strIndex, index)
 
@@ -181,13 +227,12 @@ class TestIndex(tm.TestCase):
 
         for array in [np.arange(5),
                       np.array(['a', 'b', 'c']),
-                      pd.date_range('2000-01-01', periods=3).values]:
+                      date_range('2000-01-01', periods=3).values]:
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
             self.assertTrue(result.equals(expected))
 
     def test_index_ctor_infer_periodindex(self):
-        from pandas import period_range, PeriodIndex
         xp = period_range('2012-1-1', freq='M', periods=3)
         rs = Index(xp)
         assert_array_equal(rs, xp)
@@ -312,8 +357,9 @@ class TestIndex(tm.TestCase):
         self.assertFalse(ind.is_(ind[:]))
         self.assertFalse(ind.is_(ind.view(np.ndarray).view(Index)))
         self.assertFalse(ind.is_(np.array(range(10))))
+
         # quasi-implementation dependent
-        self.assertTrue(ind.is_(ind.view().base))
+        self.assertTrue(ind.is_(ind.view()))
         ind2 = ind.view()
         ind2.name = 'bob'
         self.assertTrue(ind.is_(ind2))
@@ -366,8 +412,7 @@ class TestIndex(tm.TestCase):
             arr_result = op(arr, element)
             index_result = op(index, element)
 
-            tm.assert_isinstance(index_result, np.ndarray)
-            self.assertNotIsInstance(index_result, Index)
+            self.assertIsInstance(index_result, np.ndarray)
             self.assert_numpy_array_equal(arr_result, index_result)
 
         _check(operator.eq)
@@ -617,6 +662,7 @@ class TestIndex(tm.TestCase):
         idx2 = Index([0, 1, np.nan])
         result = idx1.sym_diff(idx2)
         # expected = Index([0.0, np.nan, 2.0, 3.0, np.nan])
+
         nans = pd.isnull(result)
         self.assertEqual(nans.sum(), 2)
         self.assertEqual((~nans).sum(), 3)
@@ -639,21 +685,11 @@ class TestIndex(tm.TestCase):
             idx1 - 1
 
     def test_pickle(self):
-        def testit(index):
-            pickled = pickle.dumps(index)
-            unpickled = pickle.loads(pickled)
 
-            tm.assert_isinstance(unpickled, Index)
-            self.assert_numpy_array_equal(unpickled, index)
-            self.assertEqual(unpickled.name, index.name)
-
-            # tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
-
-        testit(self.strIndex)
+        self.verify_pickle(self.strIndex)
         self.strIndex.name = 'foo'
-        testit(self.strIndex)
-
-        testit(self.dateIndex)
+        self.verify_pickle(self.strIndex)
+        self.verify_pickle(self.dateIndex)
 
     def test_is_numeric(self):
         self.assertFalse(self.dateIndex.is_numeric())
@@ -902,9 +938,7 @@ class TestIndex(tm.TestCase):
         idx = Index(values)
         res = (idx == values)
 
-        self.assertTrue(res.all())
-        self.assertEqual(res.dtype, 'bool')
-        self.assertNotIsInstance(res, Index)
+        self.assert_numpy_array_equal(res,np.array([True,True,True,True],dtype=bool))
 
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
@@ -951,12 +985,63 @@ class TestIndex(tm.TestCase):
         tm.assert_index_equal(res, exp)
 
 
-class TestFloat64Index(tm.TestCase):
+class Numeric(Base):
+
+    def test_numeric_compat(self):
+
+        idx = self._holder(np.arange(5,dtype='int64'))
+        didx = self._holder(np.arange(5,dtype='int64')**2
+                            )
+        result = idx * 1
+        tm.assert_index_equal(result, idx)
+
+        result = 1 * idx
+        tm.assert_index_equal(result, idx)
+
+        result = idx * idx
+        tm.assert_index_equal(result, didx)
+
+        result = idx / 1
+        tm.assert_index_equal(result, idx)
+
+        result = idx // 1
+        tm.assert_index_equal(result, idx)
+
+        result = idx * np.array(5,dtype='int64')
+        tm.assert_index_equal(result, self._holder(np.arange(5,dtype='int64')*5))
+
+        result = idx * np.arange(5,dtype='int64')
+        tm.assert_index_equal(result, didx)
+
+        result = idx * Series(np.arange(5,dtype='int64'))
+        tm.assert_index_equal(result, didx)
+
+        result = idx * Series(np.arange(5,dtype='float64')+0.1)
+        tm.assert_index_equal(result,
+                              Float64Index(np.arange(5,dtype='float64')*(np.arange(5,dtype='float64')+0.1)))
+
+
+        # invalid
+        self.assertRaises(TypeError, lambda : idx * date_range('20130101',periods=5))
+        self.assertRaises(ValueError, lambda : idx * self._holder(np.arange(3)))
+        self.assertRaises(ValueError, lambda : idx * np.array([1,2]))
+
+    def test_ufunc_compat(self):
+        idx = self._holder(np.arange(5,dtype='int64'))
+        result = np.sin(idx)
+        expected = Float64Index(np.sin(np.arange(5,dtype='int64')))
+        tm.assert_index_equal(result, expected)
+
+class TestFloat64Index(Numeric, tm.TestCase):
+    _holder = Float64Index
     _multiprocess_can_split_ = True
 
     def setUp(self):
         self.mixed = Float64Index([1.5, 2, 3, 4, 5])
         self.float = Float64Index(np.arange(5) * 2.5)
+
+    def create_index(self):
+        return Float64Index(np.arange(5,dtype='float64'))
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -1095,11 +1180,15 @@ class TestFloat64Index(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
 
-class TestInt64Index(tm.TestCase):
+class TestInt64Index(Numeric, tm.TestCase):
+    _holder = Int64Index
     _multiprocess_can_split_ = True
 
     def setUp(self):
         self.index = Int64Index(np.arange(0, 20, 2))
+
+    def create_index(self):
+        return Int64Index(np.arange(5,dtype='int64'))
 
     def test_too_many_names(self):
         def testit():
@@ -1519,8 +1608,38 @@ class TestInt64Index(tm.TestCase):
         idx = Int64Index([1, 2], name='asdf')
         self.assertEqual(idx.name, idx[1:].name)
 
+class TestDatetimeIndex(Base, tm.TestCase):
+    _holder = DatetimeIndex
+    _multiprocess_can_split_ = True
 
-class TestMultiIndex(tm.TestCase):
+    def create_index(self):
+        return date_range('20130101',periods=5)
+
+    def test_pickle_compat_construction(self):
+        pass
+
+    def test_numeric_compat(self):
+        super(TestDatetimeIndex, self).test_numeric_compat()
+
+        if not (_np_version_under1p7 or compat.PY3_2):
+            for f in [lambda : np.timedelta64(1, 'D').astype('m8[ns]') * pd.date_range('2000-01-01', periods=3),
+                      lambda : pd.date_range('2000-01-01', periods=3) * np.timedelta64(1, 'D').astype('m8[ns]') ]:
+                tm.assertRaisesRegexp(TypeError,
+                                      "cannot perform multiplication with this index type",
+                                      f)
+
+class TestPeriodIndex(Base, tm.TestCase):
+    _holder = PeriodIndex
+    _multiprocess_can_split_ = True
+
+    def create_index(self):
+        return period_range('20130101',periods=5,freq='D')
+
+    def test_pickle_compat_construction(self):
+        pass
+
+class TestMultiIndex(Base, tm.TestCase):
+    _holder = MultiIndex
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1533,6 +1652,9 @@ class TestMultiIndex(tm.TestCase):
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
                                 names=self.index_names, verify_integrity=False)
+
+    def create_index(self):
+        return self.index
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -1574,6 +1696,7 @@ class TestMultiIndex(tm.TestCase):
 
 
     def test_set_levels(self):
+
         # side note - you probably wouldn't want to use levels and labels
         # directly like this - but it is possible.
         levels, labels = self.index.levels, self.index.labels
@@ -1966,6 +2089,7 @@ class TestMultiIndex(tm.TestCase):
         self.assertEqual([level.name for level in index.levels], list(names))
 
     def test_changing_names(self):
+
         # names should be applied to levels
         level_names = [level.name for level in self.index.levels]
         self.check_level_names(self.index, self.index.names)
@@ -2015,6 +2139,7 @@ class TestMultiIndex(tm.TestCase):
         self.assertTrue(result.levels[1].equals(Index(['a','b'])))
 
     def test_from_product(self):
+
         first = ['foo', 'bar', 'buz']
         second = ['a', 'b', 'c']
         names = ['first', 'second']
@@ -2029,7 +2154,7 @@ class TestMultiIndex(tm.TestCase):
         self.assertEqual(result.names, names)
 
     def test_from_product_datetimeindex(self):
-        dt_index = pd.date_range('2000-01-01', periods=2)
+        dt_index = date_range('2000-01-01', periods=2)
         mi = pd.MultiIndex.from_product([[1, 2], dt_index])
         etalon = pd.lib.list_to_object_array([(1, pd.Timestamp('2000-01-01')),
                                               (1, pd.Timestamp('2000-01-02')),
@@ -2108,23 +2233,12 @@ class TestMultiIndex(tm.TestCase):
                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
         self.assertEqual(result, expected)
 
-    def test_pickle(self):
-        pickled = pickle.dumps(self.index)
-        unpickled = pickle.loads(pickled)
-        self.assertTrue(self.index.equals(unpickled))
-
     def test_legacy_pickle(self):
         if compat.PY3:
-            raise nose.SkipTest("doesn't work on Python 3")
+            raise nose.SkipTest("testing for legacy pickles not support on py3")
 
-        def curpath():
-            pth, _ = os.path.split(os.path.abspath(__file__))
-            return pth
-
-        ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
-        obj = pickle.load(open(ppath, 'r'))
-
-        self.assertTrue(obj._is_v1)
+        path = tm.get_data_path('multiindex_v1.pickle')
+        obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assertTrue(obj.equals(obj2))
@@ -2140,11 +2254,10 @@ class TestMultiIndex(tm.TestCase):
         assert_almost_equal(exp, exp2)
 
     def test_legacy_v2_unpickle(self):
-        # 0.7.3 -> 0.8.0 format manage
-        pth, _ = os.path.split(os.path.abspath(__file__))
-        filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
 
-        obj = pd.read_pickle(filepath)
+        # 0.7.3 -> 0.8.0 format manage
+        path = tm.get_data_path('mindex_073.pickle')
+        obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assertTrue(obj.equals(obj2))
@@ -2562,6 +2675,7 @@ class TestMultiIndex(tm.TestCase):
         self.assertTrue(mi.equals(mi4))
 
     def test_is_(self):
+
         mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
         self.assertTrue(mi.is_(mi))
         self.assertTrue(mi.is_(mi.view()))
@@ -2571,6 +2685,7 @@ class TestMultiIndex(tm.TestCase):
         mi2.names = ["A", "B"]
         self.assertTrue(mi2.is_(mi))
         self.assertTrue(mi.is_(mi2))
+
         self.assertTrue(mi.is_(mi.set_names(["C", "D"])))
         mi2 = mi.view()
         mi2.set_names(["E", "F"], inplace=True)

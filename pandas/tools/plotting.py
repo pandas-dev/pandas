@@ -12,7 +12,7 @@ import numpy as np
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
@@ -821,7 +821,7 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -872,7 +872,7 @@ class MPLPlot(object):
             data = self.data
 
         from pandas.core.frame import DataFrame
-        if isinstance(data, (Series, np.ndarray)):
+        if isinstance(data, (Series, np.ndarray, Index)):
             if keep_index is True:
                 yield self.label, data
             else:
@@ -1223,7 +1223,7 @@ class MPLPlot(object):
             return self.secondary_y
 
         if (isinstance(self.data, DataFrame) and
-                isinstance(self.secondary_y, (tuple, list, np.ndarray))):
+                isinstance(self.secondary_y, (tuple, list, np.ndarray, Index))):
             return self.data.columns[i] in self.secondary_y
 
     def _get_style(self, i, col_name):
@@ -2485,7 +2485,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray)):
+        if not isinstance(column, (list, np.ndarray, Index)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
@@ -2962,7 +2962,7 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
         axarr[i] = ax
 
     if nplots > 1:
-        
+
         if sharex and nrows > 1:
             for ax in axarr[:naxes][:-ncols]:    # only bottom row
                 for label in ax.get_xticklabels():
@@ -3015,7 +3015,7 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
 def _flatten(axes):
     if not com.is_list_like(axes):
         axes = [axes]
-    elif isinstance(axes, np.ndarray):
+    elif isinstance(axes, (np.ndarray, Index)):
         axes = axes.ravel()
     return axes
 

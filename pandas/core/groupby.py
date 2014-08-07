@@ -24,7 +24,7 @@ import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype,
-                               is_categorical_dtype)
+                               is_categorical_dtype, _values_from_object)
 from pandas.core.config import option_context
 from pandas import _np_version_under1p7
 import pandas.lib as lib
@@ -453,7 +453,7 @@ class GroupBy(PandasObject):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, Series, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, Series, Index, np.ndarray)):
             return [self._selection]
         return self._selection
 
@@ -1254,7 +1254,7 @@ class BaseGrouper(object):
             return self.groupings[0].indices
         else:
             label_list = [ping.labels for ping in self.groupings]
-            keys = [ping.group_index for ping in self.groupings]
+            keys = [_values_from_object(ping.group_index) for ping in self.groupings]
             return _get_indices_dict(label_list, keys)
 
     @property
@@ -1552,7 +1552,7 @@ class BaseGrouper(object):
         for label, group in splitter:
             res = func(group)
             if result is None:
-                if (isinstance(res, (Series, np.ndarray)) or
+                if (isinstance(res, (Series, Index, np.ndarray)) or
                         isinstance(res, list)):
                     raise ValueError('Function does not reduce')
                 result = np.empty(ngroups, dtype='O')
@@ -1894,7 +1894,7 @@ class Grouping(object):
                     self.name = grouper.name
 
             # no level passed
-            if not isinstance(self.grouper, (Series, np.ndarray)):
+            if not isinstance(self.grouper, (Series, Index, np.ndarray)):
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper, "__len__") and
                         len(self.grouper) == len(self.index)):
@@ -2014,7 +2014,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
-    any_arraylike = any(isinstance(g, (list, tuple, Series, np.ndarray))
+    any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
     try:
@@ -2080,7 +2080,7 @@ def _convert_grouper(axis, grouper):
             return grouper.values
         else:
             return grouper.reindex(axis).values
-    elif isinstance(grouper, (list, Series, np.ndarray)):
+    elif isinstance(grouper, (list, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
             raise AssertionError('Grouper and axis must be same length')
         return grouper
@@ -2246,7 +2246,7 @@ class SeriesGroupBy(GroupBy):
         for name, group in self:
             group.name = name
             output = func(group, *args, **kwargs)
-            if isinstance(output, (Series, np.ndarray)):
+            if isinstance(output, (Series, Index, np.ndarray)):
                 raise Exception('Must produce aggregated value')
             result[name] = self._try_cast(output, group)
 
@@ -2678,7 +2678,7 @@ class NDFrameGroupBy(GroupBy):
 
             v = values[0]
 
-            if isinstance(v, (np.ndarray, Series)):
+            if isinstance(v, (np.ndarray, Index, Series)):
                 if isinstance(v, Series):
                     applied_index = self._selected_obj._get_axis(self.axis)
                     all_indexed_same = _all_indexes_same([
@@ -2984,7 +2984,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, Series, np.ndarray)):
+        if isinstance(key, (list, tuple, Series, Index, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError("Columns not found: %s"
@@ -3579,7 +3579,7 @@ def _intercept_cython(func):
 
 
 def _groupby_indices(values):
-    return _algos.groupby_indices(com._ensure_object(values))
+    return _algos.groupby_indices(_values_from_object(com._ensure_object(values)))
 
 
 def numpy_groupby(data, labels, axis=0):

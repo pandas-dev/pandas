@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.tslib as tslib
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import Appender, cache_readonly
 
 class StringMixin(object):
 
@@ -205,6 +205,19 @@ class FrozenNDArray(PandasObject, np.ndarray):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
+def _unbox(func):
+    @Appender(func.__doc__)
+    def f(self, *args, **kwargs):
+        result = func(self.values, *args, **kwargs)
+        from pandas.core.index import Index
+        if isinstance(result, (np.ndarray, com.ABCSeries, Index)) and result.ndim == 0:
+            # return NumPy type
+            return result.dtype.type(result.item())
+        else:  # pragma: no cover
+            return result
+    f.__name__ = func.__name__
+    return f
+
 class IndexOpsMixin(object):
     """ common ops mixin to support a unified inteface / docs for Series / Index """
 
@@ -237,6 +250,64 @@ class IndexOpsMixin(object):
             return self._constructor(obj,index=self.index).__finalize__(self)
 
         return obj
+
+    # ndarray compatibility
+    __array_priority__ = 1000
+
+    def transpose(self):
+        """ return the transpose, which is by definition self """
+        return self
+
+    T = property(transpose, doc="return the transpose, which is by definition self")
+
+    @property
+    def shape(self):
+        """ return a tuple of the shape of the underlying data """
+        return self._data.shape
+
+    @property
+    def ndim(self):
+        """ return the number of dimensions of the underlying data, by definition 1 """
+        return 1
+
+    def item(self):
+        """ return the first element of the underlying data as a python scalar """
+        return self.values.item()
+
+    @property
+    def data(self):
+        """ return the data pointer of the underlying data """
+        return self.values.data
+
+    @property
+    def itemsize(self):
+        """ return the size of the dtype of the item of the underlying data """
+        return self.values.itemsize
+
+    @property
+    def nbytes(self):
+        """ return the number of bytes in the underlying data """
+        return self.values.nbytes
+
+    @property
+    def strides(self):
+        """ return the strides of the underlying data """
+        return self.values.strides
+
+    @property
+    def size(self):
+        """ return the number of elements in the underlying data """
+        return self.values.size
+
+    @property
+    def flags(self):
+        """ return the ndarray.flags for the underlying data """
+        return self.values.flags
+
+    @property
+    def base(self):
+        """ return the base object if the memory of the underlying data is shared """
+        return self.values.base
 
     def max(self):
         """ The maximum value of the object """
@@ -340,6 +411,20 @@ class IndexOpsMixin(object):
         from pandas.core.algorithms import factorize
         return factorize(self, sort=sort, na_sentinel=na_sentinel)
 
+    def searchsorted(self, key, side='left'):
+        """ np.ndarray searchsorted compat """
+
+        ### FIXME in GH7447
+        #### needs coercion on the key (DatetimeIndex does alreay)
+        #### needs tests/doc-string
+        return self.values.searchsorted(key, side=side)
+
+    #----------------------------------------------------------------------
+    # unbox reductions
+
+    all = _unbox(np.ndarray.all)
+    any = _unbox(np.ndarray.any)
+
 # facilitate the properties on the wrapped ops
 def _field_accessor(name, docstring=None):
     op_accessor = '_{0}'.format(name)
@@ -431,13 +516,17 @@ class DatetimeIndexOpsMixin(object):
 
     def tolist(self):
         """
-        See ndarray.tolist
+        return a list of the underlying data
         """
         return list(self.asobject)
 
     def min(self, axis=None):
         """
-        Overridden ndarray.min to return an object
+        return the minimum value of the Index
+
+        See also
+        --------
+        numpy.ndarray.min
         """
         try:
             i8 = self.asi8
@@ -456,9 +545,30 @@ class DatetimeIndexOpsMixin(object):
         except ValueError:
             return self._na_value
 
+    def argmin(self, axis=None):
+        """
+        return a ndarray of the minimum argument indexer
+
+        See also
+        --------
+        numpy.ndarray.argmin
+        """
+
+        ##### FIXME: need some tests (what do do if all NaT?)
+        i8 = self.asi8
+        if self.hasnans:
+            mask = i8 == tslib.iNaT
+            i8 = i8.copy()
+            i8[mask] = np.iinfo('int64').max
+        return i8.argmin()
+
     def max(self, axis=None):
         """
-        Overridden ndarray.max to return an object
+        return the maximum value of the Index
+
+        See also
+        --------
+        numpy.ndarray.max
         """
         try:
             i8 = self.asi8
@@ -476,6 +586,23 @@ class DatetimeIndexOpsMixin(object):
             return self._box_func(max_stamp)
         except ValueError:
             return self._na_value
+
+    def argmax(self, axis=None):
+        """
+        return a ndarray of the maximum argument indexer
+
+        See also
+        --------
+        numpy.ndarray.argmax
+        """
+
+        #### FIXME: need some tests (what do do if all NaT?)
+        i8 = self.asi8
+        if self.hasnans:
+            mask = i8 == tslib.iNaT
+            i8 = i8.copy()
+            i8[mask] = 0
+        return i8.argmax()
 
     @property
     def _formatter_func(self):

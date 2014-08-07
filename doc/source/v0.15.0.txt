@@ -10,6 +10,7 @@ users upgrade to this version.
 - Highlights include:
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
+  - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -24,6 +25,12 @@ users upgrade to this version.
 - :ref:`Known Issues <whatsnew_0150.knownissues>`
 
 - :ref:`Bug Fixes <whatsnew_0150.bug_fixes>`
+
+.. warning::
+
+   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
+   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
 
 .. _whatsnew_0150.api:
 
@@ -155,6 +162,18 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
      didx
      didx.tz_localize(None)
 
+.. _whatsnew_0150.refactoring:
+
+Internal Refactoring
+~~~~~~~~~~~~~~~~~~~~
+
+In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
+a transparent change with only very limited API implications (:issue:`5080`,:issue:`7439`,:issue:`7796`)
+
+- you may need to unpickle pandas version < 0.15.0 pickles using ``pd.read_pickle`` rather than ``pickle.load``. See :ref:`pickle docs <io.pickle>`
+- when plotting with a ``PeriodIndex``. The ``matplotlib`` internal axes will now be arrays of ``Period`` rather than a ``PeriodIndex``. (this is similar to how a ``DatetimeIndex`` passess arrays of ``datetimes`` now)
+
 .. _whatsnew_0150.cat:
 
 Categoricals in Series/DataFrame
@@ -278,7 +297,7 @@ Performance
 ~~~~~~~~~~~
 
 - Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
-
+- Performance improvements in ``Period`` creation (and ``PeriodIndex`` setitem) (:issue:`5155`)
 
 
 
@@ -386,7 +405,7 @@ Bug Fixes
 - Bug in ``GroupBy.filter()`` where fast path vs. slow path made the filter
   return a non scalar value that appeared valid but wasn't (:issue:`7870`).
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
-  times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).  
+  times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
 
 
 

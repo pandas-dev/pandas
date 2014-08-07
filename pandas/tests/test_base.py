@@ -197,6 +197,32 @@ class TestIndexOps(Ops):
         self.is_valid_objs  = [ o for o in self.objs if o._allow_index_ops ]
         self.not_valid_objs = [ o for o in self.objs if not o._allow_index_ops ]
 
+    def test_ndarray_compat_properties(self):
+
+        for o in self.objs:
+
+            # check that we work
+            for p in ['shape','dtype','base','flags','T',
+                      'strides','itemsize','nbytes']:
+                self.assertIsNotNone(getattr(o,p,None))
+
+            # if we have a datetimelike dtype then needs a view to work
+            # but the user is responsible for that
+            try:
+                self.assertIsNotNone(o.data)
+            except (ValueError):
+                pass
+
+            # len > 1
+            self.assertRaises(ValueError, lambda : o.item())
+
+            self.assertTrue(o.ndim == 1)
+
+            self.assertTrue(o.size == len(o))
+
+        self.assertTrue(Index([1]).item() == 1)
+        self.assertTrue(Series([1]).item() == 1)
+
     def test_ops(self):
         tm._skip_if_not_numpy17_friendly()
         for op in ['max','min']:
@@ -243,11 +269,13 @@ class TestIndexOps(Ops):
             # create repeated values, 'n'th element is repeated by n+1 times
             if isinstance(o, PeriodIndex):
                 # freq must be specified because repeat makes freq ambiguous
+                expected_index = o[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
             else:
+                expected_index = values[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)))
 
-            expected_s = Series(range(10, 0, -1), index=values[::-1], dtype='int64')
+            expected_s = Series(range(10, 0, -1), index=expected_index, dtype='int64')
             tm.assert_series_equal(o.value_counts(), expected_s)
 
             result = o.unique()
@@ -278,12 +306,14 @@ class TestIndexOps(Ops):
 
                 # create repeated values, 'n'th element is repeated by n+1 times
                 if isinstance(o, PeriodIndex):
+                    expected_index = o
                     o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
                 else:
+                    expected_index = values
                     o = klass(np.repeat(values, range(1, len(o) + 1)))
 
-                expected_s_na = Series(list(range(10, 2, -1)) +[3], index=values[9:0:-1], dtype='int64')
-                expected_s = Series(list(range(10, 2, -1)), index=values[9:1:-1], dtype='int64')
+                expected_s_na = Series(list(range(10, 2, -1)) +[3], index=expected_index[9:0:-1], dtype='int64')
+                expected_s = Series(list(range(10, 2, -1)), index=expected_index[9:1:-1], dtype='int64')
 
                 tm.assert_series_equal(o.value_counts(dropna=False), expected_s_na)
                 tm.assert_series_equal(o.value_counts(), expected_s)

@@ -55,6 +55,17 @@ cpdef ensure_platform_int(object arr):
     else:
         return np.array(arr, dtype=np.int_)
 
+cpdef ensure_object(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
+            return arr
+        else:
+            return arr.astype(np.object_)
+    elif hasattr(arr,'asobject'):
+        return arr.asobject
+    else:
+        return np.array(arr, dtype=np.object_)
+
 """
 
 
@@ -2189,7 +2200,7 @@ ensure_functions = [
     ('int32', 'INT32', 'int32'),
     ('int64', 'INT64', 'int64'),
     # ('platform_int', 'INT', 'int_'),
-    ('object', 'OBJECT', 'object_'),
+    #('object', 'OBJECT', 'object_'),
 ]
 
 def generate_ensure_dtypes():

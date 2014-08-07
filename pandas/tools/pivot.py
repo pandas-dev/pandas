@@ -3,7 +3,7 @@
 import warnings
 
 from pandas import Series, DataFrame
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, Index
 from pandas.core.groupby import Grouper
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
@@ -307,7 +307,7 @@ def _generate_marginal_results_without_values(table, data, rows, cols, aggfunc):
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Series, Grouper))
+    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index, Series, Grouper))
           or hasattr(by, '__call__')):
         by = [by]
     else:

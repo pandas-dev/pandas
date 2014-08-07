@@ -1537,7 +1537,7 @@ ISITERABLE:
       PRINTMARK();
       tc->type = JT_OBJECT;
       pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "index"), "values"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
         goto INVALID;
@@ -1614,7 +1614,7 @@ ISITERABLE:
       PRINTMARK();
       tc->type = JT_ARRAY;
       pc->columnLabelsLen = PyArray_DIM(pc->newObj, 1);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "columns"), "values"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
         goto INVALID;
@@ -1632,7 +1632,7 @@ ISITERABLE:
         goto INVALID;
       }
       pc->columnLabelsLen = PyArray_DIM(pc->newObj, 1);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "columns"), "values"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
         NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
@@ -1645,7 +1645,7 @@ ISITERABLE:
       PRINTMARK();
       tc->type = JT_OBJECT;
       pc->rowLabelsLen = PyArray_DIM(pc->newObj, 1);
-      pc->rowLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->rowLabelsLen);
+      pc->rowLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "columns"), "values"), (JSONObjectEncoder*) enc, pc->rowLabelsLen);
       if (!pc->rowLabels)
       {
         goto INVALID;

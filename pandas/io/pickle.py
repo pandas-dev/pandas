@@ -1,6 +1,5 @@
 from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
 
-
 def to_pickle(obj, path):
     """
     Pickle (serialize) object to input file path
@@ -45,7 +44,7 @@ def read_pickle(path):
         try:
             with open(path, 'rb') as fh:
                 return pkl.load(fh)
-        except:
+        except (Exception) as e:
 
             # reg/patched pickle
             try:

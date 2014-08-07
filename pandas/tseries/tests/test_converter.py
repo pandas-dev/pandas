@@ -84,8 +84,8 @@ class TestDateTimeConverter(tm.TestCase):
             if not val1 < val2:
                 raise AssertionError('{0} is not less than {1}.'.format(val1, val2))
 
-        # Matplotlib's time representation using floats cannot distinguish intervals smaller 
-        # than ~10 microsecond in the common range of years. 
+        # Matplotlib's time representation using floats cannot distinguish intervals smaller
+        # than ~10 microsecond in the common range of years.
         ts = Timestamp('2012-1-1')
         _assert_less(ts, ts + Second())
         _assert_less(ts, ts + Milli())

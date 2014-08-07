@@ -1505,7 +1505,7 @@ class NDFrame(PandasObject):
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
-                indexer = ~lib.ismember(axis.get_level_values(level),
+                indexer = ~lib.ismember(axis.get_level_values(level).values,
                                         set(labels))
             else:
                 indexer = ~axis.isin(labels)
@@ -2135,16 +2135,14 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        deep : boolean, default True
+        deep : boolean or string, default True
             Make a deep copy, i.e. also copy data
 
         Returns
         -------
         copy : type of caller
         """
-        data = self._data
-        if deep:
-            data = data.copy()
+        data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
     def convert_objects(self, convert_dates=True, convert_numeric=False,

@@ -2152,6 +2152,10 @@ class TestGroupBy(tm.TestCase):
         result = g.idxmax()
         assert_frame_equal(result,expected)
 
+    def test_cython_api2(self):
+
+        # this takes the fast apply path
+
         # cumsum (GH5614)
         df = DataFrame([[1, 2, np.nan], [1, np.nan, 9], [3, 4, 9]], columns=['A', 'B', 'C'])
         expected = DataFrame([[2, np.nan], [np.nan, 9], [4, 9]], columns=['B', 'C'])
@@ -2424,6 +2428,31 @@ class TestGroupBy(tm.TestCase):
         result = grouped.agg(convert_force_pure)
         self.assertEqual(result.dtype, np.object_)
         tm.assert_isinstance(result[0], Decimal)
+
+    def test_fast_apply(self):
+        # make sure that fast apply is correctly called
+        # rather than raising any kind of error
+        # otherwise the python path will be callsed
+        # which slows things down
+        N = 1000
+        labels = np.random.randint(0, 2000, size=N)
+        labels2 = np.random.randint(0, 3, size=N)
+        df = DataFrame({'key': labels,
+                        'key2': labels2,
+                        'value1': np.random.randn(N),
+                        'value2': ['foo', 'bar', 'baz', 'qux'] * (N // 4)})
+        def f(g):
+            return 1
+
+        g = df.groupby(['key', 'key2'])
+
+        grouper = g.grouper
+
+        splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
+        group_keys = grouper._get_group_keys()
+
+        values, mutated = splitter.fast_apply(f, group_keys)
+        self.assertFalse(mutated)
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11

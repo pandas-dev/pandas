@@ -939,6 +939,6 @@ def _get_codes_for_values(values, levels):
         levels = com._ensure_object(levels)
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     t = hash_klass(len(levels))
-    t.map_locations(levels)
+    t.map_locations(com._values_from_object(levels))
     return com._ensure_platform_int(t.lookup(values))
 

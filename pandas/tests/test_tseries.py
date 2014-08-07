@@ -32,7 +32,7 @@ class TestTseriesUtil(tm.TestCase):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = algos.backfill_int64(old, new)
+        filler = algos.backfill_int64(old.values, new.values)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_numpy_array_equal(filler, expect_filler)
@@ -40,7 +40,7 @@ class TestTseriesUtil(tm.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(lrange(5, 10))
-        filler = algos.backfill_int64(old, new)
+        filler = algos.backfill_int64(old.values, new.values)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_numpy_array_equal(filler, expect_filler)
@@ -49,7 +49,7 @@ class TestTseriesUtil(tm.TestCase):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = algos.pad_int64(old, new)
+        filler = algos.pad_int64(old.values, new.values)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_numpy_array_equal(filler, expect_filler)
@@ -57,7 +57,7 @@ class TestTseriesUtil(tm.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
-        filler = algos.pad_int64(old, new)
+        filler = algos.pad_int64(old.values, new.values)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_numpy_array_equal(filler, expect_filler)
 
@@ -165,7 +165,7 @@ def test_left_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = algos.left_join_indexer_int64(idx2, idx)
+    res, lidx, ridx = algos.left_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(res, exp_res)
@@ -181,7 +181,7 @@ def test_outer_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = algos.outer_join_indexer_int64(idx2, idx)
+    res, lidx, ridx = algos.outer_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(res, exp_res)
@@ -197,7 +197,7 @@ def test_inner_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = algos.inner_join_indexer_int64(idx2, idx)
+    res, lidx, ridx = algos.inner_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
     assert_almost_equal(res, exp_res)
@@ -688,6 +688,10 @@ class TestReducer(tm.TestCase):
         result = lib.reduce(arr, np.sum, axis=1,
                             dummy=dummy, labels=Index(np.arange(100)))
         expected = arr.sum(1)
+        assert_almost_equal(result, expected)
+
+        result = lib.reduce(arr, np.sum, axis=1,
+                            dummy=dummy, labels=Index(np.arange(100)))
         assert_almost_equal(result, expected)
 
 

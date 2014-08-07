@@ -7,7 +7,8 @@ import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
-                                ABCSeries, ABCDataFrame, ABCPanel, is_float)
+                                ABCSeries, ABCDataFrame, ABCPanel, is_float,
+                                _values_from_object)
 import pandas.lib as lib
 
 import numpy as np
@@ -1086,7 +1087,7 @@ class _NDFrameIndexer(object):
                         return {'key': obj}
                     raise KeyError('%s not in index' % objarr[mask])
 
-                return indexer
+                return _values_from_object(indexer)
 
         else:
             try:
@@ -1512,7 +1513,7 @@ def _length_of_indexer(indexer, target=None):
         elif step < 0:
             step = abs(step)
         return (stop - start) / step
-    elif isinstance(indexer, (ABCSeries, np.ndarray, list)):
+    elif isinstance(indexer, (ABCSeries, Index, np.ndarray, list)):
         return len(indexer)
     elif not is_list_like(indexer):
         return 1

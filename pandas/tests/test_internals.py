@@ -9,7 +9,7 @@ from pandas.sparse.array import SparseArray
 from pandas.core.internals import *
 import pandas.core.internals as internals
 import pandas.util.testing as tm
-
+import pandas as pd
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, randn)
 from pandas.compat import zip, u
@@ -182,12 +182,9 @@ class TestBlock(tm.TestCase):
         self.assertEqual(int32block.dtype, np.int32)
 
     def test_pickle(self):
-        import pickle
 
         def _check(blk):
-            pickled = pickle.dumps(blk)
-            unpickled = pickle.loads(pickled)
-            assert_block_equal(blk, unpickled)
+            assert_block_equal(self.round_trip_pickle(blk), blk)
 
         _check(self.fblock)
         _check(self.cblock)
@@ -341,12 +338,8 @@ class TestBlockManager(tm.TestCase):
         self.assertNotIn('baz', self.mgr)
 
     def test_pickle(self):
-        import pickle
 
-        pickled = pickle.dumps(self.mgr)
-        mgr2 = pickle.loads(pickled)
-
-        # same result
+        mgr2 = self.round_trip_pickle(self.mgr)
         assert_frame_equal(DataFrame(self.mgr), DataFrame(mgr2))
 
         # share ref_items
@@ -361,13 +354,13 @@ class TestBlockManager(tm.TestCase):
         self.assertFalse(mgr2._known_consolidated)
 
     def test_non_unique_pickle(self):
-        import pickle
+
         mgr = create_mgr('a,a,a:f8')
-        mgr2 = pickle.loads(pickle.dumps(mgr))
+        mgr2 = self.round_trip_pickle(mgr)
         assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         mgr = create_mgr('a: f8; a: i8')
-        mgr2 = pickle.loads(pickle.dumps(mgr))
+        mgr2 = self.round_trip_pickle(mgr)
         assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
     def test_get_scalar(self):

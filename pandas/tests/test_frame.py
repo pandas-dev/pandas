@@ -16,7 +16,7 @@ from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
-    OrderedDict, cPickle as pickle, u, StringIO
+    OrderedDict, u, StringIO
 )
 from pandas import compat
 
@@ -3620,6 +3620,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame()
         df['a'] = i
         assert_frame_equal(df, expected)
+
         df = DataFrame( {'a' : i } )
         assert_frame_equal(df, expected)
 
@@ -3925,14 +3926,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, self.frame.apply(np.sqrt))
 
     def test_pickle(self):
-        unpickled = pickle.loads(pickle.dumps(self.mixed_frame))
+        unpickled = self.round_trip_pickle(self.mixed_frame)
         assert_frame_equal(self.mixed_frame, unpickled)
 
         # buglet
         self.mixed_frame._data.ndim
 
         # empty
-        unpickled = pickle.loads(pickle.dumps(self.empty))
+        unpickled = self.round_trip_pickle(self.empty)
         repr(unpickled)
 
     def test_to_dict(self):
@@ -12578,6 +12579,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(df.T.empty)
 
     def test_any_all(self):
+
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 

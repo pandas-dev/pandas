@@ -187,15 +187,16 @@ class TestUnique(tm.TestCase):
             len(algos.unique(lst))
 
     def test_on_index_object(self):
+
         mindex = pd.MultiIndex.from_arrays([np.arange(5).repeat(5),
                                             np.tile(np.arange(5), 5)])
+        expected = mindex.values
+        expected.sort()
+
         mindex = mindex.repeat(2)
 
         result = pd.unique(mindex)
         result.sort()
-
-        expected = mindex.values
-        expected.sort()
 
         tm.assert_almost_equal(result, expected)
 

@@ -70,18 +70,6 @@ def _coerce_method(converter):
     return wrapper
 
 
-def _unbox(func):
-    @Appender(func.__doc__)
-    def f(self, *args, **kwargs):
-        result = func(self.values, *args, **kwargs)
-        if isinstance(result, (pa.Array, Series)) and result.ndim == 0:
-            # return NumPy type
-            return result.dtype.type(result.item())
-        else:  # pragma: no cover
-            return result
-    f.__name__ = func.__name__
-    return f
-
 #----------------------------------------------------------------------
 # Series class
 
@@ -290,76 +278,87 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             object.__setattr__(self, '_subtyp', 'series')
 
     # ndarray compatibility
-    def item(self):
-        return self._data.values.item()
-
-    @property
-    def data(self):
-        return self._data.values.data
-
-    @property
-    def strides(self):
-        return self._data.values.strides
-
-    @property
-    def size(self):
-        return self._data.values.size
-
-    @property
-    def flags(self):
-        return self._data.values.flags
-
     @property
     def dtype(self):
+        """ return the dtype object of the underlying data """
         return self._data.dtype
 
     @property
     def dtypes(self):
-        """ for compat """
+        """ return the dtype object of the underlying data """
         return self._data.dtype
 
     @property
     def ftype(self):
+        """ return if the data is sparse|dense """
         return self._data.ftype
 
     @property
     def ftypes(self):
-        """ for compat """
+        """ return if the data is sparse|dense """
         return self._data.ftype
 
     @property
-    def shape(self):
-        return self._data.shape
+    def values(self):
+        """
+        Return Series as ndarray
 
-    @property
-    def ndim(self):
-        return 1
+        Returns
+        -------
+        arr : numpy.ndarray
+        """
+        return self._data.values
 
-    @property
-    def base(self):
-        return self.values.base
+    def get_values(self):
+        """ same as values (but handles sparseness conversions); is a view """
+        return self._data.get_values()
 
+
+    # ops
     def ravel(self, order='C'):
+        """
+        Return the flattened underlying data as an ndarray
+
+        See also
+        --------
+        numpy.ndarray.ravel
+        """
         return self.values.ravel(order=order)
 
     def compress(self, condition, axis=0, out=None, **kwargs):
-        # 1-d compat with numpy
+        """
+        Return selected slices of an array along given axis as a Series
+
+        See also
+        --------
+        numpy.ndarray.compress
+        """
         return self[condition]
 
-    def transpose(self):
-        """ support for compatiblity """
-        return self
-
-    T = property(transpose)
-
     def nonzero(self):
-        """ numpy like, returns same as nonzero """
+        """
+        return the a boolean array of the underlying data is nonzero
+
+        See also
+        --------
+        numpy.ndarray.nonzero
+        """
         return self.values.nonzero()
 
     def put(self, *args, **kwargs):
+        """
+        return a ndarray with the values put
+
+        See also
+        --------
+        numpy.ndarray.put
+        """
         self.values.put(*args, **kwargs)
 
     def __len__(self):
+        """
+        return the length of the Series
+        """
         return len(self._data)
 
     def view(self, dtype=None):
@@ -442,7 +441,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # recreate
             self._data = SingleBlockManager(data, index, fastpath=True)
-            self.index = index
+            self._index = index
             self.name = name
 
         else:
@@ -549,7 +548,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise
 
             # pragma: no cover
-            if not isinstance(key, (list, pa.Array, Series)):
+            if not isinstance(key, (list, pa.Array, Series, Index)):
                 key = list(key)
 
             if isinstance(key, Index):
@@ -716,7 +715,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def repeat(self, reps):
         """
-        See ndarray.repeat
+        return a new Series with the values repeated reps times
+
+        See also
+        --------
+        numpy.ndarray.repeat
         """
         new_index = self.index.repeat(reps)
         new_values = self.values.repeat(reps)
@@ -725,7 +728,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def reshape(self, *args, **kwargs):
         """
-        See numpy.ndarray.reshape
+        return an ndarray with the values shape
+        if the specified shape matches exactly the current shape, then
+        return self (for compat)
+
+        See also
+        --------
+        numpy.ndarray.take
         """
         if len(args) == 1 and hasattr(args[0], '__iter__'):
             shape = args[0]
@@ -990,32 +999,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         items = iteritems
 
     #----------------------------------------------------------------------
-    # unbox reductions
-
-    all = _unbox(pa.Array.all)
-    any = _unbox(pa.Array.any)
-
-    #----------------------------------------------------------------------
     # Misc public methods
 
     def keys(self):
         "Alias for index"
         return self.index
-
-    @property
-    def values(self):
-        """
-        Return Series as ndarray
-
-        Returns
-        -------
-        arr : numpy.ndarray
-        """
-        return self._data.values
-
-    def get_values(self):
-        """ same as values (but handles sparseness conversions); is a view """
-        return self._data.get_values()
 
     def tolist(self):
         """ Convert Series to a nested list """
@@ -1191,6 +1179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         DataFrame.idxmin
+        numpy.ndarray.argmin
         """
         i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
         if i == -1:
@@ -1217,6 +1206,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         DataFrame.idxmax
+        numpy.ndarray.argmax
         """
         i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
         if i == -1:
@@ -1334,7 +1324,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Normalized by N-1 (unbiased estimator).
         """
-        this, other = self.align(other, join='inner')
+        this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return pa.NA
         return nanops.nancov(this.values, other.values,
@@ -1460,7 +1450,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this = self
 
         if not self.index.equals(other.index):
-            this, other = self.align(other, level=level, join='outer')
+            this, other = self.align(other, level=level, join='outer', copy=False)
             new_index = this.index
 
         this_vals = this.values
@@ -1599,6 +1589,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         argsorted : Series, with -1 indicated where nan values are present
 
+        See also
+        --------
+        numpy.ndarray.argsort
         """
         values = self.values
         mask = isnull(values)
@@ -2072,8 +2065,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def take(self, indices, axis=0, convert=True, is_copy=False):
         """
-        Analogous to ndarray.take, return Series corresponding to requested
-        indices
+        return Series corresponding to requested indices
 
         Parameters
         ----------
@@ -2083,6 +2075,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         taken : Series
+
+        See also
+        --------
+        numpy.ndarray.take
         """
         # check/convert indicies here
         if convert:
@@ -2483,7 +2479,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         return subarr
 
     # GH #846
-    if isinstance(data, (pa.Array, Series)):
+    if isinstance(data, (pa.Array, Index, Series)):
         subarr = np.array(data, copy=False)
         if dtype is not None:
 
