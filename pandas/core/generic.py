@@ -3467,7 +3467,7 @@ class NDFrame(PandasObject):
 
         return result
 
-    def tz_convert(self, tz, axis=0, copy=True):
+    def tz_convert(self, tz, axis=0, level=None, copy=True):
         """
         Convert the axis to target time zone. If it is time zone naive, it
         will be localized to the passed time zone.
@@ -3475,6 +3475,10 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         tz : string or pytz.timezone object
+        axis : the axis to convert
+        level : int, str, default None
+            If axis ia a MultiIndex, convert a specific level. Otherwise
+            must be None
         copy : boolean, default True
             Also make a copy of the underlying data
 
@@ -3484,27 +3488,44 @@ class NDFrame(PandasObject):
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
-        if not hasattr(ax, 'tz_convert'):
-            if len(ax) > 0:
-                ax_name = self._get_axis_name(axis)
-                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                                ax_name)
+        def _tz_convert(ax, tz):
+            if not hasattr(ax, 'tz_convert'):
+                if len(ax) > 0:
+                    ax_name = self._get_axis_name(axis)
+                    raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                    ax_name)
+                else:
+                    ax = DatetimeIndex([],tz=tz)
             else:
-                ax = DatetimeIndex([],tz=tz)
+                ax = ax.tz_convert(tz)
+            return ax
+
+        # if a level is given it must be a MultiIndex level or
+        # equivalent to the axis name
+        if isinstance(ax, MultiIndex):
+            level = ax._get_level_number(level)
+            new_level = _tz_convert(ax.levels[level], tz)
+            ax = ax.set_levels(new_level, level=level)
         else:
-            ax = ax.tz_convert(tz)
+            if level not in (None, 0, ax.name):
+                raise ValueError("The level {0} is not valid".format(level))
+            ax =  _tz_convert(ax, tz)
 
         result = self._constructor(self._data, copy=copy)
         result.set_axis(axis,ax)
         return result.__finalize__(self)
 
-    def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
+    def tz_localize(self, tz, axis=0, level=None, copy=True, infer_dst=False):
         """
         Localize tz-naive TimeSeries to target time zone
 
         Parameters
         ----------
         tz : string or pytz.timezone object
+        axis : the axis to localize
+        level : int, str, default None
+            If axis ia a MultiIndex, localize a specific level. Otherwise
+            must be None
         copy : boolean, default True
             Also make a copy of the underlying data
         infer_dst : boolean, default False
@@ -3516,15 +3537,28 @@ class NDFrame(PandasObject):
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
-        if not hasattr(ax, 'tz_localize'):
-            if len(ax) > 0:
-                ax_name = self._get_axis_name(axis)
-                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                                ax_name)
+        def _tz_localize(ax, tz, infer_dst):
+            if not hasattr(ax, 'tz_localize'):
+                if len(ax) > 0:
+                    ax_name = self._get_axis_name(axis)
+                    raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                    ax_name)
+                else:
+                    ax = DatetimeIndex([],tz=tz)
             else:
-                ax = DatetimeIndex([],tz=tz)
+                ax = ax.tz_localize(tz, infer_dst=infer_dst)
+            return ax
+
+        # if a level is given it must be a MultiIndex level or
+        # equivalent to the axis name
+        if isinstance(ax, MultiIndex):
+            level = ax._get_level_number(level)
+            new_level = _tz_localize(ax.levels[level], tz, infer_dst)
+            ax = ax.set_levels(new_level, level=level)
         else:
-            ax = ax.tz_localize(tz, infer_dst=infer_dst)
+            if level not in (None, 0, ax.name):
+                raise ValueError("The level {0} is not valid".format(level))
+            ax =  _tz_localize(ax, tz, infer_dst)
 
         result = self._constructor(self._data, copy=copy)
         result.set_axis(axis,ax)
