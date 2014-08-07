@@ -160,8 +160,6 @@ class Generic(object):
         self.assertRaises(ValueError, lambda : not obj1)
 
     def test_numpy_1_7_compat_numeric_methods(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # GH 4435
         # numpy in 1.7 tries to pass addtional arguments to pandas functions
 

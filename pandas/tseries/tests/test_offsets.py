@@ -30,8 +30,6 @@ from pandas.tseries.offsets import BusinessMonthEnd, CacheableOffset, \
     LastWeekOfMonth, FY5253, FY5253Quarter, WeekDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
-from pandas import _np_version_under1p7
-
 _multiprocess_can_split_ = True
 
 
@@ -96,18 +94,13 @@ class Base(tm.TestCase):
     _offset = None
 
     _offset_types = [getattr(offsets, o) for o in offsets.__all__]
-    skip_np_u1p7 = [offsets.CustomBusinessDay, offsets.CDay, offsets.CustomBusinessMonthBegin,
-                    offsets.CustomBusinessMonthEnd, offsets.Nano]
 
     timezones = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
                  'dateutil/Asia/Tokyo', 'dateutil/US/Pacific']
 
     @property
     def offset_types(self):
-        if _np_version_under1p7:
-            return [o for o in self._offset_types if o not in self.skip_np_u1p7]
-        else:
-            return self._offset_types
+        return self._offset_types
 
     def _get_offset(self, klass, value=1, normalize=False):
         # create instance from offset class
@@ -133,8 +126,6 @@ class Base(tm.TestCase):
     def test_apply_out_of_range(self):
         if self._offset is None:
             return
-        if _np_version_under1p7 and self._offset in self.skip_np_u1p7:
-            raise nose.SkipTest('numpy >= 1.7 required')
 
         # try to create an out-of-bounds result timestamp; if we can't create the offset
         # skip
@@ -2857,8 +2848,6 @@ def test_Microsecond():
 
 
 def test_NanosecondGeneric():
-    tm._skip_if_not_numpy17_friendly()
-
     timestamp = Timestamp(datetime(2010, 1, 1))
     assert timestamp.nanosecond == 0
 
@@ -2870,8 +2859,6 @@ def test_NanosecondGeneric():
 
 
 def test_Nanosecond():
-    tm._skip_if_not_numpy17_friendly()
-
     timestamp = Timestamp(datetime(2010, 1, 1))
     assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
     assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)

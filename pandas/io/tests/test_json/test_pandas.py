@@ -601,8 +601,6 @@ class TestPandasContainer(tm.TestCase):
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
 
     def test_timedelta(self):
-        tm._skip_if_not_numpy17_friendly()
-
         from datetime import timedelta
         converter = lambda x: pd.to_timedelta(x,unit='ms')
 

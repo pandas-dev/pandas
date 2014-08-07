@@ -27,7 +27,7 @@ from pandas.compat import range, lrange, lmap, zip
 from pandas import Series, TimeSeries, DataFrame, _np_version_under1p9
 from pandas import tslib
 from pandas.util.testing import(assert_series_equal, assert_almost_equal,
-                                assertRaisesRegexp, _skip_if_not_numpy17_friendly)
+                                assertRaisesRegexp)
 import pandas.util.testing as tm
 from pandas import compat
 from numpy.testing import assert_array_equal
@@ -2486,8 +2486,6 @@ class TestMethods(tm.TestCase):
             dt1 + dt2
 
     def test_add_offset(self):
-        _skip_if_not_numpy17_friendly()
-
         # freq is DateOffset
         p = Period('2011', freq='A')
         self.assertEqual(p + offsets.YearEnd(2), Period('2013', freq='A'))
@@ -2534,8 +2532,6 @@ class TestMethods(tm.TestCase):
                 p + o
 
     def test_add_offset_nat(self):
-        _skip_if_not_numpy17_friendly()
-
         # freq is DateOffset
         p = Period('NaT', freq='A')
         for o in [offsets.YearEnd(2)]:
@@ -2578,8 +2574,6 @@ class TestMethods(tm.TestCase):
                 p + o
 
     def test_sub_offset(self):
-        _skip_if_not_numpy17_friendly()
-
         # freq is DateOffset
         p = Period('2011', freq='A')
         self.assertEqual(p - offsets.YearEnd(2), Period('2009', freq='A'))
@@ -2626,8 +2620,6 @@ class TestMethods(tm.TestCase):
                 p - o
 
     def test_sub_offset_nat(self):
-        _skip_if_not_numpy17_friendly()
-
         # freq is DateOffset
         p = Period('NaT', freq='A')
         for o in [offsets.YearEnd(2)]:

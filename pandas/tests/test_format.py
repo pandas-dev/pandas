@@ -14,7 +14,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, _np_version_under1p7, Timestamp, MultiIndex
+from pandas import DataFrame, Series, Index, Timestamp, MultiIndex
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -2727,10 +2727,6 @@ class TestFloatArrayFormatter(tm.TestCase):
 
 
 class TestRepr_timedelta64(tm.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        tm._skip_if_not_numpy17_friendly()
-
     def test_legacy(self):
         delta_1d = pd.to_timedelta(1, unit='D')
         delta_0d = pd.to_timedelta(0, unit='D')
@@ -2775,10 +2771,6 @@ class TestRepr_timedelta64(tm.TestCase):
 
 
 class TestTimedelta64Formatter(tm.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        tm._skip_if_not_numpy17_friendly()
-
     def test_mixed(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')

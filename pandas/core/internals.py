@@ -25,7 +25,7 @@ import pandas.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 
 from pandas.tslib import Timestamp
-from pandas import compat, _np_version_under1p7
+from pandas import compat
 from pandas.compat import range, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
@@ -1298,10 +1298,8 @@ class TimeDeltaBlock(IntBlock):
     def get_values(self, dtype=None):
         # return object dtypes as datetime.timedeltas
         if dtype == object:
-            if _np_version_under1p7:
-                return self.values.astype('object')
             return lib.map_infer(self.values.ravel(),
-                                 lambda x: timedelta(microseconds=x.item()/1000)
+                                 lambda x: timedelta(microseconds=x.item() / 1000)
                                  ).reshape(self.values.shape)
         return self.values
 

@@ -11,8 +11,6 @@ from dateutil.easter import easter
 import pandas.tslib as tslib
 from pandas.tslib import Timestamp, OutOfBoundsDatetime
 
-from pandas import _np_version_under1p7
-
 import functools
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
@@ -2062,7 +2060,7 @@ class Micro(Tick):
 
 
 class Nano(Tick):
-    _inc = np.timedelta64(1, 'ns') if not _np_version_under1p7 else 1
+    _inc = np.timedelta64(1, 'ns')
     _prefix = 'N'
 
 
@@ -2181,9 +2179,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     FY5253Quarter,
 ])
 
-if not _np_version_under1p7:
-    # Only 1.7+ supports nanosecond resolution
-    prefix_mapping['N'] = Nano
+prefix_mapping['N'] = Nano
 
 
 def _make_offset(key):

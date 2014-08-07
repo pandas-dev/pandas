@@ -41,7 +41,7 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
-from pandas import _testing, _np_version_under1p7
+from pandas import _testing
 
 
 from pandas.io.common import urlopen
@@ -225,11 +225,6 @@ def mplskip(cls):
     cls.setUpClass = setUpClass
     return cls
 
-def _skip_if_not_numpy17_friendly():
-    # not friendly for < 1.7
-    if _np_version_under1p7:
-        import nose
-        raise nose.SkipTest("numpy >= 1.7 is required")
 
 def _skip_if_no_scipy():
     try:
@@ -351,7 +346,6 @@ def get_locales(prefix=None, normalize=True,
         # raw_locales is "\n" seperated list of locales
         # it may contain non-decodable parts, so split
         # extract what we can and then rejoin.
-        locales = raw_locales.split(b'\n')
         raw_locales = []
         for x in raw_locales:
             try:
@@ -1231,7 +1225,7 @@ _network_errno_vals = (
 # and conditionally raise on these exception types
 _network_error_classes = (IOError, httplib.HTTPException)
 
-if sys.version_info[:2] >= (3,3):
+if sys.version_info >= (3, 3):
     _network_error_classes += (TimeoutError,)
 
 def can_connect(url, error_classes=_network_error_classes):

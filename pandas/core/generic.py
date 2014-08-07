@@ -16,7 +16,7 @@ from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
 import pandas.core.datetools as datetools
-from pandas import compat, _np_version_under1p7
+from pandas import compat
 from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
@@ -3613,21 +3613,6 @@ class NDFrame(PandasObject):
         -------
         abs: type of caller
         """
-
-        # suprimo numpy 1.6 hacking
-        # for timedeltas
-        if _np_version_under1p7:
-
-            def _convert_timedeltas(x):
-                if x.dtype.kind == 'm':
-                    return np.abs(x.view('i8')).astype(x.dtype)
-                return np.abs(x)
-
-            if self.ndim == 1:
-                return _convert_timedeltas(self)
-            elif self.ndim == 2:
-                return  self.apply(_convert_timedeltas)
-
         return np.abs(self)
 
     _shared_docs['describe'] = """

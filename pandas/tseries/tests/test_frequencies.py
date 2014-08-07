@@ -16,7 +16,6 @@ import pandas.tseries.offsets as offsets
 from pandas.tseries.period import PeriodIndex
 import pandas.compat as compat
 
-from pandas import _np_version_under1p7
 import pandas.util.testing as tm
 
 def test_to_offset_multiple():
@@ -48,11 +47,10 @@ def test_to_offset_multiple():
     expected = offsets.Milli(10075)
     assert(result == expected)
 
-    if not _np_version_under1p7:
-        freqstr = '2800N'
-        result = frequencies.to_offset(freqstr)
-        expected = offsets.Nano(2800)
-        assert(result == expected)
+    freqstr = '2800N'
+    result = frequencies.to_offset(freqstr)
+    expected = offsets.Nano(2800)
+    assert(result == expected)
 
     # malformed
     try:
@@ -137,7 +135,6 @@ class TestFrequencyInference(tm.TestCase):
         self._check_tick(timedelta(microseconds=1), 'U')
 
     def test_nanosecond(self):
-        tm._skip_if_not_numpy17_friendly()
         self._check_tick(np.timedelta64(1, 'ns'), 'N')
 
     def _check_tick(self, base_delta, code):

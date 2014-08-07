@@ -298,7 +298,12 @@ class IndexOpsMixin(object):
 
     def item(self):
         """ return the first element of the underlying data as a python scalar """
-        return self.values.item()
+        try:
+            return self.values.item()
+        except IndexError:
+            # copy numpy's message here because Py26 raises an IndexError
+            raise ValueError('can only convert an array of size 1 to a '
+                             'Python scalar')
 
     @property
     def data(self):

@@ -1848,6 +1848,8 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
+    from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+    from pandas.tseries.tools import to_datetime
 
     if dtype is not None:
         if isinstance(dtype, compat.string_types):
@@ -1886,13 +1888,11 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            from pandas.tseries.tools import to_datetime
                             value = to_datetime(value, coerce=coerce).values
                         elif is_timedelta64:
-                            from pandas.tseries.timedeltas import \
-                                _possibly_cast_to_timedelta
-                            value = _possibly_cast_to_timedelta(value, coerce='compat', dtype=dtype)
-                    except:
+                            value = _possibly_cast_to_timedelta(value,
+                                                                dtype=dtype)
+                    except (AttributeError, ValueError):
                         pass
 
     else:
@@ -1901,28 +1901,20 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
 
         # catch a datetime/timedelta that is not of ns variety
         # and no coercion specified
-        if (is_array and value.dtype.kind in ['M','m']):
+        if is_array and value.dtype.kind in ['M', 'm']:
             dtype = value.dtype
 
             if dtype.kind == 'M' and dtype != _NS_DTYPE:
                 value = value.astype(_NS_DTYPE)
 
             elif dtype.kind == 'm' and dtype != _TD_DTYPE:
-                from pandas.tseries.timedeltas import \
-                     _possibly_cast_to_timedelta
-                value = _possibly_cast_to_timedelta(value, coerce='compat')
+                value = _possibly_cast_to_timedelta(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
-        elif (is_array and not (
-            issubclass(value.dtype.type, np.integer) or
-            value.dtype == np.object_)):
-            pass
-
-        # try to infer if we have a datetimelike here
-        # otherwise pass thru
-        else:
+        elif not (is_array and not (issubclass(value.dtype.type, np.integer) or
+                                    value.dtype == np.object_)):
             value = _possibly_infer_to_datetimelike(value)
 
     return value

@@ -14,7 +14,7 @@ import os
 
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, Timestamp, _np_version_under1p7)
+                    MultiIndex, Int64Index, Timestamp)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
@@ -1721,9 +1721,6 @@ class DataCol(IndexCol):
         if inferred_type == 'datetime64':
             self.set_atom_datetime64(block)
         elif dtype == 'timedelta64[ns]':
-            if _np_version_under1p7:
-                raise TypeError(
-                    "timdelta64 is not supported under under numpy < 1.7")
             self.set_atom_timedelta64(block)
         elif inferred_type == 'date':
             raise TypeError(
@@ -2240,9 +2237,6 @@ class GenericFixed(Fixed):
             if dtype == u('datetime64'):
                 ret = np.array(ret, dtype='M8[ns]')
             elif dtype == u('timedelta64'):
-                if _np_version_under1p7:
-                    raise TypeError(
-                        "timedelta64 is not supported under under numpy < 1.7")
                 ret = np.array(ret, dtype='m8[ns]')
 
         if transposed:

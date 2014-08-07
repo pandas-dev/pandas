@@ -1,5 +1,6 @@
 # pylint: disable-msg=W0614,W0401,W0611,W0622
 
+
 __docformat__ = 'restructuredtext'
 
 try:
@@ -18,6 +19,7 @@ except Exception:  # pragma: no cover
 from datetime import datetime
 import numpy as np
 
+
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
@@ -27,13 +29,19 @@ except Exception:  # pragma: no cover
 # numpy versioning
 from distutils.version import LooseVersion
 _np_version = np.version.short_version
-_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
-_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 _np_version_under1p8 = LooseVersion(_np_version) < '1.8'
 _np_version_under1p9 = LooseVersion(_np_version) < '1.9'
 
+
 from pandas.version import version as __version__
 from pandas.info import __doc__
+
+
+if LooseVersion(_np_version) < '1.7.0':
+    raise ImportError('pandas {0} is incompatible with numpy < 1.7.0, '
+                      'your numpy version is {1}. Please upgrade numpy to'
+                      ' >= 1.7.0 to use pandas version {0}'.format(__version__,
+                                                                   _np_version))
 
 # let init-time option registration happen
 import pandas.core.config_init
