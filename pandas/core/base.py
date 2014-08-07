@@ -24,7 +24,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise NotImplementedError
+        raise NotImplementedError("StringMixin __unicode__ format")
 
     def __str__(self):
         """
@@ -410,7 +410,7 @@ class DatetimeIndexOpsMixin(object):
         """
         box function to get object from internal representation
         """
-        raise NotImplementedError
+        raise NotImplementedError("Box function to get object from internal representation")
 
     def _box_values(self, values):
         """

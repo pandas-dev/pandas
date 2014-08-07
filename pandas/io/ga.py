@@ -240,7 +240,7 @@ class GDataReader(OAuthDataReader):
         return _get_match(profiles, name, id, **kwargs)
 
     def create_query(self, *args, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError("Create query in GDataReader is not implemented")
 
     @Substitution(extras='')
     @Appender(_GA_READER_DOC)

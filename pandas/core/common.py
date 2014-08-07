@@ -38,6 +38,11 @@ class SettingWithCopyWarning(Warning):
 class AmbiguousIndexError(PandasError, KeyError):
     pass
 
+class AbstractMethodError(NotImplementedError):
+    def __init__(self,m):
+        self.message = m
+    def __str__(self):
+        return "This method must be defined on the concrete class - "+self.message
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8',
@@ -204,7 +209,7 @@ def _isnull_new(obj):
         return lib.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
-        raise NotImplementedError("isnull is not defined for MultiIndex")
+        raise AbstractMethodError("isnull is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
@@ -230,7 +235,7 @@ def _isnull_old(obj):
         return lib.checknull_old(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
-        raise NotImplementedError("isnull is not defined for MultiIndex")
+        raise AbstractMethodError("isnull is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):

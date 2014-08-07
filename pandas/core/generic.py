@@ -135,7 +135,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        raise NotImplementedError
+        raise NotImplementedError("NDFrame _constructor")
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -150,7 +150,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor_sliced(self):
-        raise NotImplementedError
+        raise NotImplementedError("NDFrame _constructor_sliced")
 
     #----------------------------------------------------------------------
     # Axis
@@ -1073,7 +1073,7 @@ class NDFrame(PandasObject):
         return lower
 
     def _box_item_values(self, key, values):
-        raise NotImplementedError
+        raise NotImplementedError("NDFrame _box_item_values")
 
     def _maybe_cache_changed(self, item, value):
         """
@@ -1684,7 +1684,7 @@ class NDFrame(PandasObject):
                 method is None and level is None and not self._is_mixed_type)
 
     def _reindex_multi(self, axes, copy, fill_value):
-        return NotImplemented
+        raise NotImplementedError("NDFrame _reindex_multi")
 
     _shared_docs['reindex_axis'] = (
         """Conform input object to new index with optional filling logic,
@@ -2228,7 +2228,7 @@ class NDFrame(PandasObject):
                 raise ValueError('must specify a fill method or value')
             if self._is_mixed_type and axis == 1:
                 if inplace:
-                    raise NotImplementedError()
+                    raise NotImplementedError("fillna with inplace=True and _is_mixed_type=True and axis=1")
                 result = self.T.fillna(method=method, limit=limit).T
 
                 # need to downcast here because of all of the transposes
@@ -2929,7 +2929,7 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for DatatimeIndex instance only")
 
         if len(self.index) == 0:
             return self
@@ -2963,7 +2963,7 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for DatatimeIndex instance only")
 
         if len(self.index) == 0:
             return self

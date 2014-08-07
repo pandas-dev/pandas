@@ -250,7 +250,7 @@ class SparseDataFrame(DataFrame):
         return DataFrame(data, index=self.index)
 
     def astype(self, dtype):
-        raise NotImplementedError
+        raise NotImplementedError("SparseDataFrame astype not implemented")
 
     def copy(self, deep=True):
         """
@@ -419,7 +419,7 @@ class SparseDataFrame(DataFrame):
         new_index, new_columns = this.index, this.columns
 
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Combine Frames implemented only for level=None.")
 
         if self.empty and other.empty:
             return SparseDataFrame(index=new_index).__finalize__(self)
@@ -460,9 +460,9 @@ class SparseDataFrame(DataFrame):
         new_data = {}
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Combine match index implemented for fill_value=None only")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Combine match index implemented for level=None only")
 
         new_index = self.index.union(other.index)
         this = self
@@ -495,9 +495,10 @@ class SparseDataFrame(DataFrame):
         # possible for this to happen, which is bothersome
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Combine match columns implemented for fill_value=None only")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("Combine match columns implemented for level=None only")
+
 
         new_data = {}
 
@@ -568,10 +569,10 @@ class SparseDataFrame(DataFrame):
             raise TypeError('Reindex by level not supported for sparse')
 
         if com.notnull(fill_value):
-            raise NotImplementedError
+            raise NotImplementedError("Currently reindexing for com.nonnull(fillvalue)=True is not implemented")
 
         if limit:
-            raise NotImplementedError
+            raise NotImplementedError("Currently limit=None is only implemented")
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)

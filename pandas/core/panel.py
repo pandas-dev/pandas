@@ -595,10 +595,10 @@ class Panel(NDFrame):
         return frame.reindex(**self._extract_axes_for_slice(self, axes))
 
     def head(self, n=5):
-        raise NotImplementedError
+        raise NotImplementedError("Returns the head content of a Panel")
 
     def tail(self, n=5):
-        raise NotImplementedError
+        raise NotImplementedError("Returns the tail content of a Panel")
 
     def _needs_reindex_multi(self, axes, method, level):
         """ don't allow a multi reindex on Panel or above ndim """

@@ -686,7 +686,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
     -------
     replaced : array
     """
-    raise NotImplementedError
+    raise NotImplementedError("String slice replace not implemented")
 
 
 def str_strip(arr, to_strip=None):
@@ -991,7 +991,7 @@ class StringMethods(object):
 
     @copy(str_slice)
     def slice_replace(self, i=None, j=None):
-        raise NotImplementedError
+        raise NotImplementedError("String slice replace is not implemented.")
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):

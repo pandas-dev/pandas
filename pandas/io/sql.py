@@ -469,7 +469,7 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
     if isinstance(frame, Series):
         frame = frame.to_frame()
     elif not isinstance(frame, DataFrame):
-        raise NotImplementedError
+        raise NotImplementedError("Currently to_sql() implemented only for Series and DataFrame")
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label)
@@ -1014,7 +1014,7 @@ class PandasSQLLegacy(PandasSQL):
         if flavor is None:
             flavor = 'sqlite'
         if flavor not in ['sqlite', 'mysql']:
-            raise NotImplementedError
+            raise NotImplementedError("Currently implemented for sqlite and mysql flavors only")
         else:
             self.flavor = flavor
 

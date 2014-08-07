@@ -27,7 +27,7 @@ cdef class SparseIndex:
     Abstract superclass for sparse index types
     '''
     def __init__(self):
-        raise NotImplementedError
+        raise NotImplementedError("Initialization of Supercall SparseIndex is not implemented")
 
 
 cdef class IntIndex(SparseIndex):
@@ -556,7 +556,7 @@ cdef class BlockMerge(object):
         self.result = self._make_merged_blocks()
 
     cdef _make_merged_blocks(self):
-        raise NotImplementedError
+        raise NotImplementedError("BlockMerge _make_merged_blocks not implemented")
 
     cdef _set_current_indices(self, int32_t xi, int32_t yi, bint mode):
         if mode == 0:

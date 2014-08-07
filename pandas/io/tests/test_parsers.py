@@ -52,10 +52,10 @@ bar2,12,13,14,15
 """
 
     def read_csv(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Read CSV in Parser Tests is not implemented")
 
     def read_table(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Read Table in Parser Tests is not implemented")
 
     def setUp(self):
         import warnings
