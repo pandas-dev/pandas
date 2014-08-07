@@ -838,6 +838,13 @@ class Index(IndexOpsMixin, PandasObject):
     def __deepcopy__(self, memo={}):
         return self.copy(deep=True)
 
+    def __nonzero__(self):
+        raise ValueError("The truth value of a {0} is ambiguous. "
+                         "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+                         .format(self.__class__.__name__))
+
+    __bool__ = __nonzero__
+
     def __contains__(self, key):
         hash(key)
         # work around some kind of odd cython bug
