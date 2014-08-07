@@ -1633,9 +1633,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         if not (_np_version_under1p7 or compat.PY3_2):
             for f in [lambda : np.timedelta64(1, 'D').astype('m8[ns]') * pd.date_range('2000-01-01', periods=3),
                       lambda : pd.date_range('2000-01-01', periods=3) * np.timedelta64(1, 'D').astype('m8[ns]') ]:
-                tm.assertRaisesRegexp(TypeError,
-                                      "cannot perform multiplication with this index type",
-                                      f)
+                self.assertRaises(TypeError, f)
 
 class TestPeriodIndex(Base, tm.TestCase):
     _holder = PeriodIndex

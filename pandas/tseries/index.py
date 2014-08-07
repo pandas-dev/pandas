@@ -88,7 +88,7 @@ def _dt_index_cmp(opname, nat_result=False):
                 other = DatetimeIndex(other)
             elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
                 other = _ensure_datetime64(other)
-            result = func(other)
+            result = func(np.asarray(other))
             result = _values_from_object(result)
 
             if isinstance(other, Index):

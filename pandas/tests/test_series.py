@@ -5236,9 +5236,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         identity = self.series.reindex(self.series.index)
 
-        # the older numpies / 3.2 call __array_inteface__ which we don't define
-        if not _np_version_under1p7 and not PY3_2:
+        # __array_interface__ is not defined for older numpies
+        # and on some pythons
+        try:
             self.assertTrue(np.may_share_memory(self.series.index, identity.index))
+        except (AttributeError):
+            pass
 
         self.assertTrue(identity.index.is_(self.series.index))
         self.assertTrue(identity.index.identical(self.series.index))

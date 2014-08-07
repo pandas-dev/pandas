@@ -34,7 +34,7 @@ from pandas.util.testing import assert_frame_equal
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas import concat
-from pandas import _np_version_under1p7
+from pandas import _np_version_under1p7, _np_version_under1p8
 
 from numpy.testing.decorators import slow
 
@@ -705,7 +705,7 @@ class TestTimeSeries(tm.TestCase):
             df = DataFrame({'ints': np.arange(n)}, index=np.arange(n))
             df[unit] = vals
 
-            ex_vals = to_datetime(vals.astype('O'))
+            ex_vals = to_datetime(vals.astype('O')).values
 
             self.assertEqual(df[unit].dtype, ns_dtype)
             self.assertTrue((df[unit].values == ex_vals).all())
@@ -721,7 +721,7 @@ class TestTimeSeries(tm.TestCase):
             tmp = df.copy()
 
             tmp['dates'] = vals
-            ex_vals = to_datetime(vals.astype('O'))
+            ex_vals = to_datetime(vals.astype('O')).values
 
             self.assertTrue((tmp['dates'].values == ex_vals).all())
 
@@ -2225,7 +2225,7 @@ class TestDatetimeIndex(tm.TestCase):
                          np.datetime64('2014-06-01 00:00Z'),
                          np.datetime64('2014-07-01 00:00Z')])
 
-        if _np_version_under1p7:
+        if _np_version_under1p8:
             # cannot test array because np.datetime('nat') returns today's date
             cases = [(fidx1, fidx2), (didx1, didx2)]
         else:
