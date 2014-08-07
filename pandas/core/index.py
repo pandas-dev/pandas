@@ -560,6 +560,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def is_monotonic(self):
+        """ return if the index has monotonic (only equaly or increasing) values """
         return self._engine.is_monotonic
 
     def is_lexsorted_for_tuple(self, tup):
@@ -567,6 +568,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly(allow_setting=True)
     def is_unique(self):
+        """ return if the index has unique values """
         return self._engine.is_unique
 
     def is_integer(self):
@@ -788,6 +790,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def inferred_type(self):
+        """ return a string of the type inferred from the values """
         return lib.infer_dtype(self)
 
     def is_type_compatible(self, typ):
@@ -2142,6 +2145,11 @@ class Int64Index(NumericIndex):
     @property
     def inferred_type(self):
         return 'integer'
+
+    @cache_readonly
+    def hasnans(self):
+        # by definition
+        return False
 
     @property
     def asi8(self):

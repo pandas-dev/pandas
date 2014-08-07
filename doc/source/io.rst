@@ -2101,7 +2101,8 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   In 0.13, pickle preserves compatibility with pickles created prior to 0.13. These must
+   Several internal refactorings, 0.13 (:ref:`Series Refactoring <whatsnew_0130.refactoring>`), and 0.15 (:ref:`Index Refactoring <whatsnew_0150.refactoring>`),
+   preserve compatibility with pickles created prior to these versions. However, these must
    be read with ``pd.read_pickle``, rather than the default python ``pickle.load``.
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.

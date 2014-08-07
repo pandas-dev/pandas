@@ -313,9 +313,33 @@ class IndexOpsMixin(object):
         """ The maximum value of the object """
         return nanops.nanmax(self.values)
 
+    def argmax(self, axis=None):
+        """
+        return a ndarray of the maximum argument indexer
+
+        See also
+        --------
+        numpy.ndarray.argmax
+        """
+        return nanops.nanargmax(self.values)
+
     def min(self):
         """ The minimum value of the object """
         return nanops.nanmin(self.values)
+
+    def argmin(self, axis=None):
+        """
+        return a ndarray of the minimum argument indexer
+
+        See also
+        --------
+        numpy.ndarray.argmin
+        """
+        return nanops.nanargmin(self.values)
+
+    def hasnans(self):
+        """ return if I have any nans; enables various perf speedups """
+        return com.isnull(self).any()
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
@@ -554,10 +578,11 @@ class DatetimeIndexOpsMixin(object):
         numpy.ndarray.argmin
         """
 
-        ##### FIXME: need some tests (what do do if all NaT?)
         i8 = self.asi8
         if self.hasnans:
             mask = i8 == tslib.iNaT
+            if mask.all():
+                return -1
             i8 = i8.copy()
             i8[mask] = np.iinfo('int64').max
         return i8.argmin()
@@ -596,10 +621,11 @@ class DatetimeIndexOpsMixin(object):
         numpy.ndarray.argmax
         """
 
-        #### FIXME: need some tests (what do do if all NaT?)
         i8 = self.asi8
         if self.hasnans:
             mask = i8 == tslib.iNaT
+            if mask.all():
+                return -1
             i8 = i8.copy()
             i8[mask] = 0
         return i8.argmax()
