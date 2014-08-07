@@ -3320,6 +3320,20 @@ to pass to :func:`pandas.to_datetime`:
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
 
+Schema support
+~~~~~~~~~~~~~~
+
+.. versionadded:: 0.15.0
+
+Reading from and writing to different schema's is supported through the ``schema``
+keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
+functions. Note however that this depends on the database flavor (sqlite does not
+have schema's). For example:
+
+.. code-block:: python
+   
+   df.to_sql('table', engine, schema='other_schema')
+   pd.read_sql_table('table', engine, schema='other_schema')
 
 Querying
 ~~~~~~~~

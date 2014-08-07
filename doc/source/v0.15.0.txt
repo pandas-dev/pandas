@@ -429,6 +429,13 @@ Enhancements
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function.  This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`)
 - Added support for writing ``datetime.date`` and ``datetime.time`` object columns with ``to_sql`` (:issue:`6932`).
+- Added support for specifying a ``schema`` to read from/write to with ``read_sql_table`` and ``to_sql`` (:issue:`7441`, :issue:`7952`).
+  For example:
+
+.. code-block:: python
+   
+   df.to_sql('table', engine, schema='other_schema')
+   pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 

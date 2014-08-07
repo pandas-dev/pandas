@@ -28,7 +28,7 @@ import numpy as np
 
 from datetime import datetime, date, time
 
-from pandas import DataFrame, Series, Index, MultiIndex, isnull
+from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta
 import pandas.compat as compat
 from pandas.compat import StringIO, range, lrange, string_types
@@ -457,12 +457,12 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(result, self.test_frame1)
 
     def test_roundtrip_chunksize(self):
-        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn, 
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn,
             index=False, flavor='sqlite', chunksize=2)
         result = sql.read_sql_query(
             'SELECT * FROM test_frame_roundtrip',
             con=self.conn)
-        tm.assert_frame_equal(result, self.test_frame1)        
+        tm.assert_frame_equal(result, self.test_frame1)
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
@@ -591,13 +591,13 @@ class _TestSQLApi(PandasSQLTest):
                           index_label='C')
 
     def test_multiindex_roundtrip(self):
-        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')],
                                     columns=['A','B','C'], index=['A','B'])
 
         df.to_sql('test_multiindex_roundtrip', self.conn)
-        result = sql.read_sql_query('SELECT * FROM test_multiindex_roundtrip', 
+        result = sql.read_sql_query('SELECT * FROM test_multiindex_roundtrip',
                                     self.conn, index_col=['A','B'])
-        tm.assert_frame_equal(df, result, check_index_type=True)        
+        tm.assert_frame_equal(df, result, check_index_type=True)
 
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
@@ -1196,8 +1196,8 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     flavor = 'postgresql'
 
     def connect(self):
-        return sqlalchemy.create_engine(
-            'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
+        url = 'postgresql+{driver}://postgres@localhost/pandas_nosetest'
+        return sqlalchemy.create_engine(url.format(driver=self.driver))
 
     def setup_driver(self):
         try:
@@ -1212,6 +1212,61 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             " WHERE table_schema = 'public'")
         for table in c.fetchall():
             self.conn.execute("DROP TABLE %s" % table[0])
+
+    def test_schema_support(self):
+        # only test this for postgresql (schema's not supported in mysql/sqlite)
+        df = DataFrame({'col1':[1, 2], 'col2':[0.1, 0.2], 'col3':['a', 'n']})
+
+        # create a schema
+        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
+        self.conn.execute("CREATE SCHEMA other;")
+
+        # write dataframe to different schema's
+        df.to_sql('test_schema_public', self.conn, index=False)
+        df.to_sql('test_schema_public_explicit', self.conn, index=False,
+                  schema='public')
+        df.to_sql('test_schema_other', self.conn, index=False, schema='other')
+
+        # read dataframes back in
+        res1 = sql.read_sql_table('test_schema_public', self.conn)
+        tm.assert_frame_equal(df, res1)
+        res2 = sql.read_sql_table('test_schema_public_explicit', self.conn)
+        tm.assert_frame_equal(df, res2)
+        res3 = sql.read_sql_table('test_schema_public_explicit', self.conn,
+                                  schema='public')
+        tm.assert_frame_equal(df, res3)
+        res4 = sql.read_sql_table('test_schema_other', self.conn,
+                                  schema='other')
+        tm.assert_frame_equal(df, res4)
+        self.assertRaises(ValueError, sql.read_sql_table, 'test_schema_other',
+                          self.conn, schema='public')
+
+        ## different if_exists options
+
+        # create a schema
+        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
+        self.conn.execute("CREATE SCHEMA other;")
+
+        # write dataframe with different if_exists options
+        df.to_sql('test_schema_other', self.conn, schema='other', index=False)
+        df.to_sql('test_schema_other', self.conn, schema='other', index=False,
+                  if_exists='replace')
+        df.to_sql('test_schema_other', self.conn, schema='other', index=False,
+                  if_exists='append')
+        res = sql.read_sql_table('test_schema_other', self.conn, schema='other')
+        tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
+
+        ## specifying schema in user-provided meta
+
+        engine2 = self.connect()
+        meta = sqlalchemy.MetaData(engine2, schema='other')
+        pdsql = sql.PandasSQLAlchemy(engine2, meta=meta)
+        pdsql.to_sql(df, 'test_schema_other2', index=False)
+        pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='replace')
+        pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='append')
+        res1 = sql.read_sql_table('test_schema_other2', self.conn, schema='other')
+        res2 = pdsql.read_table('test_schema_other2')
+        tm.assert_frame_equal(res1, res2)
 
 
 #------------------------------------------------------------------------------
@@ -1295,7 +1350,7 @@ class TestSQLiteLegacy(PandasSQLTest):
             tm.assert_frame_equal(res, df.astype(str))
         elif self.flavor == 'mysql':
             tm.assert_frame_equal(res, df)
-    
+
     def test_datetime_time(self):
         # test support for datetime.time
         raise nose.SkipTest("datetime.time not supported for sqlite fallback")

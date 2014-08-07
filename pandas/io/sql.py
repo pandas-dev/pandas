@@ -253,8 +253,8 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
 #------------------------------------------------------------------------------
 #--- Read and write to DataFrames
 
-def read_sql_table(table_name, con, schema=None, index_col=None, coerce_float=True,
-                   parse_dates=None, columns=None):
+def read_sql_table(table_name, con, schema=None, index_col=None,
+                   coerce_float=True, parse_dates=None, columns=None):
     """Read SQL database table into a DataFrame.
 
     Given a table name and an SQLAlchemy engine, returns a DataFrame.
@@ -266,7 +266,9 @@ def read_sql_table(table_name, con, schema=None, index_col=None, coerce_float=Tr
         Name of SQL table in database
     con : SQLAlchemy engine
         Sqlite DBAPI connection mode not supported
-    schema : Name of SQL schema in database.
+    schema : string, default None
+        Name of SQL schema in database to query (if database flavor supports this).
+        If None, use default schema (default).
     index_col : string, optional
         Column to set as index
     coerce_float : boolean, default True
@@ -299,16 +301,16 @@ def read_sql_table(table_name, con, schema=None, index_col=None, coerce_float=Tr
                                   "SQLAlchemy engines.")
     import sqlalchemy
     from sqlalchemy.schema import MetaData
-    meta = MetaData(con)
+    meta = MetaData(con, schema=schema)
     try:
-        meta.reflect(only=[table_name], schema=schema)
+        meta.reflect(only=[table_name])
     except sqlalchemy.exc.InvalidRequestError:
         raise ValueError("Table %s not found" % table_name)
 
     pandas_sql = PandasSQLAlchemy(con, meta=meta)
     table = pandas_sql.read_table(
         table_name, index_col=index_col, coerce_float=coerce_float,
-        parse_dates=parse_dates, columns=columns, schema=schema)
+        parse_dates=parse_dates, columns=columns)
 
     if table is not None:
         return table
@@ -456,7 +458,9 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
         'mysql' is deprecated and will be removed in future versions, but it
         will be further supported through SQLAlchemy engines.
-    schema : Name of SQL schema in database.
+    schema : string, default None
+        Name of SQL schema in database to write to (if database flavor supports
+        this). If None, use default schema (default).
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
@@ -475,7 +479,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, schema=schema, flavor=flavor)
 
     if isinstance(frame, Series):
         frame = frame.to_frame()
@@ -503,14 +507,16 @@ def has_table(table_name, con, flavor='sqlite', schema=None):
         The flavor of SQL to use. Ignored when using SQLAlchemy engine.
         'mysql' is deprecated and will be removed in future versions, but it
         will be further supported through SQLAlchemy engines.
-    schema : Name of SQL schema in database.
+    schema : string, default None
+        Name of SQL schema in database to write to (if database flavor supports
+        this). If None, use default schema (default).
 
     Returns
     -------
     boolean
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    return pandas_sql.has_table(table_name, schema=schema)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor, schema=schema)
+    return pandas_sql.has_table(table_name)
 
 table_exists = has_table
 
@@ -519,7 +525,7 @@ _MYSQL_WARNING = ("The 'mysql' flavor with DBAPI connection is deprecated "
                   "and will be removed in future versions. "
                   "MySQL will be further supported with SQLAlchemy engines.")
 
-def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
+def pandasSQL_builder(con, flavor=None, schema=None, meta=None, is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
@@ -527,7 +533,7 @@ def pandasSQL_builder(con, flavor=None, meta=None, is_cursor=False):
     # When support for DBAPI connections is removed,
     # is_cursor should not be necessary.
     if _is_sqlalchemy_engine(con):
-        return PandasSQLAlchemy(con, meta=meta)
+        return PandasSQLAlchemy(con, schema=schema, meta=meta)
     else:
         if flavor == 'mysql':
             warnings.warn(_MYSQL_WARNING, FutureWarning)
@@ -836,11 +842,11 @@ class PandasSQLAlchemy(PandasSQL):
     using SQLAlchemy to handle DataBase abstraction
     """
 
-    def __init__(self, engine, meta=None):
+    def __init__(self, engine, schema=None, meta=None):
         self.engine = engine
         if not meta:
             from sqlalchemy.schema import MetaData
-            meta = MetaData(self.engine)
+            meta = MetaData(self.engine, schema=schema)
 
         self.meta = meta
 
@@ -886,15 +892,17 @@ class PandasSQLAlchemy(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name, schema=None):
-        return self.engine.has_table(name, schema)
+        return self.engine.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name, schema=None):
+        schema = schema or self.meta.schema
         if schema:
             return self.meta.tables.get('.'.join([schema, table_name]))
         else:
             return self.meta.tables.get(table_name)
 
     def drop_table(self, table_name, schema=None):
+        schema = schema or self.meta.schema
         if self.engine.has_table(table_name, schema):
             self.meta.reflect(only=[table_name], schema=schema)
             self.get_table(table_name, schema).drop()
@@ -1123,7 +1131,7 @@ class PandasSQLLegacy(PandasSQL):
         return result
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, chunksize=None):
+               index_label=None, schema=None, chunksize=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1143,7 +1151,7 @@ class PandasSQLLegacy(PandasSQL):
             index_label=index_label)
         table.insert(chunksize)
 
-    def has_table(self, name):
+    def has_table(self, name, schema=None):
         flavor_map = {
             'sqlite': ("SELECT name FROM sqlite_master "
                        "WHERE type='table' AND name='%s';") % name,
@@ -1152,10 +1160,10 @@ class PandasSQLLegacy(PandasSQL):
 
         return len(self.execute(query).fetchall()) > 0
 
-    def get_table(self, table_name):
+    def get_table(self, table_name, schema=None):
         return None  # not supported in Legacy mode
 
-    def drop_table(self, name):
+    def drop_table(self, name, schema=None):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
