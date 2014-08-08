@@ -528,8 +528,8 @@ the function.
 Reshaping
 ---------
 
-See the section on :ref:`Hierarchical Indexing <indexing.hierarchical>` and
-see the section on :ref:`Reshaping <reshaping.stacking>`).
+See the sections on :ref:`Hierarchical Indexing <indexing.hierarchical>` and
+:ref:`Reshaping <reshaping.stacking>`.
 
 Stack
 ~~~~~
