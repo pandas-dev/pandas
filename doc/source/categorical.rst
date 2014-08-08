@@ -332,6 +332,45 @@ Operations
 
 The following operations are possible with categorical data:
 
+Comparing `Categoricals` with other objects is possible in two cases:
+ * comparing a `Categorical` to another `Categorical`, when `level` and `ordered` is the same or
+ * comparing a `Categorical` to a scalar.
+All other comparisons will raise a TypeError.
+
+.. ipython:: python
+
+    cat = pd.Series(pd.Categorical([1,2,3], levels=[3,2,1]))
+    cat_base = pd.Series(pd.Categorical([2,2,2], levels=[3,2,1]))
+    cat_base2 = pd.Series(pd.Categorical([2,2,2]))
+
+    cat > cat_base
+
+    # This doesn't work because the levels are not the same
+    try:
+        cat > cat_base2
+    except TypeError as e:
+         print("TypeError: " + str(e))
+
+    cat > 2
+
+.. note::
+
+    Comparisons with `Series`, `np.array` or a `Categorical` with different levels or ordering
+    will raise an `TypeError` because custom level ordering would result in two valid results:
+    one with taking in account the ordering and one without. If you want to compare a `Categorical`
+    with such a type, you need to be explicit and convert the `Categorical` to values:
+
+.. ipython:: python
+
+    base = np.array([1,2,3])
+
+    try:
+        cat > base
+    except TypeError as e:
+         print("TypeError: " + str(e))
+
+    np.asarray(cat) > base
+
 Getting the minimum and maximum, if the categorical is ordered:
 
 .. ipython:: python
@@ -510,7 +549,8 @@ The same applies to ``df.append(df)``.
 Getting Data In/Out
 -------------------
 
-Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype will currently raise ``NotImplementedError``.
+Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype will currently
+raise ``NotImplementedError``.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 `Categorical` (levels and ordering). So if you read back the CSV file you have to convert the
@@ -580,7 +620,7 @@ object and not as a low level `numpy` array dtype. This leads to some problems.
     try:
         np.dtype("category")
     except TypeError as e:
-         print("TypeError: " + str(e))
+        print("TypeError: " + str(e))
 
     dtype = pd.Categorical(["a"]).dtype
     try:

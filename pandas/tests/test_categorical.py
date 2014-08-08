@@ -223,6 +223,62 @@ class TestCategorical(tm.TestCase):
         expected = np.repeat(False, len(self.factor))
         self.assert_numpy_array_equal(result, expected)
 
+        # comparisons with categoricals
+        cat_rev = pd.Categorical(["a","b","c"], levels=["c","b","a"])
+        cat_rev_base = pd.Categorical(["b","b","b"], levels=["c","b","a"])
+        cat = pd.Categorical(["a","b","c"])
+        cat_base = pd.Categorical(["b","b","b"], levels=cat.levels)
+
+        # comparisons need to take level ordering into account
+        res_rev = cat_rev > cat_rev_base
+        exp_rev = np.array([True, False, False])
+        self.assert_numpy_array_equal(res_rev, exp_rev)
+
+        res_rev = cat_rev < cat_rev_base
+        exp_rev = np.array([False, False, True])
+        self.assert_numpy_array_equal(res_rev, exp_rev)
+
+        res = cat > cat_base
+        exp = np.array([False, False, True])
+        self.assert_numpy_array_equal(res, exp)
+
+        # Only categories with same levels can be compared
+        def f():
+            cat > cat_rev
+        self.assertRaises(TypeError, f)
+
+        cat_rev_base2 = pd.Categorical(["b","b","b"], levels=["c","b","a","d"])
+        def f():
+            cat_rev > cat_rev_base2
+        self.assertRaises(TypeError, f)
+
+        # Only categories with same ordering information can be compared
+        cat_unorderd = cat.copy()
+        cat_unorderd.ordered = False
+        self.assertFalse((cat > cat).any())
+        def f():
+            cat > cat_unorderd
+        self.assertRaises(TypeError, f)
+
+        # comparison (in both directions) with Series will raise
+        s = Series(["b","b","b"])
+        self.assertRaises(TypeError, lambda: cat > s)
+        self.assertRaises(TypeError, lambda: cat_rev > s)
+        self.assertRaises(TypeError, lambda: s < cat)
+        self.assertRaises(TypeError, lambda: s < cat_rev)
+
+        # comparison with numpy.array will raise in both direction, but only on newer
+        # numpy versions
+        a = np.array(["b","b","b"])
+        self.assertRaises(TypeError, lambda: cat > a)
+        self.assertRaises(TypeError, lambda: cat_rev > a)
+
+        # The following work via '__array_priority__ = 1000'
+        # but only on numpy > 1.6.1?
+        tm._skip_if_not_numpy17_friendly()
+        self.assertRaises(TypeError, lambda: a < cat)
+        self.assertRaises(TypeError, lambda: a < cat_rev)
+
     def test_na_flags_int_levels(self):
         # #1457
 
@@ -1609,6 +1665,57 @@ class TestCategoricalAsBlock(tm.TestCase):
         s[1] = np.nan
         tm.assert_series_equal(s, exp)
 
+    def test_comparisons(self):
+        tests_data = [(list("abc"), list("cba"), list("bbb")),
+                      ([1,2,3], [3,2,1], [2,2,2])]
+        for data , reverse, base in tests_data:
+            cat_rev = pd.Series(pd.Categorical(data, levels=reverse))
+            cat_rev_base = pd.Series(pd.Categorical(base, levels=reverse))
+            cat = pd.Series(pd.Categorical(data))
+            cat_base = pd.Series(pd.Categorical(base, levels=cat.cat.levels))
+            s = Series(base)
+            a = np.array(base)
+
+            # comparisons need to take level ordering into account
+            res_rev = cat_rev > cat_rev_base
+            exp_rev = Series([True, False, False])
+            tm.assert_series_equal(res_rev, exp_rev)
+
+            res_rev = cat_rev < cat_rev_base
+            exp_rev = Series([False, False, True])
+            tm.assert_series_equal(res_rev, exp_rev)
+
+            res = cat > cat_base
+            exp = Series([False, False, True])
+            tm.assert_series_equal(res, exp)
+
+            # Only categories with same levels can be compared
+            def f():
+                cat > cat_rev
+            self.assertRaises(TypeError, f)
+
+            # categorical cannot be compared to Series or numpy array, and also not the other way
+            # around
+            self.assertRaises(TypeError, lambda: cat > s)
+            self.assertRaises(TypeError, lambda: cat_rev > s)
+            self.assertRaises(TypeError, lambda: cat > a)
+            self.assertRaises(TypeError, lambda: cat_rev > a)
+
+            self.assertRaises(TypeError, lambda: s < cat)
+            self.assertRaises(TypeError, lambda: s < cat_rev)
+
+            self.assertRaises(TypeError, lambda: a < cat)
+            self.assertRaises(TypeError, lambda: a < cat_rev)
+
+            # Categoricals can be compared to scalar values
+            res = cat_rev > base[0]
+            tm.assert_series_equal(res, exp)
+
+        # And test NaN handling...
+        cat = pd.Series(pd.Categorical(["a","b","c", np.nan]))
+        exp = Series([True, True, True, False])
+        res = (cat == cat)
+        tm.assert_series_equal(res, exp)
 
     def test_concat(self):
         cat = pd.Categorical(["a","b"], levels=["a","b"])

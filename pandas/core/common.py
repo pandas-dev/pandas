@@ -275,7 +275,9 @@ def _isnull_ndarraylike(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if dtype.kind in ('O', 'S', 'U'):
+    if is_categorical_dtype(values):
+        result = _isnull_categorical(values)
+    elif dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
@@ -285,7 +287,6 @@ def _isnull_ndarraylike(obj):
             result = np.empty(shape, dtype=bool)
             vec = lib.isnullobj(values.ravel())
             result[...] = vec.reshape(shape)
-
     elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
@@ -299,6 +300,14 @@ def _isnull_ndarraylike(obj):
 
     return result
 
+def _isnull_categorical(obj):
+    ret = obj._codes == -1
+    # String/object and float levels can hold np.nan
+    if obj.levels.dtype.kind in ('S', 'O' 'f'):
+        if np.nan in obj.levels:
+            nan_pos = np.where(com.isnull(self.levels))
+            ret = ret | obj == nan_pos
+    return ret
 
 def _isnull_ndarraylike_old(obj):
     values = getattr(obj, 'values', obj)

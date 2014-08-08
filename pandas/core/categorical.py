@@ -19,16 +19,36 @@ from pandas.core import format as fmt
 
 def _cat_compare_op(op):
     def f(self, other):
-        if isinstance(other, (Categorical, np.ndarray)):
-            values = np.asarray(self)
-            f = getattr(values, op)
-            return f(np.asarray(other))
-        else:
+        # On python2, you can usually compare any type to any type, and Categoricals can be
+        # seen as a custom type, but having different results depending whether a level are
+        # the same or not is kind of insane, so be a bit stricter here and use the python3 idea
+        # of comparing only things of equal type.
+        if not self.ordered:
+            if op in ['__lt__', '__gt__','__le__','__ge__']:
+                raise TypeError("Unordered Categoricals can only compare equality or not")
+        if isinstance(other, Categorical):
+            # Two Categoricals can only be be compared if the levels are the same
+            if (len(self.levels) != len(other.levels)) or not ((self.levels == other.levels).all()):
+                raise TypeError("Categoricals can only be compared if 'levels' are the same")
+            if not (self.ordered == other.ordered):
+                raise TypeError("Categoricals can only be compared if 'ordered' is the same")
+            na_mask = (self._codes == -1) | (other._codes == -1)
+            f = getattr(self._codes, op)
+            ret = f(other._codes)
+            if na_mask.any():
+                # In other series, the leads to False, so do that here too
+                ret[na_mask] = False
+            return ret
+        elif np.isscalar(other):
             if other in self.levels:
                 i = self.levels.get_loc(other)
                 return getattr(self._codes, op)(i)
             else:
                 return np.repeat(False, len(self))
+        else:
+            msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
+                  "compare values, use 'np.asarray(cat) <op> other'."
+            raise TypeError(msg.format(op=op,typ=type(other)))
 
     f.__name__ = op
 
@@ -171,6 +191,9 @@ class Categorical(PandasObject):
     Categorical.min
     Categorical.max
     """
+
+    # For comparisons, so that numpy uses our implementation if the compare ops, which raise
+    __array_priority__ = 1000
 
     def __init__(self, values, levels=None, ordered=None, name=None, fastpath=False, compat=False):
 
@@ -447,9 +470,16 @@ class Categorical(PandasObject):
         Returns
         -------
         values : numpy array
-            A numpy array of the same dtype as categorical.levels.dtype
+            A numpy array of either the specified dtype or, if dtype==None (default), the same
+            dtype as categorical.levels.dtype
         """
-        return com.take_1d(self.levels.values, self._codes)
+        ret = com.take_1d(self.levels.values, self._codes)
+        if dtype and dtype != self.levels.dtype:
+            return np.asarray(ret, dtype)
+        return ret
+
+    def astype(self, dtype, order='K', casting='unsafe', subok=True, copy=True):
+        return np.asarray(self, dtype)
 
     @property
     def T(self):
