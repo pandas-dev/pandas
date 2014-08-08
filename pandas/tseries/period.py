@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 import operator
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import numpy as np
 from pandas.core.base import PandasObject
 
@@ -10,6 +10,7 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
+import pandas.tseries.offsets as offsets
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
@@ -169,8 +170,37 @@ class Period(PandasObject):
     def __hash__(self):
         return hash((self.ordinal, self.freq))
 
+    def _add_delta(self, other):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+            offset = frequencies.to_offset(self.freq)
+            if isinstance(offset, offsets.Tick):
+                nanos = tslib._delta_to_nanoseconds(other)
+                offset_nanos = tslib._delta_to_nanoseconds(offset)
+
+                if nanos % offset_nanos == 0:
+                    if self.ordinal == tslib.iNaT:
+                        ordinal = self.ordinal
+                    else:
+                        ordinal = self.ordinal + (nanos // offset_nanos)
+                    return Period(ordinal=ordinal, freq=self.freq)
+        elif isinstance(other, offsets.DateOffset):
+            freqstr = frequencies.get_standard_freq(other)
+            base = frequencies.get_base_alias(freqstr)
+
+            if base == self.freq:
+                if self.ordinal == tslib.iNaT:
+                    ordinal = self.ordinal
+                else:
+                    ordinal = self.ordinal + other.n
+                return Period(ordinal=ordinal, freq=self.freq)
+
+        raise ValueError("Input has different freq from Period(freq={0})".format(self.freq))
+
     def __add__(self, other):
-        if com.is_integer(other):
+        if isinstance(other, (timedelta, np.timedelta64,
+                              offsets.Tick, offsets.DateOffset)):
+            return self._add_delta(other)
+        elif com.is_integer(other):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
@@ -180,13 +210,17 @@ class Period(PandasObject):
             return NotImplemented
 
     def __sub__(self, other):
-        if com.is_integer(other):
+        if isinstance(other, (timedelta, np.timedelta64,
+                              offsets.Tick, offsets.DateOffset)):
+            neg_other = -other
+            return self + neg_other
+        elif com.is_integer(other):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
                 ordinal = self.ordinal - other
             return Period(ordinal=ordinal, freq=self.freq)
-        if isinstance(other, Period):
+        elif isinstance(other, Period):
             if other.freq != self.freq:
                 raise ValueError("Cannot do arithmetic with "
                                  "non-conforming periods")
@@ -861,6 +895,22 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         new_data = tslib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
+
+    def _add_delta(self, other):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+            offset = frequencies.to_offset(self.freq)
+            if isinstance(offset, offsets.Tick):
+                nanos = tslib._delta_to_nanoseconds(other)
+                offset_nanos = tslib._delta_to_nanoseconds(offset)
+                if nanos % offset_nanos == 0:
+                    return self.shift(nanos // offset_nanos)
+        elif isinstance(other, offsets.DateOffset):
+            freqstr = frequencies.get_standard_freq(other)
+            base = frequencies.get_base_alias(freqstr)
+
+            if base == self.freq:
+                return self.shift(other.n)
+        raise ValueError("Input has different freq from PeriodIndex(freq={0})".format(self.freq))
 
     def shift(self, n):
         """

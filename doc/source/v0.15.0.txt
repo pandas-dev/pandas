@@ -271,10 +271,21 @@ Enhancements
 
 
 
+- ``Period`` and ``PeriodIndex`` supports addition/subtraction with ``timedelta``-likes (:issue:`7966`)
 
+  If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
+  .. ipython:: python
 
+    idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
+    idx
+    idx + pd.offsets.Hour(2)
+    idx + timedelta(minutes=120)
+    idx + np.timedelta64(7200, 's')
 
+    idx = pd.period_range('2014-07', periods=5, freq='M')
+    idx
+    idx + pd.offsets.MonthEnd(3)
 
 
 
@@ -411,6 +422,10 @@ Bug Fixes
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
 
+
+
+
+- ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 
 
 
