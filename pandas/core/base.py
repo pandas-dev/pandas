@@ -8,7 +8,13 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.tslib as tslib
+import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly
+
+
+_shared_docs = dict()
+_indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='')
+
 
 class StringMixin(object):
 
@@ -474,11 +480,65 @@ class IndexOpsMixin(object):
         #### needs tests/doc-string
         return self.values.searchsorted(key, side=side)
 
+    _shared_docs['drop_duplicates'] = (
+        """Return %(klass)s with duplicate values removed
+
+        Parameters
+        ----------
+        take_last : boolean, default False
+            Take the last observed index in a group. Default first
+        %(inplace)s
+
+        Returns
+        -------
+        deduplicated : %(klass)s
+        """)
+
+    @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
+    def drop_duplicates(self, take_last=False, inplace=False):
+        duplicated = self.duplicated(take_last=take_last)
+        result = self[~duplicated.values]
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result
+
+    _shared_docs['duplicated'] = (
+        """Return boolean %(klass)s denoting duplicate values
+
+        Parameters
+        ----------
+        take_last : boolean, default False
+            Take the last observed index in a group. Default first
+
+        Returns
+        -------
+        duplicated : %(klass)s
+        """)
+
+    @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
+    def duplicated(self, take_last=False):
+        keys = com._ensure_object(self.values)
+        duplicated = lib.duplicated(keys, take_last=take_last)
+        try:
+            return self._constructor(duplicated,
+                                     index=self.index).__finalize__(self)
+        except AttributeError:
+            from pandas.core.index import Index
+            return Index(duplicated)
+
     #----------------------------------------------------------------------
     # unbox reductions
 
     all = _unbox(np.ndarray.all)
     any = _unbox(np.ndarray.any)
+
+    #----------------------------------------------------------------------
+    # abstracts
+
+    def _update_inplace(self, result):
+        raise NotImplementedError
+
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
@@ -497,7 +557,6 @@ class DatetimeIndexOpsMixin(object):
         """
         apply box func to passed values
         """
-        import pandas.lib as lib
         return lib.map_infer(values, self._box_func)
 
     @cache_readonly

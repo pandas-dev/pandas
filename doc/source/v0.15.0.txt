@@ -179,6 +179,15 @@ API changes
 
 - Histogram from ``DataFrame.plot`` with ``kind='hist'`` (:issue:`7809`), See :ref:`the docs<visualization.hist>`.
 
+- ``Index`` now supports ``duplicated`` and ``drop_duplicates``. (:issue:`4060`)
+
+  .. ipython:: python
+
+     idx = Index([1, 2, 3, 4, 1, 2])
+     idx
+     idx.duplicated()
+     idx.drop_duplicates()
+
 .. _whatsnew_0150.dt:
 
 .dt accessor

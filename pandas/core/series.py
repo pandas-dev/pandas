@@ -52,10 +52,13 @@ from pandas.core.config import get_option
 
 __all__ = ['Series']
 
+
 _shared_doc_kwargs = dict(
     axes='index',
     klass='Series',
-    axes_single_arg="{0,'index'}"
+    axes_single_arg="{0,'index'}",
+    inplace="""inplace : boolean, default False
+            If True, performs operation inplace and returns None."""
 )
 
 
@@ -264,6 +267,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             object.__setattr__(self, '_subtyp', 'time_series')
         else:
             object.__setattr__(self, '_subtyp', 'series')
+
+    def _update_inplace(self, result):
+        return generic.NDFrame._update_inplace(self, result)
 
     # ndarray compatibility
     @property
@@ -1114,45 +1120,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.algorithms import mode
         return mode(self)
 
+    @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
     def drop_duplicates(self, take_last=False, inplace=False):
-        """
-        Return Series with duplicate values removed
+        return super(Series, self).drop_duplicates(take_last=take_last,
+                                                   inplace=inplace)
 
-        Parameters
-        ----------
-        take_last : boolean, default False
-            Take the last observed index in a group. Default first
-        inplace : boolean, default False
-            If True, performs operation inplace and returns None.
-
-        Returns
-        -------
-        deduplicated : Series
-        """
-        duplicated = self.duplicated(take_last=take_last)
-        result = self[-duplicated]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
-
+    @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
     def duplicated(self, take_last=False):
-        """
-        Return boolean Series denoting duplicate values
-
-        Parameters
-        ----------
-        take_last : boolean, default False
-            Take the last observed index in a group. Default first
-
-        Returns
-        -------
-        duplicated : Series
-        """
-        keys = _ensure_object(self.values)
-        duplicated = lib.duplicated(keys, take_last=take_last)
-        return self._constructor(duplicated,
-                                 index=self.index).__finalize__(self)
+        return super(Series, self).duplicated(take_last=take_last)
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """

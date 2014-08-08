@@ -2031,6 +2031,20 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.loc[('foo','bar')]
         assert_frame_equal(result,expected)
 
+    def test_duplicated_drop_duplicates(self):
+        # GH 4060
+        idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2 ,3], [1, 1, 1, 1, 2, 2]))
+
+        expected = Index([False, False, False, True, False, False])
+        tm.assert_index_equal(idx.duplicated(), expected)
+        expected = MultiIndex.from_arrays(([1, 2, 3, 2 ,3], [1, 1, 1, 2, 2]))
+        tm.assert_index_equal(idx.drop_duplicates(), expected)
+
+        expected = Index([True, False, False, False, False, False])
+        tm.assert_index_equal(idx.duplicated(take_last=True), expected)
+        expected = MultiIndex.from_arrays(([2, 3, 1, 2 ,3], [1, 1, 1, 2, 2]))
+        tm.assert_index_equal(idx.drop_duplicates(take_last=True), expected)
+
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {'t1': [2, 2.5, 3], 't2': [4, 5, 6]}

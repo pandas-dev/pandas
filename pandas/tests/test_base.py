@@ -339,9 +339,13 @@ class TestIndexOps(Ops):
                 # freq must be specified because repeat makes freq ambiguous
                 expected_index = o[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
-            else:
+            elif isinstance(o, Index):
                 expected_index = values[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)))
+            else:
+                expected_index = values[::-1]
+                idx = np.repeat(o.index.values, range(1, len(o) + 1))
+                o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx)
 
             expected_s = Series(range(10, 0, -1), index=expected_index, dtype='int64')
             tm.assert_series_equal(o.value_counts(), expected_s)
@@ -374,11 +378,16 @@ class TestIndexOps(Ops):
 
                 # create repeated values, 'n'th element is repeated by n+1 times
                 if isinstance(o, PeriodIndex):
+                    # freq must be specified because repeat makes freq ambiguous
                     expected_index = o
                     o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
-                else:
+                elif isinstance(o, Index):
                     expected_index = values
                     o = klass(np.repeat(values, range(1, len(o) + 1)))
+                else:
+                    expected_index = values
+                    idx = np.repeat(o.index.values, range(1, len(o) + 1))
+                    o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx)
 
                 expected_s_na = Series(list(range(10, 2, -1)) +[3], index=expected_index[9:0:-1], dtype='int64')
                 expected_s = Series(list(range(10, 2, -1)), index=expected_index[9:1:-1], dtype='int64')
@@ -570,6 +579,63 @@ class TestIndexOps(Ops):
             else:
                 expected = o[5:].append(o[:5])
                 self.assertTrue(uniques.equals(expected))
+
+    def test_duplicated_drop_duplicates(self):
+        # GH 4060
+        for original in self.objs:
+
+            if isinstance(original, Index):
+                # original doesn't have duplicates
+                expected = Index([False] * len(original))
+                tm.assert_index_equal(original.duplicated(), expected)
+                result = original.drop_duplicates()
+                tm.assert_index_equal(result, original)
+                self.assertFalse(result is original)
+
+                # create repeated values, 3rd and 5th values are duplicated
+                idx = original[list(range(len(original))) + [5, 3]]
+                expected = Index([False] * len(original) + [True, True])
+                tm.assert_index_equal(idx.duplicated(), expected)
+                tm.assert_index_equal(idx.drop_duplicates(), original)
+
+                last_base = [False] * len(idx)
+                last_base[3] = True
+                last_base[5] = True
+                expected = Index(last_base)
+                tm.assert_index_equal(idx.duplicated(take_last=True), expected)
+                tm.assert_index_equal(idx.drop_duplicates(take_last=True),
+                                      idx[~np.array(last_base)])
+
+                with tm.assertRaisesRegexp(TypeError,
+                                           "drop_duplicates\(\) got an unexpected keyword argument"):
+                    idx.drop_duplicates(inplace=True)
+
+            else:
+                expected = Series([False] * len(original), index=original.index)
+                tm.assert_series_equal(original.duplicated(), expected)
+                result = original.drop_duplicates()
+                tm.assert_series_equal(result, original)
+                self.assertFalse(result is original)
+
+                idx = original.index[list(range(len(original))) + [5, 3]]
+                values = original.values[list(range(len(original))) + [5, 3]]
+                s = Series(values, index=idx)
+
+                expected = Series([False] * len(original) + [True, True], index=idx)
+                tm.assert_series_equal(s.duplicated(), expected)
+                tm.assert_series_equal(s.drop_duplicates(), original)
+
+                last_base = [False] * len(idx)
+                last_base[3] = True
+                last_base[5] = True
+                expected = Series(last_base, index=idx)
+                expected
+                tm.assert_series_equal(s.duplicated(take_last=True), expected)
+                tm.assert_series_equal(s.drop_duplicates(take_last=True),
+                                       s[~np.array(last_base)])
+
+                s.drop_duplicates(inplace=True)
+                tm.assert_series_equal(s, original)
 
 
 class TestDatetimeIndexOps(Ops):

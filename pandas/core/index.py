@@ -12,7 +12,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
-from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin
+from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs
 from pandas.util.decorators import Appender, cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
@@ -29,6 +29,8 @@ __all__ = ['Index']
 
 
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
+
+_index_doc_kwargs = dict(klass='Index', inplace='')
 
 
 def _try_get_item(x):
@@ -208,6 +210,10 @@ class Index(IndexOpsMixin, PandasObject):
             setattr(result,k,v)
         result._reset_identity()
         return result
+
+    def _update_inplace(self, result):
+        # guard when called from IndexOpsMixin
+        raise TypeError("Index can't be updated inplace")
 
     def is_(self, other):
         """
@@ -2018,6 +2024,15 @@ class Index(IndexOpsMixin, PandasObject):
         if mask.any():
             raise ValueError('labels %s not contained in axis' % labels[mask])
         return self.delete(indexer)
+
+    @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
+    def drop_duplicates(self, take_last=False):
+        result = super(Index, self).drop_duplicates(take_last=take_last)
+        return self._constructor(result)
+
+    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    def duplicated(self, take_last=False):
+        return super(Index, self).duplicated(take_last=take_last)
 
     @classmethod
     def _add_numeric_methods_disabled(cls):

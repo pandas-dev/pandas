@@ -374,6 +374,8 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.drop_duplicates
+   Series.duplicated
    Series.equals
    Series.first
    Series.head
@@ -1165,6 +1167,8 @@ Modifying and Computations
    Index.diff
    Index.sym_diff
    Index.drop
+   Index.drop_duplicates
+   Index.duplicated
    Index.equals
    Index.factorize
    Index.identical
