@@ -290,6 +290,24 @@ class TestCategorical(tm.TestCase):
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
 
+        # empty levels show up as NA
+        cat = Categorical(["a","b","b","b"], levels=['a','b','c'], ordered=True)
+        result = cat.describe()
+
+        expected = DataFrame([[1,0.25],[3,0.75],[np.nan,np.nan]],
+                             columns=['counts','freqs'],
+                             index=Index(['a','b','c'],name='levels'))
+        tm.assert_frame_equal(result,expected)
+
+        # NA as a level
+        cat = pd.Categorical(["a","c","c",np.nan], levels=["b","a","c",np.nan] )
+        result = cat.describe()
+
+        expected = DataFrame([[np.nan, np.nan],[1,0.25],[2,0.5], [1,0.25]],
+                             columns=['counts','freqs'],
+                             index=Index(['b','a','c',np.nan],name='levels'))
+        tm.assert_frame_equal(result,expected)
+
 
     def test_print(self):
         expected = [" a", " b", " b", " a", " a", " c", " c", " c",
@@ -731,7 +749,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # so this WILL change values
         cat = Categorical(["a","b","c","a"])
         s =  pd.Series(cat)
-        self.assertTrue(s.cat is cat)
+        self.assertTrue(s.values is cat)
         s.cat.levels = [1,2,3]
         exp_s = np.array([1,2,3,1])
         self.assert_numpy_array_equal(s.__array__(), exp_s)
@@ -747,20 +765,20 @@ class TestCategoricalAsBlock(tm.TestCase):
         # Nans are represented as -1 in labels
         s = Series(Categorical(["a","b",np.nan,"a"]))
         self.assert_numpy_array_equal(s.cat.levels, np.array(["a","b"]))
-        self.assert_numpy_array_equal(s.cat._codes, np.array([0,1,-1,0]))
+        self.assert_numpy_array_equal(s.cat.codes, np.array([0,1,-1,0]))
 
         # If levels have nan included, the label should point to that instead
         s2 = Series(Categorical(["a","b",np.nan,"a"], levels=["a","b",np.nan]))
         self.assert_numpy_array_equal(s2.cat.levels,
                                       np.array(["a","b",np.nan], dtype=np.object_))
-        self.assert_numpy_array_equal(s2.cat._codes, np.array([0,1,2,0]))
+        self.assert_numpy_array_equal(s2.cat.codes, np.array([0,1,2,0]))
 
         # Changing levels should also make the replaced level np.nan
         s3 = Series(Categorical(["a","b","c","a"]))
         s3.cat.levels = ["a","b",np.nan]
         self.assert_numpy_array_equal(s3.cat.levels,
                                       np.array(["a","b",np.nan], dtype=np.object_))
-        self.assert_numpy_array_equal(s3.cat._codes, np.array([0,1,2,0]))
+        self.assert_numpy_array_equal(s3.cat.codes, np.array([0,1,2,0]))
 
     def test_sequence_like(self):
 
@@ -770,8 +788,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         df['grade'] = Categorical(df['raw_grade'])
 
         # basic sequencing testing
-        result = list(df.grade.cat)
-        expected = np.array(df.grade.cat).tolist()
+        result = list(df.grade.values)
+        expected = np.array(df.grade.values).tolist()
         tm.assert_almost_equal(result,expected)
 
         # iteration
@@ -813,7 +831,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         exp_values = np.array(["a","b","c","a"])
         s.cat.reorder_levels(["c","b","a"])
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
-        self.assert_numpy_array_equal(s.cat.__array__(), exp_values)
+        self.assert_numpy_array_equal(s.values.__array__(), exp_values)
         self.assert_numpy_array_equal(s.__array__(), exp_values)
 
         # remove unused levels
@@ -822,7 +840,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         exp_values = np.array(["a","b","b","a"])
         s.cat.remove_unused_levels()
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
-        self.assert_numpy_array_equal(s.cat.__array__(), exp_values)
+        self.assert_numpy_array_equal(s.values.__array__(), exp_values)
         self.assert_numpy_array_equal(s.__array__(), exp_values)
 
         # This method is likely to be confused, so test that it raises an error on wrong inputs:
@@ -881,31 +899,16 @@ class TestCategoricalAsBlock(tm.TestCase):
         result = self.cat.describe()
         self.assertEquals(len(result.columns),1)
 
-        # empty levels show up as NA
-        s = Series(Categorical(["a","b","b","b"], levels=['a','b','c'], ordered=True))
-        result = s.cat.describe()
 
-        expected = DataFrame([[1,0.25],[3,0.75],[np.nan,np.nan]],
-                             columns=['counts','freqs'],
-                             index=Index(['a','b','c'],name='levels'))
-        tm.assert_frame_equal(result,expected)
+        # In a frame, describe() for the cat should be the same as for string arrays (count, unique,
+        # top, freq)
 
+        cat = Categorical(["a","b","b","b"], levels=['a','b','c'], ordered=True)
+        s = Series(cat)
         result = s.describe()
         expected = Series([4,2,"b",3],index=['count','unique','top', 'freq'])
         tm.assert_series_equal(result,expected)
 
-        # NA as a level
-        cat = pd.Categorical(["a","c","c",np.nan], levels=["b","a","c",np.nan] )
-        result = cat.describe()
-
-        expected = DataFrame([[np.nan, np.nan],[1,0.25],[2,0.5], [1,0.25]],
-                             columns=['counts','freqs'],
-                             index=Index(['b','a','c',np.nan],name='levels'))
-        tm.assert_frame_equal(result,expected)
-
-
-        # In a frame, describe() for the cat should be the same as for string arrays (count, unique,
-        # top, freq)
         cat = pd.Series(pd.Categorical(["a","b","c","c"]))
         df3 = pd.DataFrame({"cat":cat, "s":["a","b","c","c"]})
         res = df3.describe()
@@ -1085,7 +1088,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # Cats must be sorted in a dataframe
         res = df.sort(columns=["string"], ascending=False)
         exp = np.array(["d", "c", "b", "a"])
-        self.assert_numpy_array_equal(res["sort"].cat.__array__(), exp)
+        self.assert_numpy_array_equal(res["sort"].values.__array__(), exp)
         self.assertEqual(res["sort"].dtype, "category")
 
         res = df.sort(columns=["sort"], ascending=False)

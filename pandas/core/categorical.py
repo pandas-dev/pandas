@@ -8,7 +8,7 @@ from pandas import compat
 from pandas.compat import u
 
 from pandas.core.algorithms import factorize
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, PandasDelegate
 from pandas.core.index import Index, _ensure_index
 from pandas.core.indexing import _is_null_slice
 from pandas.tseries.period import PeriodIndex
@@ -966,6 +966,34 @@ class Categorical(PandasObject):
         result.index.name = 'levels'
 
         return result
+
+##### The Series.cat accessor #####
+
+class CategoricalProperties(PandasDelegate):
+    """
+    This is a delegator class that passes thru limit property access
+    """
+
+    def __init__(self, values, index):
+        self.categorical = values
+        self.index = index
+
+    def _delegate_property_get(self, name):
+        return getattr(self.categorical, name)
+
+    def _delegate_property_set(self, name, new_values):
+        return setattr(self.categorical, name, new_values)
+
+    def _delegate_method(self, name, *args, **kwargs):
+        method = getattr(self.categorical, name)
+        return method(*args, **kwargs)
+
+CategoricalProperties._add_delegate_accessors(delegate=Categorical,
+                                           accessors=["levels", "codes", "ordered"],
+                                           typ='property')
+CategoricalProperties._add_delegate_accessors(delegate=Categorical,
+                                           accessors=["reorder_levels", "remove_unused_levels"],
+                                           typ='method')
 
 ##### utility routines #####
 
