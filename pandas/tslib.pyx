@@ -100,9 +100,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
         offset = to_offset(offset)
 
     if box:
-      func_create = create_timestamp_from_ts
+        func_create = create_timestamp_from_ts
     else:
-      func_create = create_datetime_from_ts
+        func_create = create_datetime_from_ts
 
     if tz is not None:
         if _is_utc(tz):
@@ -359,7 +359,7 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
-    def tz_localize(self, tz, infer_dst=False):
+    def tz_localize(self, tz, ambiguous='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -369,18 +369,26 @@ class Timestamp(_Timestamp):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
-        infer_dst : boolean, default False
-            Attempt to infer fall dst-transition hours based on order
-
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+            that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            
         Returns
         -------
         localized : Timestamp
         """
+        if ambiguous == 'infer':
+            raise ValueError('Cannot infer offset with only one time.')
+        
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
+            if not isinstance(ambiguous, basestring):
+                ambiguous   =   [ambiguous]
             value = tz_localize_to_utc(np.array([self.value]), tz,
-                                       infer_dst=infer_dst)[0]
+                                       ambiguous=ambiguous)[0]
             return Timestamp(value, tz=tz)
         else:
             if tz is None:
@@ -1330,12 +1338,12 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             else:
                 try:
                     if len(val) == 0:
-                       iresult[i] = iNaT
-                       continue
+                        iresult[i] = iNaT
+                        continue
 
                     elif val in _nat_strings:
-                       iresult[i] = iNaT
-                       continue
+                        iresult[i] = iNaT
+                        continue
 
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
@@ -1349,8 +1357,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst)
                     except Exception:
                         if coerce:
-                           iresult[i] = iNaT
-                           continue
+                            iresult[i] = iNaT
+                            continue
                         raise TypeError
 
                     try:
@@ -1491,7 +1499,7 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
     return ts.astype('timedelta64[ns]')
 
 def repr_timedelta64(object value, format=None):
-   """
+    """
     provide repr for timedelta64
 
     Parameters
@@ -1503,60 +1511,60 @@ def repr_timedelta64(object value, format=None):
     -------
     converted : Timestamp
 
-   """
-   cdef object ivalue
+    """
+    cdef object ivalue
 
-   ivalue = value.view('i8')
+    ivalue = value.view('i8')
 
-   # put frac in seconds
-   frac   = float(ivalue)/1e9
-   sign   = np.sign(frac)
-   frac   = np.abs(frac)
+    # put frac in seconds
+    frac   = float(ivalue)/1e9
+    sign   = np.sign(frac)
+    frac   = np.abs(frac)
 
-   if frac >= 86400:
-      days   = int(frac / 86400)
-      frac  -= days * 86400
-   else:
-      days   = 0
+    if frac >= 86400:
+        days   = int(frac / 86400)
+        frac  -= days * 86400
+    else:
+        days   = 0
 
-   if frac >= 3600:
-      hours  = int(frac / 3600)
-      frac  -= hours * 3600
-   else:
-      hours  = 0
+    if frac >= 3600:
+        hours  = int(frac / 3600)
+        frac  -= hours * 3600
+    else:
+        hours  = 0
 
-   if frac >= 60:
-      minutes = int(frac / 60)
-      frac   -= minutes * 60
-   else:
-      minutes  = 0
+    if frac >= 60:
+        minutes = int(frac / 60)
+        frac   -= minutes * 60
+    else:
+        minutes  = 0
 
-   if frac >= 1:
-      seconds = int(frac)
-      frac   -= seconds
-   else:
-      seconds = 0
+    if frac >= 1:
+        seconds = int(frac)
+        frac   -= seconds
+    else:
+        seconds = 0
 
-   if frac == int(frac):
-      seconds_pretty = "%02d" % seconds
-   else:
-      sp = abs(round(1e6*frac))
-      seconds_pretty = "%02d.%06d" % (seconds, sp)
+    if frac == int(frac):
+        seconds_pretty = "%02d" % seconds
+    else:
+        sp = abs(round(1e6*frac))
+        seconds_pretty = "%02d.%06d" % (seconds, sp)
 
-   if sign < 0:
-       sign_pretty = "-"
-   else:
-       sign_pretty = ""
+    if sign < 0:
+        sign_pretty = "-"
+    else:
+        sign_pretty = ""
 
-   if days or format == 'long':
-       if (hours or minutes or seconds or frac) or format != 'short':
-          return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
-                                           seconds_pretty)
-       else:
-          return "%s%d days" % (sign_pretty, days)
+    if days or format == 'long':
+        if (hours or minutes or seconds or frac) or format != 'short':
+            return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
+                                                seconds_pretty)
+        else:
+            return "%s%d days" % (sign_pretty, days)
 
 
-   return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
+    return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
 
 
 def array_strptime(ndarray[object] values, object fmt, coerce=False):
@@ -1765,8 +1773,8 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
             # Need to add 1 to result since first day of the year is 1, not 0.
             julian = datetime_date(year, month, day).toordinal() - \
                       datetime_date(year, 1, 1).toordinal() + 1
-        else:  # Assume that if they bothered to include Julian day it will
-               # be accurate.
+        else: # Assume that if they bothered to include Julian day it will 
+            # be accurate.
             datetime_result = datetime_date.fromordinal(
                 (julian - 1) + datetime_date(year, 1, 1).toordinal())
             year = datetime_result.year
@@ -1850,7 +1858,7 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except -1:
     base = <int64_t> ts
     frac = ts-base
     if p:
-       frac = round(frac,p)
+        frac = round(frac,p)
     return <int64_t> (base*m) + <int64_t> (frac*m)
 
 def cast_to_nanoseconds(ndarray arr):
@@ -2183,7 +2191,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
+def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
     """
     Localize tzinfo-naive DateRange to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -2199,6 +2207,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
         int64_t v, left, right
         ndarray[int64_t] result, result_a, result_b, dst_hours
         pandas_datetimestruct dts
+        bint infer_dst = False, is_dst = False, fill = False
 
     # Vectorized version of DstTzInfo.localize
 
@@ -2219,6 +2228,16 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
             delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
             result[i] = v - delta
         return result
+
+    if isinstance(ambiguous, string_types):
+        if ambiguous == 'infer':
+            infer_dst = True
+        elif ambiguous == 'NaT':
+            fill = True
+    elif hasattr(ambiguous, '__iter__'):
+        is_dst = True
+        if len(ambiguous) != len(vals):
+            raise ValueError("Length of ambiguous bool-array must be the same size as vals")
 
     trans = _get_transitions(tz)  # transition dates
     deltas = _get_deltas(tz)      # utc offsets
@@ -2307,10 +2326,17 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
             else:
                 if infer_dst and dst_hours[i] != NPY_NAT:
                     result[i] = dst_hours[i]
+                elif is_dst:
+                    if ambiguous[i]:
+                        result[i] = left
+                    else:
+                        result[i] = right
+                elif fill:
+                    result[i] = NPY_NAT
                 else:
                     stamp = Timestamp(vals[i])
                     raise pytz.AmbiguousTimeError("Cannot infer dst time from %r, "\
-                                                  "try using the 'infer_dst' argument"
+                                                  "try using the 'ambiguous' argument"
                                                   % stamp)
         elif left != NPY_NAT:
             result[i] = left
@@ -3328,7 +3354,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
             result = result.replace(str_extra_fmts[i], repl)
 
     if PY2:
-       result = result.decode('utf-8', 'ignore')
+        result = result.decode('utf-8', 'ignore')
 
     return result
 

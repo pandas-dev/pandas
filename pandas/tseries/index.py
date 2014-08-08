@@ -6,6 +6,8 @@ from datetime import timedelta
 
 import numpy as np
 
+import warnings
+
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
                                 ABCSeries)
@@ -18,7 +20,7 @@ from pandas.tseries.frequencies import (
 from pandas.core.base import DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
@@ -145,6 +147,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+    tz : pytz.timezone or dateutil.tz.tzfile
+    ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        - 'infer' will attempt to infer fall dst-transition hours based on order
+        - bool-ndarray where True signifies a DST time, False signifies
+          a non-DST time (note that this flag is only applicable for ambiguous times)
+        - 'NaT' will return NaT where there are ambiguous times
+        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
+    infer_dst : boolean, default False (DEPRECATED)
+        Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
     """
@@ -180,15 +191,17 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                          'is_quarter_start','is_quarter_end','is_year_start','is_year_end']
     _is_numeric_dtype = False
 
+
+    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
+                     mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None, tz=None,
                 verify_integrity=True, normalize=False,
-                closed=None, **kwargs):
+                closed=None, ambiguous='raise', **kwargs):
 
         dayfirst = kwargs.pop('dayfirst', None)
         yearfirst = kwargs.pop('yearfirst', None)
-        infer_dst = kwargs.pop('infer_dst', False)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -214,7 +227,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         if data is None:
             return cls._generate(start, end, periods, name, freq,
                                  tz=tz, normalize=normalize, closed=closed,
-                                 infer_dst=infer_dst)
+                                 ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if np.isscalar(data):
@@ -240,7 +253,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                         data.name = name
 
                     if tz is not None:
-                        return data.tz_localize(tz, infer_dst=infer_dst)
+                        return data.tz_localize(tz, ambiguous=ambiguous)
 
                     return data
 
@@ -309,7 +322,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
                     subarr = tslib.tz_localize_to_utc(ints, tz,
-                                                      infer_dst=infer_dst)
+                                                      ambiguous=ambiguous)
 
                 subarr = subarr.view(_NS_DTYPE)
 
@@ -333,7 +346,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
-                  tz=None, normalize=False, infer_dst=False, closed=None):
+                  tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Must specify two of start, end, or periods')
 
@@ -447,7 +460,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
             if tz is not None and getattr(index, 'tz', None) is None:
                 index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz,
-                                                 infer_dst=infer_dst)
+                                                 ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
         index = cls._simple_new(index, name=name, freq=offset, tz=tz)
@@ -1645,7 +1658,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         # No conversion since timestamps are all UTC to begin with
         return self._shallow_copy(tz=tz)
 
-    def tz_localize(self, tz, infer_dst=False):
+    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
+                 mapping={True: 'infer', False: 'raise'})
+    def tz_localize(self, tz, ambiguous='raise'):
         """
         Localize tz-naive DatetimeIndex to given time zone (using pytz/dateutil),
         or remove timezone from tz-aware DatetimeIndex
@@ -1656,7 +1671,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
             None will remove timezone holding local time.
-        infer_dst : boolean, default False
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            - 'infer' will attempt to infer fall dst-transition hours based on order
+            - bool-ndarray where True signifies a DST time, False signifies
+              a non-DST time (note that this flag is only applicable for ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
+        infer_dst : boolean, default False (DEPRECATED)
             Attempt to infer fall dst-transition hours based on order
 
         Returns
@@ -1671,7 +1692,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         else:
             tz = tslib.maybe_get_tz(tz)
             # Convert to UTC
-            new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)
+            
+            new_dates = tslib.tz_localize_to_utc(self.asi8, tz, 
+                                                 ambiguous=ambiguous)
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)
 

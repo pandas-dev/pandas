@@ -465,6 +465,10 @@ Deprecations
 
 - The ``convert_dummies`` method has been deprecated in favor of
   ``get_dummies`` (:issue:`8140`)
+- The ``infer_dst`` argument in ``tz_localize`` will be deprecated in favor of
+  ``ambiguous`` to allow for more flexibility in dealing with DST transitions.
+  Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
+  See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
 
 .. _whatsnew_0150.knownissues:
 
@@ -543,7 +547,10 @@ Enhancements
 
 
 
-
+- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools 
+  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT, 
+  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised (:issue:`7943`).
+  See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
 
 
 
