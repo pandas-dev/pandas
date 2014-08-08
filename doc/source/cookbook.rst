@@ -393,6 +393,9 @@ The :ref:`CSV <io.read_csv_table>` docs
 `appending to a csv
 <http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
 
+`how to read in multiple files, appending to create a single dataframe
+<http://stackoverflow.com/questions/25210819/speeding-up-data-import-function-pandas-and-appending-to-dataframe/25210900#25210900>`__
+
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
