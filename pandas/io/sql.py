@@ -420,7 +420,12 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
             sql, index_col=index_col, params=params,
             coerce_float=coerce_float, parse_dates=parse_dates)
 
-    if pandas_sql.has_table(sql):
+    try:
+        _is_table_name = pandas_sql.has_table(sql)
+    except:
+        _is_table_name = False
+
+    if _is_table_name:
         pandas_sql.meta.reflect(only=[sql])
         return pandas_sql.read_table(
             sql, index_col=index_col, coerce_float=coerce_float,

@@ -400,7 +400,7 @@ For full docs, see the :ref:`Categorical introduction <categorical>` and the
 
 
 
-
+- Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
 
 
 
