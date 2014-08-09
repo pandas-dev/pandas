@@ -162,10 +162,10 @@ class TestDataFrameFormatting(tm.TestCase):
             r = repr(df)
             r = r[r.find('\n') + 1:]
 
-            _strlen = fmt._strlen_func()
+            adj = fmt._get_adjustment()
 
             for line, value in lzip(r.split('\n'), df['B']):
-                if _strlen(value) + 1 > max_len:
+                if adj.len(value) + 1 > max_len:
                     self.assertIn('...', line)
                 else:
                     self.assertNotIn('...', line)
@@ -437,6 +437,209 @@ class TestDataFrameFormatting(tm.TestCase):
                               lambda x: '%s' % x})
         self.assertEqual(result, u('  c/\u03c3\n') +
                                  '0   1\n1   2\n2   3')
+
+    def test_east_asian_unicode_frame(self):
+        if PY3:
+            _rep = repr
+        else:
+            _rep = unicode
+
+        # not alighned properly because of east asian width
+
+        # mid col
+        df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
+                        'b': [1, 222, 33333, 4]},
+                       index=['a', 'bb', 'c', 'ddd'])
+        expected = (u"          a      b\na         あ      1\n"
+                    u"bb      いいい    222\nc         う  33333\n"
+                    u"ddd  ええええええ      4")
+        self.assertEqual(_rep(df), expected)
+
+        # last col
+        df = DataFrame({'a': [1, 222, 33333, 4],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=['a', 'bb', 'c', 'ddd'])
+        expected = (u"         a       b\na        1       あ\n"
+                    u"bb     222     いいい\nc    33333       う\n"
+                    u"ddd      4  ええええええ")
+        self.assertEqual(_rep(df), expected)
+
+        # all col
+        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=['a', 'bb', 'c', 'ddd'])
+        expected = (u"         a       b\na    あああああ       あ\n"
+                    u"bb       い     いいい\nc        う       う\n"
+                    u"ddd    えええ  ええええええ")
+        self.assertEqual(_rep(df), expected)
+
+        # column name
+        df = DataFrame({u'あああああ': [1, 222, 33333, 4],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=['a', 'bb', 'c', 'ddd'])
+        expected = (u"          b  あああああ\na         あ      1\n"
+                    u"bb      いいい    222\nc         う  33333\n"
+                    u"ddd  ええええええ      4")
+        self.assertEqual(_rep(df), expected)
+
+        # index
+        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=[u'あああ', u'いいいいいい', u'うう', u'え'])
+        expected = (u"            a       b\nあああ     あああああ       あ\n"
+                    u"いいいいいい      い     いいい\nうう          う       う\n"
+                    u"え         えええ  ええええええ")
+        self.assertEqual(_rep(df), expected)
+
+        # index name
+        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
+        expected = (u"          a       b\nおおおお               \nあ     あああああ       あ\n"
+                    u"い         い     いいい\nうう        う       う\nえ       えええ  ええええええ")
+        self.assertEqual(_rep(df), expected)
+
+        # all
+        df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
+                        u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
+                       index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
+        expected = (u"       あああ いいいいい\nお               \nあ      あああ     あ\n"
+                    u"いいい      い   いいい\nうう       う     う\nえ    えええええ    ええ")
+        self.assertEqual(_rep(df), expected)
+
+        # MultiIndex
+        idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'),
+                                         (u'おおお', u'かかかか'), (u'き', u'くく')])
+        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
+        expected = (u"              a       b\nあ   いい    あああああ       あ\n"
+                    u"う   え         い     いいい\nおおお かかかか      う       う\n"
+                    u"き   くく      えええ  ええええええ")
+        self.assertEqual(_rep(df), expected)
+
+        # truncate
+        with option_context('display.max_rows', 3, 'display.max_columns', 3):
+            df = pd.DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                               'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                               'c': [u'お', u'か', u'ききき', u'くくくくくく'],
+                               u'ああああ': [u'さ', u'し', u'す', u'せ']},
+                              columns=['a', 'b', 'c', u'ああああ'])
+
+            expected = (u"        a ...  ああああ\n0   あああああ ...     さ\n"
+                        u"..    ... ...   ...\n3     えええ ...     せ\n"
+                        u"\n[4 rows x 4 columns]")
+            self.assertEqual(_rep(df), expected)
+
+            df.index = [u'あああ', u'いいいい',  u'う', 'aaa']
+            expected = (u"         a ...  ああああ\nあああ  あああああ ...     さ\n"
+                        u"..     ... ...   ...\naaa    えええ ...     せ\n"
+                        u"\n[4 rows x 4 columns]")
+            self.assertEqual(_rep(df), expected)
+
+        # Emable Unicode option -----------------------------------------
+        with option_context('display.unicode.east_asian_width', True):
+
+            # mid col
+            df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
+                          'b': [1, 222, 33333, 4]},
+                         index=['a', 'bb', 'c', 'ddd'])
+            expected = (u"                a      b\na              あ      1\n"
+                        u"bb         いいい    222\nc              う  33333\n"
+                        u"ddd  ええええええ      4")
+            self.assertEqual(_rep(df), expected)
+
+            # last col
+            df = DataFrame({'a': [1, 222, 33333, 4],
+                          'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                         index=['a', 'bb', 'c', 'ddd'])
+            expected = (u"         a             b\na        1            あ\n"
+                        u"bb     222        いいい\nc    33333            う\n"
+                        u"ddd      4  ええええええ")
+            self.assertEqual(_rep(df), expected)
+
+            # all col
+            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                          'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                         index=['a', 'bb', 'c', 'ddd'])
+            expected = (u"              a             b\na    あああああ            あ\n"
+                        u"bb           い        いいい\nc            う            う\n"
+                        u"ddd      えええ  ええええええ""")
+            self.assertEqual(_rep(df), expected)
+
+            # column name
+            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
+                          'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                         index=['a', 'bb', 'c', 'ddd'])
+            expected = (u"                b  あああああ\na              あ           1\n"
+                        u"bb         いいい         222\nc              う       33333\n"
+                        u"ddd  ええええええ           4")
+            self.assertEqual(_rep(df), expected)
+
+            # index
+            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                           index=[u'あああ', u'いいいいいい', u'うう', u'え'])
+            expected = (u"                       a             b\nあああ        あああああ            あ\n"
+                        u"いいいいいい          い        いいい\nうう                  う            う\n"
+                        u"え                えええ  ええええええ")
+            self.assertEqual(_rep(df), expected)
+
+            # index name
+            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                           index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
+            expected = (u"                   a             b\nおおおお                          \n"
+                        u"あ        あああああ            あ\nい                い        いいい\n"
+                        u"うう              う            う\nえ            えええ  ええええええ")
+            self.assertEqual(_rep(df), expected)
+
+            # all
+            df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
+                            u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
+                           index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
+            expected = (u"            あああ いいいいい\nお                           \n"
+                        u"あ          あああ         あ\nいいい          い     いいい\n"
+                        u"うう            う         う\nえ      えええええ       ええ")
+            self.assertEqual(_rep(df), expected)
+
+            # MultiIndex
+            idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'),
+                                             (u'おおお', u'かかかか'), (u'き', u'くく')])
+            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                            'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
+            expected = (u"                          a             b\nあ     いい      あああああ            あ\n"
+                        u"う     え                い        いいい\nおおお かかかか          う            う\n"
+                        u"き     くく          えええ  ええええええ")
+            self.assertEqual(_rep(df), expected)
+
+            # truncate
+            with option_context('display.max_rows', 3, 'display.max_columns', 3):
+
+                df = pd.DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
+                                   'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                                   'c': [u'お', u'か', u'ききき', u'くくくくくく'],
+                                   u'ああああ': [u'さ', u'し', u'す', u'せ']},
+                                  columns=['a', 'b', 'c', u'ああああ'])
+
+                expected = (u"             a   ...    ああああ\n0   あああああ   ...          さ\n"
+                            u"..         ...   ...         ...\n3       えええ   ...          せ\n"
+                            u"\n[4 rows x 4 columns]")
+                self.assertEqual(_rep(df), expected)
+
+                df.index = [u'あああ', u'いいいい',  u'う', 'aaa']
+                expected = (u"                 a   ...    ああああ\nあああ  あああああ   ...          さ\n"
+                            u"...            ...   ...         ...\naaa         えええ   ...          せ\n"
+                            u"\n[4 rows x 4 columns]")
+                self.assertEqual(_rep(df), expected)
+
+            # ambiguous unicode
+            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
+                          'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
+                         index=['a', 'bb', 'c', '¡¡¡'])
+            expected = (u"                b  あああああ\na              あ           1\n"
+                        u"bb         いいい         222\nc              ¡¡       33333\n"
+                        u"¡¡¡  ええええええ           4")
+            self.assertEqual(_rep(df), expected)
 
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
@@ -894,10 +1097,6 @@ class TestDataFrameFormatting(tm.TestCase):
                            'données2': np.random.randn(5)})
         # it works
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
-
-
-
-
 
     def test_to_html_truncate(self):
         raise nose.SkipTest("unreliable on travis")
@@ -2887,6 +3086,148 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series([1, 2], name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
         sf = fmt.SeriesFormatter(s, name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
         sf._get_footer()  # should not raise exception
+
+    def test_east_asian_unicode_series(self):
+        if PY3:
+            _rep = repr
+        else:
+            _rep = unicode
+        # not alighned properly because of east asian width
+
+        # unicode index
+        s = Series(['a', 'bb', 'CCC', 'D'],
+                   index=[u'あ', u'いい', u'ううう', u'ええええ'])
+        expected = (u"あ         a\nいい       bb\nううう     CCC\n"
+                    u"ええええ      D\ndtype: object")
+        self.assertEqual(_rep(s), expected)
+
+        # unicode values
+        s = Series([u'あ', u'いい', u'ううう', u'ええええ'], index=['a', 'bb', 'c', 'ddd'])
+        expected = (u"a         あ\nbb       いい\nc       ううう\n"
+                    u"ddd    ええええ\ndtype: object")
+        self.assertEqual(_rep(s), expected)
+
+        # both
+        s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                   index=[u'ああ', u'いいいい', u'う', u'えええ'])
+        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
+                    u"えええ     ええええ\ndtype: object")
+        self.assertEqual(_rep(s), expected)
+
+        # unicode footer
+        s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                   index=[u'ああ', u'いいいい', u'う', u'えええ'],
+                   name=u'おおおおおおお')
+        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
+                    u"えええ     ええええ\nName: おおおおおおお, dtype: object")
+        self.assertEqual(_rep(s), expected)
+
+        # MultiIndex
+        idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'),
+                                         (u'おおお', u'かかかか'), (u'き', u'くく')])
+        s = Series([1, 22, 3333, 44444], index=idx)
+        expected = (u"あ    いい          1\nう    え          22\nおおお  かかかか     3333\n"
+                    u"き    くく      44444\ndtype: int64")
+        self.assertEqual(_rep(s), expected)
+
+        # object dtype, shorter than unicode repr
+        s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
+        expected = (u"1          1\nAB        22\nNaN     3333\n"
+                    u"あああ    44444\ndtype: int64")
+        self.assertEqual(_rep(s), expected)
+
+        # object dtype, longer than unicode repr
+        s = Series([1, 22, 3333, 44444],
+                   index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
+        expected = (u"1                          1\nAB                        22\n"
+                    u"2011-01-01 00:00:00     3333\nあああ                    44444\ndtype: int64")
+        self.assertEqual(_rep(s), expected)
+
+        # truncate
+        with option_context('display.max_rows', 3):
+            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                       name=u'おおおおおおお')
+
+            expected = (u"0       あ\n     ... \n"
+                        u"3    ええええ\nName: おおおおおおお, dtype: object")
+            self.assertEqual(_rep(s), expected)
+
+            s.index = [u'ああ', u'いいいい', u'う', u'えええ']
+            expected = (u"ああ        あ\n       ... \n"
+                        u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+            self.assertEqual(_rep(s), expected)
+
+        # Emable Unicode option -----------------------------------------
+        with option_context('display.unicode.east_asian_width', True):
+
+            # unicode index
+            s = Series(['a', 'bb', 'CCC', 'D'],
+                       index=[u'あ', u'いい', u'ううう', u'ええええ'])
+            expected = (u"あ            a\nいい         bb\nううう      CCC\n"
+                        u"ええええ      D\ndtype: object")
+            self.assertEqual(_rep(s), expected)
+
+            # unicode values
+            s = Series([u'あ', u'いい', u'ううう', u'ええええ'], index=['a', 'bb', 'c', 'ddd'])
+            expected = (u"a            あ\nbb         いい\nc        ううう\n"
+                        u"ddd    ええええ\ndtype: object")
+            self.assertEqual(_rep(s), expected)
+
+            # both
+            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                       index=[u'ああ', u'いいいい', u'う', u'えええ'])
+            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
+                        u"えええ      ええええ\ndtype: object")
+            self.assertEqual(_rep(s), expected)
+
+            # unicode footer
+            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                       index=[u'ああ', u'いいいい', u'う', u'えええ'],
+                       name=u'おおおおおおお')
+            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
+                        u"えええ      ええええ\nName: おおおおおおお, dtype: object")
+            self.assertEqual(_rep(s), expected)
+
+            # MultiIndex
+            idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'),
+                                             (u'おおお', u'かかかか'), (u'き', u'くく')])
+            s = Series([1, 22, 3333, 44444], index=idx)
+            expected = (u"あ      いい            1\nう      え             22\nおおお  かかかか     3333\n"
+                        u"き      くく        44444\ndtype: int64")
+            self.assertEqual(_rep(s), expected)
+
+            # object dtype, shorter than unicode repr
+            s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
+            expected = (u"1             1\nAB           22\nNaN        3333\n"
+                        u"あああ    44444\ndtype: int64")
+            self.assertEqual(_rep(s), expected)
+
+            # object dtype, longer than unicode repr
+            s = Series([1, 22, 3333, 44444],
+                       index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
+            expected = (u"1                          1\nAB                        22\n"
+                        u"2011-01-01 00:00:00     3333\nあああ                 44444\ndtype: int64")
+            self.assertEqual(_rep(s), expected)
+
+            # truncate
+            with option_context('display.max_rows', 3):
+                s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                           name=u'おおおおおおお')
+                expected = (u"0          あ\n       ...   \n"
+                            u"3    ええええ\nName: おおおおおおお, dtype: object")
+                self.assertEqual(_rep(s), expected)
+
+                s.index = [u'ああ', u'いいいい', u'う', u'えええ']
+                expected = (u"ああ            あ\n            ...   \n"
+                            u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+                self.assertEqual(_rep(s), expected)
+
+            # ambiguous unicode
+            s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
+                       index=[u'ああ', u'¡¡¡¡いい', u'¡¡', u'えええ'])
+            expected = (u"ああ              ¡¡\n¡¡¡¡いい        い¡¡\n¡¡            ううう\n"
+                        u"えええ      ええええ\ndtype: object")
+            self.assertEqual(_rep(s), expected)
 
     def test_float_trim_zeros(self):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,

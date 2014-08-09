@@ -488,7 +488,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.core.format import get_console_size
+        from pandas.core.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -502,14 +502,19 @@ class Index(IndexOpsMixin, PandasObject):
         formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
-        is_justify = not (self.inferred_type == 'string' or self.inferred_type == 'categorical' and is_object_dtype(self.categories))
+        is_justify = not (self.inferred_type in ('string', 'unicode') or
+                          (self.inferred_type == 'categorical' and
+                           is_object_dtype(self.categories)))
 
         # are we a truncated display
         is_truncated = n > max_seq_items
 
+        # adj can optionaly handle unicode eastern asian width
+        adj = _get_adjustment()
+
         def _extend_line(s, line, value, display_width, next_line_prefix):
 
-            if len(line.rstrip()) + len(value.rstrip()) >= display_width:
+            if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
                 s += line.rstrip()
                 line = next_line_prefix
             line += value
@@ -517,7 +522,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         def best_len(values):
             if values:
-                return max([len(x) for x in values])
+                return max([adj.len(x) for x in values])
             else:
                 return 0
 
@@ -556,8 +561,10 @@ class Index(IndexOpsMixin, PandasObject):
                 word = head[i] + sep + ' '
                 summary, line = _extend_line(summary, line, word,
                                              display_width, space2)
+
             if is_truncated:
-                summary += line + space2 + '...'
+                # remove trailing space of last line
+                summary += line.rstrip() + space2 + '...'
                 line = space2
 
             for i in range(len(tail)-1):
@@ -4501,8 +4508,11 @@ class MultiIndex(Index):
                                       start=int(names),
                                       sentinel=sentinel)
 
+
         if adjoin:
-            return com.adjoin(space, *result_levels).split('\n')
+            from pandas.core.format import  _get_adjustment
+            adj = _get_adjustment()
+            return adj.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
 

@@ -138,6 +138,7 @@ class SeriesFormatter(object):
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
+        self.adj = _get_adjustment()
 
         self._chk_truncate()
 
@@ -221,22 +222,24 @@ class SeriesFormatter(object):
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
 
-        maxlen = max(len(x) for x in fmt_index)  # max index len
+        maxlen = max(self.adj.len(x) for x in fmt_index)  # max index len
         pad_space = min(maxlen, 60)
 
         if self.truncate_v:
             n_header_rows = 0
             row_num = self.tr_row_num
-            width = len(fmt_values[row_num-1])
+            width = self.adj.len(fmt_values[row_num-1])
             if width > 3:
                 dot_str = '...'
             else:
                 dot_str = '..'
-            dot_str = dot_str.center(width)
+            # Series uses mode=center because it has single value columns
+            # DataFrame uses mode=left
+            dot_str = self.adj.justify([dot_str], width, mode='center')[0]
             fmt_values.insert(row_num + n_header_rows, dot_str)
             fmt_index.insert(row_num + 1, '')
 
-        result = adjoin(3, *[fmt_index[1:], fmt_values])
+        result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
@@ -247,19 +250,54 @@ class SeriesFormatter(object):
         return compat.text_type(u('').join(result))
 
 
-def _strlen_func():
-    if compat.PY3:  # pragma: no cover
-        _strlen = len
+class TextAdjustment(object):
+
+    def __init__(self):
+        self.encoding = get_option("display.encoding")
+
+    def len(self, text):
+        return compat.strlen(text, encoding=self.encoding)
+
+    def justify(self, texts, max_len, mode='right'):
+        return com._justify(texts, max_len, mode=mode)
+
+    def adjoin(self, space, *lists, **kwargs):
+        return com.adjoin(space, *lists, strlen=self.len,
+                          justfunc=self.justify, **kwargs)
+
+
+class EastAsianTextAdjustment(TextAdjustment):
+
+    def __init__(self):
+        super(EastAsianTextAdjustment, self).__init__()
+        if get_option("display.unicode.ambiguous_as_wide"):
+            self.ambiguous_width = 2
+        else:
+            self.ambiguous_width = 1
+
+    def len(self, text):
+        return compat.east_asian_len(text, encoding=self.encoding,
+                                     ambiguous_width=self.ambiguous_width)
+
+    def justify(self, texts, max_len, mode='right'):
+        # re-calculate padding space per str considering East Asian Width
+        def _get_pad(t):
+            return max_len - self.len(t) + len(t)
+
+        if mode == 'left':
+            return [x.ljust(_get_pad(x)) for x in texts]
+        elif mode == 'center':
+            return [x.center(_get_pad(x)) for x in texts]
+        else:
+            return [x.rjust(_get_pad(x)) for x in texts]
+
+
+def _get_adjustment():
+    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    if use_east_asian_width:
+        return EastAsianTextAdjustment()
     else:
-        encoding = get_option("display.encoding")
-
-        def _strlen(x):
-            try:
-                return len(x.decode(encoding))
-            except UnicodeError:
-                return len(x)
-
-    return _strlen
+        return TextAdjustment()
 
 
 class TableFormatter(object):
@@ -338,6 +376,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
         self._chk_truncate()
+        self.adj = _get_adjustment()
 
     def _chk_truncate(self):
         '''
@@ -414,7 +453,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
-        _strlen = _strlen_func()
         frame = self.tr_frame
 
         # may include levels names also
@@ -427,27 +465,23 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 max_colwidth = max(self.col_space or 0,
-                                   *(_strlen(x) for x in cheader))
-
+                                   *(self.adj.len(x) for x in cheader))
                 fmt_values = self._format_col(i)
-
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=max_colwidth)
+                                               minimum=max_colwidth,
+                                               adj=self.adj)
 
-                max_len = max(np.max([_strlen(x) for x in fmt_values]),
+                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
                               max_colwidth)
-                if self.justify == 'left':
-                    cheader = [x.ljust(max_len) for x in cheader]
-                else:
-                    cheader = [x.rjust(max_len) for x in cheader]
-
+                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
         else:
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=(self.col_space or 0))
+                                               minimum=(self.col_space or 0),
+                                               adj=self.adj)
 
                 stringified.append(fmt_values)
 
@@ -461,13 +495,13 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            col_width = len(strcols[self.tr_size_col][0])  # infer from column header
+            col_width = self.adj.len(strcols[self.tr_size_col][0])  # infer from column header
             strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
             for ix, col in enumerate(strcols):
-                cwidth = len(strcols[ix][row_num])  # infer from above row
+                cwidth = self.adj.len(strcols[ix][row_num])  # infer from above row
                 is_dot_col = False
                 if truncate_h:
                     is_dot_col = ix == col_num + 1
@@ -477,13 +511,13 @@ class DataFrameFormatter(TableFormatter):
                     my_str = '..'
 
                 if ix == 0:
-                    dot_str = my_str.ljust(cwidth)
+                    dot_mode = 'left'
                 elif is_dot_col:
-                    cwidth = len(strcols[self.tr_size_col][0])
-                    dot_str = my_str.center(cwidth)
+                    cwidth = self.adj.len(strcols[self.tr_size_col][0])
+                    dot_mode = 'center'
                 else:
-                    dot_str = my_str.rjust(cwidth)
-
+                    dot_mode = 'right'
+                dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
         return strcols
 
@@ -492,6 +526,7 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a console-friendly tabular output.
         """
         from pandas import Series
+
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -503,11 +538,11 @@ class DataFrameFormatter(TableFormatter):
         else:
             strcols = self._to_str_columns()
             if self.line_width is None:  # no need to wrap around just print the whole frame
-                text = adjoin(1, *strcols)
+                text = self.adj.adjoin(1, *strcols)
             elif not isinstance(self.max_cols, int) or self.max_cols > 0:  # need to wrap around
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
-                text = adjoin(1, *strcols).split('\n')
+                text = self.adj.adjoin(1, *strcols).split('\n')
                 row_lens = Series(text).apply(len)
                 max_len_col_ix = np.argmax(row_lens)
                 max_len = row_lens[max_len_col_ix]
@@ -535,7 +570,7 @@ class DataFrameFormatter(TableFormatter):
                 # and then generate string representation
                 self._chk_truncate()
                 strcols = self._to_str_columns()
-                text = adjoin(1, *strcols)
+                text = self.adj.adjoin(1, *strcols)
 
         self.buf.writelines(text)
 
@@ -549,9 +584,9 @@ class DataFrameFormatter(TableFormatter):
         strcols = list(strcols)
         if self.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([len(x) for x in idx]).max() + adjoin_width
+            lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
 
-        col_widths = [np.array([len(x) for x in col]).max()
+        col_widths = [np.array([self.adj.len(x) for x in col]).max()
                       if len(col) > 0 else 0
                       for col in strcols]
         col_bins = _binify(col_widths, lwidth)
@@ -572,8 +607,7 @@ class DataFrameFormatter(TableFormatter):
                     row.append([' \\'] + ['  '] * (nrows - 1))
                 else:
                     row.append([' '] * nrows)
-
-            str_lst.append(adjoin(adjoin_width, *row))
+            str_lst.append(self.adj.adjoin(adjoin_width, *row))
             st = ed
         return '\n\n'.join(str_lst)
 
@@ -776,11 +810,12 @@ class DataFrameFormatter(TableFormatter):
                                      formatter=fmt)
         else:
             fmt_index = [index.format(name=show_index_names, formatter=fmt)]
-        fmt_index = [tuple(_make_fixed_width(
-            list(x), justify='left', minimum=(self.col_space or 0)))
-            for x in fmt_index]
+        fmt_index = [tuple(_make_fixed_width(list(x), justify='left',
+                                             minimum=(self.col_space or 0),
+                                             adj=self.adj))
+                     for x in fmt_index]
 
-        adjoined = adjoin(1, *fmt_index).split('\n')
+        adjoined = self.adj.adjoin(1, *fmt_index).split('\n')
 
         # empty space for columns
         if show_col_names:
@@ -2222,13 +2257,16 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
     return _formatter
 
 
-def _make_fixed_width(strings, justify='right', minimum=None):
+def _make_fixed_width(strings, justify='right', minimum=None,
+                      adj=None):
+
     if len(strings) == 0 or justify == 'all':
         return strings
 
-    _strlen = _strlen_func()
+    if adj is None:
+        adj = _get_adjustment()
 
-    max_len = np.max([_strlen(x) for x in strings])
+    max_len = np.max([adj.len(x) for x in strings])
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -2237,22 +2275,14 @@ def _make_fixed_width(strings, justify='right', minimum=None):
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    if justify == 'left':
-        justfunc = lambda self, x: self.ljust(x)
-    else:
-        justfunc = lambda self, x: self.rjust(x)
-
     def just(x):
-        eff_len = max_len
-
         if conf_max is not None:
-            if (conf_max > 3) & (_strlen(x) > max_len):
-                x = x[:eff_len - 3] + '...'
+            if (conf_max > 3) & (adj.len(x) > max_len):
+                x = x[:max_len - 3] + '...'
+        return x
 
-        return justfunc(x, eff_len)
-
-    result = [just(x) for x in strings]
-
+    strings = [just(x) for x in strings]
+    result = adj.justify(strings, max_len, mode=justify)
     return result
 
 

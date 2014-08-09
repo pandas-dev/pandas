@@ -2149,21 +2149,33 @@ def _count_not_none(*args):
 
 
 
-def adjoin(space, *lists):
+def adjoin(space, *lists, **kwargs):
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
+
+    ----------
+    space : int
+        number of spaces for padding
+    lists : str
+        list of str which being joined
+    strlen : callable
+        function used to calculate the length of each str. Needed for unicode
+        handling.
+    justfunc : callable
+        function used to justify str. Needed for unicode handling.
     """
+    strlen = kwargs.pop('strlen', len)
+    justfunc = kwargs.pop('justfunc', _justify)
+
     out_lines = []
     newLists = []
-    lengths = [max(map(len, x)) + space for x in lists[:-1]]
-
+    lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
     lengths.append(max(map(len, lists[-1])))
-
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
-        nl = [x.ljust(lengths[i]) for x in lst]
+        nl = justfunc(lst, lengths[i], mode='left')
         nl.extend([' ' * lengths[i]] * (maxLen - len(lst)))
         newLists.append(nl)
     toJoin = zip(*newLists)
@@ -2171,6 +2183,16 @@ def adjoin(space, *lists):
         out_lines.append(_join_unicode(lines))
     return _join_unicode(out_lines, sep='\n')
 
+def _justify(texts, max_len, mode='right'):
+    """
+    Perform ljust, center, rjust against string or list-like
+    """
+    if mode == 'left':
+        return [x.ljust(max_len) for x in texts]
+    elif mode == 'center':
+        return [x.center(max_len) for x in texts]
+    else:
+        return [x.rjust(max_len) for x in texts]
 
 def _join_unicode(lines, sep=''):
     try:

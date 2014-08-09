@@ -49,6 +49,7 @@ Highlights include:
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 - Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+- Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
 - Compatibility with Python 3.5 (:issue:`11097`)
 - Compatibility with matplotlib 1.5.0 (:issue:`11111`)
 
@@ -333,6 +334,36 @@ Google BigQuery Enhancements
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 - The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
 - Update the gbq module to support Python 3 (:issue:`11094`).
+
+.. _whatsnew_0170.east_asian_width:
+
+Display Alignemnt with Unicode East Asian Width
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+   Enabling this option will affect the performance for printing of DataFrame and Series (about 2 times slower).
+   Use only when it is actually required.
+
+Some East Asian countries use Unicode characters its width is corresponding to 2 alphabets. If DataFrame or Series contains these characters, default output cannot be aligned properly. The following options are added to enable precise handling for these characters.
+
+- ``display.unicode.east_asian_width``: Whether to use the Unicode East Asian Width to calculate the display text width. (:issue:`2612`)
+- ``display.unicode.ambiguous_as_wide``: Whether to handle Unicode characters belong to Ambiguous as Wide. (:issue:`11102`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df
+
+   pd.set_option('display.unicode.east_asian_width', True)
+   df
+
+For further details, see :ref:`here <options.east_asian_width>`
+
+.. ipython:: python
+   :suppress:
+
+   pd.set_option('display.unicode.east_asian_width', False)
 
 .. _whatsnew_0170.enhancements.other:
 
