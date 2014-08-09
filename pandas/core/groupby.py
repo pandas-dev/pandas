@@ -1221,7 +1221,8 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        if (f.__name__ not in _plotting_methods and
+        f_name = com._get_callable_name(f)
+        if (f_name not in _plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
@@ -2185,11 +2186,11 @@ class SeriesGroupBy(GroupBy):
                 if isinstance(f, compat.string_types):
                     columns.append(f)
                 else:
-                    columns.append(f.__name__)
+                    # protect against callables without names
+                    columns.append(com._get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
-
         for name, func in arg:
             if name in results:
                 raise SpecificationError('Function names must be unique, '

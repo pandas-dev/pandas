@@ -389,9 +389,8 @@ Bug Fixes
 - Bug in ``GroupBy.transform()`` where int groups with a transform that
   didn't preserve the index were incorrectly truncated (:issue:`7972`).
 
-
-
-
+- Bug in ``groupby`` where callable objects without name attributes would take the wrong path,
+  and produce a ``DataFrame`` instead of a ``Series`` (:issue:`7929`)
 
 
 - Bug in ``read_html`` where the ``infer_types`` argument forced coercion of
