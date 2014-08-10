@@ -429,7 +429,7 @@ Bug Fixes
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 
 
-
+- Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
 
 
 

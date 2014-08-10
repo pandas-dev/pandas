@@ -532,7 +532,7 @@ class DataFrameFormatter(TableFormatter):
                 buf.write('\\begin{longtable}{%s}\n' % column_format)
                 buf.write('\\toprule\n')
 
-            nlevels = frame.index.nlevels
+            nlevels = frame.columns.nlevels
             for i, row in enumerate(zip(*strcols)):
                 if i == nlevels:
                     buf.write('\\midrule\n')  # End of header
