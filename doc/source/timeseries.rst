@@ -4,7 +4,7 @@
 .. ipython:: python
    :suppress:
 
-   from datetime import datetime
+   from datetime import datetime, timedelta
    import numpy as np
    np.random.seed(123456)
    from pandas import *
@@ -1098,6 +1098,36 @@ frequency.
 
    p - 3
 
+If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have same freq. Otherise, ``ValueError`` will be raised.
+
+.. ipython:: python
+
+   p = Period('2014-07-01 09:00', freq='H')
+   p + Hour(2)
+   p + timedelta(minutes=120)
+   p + np.timedelta64(7200, 's')
+
+.. code-block:: python
+
+   In [1]: p + Minute(5)
+   Traceback
+      ...
+   ValueError: Input has different freq from Period(freq=H)
+
+If ``Period`` has other freqs, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
+
+.. ipython:: python
+
+   p = Period('2014-07', freq='M')
+   p + MonthEnd(3)
+
+.. code-block:: python
+
+   In [1]: p + MonthBegin(3)
+   Traceback
+      ...
+   ValueError: Input has different freq from Period(freq=M)
+
 Taking the difference of ``Period`` instances with the same frequency will
 return the number of frequency units between them:
 
@@ -1128,6 +1158,18 @@ objects:
 
    ps = Series(randn(len(prng)), prng)
    ps
+
+``PeriodIndex`` supports addition and subtraction as the same rule as ``Period``.
+
+.. ipython:: python
+
+   idx = period_range('2014-07-01 09:00', periods=5, freq='H')
+   idx
+   idx + Hour(2)
+
+   idx = period_range('2014-07', periods=5, freq='M')
+   idx
+   idx + MonthEnd(3)
 
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

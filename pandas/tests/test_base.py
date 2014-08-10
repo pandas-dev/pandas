@@ -915,6 +915,8 @@ Length: 3, Freq: Q-DEC"""
             self.assertEqual(idx.resolution, expected)
 
     def test_add_iadd(self):
+        tm._skip_if_not_numpy17_friendly()
+
         # union
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -968,11 +970,64 @@ Length: 3, Freq: Q-DEC"""
             tm.assert_index_equal(rng, expected)
 
         # offset
-        for delta in [pd.offsets.Hour(2), timedelta(hours=2)]:
-            rng = pd.period_range('2000-01-01', '2000-02-01')
-            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+        # DateOffset
+        rng = pd.period_range('2014', '2024', freq='A')
+        result = rng + pd.offsets.YearEnd(5)
+        expected = pd.period_range('2019', '2029', freq='A')
+        tm.assert_index_equal(result, expected)
+        rng += pd.offsets.YearEnd(5)
+        tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(365, 'D'), timedelta(365)]:
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng + o
+
+        rng = pd.period_range('2014-01', '2016-12', freq='M')
+        result = rng + pd.offsets.MonthEnd(5)
+        expected = pd.period_range('2014-06', '2017-05', freq='M')
+        tm.assert_index_equal(result, expected)
+        rng += pd.offsets.MonthEnd(5)
+        tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(365, 'D'), timedelta(365)]:
+            rng = pd.period_range('2014-01', '2016-12', freq='M')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng + o
+
+        # Tick
+        offsets = [pd.offsets.Day(3), timedelta(days=3), np.timedelta64(3, 'D'),
+                   pd.offsets.Hour(72), timedelta(minutes=60*24*3), np.timedelta64(72, 'h')]
+        for delta in offsets:
+            rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
+            result = rng + delta
+            expected = pd.period_range('2014-05-04', '2014-05-18', freq='D')
+            tm.assert_index_equal(result, expected)
+            rng += delta
+            tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(4, 'h'), timedelta(hours=23)]:
+            rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng + o
+
+        offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h'),
+                   pd.offsets.Minute(120), timedelta(minutes=120), np.timedelta64(120, 'm')]
+        for delta in offsets:
+            rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
+            result = rng + delta
+            expected = pd.period_range('2014-01-01 12:00', '2014-01-05 12:00', freq='H')
+            tm.assert_index_equal(result, expected)
+            rng += delta
+            tm.assert_index_equal(rng, expected)
+
+        for delta in [pd.offsets.YearBegin(2), timedelta(minutes=30), np.timedelta64(30, 's')]:
+            rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
                 result = rng + delta
-            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
                 rng += delta
 
         # int
@@ -984,6 +1039,8 @@ Length: 3, Freq: Q-DEC"""
         tm.assert_index_equal(rng, expected)
 
     def test_sub_isub(self):
+        tm._skip_if_not_numpy17_friendly()
+
         # diff
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -1027,10 +1084,65 @@ Length: 3, Freq: Q-DEC"""
             tm.assert_index_equal(rng, expected)
 
         # offset
-        for delta in [pd.offsets.Hour(2), timedelta(hours=2)]:
-            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+        # DateOffset
+        rng = pd.period_range('2014', '2024', freq='A')
+        result = rng - pd.offsets.YearEnd(5)
+        expected = pd.period_range('2009', '2019', freq='A')
+        tm.assert_index_equal(result, expected)
+        rng -= pd.offsets.YearEnd(5)
+        tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(365, 'D'), timedelta(365)]:
+            rng = pd.period_range('2014', '2024', freq='A')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng - o
+
+        rng = pd.period_range('2014-01', '2016-12', freq='M')
+        result = rng - pd.offsets.MonthEnd(5)
+        expected = pd.period_range('2013-08', '2016-07', freq='M')
+        tm.assert_index_equal(result, expected)
+        rng -= pd.offsets.MonthEnd(5)
+        tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(365, 'D'), timedelta(365)]:
+            rng = pd.period_range('2014-01', '2016-12', freq='M')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng - o
+
+        # Tick
+        offsets = [pd.offsets.Day(3), timedelta(days=3), np.timedelta64(3, 'D'),
+                   pd.offsets.Hour(72), timedelta(minutes=60*24*3), np.timedelta64(72, 'h')]
+        for delta in offsets:
+            rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
+            result = rng - delta
+            expected = pd.period_range('2014-04-28', '2014-05-12', freq='D')
+            tm.assert_index_equal(result, expected)
+            rng -= delta
+            tm.assert_index_equal(rng, expected)
+
+        for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
+                  np.timedelta64(4, 'h'), timedelta(hours=23)]:
+            rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+                rng - o
+
+        offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h'),
+                   pd.offsets.Minute(120), timedelta(minutes=120), np.timedelta64(120, 'm')]
+        for delta in offsets:
+            rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
+            result = rng - delta
+            expected = pd.period_range('2014-01-01 08:00', '2014-01-05 08:00', freq='H')
+            tm.assert_index_equal(result, expected)
+            rng -= delta
+            tm.assert_index_equal(rng, expected)
+
+        for delta in [pd.offsets.YearBegin(2), timedelta(minutes=30), np.timedelta64(30, 's')]:
+            rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
                 result = rng + delta
-            with tm.assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
                 rng += delta
 
         # int
