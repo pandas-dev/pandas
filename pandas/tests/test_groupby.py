@@ -795,6 +795,20 @@ class TestGroupBy(tm.TestCase):
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
 
+    def test_transform_fast(self):
+
+        df = DataFrame( { 'id' : np.arange( 100000 ) / 3,
+                          'val': np.random.randn( 100000) } )
+
+        grp=df.groupby('id')['val']
+
+        expected = pd.Series(np.repeat(grp.mean().values, grp.count().values),index=df.index)
+        result = grp.transform(np.mean)
+        assert_series_equal(result,expected)
+
+        result = grp.transform('mean')
+        assert_series_equal(result,expected)
+
     def test_transform_broadcast(self):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
@@ -858,12 +872,14 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_transform_exclude_nuisance(self):
+
+        # this also tests orderings in transform between
+        # series/frame to make sure its consistent
         expected = {}
         grouped = self.df.groupby('A')
         expected['C'] = grouped['C'].transform(np.mean)
         expected['D'] = grouped['D'].transform(np.mean)
         expected = DataFrame(expected)
-
         result = self.df.groupby('A').transform(np.mean)
 
         assert_frame_equal(result, expected)

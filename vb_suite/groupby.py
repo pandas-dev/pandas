@@ -444,5 +444,13 @@ g = transitions.cumsum()
 
 df = DataFrame({ 'signal' : np.random.rand(N)})
 """
-
 groupby_transform_series = Benchmark("df['signal'].groupby(g).transform(np.mean)", setup)
+
+setup = common_setup + """
+np.random.seed(0)
+
+df=DataFrame( { 'id' : np.arange( 100000 ) / 3,
+                'val': np.random.randn( 100000) } )
+"""
+
+groupby_transform_series2 = Benchmark("df.groupby('id')['val'].transform(np.mean)", setup)
