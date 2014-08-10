@@ -2270,14 +2270,21 @@ class SeriesGroupBy(GroupBy):
         -------
         transformed : Series
         """
-        dtype = self._selected_obj.dtype
 
+        # if string function
         if isinstance(func, compat.string_types):
-            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
-        else:
-            wrapper = lambda x: func(x, *args, **kwargs)
+            return self._transform_fast(lambda : getattr(self, func)(*args, **kwargs))
 
+        # do we have a cython function
+        cyfunc = _intercept_cython(func)
+        if cyfunc and not args and not kwargs:
+            return self._transform_fast(cyfunc)
+
+        # reg transform
+        dtype = self._selected_obj.dtype
         result = self._selected_obj.values.copy()
+
+        wrapper = lambda x: func(x, *args, **kwargs)
         for i, (name, group) in enumerate(self):
 
             object.__setattr__(group, 'name', name)
@@ -2301,6 +2308,29 @@ class SeriesGroupBy(GroupBy):
         return self._selected_obj.__class__(result,
                                             index=self._selected_obj.index,
                                             name=self._selected_obj.name)
+
+    def _transform_fast(self, func):
+        """
+        fast version of transform, only applicable to builtin/cythonizable functions
+        """
+        if isinstance(func, compat.string_types):
+            func = getattr(self,func)
+        values = func().values
+        counts = self.count().values
+        values = np.repeat(values, counts)
+
+        # the values/counts are repeated according to the group index
+        indices = self.indices
+
+        # shortcut of we have an already ordered grouper
+        if Index(self.grouper.group_info[0]).is_monotonic:
+            result = Series(values, index=self.obj.index)
+        else:
+            index = Index(np.concatenate([ indices[v] for v in self.grouper.result_index ]))
+            result = Series(values, index=index).sort_index()
+            result.index = self.obj.index
+
+        return result
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
