@@ -385,7 +385,8 @@ Bug Fixes
 
 
 
-
+- Bug in ``GroupBy.transform()`` where int groups with a transform that
+  didn't preserve the index were incorrectly truncated (:issue:`7972`).
 
 
 
