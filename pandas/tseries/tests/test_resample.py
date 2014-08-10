@@ -1,6 +1,7 @@
 # pylint: disable=E1101
 
 from datetime import datetime, timedelta
+from functools import partial
 
 from pandas.compat import range, lrange, zip, product
 import numpy as np
@@ -140,6 +141,30 @@ class TestResample(tm.TestCase):
                 exc.args += ('how=%s' % arg,)
                 raise
 
+    def test_resample_how_callables(self):
+        # GH 7929
+        data = np.arange(5, dtype=np.int64)
+        ind = pd.DatetimeIndex(start='2014-01-01', periods=len(data), freq='d')
+        df = pd.DataFrame({"A": data, "B": data}, index=ind)
+        
+        def fn(x, a=1):
+            return str(type(x))
+
+        class fn_class:
+            def __call__(self, x):
+                return str(type(x))
+
+        df_standard = df.resample("M", how=fn)
+        df_lambda = df.resample("M", how=lambda x: str(type(x)))
+        df_partial = df.resample("M", how=partial(fn))
+        df_partial2 = df.resample("M", how=partial(fn, a=2))
+        df_class = df.resample("M", how=fn_class())
+
+        assert_frame_equal(df_standard, df_lambda)
+        assert_frame_equal(df_standard, df_partial)
+        assert_frame_equal(df_standard, df_partial2)
+        assert_frame_equal(df_standard, df_class)
+        
     def test_resample_basic_from_daily(self):
         # from daily
         dti = DatetimeIndex(
@@ -763,6 +788,7 @@ class TestResample(tm.TestCase):
 
             result = df.groupby(pd.Grouper(freq='M', key='A')).count()
             assert_frame_equal(result, expected)
+
 
 
 def _simple_ts(start, end, freq='D'):

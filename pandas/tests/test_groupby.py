@@ -25,6 +25,7 @@ from pandas import compat
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
+from functools import partial
 import pandas.core.common as com
 import numpy as np
 
@@ -2910,6 +2911,24 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+    def test_agg_callables(self):
+        # GH 7929
+        df = DataFrame({'foo' : [1,2], 'bar' :[3,4]}).astype(np.int64)
+
+        class fn_class(object):
+            def __call__(self, x):
+                return sum(x)
+
+        equiv_callables = [sum, np.sum,
+                           lambda x: sum(x),
+                           lambda x: x.sum(),
+                           partial(sum), fn_class()]
+        
+        expected = df.groupby("foo").agg(sum)
+        for ecall in equiv_callables:
+            result = df.groupby('foo').agg(ecall)
+            assert_frame_equal(result, expected)
+
     def test_set_group_name(self):
         def f(group):
             assert group.name is not None
@@ -4528,6 +4547,8 @@ class TestGroupBy(tm.TestCase):
         gb2 = df2.groupby('a')
         expected = gb2.transform('mean')
         tm.assert_frame_equal(result, expected)
+
+
 
 
 def assert_fp_equal(a, b):

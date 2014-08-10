@@ -38,6 +38,26 @@ def test_is_sequence():
 
     assert(not is_seq(A()))
 
+def test_get_callable_name():
+    from functools import partial
+    getname = com._get_callable_name
+
+    def fn(x): 
+        return x
+    lambda_ = lambda x: x
+    part1 = partial(fn)
+    part2 = partial(part1)
+    class somecall(object):
+        def __call__(self):
+            return x
+
+    assert getname(fn) == 'fn'
+    assert getname(lambda_)
+    assert getname(part1) == 'fn'
+    assert getname(part2) == 'fn'
+    assert getname(somecall()) == 'somecall'
+    assert getname(1) is None
+
 
 def test_notnull():
     assert notnull(1.)
