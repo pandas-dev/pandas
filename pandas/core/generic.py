@@ -1193,12 +1193,17 @@ class NDFrame(PandasObject):
             except:
                 pass
 
-            if t == 'referant':
+            # a custom message
+            if isinstance(self.is_copy, string_types):
+                t = self.is_copy
+
+            elif t == 'referant':
                 t = ("\n"
                      "A value is trying to be set on a copy of a slice from a "
                      "DataFrame\n\n"
                      "See the the caveats in the documentation: "
                      "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
+
             else:
                 t = ("\n"
                      "A value is trying to be set on a copy of a slice from a "

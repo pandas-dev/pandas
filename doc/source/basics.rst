@@ -1099,6 +1099,41 @@ For instance,
    for r in df2.itertuples():
        print(r)
 
+.. _basics.dt_accessors:
+
+.dt accessor
+~~~~~~~~~~~~
+
+``Series`` has an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series.
+This will return a Series, indexed like the existing Series.
+
+.. ipython:: python
+
+   # datetime
+   s = Series(date_range('20130101 09:10:12',periods=4))
+   s
+   s.dt.hour
+   s.dt.second
+   s.dt.day
+
+This enables nice expressions like this:
+
+.. ipython:: python
+
+   s[s.dt.day==2]
+
+.. ipython:: python
+
+   # period
+   s = Series(period_range('20130101',periods=4,freq='D').asobject)
+   s
+   s.dt.year
+   s.dt.day
+
+.. note::
+
+   ``Series.dt`` will raise a ``TypeError`` if you access with a non-datetimelike values
+
 .. _basics.string_methods:
 
 Vectorized string methods

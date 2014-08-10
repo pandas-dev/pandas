@@ -11,6 +11,7 @@ users upgrade to this version.
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
+  - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Dateimelike Properties <whatsnew_0150.dt>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -164,6 +165,37 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
+
+.. _whatsnew_0150.dt:
+
+.dt accessor
+~~~~~~~~~~~~
+
+``Series`` has gained an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series. (:issue:`7207`)
+This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
+
+.. ipython:: python
+
+   # datetime
+   s = Series(date_range('20130101 09:10:12',periods=4))
+   s
+   s.dt.hour
+   s.dt.second
+   s.dt.day
+
+This enables nice expressions like this:
+
+.. ipython:: python
+
+   s[s.dt.day==2]
+
+.. ipython:: python
+
+   # period
+   s = Series(period_range('20130101',periods=4,freq='D').asobject)
+   s
+   s.dt.year
+   s.dt.day
 
 .. _whatsnew_0150.refactoring:
 

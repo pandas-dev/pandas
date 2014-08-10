@@ -16,7 +16,7 @@ import numpy.ma as ma
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isnull, notnull,
-                    bdate_range, date_range, _np_version_under1p7)
+                    bdate_range, date_range, period_range, _np_version_under1p7)
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp, DatetimeIndex
@@ -70,6 +70,75 @@ class CheckNameIntegration(object):
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
         self.assertEqual(result.name, self.ts.name)
+
+    def test_dt_namespace_accessor(self):
+
+        # GH 7207
+        # test .dt namespace accessor
+
+        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter']
+        ok_for_period = ok_for_base + ['qyear']
+        ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
+                                   'is_quarter_end', 'is_year_start', 'is_year_end']
+        ok_for_both = ok_for_dt
+
+        def get_expected(s, name):
+            result = getattr(Index(s.values),prop)
+            if isinstance(result, np.ndarray):
+                if com.is_integer_dtype(result):
+                    result = result.astype('int64')
+            return Series(result,index=s.index)
+
+        # invalids
+        for s in [Series(np.arange(5)),
+                  Series(list('abcde')),
+                  Series(np.random.randn(5))]:
+            self.assertRaises(TypeError, lambda : s.dt)
+
+        # datetimeindex
+        for s in [Series(date_range('20130101',periods=5)),
+                  Series(date_range('20130101',periods=5,freq='s')),
+                  Series(date_range('20130101 00:00:00',periods=5,freq='ms'))]:
+
+            for prop in ok_for_dt:
+                tm.assert_series_equal(getattr(s.dt,prop),get_expected(s,prop))
+
+        # both
+        index = date_range('20130101',periods=3,freq='D')
+        s = Series(date_range('20140204',periods=3,freq='s'),index=index)
+        tm.assert_series_equal(s.dt.year,Series(np.array([2014,2014,2014],dtype='int64'),index=index))
+        tm.assert_series_equal(s.dt.month,Series(np.array([2,2,2],dtype='int64'),index=index))
+        tm.assert_series_equal(s.dt.second,Series(np.array([0,1,2],dtype='int64'),index=index))
+
+        # periodindex
+        for s in [Series(period_range('20130101',periods=5,freq='D').asobject)]:
+
+            for prop in ok_for_period:
+                tm.assert_series_equal(getattr(s.dt,prop),get_expected(s,prop))
+
+        # test limited display api
+        def get_dir(s):
+            results = [ r for r in s.dt.__dir__() if not r.startswith('_') ]
+            return list(sorted(set(results)))
+
+        s = Series(date_range('20130101',periods=5,freq='D'))
+        results = get_dir(s)
+        tm.assert_almost_equal(results,list(sorted(set(ok_for_dt))))
+
+        s = Series(period_range('20130101',periods=5,freq='D').asobject)
+        results = get_dir(s)
+        tm.assert_almost_equal(results,list(sorted(set(ok_for_period))))
+
+        # no setting allowed
+        s = Series(date_range('20130101',periods=5,freq='D'))
+        with tm.assertRaisesRegexp(ValueError, "modifications"):
+            s.dt.hour = 5
+
+        # trying to set a copy
+        with pd.option_context('chained_assignment','raise'):
+            def f():
+                s.dt.hour[0] = 5
+            self.assertRaises(com.SettingWithCopyError, f)
 
     def test_binop_maybe_preserve_name(self):
 

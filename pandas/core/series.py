@@ -107,18 +107,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _allow_index_ops = True
 
-    @property
-    def _allow_datetime_index_ops(self):
-        # disabling to invalidate datetime index ops (GH7206)
-        # return self.index.is_all_dates and isinstance(self.index, DatetimeIndex)
-        return False
-
-    @property
-    def _allow_period_index_ops(self):
-        # disabling to invalidate period index ops (GH7206)
-        # return self.index.is_all_dates and isinstance(self.index, PeriodIndex)
-        return False
-
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
 
@@ -2405,6 +2393,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
+
+    #------------------------------------------------------------------------------
+    # Datetimelike delegation methods
+
+    @cache_readonly
+    def dt(self):
+        from pandas.tseries.common import maybe_to_datetimelike
+        try:
+            return maybe_to_datetimelike(self)
+        except (Exception):
+            raise TypeError("Can only use .dt accessor with datetimelike values")
+
     #------------------------------------------------------------------------------
     # Categorical methods
 

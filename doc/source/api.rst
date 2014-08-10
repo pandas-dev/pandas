@@ -436,12 +436,47 @@ Time series-related
    Series.tz_convert
    Series.tz_localize
 
+Datetimelike Properties
+~~~~~~~~~~~~~~~~~~~~~~~
+``Series.dt`` can be used to access the values of the series as
+datetimelike and return several properties.
+Due to implementation details the methods show up here as methods of the
+``DatetimeProperties/PeriodProperties`` classes. These can be accessed like ``Series.dt.<property>``.
+
+.. currentmodule:: pandas.tseries.common
+
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeProperties.date
+   DatetimeProperties.time
+   DatetimeProperties.year
+   DatetimeProperties.month
+   DatetimeProperties.day
+   DatetimeProperties.hour
+   DatetimeProperties.minute
+   DatetimeProperties.second
+   DatetimeProperties.microsecond
+   DatetimeProperties.nanosecond
+   DatetimeProperties.second
+   DatetimeProperties.weekofyear
+   DatetimeProperties.dayofweek
+   DatetimeProperties.weekday
+   DatetimeProperties.dayofyear
+   DatetimeProperties.quarter
+   DatetimeProperties.is_month_start
+   DatetimeProperties.is_month_end
+   DatetimeProperties.is_quarter_start
+   DatetimeProperties.is_quarter_end
+   DatetimeProperties.is_year_start
+   DatetimeProperties.is_year_end
+
 String handling
 ~~~~~~~~~~~~~~~
 ``Series.str`` can be used to access the values of the series as
 strings and apply several methods to it. Due to implementation
 details the methods show up here as methods of the
-``StringMethods`` class.
+``StringMethods`` class. These can be acccessed like ``Series.str.<function/property>``.
 
 .. currentmodule:: pandas.core.strings
 
