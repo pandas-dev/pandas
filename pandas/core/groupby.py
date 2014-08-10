@@ -2858,7 +2858,9 @@ class NDFrameGroupBy(GroupBy):
 
         # a grouped that doesn't preserve the index, remap index based on the grouper
         # and broadcast it
-        if not isinstance(obj.index,MultiIndex) and type(result.index) != type(obj.index):
+        if ((not isinstance(obj.index,MultiIndex) and
+             type(result.index) != type(obj.index)) or
+            len(result.index) != len(obj.index)):
             results = obj.values.copy()
             for (name, group), (i, row) in zip(self, result.iterrows()):
                 indexer = self._get_index(name)
@@ -2868,7 +2870,7 @@ class NDFrameGroupBy(GroupBy):
         # we can merge the result in
         # GH 7383
         names = result.columns
-        result = obj.merge(result, how='outer', left_index=True, right_index=True).ix[:,-result.shape[1]:]
+        result = obj.merge(result, how='outer', left_index=True, right_index=True).iloc[:,-result.shape[1]:]
         result.columns = names
         return result
 

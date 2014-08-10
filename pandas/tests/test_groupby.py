@@ -3103,7 +3103,6 @@ class TestGroupBy(tm.TestCase):
         exp = np.array([1,2,4,np.nan])
         self.assert_numpy_array_equivalent(result, exp)
 
-
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
@@ -4499,6 +4498,20 @@ class TestGroupBy(tm.TestCase):
                    index=MultiIndex.from_arrays([list('aaabbb'),
                                                  [0, 4, 1, 6, 7, 8]]))
         tm.assert_series_equal(r, e)
+
+    def test_transform_doesnt_clobber_ints(self):
+        # GH 7972
+        n = 6
+        x = np.arange(n)
+        df = DataFrame({'a': x // 2, 'b': 2.0 * x, 'c': 3.0 * x})
+        df2 = DataFrame({'a': x // 2 * 1.0, 'b': 2.0 * x, 'c': 3.0 * x})
+
+        gb = df.groupby('a')
+        result = gb.transform('mean')
+
+        gb2 = df2.groupby('a')
+        expected = gb2.transform('mean')
+        tm.assert_frame_equal(result, expected)
 
 
 def assert_fp_equal(a, b):
