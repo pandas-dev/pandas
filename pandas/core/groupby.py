@@ -2318,7 +2318,7 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self,func)
         values = func().values
         counts = self.count().values
-        values = np.repeat(values, counts)
+        values = np.repeat(values, com._ensure_platform_int(counts))
 
         # the values/counts are repeated according to the group index
         indices = self.indices

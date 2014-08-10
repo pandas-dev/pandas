@@ -803,7 +803,8 @@ class TestGroupBy(tm.TestCase):
 
         grp=df.groupby('id')['val']
 
-        expected = pd.Series(np.repeat(grp.mean().values, grp.count().values),index=df.index)
+        values = np.repeat(grp.mean().values, com._ensure_platform_int(grp.count().values))
+        expected = pd.Series(values,index=df.index)
         result = grp.transform(np.mean)
         assert_series_equal(result,expected)
 
