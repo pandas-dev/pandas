@@ -27,7 +27,9 @@
  *           to be cast to the 'unit' parameter.
  *
  * 'out' gets filled with the parsed date-time.
- * 'out_local' gets set to 1 if the parsed time was in local time,
+ * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
+ * 'out_tzoffset' gets set to timezone offset by minutes
+ *      if the parsed time was in local time,
  *      to 0 otherwise. The values 'now' and 'today' don't get counted
  *      as local, and neither do UTC +/-#### timezone offsets, because
  *      they aren't using the computer's local timezone offset.
@@ -45,7 +47,8 @@ parse_iso_8601_datetime(char *str, int len,
                     PANDAS_DATETIMEUNIT unit,
                     NPY_CASTING casting,
                     pandas_datetimestruct *out,
-                    npy_bool *out_local,
+                    int *out_local,
+                    int *out_tzoffset,
                     PANDAS_DATETIMEUNIT *out_bestunit,
                     npy_bool *out_special);
 
