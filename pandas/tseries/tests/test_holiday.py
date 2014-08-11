@@ -6,7 +6,10 @@ from pandas.tseries.holiday import (
     nearest_workday, next_monday_or_tuesday, next_monday,
     previous_friday, sunday_to_monday, Holiday, DateOffset,
     MO, Timestamp, AbstractHolidayCalendar, get_calendar,
-    HolidayCalendarFactory)
+    HolidayCalendarFactory, next_workday, previous_workday,
+    before_nearest_workday, EasterMonday, GoodFriday,
+    after_nearest_workday, weekend_to_monday)
+import nose
 
 class TestCalendar(tm.TestCase):
 
@@ -68,6 +71,37 @@ class TestHoliday(tm.TestCase):
                        datetime(2020, 5, 25),
                        ]
         self.assertEqual(list(holidays), holidayList)
+
+    def test_easter(self):
+        holidays = EasterMonday.dates(self.start_date,
+                                      self.end_date)
+        holidayList = [Timestamp('2011-04-25 00:00:00'),
+                       Timestamp('2012-04-09 00:00:00'),
+                       Timestamp('2013-04-01 00:00:00'),
+                       Timestamp('2014-04-21 00:00:00'),
+                       Timestamp('2015-04-06 00:00:00'),
+                       Timestamp('2016-03-28 00:00:00'),
+                       Timestamp('2017-04-17 00:00:00'),
+                       Timestamp('2018-04-02 00:00:00'),
+                       Timestamp('2019-04-22 00:00:00'),
+                       Timestamp('2020-04-13 00:00:00')]
+
+
+        self.assertEqual(list(holidays), holidayList)
+        holidays = GoodFriday.dates(self.start_date,
+                                    self.end_date)
+        holidayList = [Timestamp('2011-04-22 00:00:00'),
+                       Timestamp('2012-04-06 00:00:00'),
+                       Timestamp('2013-03-29 00:00:00'),
+                       Timestamp('2014-04-18 00:00:00'),
+                       Timestamp('2015-04-03 00:00:00'),
+                       Timestamp('2016-03-25 00:00:00'),
+                       Timestamp('2017-04-14 00:00:00'),
+                       Timestamp('2018-03-30 00:00:00'),
+                       Timestamp('2019-04-19 00:00:00'),
+                       Timestamp('2020-04-10 00:00:00')]
+        self.assertEqual(list(holidays), holidayList)
+        
 
     def test_usthanksgivingday(self):
         holidays = USThanksgivingDay.dates(self.start_date,
@@ -165,4 +199,34 @@ class TestObservanceRules(tm.TestCase):
         self.assertEqual(nearest_workday(self.sa), self.fr)
         self.assertEqual(nearest_workday(self.su), self.mo)
         self.assertEqual(nearest_workday(self.mo), self.mo)
+
+    def test_weekend_to_monday(self):
+        self.assertEqual(weekend_to_monday(self.sa), self.mo)
+        self.assertEqual(weekend_to_monday(self.su), self.mo)
+        self.assertEqual(weekend_to_monday(self.mo), self.mo)
+
+    def test_next_workday(self):
+        self.assertEqual(next_workday(self.sa), self.mo)
+        self.assertEqual(next_workday(self.su), self.mo)
+        self.assertEqual(next_workday(self.mo), self.tu)
+
+    def test_previous_workday(self):
+        self.assertEqual(previous_workday(self.sa), self.fr)
+        self.assertEqual(previous_workday(self.su), self.fr)
+        self.assertEqual(previous_workday(self.tu), self.mo)
+
+    def test_before_nearest_workday(self):
+        self.assertEqual(before_nearest_workday(self.sa), self.th)
+        self.assertEqual(before_nearest_workday(self.su), self.fr)
+        self.assertEqual(before_nearest_workday(self.tu), self.mo)
+    
+    def test_after_nearest_workday(self):
+        self.assertEqual(after_nearest_workday(self.sa), self.mo)
+        self.assertEqual(after_nearest_workday(self.su), self.tu)
+        self.assertEqual(after_nearest_workday(self.fr), self.mo)
+    
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)
 
