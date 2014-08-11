@@ -406,24 +406,16 @@ class TestMoments(tm.TestCase):
             result = func(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
+        # GH 7925
         if has_center:
             if has_min_periods:
                 result = func(arr, 20, min_periods=15, center=True)
-                expected = func(arr, 20, min_periods=15)
+                expected = func(np.concatenate((arr, np.array([np.NaN] * 9))), 20, min_periods=15)[9:]
             else:
                 result = func(arr, 20, center=True)
-                expected = func(arr, 20)
+                expected = func(np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
 
-            assert_almost_equal(result[1], expected[10])
-            if fill_value is None:
-                self.assertTrue(np.isnan(result[-9:]).all())
-            else:
-                self.assertTrue((result[-9:] == 0).all())
-            if has_min_periods:
-                self.assertTrue(np.isnan(expected[23]))
-                self.assertTrue(np.isnan(result[14]))
-                self.assertTrue(np.isnan(expected[-5]))
-                self.assertTrue(np.isnan(result[-14]))
+            self.assert_numpy_array_equivalent(result, expected)
 
         if test_stable:
             result = func(self.arr + 1e9, window)
@@ -488,11 +480,12 @@ class TestMoments(tm.TestCase):
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
 
+        # GH 7925
         if has_center:
             if has_min_periods:
                 minp = 10
-                series_xp = func(self.series, 25, min_periods=minp).shift(-12)
-                frame_xp = func(self.frame, 25, min_periods=minp).shift(-12)
+                series_xp = func(self.series.reindex(list(self.series.index)+['x%d'%x for x in range(12)]), 25, min_periods=minp).shift(-12).reindex(self.series.index)
+                frame_xp = func(self.frame.reindex(list(self.frame.index)+['x%d'%x for x in range(12)]), 25, min_periods=minp).shift(-12).reindex(self.frame.index)
 
                 series_rs = func(self.series, 25, min_periods=minp,
                                  center=True)
@@ -500,8 +493,8 @@ class TestMoments(tm.TestCase):
                                 center=True)
 
             else:
-                series_xp = func(self.series, 25).shift(-12)
-                frame_xp = func(self.frame, 25).shift(-12)
+                series_xp = func(self.series.reindex(list(self.series.index)+['x%d'%x for x in range(12)]), 25).shift(-12).reindex(self.series.index)
+                frame_xp = func(self.frame.reindex(list(self.frame.index)+['x%d'%x for x in range(12)]), 25).shift(-12).reindex(self.frame.index)
 
                 series_rs = func(self.series, 25, center=True)
                 frame_rs = func(self.frame, 25, center=True)

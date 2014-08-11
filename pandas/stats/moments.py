@@ -372,7 +372,10 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     y : type of input
     """
     arg = _conv_timerule(arg, freq, how)
-    calc = lambda x: func(x, window, minp=minp, args=args, kwargs=kwargs,
+    offset = int((window - 1) / 2.) if center else 0
+    additional_nans = np.array([np.NaN] * offset)
+    calc = lambda x: func(np.concatenate((x, additional_nans)) if center else x,
+                          window, minp=minp, args=args, kwargs=kwargs,
                           **kwds)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
@@ -381,10 +384,10 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     else:
         result = calc(values)
 
-    rs = return_hook(result)
     if center:
-        rs = _center_window(rs, window, axis)
-    return rs
+        result = _center_window(result, window, axis)
+    
+    return return_hook(result)
 
 
 def _center_window(rs, window, axis):
@@ -393,20 +396,13 @@ def _center_window(rs, window, axis):
                          "dimensions")
 
     offset = int((window - 1) / 2.)
-    if isinstance(rs, (Series, DataFrame, Panel)):
-        rs = rs.shift(-offset, axis=axis)
-    else:
-        rs_indexer = [slice(None)] * rs.ndim
-        rs_indexer[axis] = slice(None, -offset)
-
-        lead_indexer = [slice(None)] * rs.ndim
-        lead_indexer[axis] = slice(offset, None)
-
-        na_indexer = [slice(None)] * rs.ndim
-        na_indexer[axis] = slice(-offset, None)
-
-        rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
-        rs[tuple(na_indexer)] = np.nan
+    if offset > 0:
+        if isinstance(rs, (Series, DataFrame, Panel)):
+            rs = rs.slice_shift(-offset, axis=axis)
+        else:
+            lead_indexer = [slice(None)] * rs.ndim
+            lead_indexer[axis] = slice(offset, None)
+            rs = np.copy(rs[tuple(lead_indexer)])
     return rs
 
 
@@ -821,13 +817,16 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     arg = _conv_timerule(arg, freq, how)
     return_hook, values = _process_data_structure(arg)
 
-    f = lambda x: algos.roll_window(x, window, minp, avg=mean)
+    offset = int((len(window) - 1) / 2.) if center else 0
+    additional_nans = np.array([np.NaN] * offset)
+    f = lambda x: algos.roll_window(np.concatenate((x, additional_nans)) if center else x,
+                                    window, minp, avg=mean)
     result = np.apply_along_axis(f, axis, values)
 
-    rs = return_hook(result)
     if center:
-        rs = _center_window(rs, len(window), axis)
-    return rs
+        result = _center_window(result, len(window), axis)
+
+    return return_hook(result)
 
 
 def _validate_win_type(win_type, kwargs):
@@ -856,14 +855,14 @@ def _expanding_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _expanding_kw, _type_of_input_retval, "")
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, min_periods=1, freq=None, center=False, **kwargs):
+    def f(arg, min_periods=1, freq=None, **kwargs):
         window = len(arg)
 
         def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
-                               center=center, **kwargs)
+                               **kwargs)
 
     return f
 
@@ -887,7 +886,7 @@ expanding_kurt = _expanding_func(
     check_minp=_require_min_periods(4))
 
 
-def expanding_count(arg, freq=None, center=False):
+def expanding_count(arg, freq=None):
     """
     Expanding count of number of non-NaN observations.
 
@@ -897,8 +896,6 @@ def expanding_count(arg, freq=None, center=False):
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
-    center : boolean, default False
-        Whether the label should correspond with center of window.
 
     Returns
     -------
@@ -910,11 +907,10 @@ def expanding_count(arg, freq=None, center=False):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
-    return rolling_count(arg, len(arg), freq=freq, center=center)
+    return rolling_count(arg, len(arg), freq=freq)
 
 
-def expanding_quantile(arg, quantile, min_periods=1, freq=None,
-                       center=False):
+def expanding_quantile(arg, quantile, min_periods=1, freq=None):
     """Expanding quantile.
 
     Parameters
@@ -928,8 +924,6 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
-    center : boolean, default False
-        Whether the label should correspond with center of window.
 
     Returns
     -------
@@ -942,14 +936,13 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
-                            freq=freq, center=center)
+                            freq=freq)
 
 
 @Substitution("Unbiased expanding covariance.", _binary_arg_flex,
               _expanding_kw+_pairwise_kw, _flex_retval, "")
 @Appender(_doc_template)
-def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
-                  pairwise=None):
+def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -960,14 +953,13 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
     window = len(arg1) + len(arg2)
     return rolling_cov(arg1, arg2, window,
                        min_periods=min_periods, freq=freq,
-                       center=center, pairwise=pairwise)
+                       pairwise=pairwise)
 
 
 @Substitution("Expanding sample correlation.", _binary_arg_flex,
               _expanding_kw+_pairwise_kw, _flex_retval, "")
 @Appender(_doc_template)
-def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
-                   pairwise=None):
+def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -978,22 +970,21 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
     window = len(arg1) + len(arg2)
     return rolling_corr(arg1, arg2, window,
                         min_periods=min_periods,
-                        freq=freq, center=center, pairwise=pairwise)
+                        freq=freq, pairwise=pairwise)
 
 
 @Substitution("Deprecated. Use expanding_corr(..., pairwise=True) instead.\n\n"
               "Pairwise expanding sample correlation", _pairwise_arg,
               _expanding_kw, _pairwise_retval, "")
 @Appender(_doc_template)
-def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None,
-                            center=False):
+def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None):
     import warnings
     warnings.warn("expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)", FutureWarning)
     return expanding_corr(df1, df2, min_periods=min_periods,
-                          freq=freq, center=center, pairwise=True)
+                          freq=freq, pairwise=True)
 
 
-def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
+def expanding_apply(arg, func, min_periods=1, freq=None,
                     args=(), kwargs={}):
     """Generic expanding function application.
 
@@ -1008,8 +999,6 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
-    center : boolean, default False
-        Whether the label should correspond with center of window.
     args : tuple
         Passed on to func
     kwargs : dict
@@ -1027,4 +1016,4 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
-                         center=center, args=args, kwargs=kwargs)
+                         args=args, kwargs=kwargs)
