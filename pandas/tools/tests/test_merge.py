@@ -781,6 +781,16 @@ class TestMerge(tm.TestCase):
                               1: nan}})[['i1', 'i2', 'i1_', 'i3']]
         assert_frame_equal(result, expected)
 
+    def test_merge_type(self):
+        class NotADataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return NotADataFrame
+
+        nad = NotADataFrame(self.df)
+        result = nad.merge(self.df2, on='key1')
+
+        tm.assert_isinstance(result, NotADataFrame)
 
     def test_append_dtype_coerce(self):
 
@@ -2153,6 +2163,18 @@ class TestOrderedMerge(tm.TestCase):
 
         result = ordered_merge(left, self.right, on='key', left_by='group')
         self.assertTrue(result['group'].notnull().all())
+
+    def test_merge_type(self):
+        class NotADataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return NotADataFrame
+
+        nad = NotADataFrame(self.left)
+        result = nad.merge(self.right, on='key')
+
+        tm.assert_isinstance(result, NotADataFrame)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

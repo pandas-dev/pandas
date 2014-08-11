@@ -106,6 +106,8 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
     Returns
     -------
     merged : DataFrame
+        The output type will the be same as 'left', if it is a subclass
+        of DataFrame.
     """
     def _merger(x, y):
         op = _OrderedMerge(x, y, on=on, left_on=left_on, right_on=right_on,
@@ -198,7 +200,8 @@ class _MergeOperation(object):
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0, copy=self.copy)
 
-        result = DataFrame(result_data).__finalize__(self, method='merge')
+        typ = self.left._constructor
+        result = typ(result_data).__finalize__(self, method='merge')
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -520,7 +523,8 @@ class _OrderedMerge(_MergeOperation):
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0, copy=self.copy)
 
-        result = DataFrame(result_data)
+        typ = self.left._constructor
+        result = typ(result_data).__finalize__(self, method='ordered_merge')
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 

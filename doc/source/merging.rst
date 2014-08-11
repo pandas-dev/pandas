@@ -376,6 +376,10 @@ Here's a description of what each argument is for:
     can be avoided are somewhat pathological but this option is provided
     nonetheless.
 
+The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
+and ``right`` is a subclass of DataFrame, the return type will still be
+``DataFrame``.
+
 ``merge`` is a function in the pandas namespace, and it is also available as a
 DataFrame instance method, with the calling DataFrame being implicitly
 considered the left object in the join.
