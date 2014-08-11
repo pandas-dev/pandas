@@ -2199,12 +2199,9 @@ the high performance HDF5 format using the excellent `PyTables
 <http://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
-.. note::
+.. warning::
 
-   ``PyTables`` 3.0.0 was recently released to enable support for Python 3.
-   pandas should be fully compatible (and previously written stores should be
-   backwards compatible) with all ``PyTables`` >= 2.3. For ``python >= 3.2``,
-   ``pandas >= 0.12.0`` is required for compatibility.
+   As of version 0.15.0, pandas requires ``PyTables`` >= 3.0.0. Stores written with prior versions of pandas / ``PyTables`` >= 2.3 are fully compatible (this was the previous minimum ``PyTables`` required version).
 
 .. ipython:: python
    :suppress:

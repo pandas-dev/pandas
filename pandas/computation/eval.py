@@ -42,9 +42,9 @@ def _check_engine(engine):
                               "if 'numexpr' is not installed")
         else:
             ne_version = numexpr.__version__
-            if ne_version < LooseVersion('2.0'):
+            if ne_version < LooseVersion('2.1'):
                 raise ImportError("'numexpr' version is %s, "
-                                  "must be >= 2.0" % ne_version)
+                                  "must be >= 2.1" % ne_version)
 
 
 def _check_parser(parser):

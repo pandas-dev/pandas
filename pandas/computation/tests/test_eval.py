@@ -81,7 +81,6 @@ def _is_py3_complex_incompat(result, expected):
 
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
-
 class TestEvalNumexprPandas(tm.TestCase):
 
     @classmethod
@@ -1515,9 +1514,9 @@ def check_invalid_numexpr_version(engine, parser):
         except ImportError:
             raise nose.SkipTest("no numexpr")
         else:
-            if ne.__version__ < LooseVersion('2.0'):
+            if ne.__version__ < LooseVersion('2.1'):
                 with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
-                                           ".+, must be >= 2.0"):
+                                           ".+, must be >= 2.1"):
                     testit()
             else:
                 testit()
