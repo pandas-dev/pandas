@@ -123,6 +123,7 @@ a handful of values for plots other than the default Line plot.
 These include:
 
 * :ref:`'bar' <visualization.barplot>` or :ref:`'barh' <visualization.barplot>` for bar plots
+* :ref:`'hist' <visualization.hist>` for histogram
 * :ref:`'kde' <visualization.kde>` or ``'density'`` for density plots
 * :ref:`'area' <visualization.area_plot>` for area plots
 * :ref:`'scatter' <visualization.scatter_matrix>` for scatter plots
@@ -205,6 +206,46 @@ To get horizontal bar plots, pass ``kind='barh'``:
 
 Histograms
 ~~~~~~~~~~
+
+.. versionadded:: 0.15.0
+
+Histogram can be drawn specifying ``kind='hist'``.
+
+.. ipython:: python
+
+   df4 = DataFrame({'a': randn(1000) + 1, 'b': randn(1000),
+                    'c': randn(1000) - 1}, columns=['a', 'b', 'c'])
+
+   plt.figure();
+
+   @savefig hist_new.png
+   df4.plot(kind='hist', alpha=0.5)
+
+Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`` keyword.
+
+.. ipython:: python
+
+   plt.figure();
+
+   @savefig hist_new_stacked.png
+   df4.plot(kind='hist', stacked=True, bins=20)
+
+You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histgram can be drawn by ``orientation='horizontal'`` and ``cumulative='True'``.
+
+.. ipython:: python
+
+   plt.figure();
+
+   @savefig hist_new_kwargs.png
+   df4['a'].plot(kind='hist', orientation='horizontal', cumulative=True)
+
+
+See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
+`matplotlib hist documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
+
+
+The previous interface ``DataFrame.hist`` to plot histogram still can be used.
+
 .. ipython:: python
 
    plt.figure();

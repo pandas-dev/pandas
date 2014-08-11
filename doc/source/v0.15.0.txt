@@ -170,6 +170,8 @@ previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument.  (:issue:`7737`)
 
+- Histogram from ``DataFrame.plot`` with ``kind='hist'`` (:issue:`7809`), See :ref:`the docs<visualization.hist>`.
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
