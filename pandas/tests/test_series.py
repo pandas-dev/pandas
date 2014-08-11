@@ -3668,6 +3668,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         tm.assert_frame_equal(df,expected)
 
         # GH 3970
+        # these are chained assignments as well
+        pd.set_option('chained_assignment',None)
         df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
         df["cc"] = 0.0
         ck = [True]*len(df)
@@ -3675,6 +3677,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         df_tmp = df.iloc[ck]
         df["bb"].iloc[0] = .15
         self.assertEqual(df['bb'].iloc[0], 0.15)
+        pd.set_option('chained_assignment','raise')
 
         # GH 3217
         df = DataFrame(dict(a = [1,3], b = [np.nan, 2]))

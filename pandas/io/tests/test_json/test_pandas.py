@@ -305,13 +305,13 @@ class TestPandasContainer(tm.TestCase):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
-        df[2][0] = np.inf
+        df.loc[0,2] = np.inf
         unser = read_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
         unser = read_json(df.to_json(), dtype=False)
         self.assertTrue(np.isnan(unser[2][0]))
 
-        df[2][0] = np.NINF
+        df.loc[0,2] = np.NINF
         unser = read_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
         unser = read_json(df.to_json(),dtype=False)

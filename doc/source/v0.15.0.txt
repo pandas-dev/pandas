@@ -114,7 +114,7 @@ API changes
         df
         df.dtypes
 
-- ``SettingWithCopy`` raise/warnings (according to the option ``mode.chained_assignment``) will now be issued when setting a value on a sliced mixed-dtype DataFrame using chained-assignment. (:issue:`7845`)
+- ``SettingWithCopy`` raise/warnings (according to the option ``mode.chained_assignment``) will now be issued when setting a value on a sliced mixed-dtype DataFrame using chained-assignment. (:issue:`7845`, :issue:`7950`)
 
   .. code-block:: python
 

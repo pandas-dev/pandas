@@ -1481,7 +1481,8 @@ which can take the values ``['raise','warn',None]``, where showing a warning is 
                            'three', 'two', 'one', 'six'],
                     'c' : np.arange(7)})
 
-   # passed via reference (will stay)
+   # This will show the SettingWithCopyWarning
+   # but the frame values will be set
    dfb['c'][dfb.a.str.startswith('o')] = 42
 
 This however is operating on a copy and will not work.

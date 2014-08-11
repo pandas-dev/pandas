@@ -1348,8 +1348,8 @@ class TestDataFrameFormatting(tm.TestCase):
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
 
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
+        biggie.loc[:20,'A'] = nan
+        biggie.loc[:20,'B'] = nan
         s = biggie.to_string()
 
         buf = StringIO()
@@ -1597,8 +1597,8 @@ c  10  11  12  13  14\
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
 
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
+        biggie.loc[:20,'A'] = nan
+        biggie.loc[:20,'B'] = nan
         s = biggie.to_html()
 
         buf = StringIO()
@@ -1624,8 +1624,8 @@ c  10  11  12  13  14\
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
 
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
+        biggie.loc[:20,'A'] = nan
+        biggie.loc[:20,'B'] = nan
         with tm.ensure_clean('test.html') as path:
             biggie.to_html(path)
             with open(path, 'r') as f:

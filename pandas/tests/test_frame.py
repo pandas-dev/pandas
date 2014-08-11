@@ -32,7 +32,8 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, notnull, isnull,
-                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv)
+                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv,
+                    option_context)
 import pandas as pd
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
@@ -4437,8 +4438,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         biggie = DataFrame({'A': randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
+        biggie.loc[:20,'A'] = nan
+        biggie.loc[:20,'B'] = nan
 
         foo = repr(biggie)
 
@@ -4469,13 +4470,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2,], [3, 4]])
-        with pd.option_context('display.show_dimensions', True):
+        with option_context('display.show_dimensions', True):
             self.assertTrue("2 rows x 2 columns" in repr(df))
 
-        with pd.option_context('display.show_dimensions', False):
+        with option_context('display.show_dimensions', False):
             self.assertFalse("2 rows x 2 columns" in repr(df))
 
-        with pd.option_context('display.show_dimensions', 'truncate'):
+        with option_context('display.show_dimensions', 'truncate'):
             self.assertFalse("2 rows x 2 columns" in repr(df))
 
     @slow
@@ -6475,7 +6476,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(10, 5))
         for len_, verbose in [(4, None), (4, False), (9, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
-            with pd.option_context('max_info_columns', 4):
+            with option_context('max_info_columns', 4):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
@@ -6484,7 +6485,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         for len_, verbose in [(9, None), (4, False), (9, True)]:
 
             # max_cols no exceeded
-            with pd.option_context('max_info_columns', 5):
+            with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
@@ -6492,14 +6493,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         for len_, max_cols in [(9, 5), (4, 4)]:
             # setting truncates
-            with pd.option_context('max_info_columns', 4):
+            with option_context('max_info_columns', 4):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
                 self.assertEqual(len(res.split('\n')), len_)
 
             # setting wouldn't truncate
-            with pd.option_context('max_info_columns', 5):
+            with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
@@ -7411,19 +7412,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df,expected)
 
     def test_fillna(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        self.tsframe.ix[:5,'A'] = nan
+        self.tsframe.ix[-5:,'A'] = nan
 
         zero_filled = self.tsframe.fillna(0)
-        self.assertTrue((zero_filled['A'][:5] == 0).all())
+        self.assertTrue((zero_filled.ix[:5,'A'] == 0).all())
 
         padded = self.tsframe.fillna(method='pad')
-        self.assertTrue(np.isnan(padded['A'][:5]).all())
-        self.assertTrue((padded['A'][-5:] == padded['A'][-5]).all())
+        self.assertTrue(np.isnan(padded.ix[:5,'A']).all())
+        self.assertTrue((padded.ix[-5:,'A'] == padded.ix[-5,'A']).all())
 
         # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
         result = self.mixed_frame.fillna(value=0)
         result = self.mixed_frame.fillna(method='pad')
 
@@ -7432,7 +7433,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # mixed numeric (but no float16)
         mf = self.mixed_float.reindex(columns=['A','B','D'])
-        mf['A'][-10:] = nan
+        mf.ix[-10:,'A'] = nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype = dict(C = None))
 
@@ -7604,8 +7605,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         result = self.mixed_frame.replace(np.nan, 0)
         expected = self.mixed_frame.fillna(value=0)
@@ -8193,8 +8194,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(expec, res)
 
     def test_replace_mixed(self):
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         result = self.mixed_frame.replace(np.nan, -18)
         expected = self.mixed_frame.fillna(value=-18)
@@ -9872,7 +9873,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           'E': np.random.randn(11),
                           'F': np.random.randn(11)})
 
-        data['C'][4] = np.nan
+        data.loc[4,'C'] = np.nan
 
         def transform(row):
             if row['C'].startswith('shin') and row['A'] == 'foo':
@@ -11716,11 +11717,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertNotIn('foo', renamed)
 
     def test_fill_corner(self):
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        self.mixed_frame.ix[5:20,'foo'] = nan
+        self.mixed_frame.ix[-10:,'A'] = nan
 
         filled = self.mixed_frame.fillna(value=0)
-        self.assertTrue((filled['foo'][5:20] == 0).all())
+        self.assertTrue((filled.ix[5:20,'foo'] == 0).all())
         del self.mixed_frame['foo']
 
         empty_float = self.frame.reindex(columns=[])
@@ -12551,15 +12552,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, frame.idxmax, axis=2)
 
     def test_stale_cached_series_bug_473(self):
-        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
-                      columns=('e', 'f', 'g', 'h'))
-        repr(Y)
-        Y['e'] = Y['e'].astype('object')
-        Y['g']['c'] = np.NaN
-        repr(Y)
-        result = Y.sum()
-        exp = Y['g'].sum()
-        self.assertTrue(isnull(Y['g']['c']))
+
+        # this is chained, but ok
+        with option_context('chained_assignment',None):
+            Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
+                          columns=('e', 'f', 'g', 'h'))
+            repr(Y)
+            Y['e'] = Y['e'].astype('object')
+            Y['g']['c'] = np.NaN
+            repr(Y)
+            result = Y.sum()
+            exp = Y['g'].sum()
+            self.assertTrue(isnull(Y['g']['c']))
 
     def test_index_namedtuple(self):
         from collections import namedtuple
@@ -12712,6 +12716,7 @@ starting,ending,measure
                 self.assertTrue(r1.all())
 
     def test_strange_column_corruption_issue(self):
+
         df = DataFrame(index=[0, 1])
         df[0] = nan
         wasCol = {}
