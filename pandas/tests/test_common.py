@@ -389,6 +389,12 @@ def test_groupby():
 
     for k, v in grouped:
         assert v == expected[k]
+        
+
+def test_interpolate_linear():
+    a = Series([np.nan, 1, np.nan, 3, np.nan]))
+    b = a.interpolate()
+    assert(b[4] == np.nan)
 
 
 def test_is_list_like():
