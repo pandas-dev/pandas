@@ -1543,7 +1543,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         inds = inds[firstIndex:]
 
         result[firstIndex:][invalid] = np.interp(inds[invalid], inds[valid],
-                                                 yvalues[firstIndex:][valid])
+                                                 yvalues[firstIndex:][valid],
+                                                 np.nan, np.nan)
 
         if limit:
             result[violate_limit] = np.nan
