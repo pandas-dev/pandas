@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re
 from datetime import datetime, timedelta
 import numpy as np
@@ -8,7 +9,6 @@ from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate, Datetime
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
 from pandas.tseries.common import is_datetimelike
 from pandas import Series, Index, Int64Index, DatetimeIndex, PeriodIndex
-from pandas import _np_version_under1p7
 import pandas.tslib as tslib
 import nose
 
@@ -128,6 +128,7 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
         self.assert_numpy_array_equal(self.container, original)
         self.assertEqual(vals[0], n)
 
+
 class TestPandasDelegate(tm.TestCase):
 
     def setUp(self):
@@ -174,6 +175,7 @@ class TestPandasDelegate(tm.TestCase):
         def f():
             delegate.foo()
         self.assertRaises(TypeError, f)
+
 
 class Ops(tm.TestCase):
     def setUp(self):
@@ -238,6 +240,7 @@ class Ops(tm.TestCase):
                     else:
                         self.assertRaises(AttributeError, lambda : getattr(o,op))
 
+
 class TestIndexOps(Ops):
 
     def setUp(self):
@@ -250,29 +253,25 @@ class TestIndexOps(Ops):
         for o in self.objs:
 
             # check that we work
-            for p in ['shape','dtype','base','flags','T',
-                      'strides','itemsize','nbytes']:
-                self.assertIsNotNone(getattr(o,p,None))
+            for p in ['shape', 'dtype', 'base', 'flags', 'T',
+                      'strides', 'itemsize', 'nbytes']:
+                self.assertIsNotNone(getattr(o, p, None))
 
             # if we have a datetimelike dtype then needs a view to work
             # but the user is responsible for that
             try:
                 self.assertIsNotNone(o.data)
-            except (ValueError):
+            except ValueError:
                 pass
 
-            # len > 1
-            self.assertRaises(ValueError, lambda : o.item())
+            self.assertRaises(ValueError, o.item)  # len > 1
+            self.assertEqual(o.ndim, 1)
+            self.assertEqual(o.size, len(o))
 
-            self.assertTrue(o.ndim == 1)
-
-            self.assertTrue(o.size == len(o))
-
-        self.assertTrue(Index([1]).item() == 1)
-        self.assertTrue(Series([1]).item() == 1)
+        self.assertEqual(Index([1]).item(), 1)
+        self.assertEqual(Series([1]).item(), 1)
 
     def test_ops(self):
-        tm._skip_if_not_numpy17_friendly()
         for op in ['max','min']:
             for o in self.objs:
                 result = getattr(o,op)()
@@ -734,10 +733,7 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
                 tm.assert_index_equal(rng, expected)
 
             # offset
-            if _np_version_under1p7:
-                offsets = [pd.offsets.Hour(2), timedelta(hours=2)]
-            else:
-                offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
+            offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
 
             for delta in offsets:
                 rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -781,10 +777,7 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
                 tm.assert_index_equal(rng, expected)
 
             # offset
-            if _np_version_under1p7:
-                offsets = [pd.offsets.Hour(2), timedelta(hours=2)]
-            else:
-                offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
+            offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h')]
 
             for delta in offsets:
                 rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -961,8 +954,6 @@ Length: 3, Freq: Q-DEC"""
             self.assertEqual(idx.resolution, expected)
 
     def test_add_iadd(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # union
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -1085,8 +1076,6 @@ Length: 3, Freq: Q-DEC"""
         tm.assert_index_equal(rng, expected)
 
     def test_sub_isub(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # diff
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)

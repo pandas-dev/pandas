@@ -10,7 +10,7 @@ import random
 
 import pandas as pd
 from pandas.compat import range, lrange, lzip, zip, StringIO
-from pandas import compat, _np_version_under1p7
+from pandas import compat
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -822,7 +822,6 @@ class TestMerge(tm.TestCase):
 
         # timedelta64 issues with join/merge
         # GH 5695
-        tm._skip_if_not_numpy17_friendly()
 
         d = {'d': dt.datetime(2013, 11, 5, 5, 56), 't': dt.timedelta(0, 22500)}
         df = DataFrame(columns=list('dt'))
@@ -2013,9 +2012,6 @@ class TestConcatenate(tm.TestCase):
         self.assertTrue((result.iloc[10:]['time'] == rng).all())
 
     def test_concat_timedelta64_block(self):
-
-        # not friendly for < 1.7
-        tm._skip_if_not_numpy17_friendly()
         from pandas import to_timedelta
 
         rng = to_timedelta(np.arange(10),unit='s')

@@ -36,7 +36,6 @@ from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
-from pandas import _np_version_under1p7
 
 
 try:
@@ -509,8 +508,6 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_timedelta(self):
         # see #6921
-        tm._skip_if_not_numpy17_friendly()
-
         df = to_timedelta(Series(['00:00:01', '00:00:03'], name='foo')).to_frame()
         with tm.assert_produces_warning(UserWarning):
             df.to_sql('test_timedelta', self.conn)

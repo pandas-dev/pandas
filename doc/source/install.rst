@@ -247,7 +247,7 @@ installed), make sure you have `nose
 Dependencies
 ------------
 
-  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
+  * `NumPy <http://www.numpy.org>`__: 1.7.0 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support

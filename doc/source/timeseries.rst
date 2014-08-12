@@ -1685,23 +1685,3 @@ yields another ``timedelta64[ns]`` dtypes Series.
 
    td * -1
    td * Series([1,2,3,4])
-
-Numpy < 1.7 Compatibility
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Numpy < 1.7 has a broken ``timedelta64`` type that does not correctly work
-for arithmetic. pandas bypasses this, but for frequency conversion as above,
-you need to create the divisor yourself. The ``np.timetimedelta64`` type only
-has 1 argument, the number of **micro** seconds.
-
-The following are equivalent statements in the two versions of numpy.
-
-.. code-block:: python
-
-   from distutils.version import LooseVersion
-   if LooseVersion(np.__version__) <= '1.6.2':
-       y / np.timedelta(86400*int(1e6))
-       y / np.timedelta(int(1e6))
-   else:
-       y / np.timedelta64(1,'D')
-       y / np.timedelta64(1,'s')

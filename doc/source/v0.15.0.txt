@@ -7,6 +7,12 @@ This is a major release from 0.14.1 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
+.. warning::
+
+   pandas >= 0.15.0 will no longer support compatibility with NumPy versions <
+   1.7.0. If you want to use the latest versions of pandas, please upgrade to
+   NumPy >= 1.7.0.
+
 - Highlights include:
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`

@@ -10,7 +10,6 @@ from pandas.tslib import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets
-from pandas import _np_version_under1p7
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
@@ -140,10 +139,7 @@ class TestTimestamp(tm.TestCase):
     def test_repr(self):
         dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
         timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
-        if _np_version_under1p7:
-            freqs = ['D', 'M', 'S']
-        else:
-            freqs = ['D', 'M', 'S', 'N']
+        freqs = ['D', 'M', 'S', 'N']
 
         for date in dates:
             for tz in timezones:
@@ -431,7 +427,6 @@ class TestArrayToDatetime(tm.TestCase):
 
 class TestTimestampNsOperations(tm.TestCase):
     def setUp(self):
-        tm._skip_if_not_numpy17_friendly()
         self.timestamp = Timestamp(datetime.datetime.utcnow())
 
     def assert_ns_timedelta(self, modified_timestamp, expected_value):
@@ -538,15 +533,6 @@ class TestTimestampNsOperations(tm.TestCase):
             self.assertTrue((left - right) is tslib.NaT)
             with tm.assertRaises(TypeError):
                 right - left
-
-        if _np_version_under1p7:
-            self.assertEqual(nat + np.timedelta64(1, 'h'), tslib.NaT)
-            with tm.assertRaises(TypeError):
-                np.timedelta64(1, 'h') + nat
-
-            self.assertEqual(nat - np.timedelta64(1, 'h'), tslib.NaT)
-            with tm.assertRaises(TypeError):
-                np.timedelta64(1, 'h') - nat
 
 
 class TestTslib(tm.TestCase):
@@ -655,10 +641,9 @@ class TestTimestampOps(tm.TestCase):
         timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D', tz='US/Eastern'))
         first_timestamp = timestamp_series[0]
 
-        if not _np_version_under1p7:
-            delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
-            assert_series_equal(timestamp_series - first_timestamp, delta_series)
-            assert_series_equal(first_timestamp - timestamp_series, -delta_series)
+        delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
+        assert_series_equal(timestamp_series - first_timestamp, delta_series)
+        assert_series_equal(first_timestamp - timestamp_series, -delta_series)
 
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time objects
@@ -676,11 +661,10 @@ class TestTimestampOps(tm.TestCase):
         self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
         self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
 
-        if not _np_version_under1p7:
-            # Timestamp +/- datetime64 not supported, so not tested (could possibly assert error raised?)
-            timedelta64_instance = np.timedelta64(1, 'D')
-            self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
-            self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
+        # Timestamp +/- datetime64 not supported, so not tested (could possibly assert error raised?)
+        timedelta64_instance = np.timedelta64(1, 'D')
+        self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
+        self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
 
     def test_addition_subtraction_preserve_frequency(self):
         timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
@@ -691,10 +675,9 @@ class TestTimestampOps(tm.TestCase):
         self.assertEqual((timestamp_instance + timedelta_instance).freq, original_freq)
         self.assertEqual((timestamp_instance - timedelta_instance).freq, original_freq)
 
-        if not _np_version_under1p7:
-            timedelta64_instance = np.timedelta64(1, 'D')
-            self.assertEqual((timestamp_instance + timedelta64_instance).freq, original_freq)
-            self.assertEqual((timestamp_instance - timedelta64_instance).freq, original_freq)
+        timedelta64_instance = np.timedelta64(1, 'D')
+        self.assertEqual((timestamp_instance + timedelta64_instance).freq, original_freq)
+        self.assertEqual((timestamp_instance - timedelta64_instance).freq, original_freq)
 
     def test_resolution(self):
 

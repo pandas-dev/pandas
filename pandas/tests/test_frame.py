@@ -3803,8 +3803,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
 
     def test_datetimelike_setitem_with_inference(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # GH 7592
         # assignment of timedeltas with NaT
 
@@ -9668,8 +9666,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, df.apply, lambda x: x, 2)
 
     def test_apply_mixed_datetimelike(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # mixed datetimelike
         # GH 7778
         df = DataFrame({ 'A' : date_range('20130101',periods=3), 'B' : pd.to_timedelta(np.arange(3),unit='s') })
@@ -13112,7 +13108,6 @@ starting,ending,measure
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
-        tm._skip_if_not_numpy17_friendly()
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),

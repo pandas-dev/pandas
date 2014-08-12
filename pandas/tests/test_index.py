@@ -32,7 +32,6 @@ import pandas.tseries.offsets as offsets
 import pandas as pd
 from pandas.lib import Timestamp
 
-from pandas import _np_version_under1p7
 
 class Base(object):
     """ base class for index sub-class tests """
@@ -392,8 +391,6 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_nanosecond_index_access(self):
-        tm._skip_if_not_numpy17_friendly()
-
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
         r = DatetimeIndex([s + 50 + i for i in range(100)])
         x = Series(np.random.randn(100), index=r)
@@ -1630,7 +1627,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
     def test_numeric_compat(self):
         super(TestDatetimeIndex, self).test_numeric_compat()
 
-        if not (_np_version_under1p7 or compat.PY3_2):
+        if not compat.PY3_2:
             for f in [lambda : np.timedelta64(1, 'D').astype('m8[ns]') * pd.date_range('2000-01-01', periods=3),
                       lambda : pd.date_range('2000-01-01', periods=3) * np.timedelta64(1, 'D').astype('m8[ns]') ]:
                 self.assertRaises(TypeError, f)
@@ -2227,12 +2224,11 @@ class TestMultiIndex(Base, tm.TestCase):
         expected = np.array(['a', np.nan, 1],dtype=object)
         assert_array_equal(values.values, expected)
 
-        if not _np_version_under1p7:
-            arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
-            index = pd.MultiIndex.from_arrays(arrays)
-            values = index.get_level_values(1)
-            expected = pd.DatetimeIndex([0, 1, pd.NaT])
-            assert_array_equal(values.values, expected.values)
+        arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(1)
+        expected = pd.DatetimeIndex([0, 1, pd.NaT])
+        assert_array_equal(values.values, expected.values)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)

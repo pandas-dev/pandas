@@ -7,9 +7,10 @@ from datetime import timedelta
 
 import numpy as np
 import pandas.tslib as tslib
-from pandas import compat, _np_version_under1p7
-from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype, is_timedelta64_dtype,
-                                _values_from_object, is_list_like, isnull, _ensure_object)
+from pandas import compat
+from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype,
+                                is_timedelta64_dtype, _values_from_object,
+                                is_list_like, isnull, _ensure_object)
 
 repr_timedelta = tslib.repr_timedelta64
 repr_timedelta64 = tslib.repr_timedelta64
@@ -29,9 +30,6 @@ def to_timedelta(arg, box=True, unit='ns'):
     -------
     ret : timedelta64/arrays of timedelta64 if parsing succeeded
     """
-    if _np_version_under1p7:
-        raise ValueError("to_timedelta is not support for numpy < 1.7")
-
     unit = _validate_timedelta_unit(unit)
 
     def _convert_listlike(arg, box, unit):
@@ -187,45 +185,8 @@ def _possibly_cast_to_timedelta(value, coerce=True, dtype=None):
         sure that we are [ns] (as numpy 1.6.2 is very buggy in this regards,
         don't force the conversion unless coerce is True
 
-        if coerce='compat' force a compatibilty coercerion (to timedeltas) if needeed
         if dtype is passed then this is the target dtype
         """
-
-    # coercion compatability
-    if coerce == 'compat' and _np_version_under1p7:
-
-        def convert(td, dtype):
-
-            # we have an array with a non-object dtype
-            if hasattr(td,'item'):
-                td = td.astype(np.int64).item()
-                if td == tslib.iNaT:
-                    return td
-                if dtype == 'm8[us]':
-                    td *= 1000
-                return td
-
-            if isnull(td) or td == tslib.compat_NaT or td == tslib.iNaT:
-                return tslib.iNaT
-
-            # convert td value to a nanosecond value
-            d = td.days
-            s = td.seconds
-            us = td.microseconds
-
-            if dtype == 'object' or dtype == 'm8[ns]':
-                td = 1000*us + (s + d * 24 * 3600) * 10 ** 9
-            else:
-                raise ValueError("invalid conversion of dtype in np < 1.7 [%s]" % dtype)
-
-            return td
-
-        # < 1.7 coercion
-        if not is_list_like(value):
-            value = np.array([ value ])
-
-        dtype = value.dtype
-        return np.array([ convert(v,dtype) for v in value ], dtype='m8[ns]')
 
     # deal with numpy not being able to handle certain timedelta operations
     if isinstance(value, (ABCSeries, np.ndarray)):

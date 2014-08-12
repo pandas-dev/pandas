@@ -22,7 +22,7 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  assert_frame_equal,
                                  assert_series_equal)
 from pandas import concat, Timestamp
-from pandas import compat, _np_version_under1p7
+from pandas import compat
 from pandas.compat import range, lrange, u
 from pandas.util.testing import assert_produces_warning
 
@@ -2159,8 +2159,6 @@ class TestHDFStore(tm.TestCase):
             setTZ(orig_tz)
 
     def test_append_with_timedelta(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # GH 3577
         # append timedelta
 

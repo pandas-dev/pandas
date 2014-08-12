@@ -90,7 +90,7 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](http://www.numpy.org): 1.6.1 or higher
+- [NumPy](http://www.numpy.org): 1.7.0 or higher
 - [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
 - [pytz](http://pytz.sourceforge.net)
     - Needed for time zone support with ``pandas.date_range``

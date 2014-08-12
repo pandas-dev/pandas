@@ -7,8 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Timestamp, _np_version_under1p7)
+from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp
 
 import pandas.core.common as com
 import pandas.compat as compat
@@ -379,10 +378,7 @@ class TestCategorical(tm.TestCase):
         codes= c.codes
         def f():
             codes[4] = 1
-        if _np_version_under1p7:
-            self.assertRaises(RuntimeError, f)
-        else:
-            self.assertRaises(ValueError, f)
+        self.assertRaises(ValueError, f)
 
         # But even after getting the codes, the original array should still be writeable!
         c[4] = "a"

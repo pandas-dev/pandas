@@ -26,7 +26,6 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype, _values_from_object)
 from pandas.core.config import option_context
-from pandas import _np_version_under1p7
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.tslib as tslib
@@ -2764,18 +2763,21 @@ class NDFrameGroupBy(GroupBy):
 
                         # normally use vstack as its faster than concat
                         # and if we have mi-columns
-                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex) or key_index is None:
-                            stacked_values = np.vstack([np.asarray(x) for x in values])
-                            result = DataFrame(stacked_values,index=key_index,columns=index)
+                        if isinstance(v.index, MultiIndex) or key_index is None:
+                            stacked_values = np.vstack(map(np.asarray, values))
+                            result = DataFrame(stacked_values, index=key_index,
+                                               columns=index)
                         else:
                             # GH5788 instead of stacking; concat gets the dtypes correct
                             from pandas.tools.merge import concat
-                            result = concat(values,keys=key_index,names=key_index.names,
+                            result = concat(values, keys=key_index,
+                                            names=key_index.names,
                                             axis=self.axis).unstack()
                             result.columns = index
                     else:
-                        stacked_values = np.vstack([np.asarray(x) for x in values])
-                        result = DataFrame(stacked_values.T,index=v.index,columns=key_index)
+                        stacked_values = np.vstack(map(np.asarray, values))
+                        result = DataFrame(stacked_values.T, index=v.index,
+                                           columns=key_index)
 
                 except (ValueError, AttributeError):
                     # GH1738: values is list of arrays of unequal lengths fall

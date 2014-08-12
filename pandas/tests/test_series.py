@@ -15,8 +15,8 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, notnull,
-                    bdate_range, date_range, period_range, _np_version_under1p7)
+from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
+                    date_range, period_range)
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp, DatetimeIndex
@@ -27,7 +27,7 @@ import pandas.lib as lib
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
-from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long, PY3_2
+from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
 from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
@@ -80,7 +80,6 @@ class CheckNameIntegration(object):
         ok_for_period = ok_for_base + ['qyear']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end']
-        ok_for_both = ok_for_dt
 
         def get_expected(s, name):
             result = getattr(Index(s.values),prop)
@@ -726,15 +725,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         values2 = dates.view(np.ndarray).astype('datetime64[ns]')
         expected = Series(values2, dates)
 
-        # numpy < 1.7 is very odd about astyping
-        if not _np_version_under1p7:
-            for dtype in ['s','D','ms','us','ns']:
-                values1 = dates.view(np.ndarray).astype('M8[{0}]'.format(dtype))
-                result = Series(values1, dates)
-                assert_series_equal(result,expected)
+        for dtype in ['s', 'D', 'ms', 'us', 'ns']:
+            values1 = dates.view(np.ndarray).astype('M8[{0}]'.format(dtype))
+            result = Series(values1, dates)
+            assert_series_equal(result,expected)
 
         # leave datetime.date alone
-        dates2 = np.array([ d.date() for d in dates.to_pydatetime() ],dtype=object)
+        dates2 = np.array([d.date() for d in dates.to_pydatetime()],
+                          dtype=object)
         series1 = Series(dates2, dates)
         self.assert_numpy_array_equal(series1.values,dates2)
         self.assertEqual(series1.dtype,object)
@@ -1343,7 +1341,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertNotIsInstance(result, Series)
 
         result2 = np.reshape(x, (-1, 1))
-        self.assertNotIsInstance(result, Series)
+        self.assertNotIsInstance(result2, Series)
 
         result = x[:, None]
         expected = x.reshape((-1, 1))
@@ -1929,11 +1927,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue(repr(ts).splitlines()[-1].startswith('Freq:'))
 
         ts2 = ts.ix[np.random.randint(0, len(ts) - 1, 400)]
-        repr(ts).splitlines()[-1]
+        repr(ts2).splitlines()[-1]
 
     def test_timeseries_periodindex(self):
         # GH2891
-        import pickle
         from pandas import period_range
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
@@ -2297,11 +2294,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         q = dts.quantile(.2)
         self.assertEqual(q, Timestamp('2000-01-10 19:12:00'))
 
-        if not _np_version_under1p7:
-            # timedelta64[ns] dtype
-            tds = dts.diff()
-            q = tds.quantile(.25)
-            self.assertEqual(q, pd.to_timedelta('24:00:00'))
+        # timedelta64[ns] dtype
+        tds = dts.diff()
+        q = tds.quantile(.25)
+        self.assertEqual(q, pd.to_timedelta('24:00:00'))
 
     def test_quantile_multi(self):
         from numpy import percentile
@@ -2488,9 +2484,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})
-
-        # it works!
-        _ = s1 * s2
+        tm.assert_series_equal(s1 * s2, Series([np.nan], index=['x']))
 
     def test_constructor_dtype_timedelta64(self):
 
@@ -2501,9 +2495,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td = Series([timedelta(days=1)])
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
-        if not _np_version_under1p7:
-            td = Series([timedelta(days=1),timedelta(days=2),np.timedelta64(1,'s')])
-            self.assertEqual(td.dtype, 'timedelta64[ns]')
+        td = Series([timedelta(days=1),timedelta(days=2),np.timedelta64(1,'s')])
+        self.assertEqual(td.dtype, 'timedelta64[ns]')
 
         # mixed with NaT
         from pandas import tslib
@@ -2530,9 +2523,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td = Series([pd.NaT, np.timedelta64(300000000)])
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
-        if not _np_version_under1p7:
-            td = Series([np.timedelta64(1,'s')])
-            self.assertEqual(td.dtype, 'timedelta64[ns]')
+        td = Series([np.timedelta64(1,'s')])
+        self.assertEqual(td.dtype, 'timedelta64[ns]')
 
         # these are frequency conversion astypes
         #for t in ['s', 'D', 'us', 'ms']:
@@ -2554,16 +2546,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(td.dtype, 'object')
 
         # these will correctly infer a timedelta
-        # but only on numpy > 1.7 as the cython path will only be used
-        if not _np_version_under1p7:
-            s = Series([None, pd.NaT, '1 Day'])
-            self.assertEqual(s.dtype,'timedelta64[ns]')
-            s = Series([np.nan, pd.NaT, '1 Day'])
-            self.assertEqual(s.dtype,'timedelta64[ns]')
-            s = Series([pd.NaT, None, '1 Day'])
-            self.assertEqual(s.dtype,'timedelta64[ns]')
-            s = Series([pd.NaT, np.nan, '1 Day'])
-            self.assertEqual(s.dtype,'timedelta64[ns]')
+        s = Series([None, pd.NaT, '1 Day'])
+        self.assertEqual(s.dtype,'timedelta64[ns]')
+        s = Series([np.nan, pd.NaT, '1 Day'])
+        self.assertEqual(s.dtype,'timedelta64[ns]')
+        s = Series([pd.NaT, None, '1 Day'])
+        self.assertEqual(s.dtype,'timedelta64[ns]')
+        s = Series([pd.NaT, np.nan, '1 Day'])
+        self.assertEqual(s.dtype,'timedelta64[ns]')
 
     def test_operators_timedelta64(self):
 
@@ -2666,22 +2656,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             [Timestamp('20130101 9:06:00.005'), Timestamp('20130101 9:07:00.005')])
         assert_series_equal(result, expected)
 
-        if not _np_version_under1p7:
+        # operate with np.timedelta64 correctly
+        result = s + np.timedelta64(1, 's')
+        result2 = np.timedelta64(1, 's') + s
+        expected = Series(
+            [Timestamp('20130101 9:01:01'), Timestamp('20130101 9:02:01')])
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
 
-            # operate with np.timedelta64 correctly
-            result = s + np.timedelta64(1, 's')
-            result2 = np.timedelta64(1, 's') + s
-            expected = Series(
-                [Timestamp('20130101 9:01:01'), Timestamp('20130101 9:02:01')])
-            assert_series_equal(result, expected)
-            assert_series_equal(result2, expected)
-
-            result = s + np.timedelta64(5, 'ms')
-            result2 = np.timedelta64(5, 'ms') + s
-            expected = Series(
-                [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
-            assert_series_equal(result, expected)
-            assert_series_equal(result2, expected)
+        result = s + np.timedelta64(5, 'ms')
+        result2 = np.timedelta64(5, 'ms') + s
+        expected = Series(
+            [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
 
         # valid DateOffsets
         for do in [ 'Hour', 'Minute', 'Second', 'Day', 'Micro',
@@ -2720,22 +2708,21 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # Now again, using pd.to_timedelta, which should build
         # a Series or a scalar, depending on input.
-        if not _np_version_under1p7:
-            td1 = Series(pd.to_timedelta(['00:05:03'] * 3))
-            td2 = pd.to_timedelta('00:05:04')
-            result = td1 - td2
-            expected = Series([timedelta(seconds=0)] * 3) -Series(
-                [timedelta(seconds=1)] * 3)
-            self.assertEqual(result.dtype, 'm8[ns]')
-            assert_series_equal(result, expected)
+        td1 = Series(pd.to_timedelta(['00:05:03'] * 3))
+        td2 = pd.to_timedelta('00:05:04')
+        result = td1 - td2
+        expected = Series([timedelta(seconds=0)] * 3) -Series(
+            [timedelta(seconds=1)] * 3)
+        self.assertEqual(result.dtype, 'm8[ns]')
+        assert_series_equal(result, expected)
 
-            result2 = td2 - td1
-            expected = (Series([timedelta(seconds=1)] * 3) -
-                        Series([timedelta(seconds=0)] * 3))
-            assert_series_equal(result2, expected)
+        result2 = td2 - td1
+        expected = (Series([timedelta(seconds=1)] * 3) -
+                    Series([timedelta(seconds=0)] * 3))
+        assert_series_equal(result2, expected)
 
-            # roundtrip
-            assert_series_equal(result + td2,td1)
+        # roundtrip
+        assert_series_equal(result + td2,td1)
 
     def test_timedelta64_operations_with_integers(self):
 
@@ -2800,8 +2787,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 self.assertRaises(TypeError, sop, s2.values)
 
     def test_timedelta64_conversions(self):
-        tm._skip_if_not_numpy17_friendly()
-
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
 
@@ -2836,11 +2821,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                           'm': 60 * 1000000, 's': 1000000, 'us': 1}
 
         def timedelta64(*args):
-            if _np_version_under1p7:
-                coeffs = np.array(args)
-                terms = np.array([npy16_mappings[interval]
-                                  for interval in intervals])
-                return np.timedelta64(coeffs.dot(terms))
             return sum(starmap(np.timedelta64, zip(args, intervals)))
 
         for op, d, h, m, s, us in product([operator.add, operator.sub],
@@ -2913,8 +2893,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         dt1 + td1
 
     def test_ops_datetimelike_align(self):
-        tm._skip_if_not_numpy17_friendly()
-
         # GH 7500
         # datetimelike ops need to align
         dt = Series(date_range('2012-1-1', periods=3, freq='D'))
@@ -2976,8 +2954,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_timedelta_fillna(self):
-        tm._skip_if_not_numpy17_friendly()
-
         #GH 3371
         s = Series([Timestamp('20130101'), Timestamp('20130101'),
                     Timestamp('20130102'), Timestamp('20130103 9:01:01')])
@@ -3183,8 +3159,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        tm._skip_if_not_numpy17_friendly()
-
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
@@ -5640,9 +5614,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         # fails on dtype conversion in the first place
-        if not _np_version_under1p7:
-            result = s.isin(s[0:2].values.astype('datetime64[D]'))
-            assert_series_equal(result, expected)
+        result = s.isin(s[0:2].values.astype('datetime64[D]'))
+        assert_series_equal(result, expected)
 
         result = s.isin([s[1]])
         assert_series_equal(result, expected2)
@@ -5651,19 +5624,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected2)
 
         # timedelta64[ns]
-        if not _np_version_under1p7:
-            s = Series(pd.to_timedelta(lrange(5),unit='d'))
-            result = s.isin(s[0:2])
-            assert_series_equal(result, expected)
+        s = Series(pd.to_timedelta(lrange(5),unit='d'))
+        result = s.isin(s[0:2])
+        assert_series_equal(result, expected)
 
 #------------------------------------------------------------------------------
 # TimeSeries-specific
     def test_cummethods_bool(self):
         # GH 6270
         # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
-        if _np_version_under1p7 and sys.version_info[0] == 3 and sys.version_info[1] == 2:
-            raise nose.SkipTest("failure of GH6270 on numpy < 1.7 and py 3.2")
-
         def cummin(x):
             return np.minimum.accumulate(x)
 

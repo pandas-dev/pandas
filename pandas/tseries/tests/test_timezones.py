@@ -23,8 +23,6 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 from pandas.compat import lrange, zip
 
-from pandas import _np_version_under1p7
-
 
 try:
     import pytz
@@ -1195,9 +1193,8 @@ class TestTimeZones(tm.TestCase):
 
             offset = dates + offsets.Hour(5)
             self.assertTrue(offset.equals(expected))
-            if not _np_version_under1p7:
-                offset = dates + np.timedelta64(5, 'h')
-                self.assertTrue(offset.equals(expected))
+            offset = dates + np.timedelta64(5, 'h')
+            self.assertTrue(offset.equals(expected))
             offset = dates + timedelta(hours=5)
             self.assertTrue(offset.equals(expected))
 
@@ -1227,14 +1224,13 @@ class TestTimeZones(tm.TestCase):
         expected = ['2010-12-01 05:00', '2010-12-02 05:00', NaT]
         self.assertTrue(idx.equals(DatetimeIndex(expected, tz='US/Pacific')))
 
-        if not _np_version_under1p7:
-            idx = idx + np.timedelta64(3, 'h')
-            expected = ['2010-12-01 08:00', '2010-12-02 08:00', NaT]
-            self.assertTrue(idx.equals(DatetimeIndex(expected, tz='US/Pacific')))
+        idx = idx + np.timedelta64(3, 'h')
+        expected = ['2010-12-01 08:00', '2010-12-02 08:00', NaT]
+        self.assertTrue(idx.equals(DatetimeIndex(expected, tz='US/Pacific')))
 
-            idx = idx.tz_convert('US/Eastern')
-            expected = ['2010-12-01 11:00', '2010-12-02 11:00', NaT]
-            self.assertTrue(idx.equals(DatetimeIndex(expected, tz='US/Eastern')))
+        idx = idx.tz_convert('US/Eastern')
+        expected = ['2010-12-01 11:00', '2010-12-02 11:00', NaT]
+        self.assertTrue(idx.equals(DatetimeIndex(expected, tz='US/Eastern')))
 
 
 if __name__ == '__main__':

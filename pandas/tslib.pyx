@@ -42,12 +42,6 @@ from pandas.compat import parse_date, string_types
 
 from sys import version_info
 
-# numpy compat
-from distutils.version import LooseVersion
-_np_version = np.version.short_version
-_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
-_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
-
 # GH3363
 cdef bint PY2 = version_info[0] == 2
 
@@ -1472,32 +1466,15 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
             if util.is_array(ts):
                 ts = ts.astype('int64').item()
             if unit in ['Y','M','W']:
-                if _np_version_under1p7:
-                    raise ValueError("unsupported unit for native timedelta under this numpy {0}".format(unit))
-                else:
-                    ts = np.timedelta64(ts,unit)
+                ts = np.timedelta64(ts, unit)
             else:
                 ts = cast_from_unit(ts, unit)
-                if _np_version_under1p7:
-                    ts = timedelta(microseconds=ts/1000.0)
-                else:
-                    ts = np.timedelta64(ts)
+                ts = np.timedelta64(ts)
     elif util.is_string_object(ts):
         if ts in _nat_strings or coerce:
             return np.timedelta64(iNaT)
         else:
             raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
-
-    if _np_version_under1p7:
-        if not isinstance(ts, timedelta):
-            if coerce:
-                return np.timedelta64(iNaT)
-            raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
-        if not PY2:
-            # convert to microseconds in timedelta64
-            ts = np.timedelta64(int(ts.total_seconds()*1e9 + ts.microseconds*1000))
-        else:
-            return ts
 
     if isinstance(ts, timedelta):
         ts = np.timedelta64(ts)
@@ -2124,9 +2101,6 @@ cdef object _get_transitions(object tz):
                 arr = np.hstack([np.array([0], dtype='M8[s]'), # place holder for first item
                                  np.array(trans_list, dtype='M8[s]')]).astype('M8[ns]')  # all trans listed
                 arr = arr.view('i8')
-                # scale transitions correctly in numpy 1.6
-                if _np_version_under1p7:
-                    arr *= 1000000000
                 arr[0] = NPY_NAT + 1
             elif _is_fixed_offset(tz):
                 arr = np.array([NPY_NAT + 1], dtype=np.int64)

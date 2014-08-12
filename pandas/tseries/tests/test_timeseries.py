@@ -34,7 +34,7 @@ from pandas.util.testing import assert_frame_equal
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas import concat
-from pandas import _np_version_under1p7, _np_version_under1p8
+from pandas import _np_version_under1p8
 
 from numpy.testing.decorators import slow
 
@@ -288,10 +288,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
     def test_recreate_from_data(self):
-        if _np_version_under1p7:
-            freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H']
-        else:
-            freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
 
         for f in freqs:
             org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
@@ -767,19 +764,6 @@ class TestTimeSeries(tm.TestCase):
         idx = Index(arr)
 
         self.assertTrue((idx.values == tslib.cast_to_nanoseconds(arr)).all())
-
-    def test_index_astype_datetime64(self):
-        # valid only under 1.7!
-        if not _np_version_under1p7:
-            raise nose.SkipTest("test only valid in numpy < 1.7")
-
-        idx = Index([datetime(2012, 1, 1)], dtype=object)
-        casted = idx.astype(np.dtype('M8[D]'))
-
-        casted = idx.astype(np.dtype('M8[D]'))
-        expected = DatetimeIndex(idx.values)
-        tm.assert_isinstance(casted, DatetimeIndex)
-        self.assertTrue(casted.equals(expected))
 
     def test_reindex_series_add_nat(self):
         rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
@@ -2713,8 +2697,6 @@ class TestDatetimeIndex(tm.TestCase):
         assert index.inferred_freq == '40960N'
 
     def test_ns_index(self):
-        tm._skip_if_not_numpy17_friendly()
-
         nsamples = 400
         ns = int(1e9 / 24414)
         dtstart = np.datetime64('2012-09-20T00:00:00')
@@ -2862,10 +2844,9 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(sum(dti.is_year_end), 1)
 
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay, CBD requires np >= 1.7
-        if not _np_version_under1p7:
-            bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
-            dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
-            self.assertRaises(ValueError, lambda: dti.is_month_start)
+        bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
+        dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
+        self.assertRaises(ValueError, lambda: dti.is_month_start)
 
         dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
 
@@ -3545,18 +3526,7 @@ class TestTimestamp(tm.TestCase):
         for left, right in ops.items():
             left_f = getattr(operator, left)
             right_f = getattr(operator, right)
-
-            if pd._np_version_under1p7:
-                # you have to convert to timestamp for this to work with numpy
-                # scalars
-                expected = left_f(Timestamp(lhs), rhs)
-
-                # otherwise a TypeError is thrown
-                if left not in ('eq', 'ne'):
-                    with tm.assertRaises(TypeError):
-                        left_f(lhs, rhs)
-            else:
-                expected = left_f(lhs, rhs)
+            expected = left_f(lhs, rhs)
 
             result = right_f(rhs, lhs)
             self.assertEqual(result, expected)

@@ -258,9 +258,7 @@ class _TimeOp(object):
         self.is_datetime_lhs = com.is_datetime64_dtype(left)
         self.is_integer_lhs = left.dtype.kind in ['i', 'u']
         self.is_datetime_rhs = com.is_datetime64_dtype(rvalues)
-        self.is_timedelta_rhs = (com.is_timedelta64_dtype(rvalues)
-                                 or (not self.is_datetime_rhs
-                                     and pd._np_version_under1p7))
+        self.is_timedelta_rhs = com.is_timedelta64_dtype(rvalues)
         self.is_integer_rhs = rvalues.dtype.kind in ('i', 'u')
 
         self._validate()
@@ -318,7 +316,7 @@ class _TimeOp(object):
         """converts values to ndarray"""
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
 
-        coerce = 'compat' if pd._np_version_under1p7 else True
+        coerce = True
         if not is_list_like(values):
             values = np.array([values])
         inferred_type = lib.infer_dtype(values)
@@ -648,13 +646,7 @@ def _radd_compat(left, right):
     try:
         output = radd(left, right)
     except TypeError:
-        cond = (pd._np_version_under1p6 and
-                left.dtype == np.object_)
-        if cond:  # pragma: no cover
-            output = np.empty_like(left)
-            output.flat[:] = [radd(x, right) for x in left.flat]
-        else:
-            raise
+        raise
 
     return output
 
