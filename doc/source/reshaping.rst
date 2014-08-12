@@ -503,3 +503,10 @@ handling of NaN:
 
    pd.factorize(x, sort=True)
    np.unique(x, return_inverse=True)[::-1]
+
+.. note::
+    If you just want to handle one column as a categorical variable (like R's factor),
+    you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
+    ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
+    see the :ref:`Categorical introduction <categorical>` and the
+    :ref:`API documentation <api.categorical>`. This feature was introduced in version 0.15.

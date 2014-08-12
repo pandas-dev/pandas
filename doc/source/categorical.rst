@@ -90,6 +90,7 @@ By using some special functions:
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
+See :ref:`documentation <reshaping.tile.cut>` for :func:`~pandas.cut`.
 
 `Categoricals` have a specific ``category`` :ref:`dtype <basics.dtypes>`:
 
@@ -210,11 +211,9 @@ Renaming levels is done by assigning new values to the ``Category.levels`` or
 Levels must be unique or a `ValueError` is raised:
 
 .. ipython:: python
+   :okexcept:
 
-    try:
-        s.cat.levels = [1,1,1]
-    except ValueError as e:
-        print("ValueError: " + str(e))
+   s.cat.levels = [1,1,1]
 
 Appending levels can be done by assigning a levels list longer than the current levels:
 
@@ -268,12 +267,11 @@ meaning and certain operations are possible. If the categorical is unordered, a 
 raised.
 
 .. ipython:: python
+   :okexcept:
 
     s = pd.Series(pd.Categorical(["a","b","c","a"], ordered=False))
-    try:
-        s.sort()
-    except TypeError as e:
-        print("TypeError: " + str(e))
+    s.sort()
+
     s = pd.Series(pd.Categorical(["a","b","c","a"], ordered=True))
     s.sort()
     s
@@ -330,6 +328,44 @@ Operations
 ----------
 
 The following operations are possible with categorical data:
+
+Comparing `Categoricals` with other objects is possible in two cases:
+ * comparing a `Categorical` to another `Categorical`, when `level` and `ordered` is the same or
+ * comparing a `Categorical` to a scalar.
+All other comparisons will raise a TypeError.
+
+.. ipython:: python
+
+    cat = pd.Series(pd.Categorical([1,2,3], levels=[3,2,1]))
+    cat
+    cat_base = pd.Series(pd.Categorical([2,2,2], levels=[3,2,1]))
+    cat_base
+    cat_base2 = pd.Series(pd.Categorical([2,2,2]))
+    cat_base2
+
+    cat > cat_base
+    cat > 2
+
+This doesn't work because the levels are not the same
+
+.. ipython:: python
+   :okexcept:
+
+   cat > cat_base2
+
+.. note::
+
+    Comparisons with `Series`, `np.array` or a `Categorical` with different levels or ordering
+    will raise an `TypeError` because custom level ordering would result in two valid results:
+    one with taking in account the ordering and one without. If you want to compare a `Categorical`
+    with such a type, you need to be explicit and convert the `Categorical` to values:
+
+.. ipython:: python
+   :okexcept:
+
+    base = np.array([1,2,3])
+    cat > base
+    np.asarray(cat) > base
 
 Getting the minimum and maximum, if the categorical is ordered:
 
@@ -454,21 +490,22 @@ Setting values in a categorical column (or `Series`) works as long as the value 
 
     df.iloc[2:4,:] = [["b",2],["b",2]]
     df
-    try:
-        df.iloc[2:4,:] = [["c",3],["c",3]]
-    except ValueError as e:
-        print("ValueError: " + str(e))
+
+The value is not included in the levels here.
+
+.. ipython:: python
+   :okexcept:
+
+    df.iloc[2:4,:] = [["c",3],["c",3]]
 
 Setting values by assigning a `Categorical` will also check that the `levels` match:
 
 .. ipython:: python
+   :okexcept:
 
     df.loc["j":"k","cats"] = pd.Categorical(["a","a"], levels=["a","b"])
     df
-    try:
-        df.loc["j":"k","cats"] = pd.Categorical(["b","b"], levels=["a","b","c"])
-    except ValueError as e:
-        print("ValueError: " + str(e))
+    df.loc["j":"k","cats"] = pd.Categorical(["b","b"], levels=["a","b","c"])
 
 Assigning a `Categorical` to parts of a column of other types will use the values:
 
@@ -489,27 +526,30 @@ but the levels of these `Categoricals` need to be the same:
 
 .. ipython:: python
 
-        cat = pd.Categorical(["a","b"], levels=["a","b"])
-        vals = [1,2]
-        df = pd.DataFrame({"cats":cat, "vals":vals})
-        res = pd.concat([df,df])
-        res
-        res.dtypes
+   cat = pd.Categorical(["a","b"], levels=["a","b"])
+   vals = [1,2]
+   df = pd.DataFrame({"cats":cat, "vals":vals})
+   res = pd.concat([df,df])
+   res
+   res.dtypes
 
-        df_different = df.copy()
-        df_different["cats"].cat.levels = ["a","b","c"]
+   df_different = df.copy()
+   df_different["cats"].cat.levels = ["a","b","c"]
 
-        try:
-            pd.concat([df,df])
-        except ValueError as e:
-            print("ValueError: " + str(e))
+These levels are not the same
+
+.. ipython:: python
+   :okexcept:
+
+   pd.concat([df,df])
 
 The same applies to ``df.append(df)``.
 
 Getting Data In/Out
 -------------------
 
-Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype will currently raise ``NotImplementedError``.
+Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype will currently
+raise ``NotImplementedError``.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 `Categorical` (levels and ordering). So if you read back the CSV file you have to convert the
@@ -575,33 +615,26 @@ object and not as a low level `numpy` array dtype. This leads to some problems.
 `numpy` itself doesn't know about the new `dtype`:
 
 .. ipython:: python
+   :okexcept:
 
-    try:
-        np.dtype("category")
-    except TypeError as e:
-         print("TypeError: " + str(e))
+   np.dtype("category")
+   dtype = pd.Categorical(["a"]).dtype
+   np.dtype(dtype)
 
-    dtype = pd.Categorical(["a"]).dtype
-    try:
-        np.dtype(dtype)
-    except TypeError as e:
-         print("TypeError: " + str(e))
-
-    # dtype comparisons work:
-    dtype == np.str_
-    np.str_ == dtype
+   # dtype comparisons work:
+   dtype == np.str_
+   np.str_ == dtype
 
 Using `numpy` functions on a `Series` of type ``category`` should not work as `Categoricals`
 are not numeric data (even in the case that ``.levels`` is numeric).
 
 .. ipython:: python
+   :okexcept:
 
-    s = pd.Series(pd.Categorical([1,2,3,4]))
-    try:
-        np.sum(s)
-        #same with np.log(s),..
-    except TypeError as e:
-         print("TypeError: " + str(e))
+   s = pd.Series(pd.Categorical([1,2,3,4]))
+
+   #same with np.log(s),..
+   np.sum(s)
 
 .. note::
     If such a function works, please file a bug at https://github.com/pydata/pandas!
@@ -647,14 +680,14 @@ Both `Series` and `Categorical` have a method ``.reorder_levels()`` but for diff
 Series of type ``category`` this means that there is some danger to confuse both methods.
 
 .. ipython:: python
+   :okexcept:
 
     s = pd.Series(pd.Categorical([1,2,3,4]))
     print(s.cat.levels)
+
     # wrong and raises an error:
-    try:
-        s.reorder_levels([4,3,2,1])
-    except Exception as e:
-        print("Exception: " + str(e))
+    s.reorder_levels([4,3,2,1])
+
     # right
     s.cat.reorder_levels([4,3,2,1])
     print(s.cat.levels)

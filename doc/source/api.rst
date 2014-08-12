@@ -528,11 +528,17 @@ and has the following usable methods and properties (all available as
    :toctree: generated/
 
    Categorical
-   Categorical.from_codes
    Categorical.levels
    Categorical.ordered
    Categorical.reorder_levels
    Categorical.remove_unused_levels
+
+The following methods are considered API when using ``Categorical`` directly:
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.from_codes
    Categorical.min
    Categorical.max
    Categorical.mode
@@ -547,7 +553,7 @@ the Categorical back to a numpy array, so levels and order information is not pr
    Categorical.__array__
 
 To create compatibility with `pandas.Series` and `numpy` arrays, the following (non-API) methods
-are also introduced.
+are also introduced and available when ``Categorical`` is used directly.
 
 .. autosummary::
    :toctree: generated/
@@ -563,7 +569,8 @@ are also introduced.
    Categorical.order
    Categorical.argsort
    Categorical.fillna
-
+   Categorical.notnull
+   Categorical.isnull
 
 Plotting
 ~~~~~~~~
