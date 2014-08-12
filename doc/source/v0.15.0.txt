@@ -151,7 +151,7 @@ API changes
      Out[3]: array([ True, False,  True,  True, False,  True], dtype=bool)
 
 - ``tz_localize(None)`` for tz-aware ``Timestamp`` and ``DatetimeIndex`` now removes timezone holding local time,
-previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
+  previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
 
@@ -305,8 +305,8 @@ Enhancements
 
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
--``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue: `7070`)
--``pandas.tseries.holiday.Holiday`` now supports a list of offsets in Python3 (:issue: `7070`)
+- ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
+- ``pandas.tseries.holiday.Holiday`` now supports a list of offsets in Python3 (:issue:`7070`)
 
 
 
