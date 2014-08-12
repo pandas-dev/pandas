@@ -132,6 +132,16 @@ class _NDFrameIndexer(object):
                 raise ValueError("Location based indexing can only have [%s] "
                                  "types" % self._valid_types)
 
+    def _should_validate_iterable(self, axis=0):
+        """ return a boolean whether this axes needs validation for a passed iterable """
+        ax = self.obj._get_axis(axis)
+        if isinstance(ax, MultiIndex):
+            return False
+        elif ax.is_floating():
+            return False
+
+        return True
+
     def _is_nested_tuple_indexer(self, tup):
         if any([ isinstance(ax, MultiIndex) for ax in self.obj.axes ]):
             return any([ _is_nested_tuple(tup,ax) for ax in self.obj.axes ])
@@ -762,7 +772,7 @@ class _NDFrameIndexer(object):
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
-            return self._getitem_axis(tup, axis=axis, validate_iterable=True)
+            return self._getitem_axis(tup, axis=axis)
 
         # we may have a nested tuples indexer here
         if self._is_nested_tuple_indexer(tup):
@@ -825,7 +835,7 @@ class _NDFrameIndexer(object):
                 return result
 
             # this is a series with a multi-index specified a tuple of selectors
-            return self._getitem_axis(tup, axis=0, validate_iterable=True)
+            return self._getitem_axis(tup, axis=0)
 
         # handle the multi-axis by taking sections and reducing
         # this is iterative
@@ -838,7 +848,7 @@ class _NDFrameIndexer(object):
                 continue
 
             current_ndim = obj.ndim
-            obj = getattr(obj, self.name)._getitem_axis(key, axis=axis, validate_iterable=True)
+            obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
             axis += 1
 
             # if we have a scalar, we are done
@@ -859,9 +869,11 @@ class _NDFrameIndexer(object):
 
         return obj
 
-    def _getitem_axis(self, key, axis=0, validate_iterable=False):
+    def _getitem_axis(self, key, axis=0):
 
-        self._has_valid_type(key, axis)
+        if self._should_validate_iterable(axis):
+            self._has_valid_type(key, axis)
+
         labels = self.obj._get_axis(axis)
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
@@ -888,16 +900,28 @@ class _NDFrameIndexer(object):
             return self._get_label(key, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
+        if self._should_validate_iterable(axis):
+            self._has_valid_type(key, axis)
+
         labels = self.obj._get_axis(axis)
 
         def _reindex(keys, level=None):
+
             try:
-                return self.obj.reindex_axis(keys, axis=axis, level=level)
+                result = self.obj.reindex_axis(keys, axis=axis, level=level)
             except AttributeError:
                 # Series
                 if axis != 0:
                     raise AssertionError('axis must be 0')
                 return self.obj.reindex(keys, level=level)
+
+            # this is an error as we are trying to find
+            # keys in a multi-index that don't exist
+            if isinstance(labels, MultiIndex) and level is not None:
+                if hasattr(result,'ndim') and not np.prod(result.shape) and len(keys):
+                    raise KeyError("cannot index a multi-index axis with these keys")
+
+            return result
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
@@ -1149,7 +1173,7 @@ class _LocationIndexer(_NDFrameIndexer):
         else:
             return self._getitem_axis(key, axis=0)
 
-    def _getitem_axis(self, key, axis=0, validate_iterable=False):
+    def _getitem_axis(self, key, axis=0):
         raise NotImplementedError()
 
     def _getbool_axis(self, key, axis=0):
@@ -1223,11 +1247,11 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(key, tuple) and isinstance(ax, MultiIndex):
                 return True
 
-            # require all elements in the index
+            # require at least 1 element in the index
             idx = _ensure_index(key)
-            if not idx.isin(ax).all():
+            if len(idx) and not idx.isin(ax).any():
 
-                raise KeyError("[%s] are not in ALL in the [%s]" %
+                raise KeyError("None of [%s] are in the [%s]" %
                                (key, self.obj._get_axis_name(axis)))
 
             return True
@@ -1256,7 +1280,7 @@ class _LocIndexer(_LocationIndexer):
 
         return True
 
-    def _getitem_axis(self, key, axis=0, validate_iterable=False):
+    def _getitem_axis(self, key, axis=0):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
@@ -1279,9 +1303,6 @@ class _LocIndexer(_LocationIndexer):
 
                 if hasattr(key, 'ndim') and key.ndim > 1:
                     raise ValueError('Cannot index with multidimensional key')
-
-                if validate_iterable:
-                    self._has_valid_type(key, axis)
 
                 return self._getitem_iterable(key, axis=axis)
 
@@ -1389,7 +1410,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
-    def _getitem_axis(self, key, axis=0, validate_iterable=False):
+    def _getitem_axis(self, key, axis=0):
 
         if isinstance(key, slice):
             self._has_valid_type(key, axis)

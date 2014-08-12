@@ -172,6 +172,50 @@ API changes
   as the ``left`` argument.  (:issue:`7737`)
 
 - Histogram from ``DataFrame.plot`` with ``kind='hist'`` (:issue:`7809`), See :ref:`the docs<visualization.hist>`.
+- Consistency when indexing with ``.loc`` and a list-like indexer when no values are found.
+
+  .. ipython:: python
+
+     df = DataFrame([['a'],['b']],index=[1,2])
+     df
+
+  In prior versions there was a difference in these two constructs:
+
+    - ``df.loc[[3]]`` would (prior to 0.15.0) return a frame reindexed by 3 (with all ``np.nan`` values)
+    - ``df.loc[[3],:]`` would raise ``KeyError``.
+
+  Both will now raise a ``KeyError``. The rule is that *at least 1* indexer must be found when using a list-like and ``.loc`` (:issue:`7999`)
+
+  There was also a difference between ``df.loc[[1,3]]`` (returns a frame reindexed by ``[1, 3]``) and ``df.loc[[1, 3],:]`` (would raise ``KeyError`` prior to 0.15.0). Both will now return a reindexed frame.
+
+  .. ipython:: python
+
+     df.loc[[1,3]]
+     df.loc[[1,3],:]
+
+  This can also be seen in multi-axis indexing with a ``Panel``.
+
+  .. ipython:: python
+
+     p = Panel(np.arange(2*3*4).reshape(2,3,4),
+               items=['ItemA','ItemB'],major_axis=[1,2,3],minor_axis=['A','B','C','D'])
+     p
+
+  The following would raise ``KeyError`` prior to 0.15.0:
+
+  .. ipython:: python
+
+     p.loc[['ItemA','ItemD'],:,'D']
+
+  Furthermore, ``.loc`` will raise If no values are found in a multi-index with a list-like indexer:
+
+  .. ipython:: python
+     :okexcept:
+
+     s = Series(np.arange(3,dtype='int64'),index=MultiIndex.from_product([['A'],['foo','bar','baz']],
+                                                                         names=['one','two'])).sortlevel()
+     s
+     s.loc[['D']]
 
 .. _whatsnew_0150.dt:
 

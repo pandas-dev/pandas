@@ -282,7 +282,7 @@ Selection By Label
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**ALL** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**at least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
