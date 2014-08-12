@@ -13,7 +13,12 @@ from distutils.version import LooseVersion
 
 try:
     import numexpr as ne
-    _NUMEXPR_INSTALLED = ne.__version__ >= LooseVersion('2.0')
+    ver = ne.__version__
+    _NUMEXPR_INSTALLED = ver >= LooseVersion('2.1')
+    if not _NUMEXPR_INSTALLED:
+        warnings.warn("The installed version of numexpr {ver} is not supported "
+                      "in pandas and will be not be used".format(ver=ver), UserWarning)
+
 except ImportError:  # pragma: no cover
     _NUMEXPR_INSTALLED = False
 

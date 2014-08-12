@@ -11,7 +11,8 @@ users upgrade to this version.
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
-  - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Dateimelike Properties <whatsnew_0150.dt>`
+  - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
+  - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 

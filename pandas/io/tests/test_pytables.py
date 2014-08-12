@@ -373,7 +373,7 @@ class TestHDFStore(tm.TestCase):
             warnings.filterwarnings('always', category=PerformanceWarning)
 
             # make a random group in hdf space
-            store._handle.createGroup(store._handle.root,'bah')
+            store._handle.create_group(store._handle.root,'bah')
 
             repr(store)
             str(store)
@@ -541,11 +541,8 @@ class TestHDFStore(tm.TestCase):
 
             store.close()
 
-            # only supported on pytable >= 3.0.0
-            if LooseVersion(tables.__version__) >= '3.0.0':
-
-                # the file should not have actually been written
-                self.assertFalse(os.path.exists(path))
+            # the file should not have actually been written
+            self.assertFalse(os.path.exists(path))
 
     def test_flush(self):
 
@@ -881,8 +878,6 @@ class TestHDFStore(tm.TestCase):
 
     def test_encoding(self):
 
-        if LooseVersion(tables.__version__) < '3.0.0':
-            raise nose.SkipTest('tables version does not support proper encoding')
         if sys.byteorder != 'little':
             raise nose.SkipTest('system byteorder is not little')
 
@@ -1470,29 +1465,6 @@ class TestHDFStore(tm.TestCase):
             _maybe_remove(store, 'f2')
             store.put('f2', df)
             self.assertRaises(TypeError, store.create_table_index, 'f2')
-
-            # try to change the version supports flag
-            from pandas.io import pytables
-            pytables._table_supports_index = False
-            self.assertRaises(Exception, store.create_table_index, 'f')
-
-            # test out some versions
-            original = tables.__version__
-
-            for v in ['2.2', '2.2b']:
-                pytables._table_mod = None
-                pytables._table_supports_index = False
-                tables.__version__ = v
-                self.assertRaises(Exception, store.create_table_index, 'f')
-
-            for v in ['2.3.1', '2.3.1b', '2.4dev', '2.4', '3.0.0', '3.1.0', original]:
-                pytables._table_mod = None
-                pytables._table_supports_index = False
-                tables.__version__ = v
-                store.create_table_index('f')
-                pytables._table_mod = None
-                pytables._table_supports_index = False
-                tables.__version__ = original
 
     def test_big_table_frame(self):
         raise nose.SkipTest('no big table frame')

@@ -26,7 +26,7 @@ Installing pandas
 Trying out pandas, no installation required!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The easiest way to start experimenting with pandas doesn't involve installing 
+The easiest way to start experimenting with pandas doesn't involve installing
 pandas at all.
 
 `Wakari <https://wakari.io>`__ is a free service that provides a hosted
@@ -35,10 +35,10 @@ pandas at all.
 Simply create an account, and have access to pandas from within your brower via
 an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
 
-Installing pandas with Anaconda 
+Installing pandas with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and 
+Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
@@ -57,8 +57,8 @@ anything else, and without needing to wait for any software to be compiled.
 Installation instructions for `Anaconda <http://docs.continuum.io/anaconda/>`__
 `can be found here <http://docs.continuum.io/anaconda/install.html>`__.
 
-A full list of the packages available as part of the 
-`Anaconda <http://docs.continuum.io/anaconda/>`__ distribution 
+A full list of the packages available as part of the
+`Anaconda <http://docs.continuum.io/anaconda/>`__ distribution
 `can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
 
 An additional advantage of installing with Anaconda is that you don't require
@@ -78,7 +78,7 @@ If you want to have more control on which packages, or have a limited internet
 bandwidth, then installing pandas with
 `Miniconda <http://conda.pydata.org/miniconda.html>`__ may be a better solution.
 
-`Conda <http://conda.pydata.org/docs/>`__ is the package manager that the 
+`Conda <http://conda.pydata.org/docs/>`__ is the package manager that the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution is built upon.
 It is a package manager that is both cross-platform and language agnostic
 (it can play a similar role to a pip and virtualenv combination).
@@ -90,7 +90,7 @@ minimal self contained Python installation, and then use the
 First you will need `Conda <http://conda.pydata.org/docs/>`__ to be installed and
 downloading and running the `Miniconda
 <http://conda.pydata.org/miniconda.html>`__
-will do this for you. The installer 
+will do this for you. The installer
 `can be found here <http://conda.pydata.org/miniconda.html>`__
 
 The next step is to create a new conda environment (these are analogous to a
@@ -98,7 +98,7 @@ virtualenv but they also allow you to specify precisely which Python version
 to install also). Run the following commands from a terminal window::
 
     conda create -n name_of_my_env python
-    
+
 This will create a minimal environment with only Python installed in it.
 To put your self inside this environment run::
 
@@ -108,7 +108,7 @@ On Windows the command is::
 
     activate name_of_my_env
 
-The final step required is to install pandas. This can be done with the 
+The final step required is to install pandas. This can be done with the
 following command::
 
     conda install pandas
@@ -143,7 +143,7 @@ pandas can be installed via pip from
     pip install pandas
 
 This will likely require the installation of a number of dependencies,
-including NumPy, will require a compiler to compile required bits of code, 
+including NumPy, will require a compiler to compile required bits of code,
 and can take a few minutes to complete.
 
 Installing using your Linux distribution's package manager.
@@ -259,6 +259,7 @@ Recommended Dependencies
 
   * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
     ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+    If installed, must be Version 2.1 or higher.
 
   * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
     evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
@@ -277,7 +278,7 @@ Optional Dependencies
   * `Cython <http://www.cython.org>`__: Only necessary to build development
     version. Version 0.17.1 or higher.
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
+  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required.
   * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__

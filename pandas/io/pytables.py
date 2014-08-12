@@ -228,20 +228,18 @@ with config.config_prefix('io.hdf'):
 
 # oh the troubles to reduce import time
 _table_mod = None
-_table_supports_index = False
 _table_file_open_policy_is_strict = False
 
 def _tables():
     global _table_mod
-    global _table_supports_index
     global _table_file_open_policy_is_strict
     if _table_mod is None:
         import tables
         _table_mod = tables
 
         # version requirements
-        ver = tables.__version__
-        _table_supports_index = LooseVersion(ver) >= '2.3'
+        if LooseVersion(tables.__version__) < '3.0.0':
+            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
@@ -509,7 +507,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
-            See HDFStore docstring or tables.openFile for info about modes
+            See HDFStore docstring or tables.open_file for info about modes
         """
         tables = _tables()
 
@@ -542,11 +540,11 @@ class HDFStore(StringMixin):
                                               fletcher32=self._fletcher32)
 
         try:
-            self._handle = tables.openFile(self._path, self._mode, **kwargs)
+            self._handle = tables.open_file(self._path, self._mode, **kwargs)
         except (IOError) as e:  # pragma: no cover
             if 'can not be written' in str(e):
                 print('Opening %s in read-only mode' % self._path)
-                self._handle = tables.openFile(self._path, 'r', **kwargs)
+                self._handle = tables.open_file(self._path, 'r', **kwargs)
             else:
                 raise
 
@@ -561,7 +559,7 @@ class HDFStore(StringMixin):
                                "and not open the same file multiple times at once,\n"
                                "upgrade the HDF5 version, or downgrade to PyTables 3.0.0 which allows\n"
                                "files to be opened multiple times at once\n".format(version=tables.__version__,
-                                                                                    hdf_version=tables.getHDF5Version()))
+                                                                                    hdf_version=tables.get_hdf5_version()))
 
             raise e
 
@@ -1018,9 +1016,6 @@ class HDFStore(StringMixin):
 
         # version requirements
         _tables()
-        if not _table_supports_index:
-            raise ValueError("PyTables >= 2.3 is required for table indexing")
-
         s = self.get_storer(key)
         if s is None:
             return
@@ -1037,7 +1032,7 @@ class HDFStore(StringMixin):
         _tables()
         self._check_if_open()
         return [
-            g for g in self._handle.walkNodes()
+            g for g in self._handle.walk_nodes()
             if (getattr(g._v_attrs, 'pandas_type', None) or
                 getattr(g, 'table', None) or
                 (isinstance(g, _table_mod.table.Table) and
@@ -1050,7 +1045,7 @@ class HDFStore(StringMixin):
         try:
             if not key.startswith('/'):
                 key = '/' + key
-            return self._handle.getNode(self.root, key)
+            return self._handle.get_node(self.root, key)
         except:
             return None
 
@@ -1235,7 +1230,7 @@ class HDFStore(StringMixin):
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self._handle.removeNode(group, recursive=True)
+            self._handle.remove_node(group, recursive=True)
             group = None
 
         # we don't want to store a table node at all if are object is 0-len
@@ -1257,7 +1252,7 @@ class HDFStore(StringMixin):
                 new_path += p
                 group = self.get_node(new_path)
                 if group is None:
-                    group = self._handle.createGroup(path, p)
+                    group = self._handle.create_group(path, p)
                 path = new_path
 
         s = self._create_storer(group, format, value, append=append,
@@ -2162,7 +2157,7 @@ class Fixed(StringMixin):
     def delete(self, where=None, start=None, stop=None, **kwargs):
         """ support fully deleting the node in its entirety (only) - where specification must be None """
         if where is None and start is None and stop is None:
-            self._handle.removeNode(self.group, recursive=True)
+            self._handle.remove_node(self.group, recursive=True)
             return None
 
         raise TypeError("cannot delete on an abstract storer")
@@ -2404,7 +2399,7 @@ class GenericFixed(Fixed):
 
         # ugly hack for length 0 axes
         arr = np.empty((1,) * value.ndim)
-        self._handle.createArray(self.group, key, arr)
+        self._handle.create_array(self.group, key, arr)
         getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         getattr(self.group, key)._v_attrs.shape = value.shape
 
@@ -2414,7 +2409,7 @@ class GenericFixed(Fixed):
 
     def write_array(self, key, value, items=None):
         if key in self.group:
-            self._handle.removeNode(self.group, key)
+            self._handle.remove_node(self.group, key)
 
         # Transform needed to interface with pytables row/col notation
         empty_array = self._is_empty_array(value.shape)
@@ -2438,7 +2433,7 @@ class GenericFixed(Fixed):
             if atom is not None:
                 # create an empty chunked array and fill it from value
                 if not empty_array:
-                    ca = self._handle.createCArray(self.group, key, atom,
+                    ca = self._handle.create_carray(self.group, key, atom,
                                                    value.shape,
                                                    filters=self._filters)
                     ca[:] = value
@@ -2466,7 +2461,7 @@ class GenericFixed(Fixed):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning)
 
-            vlarr = self._handle.createVLArray(self.group, key,
+            vlarr = self._handle.create_vlarray(self.group, key,
                                                _tables().ObjectAtom())
             vlarr.append(value)
         else:
@@ -2474,15 +2469,15 @@ class GenericFixed(Fixed):
                 self.write_array_empty(key, value)
             else:
                 if value.dtype.type == np.datetime64:
-                    self._handle.createArray(self.group, key, value.view('i8'))
+                    self._handle.create_array(self.group, key, value.view('i8'))
                     getattr(
                         self.group, key)._v_attrs.value_type = 'datetime64'
                 elif value.dtype.type == np.timedelta64:
-                    self._handle.createArray(self.group, key, value.view('i8'))
+                    self._handle.create_array(self.group, key, value.view('i8'))
                     getattr(
                         self.group, key)._v_attrs.value_type = 'timedelta64'
                 else:
-                    self._handle.createArray(self.group, key, value)
+                    self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 
@@ -2586,7 +2581,7 @@ class SparseFrameFixed(GenericFixed):
         for name, ss in compat.iteritems(obj):
             key = 'sparse_series_%s' % name
             if key not in self.group._v_children:
-                node = self._handle.createGroup(self.group, key)
+                node = self._handle.create_group(self.group, key)
             else:
                 node = getattr(self.group, key)
             s = SparseSeriesFixed(self.parent, node)
@@ -2622,7 +2617,7 @@ class SparsePanelFixed(GenericFixed):
         for name, sdf in compat.iteritems(obj):
             key = 'sparse_frame_%s' % name
             if key not in self.group._v_children:
-                node = self._handle.createGroup(self.group, key)
+                node = self._handle.create_group(self.group, key)
             else:
                 node = getattr(self.group, key)
             s = SparseFrameFixed(self.parent, node)
@@ -3043,18 +3038,18 @@ class Table(Fixed):
                     cur_kind = index.kind
 
                     if kind is not None and cur_kind != kind:
-                        v.removeIndex()
+                        v.remove_index()
                     else:
                         kw['kind'] = cur_kind
 
                     if optlevel is not None and cur_optlevel != optlevel:
-                        v.removeIndex()
+                        v.remove_index()
                     else:
                         kw['optlevel'] = cur_optlevel
 
                 # create the index
                 if not v.is_indexed:
-                    v.createIndex(**kw)
+                    v.create_index(**kw)
 
     def read_axes(self, where, **kwargs):
         """create and return the axes sniffed from the table: return boolean
@@ -3617,7 +3612,7 @@ class AppendableTable(LegacyTable):
               chunksize=None, expectedrows=None, dropna=True, **kwargs):
 
         if not append and self.is_exists:
-            self._handle.removeNode(self.group, 'table')
+            self._handle.remove_node(self.group, 'table')
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
@@ -3636,7 +3631,7 @@ class AppendableTable(LegacyTable):
             self.set_attrs()
 
             # create the table
-            table = self._handle.createTable(self.group, **options)
+            table = self._handle.create_table(self.group, **options)
 
         else:
             table = self.table
@@ -3765,12 +3760,12 @@ class AppendableTable(LegacyTable):
         if where is None or not len(where):
             if start is None and stop is None:
                 nrows = self.nrows
-                self._handle.removeNode(self.group, recursive=True)
+                self._handle.remove_node(self.group, recursive=True)
             else:
                 # pytables<3.0 would remove a single row with stop=None
                 if stop is None:
                     stop = self.nrows
-                nrows = self.table.removeRows(start=start, stop=stop)
+                nrows = self.table.remove_rows(start=start, stop=stop)
                 self.table.flush()
             return nrows
 
@@ -3809,7 +3804,7 @@ class AppendableTable(LegacyTable):
             pg = groups.pop()
             for g in reversed(groups):
                 rows = l.take(lrange(g, pg))
-                table.removeRows(start=rows[rows.index[0]
+                table.remove_rows(start=rows[rows.index[0]
                                             ], stop=rows[rows.index[-1]] + 1)
                 pg = g
 
@@ -4352,10 +4347,10 @@ class Selection(object):
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.readWhere(self.condition.format(),
+            return self.table.table.read_where(self.condition.format(),
                                               start=self.start, stop=self.stop)
         elif self.coordinates is not None:
-            return self.table.table.readCoordinates(self.coordinates)
+            return self.table.table.read_coordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
 
     def select_coords(self):
@@ -4374,7 +4369,7 @@ class Selection(object):
             stop += nrows
 
         if self.condition is not None:
-            return self.table.table.getWhereList(self.condition.format(),
+            return self.table.table.get_where_list(self.condition.format(),
                                                  start=start, stop=stop,
                                                  sort=True)
         elif self.coordinates is not None:
