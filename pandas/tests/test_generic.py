@@ -638,6 +638,12 @@ class TestSeries(tm.TestCase, Generic):
         result = df.interpolate(method='nearest')
         expected = Series([1., 1., 3.], index=date_range('1/1/2000', periods=3))
         assert_series_equal(result, expected)
+        
+    def test_interp_trailing_nan(self):
+        s = Series([np.nan, 1, np.nan, 3, np.nan])
+        result = s.interpolate()
+        expected = Series([np.nan, 1, 2, 3, np.nan])
+        assert_series_equal(result, expected)
 
     def test_describe(self):
         _ = self.series.describe()
