@@ -258,10 +258,23 @@ class Categorical(PandasObject):
         self.levels = levels
         self.name = name
 
+    def _replace_codes(self, codes):
+        """
+        Returns a new Categorical with replaced codes but the same levels and
+        metadata
+
+        If codes is a scalar, just return that level.
+        """
+        codes = np.asarray(codes)
+        if np.isscalar(codes):
+            return self.levels[codes]
+        else:
+            return Categorical(codes, levels=self.levels, ordered=self.ordered,
+                               name=self.name, fastpath=True)
+
     def copy(self):
         """ Copy constructor. """
-        return Categorical(values=self._codes.copy(),levels=self.levels,
-                           name=self.name, ordered=self.ordered, fastpath=True)
+        return self._replace_codes(self._codes.copy())
 
     @classmethod
     def from_array(cls, data):
@@ -420,8 +433,19 @@ class Categorical(PandasObject):
         -------
         shape : tuple
         """
+        return self._codes.shape
 
-        return tuple([len(self._codes)])
+    @property
+    def size(self):
+        """Size of the Categorical.
+
+        For internal compatibility with numpy arrays.
+
+        Returns
+        -------
+        size : int
+        """
+        return self._codes.size
 
     def __array__(self, dtype=None):
         """ The numpy array interface.
@@ -431,11 +455,12 @@ class Categorical(PandasObject):
         values : numpy array
             A numpy array of the same dtype as categorical.levels.dtype
         """
-        return com.take_1d(self.levels.values, self._codes)
+        return com.take_1d(
+            self.levels.values, self._codes.ravel()).reshape(self.shape)
 
     @property
     def T(self):
-        return self
+        return self._replace_codes(self._codes.T)
 
     def get_values(self):
         """ Return the values.
@@ -551,7 +576,7 @@ class Categorical(PandasObject):
         -------
         raveled : numpy array
         """
-        return np.array(self)
+        return np.array(self._replace_codes(self._codes.ravel(order=order)))
 
     def view(self):
         """Return a view of myself.
@@ -621,9 +646,8 @@ class Categorical(PandasObject):
         if allow_fill and fill_value is None:
             fill_value = np.nan
 
-        values = com.take_1d(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)
-        result = Categorical(values=values, levels=self.levels, ordered=self.ordered,
-                             name=self.name, fastpath=True)
+        codes = com.take_1d(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)
+        result = self._replace_codes(codes)
         return result
 
     take = take_nd
@@ -639,8 +663,7 @@ class Categorical(PandasObject):
             slicer = slicer[1]
 
         _codes = self._codes[slicer]
-        return Categorical(values=_codes,levels=self.levels, ordered=self.ordered,
-                           name=self.name, fastpath=True)
+        return self._replace_codes(_codes)
 
     def __len__(self):
         return len(self._codes)
@@ -731,15 +754,11 @@ class Categorical(PandasObject):
 
     def __getitem__(self, key):
         """ Return an item. """
-        if isinstance(key, (int, np.integer)):
-            i = self._codes[key]
-            if i == -1:
-                return np.nan
-            else:
-                return self.levels[i]
-        else:
-            return Categorical(values=self._codes[key], levels=self.levels,
-                               ordered=self.ordered, fastpath=True)
+        return self._replace_codes(self._codes[key])
+        # if np.isscalar(codes):
+        #     return self.levels[codes]
+        # else:
+        #     return self._replace_codes(codes)
 
     def __setitem__(self, key, value):
         """ Item assignment.
@@ -753,40 +772,22 @@ class Categorical(PandasObject):
 
         """
 
-        # require identical level set
         if isinstance(value, Categorical):
+            # require identical level set
             if not value.levels.equals(self.levels):
                 raise ValueError("cannot set a Categorical with another, without identical levels")
-
-        rvalue = value if com.is_list_like(value) else [value]
-        to_add = Index(rvalue)-self.levels
-        if len(to_add):
-            raise ValueError("cannot setitem on a Categorical with a new level,"
-                             " set the levels first")
-
-        # set by position
-        if isinstance(key, (int, np.integer)):
-            pass
-
-        # tuple of indexers
-        elif isinstance(key, tuple):
-
-            # only allow 1 dimensional slicing, but can
-            # in a 2-d case be passd (slice(None),....)
-            if len(key) == 2:
-                if not _is_null_slice(key[0]):
-                    raise AssertionError("invalid slicing for a 1-ndim categorical")
-                key = key[1]
-            elif len(key) == 1:
-                key = key[0]
-            else:
-                raise AssertionError("invalid slicing for a 1-ndim categorical")
+            # we can safely assign codes directly
+            self._codes[key] = value.codes
 
         else:
-            key = self._codes[key]
-
-        lindexer = self.levels.get_indexer(rvalue)
-        self._codes[key] = lindexer
+            value = np.asarray(value)
+            flat_value = value.ravel()
+            to_add = Index(flat_value) - self.levels
+            if len(to_add):
+                raise ValueError("cannot setitem on a Categorical with a new level,"
+                                 " set the levels first")
+            lindexer = self.levels.get_indexer(flat_value)
+            self._codes[key] = lindexer.reshape(value.shape)
 
     #### reduction ops ####
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
@@ -864,9 +865,8 @@ class Categorical(PandasObject):
 
         import pandas.hashtable as htable
         good = self._codes != -1
-        result = Categorical(sorted(htable.mode_int64(com._ensure_int64(self._codes[good]))),
-                             levels=self.levels,ordered=self.ordered, name=self.name,
-                             fastpath=True)
+        result = self._replace_codes(
+            sorted(htable.mode_int64(com._ensure_int64(self._codes[good]))))
         return result
 
     def unique(self):

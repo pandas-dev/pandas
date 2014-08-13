@@ -221,7 +221,8 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(actual, expected)
 
     def test_big_print(self):
-        factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat', fastpath=True)
+        factor = Categorical(np.array([0,1,2,0,1,2]*100), ['a', 'b', 'c'],
+                             name='cat', fastpath=True)
         expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
                     " a", " b", " c", " a", "...", " c", " a", " b", " c",
                     " a", " b", " c", " a", " b", " c", " a", " b", " c",
@@ -491,6 +492,26 @@ class TestCategorical(tm.TestCase):
         expected = Categorical(["d","a"], levels=['a', 'b', 'c', 'd'])
         self.assert_numpy_array_equal(sliced._codes, expected._codes)
         tm.assert_index_equal(sliced.levels, expected.levels)
+
+    def test_ndimensional_values(self):
+        exp_arr = np.array([['a', 'b'], ['c', 'b']], dtype=object)
+        cat = Categorical(exp_arr)
+
+        self.assertEqual(cat.shape, (2, 2))
+        self.assert_numpy_array_equal(cat.__array__(), exp_arr)
+        self.assert_numpy_array_equal(cat.T, exp_arr.T)
+        self.assert_numpy_array_equal(cat.ravel(), exp_arr.ravel())
+
+        # test indexing
+        self.assertEqual(cat[0, 0], 'a')
+        self.assert_numpy_array_equal(cat[0], exp_arr[0])
+        self.assert_numpy_array_equal(cat[:, :2], exp_arr)
+        self.assert_numpy_array_equal(cat[[0, 1], [0, 1]], np.diag(exp_arr))
+        self.assert_numpy_array_equal(cat[0, :], ['a', 'b'])
+        self.assert_numpy_array_equal(cat[0, [0, 1]], ['a', 'b'])
+
+        # TODO: repr, __setitem__, take, min, max, order, describe, _cat_compare_op
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
