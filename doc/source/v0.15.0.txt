@@ -533,7 +533,11 @@ Bug Fixes
 
 
 
+- Bug in installation where ``html_encoding/*.html`` wasn't installed and
+  therefore some tests were not running correctly (:issue:`7927`).
 
+- Bug in ``read_html`` where ``bytes`` objects were not tested for in
+  ``_read`` (:issue:`7927`).
 
 
 
