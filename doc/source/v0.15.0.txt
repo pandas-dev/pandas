@@ -463,7 +463,7 @@ Bug Fixes
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
 
-
+- Bug in HDFStore iteration when passing a where (:issue:`8014`)
 
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
 
