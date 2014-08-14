@@ -4968,6 +4968,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = self.ts.map(lambda x: x * 2)
         self.assert_numpy_array_equal(result, self.ts * 2)
 
+    def test_map_compat(self):
+        # related GH 8024
+        s = Series([True,True,False],index=[1,2,3])
+        result = s.map({ True : 'foo', False : 'bar' })
+        expected = Series(['foo','foo','bar'],index=[1,2,3])
+        assert_series_equal(result,expected)
+
     def test_map_int(self):
         left = Series({'a': 1., 'b': 2., 'c': 3., 'd': 4})
         right = Series({1: 11, 2: 22, 3: 33})
