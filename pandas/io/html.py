@@ -15,8 +15,8 @@ import numpy as np
 
 from pandas.io.common import _is_url, urlopen, parse_url
 from pandas.io.parsers import TextParser
-from pandas.compat import (lrange, lmap, u, string_types, iteritems, text_type,
-                           raise_with_traceback)
+from pandas.compat import (lrange, lmap, u, string_types, iteritems,
+                           raise_with_traceback, binary_type)
 from pandas.core import common as com
 from pandas import Series
 
@@ -49,6 +49,9 @@ else:
 # READ HTML #
 #############
 _RE_WHITESPACE = re.compile(r'[\r\n]+|\s{2,}')
+
+
+char_types = string_types + (binary_type,)
 
 
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
@@ -114,13 +117,13 @@ def _read(obj):
             text = url.read()
     elif hasattr(obj, 'read'):
         text = obj.read()
-    elif isinstance(obj, string_types):
+    elif isinstance(obj, char_types):
         text = obj
         try:
             if os.path.isfile(text):
                 with open(text, 'rb') as f:
                     return f.read()
-        except TypeError:
+        except (TypeError, ValueError):
             pass
     else:
         raise TypeError("Cannot read object of type %r" % type(obj).__name__)
