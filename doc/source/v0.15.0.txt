@@ -446,6 +446,7 @@ There are no experimental changes in 0.15.0
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in multiindexes dtypes getting mixed up when DataFrame is saved to SQL table (:issue:`8021`)
 - Bug in Series 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
 - Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)

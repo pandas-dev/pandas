@@ -664,20 +664,28 @@ class PandasSQLTable(PandasObject):
         else:
             return None
 
+    def _get_column_names_and_types(self, dtype_mapper):
+        column_names_and_types = []
+        if self.index is not None:
+            for i, idx_label in enumerate(self.index):
+                idx_type = dtype_mapper(
+                    self.frame.index.get_level_values(i).dtype)
+                column_names_and_types.append((idx_label, idx_type))
+
+        column_names_and_types += zip(
+            list(map(str, self.frame.columns)),
+            map(dtype_mapper, self.frame.dtypes)
+            )
+        return column_names_and_types
+
     def _create_table_statement(self):
         from sqlalchemy import Table, Column
 
-        columns = list(map(str, self.frame.columns))
-        column_types = map(self._sqlalchemy_type, self.frame.dtypes)
+        column_names_and_types = \
+            self._get_column_names_and_types(self._sqlalchemy_type)
 
         columns = [Column(name, typ)
-                   for name, typ in zip(columns, column_types)]
-
-        if self.index is not None:
-            for i, idx_label in enumerate(self.index[::-1]):
-                idx_type = self._sqlalchemy_type(
-                    self.frame.index.get_level_values(i))
-                columns.insert(0, Column(idx_label, idx_type, index=True))
+                   for name, typ in column_names_and_types]
 
         return Table(self.name, self.pd_sql.meta, *columns)
 
@@ -957,16 +965,13 @@ class PandasSQLTableLegacy(PandasSQLTable):
     def _create_table_statement(self):
         "Return a CREATE TABLE statement to suit the contents of a DataFrame."
 
-        columns = list(map(str, self.frame.columns))
-        pat = re.compile('\s+')
-        if any(map(pat.search, columns)):
-            warnings.warn(_SAFE_NAMES_WARNING)
-        column_types = [self._sql_type_name(typ) for typ in self.frame.dtypes]
+        column_names_and_types = \
+            self._get_column_names_and_types(self._sql_type_name)
 
-        if self.index is not None:
-            for i, idx_label in enumerate(self.index[::-1]):
-                columns.insert(0, idx_label)
-                column_types.insert(0, self._sql_type_name(self.frame.index.get_level_values(i).dtype))
+        pat = re.compile('\s+')
+        column_names = [col_name for col_name, _ in column_names_and_types]
+        if any(map(pat.search, column_names)):
+            warnings.warn(_SAFE_NAMES_WARNING)
 
         flv = self.pd_sql.flavor
 
@@ -976,7 +981,7 @@ class PandasSQLTableLegacy(PandasSQLTable):
         col_template = br_l + '%s' + br_r + ' %s'
 
         columns = ',\n  '.join(col_template %
-                               x for x in zip(columns, column_types))
+                               x for x in column_names_and_types)
         template = """CREATE TABLE %(name)s (
                       %(columns)s
                       )"""

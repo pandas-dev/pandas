@@ -581,6 +581,15 @@ class _TestSQLApi(PandasSQLTest):
                           'test_index_label', self.conn, if_exists='replace',
                           index_label='C')
 
+    def test_multiindex_roundtrip(self):
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+                                    columns=['A','B','C'], index=['A','B'])
+
+        df.to_sql('test_multiindex_roundtrip', self.conn)
+        result = sql.read_sql_query('SELECT * FROM test_multiindex_roundtrip', 
+                                    self.conn, index_col=['A','B'])
+        tm.assert_frame_equal(df, result, check_index_type=True)        
+
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
         sql.to_sql(df, "test_frame_integer_col_names", self.conn,
@@ -641,9 +650,7 @@ class TestSQLApi(_TestSQLApi):
             "SELECT * FROM iris", self.conn)
         iris_frame2 = sql.read_sql(
             "SELECT * FROM iris", self.conn)
-        tm.assert_frame_equal(iris_frame1, iris_frame2,
-                              "read_sql and read_sql_query have not the same"
-                              " result with a query")
+        tm.assert_frame_equal(iris_frame1, iris_frame2)
 
         iris_frame1 = sql.read_sql_table('iris', self.conn)
         iris_frame2 = sql.read_sql('iris', self.conn)
@@ -697,9 +704,7 @@ class TestSQLLegacyApi(_TestSQLApi):
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
         iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
-        tm.assert_frame_equal(iris_frame1, iris_frame2,
-                              "read_sql and read_sql_query have not the same"
-                              " result with a query")
+        tm.assert_frame_equal(iris_frame1, iris_frame2)
 
         self.assertRaises(sql.DatabaseError, sql.read_sql, 'iris', self.conn)
 
