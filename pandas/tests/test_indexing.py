@@ -743,11 +743,14 @@ class TestIndexing(tm.TestCase):
         self.check_result('list lbl', 'loc', [Timestamp('20130102'),Timestamp('20130103')], 'ix',
                           [Timestamp('20130102'),Timestamp('20130103')], typs = ['ts'], axes=0)
 
-        # fails
         self.check_result('list lbl', 'loc', [0,1,2], 'indexer', [0,1,2], typs = ['empty'], fails = KeyError)
         self.check_result('list lbl', 'loc', [0,2,3], 'ix', [0,2,3], typs = ['ints'], axes=0, fails = KeyError)
-        self.check_result('list lbl', 'loc', [3,6,7], 'ix', [3,6,9], typs = ['ints'], axes=1, fails = KeyError)
-        self.check_result('list lbl', 'loc', [4,8,10], 'ix', [4,8,12], typs = ['ints'], axes=2, fails = KeyError)
+        self.check_result('list lbl', 'loc', [3,6,7], 'ix', [3,6,7], typs = ['ints'], axes=1, fails = KeyError)
+        self.check_result('list lbl', 'loc', [4,8,10], 'ix', [4,8,10], typs = ['ints'], axes=2, fails = KeyError)
+
+        # fails
+        self.check_result('list lbl', 'loc', [20,30,40], 'ix', [20,30,40], typs = ['ints'], axes=1, fails = KeyError)
+        self.check_result('list lbl', 'loc', [20,30,40], 'ix', [20,30,40], typs = ['ints'], axes=2, fails = KeyError)
 
         # array like
         self.check_result('array like', 'loc', Series(index=[0,2,4]).index, 'ix', [0,2,4], typs = ['ints'], axes=0)
@@ -815,14 +818,9 @@ class TestIndexing(tm.TestCase):
         s.loc['a'] = 2
 
         self.assertRaises(KeyError, lambda : s.loc[-1])
+        self.assertRaises(KeyError, lambda : s.loc[[-1, -2]])
 
-        result = s.loc[[-1, -2]]
-        expected = Series(np.nan,index=[-1,-2])
-        assert_series_equal(result, expected)
-
-        result = s.loc[['4']]
-        expected = Series(np.nan,index=['4'])
-        assert_series_equal(result, expected)
+        self.assertRaises(KeyError, lambda : s.loc[['4']])
 
         s.loc[-1] = 3
         result = s.loc[[-1,-2]]
@@ -830,13 +828,23 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result, expected)
 
         s['a'] = 2
-        result = s.loc[[-2]]
-        expected = Series([np.nan],index=[-2])
-        assert_series_equal(result, expected)
+        self.assertRaises(KeyError, lambda : s.loc[[-2]])
 
         del s['a']
         def f():
             s.loc[[-2]] = 0
+        self.assertRaises(KeyError, f)
+
+        # inconsistency between .loc[values] and .loc[values,:]
+        # GH 7999
+        df = DataFrame([['a'],['b']],index=[1,2],columns=['value'])
+
+        def f():
+            df.loc[[3],:]
+        self.assertRaises(KeyError, f)
+
+        def f():
+            df.loc[[3]]
         self.assertRaises(KeyError, f)
 
     def test_loc_getitem_label_slice(self):
@@ -1575,11 +1583,13 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(ValueError, f)
 
         # ambiguous cases
-        # these can be multiply interpreted
-        # but we can catch this in some cases
-        def f():
-            df.loc[(slice(None),[1])]
-        self.assertRaises(KeyError, f)
+        # these can be multiply interpreted (e.g. in this case
+        # as df.loc[slice(None),[1]] as well
+        self.assertRaises(KeyError, lambda : df.loc[slice(None),[1]])
+
+        result = df.loc[(slice(None),[1]),:]
+        expected = df.iloc[[0,3]]
+        assert_frame_equal(result, expected)
 
         # not lexsorted
         self.assertEqual(df.index.lexsort_depth,2)
@@ -1960,9 +1970,12 @@ class TestIndexing(tm.TestCase):
         result = s.loc[['A','D']]
         assert_series_equal(result,expected)
 
-        # empty series
-        result = s.loc[['D']]
-        expected = s.loc[[]]
+        # not any values found
+        self.assertRaises(KeyError, lambda : s.loc[['D']])
+
+        # empty ok
+        result = s.loc[[]]
+        expected = s.iloc[[]]
         assert_series_equal(result,expected)
 
         idx = pd.IndexSlice
@@ -2788,9 +2801,8 @@ class TestIndexing(tm.TestCase):
         result = ser.loc[[3, 2, 3]]
         assert_series_equal(result, expected)
 
-        expected = Series([np.nan, np.nan, np.nan], index=[3, 3, 3])
-        result = ser.loc[[3, 3, 3]]
-        assert_series_equal(result, expected)
+        # raises as nothing in in the index
+        self.assertRaises(KeyError, lambda : ser.loc[[3, 3, 3]])
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
         result = ser.loc[[2, 2, 3]]
