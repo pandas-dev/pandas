@@ -472,7 +472,7 @@ Bug Fixes
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
 
 
-
+- Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
 
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 
