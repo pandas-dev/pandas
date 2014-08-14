@@ -622,6 +622,7 @@ class TestReadHtmlEncoding(tm.TestCase):
             return self.read_html(fobj.read(), encoding=encoding, index_col=0)
 
     def test_encode(self):
+        assert self.files, 'no files read from the data folder'
         for f in self.files:
             _, encoding = _lang_enc(f)
             from_string = self.read_string(f, encoding).pop()
