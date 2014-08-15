@@ -5,16 +5,18 @@ import datetime as dt
 import os
 import warnings
 import nose
+import struct
 import sys
 from distutils.version import LooseVersion
 
 import numpy as np
 
 import pandas as pd
+from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
-    PossiblePrecisionLoss)
+    PossiblePrecisionLoss, StataMissingValue)
 import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
@@ -70,6 +72,10 @@ class TestStata(tm.TestCase):
 
         self.dta16_115 = os.path.join(self.dirpath, 'stata7_115.dta')
         self.dta16_117 = os.path.join(self.dirpath, 'stata7_117.dta')
+
+        self.dta17_113 = os.path.join(self.dirpath, 'stata8_113.dta')
+        self.dta17_115 = os.path.join(self.dirpath, 'stata8_115.dta')
+        self.dta17_117 = os.path.join(self.dirpath, 'stata8_117.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -589,6 +595,50 @@ class TestStata(tm.TestCase):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
+    def test_missing_value_generator(self):
+        types = ('b','h','l')
+        df = DataFrame([[0.0]],columns=['float_'])
+        with tm.ensure_clean() as path:
+            df.to_stata(path)
+            valid_range = StataReader(path).VALID_RANGE
+        expected_values = ['.' + chr(97 + i) for i in range(26)]
+        expected_values.insert(0, '.')
+        for t in types:
+            offset = valid_range[t][1]
+            for i in range(0,27):
+                val = StataMissingValue(offset+1+i)
+                self.assertTrue(val.string == expected_values[i])
+
+        # Test extremes for floats
+        val = StataMissingValue(struct.unpack('<f',b'\x00\x00\x00\x7f')[0])
+        self.assertTrue(val.string == '.')
+        val = StataMissingValue(struct.unpack('<f',b'\x00\xd0\x00\x7f')[0])
+        self.assertTrue(val.string == '.z')
+
+        # Test extremes for floats
+        val = StataMissingValue(struct.unpack('<d',b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
+        self.assertTrue(val.string == '.')
+        val = StataMissingValue(struct.unpack('<d',b'\x00\x00\x00\x00\x00\x1a\xe0\x7f')[0])
+        self.assertTrue(val.string == '.z')
+
+    def test_missing_value_conversion(self):
+        columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
+        smv = StataMissingValue(101)
+        keys = [key for key in iterkeys(smv.MISSING_VALUES)]
+        keys.sort()
+        data = []
+        for i in range(27):
+            row = [StataMissingValue(keys[i+(j*27)]) for j in range(5)]
+            data.append(row)
+        expected = DataFrame(data,columns=columns)
+
+        parsed_113 = read_stata(self.dta17_113, convert_missing=True)
+        parsed_115 = read_stata(self.dta17_115, convert_missing=True)
+        parsed_117 = read_stata(self.dta17_117, convert_missing=True)
+
+        tm.assert_frame_equal(expected, parsed_113)
+        tm.assert_frame_equal(expected, parsed_115)
+        tm.assert_frame_equal(expected, parsed_117)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

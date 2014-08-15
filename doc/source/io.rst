@@ -3558,6 +3558,13 @@ read and used to create a ``Categorical`` variable from them. Value labels can
 also be retrieved by the function ``variable_labels``, which requires data to be
 called before (see ``pandas.io.stata.StataReader``).
 
+The parameter ``convert_missing`` indicates whether missing value
+representations in Stata should be preserved.  If ``False`` (the default),
+missing values are represented as ``np.nan``.  If ``True``, missing values are
+represented using ``StataMissingValue`` objects, and columns containing missing
+values will have ``dtype`` set to ``object``.
+
+
 The StataReader supports .dta Formats 104, 105, 108, 113-115 and 117.
 Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 

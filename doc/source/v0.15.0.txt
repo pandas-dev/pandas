@@ -144,6 +144,11 @@ API changes
   strings must contain 244 or fewer characters.  Attempting to write Stata
   dta files with strings longer than 244 characters raises a ``ValueError``. (:issue:`7858`)
 
+- ``read_stata`` and ``StataReader`` can import missing data information into a
+  ``DataFrame`` by setting the argument ``convert_missing`` to ``True``. When
+  using this options, missing values are returned as ``StataMissingValue``
+  objects and columns containing missing values have ``object`` data type. (:issue:`8045`)
+
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
 
@@ -414,6 +419,7 @@ Performance
 - Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
 - Performance improvements in ``Period`` creation (and ``PeriodIndex`` setitem) (:issue:`5155`)
 - Improvements in Series.transform for significant performance gains (revised) (:issue:`6496`)
+- Performance improvements in ``StataReader`` when reading large files (:issue:`8040`)
 
 
 
