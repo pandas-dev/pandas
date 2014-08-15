@@ -608,9 +608,12 @@ def assert_series_equal(left, right, check_dtype=True,
     else:
         assert_index_equal(left.index, right.index)
     if check_index_type:
-        assert_isinstance(left.index, type(right.index))
-        assert_attr_equal('dtype', left.index, right.index)
-        assert_attr_equal('inferred_type', left.index, right.index)
+        for level in range(left.index.nlevels):
+            lindex = left.index.get_level_values(level)
+            rindex = right.index.get_level_values(level)
+            assert_isinstance(lindex, type(rindex))
+            assert_attr_equal('dtype', lindex, rindex)
+            assert_attr_equal('inferred_type', lindex, rindex)
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
@@ -657,9 +660,12 @@ def assert_frame_equal(left, right, check_dtype=True,
                                 check_exact=check_exact)
 
     if check_index_type:
-        assert_isinstance(left.index, type(right.index))
-        assert_attr_equal('dtype', left.index, right.index)
-        assert_attr_equal('inferred_type', left.index, right.index)
+        for level in range(left.index.nlevels):
+            lindex = left.index.get_level_values(level)
+            rindex = right.index.get_level_values(level)
+            assert_isinstance(lindex, type(rindex))
+            assert_attr_equal('dtype', lindex, rindex)
+            assert_attr_equal('inferred_type', lindex, rindex)
     if check_column_type:
         assert_isinstance(left.columns, type(right.columns))
         assert_attr_equal('dtype', left.columns, right.columns)

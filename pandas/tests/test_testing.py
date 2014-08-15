@@ -6,9 +6,10 @@ import warnings
 import nose
 import numpy as np
 import sys
-from pandas import Series
+from pandas import Series, DataFrame
 from pandas.util.testing import (
-    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, assert_series_equal,
+    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, 
+    assert_series_equal, assert_frame_equal,
     RNGContext
 )
 
@@ -173,6 +174,46 @@ class TestAssertSeriesEqual(unittest.TestCase):
 
         self.assertRaises(AssertionError, assert_series_equal, s1, s2)
         self.assertRaises(AssertionError, assert_series_equal, s1, s2, True)
+
+    def test_index_dtype(self):
+        df1 = DataFrame.from_records(
+                {'a':[1,2],'c':['l1','l2']}, index=['a'])
+        df2 = DataFrame.from_records(
+                {'a':[1.0,2.0],'c':['l1','l2']}, index=['a'])
+        self._assert_not_equal(df1.c, df2.c, check_index_type=True)
+
+    def test_multiindex_dtype(self):
+        df1 = DataFrame.from_records(
+                {'a':[1,2],'b':[2.1,1.5],'c':['l1','l2']}, index=['a','b'])
+        df2 = DataFrame.from_records(
+                {'a':[1.0,2.0],'b':[2.1,1.5],'c':['l1','l2']}, index=['a','b'])
+        self._assert_not_equal(df1.c, df2.c, check_index_type=True)
+
+
+class TestAssertFrameEqual(unittest.TestCase):
+    _multiprocess_can_split_ = True
+
+    def _assert_equal(self, x, y, **kwargs):
+        assert_frame_equal(x,y,**kwargs)
+        assert_frame_equal(y,x,**kwargs)
+
+    def _assert_not_equal(self, a, b, **kwargs):
+        self.assertRaises(AssertionError, assert_frame_equal, a, b, **kwargs)
+        self.assertRaises(AssertionError, assert_frame_equal, b, a, **kwargs)
+
+    def test_index_dtype(self):
+        df1 = DataFrame.from_records(
+                {'a':[1,2],'c':['l1','l2']}, index=['a'])
+        df2 = DataFrame.from_records(
+                {'a':[1.0,2.0],'c':['l1','l2']}, index=['a'])
+        self._assert_not_equal(df1, df2, check_index_type=True)
+
+    def test_multiindex_dtype(self):
+        df1 = DataFrame.from_records(
+                {'a':[1,2],'b':[2.1,1.5],'c':['l1','l2']}, index=['a','b'])
+        df2 = DataFrame.from_records(
+                {'a':[1.0,2.0],'b':[2.1,1.5],'c':['l1','l2']}, index=['a','b'])
+        self._assert_not_equal(df1, df2, check_index_type=True)
 
 class TestRNGContext(unittest.TestCase):
 
