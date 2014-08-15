@@ -1686,7 +1686,7 @@ class AreaPlot(LinePlot):
         from matplotlib.patches import Rectangle
         # Because fill_between isn't supported in legend,
         # specifically add Rectangle handle here
-        alpha = self.kwds.get('alpha', 0.5)
+        alpha = self.kwds.get('alpha', None)
         handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
         LinePlot._add_legend_handle(self, handle, label, index=index)
 

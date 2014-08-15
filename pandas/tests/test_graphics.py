@@ -1718,7 +1718,7 @@ class TestDataFramePlots(TestPlotBase):
         normal_df = DataFrame({'A': np.repeat(np.array([1, 2, 3, 4, 5]),
                                               np.array([10, 9, 8, 7, 6])),
                                'B': np.repeat(np.array([1, 2, 3, 4, 5]),
-                                              np.array([8, 8, 8, 8, 8])), 
+                                              np.array([8, 8, 8, 8, 8])),
                                'C': np.repeat(np.array([1, 2, 3, 4, 5]),
                                               np.array([6, 7, 8, 9, 10]))},
                                columns=['A', 'B', 'C'])
@@ -1726,7 +1726,7 @@ class TestDataFramePlots(TestPlotBase):
         nan_df = DataFrame({'A': np.repeat(np.array([np.nan, 1, 2, 3, 4, 5]),
                                            np.array([3, 10, 9, 8, 7, 6])),
                             'B': np.repeat(np.array([1, np.nan, 2, 3, 4, 5]),
-                                           np.array([8, 3, 8, 8, 8, 8])), 
+                                           np.array([8, 3, 8, 8, 8, 8])),
                             'C': np.repeat(np.array([1, 2, 3, np.nan, 4, 5]),
                                            np.array([6, 7, 8, 3, 9, 10]))},
                            columns=['A', 'B', 'C'])
@@ -2157,20 +2157,38 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
         self._check_colors(poly, facecolors=custom_colors)
+
+        handles, labels = ax.get_legend_handles_labels()
+        # legend is stored as Line2D, thus check linecolors
+        self._check_colors(handles, linecolors=custom_colors)
+        for h in handles:
+            self.assertTrue(h.get_alpha() is None)
         tm.close()
 
         ax = df.plot(kind='area', colormap='jet')
-        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        jet_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
+        self._check_colors(ax.get_lines(), linecolors=jet_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
-        self._check_colors(poly, facecolors=rgba_colors)
+        self._check_colors(poly, facecolors=jet_colors)
+
+        handles, labels = ax.get_legend_handles_labels()
+        self._check_colors(handles, linecolors=jet_colors)
+        for h in handles:
+            self.assertTrue(h.get_alpha() is None)
         tm.close()
 
-        ax = df.plot(kind='area', colormap=cm.jet)
-        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        # When stacked=True, alpha is set to 0.5
+        ax = df.plot(kind='area', colormap=cm.jet, stacked=False)
+        self._check_colors(ax.get_lines(), linecolors=jet_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
-        self._check_colors(poly, facecolors=rgba_colors)
+        jet_with_alpha = [(c[0], c[1], c[2], 0.5) for c in jet_colors]
+        self._check_colors(poly, facecolors=jet_with_alpha)
+
+        handles, labels = ax.get_legend_handles_labels()
+        # Line2D can't have alpha in its linecolor
+        self._check_colors(handles, linecolors=jet_colors)
+        for h in handles:
+            self.assertEqual(h.get_alpha(), 0.5)
 
     @slow
     def test_hist_colors(self):
