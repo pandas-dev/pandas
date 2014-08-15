@@ -223,6 +223,15 @@ API changes
      s
      s.loc[['D']]
 
+- ``Index`` now supports ``duplicated`` and ``drop_duplicates``. (:issue:`4060`)
+
+  .. ipython:: python
+
+     idx = Index([1, 2, 3, 4, 1, 2])
+     idx
+     idx.duplicated()
+     idx.drop_duplicates()
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
