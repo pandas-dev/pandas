@@ -2222,6 +2222,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_kde_colors(self):
+        tm._skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
+
         from matplotlib import cm
 
         custom_colors = 'rgcby'
