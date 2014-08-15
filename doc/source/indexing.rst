@@ -1476,6 +1476,7 @@ You can control the action of a chained assignment via the option ``mode.chained
 which can take the values ``['raise','warn',None]``, where showing a warning is the default.
 
 .. ipython:: python
+   :okwarning:
 
    dfb = DataFrame({'a' : ['one', 'one', 'two',
                            'three', 'two', 'one', 'six'],
