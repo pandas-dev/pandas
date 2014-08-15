@@ -2722,7 +2722,7 @@ The default is 50,000 rows returned in a chunk.
 
    .. code-block:: python
 
-      for df in read_hdf('store.h5','df', chunsize=3):
+      for df in read_hdf('store.h5','df', chunksize=3):
           print(df)
 
 Note, that the chunksize keyword applies to the **source** rows. So if you
