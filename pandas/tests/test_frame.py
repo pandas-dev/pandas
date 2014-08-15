@@ -11857,6 +11857,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaises(ValueError):
             df.T.stack('c1')
 
+    def test_stack_datetime_column_multiIndex(self):
+        # GH 8039
+        t = datetime(2014, 1, 1)
+        df = DataFrame([1, 2, 3, 4], columns=MultiIndex.from_tuples([(t, 'A', 'B')]))
+        result = df.stack()
+
+        eidx = MultiIndex.from_product([(0, 1, 2, 3), ('B',)])
+        ecols = MultiIndex.from_tuples([(t, 'A')])
+        expected = DataFrame([1, 2, 3, 4], index=eidx, columns=ecols)
+        assert_frame_equal(result, expected)
+
     def test_repr_with_mi_nat(self):
         df = DataFrame({'X': [1, 2]},
                        index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])

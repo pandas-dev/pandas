@@ -601,7 +601,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
         tuples = list(zip(*[
-            lev.values.take(lab) for lev, lab in
+            lev.take(lab) for lev, lab in
             zip(this.columns.levels[:-1], this.columns.labels[:-1])
         ]))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
