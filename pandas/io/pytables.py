@@ -662,21 +662,18 @@ class HDFStore(StringMixin):
         s = self._create_storer(group)
         s.infer_axes()
 
-        # what we are actually going to do for a chunk
-        def func(_start, _stop):
-            return s.read(where=where, start=_start, stop=_stop,
+        # function to call on iteration
+        def func(_start, _stop, _where):
+            return s.read(start=_start, stop=_stop,
+                          where=_where,
                           columns=columns, **kwargs)
 
-        if iterator or chunksize is not None:
-            if not s.is_table:
-                raise TypeError(
-                    "can only use an iterator or chunksize on a table")
-            return TableIterator(self, func, nrows=s.nrows, start=start,
-                                 stop=stop, chunksize=chunksize,
-                                 auto_close=auto_close)
+        # create the iterator
+        it = TableIterator(self, s, func, where=where, nrows=s.nrows, start=start,
+                           stop=stop, iterator=iterator, chunksize=chunksize,
+                           auto_close=auto_close)
 
-        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop,
-                             auto_close=auto_close).get_values()
+        return it.get_result()
 
     def select_as_coordinates(
             self, key, where=None, start=None, stop=None, **kwargs):
@@ -779,26 +776,22 @@ class HDFStore(StringMixin):
         # axis is the concentation axes
         axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
 
-        def func(_start, _stop):
-            if where is not None:
-                c = s.read_coordinates(where=where, start=_start, stop=_stop, **kwargs)
-            else:
-                c = None
+        def func(_start, _stop, _where):
 
-            objs = [t.read(where=c, start=_start, stop=_stop,
-                           columns=columns, **kwargs) for t in tbls]
+            # retrieve the objs, _where is always passed as a set of coordinates here
+            objs = [t.read(where=_where, columns=columns, **kwargs) for t in tbls]
 
             # concat and return
             return concat(objs, axis=axis,
                           verify_integrity=False).consolidate()
 
-        if iterator or chunksize is not None:
-            return TableIterator(self, func, nrows=nrows, start=start,
-                                 stop=stop, chunksize=chunksize,
-                                 auto_close=auto_close)
+        # create the iterator
+        it = TableIterator(self, s, func, where=where, nrows=nrows, start=start,
+                           stop=stop, iterator=iterator, chunksize=chunksize,
+                           auto_close=auto_close)
 
-        return TableIterator(self, func, nrows=nrows, start=start, stop=stop,
-                             auto_close=auto_close).get_values()
+        return it.get_result(coordinates=True)
+
 
     def put(self, key, value, format=None, append=False, **kwargs):
         """
@@ -1293,20 +1286,25 @@ class TableIterator(object):
         ----------
 
         store : the reference store
-        func  : the function to get results
+        s     : the refered storer
+        func  : the function to execute the query
+        where : the where of the query
         nrows : the rows to iterate on
         start : the passed start value (default is None)
         stop  : the passed stop value (default is None)
-        chunksize : the passed chunking valeu (default is 50000)
+        iterator : boolean, whether to use the default iterator
+        chunksize : the passed chunking value (default is 50000)
         auto_close : boolean, automatically close the store at the end of
             iteration, default is False
         kwargs : the passed kwargs
         """
 
-    def __init__(self, store, func, nrows, start=None, stop=None,
-                 chunksize=None, auto_close=False):
+    def __init__(self, store, s, func, where, nrows, start=None, stop=None,
+                 iterator=False, chunksize=None, auto_close=False):
         self.store = store
-        self.func = func
+        self.s     = s
+        self.func  = func
+        self.where = where
         self.nrows = nrows or 0
         self.start = start or 0
 
@@ -1314,23 +1312,29 @@ class TableIterator(object):
             stop = self.nrows
         self.stop = min(self.nrows, stop)
 
-        if chunksize is None:
-            chunksize = 100000
+        self.coordinates = None
+        if iterator or chunksize is not None:
+            if chunksize is None:
+                chunksize = 100000
+            self.chunksize = int(chunksize)
+        else:
+            self.chunksize = None
 
-        self.chunksize = chunksize
         self.auto_close = auto_close
 
     def __iter__(self):
+
+        # iterate
         current = self.start
         while current < self.stop:
-            stop = current + self.chunksize
-            v = self.func(current, stop)
-            current = stop
 
-            if v is None:
+            stop = min(current + self.chunksize, self.stop)
+            value = self.func(None, None, self.coordinates[current:stop])
+            current = stop
+            if value is None or not len(value):
                 continue
 
-            yield v
+            yield value
 
         self.close()
 
@@ -1338,11 +1342,28 @@ class TableIterator(object):
         if self.auto_close:
             self.store.close()
 
-    def get_values(self):
-        results = self.func(self.start, self.stop)
+    def get_result(self, coordinates=False):
+
+        #  return the actual iterator
+        if self.chunksize is not None:
+            if not self.s.is_table:
+                raise TypeError(
+                    "can only use an iterator or chunksize on a table")
+
+            self.coordinates = self.s.read_coordinates(where=self.where)
+
+            return self
+
+        # if specified read via coordinates (necessary for multiple selections
+        if coordinates:
+            where = self.s.read_coordinates(where=self.where)
+        else:
+            where = self.where
+
+        # directly return the result
+        results = self.func(self.start, self.stop, where)
         self.close()
         return results
-
 
 class IndexCol(StringMixin):
 
