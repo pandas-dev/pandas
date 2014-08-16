@@ -388,7 +388,7 @@ class Timestamp(_Timestamp):
                 value = tz_convert_single(self.value, 'UTC', self.tz)
                 return Timestamp(value, tz=None)
             else:
-                raise Exception('Cannot localize tz-aware Timestamp, use '
+                raise TypeError('Cannot localize tz-aware Timestamp, use '
                                 'tz_convert for conversions')
 
     def tz_convert(self, tz):
@@ -408,7 +408,7 @@ class Timestamp(_Timestamp):
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
-            raise Exception('Cannot convert tz-naive Timestamp, use '
+            raise TypeError('Cannot convert tz-naive Timestamp, use '
                             'tz_localize to localize')
         else:
             # Same UTC timestamp, different time zone

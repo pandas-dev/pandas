@@ -172,7 +172,7 @@ API changes
 
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
-
+- ``Timestamp.tz_localize`` and ``Timestamp.tz_convert`` now raise ``TypeError`` in error cases, rather than ``Exception`` (:issue:`8025`)
 - ``Timestamp.__repr__`` displays ``dateutil.tz.tzoffset`` info (:issue:`7907`)
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument.  (:issue:`7737`)

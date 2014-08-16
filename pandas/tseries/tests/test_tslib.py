@@ -233,6 +233,15 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
 
+        # GH 8025
+        with tm.assertRaisesRegexp(TypeError, 'Cannot localize tz-aware Timestamp, use '
+                                   'tz_convert for conversions'):
+            Timestamp('2011-01-01' ,tz='US/Eastern').tz_localize('Asia/Tokyo')
+
+        with tm.assertRaisesRegexp(TypeError, 'Cannot convert tz-naive Timestamp, use '
+                            'tz_localize to localize'):
+            Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
+
     def test_tz_localize_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
             for t in ['2014-02-01 09:00', '2014-07-08 09:00', '2014-11-01 17:00',
@@ -241,7 +250,7 @@ class TestTimestamp(tm.TestCase):
                 localized = ts.tz_localize(tz)
                 self.assertEqual(localized, Timestamp(t, tz=tz))
 
-                with tm.assertRaises(Exception):
+                with tm.assertRaises(TypeError):
                     localized.tz_localize(tz)
 
                 reset = localized.tz_localize(None)
