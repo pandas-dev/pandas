@@ -465,7 +465,7 @@ Bug Fixes
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
 
 - Bug in HDFStore iteration when passing a where (:issue:`8014`)
-
+- Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
 
 

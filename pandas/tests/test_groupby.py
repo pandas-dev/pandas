@@ -796,6 +796,26 @@ class TestGroupBy(tm.TestCase):
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
 
+        # GH 8046
+        # make sure that we preserve the input order
+
+        df = DataFrame(np.arange(6,dtype='int64').reshape(3,2), columns=["a","b"], index=[0,2,1])
+        key = [0,0,1]
+        expected = df.sort_index().groupby(key).transform(lambda x: x-x.mean()).groupby(key).mean()
+        result = df.groupby(key).transform(lambda x: x-x.mean()).groupby(key).mean()
+        assert_frame_equal(result, expected)
+
+        def demean(arr):
+            return arr - arr.mean()
+
+        people = DataFrame(np.random.randn(5, 5),
+                           columns=['a', 'b', 'c', 'd', 'e'],
+                           index=['Joe', 'Steve', 'Wes', 'Jim', 'Travis'])
+        key = ['one', 'two', 'one', 'two', 'one']
+        result = people.groupby(key).transform(demean).groupby(key).mean()
+        expected = people.groupby(key).apply(demean).groupby(key).mean()
+        assert_frame_equal(result, expected)
+
     def test_transform_fast(self):
 
         df = DataFrame( { 'id' : np.arange( 100000 ) / 3,
@@ -2924,7 +2944,7 @@ class TestGroupBy(tm.TestCase):
                            lambda x: sum(x),
                            lambda x: x.sum(),
                            partial(sum), fn_class()]
-        
+
         expected = df.groupby("foo").agg(sum)
         for ecall in equiv_callables:
             result = df.groupby('foo').agg(ecall)
