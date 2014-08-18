@@ -475,6 +475,24 @@ class GroupBy(PandasObject):
             if len(groupers):
                 self._group_selection = (ax-Index(groupers)).tolist()
 
+    def _set_result_index_ordered(self, result):
+        # set the result index on the passed values object
+        # return the new object
+        # related 8046
+
+        # the values/counts are repeated according to the group index
+        indices = self.indices
+
+        # shortcut of we have an already ordered grouper
+
+        if not Index(self.grouper.group_info[0]).is_monotonic:
+            index = Index(np.concatenate([ indices[v] for v in self.grouper.result_index ]))
+            result.index = index
+            result = result.sort_index()
+
+        result.index = self.obj.index
+        return result
+
     def _local_dir(self):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
@@ -2087,7 +2105,6 @@ def _convert_grouper(axis, grouper):
     else:
         return grouper
 
-
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = _series_apply_whitelist
 
@@ -2319,18 +2336,7 @@ class SeriesGroupBy(GroupBy):
         counts = self.count().values
         values = np.repeat(values, com._ensure_platform_int(counts))
 
-        # the values/counts are repeated according to the group index
-        indices = self.indices
-
-        # shortcut of we have an already ordered grouper
-        if Index(self.grouper.group_info[0]).is_monotonic:
-            result = Series(values, index=self.obj.index)
-        else:
-            index = Index(np.concatenate([ indices[v] for v in self.grouper.result_index ]))
-            result = Series(values, index=index).sort_index()
-            result.index = self.obj.index
-
-        return result
+        return self._set_result_index_ordered(Series(values))
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
@@ -2842,8 +2848,7 @@ class NDFrameGroupBy(GroupBy):
         concat_index = obj.columns if self.axis == 0 else obj.index
         concatenated = concat(applied, join_axes=[concat_index],
                               axis=self.axis, verify_integrity=False)
-        concatenated.sort_index(inplace=True)
-        return concatenated
+        return self._set_result_index_ordered(concatenated)
 
     def transform(self, func, *args, **kwargs):
         """
