@@ -9,7 +9,6 @@ an once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
-# TODO: Fix this module so it can use cross-compatible zip, map, and range
 import numpy as np
 
 import sys
@@ -20,14 +19,16 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
 from pandas import compat
-from pandas.compat import long, lrange, lmap, lzip, text_type, string_types
+from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
+    zip
 from pandas import isnull
 from pandas.io.common import get_filepath_or_buffer
 from pandas.lib import max_len_string_array, is_string_array
 from pandas.tslib import NaT
 
 def read_stata(filepath_or_buffer, convert_dates=True,
-               convert_categoricals=True, encoding=None, index=None):
+               convert_categoricals=True, encoding=None, index=None,
+               convert_missing=False):
     """
     Read Stata file into DataFrame
 
@@ -44,10 +45,19 @@ def read_stata(filepath_or_buffer, convert_dates=True,
         support unicode. None defaults to cp1252.
     index : identifier of index column
         identifier of column that should be used as index of the DataFrame
+    convert_missing : boolean, defaults to False
+        Flag indicating whether to convert missing values to their Stata
+        representations.  If False, missing values are replaced with nans.
+        If True, columns containing missing values are returned with
+        object data types and missing values are represented by
+        StataMissingValue objects.
     """
     reader = StataReader(filepath_or_buffer, encoding)
 
-    return reader.data(convert_dates, convert_categoricals, index)
+    return reader.data(convert_dates,
+                       convert_categoricals,
+                       index,
+                       convert_missing)
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -291,35 +301,76 @@ class StataMissingValue(StringMixin):
 
     Parameters
     -----------
-    offset
-    value
+    value : int8, int16, int32, float32 or float64
+        The Stata missing value code
 
     Attributes
     ----------
-    string
-    value
+    string : string
+        String representation of the Stata missing value
+    value : int8, int16, int32, float32 or float64
+        The original encoded missing value
 
     Notes
     -----
     More information: <http://www.stata.com/help.cgi?missing>
+
+    Integer missing values make the code '.', '.a', ..., '.z' to the ranges
+    101 ... 127 (for int8), 32741 ... 32767  (for int16) and 2147483621 ...
+    2147483647 (for int32).  Missing values for floating point data types are
+    more complex but the pattern is simple to discern from the following table.
+
+    np.float32 missing values (float in Stata)
+    0000007f    .
+    0008007f    .a
+    0010007f    .b
+    ...
+    00c0007f    .x
+    00c8007f    .y
+    00d0007f    .z
+
+    np.float64 missing values (double in Stata)
+    000000000000e07f    .
+    000000000001e07f    .a
+    000000000002e07f    .b
+    ...
+    000000000018e07f    .x
+    000000000019e07f    .y
+    00000000001ae07f    .z
     """
-    # TODO: Needs test
-    def __init__(self, offset, value):
+
+    # Construct a dictionary of missing values
+    MISSING_VALUES = {}
+    bases = (101, 32741, 2147483621)
+    for b in bases:
+        MISSING_VALUES[b] = '.'
+        for i in range(1, 27):
+            MISSING_VALUES[i + b] = '.' + chr(96 + i)
+
+    base = b'\x00\x00\x00\x7f'
+    increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
+    for i in range(27):
+        value = struct.unpack('<f', base)[0]
+        MISSING_VALUES[value] = '.'
+        if i > 0:
+            MISSING_VALUES[value] += chr(96 + i)
+        int_value = struct.unpack('<i', struct.pack('<f', value))[0] + increment
+        base = struct.pack('<i', int_value)
+
+    base = b'\x00\x00\x00\x00\x00\x00\xe0\x7f'
+    increment = struct.unpack('q', b'\x00\x00\x00\x00\x00\x01\x00\x00')[0]
+    for i in range(27):
+        value = struct.unpack('<d', base)[0]
+        MISSING_VALUES[value] = '.'
+        if i > 0:
+            MISSING_VALUES[value] += chr(96 + i)
+        int_value = struct.unpack('q', struct.pack('<d', value))[0] + increment
+        base = struct.pack('q', int_value)
+
+    def __init__(self, value):
         self._value = value
-        value_type = type(value)
-        if value_type in int:
-            loc = value - offset
-        elif value_type in (float, np.float32, np.float64):
-            if value <= np.finfo(np.float32).max:  # float32
-                conv_str, byte_loc, scale = '<f', 1, 8
-            else:
-                conv_str, byte_loc, scale = '<d', 5, 1
-            value_bytes = struct.pack(conv_str, value)
-            loc = (struct.unpack('<b', value_bytes[byte_loc])[0] / scale) + 0
-        else:
-            # Should never be hit
-            loc = 0
-        self._str = loc is 0 and '.' or ('.' + chr(loc + 96))
+        self._str = self.MISSING_VALUES[value]
+
     string = property(lambda self: self._str,
                       doc="The Stata representation of the missing value: "
                           "'.', '.a'..'.z'")
@@ -332,6 +383,10 @@ class StataMissingValue(StringMixin):
     def __repr__(self):
         # not perfect :-/
         return "%s(%s)" % (self.__class__, self)
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__)
+                and self.string == other.string and self.value == other.value)
 
 
 class StataParser(object):
@@ -711,15 +766,7 @@ class StataReader(StataParser):
             return self.col_sizes[k]
 
     def _unpack(self, fmt, byt):
-        d = struct.unpack(self.byteorder + fmt, byt)[0]
-        if fmt[-1] in self.VALID_RANGE:
-            nmin, nmax = self.VALID_RANGE[fmt[-1]]
-            if d < nmin or d > nmax:
-                if self._missing_values:
-                    return StataMissingValue(nmax, d)
-                else:
-                    return None
-        return d
+        return struct.unpack(self.byteorder + fmt, byt)[0]
 
     def _null_terminate(self, s):
         if compat.PY3 or self._encoding is not None:  # have bytes not strings,
@@ -752,15 +799,14 @@ class StataReader(StataParser):
                     )
             return data
         else:
-            return list(
-                map(
+            return lmap(
                     lambda i: self._unpack(typlist[i],
                                            self.path_or_buf.read(
                                                self._col_size(i)
                                            )),
                     range(self.nvar)
-                )
             )
+
 
     def _dataset(self):
         """
@@ -853,7 +899,8 @@ class StataReader(StataParser):
             self.GSO[v_o] = self.path_or_buf.read(length-1)
             self.path_or_buf.read(1)  # zero-termination
 
-    def data(self, convert_dates=True, convert_categoricals=True, index=None):
+    def data(self, convert_dates=True, convert_categoricals=True, index=None,
+             convert_missing=False):
         """
         Reads observations from Stata file, converting them into a dataframe
 
@@ -866,11 +913,18 @@ class StataReader(StataParser):
             variables
         index : identifier of index column
             identifier of column that should be used as index of the DataFrame
+        convert_missing : boolean, defaults to False
+            Flag indicating whether to convert missing values to their Stata
+            representation.  If False, missing values are replaced with
+            nans.  If True, columns containing missing values are returned with
+            object data types and missing values are represented by
+            StataMissingValue objects.
 
         Returns
         -------
         y : DataFrame instance
         """
+        self._missing_values = convert_missing
         if self._data_read:
             raise Exception("Data has already been read.")
         self._data_read = True
@@ -894,18 +948,62 @@ class StataReader(StataParser):
         if convert_categoricals:
             self._read_value_labels()
 
+        # TODO: Refactor to use a dictionary constructor and the correct dtype from the start?
         if len(data)==0:
             data = DataFrame(columns=self.varlist, index=index)
         else:
             data = DataFrame(data, columns=self.varlist, index=index)
 
         cols_ = np.where(self.dtyplist)[0]
+
+        # Convert columns (if needed) to match input type
+        index = data.index
+        requires_type_conversion = False
+        data_formatted = []
         for i in cols_:
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
-                if data[col].dtype is not np.dtype(object):
-                    data[col] = Series(data[col], data[col].index,
-                                       self.dtyplist[i])
+                dtype = data[col].dtype
+                if (dtype != np.dtype(object)) and (dtype != self.dtyplist[i]):
+                    requires_type_conversion = True
+                    data_formatted.append((col, Series(data[col], index, self.dtyplist[i])))
+                else:
+                    data_formatted.append((col, data[col]))
+        if requires_type_conversion:
+            data = DataFrame.from_items(data_formatted)
+        del data_formatted
+
+        # Check for missing values, and replace if found
+        for i, colname in enumerate(data):
+            fmt = self.typlist[i]
+            if fmt not in self.VALID_RANGE:
+                continue
+
+            nmin, nmax = self.VALID_RANGE[fmt]
+            series = data[colname]
+            missing = np.logical_or(series < nmin, series > nmax)
+
+            if not missing.any():
+                continue
+
+            if self._missing_values:  # Replacement follows Stata notation
+                missing_loc = np.argwhere(missing)
+                umissing, umissing_loc = np.unique(series[missing],
+                                                   return_inverse=True)
+                replacement = Series(series, dtype=np.object)
+                for i, um in enumerate(umissing):
+                    missing_value = StataMissingValue(um)
+
+                    loc = missing_loc[umissing_loc == i]
+                    replacement.iloc[loc] = missing_value
+            else:  # All replacements are identical
+                dtype = series.dtype
+                if dtype not in (np.float32, np.float64):
+                    dtype = np.float64
+                replacement = Series(series, dtype=dtype)
+                replacement[missing] = np.nan
+
+            data[colname] = replacement
 
         if convert_dates:
             cols = np.where(lmap(lambda x: x in _date_formats,

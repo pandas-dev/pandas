@@ -121,3 +121,25 @@ setup = common_setup + """
 packers_write_json_date_index = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
 setup = setup + setup_int_index
 packers_write_json = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
+
+#----------------------------------------------------------------------
+# stata
+
+setup = common_setup + """
+df.to_stata(f, {'index': 'tc'})
+"""
+packers_read_stata = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
+
+packers_write_stata = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)
+
+setup = common_setup + """
+df['int8_'] = [randint(-127,100) for _ in range(N)]
+df['int16_'] = [randint(-127,100) for _ in range(N)]
+df['int32_'] = [randint(-127,100) for _ in range(N)]
+df['float32_'] = np.array(randn(N), dtype=np.float32)
+df.to_stata(f, {'index': 'tc'})
+"""
+
+packers_read_stata_with_int = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
+
+packers_write_stata_with_int = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)
