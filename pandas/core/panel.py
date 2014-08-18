@@ -858,6 +858,9 @@ class Panel(NDFrame):
             mask = com.notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
+            if not np.all(selector):
+                warnings.warn("NaN values found\
+                               empty values will be dropped", RuntimeWarning)
         else:
             # size = N * K
             selector = slice(None, None)

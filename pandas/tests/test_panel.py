@@ -5,7 +5,7 @@ import operator
 import nose
 
 import numpy as np
-
+import warnings
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.panel import Panel
@@ -1555,6 +1555,36 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                                          names=[None, None, 'minor'])
         expected = DataFrame({'i1': [1., 2], 'i2': [1., 2]}, index=exp_idx)
         assert_frame_equal(result, expected)
+
+    def test_to_frame_na_drop_warnings(self):
+        def create_a_panel_with_na_vals(filter_observations=True):
+            df1 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+                   index=['foo', 'bar'])
+            df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+                   index=['foo', 'bar'])
+            df2.loc['foo', 'B'] = np.nan
+            dict_with_dropped_vals = {'df1': df1, 'df2': df2}
+            Panel(dict_with_dropped_vals).\
+                to_frame(filter_observations=filter_observations)
+
+        def create_a_panel_without_na_vals(filter_observations=True):
+            df1 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+                   index=['foo', 'bar'])
+            df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+                   index=['foo', 'bar'])
+            dict_with_dropped_vals = {'df1': df1, 'df2': df2}
+            Panel(dict_with_dropped_vals).\
+                to_frame(filter_observations=filter_observations)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            create_a_panel_with_na_vals()
+            create_a_panel_with_na_vals(False)
+            create_a_panel_without_na_vals()
+            create_a_panel_without_na_vals(False)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, RuntimeWarning))
+            self.assertEqual(str(w[0].message),
+                             "NaN values found, empty values will be dropped")
 
     def test_to_panel_na_handling(self):
         df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
