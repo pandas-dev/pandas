@@ -455,6 +455,14 @@ class _TestSQLApi(PandasSQLTest):
         result.index.name = None
         tm.assert_frame_equal(result, self.test_frame1)
 
+    def test_roundtrip_chunksize(self):
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn, 
+            index=False, flavor='sqlite', chunksize=2)
+        result = sql.read_sql_query(
+            'SELECT * FROM test_frame_roundtrip',
+            con=self.conn)
+        tm.assert_frame_equal(result, self.test_frame1)        
+
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
         iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
