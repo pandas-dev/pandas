@@ -815,6 +815,14 @@ class TestCustomBusinessDay(Base):
             rs = dt + tday
             self.assertEqual(rs, xp)
 
+        # test ability to do date parsing
+        holidays = ['5/13/2014', '20140514', '2014/05/15']
+        tday = CDay(holidays=holidays)
+        dt = datetime(2014, 5, 12)
+        xp = datetime(2014, 5, 16)
+        rs = dt + tday
+        self.assertEqual(rs, xp)
+
     def test_weekmask(self):
         weekmask_saudi = 'Sat Sun Mon Tue Wed'  # Thu-Fri Weekend
         weekmask_uae = '1111001'                # Fri-Sat Weekend

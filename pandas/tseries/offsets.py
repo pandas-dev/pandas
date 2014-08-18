@@ -603,7 +603,7 @@ class CustomBusinessDay(BusinessDay):
             i8 = tslib.pydt_to_i8(dt)
             dt = tslib.tz_convert_single(i8, 'UTC', dt.tzinfo)
             dt = Timestamp(dt)
-        dt = np.datetime64(dt)
+        dt = np.datetime64(to_datetime(dt))
         if dt.dtype.name != dtype:
             dt = dt.astype(dtype)
         return dt
