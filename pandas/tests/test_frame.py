@@ -9610,6 +9610,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                        columns=['high', 'low'])
         assert_frame_equal(rs, xp)
 
+    def test_shift_empty(self):
+        # Regression test for #8019
+        df = DataFrame({'foo': []})
+        rs = df.shift(-1)
+
+        assert_frame_equal(df, rs)
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodFrame()
