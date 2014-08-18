@@ -1160,75 +1160,68 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
-    cdef double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
-    cdef Py_ssize_t i
+    cdef double val, prev, mean_x = 0, ssqdm_x = 0, delta, rep = NaN
+    cdef Py_ssize_t nobs = 0, nrep = 0, i
     cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
     minp = _check_minp(win, minp, N)
 
-    # Check for windows larger than array, addresses #7297
-    win = min(win, N)
-
-    # Over the first window, observations can only be added, never removed
-    for i from 0 <= i < win:
+    for i from 0 <= i < N:
         val = input[i]
+        prev = NaN if i < win else input[i - win]
 
-        # Not NaN
+        # First, count the number of observations and consecutive repeats
+        if prev == prev:
+            # prev is not NaN, removing an observation...
+            if nobs == nrep:
+                # ...and removing a repeat
+                nrep -= 1
+                if nrep == 0:
+                    rep = NaN
+            nobs -= 1
+
         if val == val:
-            nobs += 1
-            delta = (val - mean_x)
-            mean_x += delta / nobs
-            ssqdm_x += delta * (val - mean_x)
-
-        if nobs >= minp:
-            #pathological case
-            if nobs == 1:
-                val = 0
+            # next is not NaN, adding an observation...
+            if val == prev:
+                # ...and adding a repeat
+                nrep += 1
             else:
-                val = ssqdm_x / (nobs - ddof)
-                if val < 0:
-                    val = 0
-        else:
-            val = NaN
+                # ...and resetting repeats
+                nrep = 1
+                rep = val
+            nobs += 1
 
-        output[i] = val
-
-    # After the first window, observations can both be added and removed
-    for i from win <= i < N:
-        val = input[i]
-        prev = input[i - win]
-
-        if val == val:
+        # Then, compute the new mean and sum of squared differences
+        if nobs == nrep:
+            # All non-NaN values in window are identical...
+            ssqdm_x = 0
+            mean_x = rep if nobs > 0 else 0
+        elif val == val:
+            # Adding one observation...
             if prev == prev:
-                # Adding one observation and removing another one
+                # ...and removing another
                 delta = val - prev
                 prev -= mean_x
                 mean_x += delta / nobs
                 val -= mean_x
                 ssqdm_x += (val + prev) * delta
             else:
-                # Adding one observation and not removing any
-                nobs += 1
+                # ...and not removing any
                 delta = (val - mean_x)
                 mean_x += delta / nobs
                 ssqdm_x += delta * (val - mean_x)
         elif prev == prev:
             # Adding no new observation, but removing one
-            nobs -= 1
-            if nobs:
-                delta = (prev - mean_x)
-                mean_x -= delta  / nobs
-                ssqdm_x -= delta * (prev - mean_x)
-            else:
-                mean_x = 0
-                ssqdm_x = 0
+            delta = (prev - mean_x)
+            mean_x -= delta  / nobs
+            ssqdm_x -= delta * (prev - mean_x)
         # Variance is unchanged if no observation is added or removed
 
+        # Finally, compute and write the rolling variance to the output array
         if nobs >= minp:
-            #pathological case
-            if nobs == 1:
+            if nobs <= ddof:
                 val = 0
             else:
                 val = ssqdm_x / (nobs - ddof)
