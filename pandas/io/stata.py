@@ -13,18 +13,18 @@ import numpy as np
 
 import sys
 import struct
+from dateutil.relativedelta import relativedelta
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
-from pandas import compat
+from pandas import compat, to_timedelta, to_datetime
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip
-from pandas import isnull
 from pandas.io.common import get_filepath_or_buffer
 from pandas.lib import max_len_string_array, is_string_array
-from pandas.tslib import NaT
+from pandas.tslib import NaT, Timestamp
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None,
@@ -62,6 +62,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
+stata_epoch = datetime.datetime(1960, 1, 1)
 def _stata_elapsed_date_to_datetime(date, fmt):
     """
     Convert from SIF to datetime. http://www.stata.com/help.cgi?datetime
@@ -111,9 +112,7 @@ def _stata_elapsed_date_to_datetime(date, fmt):
     #TODO: When pandas supports more than datetime64[ns], this should be improved to use correct range, e.g. datetime[Y] for yearly
     if np.isnan(date):
         return NaT
-
     date = int(date)
-    stata_epoch = datetime.datetime(1960, 1, 1)
     if fmt in ["%tc", "tc"]:
         from dateutil.relativedelta import relativedelta
         return stata_epoch + relativedelta(microseconds=date * 1000)
@@ -147,6 +146,158 @@ def _stata_elapsed_date_to_datetime(date, fmt):
     else:
         raise ValueError("Date fmt %s not understood" % fmt)
 
+
+def _stata_elapsed_date_to_datetime_vec(dates, fmt):
+    """
+    Convert from SIF to datetime. http://www.stata.com/help.cgi?datetime
+
+    Parameters
+    ----------
+    dates : array-like
+        The Stata Internal Format date to convert to datetime according to fmt
+    fmt : str
+        The format to convert to. Can be, tc, td, tw, tm, tq, th, ty
+        Returns
+
+    Returns
+    -------
+    converted : Series
+        The converted dates
+
+    Examples
+    --------
+    >>> _stata_elapsed_date_to_datetime(52, "%tw")
+    datetime.datetime(1961, 1, 1, 0, 0)
+
+    Notes
+    -----
+    datetime/c - tc
+        milliseconds since 01jan1960 00:00:00.000, assuming 86,400 s/day
+    datetime/C - tC - NOT IMPLEMENTED
+        milliseconds since 01jan1960 00:00:00.000, adjusted for leap seconds
+    date - td
+        days since 01jan1960 (01jan1960 = 0)
+    weekly date - tw
+        weeks since 1960w1
+        This assumes 52 weeks in a year, then adds 7 * remainder of the weeks.
+        The datetime value is the start of the week in terms of days in the
+        year, not ISO calendar weeks.
+    monthly date - tm
+        months since 1960m1
+    quarterly date - tq
+        quarters since 1960q1
+    half-yearly date - th
+        half-years since 1960h1 yearly
+    date - ty
+        years since 0000
+
+    If you don't have pandas with datetime support, then you can't do
+    milliseconds accurately.
+    """
+    MIN_YEAR, MAX_YEAR = Timestamp.min.year, Timestamp.max.year
+    MAX_DAY_DELTA = (Timestamp.max - datetime.datetime(1960, 1, 1)).days
+    MIN_DAY_DELTA = (Timestamp.min - datetime.datetime(1960, 1, 1)).days
+    MIN_MS_DELTA = MIN_DAY_DELTA * 24 * 3600 * 1000
+    MAX_MS_DELTA = MAX_DAY_DELTA * 24 * 3600 * 1000
+
+    def convert_year_month_safe(year, month):
+        """
+        Convert year and month to datetimes, using pandas vectorized versions
+        when the date range falls within the range supported by pandas.  Other
+        wise it falls back to a slower but more robust method using datetime.
+        """
+        if year.max() < MAX_YEAR and year.min() > MIN_YEAR:
+            return to_datetime(100 * year + month, format='%Y%m')
+        else:
+            return Series(
+                [datetime.datetime(y, m, 1) for y, m in zip(year, month)])
+
+    def convert_year_days_safe(year, days):
+        """
+        Converts year (e.g. 1999) and days since the start of the year to a
+        datetime or datetime64 Series
+        """
+        if year.max() < (MAX_YEAR - 1) and year.min() > MIN_YEAR:
+            return to_datetime(year, format='%Y') + to_timedelta(days, unit='d')
+        else:
+            value = [datetime.datetime(y, 1, 1) + relativedelta(days=int(d)) for
+                     y, d in zip(year, days)]
+            return Series(value)
+
+    def convert_delta_safe(base, deltas, unit):
+        """
+        Convert base dates and deltas to datetimes, using pandas vectorized
+        versions if the deltas satisfy restrictions required to be expressed
+        as dates in pandas.
+        """
+        if unit == 'd':
+            if deltas.max() > MAX_DAY_DELTA or deltas.min() < MIN_DAY_DELTA:
+                values = [base + relativedelta(days=int(d)) for d in deltas]
+                return Series(values)
+        elif unit == 'ms':
+            if deltas.max() > MAX_MS_DELTA or deltas.min() < MIN_MS_DELTA:
+                values = [base + relativedelta(microseconds=(int(d) * 1000)) for
+                          d in deltas]
+                return Series(values)
+        else:
+            raise ValueError('format not understood')
+
+        base = to_datetime(base)
+        deltas = to_timedelta(deltas, unit=unit)
+        return base + deltas
+
+    # TODO: If/when pandas supports more than datetime64[ns], this should be improved to use correct range, e.g. datetime[Y] for yearly
+    bad_locs = np.isnan(dates)
+    has_bad_values = False
+    if bad_locs.any():
+        has_bad_values = True
+        data_col = Series(dates)
+        data_col[bad_locs] = 1.0  # Replace with NaT
+    dates = dates.astype(np.int64)
+
+    if fmt in ["%tc", "tc"]:  # Delta ms relative to base
+        base = stata_epoch
+        ms = dates
+        conv_dates = convert_delta_safe(base, ms, 'ms')
+    elif fmt in ["%tC", "tC"]:
+        from warnings import warn
+
+        warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        conv_dates = Series(dates, dtype=np.object)
+        if has_bad_values:
+            conv_dates[bad_locs] = np.nan
+        return conv_dates
+    elif fmt in ["%td", "td", "%d", "d"]:  # Delta days relative to base
+        base = stata_epoch
+        days = dates
+        conv_dates = convert_delta_safe(base, days, 'd')
+    elif fmt in ["%tw", "tw"]:  # does not count leap days - 7 days is a week
+        year = stata_epoch.year + dates // 52
+        days = (dates % 52) * 7
+        conv_dates = convert_year_days_safe(year, days)
+    elif fmt in ["%tm", "tm"]:  # Delta months relative to base
+        year = stata_epoch.year + dates // 12
+        month = (dates % 12) + 1
+        conv_dates = convert_year_month_safe(year, month)
+    elif fmt in ["%tq", "tq"]:  # Delta quarters relative to base
+        year = stata_epoch.year + dates // 4
+        month = (dates % 4) * 3 + 1
+        conv_dates = convert_year_month_safe(year, month)
+    elif fmt in ["%th", "th"]:  # Delta half-years relative to base
+        year = stata_epoch.year + dates // 2
+        month = (dates % 2) * 6 + 1
+        conv_dates = convert_year_month_safe(year, month)
+    elif fmt in ["%ty", "ty"]:  # Years -- not delta
+        # TODO: Check about negative years, here, and raise or warn if needed
+        year = dates
+        month = np.ones_like(dates)
+        conv_dates = convert_year_month_safe(year, month)
+    else:
+        raise ValueError("Date fmt %s not understood" % fmt)
+
+    if has_bad_values:  # Restore NaT for bad values
+        conv_dates[bad_locs] = NaT
+    return conv_dates
 
 def _datetime_to_stata_elapsed(date, fmt):
     """
@@ -477,6 +628,14 @@ class StataParser(object):
                 'f': np.float32(struct.unpack('<f', b'\x00\x00\x00\x7f')[0]),
                 'd': np.float64(struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
             }
+        self.NUMPY_TYPE_MAP = \
+        {
+                'b': 'i1',
+                'h': 'i2',
+                'l': 'i4',
+                'f': 'f4',
+                'd': 'f8'
+        }
 
         # Reserved words cannot be used as variable names
         self.RESERVED_WORDS = ('aggregate', 'array', 'boolean', 'break',
@@ -759,15 +918,6 @@ class StataReader(StataParser):
         return (type(fmt) is int and fmt
                 or struct.calcsize(self.byteorder + fmt))
 
-    def _col_size(self, k=None):
-        if k is None:
-            return self.col_sizes
-        else:
-            return self.col_sizes[k]
-
-    def _unpack(self, fmt, byt):
-        return struct.unpack(self.byteorder + fmt, byt)[0]
-
     def _null_terminate(self, s):
         if compat.PY3 or self._encoding is not None:  # have bytes not strings,
                                                       # so must decode
@@ -783,55 +933,6 @@ class StataReader(StataParser):
                 return s.lstrip(null_byte)[:s.index(null_byte)]
             except:
                 return s
-
-    def _next(self):
-        typlist = self.typlist
-        if self.has_string_data:
-            data = [None] * self.nvar
-            for i in range(len(data)):
-                if type(typlist[i]) is int:
-                    data[i] = self._null_terminate(
-                        self.path_or_buf.read(typlist[i])
-                    )
-                else:
-                    data[i] = self._unpack(
-                        typlist[i], self.path_or_buf.read(self._col_size(i))
-                    )
-            return data
-        else:
-            return lmap(
-                    lambda i: self._unpack(typlist[i],
-                                           self.path_or_buf.read(
-                                               self._col_size(i)
-                                           )),
-                    range(self.nvar)
-            )
-
-
-    def _dataset(self):
-        """
-        Returns a Python generator object for iterating over the dataset.
-
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        Generator object for iterating over the dataset.  Yields each row of
-        observations as a list by default.
-
-        Notes
-        -----
-        If missing_values is True during instantiation of StataReader then
-        observations with _StataMissingValue(s) are not filtered and should
-        be handled by your applcation.
-        """
-
-        self.path_or_buf.seek(self.data_location)
-
-        for i in range(self.nobs):
-            yield self._next()
 
     def _read_value_labels(self):
         if self.format_version >= 117:
@@ -932,27 +1033,32 @@ class StataReader(StataParser):
         if self.format_version >= 117:
             self._read_strls()
 
-        stata_dta = self._dataset()
-
-        data = []
-        for rownum, line in enumerate(stata_dta):
-            # doesn't handle missing value objects, just casts
-            # None will only work without missing value object.
-            for i, val in enumerate(line):
-                #NOTE: This will only be scalar types because missing strings
-                # are empty not None in Stata
-                if val is None:
-                    line[i] = np.nan
-            data.append(tuple(line))
+        # Read data
+        count = self.nobs
+        dtype = []  # Convert struct data types to numpy data type
+        for i, typ in enumerate(self.typlist):
+            if typ in self.NUMPY_TYPE_MAP:
+                dtype.append(('s' + str(i), self.NUMPY_TYPE_MAP[typ]))
+            else:
+                dtype.append(('s' + str(i), 'S' + str(typ)))
+        dtype = np.dtype(dtype)
+        read_len = count * dtype.itemsize
+        self.path_or_buf.seek(self.data_location)
+        data = np.frombuffer(self.path_or_buf.read(read_len),dtype=dtype,count=count)
+        self._data_read = True
 
         if convert_categoricals:
             self._read_value_labels()
 
-        # TODO: Refactor to use a dictionary constructor and the correct dtype from the start?
         if len(data)==0:
             data = DataFrame(columns=self.varlist, index=index)
         else:
-            data = DataFrame(data, columns=self.varlist, index=index)
+            data = DataFrame.from_records(data, index=index)
+            data.columns = self.varlist
+
+        for col, typ in zip(data, self.typlist):
+            if type(typ) is int:
+                data[col] = data[col].apply(self._null_terminate, convert_dtype=True,)
 
         cols_ = np.where(self.dtyplist)[0]
 
@@ -1010,8 +1116,7 @@ class StataReader(StataParser):
                                  self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
-                data[col] = data[col].apply(_stata_elapsed_date_to_datetime,
-                                            args=(self.fmtlist[i],))
+                data[col] = _stata_elapsed_date_to_datetime_vec(data[col], self.fmtlist[i])
 
         if convert_categoricals:
             cols = np.where(

@@ -18,6 +18,7 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
     PossiblePrecisionLoss, StataMissingValue)
 import pandas.util.testing as tm
+from pandas.tslib import NaT
 from pandas.util.misc import is_little_endian
 from pandas import compat
 
@@ -76,6 +77,10 @@ class TestStata(tm.TestCase):
         self.dta17_113 = os.path.join(self.dirpath, 'stata8_113.dta')
         self.dta17_115 = os.path.join(self.dirpath, 'stata8_115.dta')
         self.dta17_117 = os.path.join(self.dirpath, 'stata8_117.dta')
+
+        self.dta18_115 = os.path.join(self.dirpath, 'stata9_115.dta')
+        self.dta18_117 = os.path.join(self.dirpath, 'stata9_117.dta')
+
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -639,6 +644,43 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(expected, parsed_113)
         tm.assert_frame_equal(expected, parsed_115)
         tm.assert_frame_equal(expected, parsed_117)
+
+    def test_big_dates(self):
+        yr = [1960, 2000, 9999, 100]
+        mo = [1, 1, 12, 1]
+        dd = [1, 1, 31, 1]
+        hr = [0, 0, 23, 0]
+        mm = [0, 0, 59, 0]
+        ss = [0, 0, 59, 0]
+        expected = []
+        for i in range(4):
+            row = []
+            for j in range(7):
+                if j == 0:
+                    row.append(
+                        datetime(yr[i], mo[i], dd[i], hr[i], mm[i], ss[i]))
+                elif j == 6:
+                    row.append(datetime(yr[i], 1, 1))
+                else:
+                    row.append(datetime(yr[i], mo[i], dd[i]))
+            expected.append(row)
+        expected.append([NaT] * 7)
+        columns = ['date_tc', 'date_td', 'date_tw', 'date_tm', 'date_tq',
+                   'date_th', 'date_ty']
+        # Fixes for weekly, quarterly,half,year
+        expected[2][2] = datetime(9999,12,24)
+        expected[2][3] = datetime(9999,12,1)
+        expected[2][4] = datetime(9999,10,1)
+        expected[2][5] = datetime(9999,7,1)
+
+        expected = DataFrame(expected, columns=columns, dtype=np.object)
+
+        parsed_115 = read_stata(self.dta18_115)
+        parsed_117 = read_stata(self.dta18_117)
+        tm.assert_frame_equal(expected, parsed_115)
+        tm.assert_frame_equal(expected, parsed_117)
+        assert True
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
