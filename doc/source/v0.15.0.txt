@@ -549,8 +549,7 @@ Bug Fixes
 - Bug in ``read_html`` where ``bytes`` objects were not tested for in
   ``_read`` (:issue:`7927`).
 
-
-
+- Bug in ``DataFrame.stack()`` when one of the column levels was a datelike (:issue: `8039`)
 
 
 
