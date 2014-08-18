@@ -735,16 +735,20 @@ class Options(object):
             raise RemoteDataError("Table location {0} invalid, {1} tables"
                              " found".format(table_loc, ntables))
 
-        option_data = _parse_options_data(tables[table_loc])
-        option_data['Type'] = name[:-1]
-        option_data = self._process_data(option_data, name[:-1])
+        try:
+            option_data = _parse_options_data(tables[table_loc])
+            option_data['Type'] = name[:-1]
+            option_data = self._process_data(option_data, name[:-1])
 
-        if month == CUR_MONTH and year == CUR_YEAR:
+            if month == CUR_MONTH and year == CUR_YEAR:
+                setattr(self, name, option_data)
+
+            name += m1 + str(year)[-2:]
             setattr(self, name, option_data)
+            return option_data
 
-        name += m1 + str(year)[-2:]
-        setattr(self, name, option_data)
-        return option_data
+        except (Exception) as e:
+            raise RemoteDataError("Cannot retrieve Table data {0}".format(str(e)))
 
     def get_call_data(self, month=None, year=None, expiry=None):
         """
