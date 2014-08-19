@@ -1079,7 +1079,7 @@ colors are selected based on an even spacing determined by the number of columns
 in the DataFrame. There is no consideration made for background color, so some
 colormaps will produce lines that are not easily visible.
 
-To use the cubhelix colormap, we can simply pass ``'cubehelix'`` to ``colormap=``
+To use the cubehelix colormap, we can simply pass ``'cubehelix'`` to ``colormap=``
 
 .. ipython:: python
    :suppress:
