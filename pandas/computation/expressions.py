@@ -17,7 +17,8 @@ try:
     _NUMEXPR_INSTALLED = ver >= LooseVersion('2.1')
     if not _NUMEXPR_INSTALLED:
         warnings.warn("The installed version of numexpr {ver} is not supported "
-                      "in pandas and will be not be used".format(ver=ver), UserWarning)
+                      "in pandas and will be not be used\nThe minimum supported "
+                      "version is 2.1\n".format(ver=ver), UserWarning)
 
 except ImportError:  # pragma: no cover
     _NUMEXPR_INSTALLED = False
