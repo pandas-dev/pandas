@@ -126,7 +126,7 @@ These include:
 * :ref:`'hist' <visualization.hist>` for histogram
 * :ref:`'kde' <visualization.kde>` or ``'density'`` for density plots
 * :ref:`'area' <visualization.area_plot>` for area plots
-* :ref:`'scatter' <visualization.scatter_matrix>` for scatter plots
+* :ref:`'scatter' <visualization.scatter>` for scatter plots
 * :ref:`'hexbin' <visualization.hexbin>` for hexagonal bin plots
 * :ref:`'pie' <visualization.pie>` for pie plots
 
@@ -426,6 +426,52 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 
    @savefig area_plot_unstacked.png
    df.plot(kind='area', stacked=False);
+
+.. _visualization.scatter:
+
+Scatter Plot
+~~~~~~~~~~~~
+
+.. versionadded:: 0.13
+
+You can create scatter plots with ``DataFrame.plot`` by passing ``kind='scatter'``.
+Scatter plot requires numeric columns for x and y axis.
+These can be specified by ``x`` and ``y`` keywords each.
+
+.. ipython:: python
+   :suppress:
+
+   np.random.seed(123456)
+   plt.figure()
+
+.. ipython:: python
+
+   df = DataFrame(rand(50, 4), columns=['a', 'b', 'c', 'd'])
+
+   @savefig scatter_plot.png
+   df.plot(kind='scatter', x='a', y='b');
+
+To plot multiple column groups in a single axes, repeat ``plot`` method specifying target ``ax``.
+It is recommended to specify ``color`` and ``label`` keywords to distinguish each groups.
+
+.. ipython:: python
+
+   ax = df.plot(kind='scatter', x='a', y='b',
+                color='DarkBlue', label='Group 1');
+   @savefig scatter_plot_repeated.png
+   df.plot(kind='scatter', x='c', y='d',
+           color='DarkGreen', label='Group 2', ax=ax);
+
+You can pass other keywords supported by matplotlib ``scatter``.
+Below example shows a bubble chart using a dataframe column values as bubble size.
+
+.. ipython:: python
+
+   @savefig scatter_plot_bubble.png
+   df.plot(kind='scatter', x='a', y='b', s=df['c']*200);
+
+See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
+`matplotlib scatter documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:
 
