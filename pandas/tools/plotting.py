@@ -246,7 +246,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     df = frame._get_numeric_data()
     n = df.columns.size
-    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize, ax=ax,
+    naxes = n * n
+    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax,
                           squeeze=False)
 
     # no gaps between subplots
@@ -752,6 +753,7 @@ class MPLPlot(object):
     data :
 
     """
+    _layout_type = 'vertical'
     _default_rot = 0
     orientation = None
 
@@ -767,7 +769,7 @@ class MPLPlot(object):
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
                  secondary_y=False, colormap=None,
-                 table=False, **kwds):
+                 table=False, layout=None, **kwds):
 
         self.data = data
         self.by = by
@@ -780,6 +782,7 @@ class MPLPlot(object):
         self.sharex = sharex
         self.sharey = sharey
         self.figsize = figsize
+        self.layout = layout
 
         self.xticks = xticks
         self.yticks = yticks
@@ -932,22 +935,22 @@ class MPLPlot(object):
 
     def _setup_subplots(self):
         if self.subplots:
-            nrows, ncols = self._get_layout()
-            fig, axes = _subplots(nrows=nrows, ncols=ncols,
+            fig, axes = _subplots(naxes=self.nseries,
                                   sharex=self.sharex, sharey=self.sharey,
-                                  figsize=self.figsize, ax=self.ax)
-            if not com.is_list_like(axes):
-                axes = np.array([axes])
+                                  figsize=self.figsize, ax=self.ax,
+                                  layout=self.layout,
+                                  layout_type=self._layout_type)
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
-                ax = fig.add_subplot(111)
+                axes = fig.add_subplot(111)
             else:
                 fig = self.ax.get_figure()
                 if self.figsize is not None:
                     fig.set_size_inches(self.figsize)
-                ax = self.ax
-            axes = [ax]
+                axes = self.ax
+
+        axes = _flatten(axes)
 
         if self.logx or self.loglog:
             [a.set_xscale('log') for a in axes]
@@ -957,12 +960,18 @@ class MPLPlot(object):
         self.fig = fig
         self.axes = axes
 
-    def _get_layout(self):
-        from pandas.core.frame import DataFrame
-        if isinstance(self.data, DataFrame):
-            return (len(self.data.columns), 1)
+    @property
+    def result(self):
+        """
+        Return result axes
+        """
+        if self.subplots:
+            if self.layout is not None and not com.is_list_like(self.ax):
+                return self.axes.reshape(*self.layout)
+            else:
+                return self.axes
         else:
-            return (1, 1)
+            return self.axes[0]
 
     def _compute_plot_data(self):
         numeric_data = self.data.convert_objects()._get_numeric_data()
@@ -1360,6 +1369,8 @@ class MPLPlot(object):
 
 
 class ScatterPlot(MPLPlot):
+    _layout_type = 'single'
+
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         self.kwds.setdefault('c', self.plt.rcParams['patch.facecolor'])
@@ -1372,8 +1383,9 @@ class ScatterPlot(MPLPlot):
         self.x = x
         self.y = y
 
-    def _get_layout(self):
-        return (1, 1)
+    @property
+    def nseries(self):
+        return 1
 
     def _make_plot(self):
         x, y, data = self.x, self.y, self.data
@@ -1404,6 +1416,8 @@ class ScatterPlot(MPLPlot):
 
 
 class HexBinPlot(MPLPlot):
+    _layout_type = 'single'
+
     def __init__(self, data, x, y, C=None, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
 
@@ -1421,8 +1435,9 @@ class HexBinPlot(MPLPlot):
         self.y = y
         self.C = C
 
-    def _get_layout(self):
-        return (1, 1)
+    @property
+    def nseries(self):
+        return 1
 
     def _make_plot(self):
         import matplotlib.pyplot as plt
@@ -1966,6 +1981,8 @@ class KdePlot(HistPlot):
 
 class PiePlot(MPLPlot):
 
+    _layout_type = 'horizontal'
+
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
@@ -1977,13 +1994,6 @@ class PiePlot(MPLPlot):
         self.logy = False
         self.logx = False
         self.loglog = False
-
-    def _get_layout(self):
-        from pandas import DataFrame
-        if isinstance(self.data, DataFrame):
-            return (1, len(self.data.columns))
-        else:
-            return (1, 1)
 
     def _validate_color_args(self):
         pass
@@ -2044,7 +2054,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                legend=True, rot=None, ax=None, style=None, title=None,
                xlim=None, ylim=None, logx=False, logy=False, xticks=None,
                yticks=None, kind='line', sort_columns=False, fontsize=None,
-               secondary_y=False, **kwds):
+               secondary_y=False, layout=None, **kwds):
 
     """
     Make line, bar, or scatter plots of DataFrame series with the index on the x-axis
@@ -2116,6 +2126,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
+    layout : tuple (optional)
+        (rows, columns) for the layout of the plot
     table : boolean, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
@@ -2153,7 +2165,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          xlim=xlim, ylim=ylim, title=title, grid=grid,
                          figsize=figsize, logx=logx, logy=logy,
                          sort_columns=sort_columns, secondary_y=secondary_y,
-                         **kwds)
+                         layout=layout, **kwds)
     elif kind in _series_kinds:
         if y is None and subplots is False:
             msg = "{0} requires either y column or 'subplots=True'"
@@ -2169,9 +2181,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          fontsize=fontsize, use_index=use_index, sharex=sharex,
                          sharey=sharey, xticks=xticks, yticks=yticks,
                          xlim=xlim, ylim=ylim, title=title, grid=grid,
-                         figsize=figsize,
-                         sort_columns=sort_columns,
-                         **kwds)
+                         figsize=figsize, layout=layout,
+                         sort_columns=sort_columns, **kwds)
     else:
         if x is not None:
             if com.is_integer(x) and not frame.columns.holds_integer():
@@ -2209,14 +2220,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                              xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                              title=title, grid=grid, figsize=figsize, logx=logx,
                              logy=logy, sort_columns=sort_columns,
-                             secondary_y=secondary_y, **kwds)
+                             secondary_y=secondary_y, layout=layout, **kwds)
 
     plot_obj.generate()
     plot_obj.draw()
-    if subplots:
-        return plot_obj.axes
-    else:
-        return plot_obj.axes[0]
+    return plot_obj.result
 
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
@@ -2311,7 +2319,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj.draw()
 
     # plot_obj.ax is None if we created the first figure
-    return plot_obj.axes[0]
+    return plot_obj.result
 
 
 _shared_docs['boxplot'] = """
@@ -2551,12 +2559,13 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     data = data._get_numeric_data()
     naxes = len(data.columns)
 
-    nrows, ncols = _get_layout(naxes, layout=layout)
-    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, ax=ax, squeeze=False,
-                          sharex=sharex, sharey=sharey, figsize=figsize)
+    fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False,
+                          sharex=sharex, sharey=sharey, figsize=figsize,
+                          layout=layout)
+    _axes = _flatten(axes)
 
     for i, col in enumerate(com._try_sort(data.columns)):
-        ax = axes[i // ncols, i % ncols]
+        ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
@@ -2672,7 +2681,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     xrot = xrot or rot
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
-                              by=by, sharex=sharex, sharey=sharey,
+                              by=by, sharex=sharex, sharey=sharey, ax=ax,
                               figsize=figsize, layout=layout, rot=rot)
 
     _set_ticks_props(axes, xlabelsize=xlabelsize, xrot=xrot,
@@ -2730,9 +2739,9 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     """
     if subplots is True:
         naxes = len(grouped)
-        nrows, ncols = _get_layout(naxes, layout=layout)
-        fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True, figsize=figsize)
+        fig, axes = _subplots(naxes=naxes, squeeze=False,
+                              ax=ax, sharex=False, sharey=True, figsize=figsize,
+                              layout=layout)
         axes = _flatten(axes)
 
         ret = compat.OrderedDict()
@@ -2773,14 +2782,14 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         grouped = grouped[column]
 
     naxes = len(grouped)
-    nrows, ncols = _get_layout(naxes, layout=layout)
-    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
-                          figsize=figsize, sharex=sharex, sharey=sharey, ax=ax)
+    fig, axes = _subplots(naxes=naxes, figsize=figsize,
+                          sharex=sharex, sharey=sharey, ax=ax,
+                          layout=layout)
 
-    ravel_axes = _flatten(axes)
+    _axes = _flatten(axes)
 
     for i, (key, group) in enumerate(grouped):
-        ax = ravel_axes[i]
+        ax = _axes[i]
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
@@ -2799,16 +2808,14 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
             by = [by]
         columns = data._get_numeric_data().columns - by
     naxes = len(columns)
-    nrows, ncols = _get_layout(naxes, layout=layout)
-    fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes,
-                          sharex=True, sharey=True,
-                          figsize=figsize, ax=ax)
+    fig, axes = _subplots(naxes=naxes, sharex=True, sharey=True,
+                          figsize=figsize, ax=ax, layout=layout)
 
-    ravel_axes = _flatten(axes)
+    _axes = _flatten(axes)
 
     result = compat.OrderedDict()
     for i, col in enumerate(columns):
-        ax = ravel_axes[i]
+        ax = _axes[i]
         gp_col = grouped[col]
         keys, values = zip(*gp_col)
         re_plotf = plotf(keys, values, ax, **kwargs)
@@ -2869,7 +2876,7 @@ def table(ax, data, rowLabels=None, colLabels=None,
     return table
 
 
-def _get_layout(nplots, layout=None):
+def _get_layout(nplots, layout=None, layout_type='box'):
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError('Layout must be a tuple of (rows, columns)')
@@ -2881,39 +2888,37 @@ def _get_layout(nplots, layout=None):
 
         return layout
 
-    if nplots == 1:
+    if layout_type == 'single':
         return (1, 1)
-    elif nplots == 2:
-        return (1, 2)
-    elif nplots < 4:
-        return (2, 2)
+    elif layout_type == 'horizontal':
+        return (1, nplots)
+    elif layout_type == 'vertical':
+        return (nplots, 1)
 
-    k = 1
-    while k ** 2 < nplots:
-        k += 1
+    layouts = {1: (1, 1), 2: (1, 2), 3: (2, 2), 4: (2, 2)}
+    try:
+        return layouts[nplots]
+    except KeyError:
+        k = 1
+        while k ** 2 < nplots:
+            k += 1
 
-    if (k - 1) * k >= nplots:
-        return k, (k - 1)
-    else:
-        return k, k
+        if (k - 1) * k >= nplots:
+            return k, (k - 1)
+        else:
+            return k, k
 
-# copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
+# copied from matplotlib/pyplot.py and modified for pandas.plotting
 
 
-def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, **fig_kw):
+def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
+              subplot_kw=None, ax=None, layout=None, layout_type='box', **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
     subplots, including the enclosing figure object, in a single call.
 
     Keyword arguments:
-
-    nrows : int
-      Number of rows of the subplot grid.  Defaults to 1.
-
-    ncols : int
-      Number of columns of the subplot grid.  Defaults to 1.
 
     naxes : int
       Number of required axes. Exceeded axes are set invisible. Default is nrows * ncols.
@@ -2942,10 +2947,16 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
 
     ax : Matplotlib axis object, optional
 
+    layout : tuple
+      Number of rows and columns of the subplot grid.
+      If not specified, calculated from naxes and layout_type
+
+    layout_type : {'box', 'horziontal', 'vertical'}, default 'box'
+      Specify how to layout the subplot grid.
+
     fig_kw : Other keyword arguments to be passed to the figure() call.
         Note that all keywords not recognized above will be
         automatically included here.
-
 
     Returns:
 
@@ -2975,23 +2986,27 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
     import matplotlib.pyplot as plt
-    from pandas.core.frame import DataFrame
 
     if subplot_kw is None:
         subplot_kw = {}
 
-    # Create empty object array to hold all axes.  It's easiest to make it 1-d
-    # so we can just append subplots upon creation, and then
-    nplots = nrows * ncols
-
-    if naxes is None:
-        naxes = nrows * ncols
-    elif nplots < naxes:
-        raise ValueError("naxes {0} is larger than layour size defined by nrows * ncols".format(naxes))
-
     if ax is None:
         fig = plt.figure(**fig_kw)
     else:
+        if com.is_list_like(ax):
+            ax = _flatten(ax)
+            if layout is not None:
+                warnings.warn("When passing multiple axes, layout keyword is ignored", UserWarning)
+            if sharex or sharey:
+                warnings.warn("When passing multiple axes, sharex and sharey are ignored."
+                              "These settings must be specified when creating axes", UserWarning)
+            if len(ax) == naxes:
+                fig = ax[0].get_figure()
+                return fig, ax
+            else:
+                raise ValueError("The number of passed axes must be {0}, the same as "
+                                 "the output plot".format(naxes))
+
         fig = ax.get_figure()
          # if ax is passed and a number of subplots is 1, return ax as it is
         if naxes == 1:
@@ -3004,6 +3019,11 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
                           "is being cleared", UserWarning)
             fig.clear()
 
+    nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
+    nplots = nrows * ncols
+
+    # Create empty object array to hold all axes.  It's easiest to make it 1-d
+    # so we can just append subplots upon creation, and then
     axarr = np.empty(nplots, dtype=object)
 
     # Create first subplot separately, so we can share it if requested
@@ -3074,10 +3094,10 @@ def _subplots(nrows=1, ncols=1, naxes=None, sharex=False, sharey=False, squeeze=
 
 def _flatten(axes):
     if not com.is_list_like(axes):
-        axes = [axes]
+        return np.array([axes])
     elif isinstance(axes, (np.ndarray, Index)):
-        axes = axes.ravel()
-    return axes
+        return axes.ravel()
+    return np.array(axes)
 
 
 def _get_all_lines(ax):

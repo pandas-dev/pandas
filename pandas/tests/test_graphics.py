@@ -670,7 +670,7 @@ class TestSeriesPlots(TestPlotBase):
         axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 2), figsize=(12, 7))
+        axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     @slow
@@ -1071,6 +1071,7 @@ class TestDataFramePlots(TestPlotBase):
         for kind in ['bar', 'barh', 'line', 'area']:
             axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
             self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+            self.assertEqual(axes.shape, (3, ))
 
             for ax, column in zip(axes, df.columns):
                 self._check_legend_labels(ax, labels=[com.pprint_thing(column)])
@@ -1132,6 +1133,77 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_visible(ax.xaxis.get_label())
                 self._check_visible(ax.get_yticklabels())
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45)
+
+    def test_subplots_layout(self):
+        # GH 6667
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+
+        axes = df.plot(subplots=True, layout=(2, 2))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        self.assertEqual(axes.shape, (2, 2))
+
+        axes = df.plot(subplots=True, layout=(1, 4))
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 4))
+        self.assertEqual(axes.shape, (1, 4))
+
+        with tm.assertRaises(ValueError):
+            axes = df.plot(subplots=True, layout=(1, 1))
+
+        # single column
+        df = DataFrame(np.random.rand(10, 1),
+                       index=list(string.ascii_letters[:10]))
+        axes = df.plot(subplots=True)
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        self.assertEqual(axes.shape, (1, ))
+
+        axes = df.plot(subplots=True, layout=(3, 3))
+        self._check_axes_shape(axes, axes_num=1, layout=(3, 3))
+        self.assertEqual(axes.shape, (3, 3))
+
+    @slow
+    def test_subplots_multiple_axes(self):
+        # GH 5353, 6970, GH 7069
+        fig, axes = self.plt.subplots(2, 3)
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+
+        returned = df.plot(subplots=True, ax=axes[0])
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assertEqual(returned.shape, (3, ))
+        self.assertIs(returned[0].figure, fig)
+        # draw on second row
+        returned = df.plot(subplots=True, ax=axes[1])
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assertEqual(returned.shape, (3, ))
+        self.assertIs(returned[0].figure, fig)
+        self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
+        tm.close()
+
+        with tm.assertRaises(ValueError):
+            fig, axes = self.plt.subplots(2, 3)
+            # pass different number of axes from required
+            df.plot(subplots=True, ax=axes)
+
+        # pass 2-dim axes and invalid layout
+        # invalid lauout should not affect to input and return value
+        # (show warning is tested in
+        # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
+        fig, axes = self.plt.subplots(2, 2)
+        df = DataFrame(np.random.rand(10, 4),
+                       index=list(string.ascii_letters[:10]))
+
+        returned = df.plot(subplots=True, ax=axes, layout=(2, 1))
+        self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
+        self.assertEqual(returned.shape, (4, ))
+
+        # single column
+        fig, axes = self.plt.subplots(1, 1)
+        df = DataFrame(np.random.rand(10, 1),
+                       index=list(string.ascii_letters[:10]))
+        axes = df.plot(subplots=True, ax=[axes])
+        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        self.assertEqual(axes.shape, (1, ))
 
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
@@ -2734,6 +2806,41 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 4))
 
     @slow
+    def test_grouped_box_multiple_axes(self):
+        # GH 6970, GH 7069
+        df = self.hist_df
+
+        # check warning to ignore sharex / sharey
+        # this check should be done in the first function which
+        # passes multiple axes to plot, hist or boxplot
+        # location should be changed if other test is added
+        # which has earlier alphabetical order
+        with tm.assert_produces_warning(UserWarning):
+            fig, axes = self.plt.subplots(2, 2)
+            df.groupby('category').boxplot(column='height', return_type='axes', ax=axes)
+            self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
+
+        fig, axes = self.plt.subplots(2, 3)
+        returned = df.boxplot(column=['height', 'weight', 'category'], by='gender',
+                              return_type='axes', ax=axes[0])
+        returned = np.array(returned.values())
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assert_numpy_array_equal(returned, axes[0])
+        self.assertIs(returned[0].figure, fig)
+        # draw on second row
+        returned = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'],
+                                                   return_type='axes', ax=axes[1])
+        returned = np.array(returned.values())
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assert_numpy_array_equal(returned, axes[1])
+        self.assertIs(returned[0].figure, fig)
+
+        with tm.assertRaises(ValueError):
+            fig, axes = self.plt.subplots(2, 3)
+            # pass different number of axes from required
+            axes = df.groupby('classroom').boxplot(ax=axes)
+
+    @slow
     def test_grouped_hist_layout(self):
 
         df = self.hist_df
@@ -2745,12 +2852,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(df.hist, column='height', by=df.gender, layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        axes = _check_plot_works(df.hist, column='height', by=df.category, layout=(4, 1))
+        axes = df.hist(column='height', by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = _check_plot_works(df.hist, column='height', by=df.category,
-                                 layout=(4, 2), figsize=(12, 8))
+        axes = df.hist(column='height', by=df.category, layout=(4, 2), figsize=(12, 8))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
+        tm.close()
 
         # GH 6769
         axes = _check_plot_works(df.hist, column='height', by='classroom', layout=(2, 2))
@@ -2760,12 +2867,31 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(df.hist, by='classroom')
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-        axes = _check_plot_works(df.hist, by='gender', layout=(3, 5))
+        axes = df.hist(by='gender', layout=(3, 5))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 5))
 
-        axes = _check_plot_works(df.hist, column=['height', 'weight', 'category'])
+        axes = df.hist(column=['height', 'weight', 'category'])
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
+    @slow
+    def test_grouped_hist_multiple_axes(self):
+        # GH 6970, GH 7069
+        df = self.hist_df
+
+        fig, axes = self.plt.subplots(2, 3)
+        returned = df.hist(column=['height', 'weight', 'category'], ax=axes[0])
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assert_numpy_array_equal(returned, axes[0])
+        self.assertIs(returned[0].figure, fig)
+        returned = df.hist(by='classroom', ax=axes[1])
+        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        self.assert_numpy_array_equal(returned, axes[1])
+        self.assertIs(returned[0].figure, fig)
+
+        with tm.assertRaises(ValueError):
+            fig, axes = self.plt.subplots(2, 3)
+            # pass different number of axes from required
+            axes = df.hist(column='height', ax=axes)
     @slow
     def test_axis_share_x(self):
         df = self.hist_df

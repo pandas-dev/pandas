@@ -992,10 +992,41 @@ with the ``subplots`` keyword:
    @savefig frame_plot_subplots.png
    df.plot(subplots=True, figsize=(6, 6));
 
-Targeting Different Subplots
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using Layout and Targetting Multiple Axes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can pass an ``ax`` argument to :meth:`Series.plot` to plot on a particular axis:
+The layout of subplots can be specified by ``layout`` keyword. It can accept
+``(rows, columns)``. The ``layout`` keyword can be used in
+``hist`` and ``boxplot`` also. If input is invalid, ``ValueError`` will be raised.
+
+The number of axes which can be contained by rows x columns specified by ``layout`` must be
+larger than the number of required subplots. If layout can contain more axes than required,
+blank axes are not drawn.
+
+.. ipython:: python
+
+   @savefig frame_plot_subplots_layout.png
+   df.plot(subplots=True, layout=(2, 3), figsize=(6, 6));
+
+Also, you can pass multiple axes created beforehand as list-like via ``ax`` keyword.
+This allows to use more complicated layout.
+The passed axes must be the same number as the subplots being drawn.
+
+When multiple axes are passed via ``ax`` keyword, ``layout``, ``sharex`` and ``sharey`` keywords are ignored.
+These must be configured when creating axes.
+
+.. ipython:: python
+
+   fig, axes = plt.subplots(4, 4, figsize=(6, 6));
+   plt.adjust_subplots(wspace=0.5, hspace=0.5);
+   target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
+   target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
+
+   df.plot(subplots=True, ax=target1, legend=False);
+   @savefig frame_plot_subplots_multi_ax.png
+   (-df).plot(subplots=True, ax=target2, legend=False);
+
+Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a particular axis:
 
 .. ipython:: python
    :suppress:
@@ -1010,12 +1041,12 @@ You can pass an ``ax`` argument to :meth:`Series.plot` to plot on a particular a
 .. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
-   df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A')
-   df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B')
-   df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C')
+   df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A');
+   df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B');
+   df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C');
 
    @savefig series_plot_multi.png
-   df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
+   df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D');
 
 .. ipython:: python
    :suppress:
