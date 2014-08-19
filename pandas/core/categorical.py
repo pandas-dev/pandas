@@ -447,7 +447,7 @@ class Categorical(PandasObject):
         The level removal is done inplace.
         """
         _used = sorted(np.unique(self._codes))
-        new_levels = self.levels.take(_used)
+        new_levels = self.levels.take(com._ensure_platform_int(_used))
         new_levels = _ensure_index(new_levels)
         self._codes = _get_codes_for_values(self.__array__(), new_levels)
         self._levels = new_levels
@@ -1068,16 +1068,16 @@ class Categorical(PandasObject):
         check = result.index == -1
         if check.any():
             # Sort -1 (=NaN) to the last position
-            index = np.arange(0, len(self.levels)+1)
+            index = np.arange(0, len(self.levels)+1, dtype='int64')
             index[-1] = -1
             result = result.reindex(index)
             # build new index
             levels = np.arange(0,len(self.levels)+1 ,dtype=object)
             levels[:-1] = self.levels
             levels[-1] = np.nan
-            result.index = levels.take(result.index)
+            result.index = levels.take(com._ensure_platform_int(result.index))
         else:
-            result.index = self.levels.take(result.index)
+            result.index = self.levels.take(com._ensure_platform_int(result.index))
             result = result.reindex(self.levels)
         result.index.name = 'levels'
 
