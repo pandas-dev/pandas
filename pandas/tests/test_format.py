@@ -2083,6 +2083,31 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_multiindex(self):
+        df = DataFrame({('x', 'y'): ['a']})
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  x \\
+{} &  y \\
+\midrule
+0 &  a \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
+        result = df.T.to_latex()
+        expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  0 \\
+\midrule
+x y &  a \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
     def test_to_latex_escape(self):
         a = 'a'
         b = 'b'

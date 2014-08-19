@@ -600,7 +600,7 @@ Bug Fixes
 
 - ``Holiday`` bug in Holiday with no offset or observance (:issue:`7987`)
 
-
+- Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
 
 
 
