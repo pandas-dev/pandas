@@ -104,9 +104,9 @@ API changes
   :func:`rolling_std`, :func:`rolling_var`, :func:`rolling_skew`, :func:`rolling_kurt`, and :func:`rolling_quantile`,
   :func:`rolling_cov`, :func:`rolling_corr`, :func:`rolling_corr_pairwise`,
   :func:`rolling_window`, and :func:`rolling_apply` with ``center=True`` previously would return a result of the same
-  structure as the input ``arg`` with ``NaN``s in the final ``(window-1)/2`` entries.
+  structure as the input ``arg`` with ``NaN`` in the final ``(window-1)/2`` entries.
   Now the final ``(window-1)/2`` entries of the result are calculated as if the input ``arg`` were followed
-  by ``(window-1)/2`` ``NaN``s. (:issue:`7925`)
+  by ``(window-1)/2`` ``NaN`` values. (:issue:`7925`)
 
   Prior behavior (note final value is ``NaN``):
 
@@ -556,8 +556,8 @@ Bug Fixes
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-
-
+- Bug in :func:`rolling_count` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
+- Bug in :func:`rolling_apply` and :func:`expanding_apply`` interpreting ``min_periods=0`` as ``min_periods=1 (:issue:`8080`)
 - Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
 
 
