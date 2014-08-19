@@ -72,6 +72,22 @@ class TestHoliday(tm.TestCase):
                        ]
         self.assertEqual(list(holidays), holidayList)
 
+    def test_non_observed_holiday(self):
+        july_3rd = Holiday('July 4th Eve', month=7,  day=3)
+        result = july_3rd.dates("2001-01-01", "2003-03-03")
+        expected = [Timestamp('2001-07-03 00:00:00'),
+                    Timestamp('2002-07-03 00:00:00')]
+        self.assertEqual(list(result), expected)
+        july_3rd = Holiday('July 4th Eve', month=7,  day=3, 
+                           days_of_week=(0, 1, 2, 3))
+        result = july_3rd.dates("2001-01-01", "2008-03-03")
+        expected = [Timestamp('2001-07-03 00:00:00'),
+                    Timestamp('2002-07-03 00:00:00'),
+                    Timestamp('2003-07-03 00:00:00'),
+                    Timestamp('2006-07-03 00:00:00'),
+                    Timestamp('2007-07-03 00:00:00')]
+        self.assertEqual(list(result), expected)
+
     def test_easter(self):
         holidays = EasterMonday.dates(self.start_date,
                                       self.end_date)

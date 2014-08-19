@@ -431,7 +431,7 @@ Enhancements
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
 - ``pandas.tseries.holiday.Holiday`` now supports a list of offsets in Python3 (:issue:`7070`)
-
+- ``pandas.tseries.holiday.Holiday`` now supports a days_of_week parameter (:issue:`7070`)
 
 
 
@@ -595,6 +595,7 @@ Bug Fixes
 
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 
+- ``Holiday`` bug in Holiday with no offset or observance (:issue:`7987`)
 
 
 
