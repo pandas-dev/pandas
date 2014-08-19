@@ -2685,7 +2685,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, **kwds):
+                          layout=None, sharex=False, sharey=False, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2703,6 +2703,8 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    sharex: boolean, default False
+    sharey: boolean, default False    
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
@@ -2732,7 +2734,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         naxes = len(grouped)
         nrows, ncols = _get_layout(naxes, layout=layout)
         fig, axes = _subplots(nrows=nrows, ncols=ncols, naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True, figsize=figsize)
+                              ax=ax, sharex=sharex, sharey=sharey, figsize=figsize)
         axes = _flatten(axes)
 
         ret = compat.OrderedDict()
