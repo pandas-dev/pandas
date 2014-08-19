@@ -394,7 +394,7 @@ Enhancements
 
 
 
-- Bug in ``DataFrame.shift`` where empty columns would throw ``ZeroDivisionError`` on numpy 1.7 (:issue:`8019`)
+
 
 
 
@@ -543,7 +543,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``DataFrame.shift`` where empty columns would throw ``ZeroDivisionError`` on numpy 1.7 (:issue:`8019`)
 
 
 
@@ -555,7 +555,7 @@ Bug Fixes
 - Bug in ``read_html`` where ``bytes`` objects were not tested for in
   ``_read`` (:issue:`7927`).
 
-- Bug in ``DataFrame.stack()`` when one of the column levels was a datelike (:issue: `8039`)
+- Bug in ``DataFrame.stack()`` when one of the column levels was a datelike (:issue:`8039`)
 
 
 
