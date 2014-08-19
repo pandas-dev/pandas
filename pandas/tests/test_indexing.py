@@ -2,8 +2,10 @@
 import nose
 import itertools
 import warnings
+from datetime import datetime
 
 from pandas.compat import range, lrange, lzip, StringIO, lmap, map
+from pandas.tslib import NaT
 from numpy import nan
 from numpy.random import randn
 import numpy as np
@@ -14,7 +16,8 @@ from pandas import option_context
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Float64Index, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal)
+                                 assert_frame_equal, assert_panel_equal,
+                                 assert_attr_equal)
 from pandas import concat
 
 import pandas.util.testing as tm
@@ -3815,6 +3818,139 @@ class TestIndexing(tm.TestCase):
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df,df2)
 
+
+class TestSeriesNoneCoercion(tm.TestCase):
+    EXPECTED_RESULTS = [
+        # For numeric series, we should coerce to NaN.
+        ([1, 2, 3], [np.nan, 2, 3]),
+        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
+        
+        # For datetime series, we should coerce to NaT.
+        ([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+         [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        
+        # For objects, we should preserve the None value.
+        (["foo", "bar", "baz"], [None, "bar", "baz"]),
+    ]
+
+    def test_coercion_with_setitem(self):
+        for start_data, expected_result in self.EXPECTED_RESULTS:
+            start_series = Series(start_data)
+            start_series[0] = None
+
+            expected_series = Series(expected_result)
+
+            assert_attr_equal('dtype', start_series, expected_series)
+            self.assert_numpy_array_equivalent(
+                start_series.values,
+                expected_series.values, strict_nan=True)
+    
+    def test_coercion_with_loc_setitem(self):
+        for start_data, expected_result in self.EXPECTED_RESULTS:
+            start_series = Series(start_data)
+            start_series.loc[0] = None
+
+            expected_series = Series(expected_result)
+
+            assert_attr_equal('dtype', start_series, expected_series)
+            self.assert_numpy_array_equivalent(
+                start_series.values,
+                expected_series.values, strict_nan=True)
+    
+    def test_coercion_with_setitem_and_series(self):
+        for start_data, expected_result in self.EXPECTED_RESULTS:
+            start_series = Series(start_data)
+            start_series[start_series == start_series[0]] = None
+
+            expected_series = Series(expected_result)
+
+            assert_attr_equal('dtype', start_series, expected_series)
+            self.assert_numpy_array_equivalent(
+                start_series.values,
+                expected_series.values, strict_nan=True)
+    
+    def test_coercion_with_loc_and_series(self):
+        for start_data, expected_result in self.EXPECTED_RESULTS:
+            start_series = Series(start_data)
+            start_series.loc[start_series == start_series[0]] = None
+
+            expected_series = Series(expected_result)
+
+            assert_attr_equal('dtype', start_series, expected_series)
+            self.assert_numpy_array_equivalent(
+                start_series.values,
+                expected_series.values, strict_nan=True)
+    
+
+class TestDataframeNoneCoercion(tm.TestCase):
+    EXPECTED_SINGLE_ROW_RESULTS = [
+        # For numeric series, we should coerce to NaN.
+        ([1, 2, 3], [np.nan, 2, 3]),
+        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
+        
+        # For datetime series, we should coerce to NaT.
+        ([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+         [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        
+        # For objects, we should preserve the None value.
+        (["foo", "bar", "baz"], [None, "bar", "baz"]),
+    ]
+
+    def test_coercion_with_loc(self):
+        for start_data, expected_result, in self.EXPECTED_SINGLE_ROW_RESULTS:
+            start_dataframe = DataFrame({'foo': start_data})
+            start_dataframe.loc[0, ['foo']] = None
+
+            expected_dataframe = DataFrame({'foo': expected_result})
+
+            assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
+            self.assert_numpy_array_equivalent(
+                start_dataframe['foo'].values,
+                expected_dataframe['foo'].values, strict_nan=True)
+
+    def test_coercion_with_setitem_and_dataframe(self):
+        for start_data, expected_result, in self.EXPECTED_SINGLE_ROW_RESULTS:
+            start_dataframe = DataFrame({'foo': start_data})
+            start_dataframe[start_dataframe['foo'] == start_dataframe['foo'][0]] = None
+
+            expected_dataframe = DataFrame({'foo': expected_result})
+
+            assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
+            self.assert_numpy_array_equivalent(
+                start_dataframe['foo'].values,
+                expected_dataframe['foo'].values, strict_nan=True)
+
+    def test_none_coercion_loc_and_dataframe(self):
+        for start_data, expected_result, in self.EXPECTED_SINGLE_ROW_RESULTS:
+            start_dataframe = DataFrame({'foo': start_data})
+            start_dataframe.loc[start_dataframe['foo'] == start_dataframe['foo'][0]] = None
+
+            expected_dataframe = DataFrame({'foo': expected_result})
+
+            assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
+            self.assert_numpy_array_equivalent(
+                start_dataframe['foo'].values,
+                expected_dataframe['foo'].values, strict_nan=True)
+
+    def test_none_coercion_mixed_dtypes(self):
+        start_dataframe = DataFrame({
+            'a': [1, 2, 3],
+            'b': [1.0, 2.0, 3.0],
+            'c': [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            'd': ['a', 'b', 'c']})
+        start_dataframe.iloc[0] = None
+
+        expected_dataframe = DataFrame({
+            'a': [np.nan, 2, 3],
+            'b': [np.nan, 2.0, 3.0],
+            'c': [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            'd': [None, 'b', 'c']})
+
+        for column in expected_dataframe.columns:
+            assert_attr_equal('dtype', start_dataframe[column], expected_dataframe[column])
+            self.assert_numpy_array_equivalent(
+                start_dataframe[column].values,
+                expected_dataframe[column].values, strict_nan=True)
 
 
 if __name__ == '__main__':

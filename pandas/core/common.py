@@ -374,7 +374,7 @@ def _is_null_datelike_scalar(other):
         return isnull(other)
     return False
 
-def array_equivalent(left, right):
+def array_equivalent(left, right, strict_nan=False):
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs in
     corresponding locations.  False otherwise. It is assumed that left and right
@@ -385,6 +385,8 @@ def array_equivalent(left, right):
     Parameters
     ----------
     left, right : ndarrays
+    strict_nan : bool, default False
+        If True, consider NaN and None to be different.
 
     Returns
     -------
@@ -400,11 +402,32 @@ def array_equivalent(left, right):
     """
     left, right = np.asarray(left), np.asarray(right)
     if left.shape != right.shape: return False
-    # NaNs occur only in object arrays, float or complex arrays.
+
+    # Object arrays can contain None, NaN and NaT.
     if issubclass(left.dtype.type, np.object_):
-        return ((left == right) | (pd.isnull(left) & pd.isnull(right))).all()
+
+        if not strict_nan:
+            # pd.isnull considers NaN and None to be equivalent.
+            return ((left == right) | (pd.isnull(left) & pd.isnull(right))).all()
+
+        for left_value, right_value in zip(left, right):
+            if left_value is tslib.NaT and right_value is not tslib.NaT:
+                return False
+
+            elif isinstance(left_value, float) and np.isnan(left_value):
+                if not isinstance(right_value, float) or not np.isnan(right_value):
+                    return False
+            else:
+                if left_value != right_value:
+                    return False
+
+        return True
+
+    # NaNs can occur in float and complex arrays.
     if issubclass(left.dtype.type, (np.floating, np.complexfloating)):
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+
+    # NaNs cannot occur otherwise.
     return np.array_equal(left, right)
 
 def _iterable_not_string(x):

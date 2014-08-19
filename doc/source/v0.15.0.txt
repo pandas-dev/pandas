@@ -270,6 +270,31 @@ API changes
      idx.duplicated()
      idx.drop_duplicates()
 
+- Assigning values to ``None`` now considers the dtype when choosing an 'empty' value (:issue:`7941`).
+
+  Previously, assigning to ``None`` in numeric containers changed the
+  dtype to object (or errored, depending on the call). It now uses
+  NaN:
+
+  .. ipython:: python
+
+     s = Series([1, 2, 3])
+     s.loc[0] = None
+     s
+
+  ``NaT`` is now used similarly for datetime containers.
+
+  For object containers, we now preserve None values (previously these
+  were converted to NaN values).
+
+  .. ipython:: python
+
+     s = Series(["a", "b", "c"])
+     s.loc[0] = None
+     s
+
+  To insert a NaN, you must explicitly use ``np.nan``. See the :ref:`docs <missing.inserting>`.
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
