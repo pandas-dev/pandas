@@ -498,7 +498,7 @@ Bug Fixes
 - Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
 - Bug in multi-index slicing with missing indexers (:issue:`7866`)
 - Regression in multi-index indexing with a non-scalar type object (:issue:`7914`)
-
+- Bug in Timestamp comparisons with ``==`` and dtype of int64 (:issue:`8058`)
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)
 
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
