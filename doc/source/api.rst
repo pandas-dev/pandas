@@ -521,24 +521,25 @@ Categorical
 .. currentmodule:: pandas.core.categorical
 
 If the Series is of dtype ``category``, ``Series.cat`` can be used to access the the underlying
-``Categorical``. This data type is similar to the otherwise underlying numpy array
-and has the following usable methods and properties (all available as
-``Series.cat.<method_or_property>``).
+``Categorical``. This accessor is similar to the ``Series.dt`` or ``Series.str``and has the
+following usable methods and properties (all available as ``Series.cat.<method_or_property>``).
 
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.levels
+   Categorical.ordered
+   Categorical.reorder_levels
+   Categorical.remove_unused_levels
+
+The following methods are considered API when using ``Categorical`` directly:
 
 .. autosummary::
    :toctree: generated/
 
    Categorical
    Categorical.from_codes
-   Categorical.levels
-   Categorical.ordered
-   Categorical.reorder_levels
-   Categorical.remove_unused_levels
-   Categorical.min
-   Categorical.max
-   Categorical.mode
-   Categorical.describe
+   Categorical.codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
 the Categorical back to a numpy array, so levels and order information is not preserved!
@@ -547,25 +548,6 @@ the Categorical back to a numpy array, so levels and order information is not pr
    :toctree: generated/
 
    Categorical.__array__
-
-To create compatibility with `pandas.Series` and `numpy` arrays, the following (non-API) methods
-are also introduced.
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.from_array
-   Categorical.get_values
-   Categorical.copy
-   Categorical.dtype
-   Categorical.ndim
-   Categorical.sort
-   Categorical.equals
-   Categorical.unique
-   Categorical.order
-   Categorical.argsort
-   Categorical.fillna
-
 
 Plotting
 ~~~~~~~~

@@ -906,7 +906,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # Categorical
         if com.is_categorical_dtype(self.dtype):
-            level_info = self.cat._repr_level_info()
+            level_info = self.values._repr_level_info()
             return u('%sLength: %d, dtype: %s\n%s') % (namestr,
                                                        len(self),
                                                        str(self.dtype.name),
@@ -2390,11 +2390,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     #------------------------------------------------------------------------------
     # Categorical methods
 
-    @property
+    @cache_readonly
     def cat(self):
+        from pandas.core.categorical import CategoricalProperties
         if not com.is_categorical_dtype(self.dtype):
             raise TypeError("Can only use .cat accessor with a 'category' dtype")
-        return self.values
+        return CategoricalProperties(self.values, self.index)
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
