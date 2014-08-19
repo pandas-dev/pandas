@@ -3407,6 +3407,35 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(other > val)
         self.assertTrue(other >= val)
 
+    def test_compare_invalid(self):
+
+        # GH 8058
+        val = Timestamp('20130101 12:01:02')
+        self.assertFalse(val == 'foo')
+        self.assertFalse(val == 10.0)
+        self.assertFalse(val == 1)
+        self.assertFalse(val == long(1))
+        self.assertFalse(val == [])
+        self.assertFalse(val == {'foo' : 1})
+        self.assertFalse(val == np.float64(1))
+        self.assertFalse(val == np.int64(1))
+
+        self.assertTrue(val != 'foo')
+        self.assertTrue(val != 10.0)
+        self.assertTrue(val != 1)
+        self.assertTrue(val != long(1))
+        self.assertTrue(val != [])
+        self.assertTrue(val != {'foo' : 1})
+        self.assertTrue(val != np.float64(1))
+        self.assertTrue(val != np.int64(1))
+
+        # ops testing
+        df = DataFrame(randn(5,2))
+        a = df[0]
+        b = Series(randn(5))
+        b.name = Timestamp('2000-01-01')
+        tm.assert_series_equal(a / b, 1 / (b / a))
+
     def test_cant_compare_tz_naive_w_aware(self):
         tm._skip_if_no_pytz()
         # #1404

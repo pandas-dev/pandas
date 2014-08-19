@@ -710,6 +710,12 @@ cdef class _Timestamp(datetime):
                     if isinstance(other, np.datetime64):
                         other = Timestamp(other)
                     else:
+                        if op == Py_EQ:
+                            return False
+                        elif op == Py_NE:
+                            return True
+
+                        # only allow ==, != ops
                         raise TypeError('Cannot compare type %r with type %r' %
                                         (type(self).__name__,
                                          type(other).__name__))
