@@ -435,6 +435,8 @@ Enhancements
 
 - Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)
+- Added support for ``c``, ``colormap`` and ``colorbar`` arguments for
+  ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
 
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)

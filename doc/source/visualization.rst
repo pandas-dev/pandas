@@ -521,6 +521,14 @@ It is recommended to specify ``color`` and ``label`` keywords to distinguish eac
    df.plot(kind='scatter', x='c', y='d',
            color='DarkGreen', label='Group 2', ax=ax);
 
+The keyword ``c`` may be given as the name of a column to provide colors for
+each point:
+
+.. ipython:: python
+
+   @savefig scatter_plot_colored.png
+   df.plot(kind='scatter', x='a', y='b', c='c', s=50);
+
 You can pass other keywords supported by matplotlib ``scatter``.
 Below example shows a bubble chart using a dataframe column values as bubble size.
 
