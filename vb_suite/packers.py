@@ -133,13 +133,13 @@ packers_read_stata = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
 packers_write_stata = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)
 
 setup = common_setup + """
-df['int8_'] = [randint(-127,100) for _ in range(N)]
-df['int16_'] = [randint(-127,100) for _ in range(N)]
-df['int32_'] = [randint(-127,100) for _ in range(N)]
+df['int8_'] = [randint(np.iinfo(np.int8).min, np.iinfo(np.int8).max - 27) for _ in range(N)]
+df['int16_'] = [randint(np.iinfo(np.int16).min, np.iinfo(np.int16).max - 27) for _ in range(N)]
+df['int32_'] = [randint(np.iinfo(np.int32).min, np.iinfo(np.int32).max - 27) for _ in range(N)]
 df['float32_'] = np.array(randn(N), dtype=np.float32)
 df.to_stata(f, {'index': 'tc'})
 """
 
-packers_read_stata_with_int = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
+packers_read_stata_with_validation = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
 
-packers_write_stata_with_int = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)
+packers_write_stata_with_validation = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)

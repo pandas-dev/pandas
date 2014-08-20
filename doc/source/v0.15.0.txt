@@ -481,7 +481,7 @@ Performance
 - Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
 - Performance improvements in ``Period`` creation (and ``PeriodIndex`` setitem) (:issue:`5155`)
 - Improvements in Series.transform for significant performance gains (revised) (:issue:`6496`)
-- Performance improvements in ``StataReader`` when reading large files (:issue:`8040`)
+- Performance improvements in ``StataReader`` when reading large files (:issue:`8040`, :issue:`8073`)
 
 
 
