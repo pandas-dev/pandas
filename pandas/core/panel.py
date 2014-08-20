@@ -39,6 +39,9 @@ _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
                                         "of\n        %s" %
                                         _shared_doc_kwargs['axes_single_arg'])
 
+# added to allow repetition of warnings
+warnings.simplefilter('always', RuntimeWarning)
+
 
 def _ensure_like_indices(time, panels):
     """

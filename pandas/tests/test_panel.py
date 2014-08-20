@@ -1561,14 +1561,14 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                index=['foo', 'bar'])
         df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
                index=['foo', 'bar'])
-        df2.loc['foo', 'B'] = np.nan
         dict_without_dropped_vals = {'df1': df1, 'df2': df2}
         ## A panel without dropped vals shouldn't throw warnings
         with tm.assert_produces_warning(False):
             Panel(dict_without_dropped_vals).to_frame()
         ## A panel with dropped vals should throw a Runtime warning if \
         # filter_observations is True
-        df2_with_na_vals = DataFrame(df2)
+        df2_with_na_vals = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+               index=['foo', 'bar'])
         df2_with_na_vals.loc['foo', 'B'] = np.nan
         dict_with_dropped_vals = {'df1': df1, 'df2_dropped': df2_with_na_vals}
         with tm.assert_produces_warning(RuntimeWarning):
