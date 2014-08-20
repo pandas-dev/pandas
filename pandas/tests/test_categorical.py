@@ -840,12 +840,23 @@ class TestCategoricalAsBlock(tm.TestCase):
         df["cats"] =  df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
-
         df = pd.DataFrame({"cats":['a', 'b', 'b', 'a', 'a', 'd'], "vals":[1,2,3,4,5,6]})
         cats = Categorical(['a', 'b', 'b', 'a', 'a', 'd'])
         exp_df = pd.DataFrame({"cats":cats, "vals":[1,2,3,4,5,6]})
         df["cats"] =  df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
+
+    def test_construction_series(self):
+
+        l = [1,2,3,1]
+        exp = Series(l).astype('category')
+        res = Series(l,dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        l = ["a","b","c","a"]
+        exp = Series(l).astype('category')
+        res = Series(l,dtype='category')
+        tm.assert_series_equal(res, exp)
 
     def test_sideeffects_free(self):
 

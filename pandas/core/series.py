@@ -19,7 +19,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
-                                ABCSparseArray, _maybe_match_name,
+                                ABCSparseArray, _maybe_match_name, _coerce_to_dtype,
                                 _ensure_object, SettingWithCopyError)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
@@ -2434,7 +2434,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     """ sanitize input data to an ndarray, copy if specified, coerce to the dtype if specified """
 
     if dtype is not None:
-        dtype = np.dtype(dtype)
+        dtype = _coerce_to_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
@@ -2455,9 +2455,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             arr = _possibly_cast_to_datetime(arr, dtype)
             subarr = pa.array(arr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
-            if dtype is not None and raise_cast_failure:
+            if com.is_categorical_dtype(dtype):
+                subarr = Categorical(arr)
+            elif dtype is not None and raise_cast_failure:
                 raise
-            else:  # pragma: no cover
+            else:
                 subarr = pa.array(arr, dtype=object, copy=copy)
         return subarr
 
