@@ -1,11 +1,11 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
+import warnings
 import operator
 import nose
 
 import numpy as np
-import warnings
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.panel import Panel
@@ -1557,34 +1557,25 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_to_frame_na_drop_warnings(self):
-        def create_a_panel_with_na_vals(filter_observations=True):
-            df1 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
-                   index=['foo', 'bar'])
-            df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
-                   index=['foo', 'bar'])
-            df2.loc['foo', 'B'] = np.nan
-            dict_with_dropped_vals = {'df1': df1, 'df2': df2}
-            Panel(dict_with_dropped_vals).\
-                to_frame(filter_observations=filter_observations)
-
-        def create_a_panel_without_na_vals(filter_observations=True):
-            df1 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
-                   index=['foo', 'bar'])
-            df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
-                   index=['foo', 'bar'])
-            dict_with_dropped_vals = {'df1': df1, 'df2': df2}
-            Panel(dict_with_dropped_vals).\
-                to_frame(filter_observations=filter_observations)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            create_a_panel_with_na_vals()
-            create_a_panel_with_na_vals(False)
-            create_a_panel_without_na_vals()
-            create_a_panel_without_na_vals(False)
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, RuntimeWarning))
-            self.assertEqual(str(w[0].message),
-                             "NaN values found, empty values will be dropped")
+        df1 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+               index=['foo', 'bar'])
+        df2 = DataFrame(np.random.randn(2, 3), columns=['A', 'B', 'C'],
+               index=['foo', 'bar'])
+        df2.loc['foo', 'B'] = np.nan
+        dict_without_dropped_vals = {'df1': df1, 'df2': df2}
+        ## A panel without dropped vals shouldn't throw warnings
+        with tm.assert_produces_warning(False):
+            Panel(dict_without_dropped_vals).to_frame()
+        ## A panel with dropped vals should throw a Runtime warning if \
+        # filter_observations is True
+        df2_with_na_vals = DataFrame(df2)
+        df2_with_na_vals.loc['foo', 'B'] = np.nan
+        dict_with_dropped_vals = {'df1': df1, 'df2_dropped': df2_with_na_vals}
+        with tm.assert_produces_warning(RuntimeWarning):
+            Panel(dict_with_dropped_vals).to_frame()
+        ##if filter_observations is False, a warning shouldn't be throws
+        with tm.assert_produces_warning(False):
+            Panel(dict_with_dropped_vals).to_frame(filter_observations=False)
 
     def test_to_panel_na_handling(self):
         df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
