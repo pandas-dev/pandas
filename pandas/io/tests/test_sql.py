@@ -1449,6 +1449,15 @@ class TestMySQLLegacy(TestSQLiteLegacy):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
+        for ix_name, ix_col in zip(ixs.Key_name, ixs.Column_name):
+            if ix_name not in ix_cols:
+                ix_cols[ix_name] = []
+            ix_cols[ix_name].append(ix_col)
+        return ix_cols.values()
+
+    def test_to_sql_save_index(self):
+        self._to_sql_save_index()
+
 
 #------------------------------------------------------------------------------
 #--- Old tests from 0.13.1 (before refactor using sqlalchemy)
@@ -1545,7 +1554,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY ([A],[B])' in create_sql)
         cur = self.db.cursor()
         cur.execute(create_sql)
 
@@ -1824,7 +1833,7 @@ class TestXMySQL(tm.TestCase):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY (`A`,`B`)' in create_sql)
         cur = self.db.cursor()
         cur.execute(drop_sql)
         cur.execute(create_sql)
