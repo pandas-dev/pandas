@@ -13,6 +13,8 @@ from pandas.core.index import Index, _ensure_index
 from pandas.core.indexing import _is_null_slice
 from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
+
+from pandas.core.common import isnull
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 from pandas.core import format as fmt
@@ -237,7 +239,7 @@ class Categorical(PandasObject):
                 # On list with NaNs, int values will be converted to float. Use "object" dtype
                 # to prevent this. In the end objects will be casted to int/... in the level
                 # assignment step.
-                dtype = 'object' if com.isnull(values).any() else None
+                dtype = 'object' if isnull(values).any() else None
                 values = _sanitize_array(values, None, dtype=dtype)
 
         if levels is None:
@@ -384,7 +386,7 @@ class Categorical(PandasObject):
                 levels = _convert_to_list_like(levels)
                 # on levels with NaNs, int values would be converted to float. Use "object" dtype
                 # to prevent this.
-                if com.isnull(levels).any():
+                if isnull(levels).any():
                     without_na = np.array([x for x in levels if com.notnull(x)])
                     with_na = np.array(levels)
                     if with_na.dtype != without_na.dtype:
@@ -513,9 +515,9 @@ class Categorical(PandasObject):
         # String/object and float levels can hold np.nan
         if self.levels.dtype.kind in ['S', 'O', 'f']:
             if np.nan in self.levels:
-                nan_pos = np.where(com.isnull(self.levels))
+                nan_pos = np.where(isnull(self.levels))[0]
                 # we only have one NA in levels
-                ret = np.logical_or(ret , self._codes == nan_pos[0])
+                ret = np.logical_or(ret , self._codes == nan_pos)
         return ret
 
     def notnull(self):
@@ -714,9 +716,9 @@ class Categorical(PandasObject):
         if self.levels.dtype.kind in ['S', 'O', 'f']:
             if np.nan in self.levels:
                 values = values.copy()
-                nan_pos = np.where(com.isnull(self.levels))
+                nan_pos = np.where(isnull(self.levels))[0]
                 # we only have one NA in levels
-                values[values == nan_pos[0]] = -1
+                values[values == nan_pos] = -1
 
 
         # pad / bfill
@@ -885,7 +887,7 @@ class Categorical(PandasObject):
         rvalue = value if com.is_list_like(value) else [value]
         to_add = Index(rvalue)-self.levels
         # no assignments of values not in levels, but it's always ok to set something to np.nan
-        if len(to_add) and not com.isnull(to_add).all():
+        if len(to_add) and not isnull(to_add).all():
             raise ValueError("cannot setitem on a Categorical with a new level,"
                              " set the levels first")
 
@@ -924,8 +926,8 @@ class Categorical(PandasObject):
         # is fixed.
         # float levels do currently return -1 for np.nan, even if np.nan is included in the index
         # "repair" this here
-        if com.isnull(rvalue).any() and com.isnull(self.levels).any():
-            nan_pos = np.where(com.isnull(self.levels))
+        if isnull(rvalue).any() and isnull(self.levels).any():
+            nan_pos = np.where(com.isnull(self.levels))[0]
             lindexer[lindexer == -1] = nan_pos
 
         self._codes[key] = lindexer
