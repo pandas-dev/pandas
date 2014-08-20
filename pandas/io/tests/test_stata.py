@@ -646,14 +646,14 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(expected, parsed_117)
 
     def test_big_dates(self):
-        yr = [1960, 2000, 9999, 100]
-        mo = [1, 1, 12, 1]
-        dd = [1, 1, 31, 1]
-        hr = [0, 0, 23, 0]
-        mm = [0, 0, 59, 0]
-        ss = [0, 0, 59, 0]
+        yr = [1960, 2000, 9999, 100, 2262, 1677]
+        mo = [1, 1, 12, 1, 4, 9]
+        dd = [1, 1, 31, 1, 22, 23]
+        hr = [0, 0, 23, 0, 0, 0]
+        mm = [0, 0, 59, 0, 0, 0]
+        ss = [0, 0, 59, 0, 0, 0]
         expected = []
-        for i in range(4):
+        for i in range(len(yr)):
             row = []
             for j in range(7):
                 if j == 0:
@@ -672,6 +672,11 @@ class TestStata(tm.TestCase):
         expected[2][3] = datetime(9999,12,1)
         expected[2][4] = datetime(9999,10,1)
         expected[2][5] = datetime(9999,7,1)
+        expected[4][2] = datetime(2262,4,16)
+        expected[4][3] = expected[4][4] = datetime(2262,4,1)
+        expected[4][5] = expected[4][6] = datetime(2262,1,1)
+        expected[5][2] = expected[5][3] = expected[5][4] = datetime(1677,10,1)
+        expected[5][5] = expected[5][6] = datetime(1678,1,1)
 
         expected = DataFrame(expected, columns=columns, dtype=np.object)
 
@@ -679,7 +684,17 @@ class TestStata(tm.TestCase):
         parsed_117 = read_stata(self.dta18_117)
         tm.assert_frame_equal(expected, parsed_115)
         tm.assert_frame_equal(expected, parsed_117)
-        assert True
+
+        date_conversion =  dict((c, c[-2:]) for c in columns)
+        #{c : c[-2:] for c in columns}
+        with tm.ensure_clean() as path:
+            expected.index.name = 'index'
+            expected.to_stata(path, date_conversion)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  expected)
+
+
 
 
 if __name__ == '__main__':
