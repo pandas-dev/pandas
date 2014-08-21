@@ -1143,7 +1143,7 @@ class Options(object):
         try:
             links = root.xpath('.//*[@id="yfncsumtab"]')[0].xpath('.//a')
         except IndexError:
-            return RemoteDataError('Expiry months not available')
+            raise RemoteDataError('Expiry months not available')
 
         month_gen = (element.attrib['href'].split('=')[-1]
                  for element in links
