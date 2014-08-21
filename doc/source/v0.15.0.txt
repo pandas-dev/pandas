@@ -482,6 +482,8 @@ Performance
 - Performance improvements in ``Period`` creation (and ``PeriodIndex`` setitem) (:issue:`5155`)
 - Improvements in Series.transform for significant performance gains (revised) (:issue:`6496`)
 - Performance improvements in ``StataReader`` when reading large files (:issue:`8040`, :issue:`8073`)
+- Performance improvements in ``StataWriter`` when writing large files (:issue:`8079`)
+
 
 
 
