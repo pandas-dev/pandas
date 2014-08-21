@@ -840,12 +840,57 @@ class TestCategoricalAsBlock(tm.TestCase):
         df["cats"] =  df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
-
         df = pd.DataFrame({"cats":['a', 'b', 'b', 'a', 'a', 'd'], "vals":[1,2,3,4,5,6]})
         cats = Categorical(['a', 'b', 'b', 'a', 'a', 'd'])
         exp_df = pd.DataFrame({"cats":cats, "vals":[1,2,3,4,5,6]})
         df["cats"] =  df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
+
+    def test_construction_series(self):
+
+        l = [1,2,3,1]
+        exp = Series(l).astype('category')
+        res = Series(l,dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        l = ["a","b","c","a"]
+        exp = Series(l).astype('category')
+        res = Series(l,dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        # insert into frame with different index
+        # GH 8076
+        index = pd.date_range('20000101', periods=3)
+        expected = Series(Categorical(values=[np.nan,np.nan,np.nan],levels=['a', 'b', 'c']))
+        expected.index = index
+
+        expected = DataFrame({'x': expected})
+        df = DataFrame({'x': Series(['a', 'b', 'c'],dtype='category')}, index=index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_reindex(self):
+
+        index = pd.date_range('20000101', periods=3)
+
+        # reindexing to an invalid Categorical
+        s = Series(['a', 'b', 'c'],dtype='category')
+        result = s.reindex(index)
+        expected = Series(Categorical(values=[np.nan,np.nan,np.nan],levels=['a', 'b', 'c']))
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
+        # partial reindexing
+        expected = Series(Categorical(values=['b','c'],levels=['a', 'b', 'c']))
+        expected.index = [1,2]
+        result = s.reindex([1,2])
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(Categorical(values=['c',np.nan],levels=['a', 'b', 'c']))
+        expected.index = [2,3]
+        result = s.reindex([2,3])
+        tm.assert_series_equal(result, expected)
+
+
 
     def test_sideeffects_free(self):
 

@@ -120,7 +120,7 @@ API changes
     3     9
     4   NaN
     dtype: float64
-  
+
   New behavior (note final value is ``7 = sum([3, 4, NaN])``):
 
   .. ipython:: python
@@ -346,7 +346,7 @@ Categoricals in Series/DataFrame
 
 :class:`~pandas.Categorical` can now be included in `Series` and `DataFrames` and gained new
 methods to manipulate. Thanks to Jan Schultz for much of this API/implementation. (:issue:`3943`, :issue:`5313`, :issue:`5314`,
-:issue:`7444`, :issue:`7839`, :issue:`7848`, :issue:`7864`, :issue:`7914`, :issue:`7768`, :issue:`8006`, :issue:`3678`).
+:issue:`7444`, :issue:`7839`, :issue:`7848`, :issue:`7864`, :issue:`7914`, :issue:`7768`, :issue:`8006`, :issue:`3678`, :issue:`8075`, :issue:`8076`).
 
 For full docs, see the :ref:`Categorical introduction <categorical>` and the
 :ref:`API documentation <api.categorical>`.

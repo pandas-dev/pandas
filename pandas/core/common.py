@@ -2326,19 +2326,31 @@ def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
 
+def _coerce_to_dtype(dtype):
+    """ coerce a string / np.dtype to a dtype """
+    if is_categorical_dtype(dtype):
+        dtype = CategoricalDtype()
+    else:
+        dtype = np.dtype(dtype)
+    return dtype
+
 def _get_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
-    if isinstance(arr_or_dtype, type):
+    elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype)
+    elif isinstance(arr_or_dtype, CategoricalDtype):
+        return CategoricalDtype()
     return arr_or_dtype.dtype
 
 
 def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
-    if isinstance(arr_or_dtype, type):
+    elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype).type
+    elif isinstance(arr_or_dtype, CategoricalDtype):
+        return CategoricalDtypeType
     return arr_or_dtype.dtype.type
 
 
@@ -2488,7 +2500,7 @@ def _astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
-        dtype = np.dtype(dtype)
+        dtype = _coerce_to_dtype(dtype)
 
     if is_datetime64_dtype(arr):
         if dtype == object:

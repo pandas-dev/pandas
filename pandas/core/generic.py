@@ -105,7 +105,7 @@ class NDFrame(PandasObject):
         """ validate the passed dtype """
 
         if dtype is not None:
-            dtype = np.dtype(dtype)
+            dtype = com._coerce_to_dtype(dtype)
 
             # a compound dtype
             if dtype.kind == 'V':
