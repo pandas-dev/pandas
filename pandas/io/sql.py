@@ -11,6 +11,7 @@ import itertools
 import re
 import numpy as np
 
+import pandas.lib as lib
 import pandas.core.common as com
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame, Series
@@ -684,13 +685,14 @@ class PandasSQLTable(PandasObject):
         if self.index is not None:
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
-                    self.frame.index.get_level_values(i).dtype)
+                    self.frame.index.get_level_values(i))
                 column_names_and_types.append((idx_label, idx_type))
 
-        column_names_and_types += zip(
-            list(map(str, self.frame.columns)),
-            map(dtype_mapper, self.frame.dtypes)
-            )
+        column_names_and_types += [
+            (str(self.frame.columns[i]),
+             dtype_mapper(self.frame.iloc[:,i]))
+            for i in range(len(self.frame.columns))
+            ]
         return column_names_and_types
 
     def _create_table_statement(self):
@@ -756,30 +758,33 @@ class PandasSQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, arr_or_dtype):
+    def _sqlalchemy_type(self, col):
         from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
-            DateTime, Date, Interval)
+            DateTime, Date, Time, Interval)
 
-        if arr_or_dtype is date:
-            return Date
-        if com.is_datetime64_dtype(arr_or_dtype):
+        if com.is_datetime64_dtype(col):
             try:
-                tz = arr_or_dtype.tzinfo
+                tz = col.tzinfo
                 return DateTime(timezone=True)
             except:
                 return DateTime
-        if com.is_timedelta64_dtype(arr_or_dtype):
+        if com.is_timedelta64_dtype(col):
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
                           "database.", UserWarning)
             return BigInteger
-        elif com.is_float_dtype(arr_or_dtype):
+        elif com.is_float_dtype(col):
             return Float
-        elif com.is_integer_dtype(arr_or_dtype):
+        elif com.is_integer_dtype(col):
             # TODO: Refine integer size.
             return BigInteger
-        elif com.is_bool_dtype(arr_or_dtype):
+        elif com.is_bool_dtype(col):
             return Boolean
+        inferred = lib.infer_dtype(com._ensure_object(col))
+        if inferred == 'date':
+            return Date
+        if inferred == 'time':
+            return Time
         return Text
 
     def _numpy_type(self, sqltype):
@@ -908,7 +913,11 @@ _SQL_TYPES = {
     },
     'date': {
         'mysql': 'DATE',
-        'sqlite': 'TIMESTAMP',
+        'sqlite': 'DATE',
+    },
+    'time': {
+        'mysql': 'TIME',
+        'sqlite': 'TIME',
     },
     'bool': {
         'mysql': 'BOOLEAN',
@@ -1014,8 +1023,8 @@ class PandasSQLTableLegacy(PandasSQLTable):
         create_statement = template % {'name': self.name, 'columns': columns}
         return create_statement
 
-    def _sql_type_name(self, dtype):
-        pytype = dtype.type
+    def _sql_type_name(self, col):
+        pytype = col.dtype.type
         pytype_name = "text"
         if issubclass(pytype, np.floating):
             pytype_name = "float"
@@ -1029,10 +1038,14 @@ class PandasSQLTableLegacy(PandasSQLTable):
         elif issubclass(pytype, np.datetime64) or pytype is datetime:
             # Caution: np.datetime64 is also a subclass of np.number.
             pytype_name = "datetime"
-        elif pytype is datetime.date:
-            pytype_name = "date"
         elif issubclass(pytype, np.bool_):
             pytype_name = "bool"
+        elif issubclass(pytype, np.object):
+            pytype = lib.infer_dtype(com._ensure_object(col))
+            if pytype == "date":
+                pytype_name = "date"
+            elif pytype == "time":
+                pytype_name = "time"
 
         return _SQL_TYPES[pytype_name][self.pd_sql.flavor]
 

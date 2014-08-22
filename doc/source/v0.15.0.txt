@@ -427,6 +427,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function.  This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`)
+- Added support for writing ``datetime.date`` and ``datetime.time`` object columns with ``to_sql`` (:issue:`6932`).
 
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 
