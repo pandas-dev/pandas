@@ -440,7 +440,7 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         # LongPanel with one item
-        lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
+        lp = self.panel.filter(['ItemA', 'ItemB']).to_frame(filter_observations=True)
         with tm.assertRaises(ValueError):
             self.panel['ItemE'] = lp
 
@@ -1436,12 +1436,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
     def test_to_frame(self):
         # filtered
-        filtered = self.panel.to_frame()
-        expected = self.panel.to_frame().dropna(how='any')
+        filtered = self.panel.to_frame(filter_observations=True)
+        expected = self.panel.to_frame(filter_observations=True).dropna(how='any')
         assert_frame_equal(filtered, expected)
 
         # unfiltered
-        unfiltered = self.panel.to_frame(filter_observations=False)
+        unfiltered = self.panel.to_frame()
         assert_panel_equal(unfiltered.to_panel(), self.panel)
 
         # names
@@ -1492,11 +1492,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         expected = DataFrame({'i1': [1, 'a', 1, 2, 'b', 1, 3, 'c', 1, 4, 'd', 1],
                               'i2': [1, 'a', 1, 2, 'b', 1, 3, 'c', 1, 4, 'd', 1]},
                              index=expected_idx)
-        result = wp.to_frame()
+        result = wp.to_frame(filter_observations=True)
         assert_frame_equal(result, expected)
 
         wp.iloc[0, 0].iloc[0] = np.nan  # BUG on setting. GH #5773
-        result = wp.to_frame()
+        result = wp.to_frame(filter_observations=True)
         assert_frame_equal(result, expected[1:])
 
         idx = MultiIndex.from_tuples([(1, 'two'), (1, 'one'), (2, 'one'),
@@ -1511,7 +1511,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                                          (np.nan, 'two', 'C')],
                                          names=[None, None, 'minor'])
         expected.index = ex_idx
-        result = wp.to_frame()
+        result = wp.to_frame(filter_observations=True)
         assert_frame_equal(result, expected)
 
     def test_to_frame_multi_major_minor(self):
@@ -1542,7 +1542,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                    ['c', 'c'], ['d', 'd'], ['y', 'y'], ['z', 'z'], [-1, -1],
                    [-2, -2], [-3, -3], [-4, -4], [-5, -5], [-6, -6], [-7, -7],
                    [-8, -8]]
-        result = wp.to_frame()
+        result = wp.to_frame(filter_observations=True)
         expected = DataFrame(exp_val, columns=['i1', 'i2'], index=exp_idx)
         assert_frame_equal(result, expected)
 
@@ -1550,7 +1550,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         idx = MultiIndex.from_tuples([(1, 'one'), (2, 'one'), (2, 'two')])
         df = DataFrame({'A': [np.nan, 1, 2]}, index=idx)
         wp = Panel({'i1': df, 'i2': df})
-        result = wp.to_frame()
+        result = wp.to_frame(filter_observations=True)
         exp_idx = MultiIndex.from_tuples([(2, 'one', 'A'), (2, 'two', 'A')],
                                          names=[None, None, 'minor'])
         expected = DataFrame({'i1': [1., 2], 'i2': [1., 2]}, index=exp_idx)
@@ -1571,11 +1571,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                index=['foo', 'bar'])
         df2_with_na_vals.loc['foo', 'B'] = np.nan
         dict_with_dropped_vals = {'df1': df1, 'df2_dropped': df2_with_na_vals}
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(False):
             Panel(dict_with_dropped_vals).to_frame()
         ##if filter_observations is False, a warning shouldn't be throws
-        with tm.assert_produces_warning(False):
-            Panel(dict_with_dropped_vals).to_frame(filter_observations=False)
+        with tm.assert_produces_warning(RuntimeWarning):
+            Panel(dict_with_dropped_vals).to_frame(filter_observations=True)
 
     def test_to_panel_na_handling(self):
         df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
@@ -2100,14 +2100,14 @@ class TestLongPanel(tm.TestCase):
         panel = tm.makePanel()
         tm.add_nans(panel)
 
-        self.panel = panel.to_frame()
-        self.unfiltered_panel = panel.to_frame(filter_observations=False)
+        self.panel = panel.to_frame(filter_observations=True)
+        self.unfiltered_panel = panel.to_frame()
 
     def test_ops_differently_indexed(self):
         # trying to set non-identically indexed panel
         wp = self.panel.to_panel()
         wp2 = wp.reindex(major=wp.major_axis[:-1])
-        lp2 = wp2.to_frame()
+        lp2 = wp2.to_frame(filter_observations=True)
 
         result = self.panel + lp2
         assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
@@ -2218,7 +2218,7 @@ class TestLongPanel(tm.TestCase):
 
         wp2 = wp.reindex(major=new_index)
 
-        lp2 = wp2.to_frame()
+        lp2 = wp2.to_frame(filter_observations=True)
         lp_trunc = lp2.truncate(wp.major_axis[2], wp.major_axis[-2])
 
         wp_trunc = wp2.truncate(wp.major_axis[2], wp.major_axis[-2])

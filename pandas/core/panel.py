@@ -839,7 +839,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def to_frame(self, filter_observations=True):
+    def to_frame(self, filter_observations=False):
         """
         Transform wide format into long (stacked) format as DataFrame whose
         columns are the Panel's items and whose index is a MultiIndex formed
