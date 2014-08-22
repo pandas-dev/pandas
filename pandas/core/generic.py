@@ -916,7 +916,7 @@ class NDFrame(PandasObject):
         return packers.to_msgpack(path_or_buf, self, **kwargs)
 
     def to_sql(self, name, con, flavor='sqlite', if_exists='fail', index=True,
-               index_label=None):
+               index_label=None, chunksize=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -942,12 +942,15 @@ class NDFrame(PandasObject):
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
+        chunksize : int, default None
+            If not None, then rows will be written in batches of this size at a 
+            time.  If None, all rows will be written at once.
 
         """
         from pandas.io import sql
         sql.to_sql(
             self, name, con, flavor=flavor, if_exists=if_exists, index=index,
-            index_label=index_label)
+            index_label=index_label, chunksize=chunksize)
 
     def to_pickle(self, path):
         """

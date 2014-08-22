@@ -3267,6 +3267,12 @@ the database using :func:`~pandas.DataFrame.to_sql`.
 
     data.to_sql('data', engine)
 
+With some databases, writing large DataFrames can result in errors due to packet size limitations being exceeded. This can be avoided by setting the ``chunksize`` parameter when calling ``to_sql``.  For example, the following writes ``data`` to the database in batches of 1000 rows at a time:
+
+.. ipython:: python
+
+    data.to_sql('data', engine, chunksize=1000)
+
 .. note::
 
     Due to the limited support for timedelta's in the different database

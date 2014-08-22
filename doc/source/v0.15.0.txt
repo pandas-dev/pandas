@@ -425,6 +425,9 @@ Known Issues
 
 Enhancements
 ~~~~~~~~~~~~
+
+- Added support for a ``chunksize`` parameter to ``to_sql`` function.  This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`)
+
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 
 - Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
