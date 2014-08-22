@@ -634,7 +634,8 @@ Bug Fixes
 
 
 
-
+- Bug in ``Float64Index`` where ``iat`` and ``at`` were not testing and were
+  failing (:issue:`8092`).
 
 
 
