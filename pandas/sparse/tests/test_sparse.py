@@ -1410,7 +1410,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
             dense_frame = frame.to_dense()
 
             wp = Panel.from_dict({'foo': frame})
-            from_dense_lp = wp.to_frame()
+            from_dense_lp = wp.to_frame(filter_observations=True)
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
@@ -1629,8 +1629,8 @@ class TestSparsePanel(tm.TestCase,
 
     def test_to_frame(self):
         def _compare_with_dense(panel):
-            slp = panel.to_frame()
-            dlp = panel.to_dense().to_frame()
+            slp = panel.to_frame(filter_observations=True)
+            dlp = panel.to_dense().to_frame(filter_observations=True)
 
             self.assert_numpy_array_equal(slp.values, dlp.values)
             self.assertTrue(slp.index.equals(dlp.index))
