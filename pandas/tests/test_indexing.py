@@ -3818,6 +3818,13 @@ class TestIndexing(tm.TestCase):
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df,df2)
 
+    def test_float_index_at_iat(self):
+        s = pd.Series([1, 2, 3], index=[0.1, 0.2, 0.3])
+        for el, item in s.iteritems():
+            self.assertEqual(s.at[el], item)
+        for i in range(len(s)):
+            self.assertEqual(s.iat[i], i + 1)
+
 
 class TestSeriesNoneCoercion(tm.TestCase):
     EXPECTED_RESULTS = [

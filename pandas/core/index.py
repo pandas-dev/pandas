@@ -2309,7 +2309,8 @@ class Float64Index(NumericIndex):
 
         k = _values_from_object(key)
         loc = self.get_loc(k)
-        new_values = series.values[loc]
+        new_values = _values_from_object(series)[loc]
+
         if np.isscalar(new_values) or new_values is None:
             return new_values
 
