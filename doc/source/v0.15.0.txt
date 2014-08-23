@@ -628,7 +628,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``pivot_table`` performed with nameless ``index`` and ``columns`` raises ``KeyError`` (:issue:`8103`)
 
 
 
