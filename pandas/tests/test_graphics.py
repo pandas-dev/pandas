@@ -2626,7 +2626,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_boxplot(self):
         grouped = self.hist_df.groupby(by='gender')
         axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(axes.values(), axes_num=2, layout=(1, 2))
+        self._check_axes_shape(list(axes.values()), axes_num=2, layout=(1, 2))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
@@ -2638,7 +2638,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         grouped = df.groupby(level=1)
         axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(axes.values(), axes_num=10, layout=(4, 3))
+        self._check_axes_shape(list(axes.values()), axes_num=10, layout=(4, 3))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
@@ -2646,7 +2646,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(axes.values(), axes_num=3, layout=(2, 2))
+        self._check_axes_shape(list(axes.values()), axes_num=3, layout=(2, 2))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
@@ -2823,14 +2823,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         fig, axes = self.plt.subplots(2, 3)
         returned = df.boxplot(column=['height', 'weight', 'category'], by='gender',
                               return_type='axes', ax=axes[0])
-        returned = np.array(returned.values())
+        returned = np.array(list(returned.values()))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
         # draw on second row
         returned = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'],
                                                    return_type='axes', ax=axes[1])
-        returned = np.array(returned.values())
+        returned = np.array(list(returned.values()))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
