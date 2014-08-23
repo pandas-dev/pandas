@@ -232,10 +232,16 @@ new column.
 .. warning::
 
    - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
-     see `here for an explanation of valid identifiers
+     See `here for an explanation of valid identifiers
      <http://docs.python.org/2.7/reference/lexical_analysis.html#identifiers>`__.
 
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
+
+   - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
+     ``major_axis``, ``minor_axis``, ``items``, ``labels``.
+
+   - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
+     access the corresponding element or column.
 
    - The ``Series/Panel`` accesses are available starting in 0.13.0.
 
