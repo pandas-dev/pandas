@@ -113,9 +113,8 @@ class TestCase(unittest.TestCase):
         similar to `assert_numpy_array_equal()`. If the expected array includes `np.nan` use this
         function.
         """
-        if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
-            return
-        raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
+        return assert_numpy_array_equivalent(np_array, assert_equal, strict_nan)
+
 
     def assertIs(self, first, second, msg=''):
         """Checks that 'first' is 'second'"""
@@ -595,6 +594,21 @@ def assert_numpy_array_equal(np_array, assert_equal):
     if np.array_equal(np_array, assert_equal):
         return
     raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
+
+
+def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False):
+    """Checks that 'np_array' is equivalent to 'assert_equal'
+
+    Two numpy arrays are equivalent if the arrays have equal non-NaN elements, and
+    `np.nan` in corresponding locations.
+
+    If the the expected array does not contain `np.nan` `assert_numpy_array_equivalent` is the
+    similar to `assert_numpy_array_equal()`. If the expected array includes `np.nan` use this
+    function.
+    """
+    if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
+        return True
+    raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
 
 
 # This could be refactored to use the NDFrame.equals method
