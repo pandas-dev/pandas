@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 # we only need to be able to run this file on 2.7
 # don't introduce a pandas/pandas.compat import
 # or we get a bootstrapping problem

@@ -15,7 +15,7 @@ The SQL tests are broken down in different classes:
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, division
 import unittest
 import sqlite3
 import csv
@@ -456,12 +456,12 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(result, self.test_frame1)
 
     def test_roundtrip_chunksize(self):
-        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn, 
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn,
             index=False, flavor='sqlite', chunksize=2)
         result = sql.read_sql_query(
             'SELECT * FROM test_frame_roundtrip',
             con=self.conn)
-        tm.assert_frame_equal(result, self.test_frame1)        
+        tm.assert_frame_equal(result, self.test_frame1)
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
@@ -590,13 +590,13 @@ class _TestSQLApi(PandasSQLTest):
                           index_label='C')
 
     def test_multiindex_roundtrip(self):
-        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')],
                                     columns=['A','B','C'], index=['A','B'])
 
         df.to_sql('test_multiindex_roundtrip', self.conn)
-        result = sql.read_sql_query('SELECT * FROM test_multiindex_roundtrip', 
+        result = sql.read_sql_query('SELECT * FROM test_multiindex_roundtrip',
                                     self.conn, index_col=['A','B'])
-        tm.assert_frame_equal(df, result, check_index_type=True)        
+        tm.assert_frame_equal(df, result, check_index_type=True)
 
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])

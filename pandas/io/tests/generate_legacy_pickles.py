@@ -1,5 +1,5 @@
 """ self-contained to write legacy pickle files """
-from __future__ import print_function
+from __future__ import print_function, division
 
 
 def _create_sp_series():

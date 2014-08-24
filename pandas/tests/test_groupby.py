@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import nose
 
 from numpy.testing.decorators import slow
