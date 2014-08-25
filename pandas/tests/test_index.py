@@ -740,7 +740,7 @@ class TestIndex(Base, tm.TestCase):
         # expected = Index([0.0, np.nan, 2.0, 3.0, np.nan])
 
         nans = pd.isnull(result)
-        self.assertEqual(nans.sum(), 2)
+        self.assertEqual(nans.sum(), 1)
         self.assertEqual((~nans).sum(), 3)
         [self.assertIn(x, result) for x in [0.0, 2.0, 3.0]]
 

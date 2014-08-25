@@ -5,7 +5,7 @@
 // kludge
 
 #define kh_float64_hash_func _Py_HashDouble
-#define kh_float64_hash_equal kh_int64_hash_equal
+#define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
 	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_float64_hash_equal)

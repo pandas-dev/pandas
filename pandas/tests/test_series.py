@@ -5846,6 +5846,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = self.ts.reindex()
         self.assertFalse((result is self.ts))
 
+    def test_reindex_nan(self):
+        ts = Series([2, 3, 5, 7], index=[1, 4, nan, 8])
+
+        i, j = [nan, 1, nan, 8, 4, nan], [2, 0, 2, 3, 1, 2]
+        assert_series_equal(ts.reindex(i), ts.iloc[j])
+
+        ts.index = ts.index.astype('object')
+        assert_series_equal(ts.reindex(i), ts.iloc[j])
+
     def test_reindex_corner(self):
         # (don't forget to fix this) I think it's fixed
         reindexed_dep = self.empty.reindex(self.ts.index, method='pad')
