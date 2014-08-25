@@ -251,6 +251,7 @@ Dependencies
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support
+  * `setuptools <https://pypi.python.org/pypi/setuptools>`__
 
 .. _install.recommended_dependencies:
 
