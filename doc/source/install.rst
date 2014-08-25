@@ -247,22 +247,22 @@ installed), make sure you have `nose
 Dependencies
 ------------
 
-  * `NumPy <http://www.numpy.org>`__: 1.7.0 or higher
-  * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
-  * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support
+* `NumPy <http://www.numpy.org>`__: 1.7.0 or higher
+* `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
+* `pytz <http://pytz.sourceforge.net/>`__
+   * Needed for time zone support
 
 .. _install.recommended_dependencies:
 
 Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
-    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-    If installed, must be Version 2.1 or higher.
+* `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
+  ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+  If installed, must be Version 2.1 or higher.
 
-  * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
-    evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+* `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
 
 .. note::
 
@@ -275,69 +275,69 @@ Recommended Dependencies
 Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-  * `Cython <http://www.cython.org>`__: Only necessary to build development
-    version. Version 0.17.1 or higher.
-  * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required.
-  * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
-  * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `statsmodels <http://statsmodels.sourceforge.net/>`__
-     * Needed for parts of :mod:`pandas.stats`
-  * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
-     * openpyxl version 1.6.1 or higher, but lower than 2.0.0
-     * Needed for Excel I/O
-  * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
-     * Alternative Excel writer.
-  * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
-    access.
-  * One of `PyQt4
-    <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
-    <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
-    <http://www.pygtk.org/>`__, `xsel
-    <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-    <http://sourceforge.net/projects/xclip/>`__: necessary to use
-    :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux
-    distributions will have xclip and/or xsel immediately available for
-    installation.
-  * Google's `python-gflags` and `google-api-python-client`
-    * Needed for :mod:`~pandas.io.gbq`
-  * `httplib2`
-    * Needed for :mod:`~pandas.io.gbq`
-  * One of the following combinations of libraries is needed to use the
-    top-level :func:`~pandas.io.html.read_html` function:
+* `Cython <http://www.cython.org>`__: Only necessary to build development
+  version. Version 0.17.1 or higher.
+* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required.
+* `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
+* `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
+* `statsmodels <http://statsmodels.sourceforge.net/>`__
+   * Needed for parts of :mod:`pandas.stats`
+* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+   * openpyxl version 1.6.1 or higher, but lower than 2.0.0
+   * Needed for Excel I/O
+* `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
+   * Alternative Excel writer.
+* `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
+  access.
+* One of `PyQt4
+  <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
+  <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
+  <http://www.pygtk.org/>`__, `xsel
+  <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
+  <http://sourceforge.net/projects/xclip/>`__: necessary to use
+  :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux
+  distributions will have xclip and/or xsel immediately available for
+  installation.
+* Google's `python-gflags` and `google-api-python-client`
+   * Needed for :mod:`~pandas.io.gbq`
+* `httplib2`
+   * Needed for :mod:`~pandas.io.gbq`
+* One of the following combinations of libraries is needed to use the
+  top-level :func:`~pandas.io.html.read_html` function:
 
-    * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
-      okay.)
-    * `BeautifulSoup4`_ and `lxml`_
-    * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-    * Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
-      for reasons as to why you should probably **not** take this approach.
+  * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
+    okay.)
+  * `BeautifulSoup4`_ and `lxml`_
+  * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
+  * Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
+    for reasons as to why you should probably **not** take this approach.
 
-    .. warning::
+  .. warning::
 
-       * if you install `BeautifulSoup4`_ you must install either
-         `lxml`_ or `html5lib`_ or both.
-         :func:`~pandas.io.html.read_html` will **not** work with *only*
-         `BeautifulSoup4`_ installed.
-       * You are highly encouraged to read :ref:`HTML reading gotchas
-         <html-gotchas>`. It explains issues surrounding the installation and
-         usage of the above three libraries
-       * You may need to install an older version of `BeautifulSoup4`_:
-           - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
-             32-bit Ubuntu/Debian
-       * Additionally, if you're using `Anaconda`_ you should definitely
-         read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
+     * if you install `BeautifulSoup4`_ you must install either
+       `lxml`_ or `html5lib`_ or both.
+       :func:`~pandas.io.html.read_html` will **not** work with *only*
+       `BeautifulSoup4`_ installed.
+     * You are highly encouraged to read :ref:`HTML reading gotchas
+       <html-gotchas>`. It explains issues surrounding the installation and
+       usage of the above three libraries
+     * You may need to install an older version of `BeautifulSoup4`_:
+        - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
+          32-bit Ubuntu/Debian
+     * Additionally, if you're using `Anaconda`_ you should definitely
+       read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 
-    .. note::
+  .. note::
 
-       * if you're on a system with ``apt-get`` you can do
+     * if you're on a system with ``apt-get`` you can do
 
-         .. code-block:: sh
+       .. code-block:: sh
 
-            sudo apt-get build-dep python-lxml
+          sudo apt-get build-dep python-lxml
 
-         to get the necessary dependencies for installation of `lxml`_. This
-         will prevent further headaches down the line.
+       to get the necessary dependencies for installation of `lxml`_. This
+       will prevent further headaches down the line.
 
 
 .. _html5lib: https://github.com/html5lib/html5lib-python
