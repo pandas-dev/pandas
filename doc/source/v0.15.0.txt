@@ -216,6 +216,7 @@ API changes
   as the ``left`` argument.  (:issue:`7737`)
 
 - Histogram from ``DataFrame.plot`` with ``kind='hist'`` (:issue:`7809`), See :ref:`the docs<visualization.hist>`.
+- Boxplot from ``DataFrame.plot`` with ``kind='box'`` (:issue:`7998`), See :ref:`the docs<visualization.box>`.
 - Consistency when indexing with ``.loc`` and a list-like indexer when no values are found.
 
   .. ipython:: python

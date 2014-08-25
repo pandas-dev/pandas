@@ -365,7 +365,8 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(xerr, xerr_count)
             self.assertEqual(yerr, yerr_count)
 
-    def _check_box_return_type(self, returned, return_type, expected_keys=None):
+    def _check_box_return_type(self, returned, return_type, expected_keys=None,
+                               check_ax_title=True):
         """
         Check box returned type is correct
 
@@ -377,6 +378,10 @@ class TestPlotBase(tm.TestCase):
         expected_keys : list-like, optional
             group labels in subplot case. If not passed,
             the function checks assuming boxplot uses single ax
+        check_ax_title : bool
+            Whether to check the ax.title is the same as expected_key
+            Intended to be checked by calling from ``boxplot``.
+            Normal ``plot`` doesn't attach ``ax.title``, it must be disabled.
         """
         from matplotlib.axes import Axes
         types = {'dict': dict, 'axes': Axes, 'both': tuple}
@@ -402,14 +407,17 @@ class TestPlotBase(tm.TestCase):
                 self.assertTrue(isinstance(value, types[return_type]))
                 # check returned dict has correct mapping
                 if return_type == 'axes':
-                    self.assertEqual(value.get_title(), key)
+                    if check_ax_title:
+                        self.assertEqual(value.get_title(), key)
                 elif return_type == 'both':
-                    self.assertEqual(value.ax.get_title(), key)
+                    if check_ax_title:
+                        self.assertEqual(value.ax.get_title(), key)
                     self.assertIsInstance(value.ax, Axes)
                     self.assertIsInstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
-                    self.assertEqual(line.get_axes().get_title(), key)
+                    if check_ax_title:
+                        self.assertEqual(line.get_axes().get_title(), key)
                 else:
                     raise AssertionError
 
@@ -452,7 +460,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.plot, kind='area', stacked=False)
         _check_plot_works(self.iseries.plot)
 
-        for kind in ['line', 'bar', 'barh', 'kde', 'hist']:
+        for kind in ['line', 'bar', 'barh', 'kde', 'hist', 'box']:
             if not _ok_for_gaussian_kde(kind):
                 continue
             _check_plot_works(self.series[:5].plot, kind=kind)
@@ -766,6 +774,15 @@ class TestSeriesPlots(TestPlotBase):
         lines = ax.get_lines()
         self.assertEqual(len(lines), 1)
         self._check_colors(lines, ['r'])
+
+    @slow
+    def test_boxplot_series(self):
+        ax = self.ts.plot(kind='box', logy=True)
+        self._check_ax_scales(ax, yaxis='log')
+        xlabels = ax.get_xticklabels()
+        self._check_text_labels(xlabels, [self.ts.name])
+        ylabels = ax.get_yticklabels()
+        self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @slow
     def test_autocorrelation_plot(self):
@@ -1650,6 +1667,99 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot(self):
+        df = self.hist_df
+        series = df['height']
+        numeric_cols = df._get_numeric_data().columns
+        labels = [com.pprint_thing(c) for c in numeric_cols]
+
+        ax = _check_plot_works(df.plot, kind='box')
+        self._check_text_labels(ax.get_xticklabels(), labels)
+        assert_array_equal(ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1))
+        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+
+        axes = _check_plot_works(df.plot, kind='box', subplots=True, logy=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        self._check_ax_scales(axes, yaxis='log')
+        for ax, label in zip(axes, labels):
+            self._check_text_labels(ax.get_xticklabels(), [label])
+            self.assertEqual(len(ax.lines), 8)
+
+        axes = series.plot(kind='box', rot=40)
+        self._check_ticks_props(axes, xrot=40, yrot=0)
+        tm.close()
+
+        ax = _check_plot_works(series.plot, kind='box')
+
+        positions = np.array([1, 6, 7])
+        ax = df.plot(kind='box', positions=positions)
+        numeric_cols = df._get_numeric_data().columns
+        labels = [com.pprint_thing(c) for c in numeric_cols]
+        self._check_text_labels(ax.get_xticklabels(), labels)
+        assert_array_equal(ax.xaxis.get_ticklocs(), positions)
+        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+
+    @slow
+    def test_boxplot_vertical(self):
+        df = self.hist_df
+        series = df['height']
+        numeric_cols = df._get_numeric_data().columns
+        labels = [com.pprint_thing(c) for c in numeric_cols]
+
+        # if horizontal, yticklabels are rotated
+        ax = df.plot(kind='box', rot=50, fontsize=8, vert=False)
+        self._check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
+        self._check_text_labels(ax.get_yticklabels(), labels)
+        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+
+        axes = _check_plot_works(df.plot, kind='box', subplots=True,
+                                 vert=False, logx=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        self._check_ax_scales(axes, xaxis='log')
+        for ax, label in zip(axes, labels):
+            self._check_text_labels(ax.get_yticklabels(), [label])
+            self.assertEqual(len(ax.lines), 8)
+
+        positions = np.array([3, 2, 8])
+        ax = df.plot(kind='box', positions=positions, vert=False)
+        self._check_text_labels(ax.get_yticklabels(), labels)
+        assert_array_equal(ax.yaxis.get_ticklocs(), positions)
+        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+
+    @slow
+    def test_boxplot_return_type(self):
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['one', 'two', 'three', 'four'])
+        with tm.assertRaises(ValueError):
+            df.plot(kind='box', return_type='NOTATYPE')
+
+        result = df.plot(kind='box', return_type='dict')
+        self._check_box_return_type(result, 'dict')
+
+        result = df.plot(kind='box', return_type='axes')
+        self._check_box_return_type(result, 'axes')
+
+        result = df.plot(kind='box', return_type='both')
+        self._check_box_return_type(result, 'both')
+
+    @slow
+    def test_boxplot_subplots_return_type(self):
+        df = self.hist_df
+
+        # normal style: return_type=None
+        result = df.plot(kind='box', subplots=True)
+        self.assertIsInstance(result, np.ndarray)
+        self._check_box_return_type(result, None,
+                                    expected_keys=['height', 'weight', 'category'])
+
+        for t in ['dict', 'axes', 'both']:
+            returned = df.plot(kind='box', return_type=t, subplots=True)
+            self._check_box_return_type(returned, t,
+                                        expected_keys=['height', 'weight', 'category'],
+                                        check_ax_title=False)
+
+    @slow
+    def test_boxplot_legacy(self):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
@@ -1693,7 +1803,7 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(len(ax.get_lines()), len(lines))
 
     @slow
-    def test_boxplot_return_type(self):
+    def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pydata/pandas/pull/7096
         import matplotlib as mpl
 
@@ -2314,6 +2424,61 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind='kde', colormap=cm.jet)
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
         self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+
+    @slow
+    def test_boxplot_colors(self):
+
+        def _check_colors(bp, box_c, whiskers_c, medians_c, caps_c='k', fliers_c='b'):
+            self._check_colors(bp['boxes'], linecolors=[box_c] * len(bp['boxes']))
+            self._check_colors(bp['whiskers'], linecolors=[whiskers_c] * len(bp['whiskers']))
+            self._check_colors(bp['medians'], linecolors=[medians_c] * len(bp['medians']))
+            self._check_colors(bp['fliers'], linecolors=[fliers_c] * len(bp['fliers']))
+            self._check_colors(bp['caps'], linecolors=[caps_c] * len(bp['caps']))
+
+        default_colors = self.plt.rcParams.get('axes.color_cycle')
+
+        df = DataFrame(randn(5, 5))
+        bp = df.plot(kind='box', return_type='dict')
+        _check_colors(bp, default_colors[0], default_colors[0], default_colors[2])
+        tm.close()
+
+        dict_colors = dict(boxes='#572923', whiskers='#982042',
+                           medians='#804823', caps='#123456')
+        bp = df.plot(kind='box', color=dict_colors, sym='r+', return_type='dict')
+        _check_colors(bp, dict_colors['boxes'], dict_colors['whiskers'],
+                      dict_colors['medians'], dict_colors['caps'], 'r')
+        tm.close()
+
+        # partial colors
+        dict_colors = dict(whiskers='c', medians='m')
+        bp = df.plot(kind='box', color=dict_colors, return_type='dict')
+        _check_colors(bp, default_colors[0], 'c', 'm')
+        tm.close()
+
+        from matplotlib import cm
+        # Test str -> colormap functionality
+        bp = df.plot(kind='box', colormap='jet', return_type='dict')
+        jet_colors = lmap(cm.jet, np.linspace(0, 1, 3))
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        tm.close()
+
+        # Test colormap functionality
+        bp = df.plot(kind='box', colormap=cm.jet, return_type='dict')
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        tm.close()
+
+        # string color is applied to all artists except fliers
+        bp = df.plot(kind='box', color='DodgerBlue', return_type='dict')
+        _check_colors(bp, 'DodgerBlue', 'DodgerBlue', 'DodgerBlue',
+                      'DodgerBlue')
+
+        # tuple is also applied to all artists except fliers
+        bp = df.plot(kind='box', color=(0, 1, 0), sym='#123456', return_type='dict')
+        _check_colors(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), '#123456')
+
+        with tm.assertRaises(ValueError):
+            # Color contains invalid key results in ValueError
+            df.plot(kind='box', color=dict(boxes='red', xxxx='blue'))
 
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
