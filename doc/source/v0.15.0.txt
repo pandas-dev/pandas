@@ -640,6 +640,7 @@ Bug Fixes
 
 
 
-
+- Bug in accessing groups from a ``GroupBy`` when the original grouper
+  was a tuple (:issue:`8121`).
 
 

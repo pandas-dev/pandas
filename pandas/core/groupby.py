@@ -431,9 +431,18 @@ class GroupBy(PandasObject):
         sample = next(iter(self.indices))
         if isinstance(sample, tuple):
             if not isinstance(name, tuple):
-                raise ValueError("must supply a tuple to get_group with multiple grouping keys")
+                msg = ("must supply a tuple to get_group with multiple"
+                       " grouping keys")
+                raise ValueError(msg)
             if not len(name) == len(sample):
-                raise ValueError("must supply a a same-length tuple to get_group with multiple grouping keys")
+                try:
+                    # If the original grouper was a tuple
+                    return self.indices[name]
+                except KeyError:
+                    # turns out it wasn't a tuple
+                    msg = ("must supply a a same-length tuple to get_group"
+                           " with multiple grouping keys")
+                    raise ValueError(msg)
 
             name = tuple([ convert(n, k) for n, k in zip(name,sample) ])
 
