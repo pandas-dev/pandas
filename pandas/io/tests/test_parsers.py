@@ -2944,6 +2944,14 @@ A,B,C
                     [5., np.nan, 10.]]
         df = self.read_csv(StringIO(data), comment='#')
         tm.assert_almost_equal(df.values, expected)
+        # check with delim_whitespace=True
+        df = self.read_csv(StringIO(data.replace(',', ' ')), comment='#',
+                            delim_whitespace=True)
+        tm.assert_almost_equal(df.values, expected)
+        # check with custom line terminator
+        df = self.read_csv(StringIO(data.replace('\n', '*')), comment='#',
+                            lineterminator='*')
+        tm.assert_almost_equal(df.values, expected)
 
     def test_comment_skiprows(self):
         data = """# empty
