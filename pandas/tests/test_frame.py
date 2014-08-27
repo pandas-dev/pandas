@@ -4712,6 +4712,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'a': ['a', None, 'b']})
         assert_frame_equal(df + df, DataFrame({'a': ['aa', np.nan, 'bb']}))
 
+    def test_ops_np_scalar(self):
+        vals, xs = np.random.rand(5, 3), [nan, 7, -23, 2.718, -3.14, np.inf]
+        f = lambda x: DataFrame(x, index=list('ABCDE'),
+                columns=['jim', 'joe', 'jolie'])
+
+        df = f(vals)
+
+        for x in xs:
+            assert_frame_equal(df / np.array(x), f(vals / x))
+            assert_frame_equal(np.array(x) * df, f(vals * x))
+            assert_frame_equal(df + np.array(x), f(vals + x))
+            assert_frame_equal(np.array(x) - df, f(x - vals))
+
     def test_operators_boolean(self):
 
         # GH 5808
