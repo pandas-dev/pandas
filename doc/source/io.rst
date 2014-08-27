@@ -3271,7 +3271,7 @@ With some databases, writing large DataFrames can result in errors due to packet
 
 .. ipython:: python
 
-    data.to_sql('data', engine, chunksize=1000)
+    data.to_sql('data_chunked', engine, chunksize=1000)
 
 .. note::
 
