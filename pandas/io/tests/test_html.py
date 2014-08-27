@@ -421,10 +421,6 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         </table>'''
         data2 = data1 + '''<table>
             <tbody>
-                <tr>
-                    <td></td>
-                    <td></td>
-                </tr>
             </tbody>
         </table>'''
         res1 = self.read_html(StringIO(data1))
