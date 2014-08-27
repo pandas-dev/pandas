@@ -1831,6 +1831,34 @@ class TestDataFramePlots(TestPlotBase):
         self._check_box_return_type(result, 'both')
 
     @slow
+    def test_boxplot_axis_limits(self):
+
+        def _check_ax_limits(col, ax):
+            y_min, y_max = ax.get_ylim()
+            self.assertLessEqual(y_min, col.min())
+            self.assertGreaterEqual(y_max, col.max())
+
+        df = self.hist_df.copy()
+        df['age'] = np.random.randint(1, 20, df.shape[0])
+        # One full row
+        height_ax, weight_ax = df.boxplot(['height', 'weight'], by='category')
+        _check_ax_limits(df['height'], height_ax)
+        _check_ax_limits(df['weight'], weight_ax)
+        self.assertEqual(weight_ax._sharey, height_ax)
+
+        # Two rows, one partial
+        p = df.boxplot(['height', 'weight', 'age'], by='category')
+        height_ax, weight_ax, age_ax = p[0, 0], p[0, 1], p[1, 0]
+        dummy_ax = p[1, 1]
+        _check_ax_limits(df['height'], height_ax)
+        _check_ax_limits(df['weight'], weight_ax)
+        _check_ax_limits(df['age'], age_ax)
+        self.assertEqual(weight_ax._sharey, height_ax)
+        self.assertEqual(age_ax._sharey, height_ax)
+        self.assertIsNone(dummy_ax._sharey)
+
+
+    @slow
     def test_kde_df(self):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
