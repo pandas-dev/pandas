@@ -711,9 +711,14 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
     else:
         raise_with_traceback(retained)
 
-    return [_data_to_frame(table, header, index_col, skiprows, infer_types,
-                           parse_dates, tupleize_cols, thousands)
-            for table in tables]
+    ret = []
+    for table in tables:
+        try:
+            ret.append(_data_to_frame(table, header, index_col, skiprows,
+                        infer_types, parse_dates, tupleize_cols, thousands))
+        except StopIteration: # empty table
+            continue
+    return ret
 
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
