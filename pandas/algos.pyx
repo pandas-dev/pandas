@@ -712,17 +712,15 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #
 # -
 
-def _check_minp(win, minp, N):
+def _check_minp(win, minp, N, floor=1):
     if minp > win:
         raise ValueError('min_periods (%d) must be <= window (%d)'
                         % (minp, win))
     elif minp > N:
         minp = N + 1
-    elif minp == 0:
-        minp = 1
     elif minp < 0:
         raise ValueError('min_periods must be >= 0')
-    return minp
+    return max(minp, floor)
 
 # original C implementation by N. Devillard.
 # This code in public domain.
@@ -1766,7 +1764,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     if n == 0:
         return input
 
-    minp = _check_minp(win, minp, n)
+    minp = _check_minp(win, minp, n, floor=0)
     output = np.empty(n, dtype=float)
     counts = roll_sum(np.isfinite(input).astype(float), win, minp)
 

@@ -206,7 +206,7 @@ def rolling_count(arg, window, freq=None, center=False, how=None):
     return_hook, values = _process_data_structure(arg, kill_inf=False)
 
     converted = np.isfinite(values).astype(float)
-    result = rolling_sum(converted, window, min_periods=1,
+    result = rolling_sum(converted, window, min_periods=0,
                          center=center)  # already converted
 
     # putmask here?
@@ -280,7 +280,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
     elif isinstance(arg1, DataFrame):
         def dataframe_from_int_dict(data, frame_template):
             result = DataFrame(data, index=frame_template.index)
-            result.columns = frame_template.columns[result.columns]
+            if len(result.columns) > 0:
+                result.columns = frame_template.columns[result.columns]
             return result
 
         results = {}
@@ -314,8 +315,10 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         else:
                             results[i][j] = f(*_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j]))
                 p = Panel.from_dict(results).swapaxes('items', 'major')
-                p.major_axis = arg1.columns[p.major_axis]
-                p.minor_axis = arg2.columns[p.minor_axis]
+                if len(p.major_axis) > 0:
+                    p.major_axis = arg1.columns[p.major_axis]
+                if len(p.minor_axis) > 0:
+                    p.minor_axis = arg2.columns[p.minor_axis]
                 return p
             else:
                 raise ValueError("'pairwise' is not True/False")
@@ -372,17 +375,22 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     y : type of input
     """
     arg = _conv_timerule(arg, freq, how)
-    offset = int((window - 1) / 2.) if center else 0
-    additional_nans = np.array([np.NaN] * offset)
-    calc = lambda x: func(np.concatenate((x, additional_nans)) if center else x,
-                          window, minp=minp, args=args, kwargs=kwargs,
-                          **kwds)
+
     return_hook, values = _process_data_structure(arg)
-    # actually calculate the moment. Faster way to do this?
-    if values.ndim > 1:
-        result = np.apply_along_axis(calc, axis, values)
+
+    if values.size == 0:
+        result = values.copy()
     else:
-        result = calc(values)
+        # actually calculate the moment. Faster way to do this?
+        offset = int((window - 1) / 2.) if center else 0
+        additional_nans = np.array([np.NaN] * offset)
+        calc = lambda x: func(np.concatenate((x, additional_nans)) if center else x,
+                              window, minp=minp, args=args, kwargs=kwargs,
+                              **kwds)
+        if values.ndim > 1:
+            result = np.apply_along_axis(calc, axis, values)
+        else:
+            result = calc(values)
 
     if center:
         result = _center_window(result, window, axis)
@@ -817,11 +825,14 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     arg = _conv_timerule(arg, freq, how)
     return_hook, values = _process_data_structure(arg)
 
-    offset = int((len(window) - 1) / 2.) if center else 0
-    additional_nans = np.array([np.NaN] * offset)
-    f = lambda x: algos.roll_window(np.concatenate((x, additional_nans)) if center else x,
-                                    window, minp, avg=mean)
-    result = np.apply_along_axis(f, axis, values)
+    if values.size == 0:
+        result = values.copy()
+    else:
+        offset = int((len(window) - 1) / 2.) if center else 0
+        additional_nans = np.array([np.NaN] * offset)
+        f = lambda x: algos.roll_window(np.concatenate((x, additional_nans)) if center else x,
+                                        window, minp, avg=mean)
+        result = np.apply_along_axis(f, axis, values)
 
     if center:
         result = _center_window(result, len(window), axis)
@@ -856,7 +867,7 @@ def _expanding_func(func, desc, check_minp=_use_window):
     @Appender(_doc_template)
     @wraps(func)
     def f(arg, min_periods=1, freq=None, **kwargs):
-        window = len(arg)
+        window = max(len(arg), min_periods) if min_periods else len(arg)
 
         def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)

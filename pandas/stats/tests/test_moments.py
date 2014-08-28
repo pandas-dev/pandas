@@ -244,6 +244,12 @@ class TestMoments(tm.TestCase):
                                      center=center)
         self._check_moment_func(roll_mean, np.mean)
 
+        # GH 8080
+        s = Series([None, None, None])
+        result = mom.rolling_apply(s, 2, lambda x: len(x), min_periods=0)
+        expected = Series([1., 2., 2.])
+        assert_series_equal(result, expected)
+
     def test_rolling_apply_out_of_bounds(self):
         # #1850
         arr = np.arange(4)
@@ -814,6 +820,12 @@ class TestMoments(tm.TestCase):
                                        freq=freq)
         self._check_expanding(expanding_mean, np.mean)
 
+        # GH 8080
+        s = Series([None, None, None])
+        result = mom.expanding_apply(s, lambda x: len(x), min_periods=0)
+        expected = Series([1., 2., 3.])
+        assert_series_equal(result, expected)
+
     def test_expanding_apply_args_kwargs(self):
         def mean_w_arg(x, const):
             return np.mean(x) + const
@@ -988,6 +1000,77 @@ class TestMoments(tm.TestCase):
         for f in functions:
             df_result_panel = f(df)
             assert_panel_equal(df_result_panel, df_expected_panel)
+
+    def test_moment_functions_zero_length(self):
+        # GH 8056
+        s = Series()
+        s_expected = s
+        df1 = DataFrame()
+        df1_expected = df1
+        df1_expected_panel = Panel(items=df1.index, major_axis=df1.columns, minor_axis=df1.columns)
+        df2 = DataFrame(columns=['a'])
+        df2_expected = df2
+        df2_expected_panel = Panel(items=df2.index, major_axis=df2.columns, minor_axis=df2.columns)
+
+        functions = [lambda x: mom.expanding_count(x),
+                     lambda x: mom.expanding_cov(x, x, pairwise=False, min_periods=5),
+                     lambda x: mom.expanding_corr(x, x, pairwise=False, min_periods=5),
+                     lambda x: mom.expanding_max(x, min_periods=5),
+                     lambda x: mom.expanding_min(x, min_periods=5),
+                     lambda x: mom.expanding_sum(x, min_periods=5),
+                     lambda x: mom.expanding_mean(x, min_periods=5),
+                     lambda x: mom.expanding_std(x, min_periods=5),
+                     lambda x: mom.expanding_var(x, min_periods=5),
+                     lambda x: mom.expanding_skew(x, min_periods=5),
+                     lambda x: mom.expanding_kurt(x, min_periods=5),
+                     lambda x: mom.expanding_quantile(x, quantile=0.5, min_periods=5),
+                     lambda x: mom.expanding_median(x, min_periods=5),
+                     lambda x: mom.expanding_apply(x, func=sum, min_periods=5),
+                     lambda x: mom.rolling_count(x, window=10),
+                     lambda x: mom.rolling_cov(x, x, pairwise=False, window=10, min_periods=5),
+                     lambda x: mom.rolling_corr(x, x, pairwise=False, window=10, min_periods=5),
+                     lambda x: mom.rolling_max(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_min(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_sum(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_mean(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_std(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_var(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_skew(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_kurt(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_quantile(x, quantile=0.5, window=10, min_periods=5),
+                     lambda x: mom.rolling_median(x, window=10, min_periods=5),
+                     lambda x: mom.rolling_apply(x, func=sum, window=10, min_periods=5),
+                     lambda x: mom.rolling_window(x, win_type='boxcar', window=10, min_periods=5),
+                    ]
+        for f in functions:
+            try:
+                s_result = f(s)
+                assert_series_equal(s_result, s_expected)
+
+                df1_result = f(df1)
+                assert_frame_equal(df1_result, df1_expected)
+
+                df2_result = f(df2)
+                assert_frame_equal(df2_result, df2_expected)
+            except (ImportError):
+
+                # scipy needed for rolling_window
+                continue
+
+        functions = [lambda x: mom.expanding_cov(x, x, pairwise=True, min_periods=5),
+                     lambda x: mom.expanding_corr(x, x, pairwise=True, min_periods=5),
+                     lambda x: mom.rolling_cov(x, x, pairwise=True, window=10, min_periods=5),
+                     lambda x: mom.rolling_corr(x, x, pairwise=True, window=10, min_periods=5),
+                     # rolling_corr_pairwise is depracated, so the following line should be deleted
+                     # when rolling_corr_pairwise is removed.
+                     lambda x: mom.rolling_corr_pairwise(x, x, window=10, min_periods=5),
+                    ]
+        for f in functions:
+            df1_result_panel = f(df1)
+            assert_panel_equal(df1_result_panel, df1_expected_panel)
+
+            df2_result_panel = f(df2)
+            assert_panel_equal(df2_result_panel, df2_expected_panel)
 
     def test_expanding_cov_pairwise_diff_length(self):
         # GH 7512
