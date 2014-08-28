@@ -3927,9 +3927,21 @@ class MultiIndex(Index):
             # handle a slice, returnig a slice if we can
             # otherwise a boolean indexer
 
-            start = level_index.get_loc(key.start or  0)
-            stop  = level_index.get_loc(key.stop or len(level_index)-1)
-            step = key.step
+            try:
+                if key.start is not None:
+                    start = level_index.get_loc(key.start)
+                else:
+                    start = 0
+                if key.stop is not None:
+                    stop  = level_index.get_loc(key.stop)
+                else:
+                    stop = len(level_index)-1
+                step = key.step
+            except (KeyError):
+
+                # we have a partial slice (like looking up a partial date string)
+                start = stop = level_index.slice_indexer(key.start, key.stop, key.step)
+                step = start.step
 
             if isinstance(start,slice) or isinstance(stop,slice):
                 # we have a slice for start and/or stop

@@ -1664,6 +1664,76 @@ class TestIndexing(tm.TestCase):
         result = df.loc[(idx['2012-01-01 12:12:12':'2012-01-03 12:12:12'],1), idx['A','B']]
         assert_frame_equal(result,expected)
 
+
+    def test_multiindex_slicers_edges(self):
+
+        # GH 8132
+        # various edge cases
+        df = DataFrame({'A': ['A0'] * 5 + ['A1']*5 + ['A2']*5,
+                        'B': ['B0','B0','B1','B1','B2'] * 3,
+                        'DATE': ["2013-06-11",
+                                 "2013-07-02",
+                                 "2013-07-09",
+                                 "2013-07-30",
+                                 "2013-08-06",
+                                 "2013-06-11",
+                                 "2013-07-02",
+                                 "2013-07-09",
+                                 "2013-07-30",
+                                 "2013-08-06",
+                                 "2013-09-03",
+                                 "2013-10-01",
+                                 "2013-07-09",
+                                 "2013-08-06",
+                                 "2013-09-03"],
+                        'VALUES': [22, 35, 14,  9,  4, 40, 18, 4, 2, 5, 1, 2, 3,4, 2]})
+
+        df['DATE'] = pd.to_datetime(df['DATE'])
+        df1 = df.set_index(['A', 'B', 'DATE'])
+        df1 = df1.sortlevel()
+        df2 = df.set_index('DATE')
+
+        # A1 - Get all values under "A0" and "A1"
+        result = df1.loc[(slice('A1')),:]
+        expected = df1.iloc[0:10]
+        assert_frame_equal(result, expected)
+
+        # A2 - Get all values from the start to "A2"
+        result = df1.loc[(slice('A2')),:]
+        expected = df1
+        assert_frame_equal(result, expected)
+
+        # A3 - Get all values under "B1" or "B2"
+        result = df1.loc[(slice(None),slice('B1','B2')),:]
+        expected = df1.iloc[[2,3,4,7,8,9,12,13,14]]
+        assert_frame_equal(result, expected)
+
+        # A4 - Get all values between 2013-07-02 and 2013-07-09
+        result = df1.loc[(slice(None),slice(None),slice('20130702','20130709')),:]
+        expected = df1.iloc[[1,2,6,7,12]]
+        assert_frame_equal(result, expected)
+
+        # B1 - Get all values in B0 that are also under A0, A1 and A2
+        result = df1.loc[(slice('A2'),slice('B0')),:]
+        expected = df1.iloc[[0,1,5,6,10,11]]
+        assert_frame_equal(result, expected)
+
+        # B2 - Get all values in B0, B1 and B2 (similar to what #2 is doing for the As)
+        result = df1.loc[(slice(None),slice('B2')),:]
+        expected = df1
+        assert_frame_equal(result, expected)
+
+        # B3 - Get all values from B1 to B2 and up to 2013-08-06
+        result = df1.loc[(slice(None),slice('B1','B2'),slice('2013-08-06')),:]
+        expected = df1.iloc[[2,3,4,7,8,9,12,13]]
+        assert_frame_equal(result, expected)
+
+        # B4 - Same as A4 but the start of the date slice is not a key.
+        #      shows indexing on a partial selection slice
+        result = df1.loc[(slice(None),slice(None),slice('20130701','20130709')),:]
+        expected = df1.iloc[[1,2,6,7,12]]
+        assert_frame_equal(result, expected)
+
     def test_per_axis_per_level_doc_examples(self):
 
         # test index maker
@@ -3831,11 +3901,11 @@ class TestSeriesNoneCoercion(tm.TestCase):
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
         ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
-        
+
         # For datetime series, we should coerce to NaT.
         ([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
          [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
-        
+
         # For objects, we should preserve the None value.
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
@@ -3851,7 +3921,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             self.assert_numpy_array_equivalent(
                 start_series.values,
                 expected_series.values, strict_nan=True)
-    
+
     def test_coercion_with_loc_setitem(self):
         for start_data, expected_result in self.EXPECTED_RESULTS:
             start_series = Series(start_data)
@@ -3863,7 +3933,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             self.assert_numpy_array_equivalent(
                 start_series.values,
                 expected_series.values, strict_nan=True)
-    
+
     def test_coercion_with_setitem_and_series(self):
         for start_data, expected_result in self.EXPECTED_RESULTS:
             start_series = Series(start_data)
@@ -3875,7 +3945,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             self.assert_numpy_array_equivalent(
                 start_series.values,
                 expected_series.values, strict_nan=True)
-    
+
     def test_coercion_with_loc_and_series(self):
         for start_data, expected_result in self.EXPECTED_RESULTS:
             start_series = Series(start_data)
@@ -3887,18 +3957,18 @@ class TestSeriesNoneCoercion(tm.TestCase):
             self.assert_numpy_array_equivalent(
                 start_series.values,
                 expected_series.values, strict_nan=True)
-    
+
 
 class TestDataframeNoneCoercion(tm.TestCase):
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
         ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
-        
+
         # For datetime series, we should coerce to NaT.
         ([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
          [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
-        
+
         # For objects, we should preserve the None value.
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
