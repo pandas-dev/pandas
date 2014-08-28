@@ -454,3 +454,23 @@ df=DataFrame( { 'id' : np.arange( 100000 ) / 3,
 """
 
 groupby_transform_series2 = Benchmark("df.groupby('id')['val'].transform(np.mean)", setup)
+
+setup = common_setup + '''
+np.random.seed(2718281)
+n = 20000
+df = DataFrame(np.random.randint(1, n, (n, 3)),
+        columns=['jim', 'joe', 'jolie'])
+'''
+
+stmt = "df.groupby(['jim', 'joe'])['jolie'].transform('max')";
+groupby_transform_multi_key1 = Benchmark(stmt, setup)
+groupby_transform_multi_key2 = Benchmark(stmt, setup + "df['jim'] = df['joe']")
+
+setup = common_setup + '''
+np.random.seed(2718281)
+n = 200000
+df = DataFrame(np.random.randint(1, n / 10, (n, 3)),
+        columns=['jim', 'joe', 'jolie'])
+'''
+groupby_transform_multi_key3 = Benchmark(stmt, setup)
+groupby_transform_multi_key4 = Benchmark(stmt, setup + "df['jim'] = df['joe']")
