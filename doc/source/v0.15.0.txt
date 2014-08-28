@@ -638,6 +638,8 @@ Bug Fixes
 - Bug in ``Float64Index`` where ``iat`` and ``at`` were not testing and were
   failing (:issue:`8092`).
 
+- Bug in ``read_csv`` where line comments were not handled correctly given
+  a custom line terminator or ``delim_whitespace=True`` (:issue:`8122`).
 
 
 
