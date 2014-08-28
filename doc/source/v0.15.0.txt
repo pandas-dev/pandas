@@ -461,7 +461,15 @@ Enhancements
 
 
 
+- The ``get_dummies`` method can now be used on DataFrames. By default only
+catagorical columns are encoded as 0's and 1's, while other columns are
+left untouched.
 
+  .. ipython:: python
+
+    df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
+                       'C': [1, 2, 3]})
+    pd.get_dummies(df)
 
 
 

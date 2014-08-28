@@ -981,25 +981,34 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
     result = data.drop(cat_variables, axis=1)
     for variable in cat_variables:
-        dummies = get_dummies(data[variable], prefix=variable,
-                              prefix_sep=prefix_sep)
+        dummies = _get_dummies_1d(data[variable], prefix=variable,
+                                  prefix_sep=prefix_sep)
         result = result.join(dummies)
     return result
 
 
-def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
+def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
+                columns=None):
     """
     Convert categorical variable into dummy/indicator variables
 
     Parameters
     ----------
-    data : array-like or Series
-    prefix : string, default None
+    data : array-like, Series, or DataFrame
+    prefix : string, list of strings, or dict of strings, default None
         String to append DataFrame column names
+        Pass a list with length equal to the number of columns
+        when calling get_dummies on a DataFrame. Alternativly, `prefix`
+        can be a dictionary mapping column names to prefixes.
     prefix_sep : string, default '_'
-        If appending prefix, separator/delimiter to use
+        If appending prefix, separator/delimiter to use. Or pass a
+        list or dictionary as with `prefix.`
     dummy_na : bool, default False
         Add a column to indicate NaNs, if False NaNs are ignored.
+    columns : list-like, default None
+        Column names in the DataFrame to be encoded.
+        If `columns` is None then all the columns with
+        `object` or `category` dtype will be converted.
 
     Returns
     -------
@@ -1031,9 +1040,71 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     1  0  1    0
     2  0  0    1
 
+    >>> df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
+                        'C': [1, 2, 3]})
+
+    >>> get_dummies(df, prefix=['col1', 'col2']):
+       C  col1_a  col1_b  col2_a  col2_b  col2_c
+    0  1       1       0       0       1       0
+    1  2       0       1       1       0       0
+    2  3       1       0       0       0       1
+
     See also ``Series.str.get_dummies``.
 
     """
+    from pandas.tools.merge import concat
+    from itertools import cycle
+
+    if isinstance(data, DataFrame):
+        # determine columns being encoded
+
+        if columns is None:
+            columns_to_encode = data.select_dtypes(include=['object',
+                'category']).columns
+        else:
+            columns_to_encode = columns
+
+        # validate prefixes and separator to avoid silently dropping cols
+        def check_len(item, name):
+            length_msg = ("Length of '{0}' ({1}) did "
+                           "not match the length of the columns "
+                           "being encoded ({2}).")
+
+            if com.is_list_like(item):
+                if not len(item) == len(columns_to_encode):
+                    raise ValueError(length_msg.format(name, len(item),
+                                     len(columns_to_encode)))
+
+        check_len(prefix, 'prefix')
+        check_len(prefix_sep, 'prefix_sep')
+        if isinstance(prefix, compat.string_types):
+            prefix = cycle([prefix])
+        if isinstance(prefix, dict):
+            prefix = [prefix[col] for col in columns_to_encode]
+
+        if prefix is None:
+            prefix = columns_to_encode
+
+        # validate separators
+        if isinstance(prefix_sep, compat.string_types):
+            prefix_sep = cycle([prefix_sep])
+        elif isinstance(prefix_sep, dict):
+            prefix_sep = [prefix_sep[col] for col in columns_to_encode]
+
+        result = data.drop(columns_to_encode, axis=1)
+        with_dummies = [result]
+        for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
+
+            dummy = _get_dummies_1d(data[col], prefix=pre,
+                                    prefix_sep=sep, dummy_na=dummy_na)
+            with_dummies.append(dummy)
+        result = concat(with_dummies, axis=1)
+    else:
+        result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na)
+    return result
+
+
+def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     # Series avoids inconsistent NaN handling
     cat = Categorical.from_array(Series(data))
     levels = cat.levels
