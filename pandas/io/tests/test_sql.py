@@ -26,7 +26,7 @@ import nose
 import warnings
 import numpy as np
 
-from datetime import datetime
+from datetime import datetime, date, time
 
 from pandas import DataFrame, Series, Index, MultiIndex, isnull
 from pandas import date_range, to_datetime, to_timedelta
@@ -35,6 +35,7 @@ from pandas.compat import StringIO, range, lrange, string_types
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
+from pandas.io.sql import read_sql_table, read_sql_query
 import pandas.util.testing as tm
 
 
@@ -976,6 +977,21 @@ class _TestSQLAlchemy(PandasSQLTest):
         else:
             tm.assert_frame_equal(result, df)
 
+    def test_datetime_date(self):
+        # test support for datetime.date
+        df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
+        df.to_sql('test_date', self.conn, index=False)
+        res = read_sql_table('test_date', self.conn)
+        # comes back as datetime64
+        tm.assert_series_equal(res['a'], to_datetime(df['a']))
+
+    def test_datetime_time(self):
+        # test support for datetime.time
+        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+        df.to_sql('test_time', self.conn, index=False)
+        res = read_sql_table('test_time', self.conn)
+        tm.assert_frame_equal(res, df)
+
     def test_mixed_dtype_insert(self):
         # see GH6509
         s1 = Series(2**25 + 1,dtype=np.int32)
@@ -1268,6 +1284,21 @@ class TestSQLiteLegacy(PandasSQLTest):
 
     def test_execute_sql(self):
         self._execute_sql()
+
+    def test_datetime_date(self):
+        # test support for datetime.date
+        df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
+        df.to_sql('test_date', self.conn, index=False, flavor=self.flavor)
+        res = read_sql_query('SELECT * FROM test_date', self.conn)
+        if self.flavor == 'sqlite':
+            # comes back as strings
+            tm.assert_frame_equal(res, df.astype(str))
+        elif self.flavor == 'mysql':
+            tm.assert_frame_equal(res, df)
+    
+    def test_datetime_time(self):
+        # test support for datetime.time
+        raise nose.SkipTest("datetime.time not supported for sqlite fallback")
 
 
 class TestMySQLLegacy(TestSQLiteLegacy):
