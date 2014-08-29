@@ -349,6 +349,8 @@ API changes
 
 - The Index set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()``
 
+- ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
