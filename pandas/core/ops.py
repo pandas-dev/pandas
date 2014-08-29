@@ -784,7 +784,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 # casted = self._constructor_sliced(other, index=self.columns)
                 casted = pd.Series(other, index=self.columns)
             return self._combine_series(casted, na_op, fill_value, axis, level)
-        elif isinstance(other, np.ndarray):
+        elif isinstance(other, np.ndarray) and other.ndim:  # skips np scalar
             if other.ndim == 1:
                 if axis is not None and self._get_axis_name(axis) == 'index':
                     # casted = self._constructor_sliced(other,
