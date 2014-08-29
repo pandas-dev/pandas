@@ -559,7 +559,7 @@ class TestPivotTable(tm.TestCase):
                              values='value1')
 
         exp_col = MultiIndex.from_arrays([[7, 7, 8, 8, 9, 9], [1, 2] * 3])
-        expected = DataFrame(np.array([[0, 3, 1, 4, 2, 5]]),
+        expected = DataFrame(np.array([[0, 3, 1, 4, 2, 5]],dtype='int64'),
                              index=[2013], columns=exp_col)
         tm.assert_frame_equal(result, expected)
 
