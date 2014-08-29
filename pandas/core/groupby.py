@@ -1559,7 +1559,7 @@ class BaseGrouper(object):
 
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
-        indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
+        indexer = _get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer, convert=False)
         group_index = com.take_nd(group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
@@ -3271,7 +3271,7 @@ class DataSplitter(object):
     @cache_readonly
     def sort_idx(self):
         # Counting sort indexer
-        return _algos.groupsort_indexer(self.labels, self.ngroups)[0]
+        return _get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
         sdata = self._get_sorted_data()
@@ -3543,22 +3543,38 @@ class _KeyMapper(object):
 
 
 def _get_indices_dict(label_list, keys):
-    shape = [len(x) for x in keys]
+    shape = list(map(len, keys))
+    ngroups = np.prod(shape)
+
     group_index = get_group_index(label_list, shape)
+    sorter = _get_group_index_sorter(group_index, ngroups)
 
-    sorter, _ = _algos.groupsort_indexer(com._ensure_int64(group_index),
-                                         np.prod(shape))
-
-    sorter_int = com._ensure_platform_int(sorter)
-
-    sorted_labels = [lab.take(sorter_int) for lab in label_list]
-    group_index = group_index.take(sorter_int)
+    sorted_labels = [lab.take(sorter) for lab in label_list]
+    group_index = group_index.take(sorter)
 
     return lib.indices_fast(sorter, group_index, keys, sorted_labels)
 
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?
+
+def _get_group_index_sorter(group_index, ngroups):
+    """
+    _algos.groupsort_indexer is at least O(ngroups), where
+        ngroups = prod(shape)
+        shape = map(len, keys)
+    that is, linear in the number of combinations (cartesian product) of unique
+    values of groupby keys. This can be huge when doing multi-key groupby.
+    np.argsort is O(count)^2 when using quicksort (the default) where count is the length
+    of the data-frame;
+    """
+    count = len(group_index)
+    if ngroups < count * np.log(count): # taking complexities literally
+        sorter, _ = _algos.groupsort_indexer(com._ensure_int64(group_index),
+                                             ngroups)
+        return com._ensure_platform_int(sorter)
+    else:
+        return group_index.argsort()
 
 
 def _compress_group_index(group_index, sort=True):
