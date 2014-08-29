@@ -785,6 +785,25 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertFalse(dtype == np.str_)
         self.assertFalse(np.str_ == dtype)
 
+        # GH8143
+        index = ['cat','obj','num']
+        cat = pd.Categorical(['a', 'b', 'c'])
+        obj = pd.Series(['a', 'b', 'c'])
+        num = pd.Series([1, 2, 3])
+        df = pd.concat([pd.Series(cat), obj, num], axis=1, keys=index)
+
+        result = df.dtypes == 'object'
+        expected = Series([False,True,False],index=index)
+        tm.assert_series_equal(result, expected)
+
+        result = df.dtypes == 'int64'
+        expected = Series([False,False,True],index=index)
+        tm.assert_series_equal(result, expected)
+
+        result = df.dtypes == 'category'
+        expected = Series([True,False,False],index=index)
+        tm.assert_series_equal(result, expected)
+
     def test_basic(self):
 
         # test basic creation / coercion of categoricals
