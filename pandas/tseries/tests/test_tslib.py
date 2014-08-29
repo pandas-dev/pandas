@@ -138,7 +138,7 @@ class TestTimestamp(tm.TestCase):
 
     def test_repr(self):
         dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
-        timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
+        timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
         freqs = ['D', 'M', 'S', 'N']
 
         for date in dates:
