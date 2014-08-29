@@ -979,6 +979,12 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     -------
     dummies : DataFrame
     """
+    import warnings
+
+    warnings.warn("'convert_dummies' is deprecated and will be removed "
+                  "in a future release. Use 'get_dummies' instead.",
+                  FutureWarning)
+
     result = data.drop(cat_variables, axis=1)
     for variable in cat_variables:
         dummies = _get_dummies_1d(data[variable], prefix=variable,

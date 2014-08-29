@@ -417,6 +417,9 @@ There are no prior version deprecations that are taking effect as of 0.15.0.
 Deprecations
 ~~~~~~~~~~~~
 
+The ``convert_dummies`` method has been deprecated in favor of
+``get_dummies``(:issue:`8140`)
+
 .. _whatsnew_0150.knownissues:
 
 Known Issues

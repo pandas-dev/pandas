@@ -331,8 +331,9 @@ class TestConvertDummies(tm.TestCase):
                         'C': np.random.randn(8),
                         'D': np.random.randn(8)})
 
-        result = convert_dummies(df, ['A', 'B'])
-        result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
+        with tm.assert_produces_warning(FutureWarning):
+            result = convert_dummies(df, ['A', 'B'])
+            result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
 
         expected = DataFrame({'A_foo': [1, 0, 1, 0, 1, 0, 1, 1],
                               'A_bar': [0, 1, 0, 1, 0, 1, 0, 0],
