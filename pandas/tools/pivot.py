@@ -116,7 +116,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     table = agged
     if table.index.nlevels > 1:
-        to_unstack = [agged.index.names[i]
+        to_unstack = [agged.index.names[i] or i
                       for i in range(len(index), len(keys))]
         table = agged.unstack(to_unstack)
 
