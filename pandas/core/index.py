@@ -1141,10 +1141,7 @@ class Index(IndexOpsMixin, PandasObject):
     __ge__ = _indexOp('__ge__')
 
     def __sub__(self, other):
-        if isinstance(other, Index):
-            return self.diff(other)
-        else:
-            return Index(np.array(self) - other)
+        return self.diff(other)
 
     def __and__(self, other):
         return self.intersection(other)
