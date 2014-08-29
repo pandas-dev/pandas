@@ -647,7 +647,21 @@ def scalar_compare(ndarray[object] values, object val, object op):
             if _checknull(x):
                 result[i] = True
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                try:
+                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                except (TypeError):
+                    result[i] = True
+    elif flag == cpython.Py_EQ:
+        for i in range(n):
+            x = values[i]
+            if _checknull(x):
+                result[i] = False
+            else:
+                try:
+                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                except (TypeError):
+                    result[i] = False
+
     else:
         for i in range(n):
             x = values[i]

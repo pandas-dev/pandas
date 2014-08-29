@@ -522,7 +522,8 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
     code duplication.
     """
     def na_op(x, y):
-        if com.is_categorical_dtype(x) != com.is_categorical_dtype(y):
+
+        if com.is_categorical_dtype(x) != (not np.isscalar(y) and com.is_categorical_dtype(y)):
             msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
                   "compare values, use 'series <op> np.asarray(cat)'."
             raise TypeError(msg.format(op=op,typ=type(y)))
