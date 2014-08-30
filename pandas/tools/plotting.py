@@ -3174,7 +3174,14 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     # Note off-by-one counting because add_subplot uses the MATLAB 1-based
     # convention.
     for i in range(1, nplots):
-        ax = fig.add_subplot(nrows, ncols, i + 1, **subplot_kw)
+        kwds = subplot_kw.copy()
+        # Set sharex and sharey to None for blank/dummy axes, these can
+        # interfere with proper axis limits on the visible axes if
+        # they share axes e.g. issue #7528
+        if i >= naxes:
+            kwds['sharex'] = None
+            kwds['sharey'] = None
+        ax = fig.add_subplot(nrows, ncols, i + 1, **kwds)
         axarr[i] = ax
 
     if nplots > 1:
