@@ -636,10 +636,12 @@ def _bool_method_SERIES(op, name, str_rep):
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
 
-            other = other.reindex_like(self).fillna(False).astype(bool)
-            return self._constructor(na_op(self.values, other.values),
+            left  = self.astype(bool).values
+            right = other.astype(bool).reindex_like(self)
+            right = right.fillna(False).values
+            return self._constructor(na_op(left, right),
                                      index=self.index,
-                                     name=name).fillna(False).astype(bool)
+                                     name=name)
         elif isinstance(other, pd.DataFrame):
             return NotImplemented
         else:

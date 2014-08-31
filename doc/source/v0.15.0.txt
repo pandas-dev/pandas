@@ -650,4 +650,4 @@ Bug Fixes
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
 
-
+- Bug in logical operations of series and their consistency with type casts (:issue:`6528`)

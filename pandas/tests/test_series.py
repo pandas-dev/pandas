@@ -2368,6 +2368,31 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         check(self.ts, 5, check_reverse=True)
         check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
 
+    def test_bool_op(self): # GH6528 & GH8151
+        u = pd.Series([nan, nan,   nan,  False, False, True,  True])
+        v = pd.Series([nan, False, True, False, True,  False, True])
+
+        for a, b in [[u, v], [v, u]]:
+            # against numpy logical casted to bool
+            assert_series_equal(a | b, Series(np.logical_or(a, b), dtype='bool'))
+            assert_series_equal(a & b, Series(np.logical_and(a, b), dtype='bool'))
+            assert_series_equal(a ^ b, # np.logical_xor throws with floats!
+                    Series(np.logical_xor(a.values.astype(bool),
+                                          b.values.astype(bool))))
+
+            assert_series_equal(~ a.astype(bool),
+                    Series(np.logical_not(a), dtype='bool'))
+
+            # type cast semantics
+            assert_series_equal(a | b, a.astype(bool) | b.astype(bool))
+            assert_series_equal(a & b, a.astype(bool) & b.astype(bool))
+            assert_series_equal(a ^ b, a.astype(bool) ^ b.astype(bool))
+
+            # symmetry
+            assert_series_equal(a & b, b & a)
+            assert_series_equal(a | b, b | a)
+            assert_series_equal(a ^ b, b ^ a)
+
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
 
@@ -3418,7 +3443,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        for e in [Series([]),Series([1],['z']),Series(['z']),Series(np.nan,b.index),Series(np.nan,a.index)]:
+        for e in [Series([]),Series([1],['z']),Series(['z']),Series(False,b.index),Series(False,a.index)]:
             result = a[a | e]
             assert_series_equal(result,a[a])
 
@@ -6144,4 +6169,3 @@ class TestSeriesNonUnique(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-
