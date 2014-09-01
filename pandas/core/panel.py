@@ -7,6 +7,7 @@ from pandas.compat import (map, zip, range, lrange, lmap, u, OrderedDict,
                            OrderedDefaultdict)
 from pandas import compat
 import sys
+import warnings
 import numpy as np
 from pandas.core.common import (PandasError, _try_sort, _default_index,
                                 _infer_dtype_from_scalar, notnull)

@@ -18,6 +18,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal,
+                                 assert_produces_warning,
                                  ensure_clean,
                                  assertRaisesRegexp,
                                  makeCustomDataframe as mkdf,
@@ -2323,6 +2324,13 @@ def test_panel_index():
     expected = MultiIndex.from_arrays([np.tile([1, 2, 3, 4], 3),
                                        np.repeat([1, 2, 3], 4)])
     assert(index.equals(expected))
+
+
+def test_import_warnings():
+    # GH8152
+    panel = Panel(np.random.rand(3, 3, 3))
+    with assert_produces_warning():
+        panel.major_xs(1, copy=False)
 
 if __name__ == '__main__':
     import nose

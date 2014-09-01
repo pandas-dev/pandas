@@ -648,3 +648,4 @@ Bug Fixes
   was a tuple (:issue:`8121`).
 
 
+- Bug in ``panel.py`` where Panel uses ``warnings`` module without importing (:issue:`8152`).
