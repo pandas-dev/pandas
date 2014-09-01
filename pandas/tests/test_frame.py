@@ -4992,7 +4992,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # GH4947
         # bool comparisons should return bool
         result = d['a'] | d['b']
-        expected = Series([False, True])
+        expected = Series(np.logical_or(d['a'], d['b']), dtype='bool')
         assert_series_equal(result, expected)
 
         # GH4604, automatic casting here
