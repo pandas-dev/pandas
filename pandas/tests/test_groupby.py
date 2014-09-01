@@ -3313,7 +3313,8 @@ class TestGroupBy(tm.TestCase):
         import pandas as pd
         #GH3011
         series = Series([np.nan, np.nan, 1, 1, 2, 2, 3, 3, 4, 4])
-        bins =  pd.cut(series.dropna(), 4)
+        # The raises only happens with categorical, not with series of types category
+        bins =  pd.cut(series.dropna().values, 4)
 
         # len(bins) != len(series) here
         self.assertRaises(ValueError,lambda : series.groupby(bins).mean())

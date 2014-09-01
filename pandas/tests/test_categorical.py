@@ -1058,8 +1058,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
 
         df = df.sort(columns=['value'], ascending=True)
-        d = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
-        s = Series(d)
+        s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        d = s.values
         df['D'] = d
         str(df)
 
@@ -1081,7 +1081,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # sorting
         s.name = 'E'
-        self.assertTrue(result2.sort_index().equals(s))
+        self.assertTrue(result2.sort_index().equals(s.sort_index()))
 
         cat = pd.Categorical([1,2,3,10], levels=[1,2,3,4,10])
         df = pd.DataFrame(pd.Series(cat))

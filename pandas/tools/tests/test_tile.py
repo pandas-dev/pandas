@@ -123,7 +123,7 @@ class TestCut(tm.TestCase):
         ex_levels = ['(-inf, 2]', '(2, 4]', '(4, inf]']
 
         np.testing.assert_array_equal(result.levels, ex_levels)
-        np.testing.assert_array_equal(result_ser.levels, ex_levels)
+        np.testing.assert_array_equal(result_ser.cat.levels, ex_levels)
         self.assertEqual(result[5], '(4, inf]')
         self.assertEqual(result[0], '(-inf, 2]')
         self.assertEqual(result_ser[5], '(4, inf]')
@@ -229,6 +229,25 @@ class TestCut(tm.TestCase):
             self.assertTrue(sp < sn)
             self.assertTrue(ep < en)
             self.assertTrue(ep <= sn)
+
+    def test_cut_return_categorical(self):
+        from pandas import Categorical
+        s = Series([0,1,2,3,4,5,6,7,8])
+        res = cut(s,3)
+        exp = Series(Categorical.from_codes([0,0,0,1,1,1,2,2,2],
+                                            ["(-0.008, 2.667]", "(2.667, 5.333]", "(5.333, 8]"],
+                                            ordered=True))
+        tm.assert_series_equal(res, exp)
+
+    def test_qcut_return_categorical(self):
+        from pandas import Categorical
+        s = Series([0,1,2,3,4,5,6,7,8])
+        res = qcut(s,[0,0.333,0.666,1])
+        exp = Series(Categorical.from_codes([0,0,0,1,1,1,2,2,2],
+                                            ["[0, 2.664]", "(2.664, 5.328]", "(5.328, 8]"],
+                                            ordered=True))
+        tm.assert_series_equal(res, exp)
+
 
 
 def curpath():
