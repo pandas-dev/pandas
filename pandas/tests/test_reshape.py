@@ -149,6 +149,11 @@ class TestMelt(tm.TestCase):
 
 
 class TestGetDummies(tm.TestCase):
+
+    def setUp(self):
+        self.df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'b', 'c'],
+                             'C': [1, 2, 3]})
+
     def test_basic(self):
         s_list = list('abc')
         s_series = Series(s_list)
@@ -209,6 +214,114 @@ class TestGetDummies(tm.TestCase):
                         u('letter_%s') % eacute: {0: 0.0, 1: 1.0, 2: 1.0}})
         assert_frame_equal(res, exp)
 
+    def test_dataframe_dummies_all_obj(self):
+        df = self.df[['A', 'B']]
+        result = get_dummies(df)
+        expected = DataFrame({'A_a': [1., 0, 1], 'A_b': [0., 1, 0],
+                              'B_b': [1., 1, 0], 'B_c': [0., 0, 1]})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_mix_default(self):
+        df = self.df
+        result = get_dummies(df)
+        expected = DataFrame({'C': [1, 2, 3], 'A_a': [1., 0, 1],
+                              'A_b': [0., 1, 0], 'B_b': [1., 1, 0],
+                              'B_c': [0., 0, 1]})
+        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c']]
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_list(self):
+        prefixes = ['from_A', 'from_B']
+        df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'b', 'c'],
+                        'C': [1, 2, 3]})
+        result = get_dummies(df, prefix=prefixes)
+        expected = DataFrame({'C': [1, 2, 3], 'from_A_a': [1., 0, 1],
+                              'from_A_b': [0., 1, 0], 'from_B_b': [1., 1, 0],
+                              'from_B_c': [0., 0, 1]})
+        expected = expected[['C', 'from_A_a', 'from_A_b', 'from_B_b',
+                             'from_B_c']]
+        assert_frame_equal(result, expected)
+
+    def test_datafrmae_dummies_prefix_str(self):
+        # not that you should do this...
+        df = self.df
+        result = get_dummies(df, prefix='bad')
+        expected = DataFrame([[1, 1., 0., 1., 0.],
+                              [2, 0., 1., 1., 0.],
+                              [3, 1., 0., 0., 1.]],
+                             columns=['C', 'bad_a', 'bad_b', 'bad_b', 'bad_c'])
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_subset(self):
+        df = self.df
+        result = get_dummies(df, prefix=['from_A'],
+                             columns=['A'])
+        expected = DataFrame({'from_A_a': [1., 0, 1], 'from_A_b': [0., 1, 0],
+                              'B': ['b', 'b', 'c'], 'C': [1, 2, 3]})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_sep(self):
+        df = self.df
+        result = get_dummies(df, prefix_sep='..')
+        expected = DataFrame({'C': [1, 2, 3], 'A..a': [1., 0, 1],
+                              'A..b': [0., 1, 0], 'B..b': [1., 1, 0],
+                              'B..c': [0., 0, 1]})
+        expected = expected[['C', 'A..a', 'A..b', 'B..b', 'B..c']]
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, prefix_sep=['..', '__'])
+        expected = expected.rename(columns={'B..b': 'B__b', 'B..c': 'B__c'})
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, prefix_sep={'A': '..', 'B': '__'})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_bad_length(self):
+        with tm.assertRaises(ValueError):
+            get_dummies(self.df, prefix=['too few'])
+
+    def test_dataframe_dummies_prefix_sep_bad_length(self):
+        with tm.assertRaises(ValueError):
+            get_dummies(self.df, prefix_sep=['bad'])
+
+    def test_dataframe_dummies_prefix_dict(self):
+        prefixes = {'A': 'from_A', 'B': 'from_B'}
+        df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'b', 'c'],
+                        'C': [1, 2, 3]})
+        result = get_dummies(df, prefix=prefixes)
+        expected = DataFrame({'from_A_a': [1., 0, 1], 'from_A_b': [0., 1, 0],
+                              'from_B_b': [1., 1, 0], 'from_B_c': [0., 0, 1],
+                              'C': [1, 2, 3]})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_with_na(self):
+        df = self.df
+        df.loc[3, :] = [np.nan, np.nan, np.nan]
+        result = get_dummies(df, dummy_na=True)
+        expected = DataFrame({'C': [1, 2, 3, np.nan], 'A_a': [1., 0, 1, 0],
+            'A_b': [0., 1, 0, 0], 'A_nan': [0., 0, 0, 1], 'B_b': [1., 1, 0, 0],
+            'B_c': [0., 0, 1, 0], 'B_nan': [0., 0, 0, 1]})
+        expected = expected[['C', 'A_a', 'A_b', 'A_nan', 'B_b', 'B_c',
+                             'B_nan']]
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, dummy_na=False)
+        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c']]
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_with_categorical(self):
+        df = self.df
+        df['cat'] = pd.Categorical(['x', 'y', 'y'])
+        result = get_dummies(df)
+        expected = DataFrame({'C': [1, 2, 3], 'A_a': [1., 0, 1],
+                              'A_b': [0., 1, 0], 'B_b': [1., 1, 0],
+                              'B_c': [0., 0, 1], 'cat_x': [1., 0, 0],
+                              'cat_y': [0., 1, 1]})
+        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c',
+                             'cat_x', 'cat_y']]
+        assert_frame_equal(result, expected)
+
+
 class TestConvertDummies(tm.TestCase):
     def test_convert_dummies(self):
         df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
@@ -218,8 +331,9 @@ class TestConvertDummies(tm.TestCase):
                         'C': np.random.randn(8),
                         'D': np.random.randn(8)})
 
-        result = convert_dummies(df, ['A', 'B'])
-        result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
+        with tm.assert_produces_warning(FutureWarning):
+            result = convert_dummies(df, ['A', 'B'])
+            result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
 
         expected = DataFrame({'A_foo': [1, 0, 1, 0, 1, 0, 1, 1],
                               'A_bar': [0, 1, 0, 1, 0, 1, 0, 0],
