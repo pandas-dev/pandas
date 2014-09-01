@@ -116,6 +116,9 @@ class CategoricalFormatter(object):
         fmt_values = self._get_formatted_values()
 
         result = ['%s' % i for i in fmt_values]
+        result = [i.strip() for i in result]
+        result = u(', ').join(result)
+        result = [u('[')+result+u(']')]
         if self.footer:
             footer = self._get_footer()
             if footer:

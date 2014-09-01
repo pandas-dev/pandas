@@ -298,12 +298,13 @@ This is even true for strings and numeric data:
 
 Reordering the levels is possible via the ``Categorical.reorder_levels(new_levels)``  or
 ``Series.cat.reorder_levels(new_levels)`` methods. All old levels must be included in the new
-levels.
+levels. Note that per default, this operation returns a new Series and you need to specify
+``inplace=True`` to do the change inplace!
 
 .. ipython:: python
 
-    s2 = pd.Series(pd.Categorical([1,2,3,1]))
-    s2.cat.reorder_levels([2,3,1])
+    s = pd.Series(pd.Categorical([1,2,3,1]))
+    s2 = s.cat.reorder_levels([2,3,1])
     s2
     s2.sort()
     s2
@@ -322,8 +323,8 @@ old levels:
 
 .. ipython:: python
 
-    s3 = pd.Series(pd.Categorical(["a","b","d"]))
-    s3.cat.reorder_levels(["a","b","c","d"])
+    s = pd.Series(pd.Categorical(["a","b","d"]))
+    s3 = s.cat.reorder_levels(["a","b","c","d"])
     s3
 
 
@@ -582,7 +583,7 @@ relevant columns back to `category` and assign the right levels and level orderi
     # rename the levels
     s.cat.levels = ["very good", "good", "bad"]
     # reorder the levels and add missing levels
-    s.cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    s = s.cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"cats":s, "vals":[1,2,3,4,5,6]})
     csv = StringIO()
     df.to_csv(csv)
@@ -591,7 +592,7 @@ relevant columns back to `category` and assign the right levels and level orderi
     df2["cats"]
     # Redo the category
     df2["cats"] = df2["cats"].astype("category")
-    df2["cats"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    df2["cats"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"], inplace=True)
     df2.dtypes
     df2["cats"]
 
@@ -731,7 +732,7 @@ Series of type ``category`` this means that there is some danger to confuse both
     except Exception as e:
         print("Exception: " + str(e))
     # right
-    s.cat.reorder_levels([4,3,2,1])
+    s = s.cat.reorder_levels([4,3,2,1])
     print(s.cat.levels)
 
 See also the API documentation for :func:`pandas.Series.reorder_levels` and
@@ -742,8 +743,7 @@ Old style constructor usage
 
 I earlier versions, a `Categorical` could be constructed by passing in precomputed `codes`
 (called then `labels`) instead of values with levels. The `codes` are interpreted as pointers
-to the levels with `-1` as `NaN`. This usage is now deprecated and not available unless
-``compat=True`` is passed to the constructor of `Categorical`.
+to the levels with `-1` as `NaN`.
 
 .. ipython:: python
     :okwarning:

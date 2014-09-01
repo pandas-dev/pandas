@@ -407,7 +407,7 @@ class TestCategorical(tm.TestCase):
 
 
     def test_print(self):
-        expected = [" a", " b", " b", " a", " a", " c", " c", " c",
+        expected = ["[a, b, b, a, a, c, c, c]",
                     "Levels (3, object): [a < b < c]"]
         expected = "\n".join(expected)
         actual = repr(self.factor)
@@ -415,33 +415,31 @@ class TestCategorical(tm.TestCase):
 
     def test_big_print(self):
         factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat', fastpath=True)
-        expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
-                    " a", " b", " c", " a", "...", " c", " a", " b", " c",
-                    " a", " b", " c", " a", " b", " c", " a", " b", " c",
+        expected = ["[a, b, c, a, b, ..., b, c, a, b, c]",
                     "Name: cat, Length: 600",
                     "Levels (3, object): [a, b, c]"]
         expected = "\n".join(expected)
 
         actual = repr(factor)
 
-        self.assertEqual(expected, actual)
+        self.assertEqual(actual, expected)
 
     def test_empty_print(self):
         factor = Categorical([], ["a","b","c"], name="cat")
-        expected = ("Categorical([], Name: cat, Levels (3, object): [a < b < c]")
+        expected = ("[], Name: cat, Levels (3, object): [a < b < c]")
         # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
 
         self.assertEqual(actual, expected)
 
         factor = Categorical([], ["a","b","c"])
-        expected = ("Categorical([], Levels (3, object): [a < b < c]")
+        expected = ("[], Levels (3, object): [a < b < c]")
         actual = repr(factor)
 
         self.assertEqual(expected, actual)
 
         factor = Categorical([], [])
-        expected = ("Categorical([], Levels (0, object): []")
+        expected = ("[], Levels (0, object): []")
         self.assertEqual(expected, repr(factor))
 
     def test_periodindex(self):
@@ -495,9 +493,21 @@ class TestCategorical(tm.TestCase):
         cat = Categorical(["a","b","c","a"], ordered=True)
         exp_levels = np.array(["c","b","a"])
         exp_values = np.array(["a","b","c","a"])
-        cat.reorder_levels(["c","b","a"])
+
+        res = cat.reorder_levels(["c","b","a"], inplace=True)
         self.assert_numpy_array_equal(cat.levels, exp_levels)
         self.assert_numpy_array_equal(cat.__array__(), exp_values)
+        self.assertIsNone(res)
+
+        res = cat.reorder_levels(["a","b","c"])
+        # cat must be the same as before
+        self.assert_numpy_array_equal(cat.levels, exp_levels)
+        self.assert_numpy_array_equal(cat.__array__(), exp_values)
+        # only res is changed
+        exp_levels_back = np.array(["a","b","c"])
+        self.assert_numpy_array_equal(res.levels, exp_levels_back)
+        self.assert_numpy_array_equal(res.__array__(), exp_values)
+
 
         # not all "old" included in "new"
         def f():
@@ -510,7 +520,7 @@ class TestCategorical(tm.TestCase):
         self.assertRaises(ValueError, f)
 
         # This works: all "old" included in "new"
-        cat.reorder_levels(["a","b","c","d"])
+        cat = cat.reorder_levels(["a","b","c","d"])
         exp_levels = np.array(["a","b","c","d"])
         self.assert_numpy_array_equal(cat.levels, exp_levels)
 
@@ -519,7 +529,7 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(c._codes, np.array([0,1,2,3,0]))
         self.assert_numpy_array_equal(c.levels , np.array([1,2,3,4] ))
         self.assert_numpy_array_equal(c.get_values() , np.array([1,2,3,4,1] ))
-        c.reorder_levels([4,3,2,1]) # all "pointers" to '4' must be changed from 3 to 0,...
+        c = c.reorder_levels([4,3,2,1]) # all "pointers" to '4' must be changed from 3 to 0,...
         self.assert_numpy_array_equal(c._codes , np.array([3,2,1,0,3])) # positions are changed
         self.assert_numpy_array_equal(c.levels , np.array([4,3,2,1])) # levels are now in new order
         self.assert_numpy_array_equal(c.get_values() , np.array([1,2,3,4,1])) # output is the same
@@ -527,14 +537,26 @@ class TestCategorical(tm.TestCase):
         self.assertTrue(c.max(), 1)
 
         def f():
-            c.reorder_levels([4,3,2,10])
+            c.reorder_levels([4,3,2,10]) # 1 vs 10 -> not all new in old
         self.assertRaises(ValueError, f)
+
+
 
     def test_remove_unused_levels(self):
         c = Categorical(["a","b","c","d","a"], levels=["a","b","c","d","e"])
-        self.assert_numpy_array_equal(c.levels , np.array(["a","b","c","d","e"]))
-        c.remove_unused_levels()
-        self.assert_numpy_array_equal(c.levels , np.array(["a","b","c","d"]))
+        exp_levels_all = np.array(["a","b","c","d","e"])
+        exp_levels_dropped = np.array(["a","b","c","d"])
+
+        self.assert_numpy_array_equal(c.levels, exp_levels_all)
+
+        res = c.remove_unused_levels()
+        self.assert_numpy_array_equal(res.levels, exp_levels_dropped)
+        self.assert_numpy_array_equal(c.levels, exp_levels_all)
+
+        res = c.remove_unused_levels(inplace=True)
+        self.assert_numpy_array_equal(c.levels, exp_levels_dropped)
+        self.assertIsNone(res)
+
 
     def test_nan_handling(self):
 
@@ -542,17 +564,35 @@ class TestCategorical(tm.TestCase):
         c = Categorical(["a","b",np.nan,"a"])
         self.assert_numpy_array_equal(c.levels , np.array(["a","b"]))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,-1,0]))
+        c[1] = np.nan
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b"]))
+        self.assert_numpy_array_equal(c._codes , np.array([0,-1,-1,0]))
 
         # If levels have nan included, the code should point to that instead
         c = Categorical(["a","b",np.nan,"a"], levels=["a","b",np.nan])
         self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
+        c[1] = np.nan
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
+        self.assert_numpy_array_equal(c._codes , np.array([0,2,2,0]))
 
         # Changing levels should also make the replaced level np.nan
         c = Categorical(["a","b","c","a"])
         c.levels = ["a","b",np.nan]
         self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
         self.assert_numpy_array_equal(c._codes , np.array([0,1,2,0]))
+
+        # Adding nan to levels should make assigned nan point to the level!
+        c = Categorical(["a","b",np.nan,"a"])
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b"]))
+        self.assert_numpy_array_equal(c._codes , np.array([0,1,-1,0]))
+        c.levels = ["a","b",np.nan]
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
+        self.assert_numpy_array_equal(c._codes , np.array([0,1,-1,0]))
+        c[1] = np.nan
+        self.assert_numpy_array_equal(c.levels , np.array(["a","b",np.nan],dtype=np.object_))
+        self.assert_numpy_array_equal(c._codes , np.array([0,2,-1,0]))
+
 
     def test_isnull(self):
         exp = np.array([False, False, True])
@@ -564,6 +604,7 @@ class TestCategorical(tm.TestCase):
         res = c.isnull()
         self.assert_numpy_array_equal(res, exp)
 
+        # test both nan in levels and as -1
         exp = np.array([True, False, True])
         c = Categorical(["a","b",np.nan])
         c.levels = ["a","b",np.nan]
@@ -637,6 +678,12 @@ class TestCategorical(tm.TestCase):
         _max = cat.max(numeric_only=True)
         self.assertEqual(_max, 1)
 
+    def test_unique(self):
+        cat = Categorical(["a","b","c","d"])
+        exp = np.asarray(["a","b","c","d"])
+        res = cat.unique()
+        self.assert_numpy_array_equal(res, exp)
+        self.assertEqual(type(res), type(exp))
 
     def test_mode(self):
         s = Categorical([1,1,2,4,5,5,5], levels=[5,4,3,2,1], ordered=True)
@@ -970,11 +1017,13 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assert_numpy_array_equal(s.cat.levels, np.array(["a","b"]))
         self.assertEqual(s.cat.ordered, True)
         exp = Categorical(["a","b",np.nan,"a"], levels=["b","a"])
-        s.cat.reorder_levels(["b", "a"])
+        s.cat.reorder_levels(["b", "a"], inplace=True)
         self.assertTrue(s.values.equals(exp))
+        res = s.cat.reorder_levels(["b", "a"])
+        self.assertTrue(res.values.equals(exp))
         exp = Categorical(["a","b",np.nan,"a"], levels=["b","a"])
         s[:] = "a"
-        s.cat.remove_unused_levels()
+        s = s.cat.remove_unused_levels()
         self.assert_numpy_array_equal(s.cat.levels, np.array(["a"]))
 
     def test_sequence_like(self):
@@ -1026,7 +1075,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = Series(Categorical(["a","b","c","a"], ordered=True))
         exp_levels = np.array(["c","b","a"])
         exp_values = np.array(["a","b","c","a"])
-        s.cat.reorder_levels(["c","b","a"])
+        s = s.cat.reorder_levels(["c","b","a"])
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
         self.assert_numpy_array_equal(s.values.__array__(), exp_values)
         self.assert_numpy_array_equal(s.__array__(), exp_values)
@@ -1035,7 +1084,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = Series(Categorical(["a","b","b","a"], levels=["a","b","c"]))
         exp_levels = np.array(["a","b"])
         exp_values = np.array(["a","b","b","a"])
-        s.cat.remove_unused_levels()
+        s = s.cat.remove_unused_levels()
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
         self.assert_numpy_array_equal(s.values.__array__(), exp_values)
         self.assert_numpy_array_equal(s.__array__(), exp_values)
@@ -1298,7 +1347,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # GH 7848
         df = DataFrame({"id":[6,5,4,3,2,1], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
         df["grade"] = pd.Categorical(df["raw_grade"])
-        df['grade'].cat.reorder_levels(['b', 'e', 'a'])
+        df['grade'] = df['grade'].cat.reorder_levels(['b', 'e', 'a'])
 
         # sorts 'grade' according to the order of the levels
         result = df.sort(columns=['grade'])

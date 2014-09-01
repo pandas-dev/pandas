@@ -299,6 +299,8 @@ class Categorical(PandasObject):
         """
         Make a Categorical type from a single array-like object.
 
+        For internal compatibility with numpy arrays.
+
         Parameters
         ----------
         data : array-like
@@ -412,7 +414,7 @@ class Categorical(PandasObject):
 
     levels = property(fget=_get_levels, fset=_set_levels, doc=_levels_doc)
 
-    def reorder_levels(self, new_levels, ordered=None):
+    def reorder_levels(self, new_levels, ordered=None, inplace=False):
         """ Reorders levels as specified in new_levels.
 
         `new_levels` must include all old levels but can also include new level items. In
@@ -432,27 +434,50 @@ class Categorical(PandasObject):
         ordered : boolean, optional
            Whether or not the categorical is treated as a ordered categorical. If not given,
            do not change the ordered information.
+        inplace : bool (default: False)
+           Whether or not to reorder the levels inplace or return a copy of this categorical with
+           reordered levels.
+
+        Returns
+        -------
+        cat : Categorical with reordered levels.
         """
         new_levels = self._validate_levels(new_levels)
 
         if len(new_levels) < len(self._levels) or len(self._levels.difference(new_levels)):
             raise ValueError('Reordered levels must include all original levels')
-        values = self.__array__()
-        self._codes = _get_codes_for_values(values, new_levels)
-        self._levels = new_levels
-        if not ordered is None:
-            self.ordered = ordered
 
-    def remove_unused_levels(self):
+        cat = self if inplace else self.copy()
+        values = cat.__array__()
+        cat._codes = _get_codes_for_values(values, new_levels)
+        cat._levels = new_levels
+        if not ordered is None:
+            cat.ordered = ordered
+        if not inplace:
+            return cat
+
+    def remove_unused_levels(self, inplace=False):
         """ Removes levels which are not used.
 
-        The level removal is done inplace.
+        Parameters
+        ----------
+        inplace : bool (default: False)
+           Whether or not to drop unused levels inplace or return a copy of this categorical with
+           unused levels dropped.
+
+        Returns
+        -------
+        cat : Categorical with unused levels dropped.
+
         """
-        _used = sorted(np.unique(self._codes))
-        new_levels = self.levels.take(com._ensure_platform_int(_used))
+        cat = self if inplace else self.copy()
+        _used = sorted(np.unique(cat._codes))
+        new_levels = cat.levels.take(com._ensure_platform_int(_used))
         new_levels = _ensure_index(new_levels)
-        self._codes = _get_codes_for_values(self.__array__(), new_levels)
-        self._levels = new_levels
+        cat._codes = _get_codes_for_values(cat.__array__(), new_levels)
+        cat._levels = new_levels
+        if not inplace:
+            return cat
 
 
     __eq__ = _cat_compare_op('__eq__')
@@ -683,7 +708,14 @@ class Categorical(PandasObject):
         return self
 
     def to_dense(self):
-        """ Return my 'dense' repr """
+        """Return my 'dense' representation
+
+        For internal compatibility with numpy arrays.
+
+        Returns
+        -------
+        dense : array
+        """
         return np.asarray(self)
 
     def fillna(self, fill_value=None, method=None, limit=None, **kwargs):
@@ -743,7 +775,10 @@ class Categorical(PandasObject):
                            name=self.name, fastpath=True)
 
     def take_nd(self, indexer, allow_fill=True, fill_value=None):
-        """ Take the codes by the indexer, fill with the fill_value. """
+        """ Take the codes by the indexer, fill with the fill_value.
+
+        For internal compatibility with numpy arrays.
+        """
 
         # filling must always be None/nan here
         # but is passed thru internally
@@ -757,7 +792,10 @@ class Categorical(PandasObject):
     take = take_nd
 
     def _slice(self, slicer):
-        """ Return a slice of myself. """
+        """ Return a slice of myself.
+
+        For internal compatibility with numpy arrays.
+        """
 
         # only allow 1 dimensional slicing, but can
         # in a 2-d case be passd (slice(None),....)
@@ -771,19 +809,21 @@ class Categorical(PandasObject):
                            name=self.name, fastpath=True)
 
     def __len__(self):
+        """The length of this Categorical."""
         return len(self._codes)
 
     def __iter__(self):
+        """Returns an Iterator over the values of this Categorical."""
         return iter(np.array(self))
 
-    def _tidy_repr(self, max_vals=20):
+    def _tidy_repr(self, max_vals=10):
         num = max_vals // 2
         head = self[:num]._get_repr(length=False, name=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False,
                                                   name=False,
                                                   footer=False)
 
-        result = '%s\n...\n%s' % (head, tail)
+        result = '%s, ..., %s' % (head[:-1], tail[1:])
         result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
@@ -840,17 +880,14 @@ class Categorical(PandasObject):
 
     def __unicode__(self):
         """ Unicode representation. """
-        width, height = get_terminal_size()
-        max_rows = (height if get_option("display.max_rows") == 0
-                    else get_option("display.max_rows"))
-
-        if len(self._codes) > (max_rows or 1000):
-            result = self._tidy_repr(min(30, max_rows) - 4)
+        _maxlen = 10
+        if len(self._codes) > _maxlen:
+            result = self._tidy_repr(_maxlen)
         elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > 50,
+            result = self._get_repr(length=len(self) > _maxlen,
                                     name=True)
         else:
-            result = 'Categorical([], %s' % self._get_repr(name=True,
+            result = '[], %s' % self._get_repr(name=True,
                                                            length=False,
                                                            footer=True,
                                                            ).replace("\n",", ")
@@ -1025,7 +1062,7 @@ class Categorical(PandasObject):
         -------
         unique values : array
         """
-        return self.levels
+        return np.asarray(self.levels)
 
     def equals(self, other):
         """
@@ -1113,8 +1150,11 @@ class CategoricalProperties(PandasDelegate):
         return setattr(self.categorical, name, new_values)
 
     def _delegate_method(self, name, *args, **kwargs):
+        from pandas import Series
         method = getattr(self.categorical, name)
-        return method(*args, **kwargs)
+        res = method(*args, **kwargs)
+        if not res is None:
+            return Series(res, index=self.index)
 
 CategoricalProperties._add_delegate_accessors(delegate=Categorical,
                                               accessors=["levels", "ordered"],
