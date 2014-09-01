@@ -39,31 +39,8 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(factor.ordered)
 
     def test_constructor(self):
-        # There are multiple ways to call a constructor
 
-        # old style: two arrays, one a pointer to the labels
-        # old style is now only available with compat=True
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            c_old = Categorical([0,1,2,0,1,2], levels=["a","b","c"], compat=True)
-        self.assert_numpy_array_equal(c_old.__array__(), exp_arr)
-        # the next one are from the old docs
-        with tm.assert_produces_warning(FutureWarning):
-           c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3], compat=True)
-        self.assert_numpy_array_equal(c_old2.__array__(), np.array([1, 2, 3, 1, 2, 3]))
-        with tm.assert_produces_warning(FutureWarning):
-            c_old3 = Categorical([0,1,2,0,1,2], ['a', 'b', 'c'], compat=True)
-        self.assert_numpy_array_equal(c_old3.__array__(), np.array(['a', 'b', 'c', 'a', 'b', 'c']))
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical([1,2], levels=[1,2,3], compat=True)
-        self.assert_numpy_array_equal(cat.__array__(), np.array([2,3]))
-
-        with tm.assert_produces_warning(None):
-            cat = pd.Categorical([1,2], levels=[1,2,3], compat=False)
-        self.assert_numpy_array_equal(cat.__array__(), np.array([1,2]))
-
-        # new style
         c1 = Categorical(exp_arr)
         self.assert_numpy_array_equal(c1.__array__(), exp_arr)
         c2 = Categorical(exp_arr, levels=["a","b","c"])
@@ -173,6 +150,21 @@ class TestCategorical(tm.TestCase):
         self.assertTrue(cat.levels[0] == 1)
         self.assertTrue(len(cat.codes) == 1)
         self.assertTrue(cat.codes[0] == 0)
+
+        # Catch old style constructor useage: two arrays, codes + levels
+        # We can only catch two cases:
+        #  - when the first is an integer dtype and the second is not
+        #  - when the resulting codes are all -1/NaN
+        with tm.assert_produces_warning(RuntimeWarning):
+            c_old = Categorical([0,1,2,0,1,2], levels=["a","b","c"])
+
+        with tm.assert_produces_warning(RuntimeWarning):
+            c_old = Categorical([0,1,2,0,1,2], levels=[3,4,5])
+
+        # the next one are from the old docs, but unfortunately these don't trigger :-(
+        with tm.assert_produces_warning(None):
+            c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
+            cat = Categorical([1,2], levels=[1,2,3])
 
     def test_constructor_with_generator(self):
         # This was raising an Error in isnull(single_val).any() because isnull returned a scalar

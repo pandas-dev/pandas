@@ -127,8 +127,6 @@ class Categorical(PandasObject):
     name : str, optional
         Name for the Categorical variable. If name is None, will attempt
         to infer from values.
-    compat : boolean, default=False
-        Whether to treat values as codes to the levels (old API, deprecated)
 
     Attributes
     ----------
@@ -197,7 +195,7 @@ class Categorical(PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare ops, which raise
     __array_priority__ = 1000
 
-    def __init__(self, values, levels=None, ordered=None, name=None, fastpath=False, compat=False):
+    def __init__(self, values, levels=None, ordered=None, name=None, fastpath=False):
 
         if fastpath:
             # fast path
@@ -257,32 +255,29 @@ class Categorical(PandasObject):
                     raise TypeError("'values' is not ordered, please explicitly specify the level "
                                     "order by passing in a level argument.")
         else:
-            # there are two ways if levels are present
-            # the old one, where each value is a int pointer to the levels array
-            # the new one, where each value is also in the level array (or np.nan)
+            # there were two ways if levels are present
+            # - the old one, where each value is a int pointer to the levels array -> not anymore
+            #   possible, but code outside of pandas could call us like that, so make some checks
+            # - the new one, where each value is also in the level array (or np.nan)
 
             # make sure that we always have the same type here, no matter what we get passed in
             levels = self._validate_levels(levels)
 
-            # There can be two ways: the old which passed in codes and levels directly
-            # and values have to be inferred and the new  one, which passes in values and levels
-            # and _codes have to be inferred.
+            codes = _get_codes_for_values(values, levels)
 
-            # min and max can be higher and lower if not all levels are in the values
-            if compat and (com.is_integer_dtype(values) and
-                               (np.min(values) >= -1) and (np.max(values) < len(levels))):
-                warn("Using 'values' as codes is deprecated.\n"
-                     "'Categorical(... , compat=True)' is only there for historical reasons and "
-                     "should not be used in new code!\n"
-                     "See https://github.com/pydata/pandas/pull/7217", FutureWarning)
-                codes = values
-            else:
-                codes = _get_codes_for_values(values, levels)
+            # TODO: check for old style usage. These warnings should be removes after 0.18/ in 2016
+            if com.is_integer_dtype(values) and not com.is_integer_dtype(levels):
+                warn("Values and Levels have different dtypes. Did you mean to use\n"
+                     "'Categorical.from_codes(codes, levels)'?", RuntimeWarning)
 
-                # if we got levels, we can assume that the order is intended
-                # if ordered is unspecified
-                if ordered is None:
-                    ordered = True
+            if com.is_integer_dtype(values) and (codes == -1).all():
+                warn("None of the levels were found in values. Did you mean to use\n"
+                     "'Categorical.from_codes(codes, levels)'?", RuntimeWarning)
+
+            # if we got levels, we can assume that the order is intended
+            # if ordered is unspecified
+            if ordered is None:
+                ordered = True
 
         self.ordered = False if ordered is None else ordered
         self._codes = codes
