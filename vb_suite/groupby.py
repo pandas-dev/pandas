@@ -474,3 +474,13 @@ df = DataFrame(np.random.randint(1, n / 10, (n, 3)),
 '''
 groupby_transform_multi_key3 = Benchmark(stmt, setup)
 groupby_transform_multi_key4 = Benchmark(stmt, setup + "df['jim'] = df['joe']")
+
+setup = common_setup + '''
+np.random.seed(27182)
+n = 100000
+df = DataFrame(np.random.randint(1, n / 100, (n, 3)),
+        columns=['jim', 'joe', 'jolie'])
+'''
+
+groupby_agg_builtins1 = Benchmark("df.groupby('jim').agg([sum, min, max])", setup)
+groupby_agg_builtins2 = Benchmark("df.groupby(['jim', 'joe']).agg([sum, min, max])", setup)

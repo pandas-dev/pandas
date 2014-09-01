@@ -609,7 +609,7 @@ class TestGroupBy(tm.TestCase):
 
         dt = pd.to_datetime(['2010-01-01', '2010-01-02', '2010-01-01',
                             '2010-01-02'])
-        df = DataFrame({'ids': [(x,) for x in dt]}) 
+        df = DataFrame({'ids': [(x,) for x in dt]})
         gr = df.groupby('ids')
         result = gr.get_group(('2010-01-01',))
         expected = DataFrame({'ids': [(dt[0],), (dt[0],)]}, index=[0, 2])
@@ -1695,6 +1695,30 @@ class TestGroupBy(tm.TestCase):
     def test_nonsense_func(self):
         df = DataFrame([0])
         self.assertRaises(Exception, df.groupby, lambda x: x + 'foo')
+
+    def test_builtins_apply(self): # GH8155
+        df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
+                          columns=['jim', 'joe'])
+        df['jolie'] = np.random.randn(1000)
+
+        for keys in ['jim', ['jim', 'joe']]:  # single key & multi-key
+            for f in [max, min, sum]:
+                fname = f.__name__
+                result = df.groupby(keys).apply(f)
+                ngroups = len(df.drop_duplicates(subset=keys))
+                assert result.shape == (ngroups, 3), 'invalid frame shape: '\
+                        '{} (expected ({}, 3))'.format(result.shape, ngroups)
+
+                assert_frame_equal(result,  # numpy's equivalent function
+                                   df.groupby(keys).apply(getattr(np, fname)))
+
+                if f != sum:
+                    expected = df.groupby(keys).agg(fname).reset_index()
+                    expected.set_index(keys, inplace=True, drop=False)
+                    assert_frame_equal(result, expected, check_dtype=False)
+
+                assert_series_equal(getattr(result, fname)(),
+                                    getattr(df, fname)())
 
     def test_cythonized_aggers(self):
         data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],

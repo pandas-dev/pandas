@@ -3618,12 +3618,16 @@ def _reorder_by_uniques(uniques, labels):
 
 
 _func_table = {
-    builtins.sum: np.sum
+    builtins.sum: np.sum,
+    builtins.max: np.max,
+    builtins.min: np.min
 }
 
 
 _cython_table = {
     builtins.sum: 'sum',
+    builtins.max: 'max',
+    builtins.min: 'min',
     np.sum: 'sum',
     np.mean: 'mean',
     np.prod: 'prod',
