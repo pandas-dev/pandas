@@ -2442,10 +2442,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @cache_readonly
     def cat(self):
-        from pandas.core.categorical import CategoricalProperties
+        from pandas.core.categorical import CategoricalAccessor
         if not com.is_categorical_dtype(self.dtype):
             raise TypeError("Can only use .cat accessor with a 'category' dtype")
-        return CategoricalProperties(self.values, self.index)
+        return CategoricalAccessor(self.values, self.index)
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})

@@ -1051,14 +1051,18 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertRaises(TypeError, lambda : Series(np.arange(5.)).cat)
         self.assertRaises(TypeError, lambda : Series([Timestamp('20130101')]).cat)
 
-        # Series should delegate calls to '.level', '.ordered' and '.reorder()' to the categorical
+        # Series should delegate calls to '.level', '.codes', '.ordered' and the
+        # methods '.reorder_levels()' 'drop_unused_levels()' to the categorical
         s = Series(Categorical(["a","b","c","a"], ordered=True))
         exp_levels = np.array(["a","b","c"])
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
-
         s.cat.levels = [1,2,3]
         exp_levels = np.array([1,2,3])
         self.assert_numpy_array_equal(s.cat.levels, exp_levels)
+
+        exp_codes = Series(com._ensure_platform_int([0,1,2,0]))
+        tm.assert_series_equal(s.cat.codes, exp_codes)
+
         self.assertEqual(s.cat.ordered, True)
         s.cat.ordered = False
         self.assertEqual(s.cat.ordered, False)
@@ -2087,7 +2091,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_cat_tab_completition(self):
          # test the tab completion display
-        ok_for_cat = ['levels','ordered','reorder_levels','remove_unused_levels']
+        ok_for_cat = ['levels','codes','ordered','reorder_levels','remove_unused_levels']
         def get_dir(s):
             results = [ r for r in s.cat.__dir__() if not r.startswith('_') ]
             return list(sorted(set(results)))

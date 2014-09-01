@@ -1121,7 +1121,7 @@ class Categorical(PandasObject):
 
 ##### The Series.cat accessor #####
 
-class CategoricalProperties(PandasDelegate):
+class CategoricalAccessor(PandasDelegate):
     """
     Accessor object for categorical properties of the Series values.
 
@@ -1144,6 +1144,11 @@ class CategoricalProperties(PandasDelegate):
     def _delegate_property_set(self, name, new_values):
         return setattr(self.categorical, name, new_values)
 
+    @property
+    def codes(self):
+        from pandas import Series
+        return Series(self.categorical.codes, index=self.index)
+
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
         method = getattr(self.categorical, name)
@@ -1151,10 +1156,10 @@ class CategoricalProperties(PandasDelegate):
         if not res is None:
             return Series(res, index=self.index)
 
-CategoricalProperties._add_delegate_accessors(delegate=Categorical,
+CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                               accessors=["levels", "ordered"],
                                               typ='property')
-CategoricalProperties._add_delegate_accessors(delegate=Categorical,
+CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                               accessors=["reorder_levels", "remove_unused_levels"],
                                               typ='method')
 
