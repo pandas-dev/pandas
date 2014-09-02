@@ -73,8 +73,8 @@ _codes_doc = """The category codes of this categorical.
 Level codes are an array if integer which are the positions of the real
 values in the categories array.
 
-There is not setter, used the other categorical methods and the item setter on
-Categorical to change values in the categorical.
+There is not setter, use the other categorical methods and the normal item setter to change
+values in the categorical.
 """
 
 _categories_doc = """The categories of this categorical.
@@ -82,23 +82,23 @@ _categories_doc = """The categories of this categorical.
 Setting assigns new values to each category (effectively a rename of
 each individual category).
 
-The assigned value has to be a list-like object. If the number of
-category-items is less than number of category-items in the current category,
-all category-items at a higher position are set to NaN. If the number of
-category-items is more that the current number of category-items, new
-(unused) categories are added at the end.
-
-To add category-items in between, use `reorder_categories`.
+The assigned value has to be a list-like object. All items must be unique and the number of items
+in the new categories must be the same as the number of items in the old categories.
 
 Raises
 ------
 ValueError
-    If the new categories do not validate as categories
+    If the new categories do not validate as categories or if the number of new categories is
+    unequal the number of old categories
 
 See also
 --------
-Categorical.reorder_categories
-Categorical.remove_unused_categories
+rename_categories
+reorder_categories
+add_categories
+remove_categories
+remove_unused_categories
+set_categories
 """
 class Categorical(PandasObject):
 
@@ -399,10 +399,9 @@ class Categorical(PandasObject):
     def _set_categories(self, categories):
         """ Sets new categories """
         categories = self._validate_categories(categories)
-
-        if not self._categories is None and len(categories) < len(self._categories):
-            # remove all _codes which are larger
-            self._codes[self._codes >= len(categories)] = -1
+        if not self._categories is None and len(categories) != len(self._categories):
+            raise ValueError("new categories need to have the same number of items than the old "
+                             "categories!")
         self._categories = categories
 
     def _get_categories(self):
@@ -425,18 +424,27 @@ class Categorical(PandasObject):
     # TODO: Remove after deprecation period in 2017/ after 0.18
     levels = property(fget=_get_levels, fset=_set_levels)
 
+    def set_categories(self, new_categories, ordered=None, rename=False, inplace=False):
+        """ Sets the categories to the specified new_categories.
 
-    def reorder_categories(self, new_categories, ordered=None, inplace=False):
-        """ Reorders categories as specified in new_categories.
+        `new_categories` can include new categories (which will result in unused categories) or
+        or remove old categories (which results in values set to NaN). If `rename==True`,
+        the categories will simple be renamed (less or more items than in old categories will
+        result in values set to NaN or in unused categories respectively).
 
-        `new_categories` do not need to include all old categories and can also include new
-        category items. All old categories not in new categories are replaced by NaN. In
-        contrast to assigning to `categories`, new category items can be in arbitrary positions.
+        This method can be used to perform more than one action of adding, removing,
+        and reordering simultaneously and is therefore faster than performing the individual steps
+        via the more specialised methods.
+
+        On the other hand this methods does not do checks (e.g., whether the old categories are
+        included in the new categories on a reorder), which can result in surprising changes, for
+        example when using special string dtypes on python3, which does not considers a S1 string
+        equal to a single char python string.
 
         Raises
         ------
         ValueError
-            If the new categories do not contain all old category items
+            If new_categories does not validate as categories
 
         Parameters
         ----------
@@ -445,31 +453,208 @@ class Categorical(PandasObject):
         ordered : boolean, optional
            Whether or not the categorical is treated as a ordered categorical. If not given,
            do not change the ordered information.
-        inplace : bool (default: False)
+        rename : boolean (default: False)
+           Whether or not the new_categories should be considered as a rename of the old
+           categories or as reordered categories.
+        inplace : boolean (default: False)
            Whether or not to reorder the categories inplace or return a copy of this categorical
            with reordered categories.
 
         Returns
         -------
         cat : Categorical with reordered categories or None if inplace.
+
+        See also
+        --------
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
         """
         new_categories = self._validate_categories(new_categories)
-
         cat = self if inplace else self.copy()
-        values = cat.__array__()
-        cat._codes = _get_codes_for_values(values, new_categories)
-        cat._categories = new_categories
+        if rename:
+            if not cat._categories is None and len(new_categories) < len(cat._categories):
+                # remove all _codes which are larger and set to -1/NaN
+                self._codes[self._codes >= len(new_categories)] = -1
+            cat._categories = new_categories
+        else:
+            values = cat.__array__()
+            cat._codes = _get_codes_for_values(values, new_categories)
+            cat._categories = new_categories
+
         if not ordered is None:
             cat.ordered = ordered
+
         if not inplace:
             return cat
+
+    def rename_categories(self, new_categories, inplace=False):
+        """ Renames categories.
+
+        The new categories has to be a list-like object. All items must be unique and the number of
+        items in the new categories must be the same as the number of items in the old categories.
+
+        Raises
+        ------
+        ValueError
+            If the new categories do not have the same number of items than the current categories
+            or do not validate as categories
+
+        Parameters
+        ----------
+        new_categories : Index-like
+           The renamed categories.
+        inplace : boolean (default: False)
+           Whether or not to rename the categories inplace or return a copy of this categorical
+           with renamed categories.
+
+        Returns
+        -------
+        cat : Categorical with renamed categories added or None if inplace.
+
+        See also
+        --------
+        reorder_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
+        """
+        cat = self if inplace else self.copy()
+        cat.categories = new_categories
+        if not inplace:
+            return cat
+
+    def reorder_categories(self, new_categories, ordered=None, inplace=False):
+        """ Reorders categories as specified in new_categories.
+
+        `new_categories` need to include all old categories and no new category items.
+
+        Raises
+        ------
+        ValueError
+            If the new categories do not contain all old category items or any new ones
+
+        Parameters
+        ----------
+        new_categories : Index-like
+           The categories in new order.
+        ordered : boolean, optional
+           Whether or not the categorical is treated as a ordered categorical. If not given,
+           do not change the ordered information.
+        inplace : boolean (default: False)
+           Whether or not to reorder the categories inplace or return a copy of this categorical
+           with reordered categories.
+
+        Returns
+        -------
+        cat : Categorical with reordered categories or None if inplace.
+
+        See also
+        --------
+        rename_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
+        """
+        if set(self._categories) != set(new_categories):
+            raise ValueError("items in new_categories are not the same as in old categories")
+        return self.set_categories(new_categories, ordered=ordered, inplace=inplace)
+
+    def add_categories(self, new_categories, inplace=False):
+        """ Add new categories.
+
+        `new_categories` will be included at the last/highest place in the categories and will be
+        unused directly after this call.
+
+        Raises
+        ------
+        ValueError
+            If the new categories include old categories or do not validate as categories
+
+        Parameters
+        ----------
+        new_categories : category or list-like of category
+           The new categories to be included.
+        inplace : boolean (default: False)
+           Whether or not to add the categories inplace or return a copy of this categorical
+           with added categories.
+
+        Returns
+        -------
+        cat : Categorical with new categories added or None if inplace.
+
+        See also
+        --------
+        rename_categories
+        reorder_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
+        """
+        if not com.is_list_like(new_categories):
+            new_categories = [new_categories]
+        already_included = set(new_categories) & set(self._categories)
+        if len(already_included) != 0:
+            msg = "new categories must not include old categories: %s" % str(already_included)
+            raise ValueError(msg)
+        new_categories = list(self._categories) + (new_categories)
+        new_categories = self._validate_categories(new_categories)
+        cat = self if inplace else self.copy()
+        cat._categories = new_categories
+        if not inplace:
+            return cat
+
+    def remove_categories(self, removals, inplace=False):
+        """ Removes the specified categories.
+
+        `removals` must be included in the old categories. Values which were in the removed
+        categories will be set to NaN
+
+        Raises
+        ------
+        ValueError
+            If the removals are not contained in the categories
+
+        Parameters
+        ----------
+        removals : category or list of categories
+           The categories which should be removed.
+        inplace : boolean (default: False)
+           Whether or not to remove the categories inplace or return a copy of this categorical
+           with removed categories.
+
+        Returns
+        -------
+        cat : Categorical with removed categories or None if inplace.
+
+        See also
+        --------
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_unused_categories
+        set_categories
+        """
+        if not com.is_list_like(removals):
+            removals = [removals]
+        not_included = set(removals) - set(self._categories)
+        if len(not_included) != 0:
+            raise ValueError("removals must all be in old categories: %s" % str(not_included))
+        new_categories = set(self._categories) - set(removals)
+        return self.set_categories(new_categories, ordered=self.ordered, rename=False,
+                                   inplace=inplace)
+
 
     def remove_unused_categories(self, inplace=False):
         """ Removes categories which are not used.
 
         Parameters
         ----------
-        inplace : bool (default: False)
+        inplace : boolean (default: False)
            Whether or not to drop unused categories inplace or return a copy of this categorical
            with unused categories dropped.
 
@@ -477,6 +662,13 @@ class Categorical(PandasObject):
         -------
         cat : Categorical with unused categories dropped or None if inplace.
 
+        See also
+        --------
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_categories
+        set_categories
         """
         cat = self if inplace else self.copy()
         _used = sorted(np.unique(cat._codes))
@@ -1176,8 +1368,12 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                             accessors=["categories", "ordered"],
                                             typ='property')
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
-                                            accessors=["reorder_categories",
-                                                       "remove_unused_categories"],
+                                            accessors=["rename_categories",
+                                                       "reorder_categories",
+                                                       "add_categories",
+                                                       "remove_categories",
+                                                       "remove_unused_categories",
+                                                       "set_categories"],
                                             typ='method')
 
 ##### utility routines #####
