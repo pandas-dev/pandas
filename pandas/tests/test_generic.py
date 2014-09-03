@@ -1005,18 +1005,17 @@ class TestDataFrame(tm.TestCase, Generic):
         df = DataFrame({"C1": pd.date_range('2010-01-01', periods=4, freq='D')})
         df.loc[4] = pd.Timestamp('2010-01-04')
         result = df.describe()
-        expected = DataFrame({"C1": [5, 4, pd.Timestamp('2010-01-01'),
-                                     pd.Timestamp('2010-01-04'),
-                                     pd.Timestamp('2010-01-04'), 2]},
-                             index=['count', 'unique', 'first', 'last', 'top',
-                                    'freq'])
+        expected = DataFrame({"C1": [5, 4, pd.Timestamp('2010-01-04'), 2,
+                                     pd.Timestamp('2010-01-01'),
+                                     pd.Timestamp('2010-01-04')]},
+                             index=['count', 'unique', 'top', 'freq',
+                                    'first', 'last'])
         assert_frame_equal(result, expected)
 
         # mix time and str
         df['C2'] = ['a', 'a', 'b', 'c', 'a']
         result = df.describe()
-        # when mix of dateimte / obj the index gets reordered.
-        expected['C2'] = [5, 3, np.nan, np.nan, 'a', 3]
+        expected['C2'] = [5, 3, 'a', 3, np.nan, np.nan]
         assert_frame_equal(result, expected)
 
         # just str
@@ -1035,6 +1034,112 @@ class TestDataFrame(tm.TestCase, Generic):
 
         assert_frame_equal(df[['C1', 'C3']].describe(), df[['C3']].describe())
         assert_frame_equal(df[['C2', 'C3']].describe(), df[['C3']].describe())
+
+    def test_describe_typefiltering(self):
+        df = DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+                        'catB': ['a', 'b', 'c', 'd'] * 6,
+                        'numC': np.arange(24, dtype='int64'),
+                        'numD': np.arange(24.) + .5,
+                        'ts': tm.makeTimeSeries()[:24].index})
+
+        descN = df.describe()
+        expected_cols = ['numC', 'numD',]
+        expected = DataFrame(dict((k, df[k].describe())
+                                  for k in expected_cols),
+                             columns=expected_cols)
+        assert_frame_equal(descN, expected)
+
+        desc = df.describe(include=['number'])
+        assert_frame_equal(desc, descN)
+        desc = df.describe(exclude=['object', 'datetime'])
+        assert_frame_equal(desc, descN)
+        desc = df.describe(include=['float'])
+        assert_frame_equal(desc, descN.drop('numC',1))
+
+        descC = df.describe(include=['O'])
+        expected_cols = ['catA', 'catB']
+        expected = DataFrame(dict((k, df[k].describe())
+                                  for k in expected_cols),
+                             columns=expected_cols)
+        assert_frame_equal(descC, expected)
+
+        descD = df.describe(include=['datetime'])
+        assert_series_equal( descD.ts, df.ts.describe())
+
+        desc = df.describe(include=['object','number', 'datetime'])
+        assert_frame_equal(desc.loc[:,["numC","numD"]].dropna(), descN)
+        assert_frame_equal(desc.loc[:,["catA","catB"]].dropna(), descC)
+        descDs = descD.sort_index() # the index order change for mixed-types
+        assert_frame_equal(desc.loc[:,"ts":].dropna().sort_index(), descDs)
+
+        desc = df.loc[:,'catA':'catB'].describe(include='all')
+        assert_frame_equal(desc, descC)
+        desc = df.loc[:,'numC':'numD'].describe(include='all')
+        assert_frame_equal(desc, descN)
+
+        desc = df.describe(percentiles = [], include='all')
+        cnt = Series(data=[4,4,6,6,6], index=['catA','catB','numC','numD','ts'])
+        assert_series_equal( desc.count(), cnt)
+        self.assertTrue('count' in desc.index)
+        self.assertTrue('unique' in desc.index)
+        self.assertTrue('50%' in desc.index)
+        self.assertTrue('first' in desc.index)
+
+        desc = df.drop("ts", 1).describe(percentiles = [], include='all')
+        assert_series_equal( desc.count(), cnt.drop("ts"))
+        self.assertTrue('first' not in desc.index)
+        desc = df.drop(["numC","numD"], 1).describe(percentiles = [], include='all')
+        assert_series_equal( desc.count(), cnt.drop(["numC","numD"]))
+        self.assertTrue('50%' not in desc.index)
+
+    def test_describe_typefiltering_category_bool(self):
+        df = DataFrame({'A_cat': pd.Categorical(['foo', 'foo', 'bar'] * 8),
+                        'B_str': ['a', 'b', 'c', 'd'] * 6,
+                        'C_bool': [True] * 12 + [False] * 12,
+                        'D_num': np.arange(24.) + .5,
+                        'E_ts': tm.makeTimeSeries()[:24].index})
+
+        # bool is considered numeric in describe, although not an np.number
+        desc = df.describe()
+        expected_cols = ['C_bool', 'D_num']
+        expected = DataFrame(dict((k, df[k].describe())
+                                  for k in expected_cols),
+                             columns=expected_cols)
+        assert_frame_equal(desc, expected)
+
+        desc = df.describe(include=["category"])
+        self.assertTrue(desc.columns.tolist() == ["A_cat"])
+
+        # 'all' includes numpy-dtypes + category
+        desc1 = df.describe(include="all")
+        desc2 = df.describe(include=[np.generic, "category"])
+        assert_frame_equal(desc1, desc2)
+
+    def test_describe_timedelta(self):
+        df = DataFrame({"td": pd.to_timedelta(np.arange(24)%20,"D")})
+        self.assertTrue(df.describe().loc["mean"][0] == pd.to_timedelta("8d4h"))
+
+    def test_describe_typefiltering_dupcol(self):
+        df = DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+                        'catB': ['a', 'b', 'c', 'd'] * 6,
+                        'numC': np.arange(24),
+                        'numD': np.arange(24.) + .5,
+                        'ts': tm.makeTimeSeries()[:24].index})
+        s = df.describe(include='all').shape[1]
+        df = pd.concat([df, df], axis=1)
+        s2 = df.describe(include='all').shape[1]
+        self.assertTrue(s2 == 2 * s)
+
+    def test_describe_typefiltering_groupby(self):
+        df = DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+                'catB': ['a', 'b', 'c', 'd'] * 6,
+                'numC': np.arange(24),
+                'numD': np.arange(24.) + .5,
+                'ts': tm.makeTimeSeries()[:24].index})
+        G = df.groupby('catA')
+        self.assertTrue(G.describe(include=['number']).shape == (16, 2))
+        self.assertTrue(G.describe(include=['number', 'object']).shape == (22, 3))
+        self.assertTrue(G.describe(include='all').shape == (26, 4))
 
     def test_no_order(self):
         tm._skip_if_no_scipy()

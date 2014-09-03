@@ -56,6 +56,24 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
+- :func:`describe` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments (:issue:`8164`).
+
+  .. ipython:: python
+
+    df = DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+                    'catB': ['a', 'b', 'c', 'd'] * 6,
+                    'numC': np.arange(24),
+                    'numD': np.arange(24.) + .5})
+    df.describe(include=["object"])
+    df.describe(include=["number", "object"], exclude=["float"])
+
+  Requesting all columns is possible with the shorthand 'all'
+
+  .. ipython:: python
+
+    df.describe(include='all')
+
+  Without those arguments, 'describe` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
 
 - Passing multiple levels to `DataFrame.stack()` will now work when multiple level
   numbers are passed (:issue:`7660`), and will raise a ``ValueError`` when the
