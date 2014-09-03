@@ -437,7 +437,7 @@ Enhancements
   For example:
 
 .. code-block:: python
-   
+
    df.to_sql('table', engine, schema='other_schema')
    pd.read_sql_table('table', engine, schema='other_schema')
 
@@ -508,6 +508,7 @@ Performance
 - Performance improvements in ``StataReader`` when reading large files (:issue:`8040`, :issue:`8073`)
 - Performance improvements in ``StataWriter`` when writing large files (:issue:`8079`)
 - Performance and memory usage improvements in multi-key ``groupby`` (:issue:`8128`)
+- Performance improvements in groupby ``.agg`` and ``.apply`` where builtins max/min were not mapped to numpy/cythonized versions (:issue:`7722`)
 
 
 
@@ -668,4 +669,3 @@ Bug Fixes
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
 
-- Bug in ``.agg`` and ``.apply`` where builtins max/min were not mapped to numpy/cythonized versions (:issue:`7722`)
