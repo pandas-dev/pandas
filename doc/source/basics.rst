@@ -490,6 +490,24 @@ number of unique values and most frequently occurring values:
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
 
+Note that on a mixed-type DataFrame object, `describe` will restrict the summary to
+include only numerical columns or, if none are, only categorical columns:
+
+.. ipython:: python
+
+    frame = DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
+    frame.describe()
+
+This behaviour can be controlled by providing a list of types as ``include``/``exclude``
+arguments. The special value ``all`` can also be used:
+
+.. ipython:: python
+
+    frame.describe(include=['object'])
+    frame.describe(include=['number'])
+    frame.describe(include='all')
+
+That feature relies on :ref:`select_dtypes <basics.selectdtypes>`. Refer to there for details about accepted inputs.
 
 There also is a utility function, ``value_range`` which takes a DataFrame and
 returns a series with the minimum/maximum values in the DataFrame.

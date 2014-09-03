@@ -3654,6 +3654,17 @@ class NDFrame(PandasObject):
             The percentiles to include in the output. Should all
             be in the interval [0, 1]. By default `percentiles` is
             [.25, .5, .75], returning the 25th, 50th, and 75th percentiles.
+        include, exclude : list-like, 'all', or None (default)
+            Specify the form of the returned result. Either:
+
+            - None to both (default). The result will include only numeric-typed
+              columns or, if none are, only categorical columns.
+            - A list of dtypes or strings to be included/excluded.
+              To select all numeric types use numpy numpy.number. To select
+              categorical objects use type object. See also the select_dtypes
+              documentation. eg. df.describe(include=['O'])
+            - If include is the string 'all', the output column-set will
+              match the input one.
 
         Returns
         -------
@@ -3661,20 +3672,33 @@ class NDFrame(PandasObject):
 
         Notes
         -----
-        For numeric dtypes the index includes: count, mean, std, min,
+        The output DataFrame index depends on the requested dtypes:
+
+        For numeric dtypes, it will include: count, mean, std, min,
         max, and lower, 50, and upper percentiles.
 
-        If self is of object dtypes (e.g. timestamps or strings), the output
+        For object dtypes (e.g. timestamps or strings), the index
         will include the count, unique, most common, and frequency of the
         most common. Timestamps also include the first and last items.
+
+        For mixed dtypes, the index will be the union of the corresponding
+        output types. Non-applicable entries will be filled with NaN.
+        Note that mixed-dtype outputs can only be returned from mixed-dtype
+        inputs and appropriate use of the include/exclude arguments.
 
         If multiple values have the highest count, then the
         `count` and `most common` pair will be arbitrarily chosen from
         among those with the highest count.
+
+        The include, exclude arguments are ignored for Series.
+
+        See also
+        --------
+        DataFrame.select_dtypes
         """
 
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
-    def describe(self, percentile_width=None, percentiles=None):
+    def describe(self, percentile_width=None, percentiles=None, include=None, exclude=None ):
         if self.ndim >= 3:
             msg = "describe is not implemented on on Panel or PanelND objects."
             raise NotImplementedError(msg)
@@ -3711,16 +3735,6 @@ class NDFrame(PandasObject):
             uh = percentiles[percentiles > .5]
             percentiles = np.hstack([lh, 0.5, uh])
 
-        # dtypes: numeric only, numeric mixed, objects only
-        data = self._get_numeric_data()
-        if self.ndim > 1:
-            if len(data._info_axis) == 0:
-                is_object = True
-            else:
-                is_object = False
-        else:
-            is_object = not self._is_numeric_mixed_type
-
         def pretty_name(x):
             x *= 100
             if x == int(x):
@@ -3729,10 +3743,12 @@ class NDFrame(PandasObject):
                 return '%.1f%%' % x
 
         def describe_numeric_1d(series, percentiles):
-            return ([series.count(), series.mean(), series.std(),
-                     series.min()] +
-                    [series.quantile(x) for x in percentiles] +
-                    [series.max()])
+            stat_index = (['count', 'mean', 'std', 'min'] +
+                  [pretty_name(x) for x in percentiles] + ['max'])
+            d = ([series.count(), series.mean(), series.std(), series.min()] +
+                 [series.quantile(x) for x in percentiles] + [series.max()])
+            return pd.Series(d, index=stat_index, name=series.name)
+
 
         def describe_categorical_1d(data):
             names = ['count', 'unique']
@@ -3745,44 +3761,49 @@ class NDFrame(PandasObject):
                     names += ['top', 'freq']
                     result += [top, freq]
 
-                elif issubclass(data.dtype.type, np.datetime64):
+                elif com.is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
-                    names += ['first', 'last', 'top', 'freq']
-                    result += [lib.Timestamp(asint.min()),
-                               lib.Timestamp(asint.max()),
-                               lib.Timestamp(top), freq]
+                    names += ['top', 'freq', 'first', 'last']
+                    result += [lib.Timestamp(top), freq,
+                               lib.Timestamp(asint.min()),
+                               lib.Timestamp(asint.max())]
 
-            return pd.Series(result, index=names)
+            return pd.Series(result, index=names, name=data.name)
 
-        if is_object:
-            if data.ndim == 1:
-                return describe_categorical_1d(self)
+        def describe_1d(data, percentiles):
+            if com.is_numeric_dtype(data):
+                return describe_numeric_1d(data, percentiles)
+            elif com.is_timedelta64_dtype(data):
+                return describe_numeric_1d(data, percentiles)
             else:
-                result = pd.DataFrame(dict((k, describe_categorical_1d(v))
-                                           for k, v in compat.iteritems(self)),
-                                      columns=self._info_axis,
-                                      index=['count', 'unique', 'first', 'last',
-                                             'top', 'freq'])
-                # just objects, no datime
-                if pd.isnull(result.loc['first']).all():
-                    result = result.drop(['first', 'last'], axis=0)
-                return result
+                return describe_categorical_1d(data)
+
+        if self.ndim == 1:
+            return describe_1d(self, percentiles)
+        elif (include is None) and (exclude is None):
+            if len(self._get_numeric_data()._info_axis) > 0:
+                # when some numerics are found, keep only numerics
+                data = self.select_dtypes(include=[np.number, np.bool])
+            else:
+                data = self
+        elif include == 'all':
+            if exclude != None:
+                msg = "exclude must be None when include is 'all'"
+                raise ValueError(msg)
+            data = self
         else:
-            stat_index = (['count', 'mean', 'std', 'min'] +
-                          [pretty_name(x) for x in percentiles] +
-                          ['max'])
-            if data.ndim == 1:
-                return pd.Series(describe_numeric_1d(data, percentiles),
-                                 index=stat_index)
-            else:
-                destat = []
-                for i in range(len(data._info_axis)):  # BAD
-                    series = data.iloc[:, i]
-                    destat.append(describe_numeric_1d(series, percentiles))
+            data = self.select_dtypes(include=include, exclude=exclude)
 
-                return self._constructor(lmap(list, zip(*destat)),
-                                         index=stat_index,
-                                         columns=data._info_axis)
+        ldesc = [describe_1d(s, percentiles) for _, s in data.iteritems()]
+        # set a convenient order for rows
+        names = []
+        ldesc_indexes = sorted([x.index for x in ldesc], key=len)
+        for idxnames in ldesc_indexes:
+            for name in idxnames:
+                if name not in names:
+                    names.append(name)
+        d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
+        return d
 
     _shared_docs['pct_change'] = """
         Percent change over given number of periods.
