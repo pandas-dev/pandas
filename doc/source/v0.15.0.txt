@@ -418,8 +418,8 @@ There are no prior version deprecations that are taking effect as of 0.15.0.
 Deprecations
 ~~~~~~~~~~~~
 
-The ``convert_dummies`` method has been deprecated in favor of
-``get_dummies``(:issue:`8140`)
+- The ``convert_dummies`` method has been deprecated in favor of
+  ``get_dummies`` (:issue:`8140`)
 
 .. _whatsnew_0150.knownissues:
 
@@ -473,8 +473,8 @@ Enhancements
 
 
 - The ``get_dummies`` method can now be used on DataFrames. By default only
-catagorical columns are encoded as 0's and 1's, while other columns are
-left untouched.
+  catagorical columns are encoded as 0's and 1's, while other columns are
+  left untouched.
 
   .. ipython:: python
 
@@ -585,7 +585,7 @@ Bug Fixes
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
 - Bug in :func:`rolling_count` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
-- Bug in :func:`rolling_apply` and :func:`expanding_apply`` interpreting ``min_periods=0`` as ``min_periods=1 (:issue:`8080`)
+- Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
 - Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
 
 
