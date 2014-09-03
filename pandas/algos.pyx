@@ -977,7 +977,7 @@ def roll_mean(ndarray[double_t] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na):
+def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na, int minp):
     '''
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -987,45 +987,146 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na):
     com : float64
     adjust: int
     ignore_na: int
+    minp: int
 
     Returns
     -------
     y : ndarray
     '''
 
-    cdef double cur, prev, neww, oldw, adj
-    cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
-
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
-
     if N == 0:
         return output
 
+    minp = max(minp, 1)
+
+    cdef double alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
+    cdef Py_ssize_t i, nobs
+
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
-    new_wt = 1.0 if adjust else alpha
+    new_wt = 1. if adjust else alpha
 
-    output[0] = input[0]
-    weighted_avg = output[0]
+    weighted_avg = input[0]
+    is_observation = (weighted_avg == weighted_avg)
+    nobs = int(is_observation)
+    output[0] = weighted_avg if (nobs >= minp) else NaN
     old_wt = 1.
 
     for i from 1 <= i < N:
         cur = input[i]
+        is_observation = (cur == cur)
+        nobs += int(is_observation)
         if weighted_avg == weighted_avg:
-            if cur == cur:
+            if is_observation or (not ignore_na):
                 old_wt *= old_wt_factor
-                weighted_avg = ((old_wt * weighted_avg) + (new_wt * cur)) / (old_wt + new_wt)
-                if adjust:
-                    old_wt += new_wt
-                else:
-                    old_wt = 1.
-            elif not ignore_na:
-                old_wt *= old_wt_factor
-        else:
+                if is_observation:
+                    if weighted_avg != cur:  # avoid numerical errors on constant series
+                        weighted_avg = ((old_wt * weighted_avg) + (new_wt * cur)) / (old_wt + new_wt)
+                    if adjust:
+                        old_wt += new_wt
+                    else:
+                        old_wt = 1.
+        elif is_observation:
             weighted_avg = cur
 
-        output[i] = weighted_avg
+        output[i] = weighted_avg if (nobs >= minp) else NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Exponentially weighted moving covariance
+
+def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
+           double_t com, int adjust, int ignore_na, int minp, int bias):
+    '''
+    Compute exponentially-weighted moving variance using center-of-mass.
+
+    Parameters
+    ----------
+    input_x : ndarray (float64 type)
+    input_y : ndarray (float64 type)
+    com : float64
+    adjust: int
+    ignore_na: int
+    minp: int
+    bias: int
+
+    Returns
+    -------
+    y : ndarray
+    '''
+
+    cdef Py_ssize_t N = len(input_x)
+    if len(input_y) != N:
+        raise ValueError('arrays are of different lengths (%d and %d)' % (N, len(input_y)))
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+    if N == 0:
+        return output
+
+    minp = max(minp, 1)
+
+    cdef double alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
+    cdef double sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
+    cdef Py_ssize_t i, nobs
+
+    alpha = 1. / (1. + com)
+    old_wt_factor = 1. - alpha
+    new_wt = 1. if adjust else alpha
+
+    mean_x = input_x[0]
+    mean_y = input_y[0]
+    is_observation = ((mean_x == mean_x) and (mean_y == mean_y))
+    nobs = int(is_observation)
+    if not is_observation:
+        mean_x = NaN
+        mean_y = NaN
+    output[0] = (0. if bias else NaN) if (nobs >= minp) else NaN
+    cov = 0.
+    sum_wt = 1.
+    sum_wt2 = 1.
+    old_wt = 1.
+    
+    for i from 1 <= i < N:
+        cur_x = input_x[i]
+        cur_y = input_y[i]
+        is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
+        nobs += int(is_observation)
+        if mean_x == mean_x:
+            if is_observation or (not ignore_na):
+                sum_wt *= old_wt_factor
+                sum_wt2 *= (old_wt_factor * old_wt_factor)
+                old_wt *= old_wt_factor
+                if is_observation:
+                    old_mean_x = mean_x
+                    old_mean_y = mean_y
+                    if mean_x != cur_x:  # avoid numerical errors on constant series
+                        mean_x = ((old_wt * old_mean_x) + (new_wt * cur_x)) / (old_wt + new_wt)
+                    if mean_y != cur_y:  # avoid numerical errors on constant series
+                        mean_y = ((old_wt * old_mean_y) + (new_wt * cur_y)) / (old_wt + new_wt)
+                    cov = ((old_wt * (cov + ((old_mean_x - mean_x) * (old_mean_y - mean_y)))) +
+                           (new_wt * ((cur_x - mean_x) * (cur_y - mean_y)))) / (old_wt + new_wt)
+                    sum_wt += new_wt
+                    sum_wt2 += (new_wt * new_wt)
+                    old_wt += new_wt
+                    if not adjust:
+                        sum_wt /= old_wt
+                        sum_wt2 /= (old_wt * old_wt)
+                        old_wt = 1.
+        elif is_observation:
+            mean_x = cur_x
+            mean_y = cur_y
+        
+        if nobs >= minp:
+            if not bias:
+                numerator = sum_wt * sum_wt
+                denominator = numerator - sum_wt2
+                output[i] = ((numerator / denominator) * cov) if (denominator > 0.) else NaN
+            else:
+                output[i] = cov
+        else:
+            output[i] = NaN
 
     return output
 
@@ -1180,7 +1281,7 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
             mean_x += delta / nobs
             ssqdm_x += delta * (val - mean_x)
 
-        if nobs >= minp:
+        if (nobs >= minp) and (nobs > ddof):
             #pathological case
             if nobs == 1:
                 val = 0
@@ -1224,7 +1325,7 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
                 ssqdm_x = 0
         # Variance is unchanged if no observation is added or removed
 
-        if nobs >= minp:
+        if (nobs >= minp) and (nobs > ddof):
             #pathological case
             if nobs == 1:
                 val = 0
@@ -1285,17 +1386,14 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
                 xxx -= prev * prev * prev
 
                 nobs -= 1
-
         if nobs >= minp:
             A = x / nobs
             B = xx / nobs - A * A
             C = xxx / nobs - A * A * A - 3 * A * B
-
-            R = sqrt(B)
-
-            if B == 0 or nobs < 3:
+            if B <= 0 or nobs < 3:
                 output[i] = NaN
             else:
+                R = sqrt(B)
                 output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
                              ((nobs-2) * R * R * R))
         else:
