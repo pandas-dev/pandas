@@ -147,10 +147,7 @@ def _last_compat(x, axis=0):
 
 
 def _count_compat(x, axis=0):
-    try:
-        return x.size
-    except:
-        return x.count()
+    return x.count()  # .size != .count(); count excludes nan
 
 class Grouper(object):
     """
@@ -1527,14 +1524,15 @@ class BaseGrouper(object):
 
         result = self._aggregate(result, counts, values, how, is_numeric)
 
-        if self._filter_empty_groups:
+        if self._filter_empty_groups and not counts.all():
             if result.ndim == 2:
                 try:
                     result = lib.row_bool_subset(
                         result, (counts > 0).view(np.uint8))
                 except ValueError:
                     result = lib.row_bool_subset_object(
-                        result, (counts > 0).view(np.uint8))
+                                    com._ensure_object(result),
+                                    (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]
 
@@ -2477,7 +2475,7 @@ class NDFrameGroupBy(GroupBy):
             values = block._try_operate(block.values)
 
             if block.is_numeric:
-                values = com.ensure_float(values)
+                values = _algos.ensure_float64(values)
 
             result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
 
