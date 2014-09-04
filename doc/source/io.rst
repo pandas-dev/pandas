@@ -176,7 +176,12 @@ They can take a number of arguments:
   - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified
     as 'X.0'...'X.N', rather than 'X'...'X'
   - ``tupleize_cols``: boolean, default False, if False, convert a list of tuples
-    to a multi-index of columns, otherwise, leave the column index as a list of tuples
+    to a multi-index of columns, otherwise, leave the column index as a list of
+    tuples
+  - ``float_precision`` : string, default None. Specifies which converter the C
+    engine should use for floating-point values. The options are None for the
+    ordinary converter, 'high' for the high-precision converter, and
+    'round_trip' for the round-trip converter.
 
 .. ipython:: python
    :suppress:
@@ -510,6 +515,23 @@ data columns:
    instead of a regular `dict` if this matters to you. Because of this, when using a
    dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
    specify `index_col` as a column label rather then as an index on the resulting frame.
+
+
+Specifying method for floating-point conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The parameter ``float_precision`` can be specified in order to use
+a specific floating-point converter during parsing with the C engine.
+The options are the ordinary converter, the high-precision converter, and
+the round-trip converter (which is guaranteed to round-trip values after
+writing to a file). For example:
+
+.. ipython:: python
+
+   val = '0.3066101993807095471566981359501369297504425048828125'
+   data = 'a,b,c\n1,2,{0}'.format(val)
+   abs(pd.read_csv(StringIO(data), engine='c', float_precision=None)['c'][0] - float(val))
+   abs(pd.read_csv(StringIO(data), engine='c', float_precision='high')['c'][0] - float(val))
+   abs(pd.read_csv(StringIO(data), engine='c', float_precision='round_trip')['c'][0] - float(val))
 
 
 Date Parsing Functions
