@@ -869,7 +869,7 @@ This shows the first or last n rows from each group.
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use the nth method. This is a reduction method, and will return a single row (or no row) per group:
+To select from a DataFrame or Series the nth item, use the nth method. This is a reduction method, and will return a single row (or no row) per group if you pass an int for n:
 
 .. ipython:: python
 
@@ -880,7 +880,7 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
    g.nth(-1)
    g.nth(1)
 
-If you want to select the nth not-null method, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
+If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
 
 .. ipython:: python
 
@@ -903,6 +903,15 @@ As with other methods, passing ``as_index=False``, will achieve a filtration, wh
 
    g.nth(0)
    g.nth(-1)
+
+You can also select multiple rows from each group by specifying multiple nth values as a list of ints.
+
+.. ipython:: python
+
+   business_dates = date_range(start='4/1/2014', end='6/30/2014', freq='B')
+   df = DataFrame(1, index=business_dates, columns=['a', 'b'])
+   # get the first, 4th, and last date index for each month
+   df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
