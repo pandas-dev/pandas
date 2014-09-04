@@ -2812,7 +2812,8 @@ class TestIndexing(tm.TestCase):
         df.loc[1] = df.loc[2]
         assert_frame_equal(df,expected)
 
-        expected = DataFrame(dict({ 'A' : [0,2,4,4], 'B' : [1,3,5,5] }),dtype='float64')
+        # like 2578, partial setting with dtype preservation
+        expected = DataFrame(dict({ 'A' : [0,2,4,4], 'B' : [1,3,5,5] }))
         df = df_orig.copy()
         df.loc[3] = df.loc[2]
         assert_frame_equal(df,expected)
@@ -2863,6 +2864,41 @@ class TestIndexing(tm.TestCase):
         p = p_orig.copy()
         p.loc[:,:,'C'] = Series([30,32],index=p_orig.items)
         assert_panel_equal(p,expected)
+
+    def test_partial_setting_mixed_dtype(self):
+
+        # in a mixed dtype environment, try to preserve dtypes
+        # by appending
+        df = DataFrame([[True, 1],[False, 2]],
+                       columns = ["female","fitness"])
+
+        s = df.loc[1].copy()
+        s.name = 2
+        expected = df.append(s)
+
+        df.loc[2] = df.loc[1]
+        assert_frame_equal(df, expected)
+
+        # columns will align
+        df = DataFrame(columns=['A','B'])
+        df.loc[0] = Series(1,index=range(4))
+        assert_frame_equal(df,DataFrame(columns=['A','B'],index=[0]))
+
+        # columns will align
+        df = DataFrame(columns=['A','B'])
+        df.loc[0] = Series(1,index=['B'])
+        assert_frame_equal(df,DataFrame([[np.nan, 1]], columns=['A','B'],index=[0],dtype='float64'))
+
+        # list-like must conform
+        df = DataFrame(columns=['A','B'])
+        def f():
+            df.loc[0] = [1,2,3]
+        self.assertRaises(ValueError, f)
+
+        # these are coerced to float unavoidably (as its a list-like to begin)
+        df = DataFrame(columns=['A','B'])
+        df.loc[3] = [6,7]
+        assert_frame_equal(df,DataFrame([[6,7]],index=[3],columns=['A','B'],dtype='float64'))
 
     def test_series_partial_set(self):
         # partial set with new index
@@ -3012,15 +3048,6 @@ class TestIndexing(tm.TestCase):
         df.loc[:,1] = Series([1],index=['foo'])
         assert_frame_equal(df,DataFrame([[1]],index=['foo'],columns=[1]))
         assert_frame_equal(df,df2)
-
-        df = DataFrame(columns=['A','B'])
-        df.loc[3] = [6,7]
-        assert_frame_equal(df,DataFrame([[6,7]],index=[3],columns=['A','B']))
-
-        # no label overlap
-        df = DataFrame(columns=['A','B'])
-        df.loc[0] = Series(1,index=range(4))
-        assert_frame_equal(df,DataFrame(columns=['A','B'],index=[0]))
 
         # no index to start
         expected = DataFrame({ 0 : Series(1,index=range(4)) },columns=['A','B',0])
