@@ -1480,6 +1480,23 @@ class TestDataFramePlots(TestPlotBase):
             self.assertEqual(result, [1] * 5)
 
     @slow
+    def test_bar_nan(self):
+        df = DataFrame({'A': [10, np.nan, 20], 'B': [5, 10, 20],
+                        'C': [1, 2, 3]})
+        ax = df.plot(kind='bar')
+        expected = [10, 0, 20, 5, 10, 20, 1, 2, 3]
+        result = [p.get_height() for p in ax.patches]
+        self.assertEqual(result, expected)
+
+        ax = df.plot(kind='bar', stacked=True)
+        result = [p.get_height() for p in ax.patches]
+        self.assertEqual(result, expected)
+
+        result = [p.get_y() for p in ax.patches]
+        expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
+        self.assertEqual(result, expected)
+
+    @slow
     def test_plot_scatter(self):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),

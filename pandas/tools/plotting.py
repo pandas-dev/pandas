@@ -870,9 +870,11 @@ class MPLPlot(object):
                                  " use one or the other or pass 'style' "
                                  "without a color symbol")
 
-    def _iter_data(self, data=None, keep_index=False):
+    def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
             data = self.data
+        if fillna is not None:
+            data = data.fillna(fillna)
 
         from pandas.core.frame import DataFrame
         if isinstance(data, (Series, np.ndarray, Index)):
@@ -1780,7 +1782,7 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        for i, (label, y) in enumerate(self._iter_data()):
+        for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % ncolors]

@@ -203,6 +203,13 @@ To get horizontal bar plots, pass ``kind='barh'``:
    @savefig barh_plot_stacked_ex.png
    df2.plot(kind='barh', stacked=True);
 
+Pandas tries to be pragmatic about plotting DataFrames or Series
+that contain missing data. When it makes sense missing values will
+be filled with 0 (as is the case with bar plots). For other plots,
+like line plots, filling in 0 usually doesn't make sense, and so pandas doesn't
+try to guess. If you want to be explicit you can always call
+:meth:`~pandas.DataFrame.fillna` before plotting.
+
 .. _visualization.hist:
 
 Histograms
