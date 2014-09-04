@@ -396,29 +396,6 @@ For full docs, see the :ref:`Categorical introduction <categorical>` and the
   only. If you want to manipulate codes, please use one of the
   :ref:`API methods on Categoricals <api.categorical>`.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-- Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
-
-
-
 .. _whatsnew_0150.prior_deprecations:
 
 Prior Version Deprecations/Changes
@@ -554,6 +531,8 @@ There are no experimental changes in 0.15.0
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
 - Bug in multiindexes dtypes getting mixed up when DataFrame is saved to SQL table (:issue:`8021`)
 - Bug in Series 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
@@ -634,13 +613,10 @@ Bug Fixes
   return a non scalar value that appeared valid but wasn't (:issue:`7870`).
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
-
-
+- Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue`7949`)
 - Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
-
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
-
-- ``Holiday`` bug in Holiday with no offset or observance (:issue:`7987`)
+- Bug in ``Holiday`` with no offset or observance (:issue:`7987`)
 
 - Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
 
