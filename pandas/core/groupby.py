@@ -3457,13 +3457,7 @@ def _indexer_from_factorized(labels, shape, compress=True):
         comp_ids = group_index
         max_group = com._long_prod(shape)
 
-    if max_group > 1e6:
-        # Use mergesort to avoid memory errors in counting sort
-        indexer = comp_ids.argsort(kind='mergesort')
-    else:
-        indexer, _ = _algos.groupsort_indexer(comp_ids.astype(np.int64),
-                                              max_group)
-
+    indexer = _get_group_index_sorter(comp_ids.astype(np.int64), max_group)
     return indexer
 
 
@@ -3586,21 +3580,27 @@ def _get_indices_dict(label_list, keys):
 
 def _get_group_index_sorter(group_index, ngroups):
     """
-    _algos.groupsort_indexer is at least O(ngroups), where
+    _algos.groupsort_indexer implements `counting sort` and it is at least
+    O(ngroups), where
         ngroups = prod(shape)
         shape = map(len, keys)
     that is, linear in the number of combinations (cartesian product) of unique
     values of groupby keys. This can be huge when doing multi-key groupby.
-    np.argsort is O(count)^2 when using quicksort (the default) where count is the length
-    of the data-frame;
+    np.argsort(kind='mergesort') is O(count x log(count)) where count is the
+    length of the data-frame;
+    Both algorithms are `stable` sort and that is necessary for correctness of
+    groupby operations. e.g. consider:
+        df.groupby(key)[col].transform('first')
     """
     count = len(group_index)
-    if ngroups < count * np.log(count): # taking complexities literally
+    alpha = 0.0  # taking complexities literally; there may be
+    beta  = 1.0  # some room for fine-tuning these parameters
+    if alpha + beta * ngroups < count * np.log(count):
         sorter, _ = _algos.groupsort_indexer(com._ensure_int64(group_index),
                                              ngroups)
         return com._ensure_platform_int(sorter)
     else:
-        return group_index.argsort()
+        return group_index.argsort(kind='mergesort')
 
 
 def _compress_group_index(group_index, sort=True):
