@@ -303,12 +303,27 @@ class _NDFrameIndexer(object):
                             "cannot set a frame with no defined columns"
                         )
 
-                    index = self.obj._get_axis(0)
-                    labels = _safe_append_to_index(index, indexer)
-                    self.obj._data = self.obj.reindex_axis(labels, 0)._data
+                    # append a Series
+                    if isinstance(value, Series):
+
+                        value = value.reindex(index=self.obj.columns,copy=True)
+                        value.name = indexer
+
+                    # a list-list
+                    else:
+
+                        # must have conforming columns
+                        if com.is_list_like(value):
+                            if len(value) != len(self.obj.columns):
+                                raise ValueError(
+                                    "cannot set a row with mismatched columns"
+                                    )
+
+                        value = Series(value,index=self.obj.columns,name=indexer)
+
+                    self.obj._data = self.obj.append(value)._data
                     self.obj._maybe_update_cacher(clear=True)
-                    return getattr(self.obj, self.name).__setitem__(indexer,
-                                                                    value)
+                    return self.obj
 
                 # set using setitem (Panel and > dims)
                 elif self.ndim >= 3:

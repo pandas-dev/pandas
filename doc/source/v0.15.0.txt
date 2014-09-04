@@ -296,6 +296,19 @@ API changes
 
   To insert a NaN, you must explicitly use ``np.nan``. See the :ref:`docs <missing.inserting>`.
 
+- Previously an enlargement with a mixed-dtype frame would act unlike ``.append`` which will preserve dtypes (related :issue:`2578`, :issue:`8176`):
+
+  .. ipython:: python
+
+     df = DataFrame([[True, 1],[False, 2]], columns = ["female","fitness"])
+     df
+     df.dtypes
+
+     # dtypes are now preserved
+     df.loc[2] = df.loc[1]
+     df
+     df.dtypes
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
