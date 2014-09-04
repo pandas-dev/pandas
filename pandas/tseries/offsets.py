@@ -152,6 +152,12 @@ class DateOffset(object):
     """
     _cacheable = False
     _normalize_cache = True
+    _kwds_use_relativedelta = (
+        'years', 'months', 'weeks', 'days',
+        'year', 'month', 'week', 'day', 'weekday',
+        'hour', 'minute', 'second', 'microsecond'
+        )
+    _use_relativedelta = False
 
     # default for prior pickles
     normalize = False
@@ -160,21 +166,52 @@ class DateOffset(object):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        if len(kwds) > 0:
-            self._offset = relativedelta(**kwds)
+        self._offset, self._use_relativedelta = self._determine_offset()
+
+    def _determine_offset(self):
+        # timedelta is used for sub-daily plural offsets and all singular offsets
+        # relativedelta is used for plural offsets of daily length or more
+        # nanosecond(s) are handled by apply_wraps
+        kwds_no_nanos = dict(
+            (k, v) for k, v in self.kwds.items()
+            if k not in ('nanosecond', 'nanoseconds')
+            )
+        use_relativedelta = False
+
+        if len(kwds_no_nanos) > 0:
+            if any(k in self._kwds_use_relativedelta for k in kwds_no_nanos):
+                use_relativedelta = True
+                offset = relativedelta(**kwds_no_nanos)
+            else:
+                # sub-daily offset - use timedelta (tz-aware)
+                offset = timedelta(**kwds_no_nanos)
         else:
-            self._offset = timedelta(1)
+            offset = timedelta(1)
+        return offset, use_relativedelta
 
     @apply_wraps
     def apply(self, other):
+        if self._use_relativedelta:
+            other = as_datetime(other)
+
         if len(self.kwds) > 0:
+            tzinfo = getattr(other, 'tzinfo', None)
+            if tzinfo is not None and self._use_relativedelta:
+                # perform calculation in UTC
+                other = other.replace(tzinfo=None)
+
             if self.n > 0:
                 for i in range(self.n):
                     other = other + self._offset
             else:
                 for i in range(-self.n):
                     other = other - self._offset
-            return other
+
+            if tzinfo is not None and self._use_relativedelta:
+                # bring tz back from UTC calculation
+                other = tslib._localize_pydatetime(other, tzinfo)
+
+            return as_timestamp(other)
         else:
             return other + timedelta(self.n)
 

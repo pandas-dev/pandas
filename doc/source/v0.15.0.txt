@@ -620,6 +620,8 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
 
+- Bug in ``DateOffset`` around Daylight Savings Time produces unexpected results (:issue:`5175`).
+
 
 
 
