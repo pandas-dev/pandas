@@ -28,6 +28,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
@@ -248,9 +249,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         is_all_dates = labels.is_all_dates
         if is_all_dates:
-            from pandas.tseries.index import DatetimeIndex
-            from pandas.tseries.period import PeriodIndex
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex)):
+            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 labels = DatetimeIndex(labels)
 
                 # need to set here becuase we changed the index
@@ -1003,6 +1002,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return iter(self.values)
         elif np.issubdtype(self.dtype, np.datetime64):
             return (lib.Timestamp(x) for x in self.values)
+        elif np.issubdtype(self.dtype, np.timedelta64):
+            return (lib.Timedelta(x) for x in self.values)
         else:
             return iter(self.values)
 
@@ -1242,9 +1243,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
         """
-        valid_values = self.dropna().values
-        if len(valid_values) == 0:
-            return pa.NA
+        valid = self.dropna()
 
         def multi(values, qs):
             if com.is_list_like(qs):
@@ -1253,17 +1252,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return _quantile(values, qs*100)
 
-        if com.is_datetime64_dtype(self):
-            values = _values_from_object(self).view('i8')
-            result = multi(values, q)
-            if com.is_list_like(q):
-                result = result.map(lib.Timestamp)
-            else:
-                result = lib.Timestamp(result)
-        else:
-            result = multi(valid_values, q)
-
-        return result
+        return self._maybe_box(lambda values: multi(values, q), dropna=True)
 
     def ptp(self, axis=None, out=None):
         return _values_from_object(self).ptp(axis, out)
@@ -2016,8 +2005,48 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         delegate = self.values
         if isinstance(delegate, np.ndarray):
             return op(delegate, skipna=skipna, **kwds)
+
         return delegate._reduce(op=op, axis=axis, skipna=skipna, numeric_only=numeric_only,
                                 filter_type=filter_type, name=name, **kwds)
+
+    def _maybe_box(self, func, dropna=False):
+        """
+        evaluate a function with possible input/output conversion if we are i8
+
+        Parameters
+        ----------
+        dropna : bool, default False
+           whether to drop values if necessary
+
+        """
+        if dropna:
+            values = self.dropna().values
+        else:
+            values = self.values
+
+        if com.needs_i8_conversion(self):
+            boxer = com.i8_boxer(self)
+
+            if len(values) == 0:
+                return boxer(iNaT)
+
+            values = values.view('i8')
+            result = func(values)
+
+            if com.is_list_like(result):
+                result = result.map(boxer)
+            else:
+                result = boxer(result)
+
+        else:
+
+            # let the function return nan if appropriate
+            if dropna:
+                if len(values) == 0:
+                    return np.nan
+            result = func(values)
+
+        return result
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
@@ -2446,6 +2475,11 @@ def _sanitize_index(data, index, copy=False):
         data = data._to_embed(keep_tz=True)
         if copy:
             data = data.copy()
+    elif isinstance(data, np.ndarray):
+
+        # coerce datetimelike types
+        if data.dtype.kind in ['M','m']:
+            data = _sanitize_array(data, index, copy=copy)
 
     return data
 

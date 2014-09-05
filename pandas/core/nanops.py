@@ -72,6 +72,10 @@ class bottleneck_switch(object):
             try:
                 if self.zero_value is not None and values.size == 0:
                     if values.ndim == 1:
+
+                        # wrap the 0's if needed
+                        if is_timedelta64_dtype(values):
+                            return lib.Timedelta(0)
                         return 0
                     else:
                         result_shape = (values.shape[:axis] +
@@ -222,17 +226,7 @@ def _wrap_results(result, dtype):
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-
-            # this is a scalar timedelta result!
-            # we have series convert then take the element (scalar)
-            # as series will do the right thing in py3 (and deal with numpy
-            # 1.6.2 bug in that it results dtype of timedelta64[us]
-            from pandas import Series
-
-            # coerce float to results
-            if is_float(result):
-                result = int(result)
-            result = Series([result], dtype='timedelta64[ns]')
+            result = lib.Timedelta(result)
         else:
             result = result.view(dtype)
 
@@ -314,7 +308,7 @@ def nanmedian(values, axis=None, skipna=True):
         return ret
 
     # otherwise return a scalar value
-    return _wrap_results(get_median(values), dtype) if notempty else np.nan
+    return _wrap_results(get_median(values) if notempty else np.nan, dtype)
 
 
 def _get_counts_nanvar(mask, axis, ddof):
@@ -709,6 +703,10 @@ def unique1d(values):
         table = _hash.Int64HashTable(len(values))
         uniques = table.unique(_ensure_int64(values))
         uniques = uniques.view('M8[ns]')
+    elif np.issubdtype(values.dtype, np.timedelta64):
+        table = _hash.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+        uniques = uniques.view('m8[ns]')
     elif np.issubdtype(values.dtype, np.integer):
         table = _hash.Int64HashTable(len(values))
         uniques = table.unique(_ensure_int64(values))

@@ -64,6 +64,13 @@ def create_pandas_abc_type(name, attr, comp):
     return meta(name, tuple(), dct)
 
 
+ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index",))
+ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
+ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",))
+ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
+ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",))
+ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",))
+ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
@@ -879,7 +886,6 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
     func(arr, indexer, out=out, fill_value=fill_value)
     return out
 
-
 _diff_special = {
     'float64': algos.diff_2d_float64,
     'float32': algos.diff_2d_float32,
@@ -889,24 +895,25 @@ _diff_special = {
     'int8': algos.diff_2d_int8,
 }
 
-
 def diff(arr, n, axis=0):
     """ difference of n between self,
         analagoust to s-s.shift(n) """
 
     n = int(n)
-    dtype = arr.dtype
     na = np.nan
-
-    if is_timedelta64_dtype(arr) or is_datetime64_dtype(arr):
-        dtype = 'timedelta64[ns]'
+    dtype = arr.dtype
+    is_timedelta = False
+    if needs_i8_conversion(arr):
+        dtype = np.float64
         arr = arr.view('i8')
         na = tslib.iNaT
+        is_timedelta = True
     elif issubclass(dtype.type, np.integer):
         dtype = np.float64
     elif issubclass(dtype.type, np.bool_):
         dtype = np.object_
 
+    dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
 
     na_indexer = [slice(None)] * arr.ndim
@@ -927,7 +934,7 @@ def diff(arr, n, axis=0):
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers
-        if dtype == 'timedelta64[ns]':
+        if is_timedelta:
             res = arr[res_indexer]
             lag = arr[lag_indexer]
 
@@ -943,6 +950,9 @@ def diff(arr, n, axis=0):
             out_arr[res_indexer] = result
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
+
+    if is_timedelta:
+        out_arr = lib.map_infer(out_arr.ravel(),lib.Timedelta).reshape(out_arr.shape)
 
     return out_arr
 
@@ -1780,7 +1790,7 @@ def _maybe_box_datetimelike(value):
     if isinstance(value, np.datetime64):
         value = tslib.Timestamp(value)
     elif isinstance(value, np.timedelta64):
-        pass
+        value = tslib.Timedelta(value)
 
     return value
 
@@ -2335,6 +2345,14 @@ def is_period_arraylike(arr):
         return arr.dtype == object and lib.infer_dtype(arr) == 'period'
     return getattr(arr, 'inferred_type', None) == 'period'
 
+def is_datetime_arraylike(arr):
+    """ return if we are datetime arraylike / DatetimeIndex """
+    if isinstance(arr, pd.DatetimeIndex):
+        return True
+    elif isinstance(arr, (np.ndarray, ABCSeries)):
+        return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
+    return getattr(arr, 'inferred_type', None) == 'datetime'
+
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
     if is_categorical_dtype(dtype):
@@ -2406,6 +2424,13 @@ def _is_datetime_or_timedelta_dtype(arr_or_dtype):
 
 needs_i8_conversion = _is_datetime_or_timedelta_dtype
 
+def i8_boxer(arr_or_dtype):
+    """ return the scalar boxer for the dtype """
+    if is_datetime64_dtype(arr_or_dtype):
+        return lib.Timestamp
+    elif is_timedelta64_dtype(arr_or_dtype):
+        return lambda x: lib.Timedelta(x,unit='ns')
+    raise ValueError("cannot find a scalar boxer for {0}".format(arr_or_dtype))
 
 def is_numeric_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2523,7 +2548,7 @@ def _astype_nansafe(arr, dtype, copy=True):
         if dtype == np.int64:
             return arr.view(dtype)
         elif dtype == object:
-            return arr.astype(object)
+            return tslib.ints_to_pytimedelta(arr.view(np.int64))
 
         # in py3, timedelta64[ns] are int64
         elif ((compat.PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
@@ -2745,26 +2770,37 @@ def _concat_compat(to_concat, axis=0):
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
     if nonempty:
+
         is_datetime64 = [x.dtype == _NS_DTYPE for x in nonempty]
+        is_timedelta64 = [x.dtype == _TD_DTYPE for x in nonempty]
+
         if all(is_datetime64):
-            # work around NumPy 1.6 bug
             new_values = np.concatenate([x.view(np.int64) for x in nonempty],
                                         axis=axis)
             return new_values.view(_NS_DTYPE)
-        elif any(is_datetime64):
+        elif all(is_timedelta64):
+            new_values = np.concatenate([x.view(np.int64) for x in nonempty],
+                                        axis=axis)
+            return new_values.view(_TD_DTYPE)
+        elif any(is_datetime64) or any(is_timedelta64):
             to_concat = [_to_pydatetime(x) for x in nonempty]
 
     return np.concatenate(to_concat, axis=axis)
 
 
 def _to_pydatetime(x):
+    # coerce to an object dtyped
+
     if x.dtype == _NS_DTYPE:
         shape = x.shape
         x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
         x = x.reshape(shape)
+    elif x.dtype == _TD_DTYPE:
+        shape = x.shape
+        x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
+        x = x.reshape(shape)
 
     return x
-
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:

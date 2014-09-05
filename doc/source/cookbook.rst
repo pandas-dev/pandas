@@ -636,7 +636,7 @@ Computation
 Miscellaneous
 -------------
 
-The :ref:`Timedeltas <timeseries.timedeltas>` docs.
+The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 
 `Operating with timedeltas
 <http://github.com/pydata/pandas/pull/2899>`__

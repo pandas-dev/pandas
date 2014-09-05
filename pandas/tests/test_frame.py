@@ -32,7 +32,8 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, notnull, isnull,
-                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv,
+                    MultiIndex, DatetimeIndex, Timestamp, date_range,
+                    read_csv, timedelta_range, Timedelta,
                     option_context)
 import pandas as pd
 from pandas.parser import CParserError
@@ -9515,6 +9516,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(the_diff['A'],
                             tf['A'] - tf['A'].shift(1))
 
+    def test_diff_timedelta(self):
+        # GH 4533
+        df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
+                                  Timestamp('20130101 9:02')],
+                            value=[1.0,2.0]))
+
+        res = df.diff()
+        exp = DataFrame([[pd.NaT, np.nan],
+                         [Timedelta('00:01:00'), 1]],
+                        columns=['time', 'value'])
+        assert_frame_equal(res, exp)
+
     def test_diff_mixed_dtype(self):
         df = DataFrame(np.random.randn(5, 3))
         df['A'] = np.array([1, 2, 3, 4, 5], dtype=object)
@@ -12174,6 +12187,42 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                             'datetime64[ns]' : 1,
                             'timedelta64[ns]' : 1}).order()
         assert_series_equal(result,expected)
+
+    def test_construction_with_conversions(self):
+
+        # convert from a numpy array of non-ns timedelta64
+        arr = np.array([1,2,3],dtype='timedelta64[s]')
+        s = Series(arr)
+        expected = Series(timedelta_range('00:00:01',periods=3,freq='s'))
+        assert_series_equal(s,expected)
+
+        df = DataFrame(index=range(3))
+        df['A'] = arr
+        expected = DataFrame({'A' : timedelta_range('00:00:01',periods=3,freq='s')},
+                             index=range(3))
+        assert_frame_equal(df,expected)
+
+        # convert from a numpy array of non-ns datetime64
+        #### note that creating a numpy datetime64 is in LOCAL time!!!!
+        #### seems to work for M8[D], but not for M8[s]
+
+        s = Series(np.array(['2013-01-01','2013-01-02','2013-01-03'],dtype='datetime64[D]'))
+        assert_series_equal(s,Series(date_range('20130101',periods=3,freq='D')))
+        #s = Series(np.array(['2013-01-01 00:00:01','2013-01-01 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
+        #assert_series_equal(s,date_range('20130101 00:00:01',period=3,freq='s'))
+
+        expected = DataFrame({
+            'dt1' : Timestamp('20130101'),
+            'dt2' : date_range('20130101',periods=3),
+            #'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
+            },index=range(3))
+
+
+        df = DataFrame(index=range(3))
+        df['dt1'] = np.datetime64('2013-01-01')
+        df['dt2'] = np.array(['2013-01-01','2013-01-02','2013-01-03'],dtype='datetime64[D]')
+        #df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
+        assert_frame_equal(df, expected)
 
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)

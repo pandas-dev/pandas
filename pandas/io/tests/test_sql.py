@@ -325,7 +325,7 @@ class PandasSQLTest(unittest.TestCase):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def _to_sql_save_index(self):
-        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')],
                                     columns=['A','B','C'], index=['A'])
         self.pandasSQL.to_sql(df, 'test_to_sql_saves_index')
         ix_cols = self._get_index_columns('test_to_sql_saves_index')
@@ -523,6 +523,7 @@ class _TestSQLApi(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_timedelta(self):
+
         # see #6921
         df = to_timedelta(Series(['00:00:01', '00:00:03'], name='foo')).to_frame()
         with tm.assert_produces_warning(UserWarning):
@@ -1067,7 +1068,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         ixs = insp.get_indexes(tbl_name)
         ixs = [i['column_names'] for i in ixs]
         return ixs
-        
+
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 

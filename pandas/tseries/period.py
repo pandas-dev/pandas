@@ -8,7 +8,7 @@ from pandas.core.base import PandasObject
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
-from pandas.core.base import DatetimeIndexOpsMixin
+from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -16,7 +16,7 @@ import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries)
 from pandas import compat
-from pandas.lib import Timestamp
+from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
@@ -61,7 +61,6 @@ class Period(PandasObject):
     minute : int, default 0
     second : int, default 0
     """
-    _typ = 'periodindex'
     __slots__ = ['freq', 'ordinal']
     _comparables = ['name','freqstr']
 
@@ -171,7 +170,7 @@ class Period(PandasObject):
         return hash((self.ordinal, self.freq))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
@@ -198,7 +197,7 @@ class Period(PandasObject):
 
     def __add__(self, other):
         if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, offsets.DateOffset)):
+                              offsets.Tick, offsets.DateOffset, Timedelta)):
             return self._add_delta(other)
         elif com.is_integer(other):
             if self.ordinal == tslib.iNaT:
@@ -211,7 +210,7 @@ class Period(PandasObject):
 
     def __sub__(self, other):
         if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, offsets.DateOffset)):
+                              offsets.Tick, offsets.DateOffset, Timedelta)):
             neg_other = -other
             return self + neg_other
         elif com.is_integer(other):
@@ -606,10 +605,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
     """
     _box_scalars = True
+    _typ = 'periodindex'
     _attributes = ['name','freq']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
-                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear']
+                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear', 'freq']
     _is_numeric_dtype = False
+    freq = None
 
     __eq__ = _period_index_cmp('__eq__')
     __ne__ = _period_index_cmp('__ne__', nat_result=True)
@@ -839,17 +840,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
 
-    # Try to run function on index first, and then on elements of index
-    # Especially important for group-by functionality
-    def map(self, f):
-        try:
-            result = f(self)
-            if not isinstance(result, (np.ndarray, Index)):
-                raise TypeError
-            return result
-        except Exception:
-            return _algos.arrmap_object(self.asobject.values, f)
-
     def _get_object_array(self):
         freq = self.freq
         return np.array([ Period._from_ordinal(ordinal=x, freq=freq) for x in self.values], copy=False)
@@ -902,7 +892,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
@@ -1128,9 +1118,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 return PeriodIndex(result, name=self.name, freq=self.freq)
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
-
-    def _format_with_header(self, header, **kwargs):
-        return header + self._format_native_types(**kwargs)
 
     def _format_native_types(self, na_rep=u('NaT'), **kwargs):
 

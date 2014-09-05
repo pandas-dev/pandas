@@ -16,6 +16,7 @@ from pandas import period_range, date_range
 from pandas.core.index import (Index, Float64Index, Int64Index, MultiIndex,
                                InvalidIndexError, NumericIndex)
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
@@ -53,13 +54,13 @@ class Base(object):
 
         idx = self.create_index()
         tm.assertRaisesRegexp(TypeError,
-                              "cannot perform multiplication",
+                              "cannot perform __mul__",
                               lambda : idx * 1)
         tm.assertRaisesRegexp(TypeError,
-                              "cannot perform multiplication",
+                              "cannot perform __mul__",
                               lambda : 1 * idx)
 
-        div_err = "cannot perform true division" if compat.PY3 else "cannot perform division"
+        div_err = "cannot perform __truediv__" if compat.PY3 else "cannot perform __div__"
         tm.assertRaisesRegexp(TypeError,
                               div_err,
                               lambda : idx / 1)
@@ -67,10 +68,10 @@ class Base(object):
                               div_err,
                               lambda : 1 / idx)
         tm.assertRaisesRegexp(TypeError,
-                              "cannot perform floor division",
+                              "cannot perform __floordiv__",
                               lambda : idx // 1)
         tm.assertRaisesRegexp(TypeError,
-                              "cannot perform floor division",
+                              "cannot perform __floordiv__",
                               lambda : 1 // idx)
 
     def test_boolean_context_compat(self):
@@ -1650,6 +1651,52 @@ class TestPeriodIndex(Base, tm.TestCase):
 
     def create_index(self):
         return period_range('20130101',periods=5,freq='D')
+
+    def test_pickle_compat_construction(self):
+        pass
+
+class TestTimedeltaIndex(Base, tm.TestCase):
+    _holder = TimedeltaIndex
+    _multiprocess_can_split_ = True
+
+    def create_index(self):
+        return pd.to_timedelta(range(5),unit='d') + pd.offsets.Hour(1)
+
+    def test_numeric_compat(self):
+
+        idx = self._holder(np.arange(5,dtype='int64'))
+        didx = self._holder(np.arange(5,dtype='int64')**2
+                            )
+        result = idx * 1
+        tm.assert_index_equal(result, idx)
+
+        result = 1 * idx
+        tm.assert_index_equal(result, idx)
+
+        result = idx / 1
+        tm.assert_index_equal(result, idx)
+
+        result = idx // 1
+        tm.assert_index_equal(result, idx)
+
+        result = idx * np.array(5,dtype='int64')
+        tm.assert_index_equal(result, self._holder(np.arange(5,dtype='int64')*5))
+
+        result = idx * np.arange(5,dtype='int64')
+        tm.assert_index_equal(result, didx)
+
+        result = idx * Series(np.arange(5,dtype='int64'))
+        tm.assert_index_equal(result, didx)
+
+        result = idx * Series(np.arange(5,dtype='float64')+0.1)
+        tm.assert_index_equal(result,
+                              Float64Index(np.arange(5,dtype='float64')*(np.arange(5,dtype='float64')+0.1)))
+
+
+        # invalid
+        self.assertRaises(TypeError, lambda : idx * idx)
+        self.assertRaises(ValueError, lambda : idx * self._holder(np.arange(3)))
+        self.assertRaises(ValueError, lambda : idx * np.array([1,2]))
 
     def test_pickle_compat_construction(self):
         pass

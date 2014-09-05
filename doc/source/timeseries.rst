@@ -1491,8 +1491,8 @@ TimeSeries, aligning the data on the UTC timestamps:
    result
    result.index
 
-To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or ``tz_convert(None)``. 
-``tz_localize(None)`` will remove timezone holding local time representations. 
+To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or ``tz_convert(None)``.
+``tz_localize(None)`` will remove timezone holding local time representations.
 ``tz_convert(None)`` will remove timezone after converting to UTC time.
 
 .. ipython:: python
@@ -1511,7 +1511,7 @@ Ambiguous Times when Localizing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases, localize cannot determine the DST and non-DST hours when there are
-duplicates.  This often happens when reading files or database records that simply 
+duplicates.  This often happens when reading files or database records that simply
 duplicate the hours.  Passing ``ambiguous='infer'`` (``infer_dst`` argument in prior
 releases) into ``tz_localize`` will attempt to determine the right offset.
 
@@ -1526,186 +1526,23 @@ releases) into ``tz_localize`` will attempt to determine the right offset.
    rng_hourly_eastern.values
 
 In addition to 'infer', there are several other arguments supported.  Passing
-an array-like of bools or 0s/1s where True represents a DST hour and False a 
-non-DST hour, allows for distinguishing more than one DST 
-transition (e.g., if you have multiple records in a database each with their 
+an array-like of bools or 0s/1s where True represents a DST hour and False a
+non-DST hour, allows for distinguishing more than one DST
+transition (e.g., if you have multiple records in a database each with their
 own DST transition).  Or passing 'NaT' will fill in transition times
 with not-a-time values.  These methods are available in the ``DatetimeIndex``
 constructor as well as ``tz_localize``.
 
 .. ipython:: python
-   
+
    rng_hourly_dst = np.array([1, 1, 0, 0, 0])
    rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).values
    rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').values
 
+   didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
+   didx
+   didx.tz_localize(None)
+   didx.tz_convert(None)
 
-.. _timeseries.timedeltas:
-
-Time Deltas
------------
-
-Timedeltas are differences in times, expressed in difference units, e.g. days,hours,minutes,seconds.
-They can be both positive and negative. :ref:`DateOffsets<timeseries.offsets>` that are absolute in nature
-(``Day, Hour, Minute, Second, Milli, Micro, Nano``) can be used as ``timedeltas``.
-
-.. ipython:: python
-
-   from datetime import datetime, timedelta
-   s = Series(date_range('2012-1-1', periods=3, freq='D'))
-   td = Series([ timedelta(days=i) for i in range(3) ])
-   df = DataFrame(dict(A = s, B = td))
-   df
-   df['C'] = df['A'] + df['B']
-   df
-   df.dtypes
-
-   s - s.max()
-   s - datetime(2011,1,1,3,5)
-   s + timedelta(minutes=5)
-   s + Minute(5)
-   s + Minute(5) + Milli(5)
-
-Getting scalar results from a ``timedelta64[ns]`` series
-
-.. ipython:: python
-
-   y = s - s[0]
-   y
-
-Series of timedeltas with ``NaT`` values are supported
-
-.. ipython:: python
-
-   y = s - s.shift()
-   y
-
-Elements can be set to ``NaT`` using ``np.nan`` analogously to datetimes
-
-.. ipython:: python
-
-   y[1] = np.nan
-   y
-
-Operands can also appear in a reversed order (a singular object operated with a Series)
-
-.. ipython:: python
-
-   s.max() - s
-   datetime(2011,1,1,3,5) - s
-   timedelta(minutes=5) + s
-
-Some timedelta numeric like operations are supported.
-
-.. ipython:: python
-
-   td - timedelta(minutes=5, seconds=5, microseconds=5)
-
-``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames
-
-.. ipython:: python
-
-   A = s - Timestamp('20120101') - timedelta(minutes=5, seconds=5)
-   B = s - Series(date_range('2012-1-2', periods=3, freq='D'))
-
-   df = DataFrame(dict(A=A, B=B))
-   df
-
-   df.min()
-   df.min(axis=1)
-
-   df.idxmin()
-   df.idxmax()
-
-``min, max`` operations are supported on series; these return a single element
-``timedelta64[ns]`` Series (this avoids having to deal with numpy timedelta64
-issues). ``idxmin, idxmax`` are supported as well.
-
-.. ipython:: python
-
-   df.min().max()
-   df.min(axis=1).min()
-
-   df.min().idxmax()
-   df.min(axis=1).idxmin()
-
-You can fillna on timedeltas. Integers will be interpreted as seconds. You can
-pass a timedelta to get a particular value.
-
-.. ipython:: python
-
-   y.fillna(0)
-   y.fillna(10)
-   y.fillna(timedelta(days=-1,seconds=5))
-
-.. _timeseries.timedeltas_reductions:
-
-Time Deltas & Reductions
-------------------------
-
-.. warning::
-
-   A numeric reduction operation for ``timedelta64[ns]`` can return a single-element ``Series`` of
-   dtype ``timedelta64[ns]``.
-
-You can do numeric reduction operations on timedeltas.
-
-.. ipython:: python
-
-   y2 = y.fillna(timedelta(days=-1,seconds=5))
-   y2
-   y2.mean()
-   y2.quantile(.1)
-
-.. _timeseries.timedeltas_convert:
-
-Time Deltas & Conversions
--------------------------
-
-.. versionadded:: 0.13
-
-**string/integer conversion**
-
-Using the top-level ``to_timedelta``, you can convert a scalar or array from the standard
-timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
-It can also construct Series.
-
-.. warning::
-
-   This requires ``numpy >= 1.7``
-
-.. ipython:: python
-
-   to_timedelta('1 days 06:05:01.00003')
-   to_timedelta('15.5us')
-   to_timedelta(['1 days 06:05:01.00003','15.5us','nan'])
-   to_timedelta(np.arange(5),unit='s')
-   to_timedelta(np.arange(5),unit='d')
-
-**frequency conversion**
-
-Timedeltas can be converted to other 'frequencies' by dividing by another timedelta,
-or by astyping to a specific timedelta type. These operations yield ``float64`` dtyped Series.
-
-.. ipython:: python
-
-   td = Series(date_range('20130101',periods=4))-Series(date_range('20121201',periods=4))
-   td[2] += np.timedelta64(timedelta(minutes=5,seconds=3))
-   td[3] = np.nan
-   td
-
-   # to days
-   td / np.timedelta64(1,'D')
-   td.astype('timedelta64[D]')
-
-   # to seconds
-   td / np.timedelta64(1,'s')
-   td.astype('timedelta64[s]')
-
-Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
-yields another ``timedelta64[ns]`` dtypes Series.
-
-.. ipython:: python
-
-   td * -1
-   td * Series([1,2,3,4])
+   # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
+   didx.tz_convert('UCT').tz_localize(None)

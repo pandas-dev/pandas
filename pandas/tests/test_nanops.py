@@ -118,11 +118,32 @@ class TestnanopsDataFrame(tm.TestCase):
     def check_results(self, targ, res, axis):
         res = getattr(res, 'asm8', res)
         res = getattr(res, 'values', res)
-        if axis != 0 and hasattr(targ, 'shape') and targ.ndim:
-            res = np.split(res, [targ.shape[0]], axis=0)[0]
+
+        # timedeltas are a beast here
+        def _coerce_tds(targ, res):
+            if targ.dtype == 'm8[ns]':
+                if len(targ) == 1:
+                    targ = targ[0].item()
+                    res = res.item()
+                else:
+                    targ = targ.view('i8')
+            return targ, res
+
+        try:
+            if axis != 0 and hasattr(targ, 'shape') and targ.ndim:
+                res = np.split(res, [targ.shape[0]], axis=0)[0]
+        except:
+            targ, res = _coerce_tds(targ, res)
+
         try:
             tm.assert_almost_equal(targ, res)
         except:
+
+            if targ.dtype == 'm8[ns]':
+                targ, res = _coerce_tds(targ, res)
+                tm.assert_almost_equal(targ, res)
+                return
+
             # There are sometimes rounding errors with
             # complex and object dtypes.
             # If it isn't one of those, re-raise the error.
@@ -208,7 +229,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def check_funs(self, testfunc, targfunc,
                    allow_complex=True, allow_all_nan=True, allow_str=True,
-                   allow_date=True, allow_obj=True,
+                   allow_date=True, allow_tdelta=True, allow_obj=True,
                    **kwargs):
         self.check_fun(testfunc, targfunc, 'arr_float', **kwargs)
         self.check_fun(testfunc, targfunc, 'arr_float_nan', 'arr_float',
@@ -244,6 +265,8 @@ class TestnanopsDataFrame(tm.TestCase):
             else:
                 self.check_fun(testfunc, targfunc, 'arr_date', **kwargs)
                 objs += [self.arr_date.astype('O')]
+
+        if allow_tdelta:
             try:
                 targfunc(self.arr_tdelta)
             except TypeError:
@@ -264,12 +287,12 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def check_funs_ddof(self, testfunc, targfunc,
                         allow_complex=True, allow_all_nan=True, allow_str=True,
-                        allow_date=True, allow_obj=True,):
+                        allow_date=False, allow_tdelta=False, allow_obj=True,):
         for ddof in range(3):
             try:
                 self.check_funs(self, testfunc, targfunc,
                                 allow_complex, allow_all_nan, allow_str,
-                                allow_date, allow_obj,
+                                allow_date, allow_tdelta, allow_obj,
                                 ddof=ddof)
             except BaseException as exc:
                 exc.args += ('ddof %s' % ddof,)
@@ -284,34 +307,35 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nanany(self):
         self.check_funs(nanops.nanany, np.any,
-                        allow_all_nan=False, allow_str=False, allow_date=False)
+                        allow_all_nan=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nanall(self):
         self.check_funs(nanops.nanall, np.all,
-                        allow_all_nan=False, allow_str=False, allow_date=False)
+                        allow_all_nan=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nansum(self):
         self.check_funs(nanops.nansum, np.sum,
-                        allow_str=False, allow_date=False)
+                        allow_str=False, allow_date=False, allow_tdelta=True)
 
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean,
                         allow_complex=False, allow_obj=False,
-                        allow_str=False, allow_date=False)
+                        allow_str=False, allow_date=False, allow_tdelta=True)
 
     def test_nanmedian(self):
         self.check_funs(nanops.nanmedian, np.median,
                         allow_complex=False, allow_str=False, allow_date=False,
+                        allow_tdelta=True,
                         allow_obj='convert')
 
     def test_nanvar(self):
         self.check_funs_ddof(nanops.nanvar, np.var,
-                             allow_complex=False, allow_date=False)
+                             allow_complex=False, allow_date=False, allow_tdelta=False)
 
     def test_nansem(self):
         tm.skip_if_no_package('scipy.stats')
         self.check_funs_ddof(nanops.nansem, np.var,
-                             allow_complex=False, allow_date=False)
+                             allow_complex=False, allow_date=False, allow_tdelta=False)
 
     def _minmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -343,13 +367,16 @@ class TestnanopsDataFrame(tm.TestCase):
     def test_nanargmax(self):
         func = partial(self._argminmax_wrap, func=np.argmax)
         self.check_funs(nanops.nanargmax, func,
-                        allow_str=False, allow_obj=False)
+                        allow_str=False, allow_obj=False,
+                        allow_date=True,
+                        allow_tdelta=True)
 
     def test_nanargmin(self):
         func = partial(self._argminmax_wrap, func=np.argmin)
         if tm.sys.version_info[0:2] == (2, 6):
             self.check_funs(nanops.nanargmin, func,
-                            allow_date=False,
+                            allow_date=True,
+                            allow_tdelta=True,
                             allow_str=False, allow_obj=False)
         else:
             self.check_funs(nanops.nanargmin, func,
@@ -372,7 +399,7 @@ class TestnanopsDataFrame(tm.TestCase):
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
         self.check_funs(nanops.nanskew, func,
-                        allow_complex=False, allow_str=False, allow_date=False)
+                        allow_complex=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nankurt(self):
         tm.skip_if_no_package('scipy.stats')
@@ -380,11 +407,11 @@ class TestnanopsDataFrame(tm.TestCase):
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
         self.check_funs(nanops.nankurt, func,
-                        allow_complex=False, allow_str=False, allow_date=False)
+                        allow_complex=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod,
-                        allow_str=False, allow_date=False)
+                        allow_str=False, allow_date=False, allow_tdelta=False)
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
         res00 = checkfun(self.arr_float_2d, self.arr_float1_2d,
