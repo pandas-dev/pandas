@@ -681,6 +681,19 @@ class TestSQLApi(_TestSQLApi):
             # Verify some things
             self.assertEqual(len(w), 0, "Warning triggered for other table")
 
+    def test_warning_case_insensitive_table_name(self):
+        # see GH7815.
+        # We can't test that this warning is triggered, a the database
+        # configuration would have to be altered. But here we test that
+        # the warning is certainly NOT triggered in a normal case.
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            # This should not trigger a Warning
+            self.test_frame1.to_sql('CaseSensitive', self.conn)
+            # Verify some things
+            self.assertEqual(len(w), 0, "Warning triggered for writing a table")
+
 
 class TestSQLLegacyApi(_TestSQLApi):
     """
