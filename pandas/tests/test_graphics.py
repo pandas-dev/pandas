@@ -349,7 +349,6 @@ class TestPlotBase(tm.TestCase):
         yerr : number
             expected number of y errorbar
         """
-
         axes = self._flatten_visible(axes)
         for ax in axes:
             containers = ax.containers
@@ -2805,11 +2804,27 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=0)
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', xerr=df_err)
         self._check_has_errorbars(ax, xerr=1, yerr=0)
+
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', yerr=df_err)
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y',
                                xerr=df_err, yerr=df_err)
         self._check_has_errorbars(ax, xerr=1, yerr=1)
+
+        def _check_errorbar_color(containers, expected, has_err='has_xerr'):
+            errs = [c.lines[1][0] for c in ax.containers if getattr(c, has_err, False)]
+            self._check_colors(errs, linecolors=[expected] * len(errs))
+
+        # GH 8081
+        df = DataFrame(np.random.randn(10, 5), columns=['a', 'b', 'c', 'd', 'e'])
+        ax = df.plot(kind='scatter', x='a', y='b', xerr='d', yerr='e', c='red')
+        self._check_has_errorbars(ax, xerr=1, yerr=1)
+        _check_errorbar_color(ax.containers, 'red', has_err='has_xerr')
+        _check_errorbar_color(ax.containers, 'red', has_err='has_yerr')
+
+        ax = df.plot(kind='scatter', x='a', y='b', yerr='e', color='green')
+        self._check_has_errorbars(ax, xerr=0, yerr=1)
+        _check_errorbar_color(ax.containers, 'green', has_err='has_yerr')
 
 
 @tm.mplskip

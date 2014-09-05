@@ -650,6 +650,7 @@ Bug Fixes
 
 - Bug in ``pivot_table`` performed with nameless ``index`` and ``columns`` raises ``KeyError`` (:issue:`8103`)
 
+- Bug in ``DataFrame.plot(kind='scatter')`` draws points and errorbars with different colors when the color is specified by ``c`` keyword (:issue:`8081`)
 
 
 

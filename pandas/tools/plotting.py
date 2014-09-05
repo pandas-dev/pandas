@@ -1394,15 +1394,13 @@ class ScatterPlot(MPLPlot):
             label = None
         scatter = ax.scatter(data[x].values, data[y].values, label=label,
                              **self.kwds)
-
         self._add_legend_handle(scatter, label)
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
-        errors_y = self._get_errorbars(label=y, index=1, xerr=False)
+        errors_y = self._get_errorbars(label=y, index=0, xerr=False)
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
-            if 'color' in self.kwds:
-                err_kwds['color'] = self.kwds['color']
+            err_kwds['ecolor'] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle='none', **err_kwds)
 
     def _post_plot_logic(self):
