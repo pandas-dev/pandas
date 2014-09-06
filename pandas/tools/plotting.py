@@ -1954,6 +1954,7 @@ class KdePlot(HistPlot):
         from scipy import __version__ as spv
         f = MPLPlot._get_plot_function(self)
         def plotf(ax, y, style=None, column_num=None, **kwds):
+            y = remove_na(y)
             if LooseVersion(spv) >= '0.11.0':
                 gkde = gaussian_kde(y, bw_method=self.bw_method)
             else:

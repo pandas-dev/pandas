@@ -667,3 +667,5 @@ Bug Fixes
 
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
+
+- Bug with kde plot and NaNs (:issue:`8182`)

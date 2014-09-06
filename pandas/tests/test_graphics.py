@@ -746,6 +746,14 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
     @slow
+    def test_kde_missing_vals(self):
+        tm._skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
+        s = Series(np.random.uniform(size=50))
+        s[0] = np.nan
+        ax = _check_plot_works(s.plot, kind='kde')
+
+    @slow
     def test_hist_kwargs(self):
         ax = self.ts.plot(kind='hist', bins=5)
         self.assertEqual(len(ax.patches), 5)
@@ -1875,6 +1883,14 @@ class TestDataFramePlots(TestPlotBase):
 
         axes = df.plot(kind='kde', logy=True, subplots=True)
         self._check_ax_scales(axes, yaxis='log')
+
+    @slow
+    def test_kde_missing_vals(self):
+        tm._skip_if_no_scipy()
+        _skip_if_no_scipy_gaussian_kde()
+        df = DataFrame(np.random.uniform(size=(100, 4)))
+        df.loc[0, 0] = np.nan
+        ax = _check_plot_works(df.plot, kind='kde')
 
     @slow
     def test_hist_df(self):
