@@ -607,13 +607,13 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(new_arrays, index=index, columns=columns).__finalize__(self)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
-                     sort=False):
+                     lprefix='', rprefix='', sort=False):
         if on is not None:
             raise NotImplementedError("'on' keyword parameter is not yet "
                                       "implemented")
-        return self._join_index(other, how, lsuffix, rsuffix)
+        return self._join_index(other, how, lsuffix, rsuffix, lprefix, rprefix)
 
-    def _join_index(self, other, how, lsuffix, rsuffix):
+    def _join_index(self, other, how, lsuffix, rsuffix, lprefix, rprefix):
         if isinstance(other, Series):
             if other.name is None:
                 raise ValueError('Other Series must have a name')
@@ -626,26 +626,26 @@ class SparseDataFrame(DataFrame):
         this = self.reindex(join_index)
         other = other.reindex(join_index)
 
-        this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
+        this, other = this._maybe_rename_join(other, lsuffix, rsuffix, lprefix, rprefix)
 
         from pandas import concat
         return concat([this, other], axis=1, verify_integrity=True)
 
-    def _maybe_rename_join(self, other, lsuffix, rsuffix):
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, lprefix, rprefix):
         to_rename = self.columns.intersection(other.columns)
         if len(to_rename) > 0:
-            if not lsuffix and not rsuffix:
-                raise ValueError('columns overlap but no suffix specified: %s'
+            if not lsuffix and not rsuffix and not lprefix and not rprefix:
+                raise ValueError('columns overlap but no suffix or prefix specified: %s'
                                  % to_rename)
 
             def lrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, lsuffix)
+                    return '%s%s%s' % (lprefix, x, lsuffix)
                 return x
 
             def rrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, rsuffix)
+                    return '%s%s%s' % (rprefix, x, rsuffix)
                 return x
 
             this = self.rename(columns=lrenamer)
