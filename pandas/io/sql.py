@@ -540,6 +540,23 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None, is_cursor=False)
         return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
 
 
+try:
+    import sqlalchemy.types as types
+    
+    class Timestamp(types.TypeDecorator):
+        """convert from pandas.tslib.Timestamp type """
+    
+        impl = types.DateTime
+    
+        def process_bind_param(self, value, dialect):
+            f = getattr(value,'to_datetime', None)
+            if f is not None:
+                return f()
+            return value
+except:
+    pass
+
+
 class PandasSQLTable(PandasObject):
     """
     For mapping Pandas tables to SQL tables.
@@ -784,7 +801,7 @@ class PandasSQLTable(PandasObject):
                 tz = col.tzinfo
                 return DateTime(timezone=True)
             except:
-                return DateTime
+                return Timestamp
         if com.is_timedelta64_dtype(col):
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "

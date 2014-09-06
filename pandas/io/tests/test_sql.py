@@ -925,9 +925,6 @@ class _TestSQLAlchemy(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_datetime(self):
-        if self.driver == 'pymysql':
-             raise nose.SkipTest('writing datetime not working with pymysql')
-
         df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
                         'B': np.arange(3.0)})
         df.to_sql('test_datetime', self.conn)
