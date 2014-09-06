@@ -1104,7 +1104,7 @@ class PandasSQLLegacy(PandasSQL):
                     "Execution failed on sql: %s\n%s\nunable to rollback" % (args[0], e))
                 raise_with_traceback(ex)
 
-            ex = DatabaseError("Execution failed on sql: %s" % args[0])
+            ex = DatabaseError("Execution failed on sql '%s': %s" % (args[0], e))
             raise_with_traceback(ex)
 
     def read_sql(self, sql, index_col=None, coerce_float=True, params=None,
