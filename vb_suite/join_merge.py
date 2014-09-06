@@ -237,3 +237,16 @@ temp = TimeSeries(1.0, index)
 join_non_unique_equal = Benchmark('fracofday * temp[fracofday.index]', setup,
                                    start_date=datetime(2013, 1, 1))
 
+
+setup = common_setup + '''
+np.random.seed(2718281)
+n = 50000
+
+left = DataFrame(np.random.randint(1, n/500, (n, 2)),
+        columns=['jim', 'joe'])
+
+right = DataFrame(np.random.randint(1, n/500, (n, 2)),
+        columns=['jolie', 'jolia']).set_index('jolie')
+'''
+
+left_outer_join_index = Benchmark("left.join(right, on='jim')", setup)
