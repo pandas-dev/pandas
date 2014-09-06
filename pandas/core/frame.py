@@ -3702,6 +3702,7 @@ class DataFrame(NDFrame):
                       verify_integrity=verify_integrity)
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
+             lprefix='', rprefix='',
              sort=False):
         """
         Join columns with other DataFrame either on index or on a key
@@ -3746,9 +3747,11 @@ class DataFrame(NDFrame):
         """
         # For SparseDataFrame's benefit
         return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
-                                 rsuffix=rsuffix, sort=sort)
+                                 rsuffix=rsuffix, lprefix=lprefix,
+                                 rprefix=rprefix, sort=sort)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
+                     lprefix='', rprefix='',
                      sort=False):
         from pandas.tools.merge import merge, concat
 
@@ -3760,7 +3763,9 @@ class DataFrame(NDFrame):
         if isinstance(other, DataFrame):
             return merge(self, other, left_on=on, how=how,
                          left_index=on is None, right_index=True,
-                         suffixes=(lsuffix, rsuffix), sort=sort)
+                         suffixes=(lsuffix, rsuffix),
+                         prefixes=(lprefix, rprefix),
+                         sort=sort)
         else:
             if on is not None:
                 raise ValueError('Joining multiple DataFrames only supported'
