@@ -2214,6 +2214,20 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1, 3], index=[2, 3], name='a')
         tm.assert_series_equal(result, expected)
 
+    def test_count_cross_type(self):  # GH8169
+        vals = np.hstack((np.random.randint(0,5,(100,2)),
+                          np.random.randint(0,2,(100,2))))
+
+        df = pd.DataFrame(vals, columns=['a', 'b', 'c', 'd'])
+        df[df==2] = np.nan
+        expected = df.groupby(['c', 'd']).count()
+
+        for t in ['float32', 'object']:
+            df['a'] = df['a'].astype(t)
+            df['b'] = df['b'].astype(t)
+            result = df.groupby(['c', 'd']).count()
+            tm.assert_frame_equal(result, expected)
+
     def test_non_cython_api(self):
 
         # GH5610
