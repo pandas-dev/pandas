@@ -15,6 +15,7 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame, Series
+from pandas.core.common import notnull
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
 
@@ -615,7 +616,9 @@ class PandasSQLTable(PandasObject):
                     "duplicate name in index/columns: {0}".format(err))
         else:
             temp = self.frame
-
+        
+        temp = temp.astype(object)
+        temp = temp.where(notnull(temp), None)
         return temp
 
     def insert(self, chunksize=None):
@@ -758,12 +761,12 @@ class PandasSQLTable(PandasObject):
 
                 elif col_type is float:
                     # floats support NA, can always convert!
-                    self.frame[col_name].astype(col_type, copy=False)
+                    self.frame[col_name] = df_col.astype(col_type, copy=False)
 
                 elif len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
-                    if col_type is int or col_type is bool:
-                        self.frame[col_name].astype(col_type, copy=False)
+                    if col_type is np.dtype('int64') or col_type is bool:
+                        self.frame[col_name] = df_col.astype(col_type, copy=False)
 
                 # Handle date parsing
                 if col_name in parse_dates:
@@ -813,7 +816,7 @@ class PandasSQLTable(PandasObject):
             return float
         if isinstance(sqltype, Integer):
             # TODO: Refine integer size.
-            return int
+            return np.dtype('int64')
         if isinstance(sqltype, DateTime):
             # Caution: np.datetime64 is also a subclass of np.number.
             return datetime

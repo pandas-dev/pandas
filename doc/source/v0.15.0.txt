@@ -494,6 +494,9 @@ Enhancements
    df.to_sql('table', engine, schema='other_schema')
    pd.read_sql_table('table', engine, schema='other_schema')
 
+- Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
+- Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
+
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 
 - Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
