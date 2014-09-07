@@ -65,47 +65,40 @@ class TestMoments(tm.TestCase):
         self._check_moment_func(mom.rolling_mean, np.mean)
 
     def test_cmov_mean(self):
+        # GH 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_mean
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
-        vals = np.random.randn(10)
-        xp = cmov_mean(vals, 5)
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 
+                         16.68, 9.48, 10.63, 14.48])
+        xp = np.array([np.nan, np.nan, 9.962, 11.27 , 11.564, 12.516,
+                       12.818,  12.952, np.nan, np.nan])
 
         rs = mom.rolling_mean(vals, 5, center=True)
-        assert_almost_equal(xp.compressed(), rs[2:-2])
-        assert_almost_equal(xp.mask, np.isnan(rs))
+        assert_almost_equal(xp, rs)
 
         xp = Series(rs)
         rs = mom.rolling_mean(Series(vals), 5, center=True)
         assert_series_equal(xp, rs)
 
     def test_cmov_window(self):
+        # GH 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
-        vals = np.random.randn(10)
-        xp = cmov_window(vals, 5, 'boxcar')
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 
+                         13.49, 16.68, 9.48, 10.63, 14.48])
+        xp = np.array([np.nan, np.nan, 9.962, 11.27 , 11.564, 12.516,
+                       12.818,  12.952, np.nan, np.nan])
 
         rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-        assert_almost_equal(xp.compressed(), rs[2:-2])
-        assert_almost_equal(xp.mask, np.isnan(rs))
+        assert_almost_equal(xp, rs)
 
         xp = Series(rs)
         rs = mom.rolling_window(Series(vals), 5, 'boxcar', center=True)
         assert_series_equal(xp, rs)
 
     def test_cmov_window_corner(self):
+        # GH 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
         # all nan
         vals = np.empty(10, dtype=float)
@@ -125,24 +118,37 @@ class TestMoments(tm.TestCase):
         self.assertEqual(len(rs), 5)
 
     def test_cmov_window_frame(self):
+        # Gh 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
+
+        vals = np.array([[ 12.18,   3.64],
+                         [ 10.18,   9.16],
+                         [ 13.24,  14.61],
+                         [  4.51,   8.11],
+                         [  6.15,  11.44],
+                         [  9.14,   6.21],
+                         [ 11.31,  10.67],
+                         [  2.94,   6.51],
+                         [  9.42,   8.39],
+                         [ 12.44,   7.34 ]])
+
+        xp = np.array([[ np.nan,  np.nan],
+                       [ np.nan,  np.nan],
+                       [  9.252,   9.392],
+                       [  8.644,   9.906],
+                       [  8.87 ,  10.208],
+                       [  6.81 ,   8.588],
+                       [  7.792,   8.644],
+                       [  9.05 ,   7.824],
+                       [ np.nan,  np.nan],
+                       [ np.nan,  np.nan]])
 
         # DataFrame
-        vals = np.random.randn(10, 2)
-        xp = cmov_window(vals, 5, 'boxcar')
         rs = mom.rolling_window(DataFrame(vals), 5, 'boxcar', center=True)
         assert_frame_equal(DataFrame(xp), rs)
 
     def test_cmov_window_na_min_periods(self):
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
         # min_periods
         vals = Series(np.random.randn(10))
@@ -155,39 +161,136 @@ class TestMoments(tm.TestCase):
         assert_series_equal(xp, rs)
 
     def test_cmov_window_regular(self):
+        # GH 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
-        for wt in win_types:
-            vals = np.random.randn(10)
-            xp = cmov_window(vals, 5, wt)
 
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81,
+                         13.49, 16.68, 9.48, 10.63, 14.48])
+        xps = {
+            'hamming': [np.nan, np.nan, 8.71384, 9.56348, 12.38009, 
+                        14.03687, 13.8567, 11.81473, np.nan, np.nan], 
+            'triang': [np.nan, np.nan, 9.28667, 10.34667, 12.00556, 
+                       13.33889, 13.38, 12.33667, np.nan, np.nan], 
+            'barthann': [np.nan, np.nan, 8.4425, 9.1925, 12.5575, 
+                         14.3675, 14.0825, 11.5675, np.nan, np.nan], 
+            'bohman': [np.nan, np.nan, 7.61599, 9.1764, 12.83559, 
+                       14.17267, 14.65923, 11.10401, np.nan, np.nan], 
+            'blackmanharris': [np.nan, np.nan, 6.97691, 9.16438, 13.05052, 
+                               14.02156, 15.10512, 10.74574, np.nan, np.nan],
+            'nuttall': [np.nan, np.nan, 7.04618, 9.16786, 13.02671, 
+                        14.03559, 15.05657, 10.78514, np.nan, np.nan], 
+            'blackman': [np.nan, np.nan, 7.73345, 9.17869, 12.79607, 
+                         14.20036, 14.57726, 11.16988, np.nan, np.nan], 
+            'bartlett': [np.nan, np.nan, 8.4425, 9.1925, 12.5575, 
+                         14.3675, 14.0825, 11.5675, np.nan, np.nan]}
+
+        for wt in win_types:
+            xp = Series(xps[wt])
             rs = mom.rolling_window(Series(vals), 5, wt, center=True)
-            assert_series_equal(Series(xp), rs)
+            assert_series_equal(xp, rs)
+
+    def test_cmov_window_regular_linear_range(self):
+        # GH 8238
+        tm._skip_if_no_scipy()
+
+        win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
+                     'blackmanharris', 'nuttall', 'barthann']
+
+        vals = np.array(range(10), dtype=np.float)
+        xp = vals.copy()
+        xp[:2] = np.nan
+        xp[-2:] = np.nan
+        xp = Series(xp)
+
+        for wt in win_types:
+            rs = mom.rolling_window(Series(vals), 5, wt, center=True)
+            assert_series_equal(xp, rs)
+
+    def test_cmov_window_regular_missing_data(self):
+        # GH 8238
+        tm._skip_if_no_scipy()
+
+        win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
+                     'blackmanharris', 'nuttall', 'barthann']
+
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 
+                         13.49, 16.68, np.nan, 10.63, 14.48])
+        xps = {
+            'bartlett': [np.nan, np.nan, 9.70333, 10.5225, 8.4425, 
+                         9.1925, 12.5575, 14.3675, 15.61667, 13.655], 
+            'blackman': [np.nan, np.nan, 9.04582, 11.41536, 7.73345, 
+                         9.17869, 12.79607, 14.20036, 15.8706, 13.655], 
+            'barthann': [np.nan, np.nan, 9.70333, 10.5225, 8.4425, 
+                         9.1925, 12.5575, 14.3675, 15.61667, 13.655], 
+            'bohman': [np.nan, np.nan, 8.9444, 11.56327, 7.61599, 
+                       9.1764, 12.83559, 14.17267, 15.90976, 13.655], 
+            'hamming': [np.nan, np.nan, 9.59321, 10.29694, 8.71384, 
+                        9.56348, 12.38009, 14.20565, 15.24694, 13.69758], 
+            'nuttall': [np.nan, np.nan, 8.47693, 12.2821, 7.04618, 
+                        9.16786, 13.02671, 14.03673, 16.08759, 13.65553], 
+            'triang': [np.nan, np.nan, 9.33167, 9.76125, 9.28667, 
+                       10.34667, 12.00556, 13.82125, 14.49429, 13.765], 
+            'blackmanharris': [np.nan, np.nan, 8.42526, 12.36824, 6.97691,
+                               9.16438, 13.05052, 14.02175, 16.1098, 
+                               13.65509]
+            }
+
+        for wt in win_types:
+            xp = Series(xps[wt])
+            rs = mom.rolling_window(Series(vals), 5, wt, min_periods=3)
+            assert_series_equal(xp, rs)
 
     def test_cmov_window_special(self):
+        # GH 8238
         tm._skip_if_no_scipy()
-        try:
-            from scikits.timeseries.lib import cmov_window
-        except ImportError:
-            raise nose.SkipTest("no scikits.timeseries")
 
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2., 'width': 2.},
                 {'width': 0.5}]
 
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81,
+                         13.49, 16.68, 9.48, 10.63, 14.48])
+
+        xps = {
+            'gaussian': [np.nan, np.nan, 8.97297, 9.76077, 12.24763, 
+                         13.89053, 13.65671, 12.01002, np.nan, np.nan], 
+            'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 
+                                 11.73161, 13.08516, 12.95111, 12.74577, 
+                                 np.nan, np.nan], 
+            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284, 
+                        12.88331, 12.96079, 12.77008, np.nan, np.nan], 
+            'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 
+                       12.75129, 12.90702, 12.83757, np.nan, np.nan]
+        }
+
         for wt, k in zip(win_types, kwds):
-            vals = np.random.randn(10)
-            xp = cmov_window(vals, 5, (wt,) + tuple(k.values()))
+            xp = Series(xps[wt])
 
             rs = mom.rolling_window(Series(vals), 5, wt, center=True,
                                     **k)
-            assert_series_equal(Series(xp), rs)
+            assert_series_equal(xp, rs)
+
+    def test_cmov_window_special_linear_range(self):
+        # GH 8238
+        tm._skip_if_no_scipy()
+
+        win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
+        kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2., 'width': 2.},
+                {'width': 0.5}]
+
+        vals = np.array(range(10), dtype=np.float)
+        xp = vals.copy()
+        xp[:2] = np.nan
+        xp[-2:] = np.nan
+        xp = Series(xp)
+
+        for wt, k in zip(win_types, kwds):
+            rs = mom.rolling_window(Series(vals), 5, wt, center=True,
+                                    **k)
+            assert_series_equal(xp, rs)
 
     def test_rolling_median(self):
         self._check_moment_func(mom.rolling_median, np.median)

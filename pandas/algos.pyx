@@ -1897,7 +1897,7 @@ def roll_generic(ndarray[float64_t, cast=True] input,
 
 def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
                 ndarray[float64_t, ndim=1, cast=True] weights,
-                int minp, bint avg=True, bint avg_wgt=False):
+                int minp, bint avg=True):
     """
     Assume len(weights) << len(input)
     """
@@ -1915,7 +1915,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
 
     minp = _check_minp(len(weights), minp, in_n)
 
-    if avg_wgt:
+    if avg:
         for win_i from 0 <= win_i < win_n:
             val_win = weights[win_i]
             if val_win != val_win:
@@ -1956,8 +1956,6 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
             c = counts[in_i]
             if c < minp:
                 output[in_i] = NaN
-            elif avg:
-                output[in_i] /= c
 
     return output
 
