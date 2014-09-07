@@ -233,7 +233,7 @@ however pass ``sort=False`` for potential speedups:
 GroupBy with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-With :ref:`hierarchically-indexed data <indexing.hierarchical>`, it's quite
+With :ref:`hierarchically-indexed data <advanced.hierarchical>`, it's quite
 natural to group by one of the levels of the hierarchy.
 
 .. ipython:: python
@@ -358,7 +358,7 @@ An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` meth
 
 As you can see, the result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
-:ref:`MultiIndex <indexing.hierarchical>` by default, though this can be
+:ref:`MultiIndex <advanced.hierarchical>` by default, though this can be
 changed by using the ``as_index`` option:
 
 .. ipython:: python

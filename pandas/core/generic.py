@@ -946,7 +946,7 @@ class NDFrame(PandasObject):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, default None
-            If not None, then rows will be written in batches of this size at a 
+            If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
 
         """
@@ -1383,7 +1383,7 @@ class NDFrame(PandasObject):
         xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:

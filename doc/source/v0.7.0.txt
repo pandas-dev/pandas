@@ -33,7 +33,7 @@ New features
    df = DataFrame(randn(10, 4))
    df.apply(lambda x: x.describe())
 
-- :ref:`Add<indexing.reorderlevels>` ``reorder_levels`` method to Series and
+- :ref:`Add<advanced.reorderlevels>` ``reorder_levels`` method to Series and
   DataFrame (:issue:`534`)
 
 - :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame
@@ -50,7 +50,7 @@ New features
 - :ref:`Add <basics.stats>` ``level`` option to binary arithmetic functions on
   ``DataFrame`` and ``Series``
 
-- :ref:`Add <indexing.advanced_reindex>` ``level`` option to the ``reindex``
+- :ref:`Add <advanced.advanced_reindex>` ``level`` option to the ``reindex``
   and ``align`` methods on Series and DataFrame for broadcasting values across
   a level (:issue:`542`, :issue:`552`, others)
 
@@ -103,7 +103,7 @@ New features
 
 - :ref:`Added <indexing.set_ops>` ``isin`` method to index objects
 
-- :ref:`Added <indexing.xs>` ``level`` argument to ``xs`` method of DataFrame.
+- :ref:`Added <advanced.xs>` ``level`` argument to ``xs`` method of DataFrame.
 
 
 API Changes to integer indexing

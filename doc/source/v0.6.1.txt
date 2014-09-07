@@ -32,7 +32,7 @@ New features
 - Add ``Series.from_csv`` function (:issue:`482`)
 - :ref:`Can pass <stats.moments.binary>` DataFrame/DataFrame and
   DataFrame/Series to rolling_corr/rolling_cov (GH #462)
-- MultiIndex.get_level_values can :ref:`accept the level name <indexing.get_level_values>`
+- MultiIndex.get_level_values can :ref:`accept the level name <advanced.get_level_values>`
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -77,7 +77,7 @@ this form, use the ``pivot`` function:
 If the ``values`` argument is omitted, and the input DataFrame has more than
 one column of values which are not used as column or index inputs to ``pivot``,
 then the resulting "pivoted" DataFrame will have :ref:`hierarchical columns
-<indexing.hierarchical>` whose topmost level indicates the respective value
+<advanced.hierarchical>` whose topmost level indicates the respective value
 column:
 
 .. ipython:: python
@@ -103,7 +103,7 @@ Reshaping by stacking and unstacking
 Closely related to the ``pivot`` function are the related ``stack`` and
 ``unstack`` functions currently available on Series and DataFrame. These
 functions are designed to work together with ``MultiIndex`` objects (see the
-section on :ref:`hierarchical indexing <indexing.hierarchical>`). Here are
+section on :ref:`hierarchical indexing <advanced.hierarchical>`). Here are
 essentially what these functions do:
 
   - ``stack``: "pivot" a level of the (possibly hierarchical) column labels,

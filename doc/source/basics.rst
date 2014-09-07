@@ -410,7 +410,7 @@ values:
 
 Here is a quick reference summary table of common functions. Each also takes an
 optional ``level`` parameter which applies only if the object has a
-:ref:`hierarchical index<indexing.hierarchical>`.
+:ref:`hierarchical index<advanced.hierarchical>`.
 
 .. csv-table::
     :header: "Function", "Description"
@@ -822,7 +822,7 @@ DataFrame's index.
 
 .. seealso::
 
-   :ref:`Advanced indexing <indexing.advanced>` is an even more concise way of
+   :ref:`MultiIndex / Advanced Indexing <advanced>` is an even more concise way of
    doing reindexing.
 
 .. note::

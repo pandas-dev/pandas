@@ -86,7 +86,7 @@ The :ref:`indexing <indexing>` docs.
 MultiIndexing
 -------------
 
-The :ref:`multindexing <indexing.hierarchical>` docs.
+The :ref:`multindexing <advanced.hierarchical>` docs.
 
 `Creating a multi-index from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
