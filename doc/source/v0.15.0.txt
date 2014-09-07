@@ -480,7 +480,7 @@ Enhancements
 
 
 
-
+- Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 
 
 
