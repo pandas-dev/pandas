@@ -116,6 +116,8 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
+        if rev.dtype != np.int_:
+              rev = rev.astype(np.int_)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
