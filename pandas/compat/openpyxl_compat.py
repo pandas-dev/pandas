@@ -21,4 +21,4 @@ def is_compat():
     """
     import openpyxl
     ver = LooseVersion(openpyxl.__version__)
-    return LooseVersion(start_ver) < ver <= LooseVersion(stop_ver)
+    return LooseVersion(start_ver) <= ver < LooseVersion(stop_ver)
