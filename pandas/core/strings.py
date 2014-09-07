@@ -465,7 +465,9 @@ def str_extract(arr, pat, flags=0):
         raise ValueError("This pattern contains no groups to capture.")
     empty_row = [np.nan]*regex.groups
     def f(x):
-        if not isinstance(x, compat.string_types):
+        try:
+            regex.search(x)
+        except TypeError:
             return empty_row
         m = regex.search(x)
         if m:
