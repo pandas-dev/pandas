@@ -703,7 +703,7 @@ class TextFileReader(object):
         df = DataFrame(col_dict, columns=columns, index=index)
 
         if self.squeeze and len(df.columns) == 1:
-            return df[df.columns[0]]
+            return df[df.columns[0]].copy()
         return df
 
     def _create_index(self, ret):

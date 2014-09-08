@@ -480,7 +480,6 @@ Enhancements
 
 
 
-- Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 
 
 - Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
@@ -539,7 +538,9 @@ There are no experimental changes in 0.15.0
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``read_csv`` where ``squeeze=True`` would return a view (:issue:`8217`)
 - Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
+- Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 - Bug in multiindexes dtypes getting mixed up when DataFrame is saved to SQL table (:issue:`8021`)
 - Bug in Series 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
