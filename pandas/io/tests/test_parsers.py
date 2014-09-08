@@ -263,6 +263,15 @@ c,3
         tm.assert_isinstance(result, Series)
         tm.assert_series_equal(result, expected)
 
+    def test_squeeze_no_view(self):
+
+        # GH 8217
+        # series should not be a view
+
+        data = """time,data\n0,10\n1,11\n2,12\n4,14\n5,15\n3,13"""
+        result = self.read_csv(StringIO(data), index_col='time', squeeze=True)
+        self.assertFalse(result._is_view)
+
     def test_inf_parsing(self):
         data = """\
 ,A
