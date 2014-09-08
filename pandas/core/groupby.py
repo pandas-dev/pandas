@@ -2083,8 +2083,13 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             errmsg = "Categorical grouper must have len(grouper) == len(data)"
             raise AssertionError(errmsg)
 
-        ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
-        groupings.append(ping)
+        if gpr.ndim > 1:
+            for name, gpr in gpr.iteritems():
+                ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
+                groupings.append(ping)
+        else:
+            ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
+            groupings.append(ping)
 
     if len(groupings) == 0:
         raise ValueError('No group keys passed!')
