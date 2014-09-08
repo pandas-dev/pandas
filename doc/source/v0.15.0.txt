@@ -684,6 +684,7 @@ Bug Fixes
 - Bug in ``groupby`` where callable objects without name attributes would take the wrong path,
   and produce a ``DataFrame`` instead of a ``Series`` (:issue:`7929`)
 
+- Bug in ``groupby`` error message when a DataFrame grouping column is duplicated (:issue:`7511`)
 
 - Bug in ``read_html`` where the ``infer_types`` argument forced coercion of
   date-likes incorrectly (:issue:`7762`, :issue:`7032`).
