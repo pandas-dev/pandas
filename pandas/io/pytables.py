@@ -398,8 +398,8 @@ class HDFStore(StringMixin):
                  fletcher32=False, **kwargs):
         try:
             import tables
-        except ImportError:  # pragma: no cover
-            raise ImportError('HDFStore requires PyTables')
+        except ImportError as ex:  # pragma: no cover
+            raise ImportError('HDFStore requires PyTables, "{ex}" problem importing'.format(ex=str(ex)))
 
         self._path = path
         if mode is None:
