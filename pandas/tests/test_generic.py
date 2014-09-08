@@ -123,6 +123,23 @@ class Generic(object):
 
         # _get_numeric_data is includes _get_bool_data, so can't test for non-inclusion
 
+    def test_get_default(self):
+        
+        # GH 7725
+        d0 = "a", "b", "c", "d"
+        d1 = np.arange(4, dtype='int64')
+        others = "e", 10
+        
+        for data, index in ((d0, d1), (d1, d0)):
+            s = Series(data, index=index)
+            for i,d in zip(index, data):
+                self.assertEqual(s.get(i), d)
+                self.assertEqual(s.get(i, d), d)
+                self.assertEqual(s.get(i, "z"), d)
+                for other in others:
+                    self.assertEqual(s.get(other, "z"), "z")
+                    self.assertEqual(s.get(other, other), other)
+
     def test_nonzero(self):
 
         # GH 4633

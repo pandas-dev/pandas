@@ -483,6 +483,7 @@ Enhancements
 - Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 
 
+- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 
 
 
