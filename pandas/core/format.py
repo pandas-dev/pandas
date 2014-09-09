@@ -513,12 +513,23 @@ class DataFrameFormatter(TableFormatter):
         else:
             strcols = self._to_str_columns()
 
+        if self.index and isinstance(self.frame.index, MultiIndex):
+            fmt = self._get_formatter('__index__')
+            clevels = self.frame.columns.nlevels
+            strcols.pop(0)
+            name = any(self.frame.columns.names)
+            for i, lev in enumerate(self.frame.index.levels):
+                lev2 = lev.format(name=name)
+                width = len(lev2[0])
+                lev3 = [' ' * width] * clevels + lev2
+                strcols.insert(i, lev3)
+
         if column_format is None:
             dtypes = self.frame.dtypes.values
+            column_format = ''.join(map(get_col_type, dtypes))
             if self.index:
-                column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
-            else:
-                column_format = '%s' % ''.join(map(get_col_type, dtypes))
+                index_format = 'l' * self.frame.index.nlevels
+                column_format = index_format +  column_format
         elif not isinstance(column_format,
                             compat.string_types):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, not %s'
@@ -645,8 +656,8 @@ class DataFrameFormatter(TableFormatter):
     def has_column_names(self):
         return _has_names(self.frame.columns)
 
-    def _get_formatted_index(self,frame):
-        # Note: this is only used by to_string(), not by to_html().
+    def _get_formatted_index(self, frame):
+        # Note: this is only used by to_string() and to_latex(), not by to_html().
         index = frame.index
         columns = frame.columns
 
