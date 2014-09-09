@@ -6428,6 +6428,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df2.to_csv(exp)
         self.assertEqual(res.getvalue(), exp.getvalue())
 
+    def test_to_csv_path_is_none(self):
+        # GH 8215
+        # Make sure we return string for consistency with
+        # Series.to_csv()
+        csv_str = self.frame.to_csv(path=None)
+        self.assertIsInstance(csv_str, str)
+        recons = pd.read_csv(StringIO(csv_str), index_col=0)
+        assert_frame_equal(self.frame, recons)
 
     def test_info(self):
         io = StringIO()

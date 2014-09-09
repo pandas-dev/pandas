@@ -309,6 +309,9 @@ API changes
      df
      df.dtypes
 
+- ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of
+    ``DataFrame.to_csv()`` (:issue:`8215`).
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
