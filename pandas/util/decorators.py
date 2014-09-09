@@ -15,7 +15,7 @@ def deprecate(name, alternative, alt_name=None):
     return wrapper
 
 
-def deprecate_kwarg(old_arg_name, new_arg_name):
+def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None):
     """Decorator to deprecate a keyword argument of a function
 
     Parameters
@@ -24,6 +24,10 @@ def deprecate_kwarg(old_arg_name, new_arg_name):
         Name of argument in function to deprecate
     new_arg_name : str
         Name of prefered argument in function
+    mapping : dict or callable
+        If mapping is present, use it to translate old arguments to
+        new arguments.  A callable must do its own value checking;
+        values not found in a dict will be forwarded unchanged.
 
     Examples
     --------
@@ -31,7 +35,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name):
 
     >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     ... def f(columns=''):
-    ...     print columns
+    ...     print(columns)
     ...
     >>> f(columns='should work ok')
     should work ok
@@ -41,22 +45,46 @@ def deprecate_kwarg(old_arg_name, new_arg_name):
     should raise warning
     >>> f(cols='should error', columns="can't pass do both")
     TypeError: Can only specify 'cols' or 'columns', not both
+    >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no', False})
+    ... def f(new=False):
+    ...     print('yes!' if new else 'no!')
+    ...
+    >>> f(old='yes')
+    FutureWarning: old='yes' is deprecated, use new=True instead
+      warnings.warn(msg, FutureWarning)
+    yes!
 
     """
+    if mapping is not None and not hasattr(mapping, 'get') and \
+            not callable(mapping):
+        raise TypeError("mapping from old to new argument values "
+                        "must be dict or callable!")
     def _deprecate_kwarg(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             old_arg_value = kwargs.pop(old_arg_name, None)
             if old_arg_value is not None:
-                msg = "the '%s' keyword is deprecated, use '%s' instead" % \
-                      (old_arg_name, new_arg_name)
+                if mapping is not None:
+                    if hasattr(mapping, 'get'):
+                        new_arg_value = mapping.get(old_arg_value,
+                                                    old_arg_value)
+                    else:
+                        new_arg_value = mapping(old_arg_value)
+                    msg = "the %s=%r keyword is deprecated, " \
+                          "use %s=%r instead" % \
+                          (old_arg_name, old_arg_value,
+                           new_arg_name, new_arg_value)
+                else:
+                    new_arg_value = old_arg_value
+                    msg = "the '%s' keyword is deprecated, " \
+                          "use '%s' instead" % (old_arg_name, new_arg_name)  
                 warnings.warn(msg, FutureWarning)
                 if kwargs.get(new_arg_name, None) is not None:
                     msg = "Can only specify '%s' or '%s', not both" % \
                       (old_arg_name, new_arg_name)
                     raise TypeError(msg)
                 else:
-                    kwargs[new_arg_name] = old_arg_value
+                    kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
         return wrapper
     return _deprecate_kwarg
