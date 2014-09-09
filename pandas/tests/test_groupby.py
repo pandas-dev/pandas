@@ -666,6 +666,11 @@ class TestGroupBy(tm.TestCase):
         expected = grouped.mean()
         tm.assert_frame_equal(result, expected)
 
+    def test_grouping_error_on_multidim_input(self):
+        from pandas.core.groupby import Grouping
+        self.assertRaises(AssertionError, \
+            Grouping, self.df.index, self.df[['A','A']])
+
     def test_agg_python_multiindex(self):
         grouped = self.mframe.groupby(['A', 'B'])
 
