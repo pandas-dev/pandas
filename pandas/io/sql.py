@@ -886,6 +886,12 @@ class PandasSQLAlchemy(PandasSQL):
             name, self, frame=frame, index=index, if_exists=if_exists,
             index_label=index_label, schema=schema)
         table.insert(chunksize)
+        # check for potentially case sensitivity issues (GH7815)
+        if name not in self.engine.table_names(schema=schema or self.meta.schema):
+            warnings.warn("The provided table name '{0}' is not found exactly "
+                          "as such in the database after writing the table, "
+                          "possibly due to case sensitivity issues. Consider "
+                          "using lower case table names.".format(name), UserWarning)
 
     @property
     def tables(self):
