@@ -4154,6 +4154,10 @@ class TestGroupBy(tm.TestCase):
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
                 getattr(gb, m)
+                # Also make sure that the class itself has
+                # the method defined (dtypes is not a method)
+                if m not in ['dtypes'] :
+                    self.assertTrue(hasattr(type(gb), m))
 
     def test_groupby_blacklist(self):
         from string import ascii_lowercase
