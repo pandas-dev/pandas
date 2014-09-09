@@ -342,20 +342,21 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_groupby_duplicated_column(self):
+        # GH7511
         df = DataFrame(columns=['A','B','A','C'], \
                 data=[range(4), range(2,6), range(0, 8, 2)])
 
         grouped = df.groupby('A')
-        assert grouped.count().index.nlevels == 2
+        self.assertTrue(grouped.count().index.nlevels == 2)
         grouped = df.groupby(['A','B'])
-        assert grouped.count().index.nlevels == 3
+        self.assertTrue(grouped.count().index.nlevels == 3)
         grouped = df.groupby(['A','A'])
-        assert grouped.count().index.nlevels == 4
+        self.assertTrue(grouped.count().index.nlevels == 4)
 
         grouped = df.groupby(['B'])
         c = grouped.count()
-        assert c.columns.nlevels == 1
-        assert c.columns.size == 3
+        self.assertTrue(c.columns.nlevels == 1)
+        self.assertTrue(c.columns.size == 3)
 
     def test_groupby_dict_mapping(self):
         # GH #679
