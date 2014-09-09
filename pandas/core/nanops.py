@@ -230,7 +230,9 @@ def _wrap_results(result, dtype):
             from pandas import Series
 
             # coerce float to results
-            if is_float(result):
+            if isnull(result):
+                result = tslib.NaT
+            elif is_float(result):
                 result = int(result)
             result = Series([result], dtype='timedelta64[ns]')
         else:
