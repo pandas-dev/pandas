@@ -4371,6 +4371,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         buf = StringIO()
         split.to_csv(buf)
 
+    def test_to_csv_path_is_none(self):
+        # GH 8215
+        # Series.to_csv() was returning None, inconsistent with
+        # DataFrame.to_csv() which returned string
+        s = Series([1, 2, 3])
+        csv_str = s.to_csv(path=None)
+        self.assertIsInstance(csv_str, str)
+
     def test_clip(self):
         val = self.ts.median()
 

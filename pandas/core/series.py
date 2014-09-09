@@ -2200,7 +2200,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        path : string file path or file handle / StringIO
+        path : string file path or file handle / StringIO. If None is provided
+            the result is returned as a string.
         na_rep : string, default ''
             Missing data representation
         float_format : string, default None
@@ -2224,10 +2225,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
-        df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
+        # result is only a string if no path provided, otherwise None
+        result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                   float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding, date_format=date_format)
+        if path is None:
+            return result
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
