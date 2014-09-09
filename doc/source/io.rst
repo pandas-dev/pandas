@@ -2541,17 +2541,17 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
       string = "HolyMoly'"
       store.select('df',  'index == %s' % string)
 
-    The latter will **not** work and will raise a ``SyntaxError``.Note that
-    there's a single quote followed by a double quote in the ``string``
-    variable.
+   The latter will **not** work and will raise a ``SyntaxError``.Note that
+   there's a single quote followed by a double quote in the ``string``
+   variable.
 
-    If you *must* interpolate, use the ``'%r'`` format specifier
+   If you *must* interpolate, use the ``'%r'`` format specifier
 
-    .. code-block:: python
+   .. code-block:: python
 
-       store.select('df', 'index == %r' % string)
+      store.select('df', 'index == %r' % string)
 
-    which will quote ``string``.
+   which will quote ``string``.
 
 
 Here are some examples:
