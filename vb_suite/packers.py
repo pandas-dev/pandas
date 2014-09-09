@@ -102,6 +102,27 @@ setup = common_setup + """
 packers_write_hdf_table = Benchmark("df2.to_hdf(f,'df',table=True)", setup, cleanup="remove(f)", start_date=start_date)
 
 #----------------------------------------------------------------------
+# sql
+
+setup = common_setup + """
+import sqlite3
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:///:memory:')
+
+df2.to_sql('table', engine, if_exists='replace')
+"""
+
+packers_read_sql= Benchmark("pd.read_sql_table('table', engine)", setup, start_date=start_date)
+
+setup = common_setup + """
+import sqlite3
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:///:memory:')
+"""
+
+packers_write_sql = Benchmark("df2.to_sql('table', engine, if_exists='replace')", setup, start_date=start_date)
+
+#----------------------------------------------------------------------
 # json
 
 setup_int_index = """
