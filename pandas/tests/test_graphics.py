@@ -2261,10 +2261,10 @@ class TestDataFramePlots(TestPlotBase):
             self._check_legend_labels(ax, labels=df.columns)
 
             ax = df3.plot(kind=kind, legend=True, ax=ax)
-            self._check_legend_labels(ax, labels=df.columns + df3.columns)
+            self._check_legend_labels(ax, labels=df.columns.union(df3.columns))
 
             ax = df4.plot(kind=kind, legend='reverse', ax=ax)
-            expected = list(df.columns + df3.columns) + list(reversed(df4.columns))
+            expected = list(df.columns.union(df3.columns)) + list(reversed(df4.columns))
             self._check_legend_labels(ax, labels=expected)
 
         # Secondary Y

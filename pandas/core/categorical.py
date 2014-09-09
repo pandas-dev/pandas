@@ -435,7 +435,7 @@ class Categorical(PandasObject):
         """
         new_levels = self._validate_levels(new_levels)
 
-        if len(new_levels) < len(self._levels) or len(self._levels-new_levels):
+        if len(new_levels) < len(self._levels) or len(self._levels.difference(new_levels)):
             raise ValueError('Reordered levels must include all original levels')
         values = self.__array__()
         self._codes = _get_codes_for_values(values, new_levels)
@@ -887,7 +887,7 @@ class Categorical(PandasObject):
                 raise ValueError("cannot set a Categorical with another, without identical levels")
 
         rvalue = value if com.is_list_like(value) else [value]
-        to_add = Index(rvalue)-self.levels
+        to_add = Index(rvalue).difference(self.levels)
         # no assignments of values not in levels, but it's always ok to set something to np.nan
         if len(to_add) and not isnull(to_add).all():
             raise ValueError("cannot setitem on a Categorical with a new level,"

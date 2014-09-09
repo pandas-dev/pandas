@@ -2898,7 +2898,7 @@ class TestDatetime64(tm.TestCase):
                              periods=100)
         dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
                              periods=98)
-        self.assertEqual(len(dti1.diff(dti2)), 2)
+        self.assertEqual(len(dti1.difference(dti2)), 2)
 
     def test_fancy_getitem(self):
         dti = DatetimeIndex(freq='WOM-1FRI', start=datetime(2005, 1, 1),

@@ -427,9 +427,9 @@ class SparsePanel(Panel):
                            default_kind=self.default_kind)
 
     def _combinePanel(self, other, func):
-        items = self.items + other.items
-        major = self.major_axis + other.major_axis
-        minor = self.minor_axis + other.minor_axis
+        items = self.items.union(other.items)
+        major = self.major_axis.union(other.major_axis)
+        minor = self.minor_axis.union(other.minor_axis)
 
         # could check that everything's the same size, but forget it
 
