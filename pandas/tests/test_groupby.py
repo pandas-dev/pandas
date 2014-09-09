@@ -668,7 +668,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_grouping_error_on_multidim_input(self):
         from pandas.core.groupby import Grouping
-        self.assertRaises(AssertionError, \
+        self.assertRaises(ValueError, \
             Grouping, self.df.index, self.df[['A','A']])
 
     def test_agg_python_multiindex(self):
