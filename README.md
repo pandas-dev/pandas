@@ -96,7 +96,7 @@ pip install pandas
     - Needed for time zone support with ``pandas.date_range``
 
 ### Highly Recommended Dependencies
-- [numexpr](http://code.google.com/p/numexpr/)
+- [numexpr](https://github.com/pydata/numexpr)
    - Needed to accelerate some expression evaluation operations
    - Required by PyTables
 - [bottleneck](http://berkeleyanalytics.com/bottleneck)
