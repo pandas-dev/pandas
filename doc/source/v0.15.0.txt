@@ -102,7 +102,7 @@ API changes
     2     6
     3   NaN
     dtype: float64
-  
+
   New behavior (note final value is ``5 = sum([2, 3, NaN])``):
 
   .. ipython:: python
@@ -139,7 +139,7 @@ API changes
 	4    1.571429
 	5    2.189189
 	dtype: float64
-  
+
   New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
 
   .. ipython:: python
@@ -369,7 +369,7 @@ This enables nice expressions like this:
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101',periods=4,freq='D').asobject)
+   s = Series(period_range('20130101',periods=4,freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -593,7 +593,7 @@ Bug Fixes
 - Bug in Panel when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
-
+- Bug in putting a ``PeriodIndex`` into a ``Series`` would convert to ``int64`` dtype, rather than ``object`` of ``Periods`` (:issue:`7932`)
 - Bug in HDFStore iteration when passing a where (:issue:`8014`)
 - Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)

@@ -1125,7 +1125,7 @@ This enables nice expressions like this:
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101',periods=4,freq='D').asobject)
+   s = Series(period_range('20130101',periods=4,freq='D'))
    s
    s.dt.year
    s.dt.day
