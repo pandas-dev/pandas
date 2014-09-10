@@ -102,7 +102,7 @@ API changes
     2     6
     3   NaN
     dtype: float64
-  
+
   New behavior (note final value is ``5 = sum([2, 3, NaN])``):
 
   .. ipython:: python
@@ -139,7 +139,7 @@ API changes
 	4    1.571429
 	5    2.189189
 	dtype: float64
-  
+
   New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
 
   .. ipython:: python
@@ -761,3 +761,5 @@ Bug Fixes
 
 - Bug in interpolation methods with the ``limit`` keyword when no values
 needed interpolating (:issue:`7173`).
+- Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False``
+  (:issue:`8230`).

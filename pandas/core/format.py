@@ -391,7 +391,8 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 formatter = self._get_formatter(i)
                 fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(fmt_values, self.justify)
+                fmt_values = _make_fixed_width(fmt_values, self.justify,
+                                               minimum=(self.col_space or 0))
 
                 stringified.append(fmt_values)
 
