@@ -756,3 +756,8 @@ Bug Fixes
 - Bug with kde plot and NaNs (:issue:`8182`)
 - Bug in ``GroupBy.count`` with float32 data type were nan values were not excluded (:issue:`8169`).
 - Bug with stacked barplots and NaNs (:issue:`8175`).
+
+
+
+- Bug in interpolation methods with the ``limit`` keyword when no values
+needed interpolating (:issue:`7173`).

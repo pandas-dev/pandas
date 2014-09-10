@@ -656,6 +656,13 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([1., 1., 3.], index=date_range('1/1/2000', periods=3))
         assert_series_equal(result, expected)
 
+    def test_interp_limit_no_nans(self):
+        # GH 7173
+        s = pd.Series([1., 2., 3.])
+        result = s.interpolate(limit=1)
+        expected = s
+        assert_series_equal(result, expected)
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()
