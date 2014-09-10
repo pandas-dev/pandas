@@ -1534,6 +1534,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     def _interp_limit(invalid, limit):
         """mask off values that won't be filled since they exceed the limit"""
         all_nans = np.where(invalid)[0]
+        if all_nans.size == 0: # no nans anyway
+            return []
         violate = [invalid[x:x + limit + 1] for x in all_nans]
         violate = np.array([x.all() & (x.size > limit) for x in violate])
         return all_nans[violate] + limit
