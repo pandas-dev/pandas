@@ -387,6 +387,19 @@ class TestGroupBy(tm.TestCase):
         expected = grouped.mean()
         assert_frame_equal(result, expected)
 
+    def test_groupby_duplicated_column_errormsg(self):
+        # GH7511
+        df = DataFrame(columns=['A','B','A','C'], \
+                data=[range(4), range(2,6), range(0, 8, 2)])
+
+        self.assertRaises(AssertionError, df.groupby, 'A')
+        self.assertRaises(AssertionError, df.groupby, ['A', 'B'])
+
+        grouped = df.groupby('B')
+        c = grouped.count()
+        self.assertTrue(c.columns.nlevels == 1)
+        self.assertTrue(c.columns.size == 3)
+
     def test_groupby_dict_mapping(self):
         # GH #679
         from pandas import Series
@@ -694,6 +707,11 @@ class TestGroupBy(tm.TestCase):
         result = grouped.agg(np.mean)
         expected = grouped.mean()
         tm.assert_frame_equal(result, expected)
+
+    def test_grouping_error_on_multidim_input(self):
+        from pandas.core.groupby import Grouping
+        self.assertRaises(ValueError, \
+            Grouping, self.df.index, self.df[['A','A']])
 
     def test_agg_python_multiindex(self):
         grouped = self.mframe.groupby(['A', 'B'])

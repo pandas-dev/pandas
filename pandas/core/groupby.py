@@ -1940,6 +1940,8 @@ class Grouping(object):
 
             # no level passed
             if not isinstance(self.grouper, (Series, Index, np.ndarray)):
+                if getattr(self.grouper,'ndim', 1) != 1:
+                    raise ValueError("Grouper result with an ndim != 1")
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper, "__len__") and
                         len(self.grouper) == len(self.index)):
@@ -2099,6 +2101,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
         if isinstance(gpr, Categorical) and len(gpr) != len(obj):
             errmsg = "Categorical grouper must have len(grouper) == len(data)"
+            raise AssertionError(errmsg)
+
+        if isinstance(gpr, DataFrame) and gpr.ndim > 1:
+            errmsg = "Grouper result is not unique for '%s'" % name
             raise AssertionError(errmsg)
 
         ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
