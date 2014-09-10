@@ -2327,6 +2327,13 @@ def is_iterator(obj):
 def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
+def is_period_arraylike(arr):
+    """ return if we are period arraylike / PeriodIndex """
+    if isinstance(arr, pd.PeriodIndex):
+        return True
+    elif isinstance(arr, (np.ndarray, ABCSeries)):
+        return arr.dtype == object and lib.infer_dtype(arr) == 'period'
+    return getattr(arr, 'inferred_type', None) == 'period'
 
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
@@ -2381,7 +2388,6 @@ def is_datetime64_dtype(arr_or_dtype):
 def is_datetime64_ns_dtype(arr_or_dtype):
     tipo = _get_dtype(arr_or_dtype)
     return tipo == _NS_DTYPE
-
 
 def is_timedelta64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)

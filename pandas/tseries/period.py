@@ -746,6 +746,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
+    def _to_embed(self, keep_tz=False):
+        """ return an array repr of this object, potentially casting to object """
+        return self.asobject.values
+
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
