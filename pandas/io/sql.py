@@ -15,7 +15,7 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame, Series
-from pandas.core.common import notnull
+from pandas.core.common import notnull, isnull
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
 
@@ -599,12 +599,6 @@ class PandasSQLTable(PandasObject):
     def insert_statement(self):
         return self.table.insert()
 
-    def maybe_asscalar(self, i):
-        try:
-            return np.asscalar(i)
-        except AttributeError:
-            return i
-
     def insert_data(self):
         if self.index is not None:
             temp = self.frame.copy()
@@ -617,17 +611,35 @@ class PandasSQLTable(PandasObject):
         else:
             temp = self.frame
         
-        temp = temp.astype(object)
-        temp = temp.where(notnull(temp), None)
-        return temp
+        column_names = list(map(str, temp.columns))
+        ncols = len(column_names)
+        data_list = [None] * ncols
+        blocks = temp._data.blocks
+
+        for i in range(len(blocks)):
+            b = blocks[i]
+            if b.is_datetime:
+                # convert to microsecond resolution so this yields datetime.datetime
+                d = b.values.astype('M8[us]').astype(object)
+            else:
+                d = np.array(b.values, dtype=object)
+
+            # replace NaN with None
+            if b._can_hold_na:
+                mask = isnull(d)
+                d[mask] = None
+
+            for col_loc, col in zip(b.mgr_locs, d):
+                data_list[col_loc] = col
+
+        return column_names, data_list
 
     def insert(self, chunksize=None):
 
         ins = self.insert_statement()
-        temp = self.insert_data()
-        keys = list(map(str, temp.columns))
+        keys, data_list = self.insert_data()
 
-        nrows = len(temp)
+        nrows = len(self.frame)
         if chunksize is None: 
             chunksize = nrows
         chunks = int(nrows / chunksize) + 1
@@ -639,12 +651,11 @@ class PandasSQLTable(PandasObject):
                 end_i = min((i + 1) * chunksize, nrows)
                 if start_i >= end_i:
                     break
-                data_list = []
-                for t in temp.iloc[start_i:end_i].itertuples():
-                    data = dict((k, self.maybe_asscalar(v))
-                                for k, v in zip(keys, t[1:]))
-                    data_list.append(data)
-                con.execute(ins, data_list)
+
+                chunk_list = [arr[start_i:end_i] for arr in data_list]
+                insert_list = [dict((k, v) for k, v in zip(keys, row))
+                               for row in zip(*chunk_list)]
+                con.execute(ins, insert_list)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
 
@@ -1011,9 +1022,9 @@ class PandasSQLTableLegacy(PandasSQLTable):
     def insert(self, chunksize=None):
 
         ins = self.insert_statement()
-        temp = self.insert_data()
+        keys, data_list = self.insert_data()
 
-        nrows = len(temp)
+        nrows = len(self.frame)
         if chunksize is None: 
             chunksize = nrows
         chunks = int(nrows / chunksize) + 1
@@ -1024,13 +1035,11 @@ class PandasSQLTableLegacy(PandasSQLTable):
                 end_i = min((i + 1) * chunksize, nrows)
                 if start_i >= end_i:
                     break
-                data_list = []
-                for t in temp.iloc[start_i:end_i].itertuples():
-                    data = tuple((self.maybe_asscalar(v) for v in t[1:]))
-                    data_list.append(data)
-
+                chunk_list = [arr[start_i:end_i] for arr in data_list]
+                insert_list = [tuple((v for v in row))
+                               for row in zip(*chunk_list)]
                 cur = self.pd_sql.con.cursor()
-                cur.executemany(ins, data_list)
+                cur.executemany(ins, insert_list)
                 cur.close()
 
     def _create_table_setup(self):
