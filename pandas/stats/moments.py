@@ -80,8 +80,8 @@ span : float, optional
 halflife : float, optional
     Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
 min_periods : int, default 0
-    Number of observations in sample to require (only affects
-    beginning)
+    Minimum number of observations in window required to have a value
+    (otherwise result is NA).
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
 adjust : boolean, default True
@@ -201,7 +201,8 @@ def rolling_count(arg, window, freq=None, center=False, how=None):
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     arg = _conv_timerule(arg, freq, how)
-    window = min(window, len(arg))
+    if not center:
+        window = min(window, len(arg))
 
     return_hook, values = _process_data_structure(arg, kill_inf=False)
 
@@ -211,7 +212,6 @@ def rolling_count(arg, window, freq=None, center=False, how=None):
 
     # putmask here?
     result[np.isnan(result)] = 0
-
     return return_hook(result)
 
 
@@ -462,50 +462,46 @@ def _get_center_of_mass(com, span, halflife):
 @Appender(_doc_template)
 def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
          adjust=True, how=None, ignore_na=False):
-    com = _get_center_of_mass(com, span, halflife)
     arg = _conv_timerule(arg, freq, how)
+    com = _get_center_of_mass(com, span, halflife)
 
     def _ewma(v):
-        result = algos.ewma(v, com, int(adjust), int(ignore_na))
-        if min_periods > 1:
-            first_index = _first_valid_index(v)
-            result[first_index: first_index + min_periods - 1] = NaN
-        return result
+        return algos.ewma(v, com, int(adjust), int(ignore_na), int(min_periods))
 
     return_hook, values = _process_data_structure(arg)
-    output = np.apply_along_axis(_ewma, 0, values)
+    if values.size == 0:
+        output = values.copy()
+    else:
+        output = np.apply_along_axis(_ewma, 0, values)
     return return_hook(output)
-
-
-def _first_valid_index(arr):
-    # argmax scans from left
-    return notnull(arr).argmax() if len(arr) else 0
 
 
 @Substitution("Exponentially-weighted moving variance", _unary_arg,
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, how=None, ignore_na=False):
-    com = _get_center_of_mass(com, span, halflife)
+           freq=None, how=None, ignore_na=False, adjust=True):
     arg = _conv_timerule(arg, freq, how)
-    moment2nd = ewma(arg * arg, com=com, min_periods=min_periods, ignore_na=ignore_na)
-    moment1st = ewma(arg, com=com, min_periods=min_periods, ignore_na=ignore_na)
+    com = _get_center_of_mass(com, span, halflife)
 
-    result = moment2nd - moment1st ** 2
-    if not bias:
-        result *= (1.0 + 2.0 * com) / (2.0 * com)
+    def _ewmvar(v):
+        return algos.ewmcov(v, v, com, int(adjust), int(ignore_na), int(min_periods), int(bias))
 
-    return result
+    return_hook, values = _process_data_structure(arg)
+    if values.size == 0:
+        output = values.copy()
+    else:
+        output = np.apply_along_axis(_ewmvar, 0, values)
+    return return_hook(output)
 
 
 @Substitution("Exponentially-weighted moving std", _unary_arg,
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           ignore_na=False):
+           ignore_na=False, adjust=True):
     result = ewmvar(arg, com=com, span=span, halflife=halflife,
-                    min_periods=min_periods, bias=bias, ignore_na=ignore_na)
+                    min_periods=min_periods, bias=bias, adjust=adjust, ignore_na=ignore_na)
     return _zsqrt(result)
 
 ewmvol = ewmstd
@@ -515,7 +511,7 @@ ewmvol = ewmstd
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-           bias=False, freq=None, pairwise=None, how=None, ignore_na=False):
+           bias=False, freq=None, pairwise=None, how=None, ignore_na=False, adjust=True):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -525,17 +521,17 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
         pairwise = True if pairwise is None else pairwise
     arg1 = _conv_timerule(arg1, freq, how)
     arg2 = _conv_timerule(arg2, freq, how)
+    com = _get_center_of_mass(com, span, halflife)
 
     def _get_ewmcov(X, Y):
-        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
-                              ignore_na=ignore_na)
-        return (mean(X * Y) - mean(X) * mean(Y))
+        # X and Y have the same structure (and NaNs) when called from _flex_binary_moment()
+        return_hook, x_values = _process_data_structure(X)
+        return_hook, y_values = _process_data_structure(Y)
+        cov = algos.ewmcov(x_values, y_values, com, int(adjust), int(ignore_na), int(min_periods), int(bias))
+        return return_hook(cov)
+
     result = _flex_binary_moment(arg1, arg2, _get_ewmcov,
                                  pairwise=bool(pairwise))
-    if not bias:
-        com = _get_center_of_mass(com, span, halflife)
-        result *= (1.0 + 2.0 * com) / (2.0 * com)
-
     return result
 
 
@@ -543,7 +539,7 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-            freq=None, pairwise=None, how=None, ignore_na=False):
+            freq=None, pairwise=None, how=None, ignore_na=False, adjust=True):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -553,13 +549,18 @@ def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
         pairwise = True if pairwise is None else pairwise
     arg1 = _conv_timerule(arg1, freq, how)
     arg2 = _conv_timerule(arg2, freq, how)
+    com = _get_center_of_mass(com, span, halflife)
 
     def _get_ewmcorr(X, Y):
-        mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
-                              ignore_na=ignore_na)
-        var = lambda x: ewmvar(x, com=com, span=span, halflife=halflife, min_periods=min_periods,
-                               bias=True, ignore_na=ignore_na)
-        return (mean(X * Y) - mean(X) * mean(Y)) / _zsqrt(var(X) * var(Y))
+        # X and Y have the same structure (and NaNs) when called from _flex_binary_moment()
+        return_hook, x_values = _process_data_structure(X)
+        return_hook, y_values = _process_data_structure(Y)
+        cov = algos.ewmcov(x_values, y_values, com, int(adjust), int(ignore_na), int(min_periods), 1)
+        x_var = algos.ewmcov(x_values, x_values, com, int(adjust), int(ignore_na), int(min_periods), 1)
+        y_var = algos.ewmcov(y_values, y_values, com, int(adjust), int(ignore_na), int(min_periods), 1)
+        corr = cov / _zsqrt(x_var * y_var)
+        return return_hook(corr)
+
     result = _flex_binary_moment(arg1, arg2, _get_ewmcorr,
                                  pairwise=bool(pairwise))
     return result
@@ -886,9 +887,9 @@ expanding_median = _expanding_func(
 
 expanding_std = _expanding_func(_ts_std,
                                 'Unbiased expanding standard deviation.',
-                                check_minp=_require_min_periods(2))
+                                check_minp=_require_min_periods(1))
 expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance.',
-                                check_minp=_require_min_periods(2))
+                                check_minp=_require_min_periods(1))
 expanding_skew = _expanding_func(
     algos.roll_skew, 'Unbiased expanding skewness.',
     check_minp=_require_min_periods(3))
@@ -961,7 +962,7 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
         min_periods = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    window = len(arg1) + len(arg2)
+    window = max((len(arg1) + len(arg2)), min_periods) if min_periods else (len(arg1) + len(arg2))
     return rolling_cov(arg1, arg2, window,
                        min_periods=min_periods, freq=freq,
                        pairwise=pairwise)
@@ -978,7 +979,7 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
         min_periods = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    window = len(arg1) + len(arg2)
+    window = max((len(arg1) + len(arg2)), min_periods) if min_periods else (len(arg1) + len(arg2))
     return rolling_corr(arg1, arg2, window,
                         min_periods=min_periods,
                         freq=freq, pairwise=pairwise)
@@ -1025,6 +1026,6 @@ def expanding_apply(arg, func, min_periods=1, freq=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
-    window = len(arg)
+    window = max(len(arg), min_periods) if min_periods else len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
                          args=args, kwargs=kwargs)
