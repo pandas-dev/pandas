@@ -788,3 +788,4 @@ Bug Fixes
 needed interpolating (:issue:`7173`).
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False``
   (:issue:`8230`).
+- Bug where ``Dataframe.boxplot()`` failed when entire column was empty (:issue:`8181`).
