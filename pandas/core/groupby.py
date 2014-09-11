@@ -2224,8 +2224,12 @@ class SeriesGroupBy(GroupBy):
     # Make class defs of attributes on SeriesGroupBy whitelist
     _apply_whitelist = _series_apply_whitelist
     for _def_str in _whitelist_method_generator(Series,_series_apply_whitelist) :
-        exec(_def_str)
-
+        try :
+            exec(_def_str)
+        except SyntaxError as e :
+            print(_def_str)
+            raise e
+        
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
         Apply aggregation function or functions to groups, yielding most likely
@@ -3138,7 +3142,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     #
     # Make class defs of attributes on DataFrameGroupBy whitelist.
     for _def_str in _whitelist_method_generator(DataFrame,_apply_whitelist) :
-        exec(_def_str)
+        try :
+            exec(_def_str)
+        except SyntaxError as e :
+            print(_def_str)
+            raise e
 
     _block_agg_axis = 1
 

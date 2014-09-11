@@ -19,7 +19,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_index_equal, assertRaisesRegexp)
 from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map,
-    zip, builtins, OrderedDict
+    zip, builtins, OrderedDict, product as cart_product
 )
 from pandas import compat
 from pandas.core.panel import Panel
@@ -4314,6 +4314,32 @@ class TestGroupBy(tm.TestCase):
                 # the method defined (dtypes is not a method)
                 if m not in ['dtypes'] :
                     self.assertTrue(hasattr(type(gb), m))
+
+    def test_regression_whitelist_methods(self) :
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        raw_frame = DataFrame(np.random.randn(10, 3), index=index,
+                               columns=Index(['A', 'B', 'C'], name='exp'))
+        raw_frame.ix[1, [1, 2]] = np.nan
+        raw_frame.ix[7, [0, 1]] = np.nan
+
+        for op, level, axis, skipna in cart_product(['skew', 'mad'],
+                                                    lrange(2), lrange(2),
+                                                    [True,False]) :
+
+            if axis == 0 :
+                frame = raw_frame
+            else :
+                frame = raw_frame.T
+
+            grouped = frame.groupby(level=level,axis=axis)
+            result = getattr(grouped,op)(skipna=skipna)
+            expected = getattr(frame,op)(level=level,axis=axis,skipna=skipna)
+            assert_frame_equal(result, expected)
 
     def test_groupby_blacklist(self):
         from string import ascii_lowercase
