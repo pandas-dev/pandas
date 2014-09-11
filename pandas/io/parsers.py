@@ -132,7 +132,9 @@ verbose : boolean, default False
 delimiter : string, default None
     Alternative argument name for sep. Regular expressions are accepted.
 encoding : string, default None
-    Encoding to use for UTF when reading/writing (ex. 'utf-8')
+    Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
+    standard encodings
+    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 na_filter : boolean, default True
