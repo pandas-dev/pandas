@@ -390,6 +390,12 @@ class TestIndex(Base, tm.TestCase):
         d = self.dateIndex[0].to_datetime()
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
+    def test_asof_datetime_partial(self):
+        idx = pd.date_range('2010-01-01', periods=2, freq='m')
+        expected = Timestamp('2010-01-31')
+        result = idx.asof('2010-02')
+        self.assertEqual(result, expected)
+
     def test_nanosecond_index_access(self):
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
         r = DatetimeIndex([s + 50 + i for i in range(100)])
