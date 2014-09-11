@@ -770,3 +770,8 @@ Bug Fixes
 needed interpolating (:issue:`7173`).
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False``
   (:issue:`8230`).
+- Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and
+returning the wrong date (:issue:`8245`).
+
+
+

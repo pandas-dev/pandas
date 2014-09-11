@@ -1052,6 +1052,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(label, (Index, ABCSeries, np.ndarray)):
             raise TypeError('%s' % type(label))
 
+        if not isinstance(label, Timestamp):
+            label = Timestamp(label)
+
         if label not in self:
             loc = self.searchsorted(label, side='left')
             if loc > 0:
@@ -1059,8 +1062,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return np.nan
 
-        if not isinstance(label, Timestamp):
-            label = Timestamp(label)
         return label
 
     def asof_locs(self, where, mask):
