@@ -2183,16 +2183,14 @@ def _whitelist_method_generator(klass, whitelist) :
     %(doc)s
     \"""
     f = %(self)s.__getattr__('%(name)s')
-    return f(%(args)s)
-    """
+    return f(%(args)s)"""
     property_wrapper_template = \
     """@property
 def %(name)s(self) :
     \"""
     %(doc)s
     \"""
-    return self.__getattr__('%(name)s')
-    """
+    return self.__getattr__('%(name)s')"""
     for name in whitelist :
         # don't override anything that was explicitly defined
         # in the base class
@@ -2227,7 +2225,10 @@ class SeriesGroupBy(GroupBy):
         try :
             exec(_def_str)
         except SyntaxError as e :
+            print('-'*80)
             print(_def_str)
+            print('-'*80)
+            print(e)
             raise e
         
     def aggregate(self, func_or_funcs, *args, **kwargs):
@@ -3145,7 +3146,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
         try :
             exec(_def_str)
         except SyntaxError as e :
+            print('-'*80)
             print(_def_str)
+            print('-'*80)
             raise e
 
     _block_agg_axis = 1
