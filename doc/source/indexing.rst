@@ -1616,28 +1616,33 @@ display:
    df
    df['A']
 
+.. _indexing.setops:
 
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   In 0.15.0. the set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain
+   index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``.
+
 .. _indexing.set_ops:
 
-The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
-(-)``. These can be directly called as instance methods or used via overloaded
-operators:
+The two main operations are ``union (|)``, ``intersection (&)``
+These can be directly called as instance methods or used via overloaded
+operators. Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = Index(['c', 'b', 'a'])
    b = Index(['c', 'e', 'd'])
-   a.union(b)
    a | b
    a & b
-   a - b
+   a.difference(b)
 
 Also available is the ``sym_diff (^)`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2`` but not both. This is
-equivalent to the Index created by ``(idx1 - idx2) + (idx2 - idx1)``,
+equivalent to the Index created by ``(idx1.difference(idx2)).union(idx2.difference(idx1))``,
 with duplicates dropped.
 
 .. ipython:: python

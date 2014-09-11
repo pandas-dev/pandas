@@ -2320,7 +2320,7 @@ class TestHDFStore(tm.TestCase):
             n = store.remove('wp5', start=16, stop=-16)
             self.assertTrue(n == 120-32)
             result = store.select('wp5')
-            expected = wp.reindex(major_axis=wp.major_axis[:16//4]+wp.major_axis[-16//4:])
+            expected = wp.reindex(major_axis=wp.major_axis[:16//4].union(wp.major_axis[-16//4:]))
             assert_panel_equal(result, expected)
 
             _maybe_remove(store, 'wp6')
@@ -2339,7 +2339,7 @@ class TestHDFStore(tm.TestCase):
             n = store.remove('wp7', where=[crit], stop=80)
             self.assertTrue(n == 28)
             result = store.select('wp7')
-            expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
+            expected = wp.reindex(major_axis=wp.major_axis.difference(wp.major_axis[np.arange(0,20,3)]))
             assert_panel_equal(result, expected)
 
     def test_remove_crit(self):
@@ -2357,7 +2357,7 @@ class TestHDFStore(tm.TestCase):
             self.assertTrue(n == 36)
 
             result = store.select('wp3')
-            expected = wp.reindex(major_axis=wp.major_axis - date4)
+            expected = wp.reindex(major_axis=wp.major_axis.difference(date4))
             assert_panel_equal(result, expected)
 
             # upper half
@@ -2385,7 +2385,7 @@ class TestHDFStore(tm.TestCase):
             crit1 = Term('major_axis=date1')
             store.remove('wp2', where=[crit1])
             result = store.select('wp2')
-            expected = wp.reindex(major_axis=wp.major_axis - date1)
+            expected = wp.reindex(major_axis=wp.major_axis.difference(date1))
             assert_panel_equal(result, expected)
 
             date2 = wp.major_axis[5]
@@ -2393,7 +2393,7 @@ class TestHDFStore(tm.TestCase):
             store.remove('wp2', where=[crit2])
             result = store['wp2']
             expected = wp.reindex(
-                major_axis=wp.major_axis - date1 - Index([date2]))
+                major_axis=wp.major_axis.difference(date1).difference(Index([date2])))
             assert_panel_equal(result, expected)
 
             date3 = [wp.major_axis[7], wp.major_axis[9]]
@@ -2401,7 +2401,7 @@ class TestHDFStore(tm.TestCase):
             store.remove('wp2', where=[crit3])
             result = store['wp2']
             expected = wp.reindex(
-                major_axis=wp.major_axis - date1 - Index([date2]) - Index(date3))
+                major_axis=wp.major_axis.difference(date1).difference(Index([date2])).difference(Index(date3)))
             assert_panel_equal(result, expected)
 
             # corners

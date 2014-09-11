@@ -59,7 +59,7 @@ class TestTSPlot(tm.TestCase):
         _check_plot_works(df.plot)
 
         # axes freq
-        idx = idx[0:40] + idx[45:99]
+        idx = idx[0:40].union(idx[45:99])
         df2 = DataFrame(np.random.randn(len(idx), 3), index=idx)
         _check_plot_works(df2.plot)
 

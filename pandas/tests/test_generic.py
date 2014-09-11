@@ -124,12 +124,12 @@ class Generic(object):
         # _get_numeric_data is includes _get_bool_data, so can't test for non-inclusion
 
     def test_get_default(self):
-        
+
         # GH 7725
         d0 = "a", "b", "c", "d"
         d1 = np.arange(4, dtype='int64')
         others = "e", 10
-        
+
         for data, index in ((d0, d1), (d1, d0)):
             s = Series(data, index=index)
             for i,d in zip(index, data):
@@ -501,7 +501,7 @@ class TestSeries(tm.TestCase, Generic):
         ser = Series(np.sort(np.random.uniform(size=100)))
 
         # interpolate at new_index
-        new_index = ser.index + Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+        new_index = ser.index.union(Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75]))
         interp_s = ser.reindex(new_index).interpolate(method='pchip')
         # does not blow up, GH5977
         interp_s[49:51]
@@ -1153,7 +1153,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
                 # MultiIndex
                 # GH7846
-                df2 = DataFrame(np.ones(5), 
+                df2 = DataFrame(np.ones(5),
                                 MultiIndex.from_arrays([l0, l1]))
 
                 df3 = getattr(df2, fn)('US/Pacific', level=0)

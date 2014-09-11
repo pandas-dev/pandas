@@ -5199,8 +5199,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             join_index = a.index.join(b.index, how=how)
             if fill is not None:
-                diff_a = aa.index.diff(join_index)
-                diff_b = ab.index.diff(join_index)
+                diff_a = aa.index.difference(join_index)
+                diff_b = ab.index.difference(join_index)
                 if len(diff_a) > 0:
                     self.assertTrue((aa.reindex(diff_a) == fill).all())
                 if len(diff_b) > 0:

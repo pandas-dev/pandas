@@ -8974,8 +8974,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(bf.columns.equals(other.columns))
         # test fill value
         join_idx = self.frame.index.join(other.index)
-        diff_a = self.frame.index.diff(join_idx)
-        diff_b = other.index.diff(join_idx)
+        diff_a = self.frame.index.difference(join_idx)
+        diff_b = other.index.difference(join_idx)
         diff_a_vals = af.reindex(diff_a).values
         diff_b_vals = bf.reindex(diff_b).values
         self.assertTrue((diff_a_vals == -1).all())
@@ -8993,8 +8993,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # test fill value
         join_idx = self.frame.index.join(other.index)
-        diff_a = self.frame.index.diff(join_idx)
-        diff_b = other.index.diff(join_idx)
+        diff_a = self.frame.index.difference(join_idx)
+        diff_b = other.index.difference(join_idx)
         diff_a_vals = af.reindex(diff_a).values
         diff_b_vals = bf.reindex(diff_b).values
         self.assertTrue((diff_a_vals == -1).all())
