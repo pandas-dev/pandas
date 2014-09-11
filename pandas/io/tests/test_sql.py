@@ -199,7 +199,7 @@ class PandasSQLTest(unittest.TestCase):
                             E=['1990-11-22', '1991-10-26', '1993-11-26', '1995-12-12']))
         df['E'] = to_datetime(df['E'])
 
-        self.test_frame3 = df
+        self.test_frame2 = df
 
     def _load_test3_data(self):
         columns = ['index', 'A', 'B']
@@ -323,6 +323,13 @@ class PandasSQLTest(unittest.TestCase):
         iris_results = self.pandasSQL.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+    def _to_sql_save_index(self):
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+                                    columns=['A','B','C'], index=['A'])
+        self.pandasSQL.to_sql(df, 'test_to_sql_saves_index')
+        ix_cols = self._get_index_columns('test_to_sql_saves_index')
+        self.assertEqual(ix_cols, [['A',],])
 
 
 #------------------------------------------------------------------------------
@@ -693,6 +700,13 @@ class TestSQLApi(_TestSQLApi):
             self.test_frame1.to_sql('CaseSensitive', self.conn)
             # Verify some things
             self.assertEqual(len(w), 0, "Warning triggered for writing a table")
+
+    def _get_index_columns(self, tbl_name):
+        from sqlalchemy.engine import reflection
+        insp = reflection.Inspector.from_engine(self.conn)
+        ixs = insp.get_indexes('test_index_saved')
+        ixs = [i['column_names'] for i in ixs]
+        return ixs
 
 
 class TestSQLLegacyApi(_TestSQLApi):
@@ -1074,6 +1088,16 @@ class _TestSQLAlchemy(PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_nan', self.conn)
         tm.assert_frame_equal(result, df)
 
+    def _get_index_columns(self, tbl_name):
+        from sqlalchemy.engine import reflection
+        insp = reflection.Inspector.from_engine(self.conn)
+        ixs = insp.get_indexes(tbl_name)
+        ixs = [i['column_names'] for i in ixs]
+        return ixs
+        
+    def test_to_sql_save_index(self):
+        self._to_sql_save_index()
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -1368,6 +1392,20 @@ class TestSQLiteLegacy(PandasSQLTest):
         # test support for datetime.time
         raise nose.SkipTest("datetime.time not supported for sqlite fallback")
 
+    def _get_index_columns(self, tbl_name):
+        ixs = sql.read_sql_query(
+            "SELECT * FROM sqlite_master WHERE type = 'index' " +
+            "AND tbl_name = '%s'" % tbl_name, self.conn)
+        ix_cols = []
+        for ix_name in ixs.name:
+            ix_info = sql.read_sql_query(
+                "PRAGMA index_info(%s)" % ix_name, self.conn)
+            ix_cols.append(ix_info.name.tolist())
+        return ix_cols
+
+    def test_to_sql_save_index(self):
+        self._to_sql_save_index()
+
 
 class TestMySQLLegacy(TestSQLiteLegacy):
     """
@@ -1423,6 +1461,19 @@ class TestMySQLLegacy(TestSQLiteLegacy):
         self.assertTrue(
             sql.has_table('test_frame1', self.conn, flavor='mysql'),
             'Table not written to DB')
+
+    def _get_index_columns(self, tbl_name):
+        ixs = sql.read_sql_query(
+            "SHOW INDEX IN %s" % tbl_name, self.conn)
+        ix_cols = {}
+        for ix_name, ix_col in zip(ixs.Key_name, ixs.Column_name):
+            if ix_name not in ix_cols:
+                ix_cols[ix_name] = []
+            ix_cols[ix_name].append(ix_col)
+        return list(ix_cols.values())
+
+    def test_to_sql_save_index(self):
+        self._to_sql_save_index()
 
 
 #------------------------------------------------------------------------------

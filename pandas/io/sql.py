@@ -566,17 +566,17 @@ class PandasSQLTable(PandasObject):
                     raise ValueError("Table '%s' already exists." % name)
                 elif if_exists == 'replace':
                     self.pd_sql.drop_table(self.name, self.schema)
-                    self.table = self._create_table_statement()
+                    self.table = self._create_table_setup()
                     self.create()
                 elif if_exists == 'append':
                     self.table = self.pd_sql.get_table(self.name, self.schema)
                     if self.table is None:
-                        self.table = self._create_table_statement()
+                        self.table = self._create_table_setup()
                 else:
                     raise ValueError(
                         "'{0}' is not valid for if_exists".format(if_exists))
             else:
-                self.table = self._create_table_statement()
+                self.table = self._create_table_setup()
                 self.create()
         else:
             # no data provided, read-only mode
@@ -703,23 +703,25 @@ class PandasSQLTable(PandasObject):
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
                     self.frame.index.get_level_values(i))
-                column_names_and_types.append((idx_label, idx_type))
+                column_names_and_types.append((idx_label, idx_type, True))
 
         column_names_and_types += [
             (str(self.frame.columns[i]),
-             dtype_mapper(self.frame.iloc[:,i]))
+             dtype_mapper(self.frame.iloc[:,i]),
+             False)
             for i in range(len(self.frame.columns))
             ]
+
         return column_names_and_types
 
-    def _create_table_statement(self):
+    def _create_table_setup(self):
         from sqlalchemy import Table, Column
 
         column_names_and_types = \
             self._get_column_names_and_types(self._sqlalchemy_type)
 
-        columns = [Column(name, typ)
-                   for name, typ in column_names_and_types]
+        columns = [Column(name, typ, index=is_index)
+                   for name, typ, is_index in column_names_and_types]
 
         return Table(self.name, self.pd_sql.meta, *columns, schema=self.schema)
 
@@ -979,10 +981,12 @@ class PandasSQLTableLegacy(PandasSQLTable):
         Instead of a table variable just use the Create Table
         statement"""
     def sql_schema(self):
-        return str(self.table)
+        return str(";\n".join(self.table))
 
     def create(self):
-        self.pd_sql.execute(self.table)
+        with self.pd_sql.con:
+            for stmt in self.table:
+                self.pd_sql.execute(stmt)
 
     def insert_statement(self):
         names = list(map(str, self.frame.columns))
@@ -1026,14 +1030,17 @@ class PandasSQLTableLegacy(PandasSQLTable):
                 cur.executemany(ins, data_list)
                 cur.close()
 
-    def _create_table_statement(self):
-        "Return a CREATE TABLE statement to suit the contents of a DataFrame."
+    def _create_table_setup(self):
+        """Return a list of SQL statement that create a table reflecting the 
+        structure of a DataFrame.  The first entry will be a CREATE TABLE
+        statement while the rest will be CREATE INDEX statements
+        """
 
         column_names_and_types = \
             self._get_column_names_and_types(self._sql_type_name)
 
         pat = re.compile('\s+')
-        column_names = [col_name for col_name, _ in column_names_and_types]
+        column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
             warnings.warn(_SAFE_NAMES_WARNING)
 
@@ -1044,13 +1051,21 @@ class PandasSQLTableLegacy(PandasSQLTable):
 
         col_template = br_l + '%s' + br_r + ' %s'
 
-        columns = ',\n  '.join(col_template %
-                               x for x in column_names_and_types)
+        columns = ',\n  '.join(col_template % (cname, ctype)
+                               for cname, ctype, _ in column_names_and_types)
         template = """CREATE TABLE %(name)s (
                       %(columns)s
                       )"""
-        create_statement = template % {'name': self.name, 'columns': columns}
-        return create_statement
+        create_stmts = [template % {'name': self.name, 'columns': columns}, ]
+
+        ix_tpl = "CREATE INDEX ix_{tbl}_{col} ON {tbl} ({br_l}{col}{br_r})"
+        for cname, _, is_index in column_names_and_types:
+            if not is_index: 
+                continue
+            create_stmts.append(ix_tpl.format(tbl=self.name, col=cname, 
+                br_l=br_l, br_r=br_r))
+
+        return create_stmts
 
     def _sql_type_name(self, col):
         pytype = col.dtype.type
