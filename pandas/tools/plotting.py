@@ -1370,32 +1370,55 @@ class MPLPlot(object):
 class ScatterPlot(MPLPlot):
     _layout_type = 'single'
 
-    def __init__(self, data, x, y, **kwargs):
+    def __init__(self, data, x, y, c=None, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        self.kwds.setdefault('c', self.plt.rcParams['patch.facecolor'])
         if x is None or y is None:
             raise ValueError( 'scatter requires and x and y column')
         if com.is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if com.is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
+        if com.is_integer(c) and not self.data.columns.holds_integer():
+            c = self.data.columns[c]
         self.x = x
         self.y = y
+        self.c = c
 
     @property
     def nseries(self):
         return 1
 
     def _make_plot(self):
-        x, y, data = self.x, self.y, self.data
+        import matplotlib.pyplot as plt
+
+        x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
+
+        # plot a colorbar only if a colormap is provided or necessary
+        cb = self.kwds.pop('colorbar', self.colormap or c in self.data.columns)
+
+        # pandas uses colormap, matplotlib uses cmap.
+        cmap = self.colormap or 'RdBu'
+        cmap = plt.cm.get_cmap(cmap)
+
+        if c is None:
+            c_values = self.plt.rcParams['patch.facecolor']
+        elif c in self.data.columns:
+            c_values = self.data[c].values
+        else:
+            c_values = c
 
         if self.legend and hasattr(self, 'label'):
             label = self.label
         else:
             label = None
-        scatter = ax.scatter(data[x].values, data[y].values, label=label,
-                             **self.kwds)
+        scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
+                             label=label, cmap=cmap, **self.kwds)
+        if cb:
+            img = ax.collections[0]
+            cb_label = c if c in self.data.columns else ''
+            self.fig.colorbar(img, ax=ax, label=cb_label)
+
         self._add_legend_handle(scatter, label)
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
@@ -2261,6 +2284,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
+    colorbar : boolean, optional
+        If True, plot colorbar (only relevant for 'scatter' and 'hexbin' plots)
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
@@ -2287,6 +2312,9 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     `C` specifies the value at each `(x, y)` point and `reduce_C_function`
     is a function of one argument that reduces all the values in a bin to
     a single number (e.g. `mean`, `max`, `sum`, `std`).
+
+    If `kind`='scatter' and the argument `c` is the name of a dataframe column,
+    the values of that column are used to color each point.
     """
 
     kind = _get_standard_kind(kind.lower().strip())

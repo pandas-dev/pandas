@@ -1515,6 +1515,34 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @slow
+    def test_plot_scatter_with_c(self):
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['x', 'y', 'z', 'four'])
+
+        axes = [df.plot(kind='scatter', x='x', y='y', c='z'),
+                df.plot(kind='scatter', x=0, y=1, c=2)]
+        for ax in axes:
+            # default to RdBu
+            self.assertEqual(ax.collections[0].cmap.name, 'RdBu')
+            # n.b. there appears to be no public method to get the colorbar
+            # label
+            self.assertEqual(ax.collections[0].colorbar._label, 'z')
+
+        cm = 'cubehelix'
+        ax = df.plot(kind='scatter', x='x', y='y', c='z', colormap=cm)
+        self.assertEqual(ax.collections[0].cmap.name, cm)
+
+        # verify turning off colorbar works
+        ax = df.plot(kind='scatter', x='x', y='y', c='z', colorbar=False)
+        self.assertIs(ax.collections[0].colorbar, None)
+
+        # verify that we can still plot a solid color
+        ax = df.plot(x=0, y=1, c='red', kind='scatter')
+        self.assertIs(ax.collections[0].colorbar, None)
+        self._check_colors(ax.collections, facecolors=['r'])
+
+    @slow
     def test_plot_bar(self):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
