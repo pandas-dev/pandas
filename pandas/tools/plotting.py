@@ -2081,6 +2081,10 @@ class BoxPlot(LinePlot):
         def plotf(ax, y, column_num=None, **kwds):
             if y.ndim == 2:
                 y = [remove_na(v) for v in y]
+                # Boxplot fails with empty arrays, so need to add a NaN
+                #   if any cols are empty
+                # GH 8181
+                y = [v if v.size > 0 else np.array([np.nan]) for v in y]
             else:
                 y = remove_na(y)
             bp = ax.boxplot(y, **kwds)

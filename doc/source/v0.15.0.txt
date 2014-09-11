@@ -616,8 +616,8 @@ Enhancements
 
   .. code-block:: python
 
-     df.to_sql('table', engine, schema='other_schema')
-     pd.read_sql_table('table', engine, schema='other_schema')
+         df.to_sql('table', engine, schema='other_schema')
+         pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
@@ -919,3 +919,4 @@ Bug Fixes
 - Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and returning the wrong date (:issue:`8245`).
 - Bug in plotting methods modifying the global matplotlib rcParams (:issue:`8242`).
 - Bug in ``DataFrame.__setitem__`` that caused errors when setting a dataframe column to a sparse array (:issue:`8131`)
+- Bug where ``Dataframe.boxplot()`` failed when entire column was empty (:issue:`8181`).

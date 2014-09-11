@@ -1915,6 +1915,11 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(age_ax._sharey, height_ax)
         self.assertIsNone(dummy_ax._sharey)
 
+    @slow
+    def test_boxplot_empty_column(self):
+        df = DataFrame(np.random.randn(20, 4))
+        df.loc[:, 0] = np.nan
+        _check_plot_works(df.boxplot, return_type='axes')
 
     @slow
     def test_kde_df(self):
