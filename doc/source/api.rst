@@ -1328,116 +1328,80 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   GroupBy.count
+   GroupBy.cumcount
+   GroupBy.first
+   GroupBy.head
+   GroupBy.last
+   GroupBy.max
    GroupBy.mean
    GroupBy.median
+   GroupBy.min
+   GroupBy.nth 
+   GroupBy.ohlc
+   GroupBy.prod
+   GroupBy.size
    GroupBy.sem
    GroupBy.std
+   GroupBy.sum
    GroupBy.var
-   GroupBy.ohlc
-    GroupBy.nth 
-    GroupBy.prod
-    GroupBy.size
+   GroupBy.tail
 
-DataFrameGroupBy
-----------------
-.. currentmodule:: pandas.core.groupby
+The following methods are available in both ``SeriesGroupBy`` and
+``DataFrameGroupBy`` objects, but may differ slightly, usually in that
+the ``DataFrameGroupBy`` version usually permits the specification of an
+axis argument, and often an argument indicating whether to restrict
+application to columns of a specific data type.
 
-A DataFrameGroupBy object is returned by :func:`pandas.DataFrame.groupby`.
-
-Computations / Descriptive Stats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-    DataFrameGroupBy.all
-    DataFrameGroupBy.any
-    DataFrameGroupBy.bfill
-    DataFrameGroupBy.boxplot
-    DataFrameGroupBy.corr
-    DataFrameGroupBy.corrwith
-    DataFrameGroupBy.count
-    DataFrameGroupBy.cov
-    DataFrameGroupBy.cumcount
-    DataFrameGroupBy.cummax
-    DataFrameGroupBy.cummin
-    DataFrameGroupBy.cumprod
-    DataFrameGroupBy.cumsum
-    DataFrameGroupBy.describe
-    DataFrameGroupBy.diff
-    DataFrameGroupBy.ffill
-    DataFrameGroupBy.fillna
-    DataFrameGroupBy.first
-    DataFrameGroupBy.head
-    DataFrameGroupBy.hist
-    DataFrameGroupBy.idxmax
-    DataFrameGroupBy.idxmin
-    DataFrameGroupBy.irow
-    DataFrameGroupBy.last
-    DataFrameGroupBy.mad
-    DataFrameGroupBy.max
-    DataFrameGroupBy.min
-    DataFrameGroupBy.pct_change
-    DataFrameGroupBy.plot
-    DataFrameGroupBy.quantile
-    DataFrameGroupBy.rank
-    DataFrameGroupBy.resample
-    DataFrameGroupBy.shift
-    DataFrameGroupBy.skew
-    DataFrameGroupBy.sum
-    DataFrameGroupBy.tail
-    DataFrameGroupBy.take
-    DataFrameGroupBy.tshift
+   DataFrameGroupBy.bfill
+   DataFrameGroupBy.cummax
+   DataFrameGroupBy.cummin
+   DataFrameGroupBy.cumprod
+   DataFrameGroupBy.cumsum
+   DataFrameGroupBy.describe
+   DataFrameGroupBy.all
+   DataFrameGroupBy.any
+   DataFrameGroupBy.corr
+   DataFrameGroupBy.cov
+   DataFrameGroupBy.diff
+   DataFrameGroupBy.ffill
+   DataFrameGroupBy.fillna
+   DataFrameGroupBy.hist
+   DataFrameGroupBy.idxmax
+   DataFrameGroupBy.idxmin
+   DataFrameGroupBy.irow
+   DataFrameGroupBy.mad
+   DataFrameGroupBy.pct_change
+   DataFrameGroupBy.plot
+   DataFrameGroupBy.quantile
+   DataFrameGroupBy.rank
+   DataFrameGroupBy.resample
+   DataFrameGroupBy.shift
+   DataFrameGroupBy.skew
+   DataFrameGroupBy.take
+   DataFrameGroupBy.tshift
 
-SeriesGroupBy
--------------
+The following methods are available only for ``SeriesGroupBy`` objects.
 
-A SeriesGroupBy object is returned by :func:`pandas.Series.groupby`. 
-
-Computations / Descriptive Stats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-    SeriesGroupBy.all
-    SeriesGroupBy.any
-    SeriesGroupBy.bfill
-    SeriesGroupBy.corr
-    SeriesGroupBy.count
-    SeriesGroupBy.cov
-    SeriesGroupBy.cumcount
-    SeriesGroupBy.cummax
-    SeriesGroupBy.cummin
-    SeriesGroupBy.cumprod
-    SeriesGroupBy.cumsum
-    SeriesGroupBy.describe
-    SeriesGroupBy.diff
-    SeriesGroupBy.dtype
-    SeriesGroupBy.ffill
-    SeriesGroupBy.fillna
-    SeriesGroupBy.first
-    SeriesGroupBy.head
-    SeriesGroupBy.hist
-    SeriesGroupBy.idxmax
-    SeriesGroupBy.idxmin
-    SeriesGroupBy.irow
-    SeriesGroupBy.last
-    SeriesGroupBy.mad
-    SeriesGroupBy.max
-    SeriesGroupBy.min
-    SeriesGroupBy.nunique
-    SeriesGroupBy.pct_change
-    SeriesGroupBy.plot
-    SeriesGroupBy.quantile
-    SeriesGroupBy.rank
-    SeriesGroupBy.resample
-    SeriesGroupBy.shift
-    SeriesGroupBy.skew
-    SeriesGroupBy.sum
-    SeriesGroupBy.tail
-    SeriesGroupBy.take
-    SeriesGroupBy.tshift
-    SeriesGroupBy.unique
-    SeriesGroupBy.value_counts
+   SeriesGroupBy.nlargest
+   SeriesGroupBy.nsmallest
+   SeriesGroupBy.nunique
+   SeriesGroupBy.unique
+   SeriesGroupBy.value_counts
+
+The following methods are available only for ``DataFrameGroupBy`` objects.
+
+.. autosummary::
+   :toctree: generated/
+
+   DataFrameGroupBy.corrwith
+   DataFrameGroupBy.boxplot
 
 .. currentmodule:: pandas
 
