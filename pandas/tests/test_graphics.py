@@ -479,6 +479,12 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.title, 'Test')
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
+    def test_dont_modify_rcParams(self):
+        # GH 8242
+        colors = self.plt.rcParams['axes.color_cycle']
+        Series([1, 2, 3]).plot()
+        self.assertEqual(colors, self.plt.rcParams['axes.color_cycle'])
+
     def test_ts_line_lim(self):
         ax = self.ts.plot()
         xmin, xmax = ax.get_xlim()

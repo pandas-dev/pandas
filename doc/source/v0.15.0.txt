@@ -794,6 +794,6 @@ needed interpolating (:issue:`7173`).
   (:issue:`8230`).
 - Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and
 returning the wrong date (:issue:`8245`).
-
-
+- Bug in plotting methods modifying the global matplotlib
+rcParams (:issue:`8242`).
 
