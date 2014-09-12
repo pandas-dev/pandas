@@ -20,6 +20,8 @@ users upgrade to this version.
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+  - API change in using Indexs set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+  - Split indexing documentation into :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 

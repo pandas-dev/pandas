@@ -166,7 +166,7 @@ Selection
    recommend the optimized pandas data access methods, ``.at``, ``.iat``,
    ``.loc``, ``.iloc`` and ``.ix``.
 
-See the :ref:`Indexing section <indexing>` and below.
+See the indexing documentation :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
 
 Getting
 ~~~~~~~
@@ -529,7 +529,7 @@ the function.
 Reshaping
 ---------
 
-See the sections on :ref:`Hierarchical Indexing <indexing.hierarchical>` and
+See the sections on :ref:`Hierarchical Indexing <advanced.hierarchical>` and
 :ref:`Reshaping <reshaping.stacking>`.
 
 Stack

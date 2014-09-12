@@ -124,6 +124,7 @@ See the package overview for more detail about what's in the library.
     basics
     options
     indexing
+    advanced
     computation
     missing_data
     groupby
@@ -148,5 +149,6 @@ See the package overview for more detail about what's in the library.
     {% endif -%}
     {%if not single -%}
     contributing
+    internals
     release
     {% endif -%}
