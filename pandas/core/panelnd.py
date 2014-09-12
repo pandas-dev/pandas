@@ -82,7 +82,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
         # combine labels to form new axes
         new_axes = []
         for a in self._AXIS_ORDERS:
-            new_axes.append(getattr(self, a) + getattr(other, a))
+            new_axes.append(getattr(self, a).union(getattr(other, a)))
 
         # reindex: could check that everything's the same size, but forget it
         d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, new_axes)])

@@ -19,6 +19,7 @@ users upgrade to this version.
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
+  - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -343,6 +344,27 @@ API changes
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of
     ``DataFrame.to_csv()`` (:issue:`8215`).
 
+
+.. _whatsnew_0150.index_set_ops:
+
+- The Index set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
+
+.. code-block:: python
+
+   # +
+   Index(['a','b','c']) + Index(['b','c','d'])
+
+   # should be replaced by
+   Index(['a','b','c']).union(Index(['b','c','d']))
+
+.. code-block:: python
+
+   # -
+   Index(['a','b','c']) - Index(['b','c','d'])
+
+   # should be replaced by
+   Index(['a','b','c']).difference(Index(['b','c','d']))
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
@@ -469,6 +491,8 @@ Enhancements
 
 - Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)
+- Added support for ``c``, ``colormap`` and ``colorbar`` arguments for
+  ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
 
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
@@ -764,3 +788,8 @@ Bug Fixes
 needed interpolating (:issue:`7173`).
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False``
   (:issue:`8230`).
+- Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and
+returning the wrong date (:issue:`8245`).
+
+
+

@@ -165,7 +165,9 @@ They can take a number of arguments:
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use for decoding
-    unicode data, e.g. ``'utf-8``` or ``'latin-1'``.
+    unicode data, e.g. ``'utf-8``` or ``'latin-1'``. `Full list of Python
+    standard encodings
+    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
   - ``verbose``: show number of NA values inserted in non-numeric columns
   - ``squeeze``: if True then output with only one column is turned into Series
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
@@ -372,7 +374,9 @@ result in byte strings being decoded to unicode in the result:
    df['word'][1]
 
 Some formats which encode all characters as multiple bytes, like UTF-16, won't
-parse correctly at all without specifying the encoding.
+parse correctly at all without specifying the encoding. `Full list of Python
+standard encodings 
+<https://docs.python.org/3/library/codecs.html#standard-encodings>`_
 
 .. _io.index_col:
 

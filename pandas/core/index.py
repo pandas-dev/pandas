@@ -1052,6 +1052,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(label, (Index, ABCSeries, np.ndarray)):
             raise TypeError('%s' % type(label))
 
+        if not isinstance(label, Timestamp):
+            label = Timestamp(label)
+
         if label not in self:
             loc = self.searchsorted(label, side='left')
             if loc > 0:
@@ -1059,8 +1062,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return np.nan
 
-        if not isinstance(label, Timestamp):
-            label = Timestamp(label)
         return label
 
     def asof_locs(self, where, mask):
@@ -1128,9 +1129,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __add__(self, other):
         if isinstance(other, Index):
+            warnings.warn("using '+' to provide set union with Indexes is deprecated, "
+                          "use '|' or .union()",FutureWarning)
             return self.union(other)
-        else:
-            return Index(np.array(self) + other)
+        return Index(np.array(self) + other)
 
     __iadd__ = __add__
     __eq__ = _indexOp('__eq__')
@@ -1141,7 +1143,10 @@ class Index(IndexOpsMixin, PandasObject):
     __ge__ = _indexOp('__ge__')
 
     def __sub__(self, other):
-        return self.diff(other)
+        if isinstance(other, Index):
+            warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
+                          "use .difference()",FutureWarning)
+        return self.difference(other)
 
     def __and__(self, other):
         return self.intersection(other)
@@ -1273,7 +1278,7 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def diff(self, other):
+    def difference(self, other):
         """
         Compute sorted set difference of two Index objects
 
@@ -1289,8 +1294,7 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         One can do either of these and achieve the same result
 
-        >>> index - index2
-        >>> index.diff(index2)
+        >>> index.difference(index2)
         """
 
         if not hasattr(other, '__iter__'):
@@ -1307,6 +1311,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
+
+    diff = deprecate('diff',difference)
 
     def sym_diff(self, other, result_name=None):
         """
@@ -1350,7 +1356,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = Index(other)
             result_name = result_name or self.name
 
-        the_diff = sorted(set((self - other) + (other - self)))
+        the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
         return Index(the_diff, name=result_name)
 
     def get_loc(self, key):
@@ -4135,6 +4141,8 @@ class MultiIndex(Index):
         Returns
         -------
         Index
+
+        >>> index.union(index2)
         """
         self._assert_can_do_setop(other)
 
@@ -4177,7 +4185,7 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def diff(self, other):
+    def difference(self, other):
         """
         Compute sorted set difference of two MultiIndex objects
 

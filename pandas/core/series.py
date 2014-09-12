@@ -1458,7 +1458,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result : Series
         """
         if isinstance(other, Series):
-            new_index = self.index + other.index
+            new_index = self.index.union(other.index)
             new_name = _maybe_match_name(self, other)
             new_values = pa.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
@@ -1484,7 +1484,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series
         """
-        new_index = self.index + other.index
+        new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         name = _maybe_match_name(self, other)

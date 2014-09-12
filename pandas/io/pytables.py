@@ -970,7 +970,7 @@ class HDFStore(StringMixin):
                 remain_values.extend(v)
         if remain_key is not None:
             ordered = value.axes[axis]
-            ordd = ordered - Index(remain_values)
+            ordd = ordered.difference(Index(remain_values))
             ordd = sorted(ordered.get_indexer(ordd))
             d[remain_key] = ordered.take(ordd)
 
@@ -3245,7 +3245,7 @@ class Table(Fixed):
                 data_columns, min_itemsize)
             if len(data_columns):
                 mgr = block_obj.reindex_axis(
-                    Index(axis_labels) - Index(data_columns),
+                    Index(axis_labels).difference(Index(data_columns)),
                     axis=axis
                 )._data
 
@@ -3362,7 +3362,7 @@ class Table(Fixed):
                             # if we have a multi-index, then need to include
                             # the levels
                             if self.is_multi_index:
-                                filt = filt + Index(self.levels)
+                                filt = filt.union(Index(self.levels))
 
                             takers = op(axis_values, filt)
                             return obj.ix._getitem_axis(takers,

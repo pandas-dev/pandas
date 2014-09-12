@@ -711,8 +711,10 @@ class DatetimeIndexOpsMixin(object):
         from pandas.core.index import Index
         from pandas.tseries.offsets import DateOffset
         if isinstance(other, Index):
+            warnings.warn("using '+' to provide set union with Indexes is deprecated, "
+                          "use .union()",FutureWarning)
             return self.union(other)
-        elif isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
+        if isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
             return self._add_delta(other)
         elif com.is_integer(other):
             return self.shift(other)
@@ -723,8 +725,10 @@ class DatetimeIndexOpsMixin(object):
         from pandas.core.index import Index
         from pandas.tseries.offsets import DateOffset
         if isinstance(other, Index):
-            return self.diff(other)
-        elif isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
+            warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
+                          "use .difference()",FutureWarning)
+            return self.difference(other)
+        if isinstance(other, (DateOffset, datetime.timedelta, np.timedelta64)):
             return self._add_delta(-other)
         elif com.is_integer(other):
             return self.shift(-other)

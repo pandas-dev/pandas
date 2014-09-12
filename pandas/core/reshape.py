@@ -848,7 +848,7 @@ def lreshape(data, groups, dropna=True, label=None):
         keys, values = zip(*groups)
 
     all_cols = list(set.union(*[set(x) for x in values]))
-    id_cols = list(data.columns.diff(all_cols))
+    id_cols = list(data.columns.difference(all_cols))
 
     K = len(values[0])
 

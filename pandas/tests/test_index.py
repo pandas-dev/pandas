@@ -390,6 +390,12 @@ class TestIndex(Base, tm.TestCase):
         d = self.dateIndex[0].to_datetime()
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
+    def test_asof_datetime_partial(self):
+        idx = pd.date_range('2010-01-01', periods=2, freq='m')
+        expected = Timestamp('2010-01-31')
+        result = idx.asof('2010-02')
+        self.assertEqual(result, expected)
+
     def test_nanosecond_index_access(self):
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
         r = DatetimeIndex([s + 50 + i for i in range(100)])
@@ -557,8 +563,13 @@ class TestIndex(Base, tm.TestCase):
         self.assertIsNone(union.name)
 
     def test_add(self):
-        firstCat = self.strIndex + self.dateIndex
-        secondCat = self.strIndex + self.strIndex
+
+        # - API change GH 8226
+        with tm.assert_produces_warning():
+            self.strIndex + self.dateIndex
+
+        firstCat = self.strIndex.union(self.dateIndex)
+        secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
             appended = np.append(self.strIndex, self.dateIndex)
@@ -611,29 +622,30 @@ class TestIndex(Base, tm.TestCase):
         index += '_x'
         self.assertIn('a_x', index)
 
-    def test_diff(self):
+    def test_difference(self):
+
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         answer = self.strIndex[10:20]
         first.name = 'name'
         # different names
-        result = first - second
+        result = first.difference(second)
 
         self.assertTrue(tm.equalContents(result, answer))
         self.assertEqual(result.name, None)
 
         # same names
         second.name = 'name'
-        result = first - second
+        result = first.difference(second)
         self.assertEqual(result.name, 'name')
 
         # with empty
-        result = first.diff([])
+        result = first.difference([])
         self.assertTrue(tm.equalContents(result, first))
         self.assertEqual(result.name, first.name)
 
         # with everythin
-        result = first.diff(first)
+        result = first.difference(first)
         self.assertEqual(len(result), 0)
         self.assertEqual(result.name, first.name)
 
@@ -2580,7 +2592,6 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(result[3], '1  0  0  0')
 
     def test_format_sparse_config(self):
-        import warnings
         warn_filters = warnings.filters
         warnings.filterwarnings('ignore',
                                 category=FutureWarning,
@@ -2775,9 +2786,15 @@ class TestMultiIndex(Base, tm.TestCase):
         # result = self.index & tuples
         # self.assertTrue(result.equals(tuples))
 
-    def test_diff(self):
+    def test_difference(self):
+
         first = self.index
-        result = first - self.index[-3:]
+        result = first.difference(self.index[-3:])
+
+        # - API change GH 8226
+        with tm.assert_produces_warning():
+            first - self.index[-3:]
+
         expected = MultiIndex.from_tuples(sorted(self.index[:-3].values),
                                           sortorder=0,
                                           names=self.index.names)
@@ -2787,19 +2804,19 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: reflexive
-        result = self.index - self.index
+        result = self.index.difference(self.index)
         expected = self.index[:0]
         self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: superset
-        result = self.index[-3:] - self.index
+        result = self.index[-3:].difference(self.index)
         expected = self.index[:0]
         self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
         # empty difference: degenerate
-        result = self.index[:0] - self.index
+        result = self.index[:0].difference(self.index)
         expected = self.index[:0]
         self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
@@ -2807,31 +2824,31 @@ class TestMultiIndex(Base, tm.TestCase):
         # names not the same
         chunklet = self.index[-3:]
         chunklet.names = ['foo', 'baz']
-        result = first - chunklet
+        result = first.difference(chunklet)
         self.assertEqual(result.names, (None, None))
 
         # empty, but non-equal
-        result = self.index - self.index.sortlevel(1)[0]
+        result = self.index.difference(self.index.sortlevel(1)[0])
         self.assertEqual(len(result), 0)
 
         # raise Exception called with non-MultiIndex
-        result = first.diff(first._tuple_index)
+        result = first.difference(first._tuple_index)
         self.assertTrue(result.equals(first[:0]))
 
         # name from empty array
-        result = first.diff([])
+        result = first.difference([])
         self.assertTrue(first.equals(result))
         self.assertEqual(first.names, result.names)
 
         # name from non-empty array
-        result = first.diff([('foo', 'one')])
+        result = first.difference([('foo', 'one')])
         expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'),
                                             ('foo', 'two'), ('qux', 'one'),
                                             ('qux', 'two')])
         expected.names = first.names
         self.assertEqual(first.names, result.names)
         assertRaisesRegexp(TypeError, "other must be a MultiIndex or a list"
-                           " of tuples", first.diff, [1, 2, 3, 4, 5])
+                           " of tuples", first.difference, [1, 2, 3, 4, 5])
 
     def test_from_tuples(self):
         assertRaisesRegexp(TypeError, 'Cannot infer number of levels from'
