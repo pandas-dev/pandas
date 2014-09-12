@@ -293,7 +293,11 @@ dt64 = np.datetime64('2011-01-01 09:00Z')
 day = pd.offsets.Day()
 year = pd.offsets.YearBegin()
 cday = pd.offsets.CustomBusinessDay()
+cmb = pd.offsets.CustomBusinessMonthBegin()
 cme = pd.offsets.CustomBusinessMonthEnd()
+
+hcal = pd.tseries.holiday.USFederalHolidayCalendar()
+cdayh = pd.offsets.CustomBusinessDay.from_various(calendar=hcal)
 """
 timeseries_day_incr = Benchmark("date + day",setup)
 
@@ -306,15 +310,26 @@ timeseries_year_apply = Benchmark("year.apply(date)",setup)
 timeseries_custom_bday_incr = \
     Benchmark("date + cday",setup)
 
+timeseries_custom_bday_decr = \
+    Benchmark("date - cday",setup)
+
 timeseries_custom_bday_apply = \
     Benchmark("cday.apply(date)",setup)
 
 timeseries_custom_bday_apply_dt64 = \
     Benchmark("cday.apply(dt64)",setup)
 
-# Increment by n
-timeseries_custom_bday_incr_n = \
-    Benchmark("date + 10 * cday",setup)
+timeseries_custom_bday_cal_incr = \
+    Benchmark("date + 1 * cdayh",setup)
+
+timeseries_custom_bday_cal_decr = \
+    Benchmark("date - 1 * cdayh",setup)
+
+timeseries_custom_bday_cal_incr_n = \
+    Benchmark("date + 10 * cdayh",setup)
+
+timeseries_custom_bday_cal_incr_neg_n = \
+    Benchmark("date - 10 * cdayh",setup)
 
 # Increment custom business month
 timeseries_custom_bmonthend_incr = \
@@ -322,6 +337,16 @@ timeseries_custom_bmonthend_incr = \
 
 timeseries_custom_bmonthend_incr_n = \
     Benchmark("date + 10 * cme",setup)
+
+timeseries_custom_bmonthend_decr_n = \
+    Benchmark("date - 10 * cme",setup)
+
+timeseries_custom_bmonthbegin_incr_n = \
+    Benchmark("date + 10 * cmb",setup)
+
+timeseries_custom_bmonthbegin_decr_n = \
+    Benchmark("date - 10 * cmb",setup)
+
 
 #----------------------------------------------------------------------
 # month/quarter/year start/end accessors
@@ -357,4 +382,3 @@ timeseries_iter_periodindex = Benchmark('iter_n(idx2)', setup)
 timeseries_iter_datetimeindex_preexit = Benchmark('iter_n(idx1, M)', setup)
 
 timeseries_iter_periodindex_preexit = Benchmark('iter_n(idx2, M)', setup)
-

@@ -116,6 +116,8 @@ class Base(tm.TestCase):
             klass = klass(n=value, weekday=5, normalize=normalize)
         elif klass is DateOffset:
             klass = klass(days=value, normalize=normalize)
+        # elif klass in [CDay, CBMonthEnd, CBMonthBegin]:
+        #     klass = klass.from_various(n=value, normalize=normalize)
         else:
             try:
                 klass = klass(value, normalize=normalize)
@@ -808,7 +810,7 @@ class TestCustomBusinessDay(Base):
         # Define a TradingDay offset
         holidays = ['2012-05-01', datetime(2013, 5, 1),
                     np.datetime64('2014-05-01')]
-        tday = CDay(holidays=holidays)
+        tday = CDay.from_various(holidays=holidays)
         for year in range(2012, 2015):
             dt = datetime(year, 4, 30)
             xp = datetime(year, 5, 2)
@@ -819,9 +821,9 @@ class TestCustomBusinessDay(Base):
         weekmask_saudi = 'Sat Sun Mon Tue Wed'  # Thu-Fri Weekend
         weekmask_uae = '1111001'                # Fri-Sat Weekend
         weekmask_egypt = [1,1,1,1,0,0,1]        # Fri-Sat Weekend
-        bday_saudi = CDay(weekmask=weekmask_saudi)
-        bday_uae = CDay(weekmask=weekmask_uae)
-        bday_egypt = CDay(weekmask=weekmask_egypt)
+        bday_saudi = CDay.from_various(weekmask=weekmask_saudi)
+        bday_uae = CDay.from_various(weekmask=weekmask_uae)
+        bday_egypt = CDay.from_various(weekmask=weekmask_egypt)
         dt = datetime(2013, 5, 1)
         xp_saudi = datetime(2013, 5, 4)
         xp_uae = datetime(2013, 5, 2)
@@ -838,7 +840,7 @@ class TestCustomBusinessDay(Base):
         weekmask_egypt = 'Sun Mon Tue Wed Thu'  # Fri-Sat Weekend
         holidays = ['2012-05-01', datetime(2013, 5, 1),
                     np.datetime64('2014-05-01')]
-        bday_egypt = CDay(holidays=holidays, weekmask=weekmask_egypt)
+        bday_egypt = CDay.from_various(holidays=holidays, weekmask=weekmask_egypt)
         dt = datetime(2013, 4, 30)
         xp_egypt = datetime(2013, 5, 5)
         self.assertEqual(xp_egypt, dt + 2 * bday_egypt)
@@ -846,7 +848,7 @@ class TestCustomBusinessDay(Base):
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
-        assertEq(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
+        assertEq(CDay.from_various(calendar=calendar), dt, datetime(2014, 1, 21))
 
 class CustomBusinessMonthBase(object):
     _multiprocess_can_split_ = True
@@ -999,15 +1001,19 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         # Define a TradingDay offset
         holidays = ['2012-01-31', datetime(2012, 2, 28),
                     np.datetime64('2012-02-29')]
-        bm_offset = CBMonthEnd(holidays=holidays)
+        bm_offset = CBMonthEnd.from_various(holidays=holidays)
         dt = datetime(2012,1,1)
         self.assertEqual(dt + bm_offset,datetime(2012,1,30))
         self.assertEqual(dt + 2*bm_offset,datetime(2012,2,27))
 
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
-        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthEnd(calendar=USFederalHolidayCalendar())).tolist()[0],
-        datetime(2012,1,31))
+        hcal = USFederalHolidayCalendar()
+        freq = CBMonthEnd.from_various(calendar=hcal)
+
+        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',
+                                       freq=freq).tolist()[0],
+                         datetime(2012,1,31))
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _object = CBMonthBegin
@@ -1114,14 +1120,17 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         # Define a TradingDay offset
         holidays = ['2012-02-01', datetime(2012, 2, 2),
                     np.datetime64('2012-03-01')]
-        bm_offset = CBMonthBegin(holidays=holidays)
+        bm_offset = CBMonthBegin.from_various(holidays=holidays)
         dt = datetime(2012,1,1)
         self.assertEqual(dt + bm_offset,datetime(2012,1,2))
         self.assertEqual(dt + 2*bm_offset,datetime(2012,2,3))
 
     def test_datetimeindex(self):
-        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthBegin(calendar=USFederalHolidayCalendar())).tolist()[0],
-        datetime(2012,1,3))
+        hcal = USFederalHolidayCalendar()
+        cbmb = CBMonthBegin.from_various(calendar=hcal)
+        self.assertEqual(DatetimeIndex(start='20120101', end='20130101',
+                                       freq=cbmb).tolist()[0],
+                         datetime(2012,1,3))
 
 
 def assertOnOffset(offset, date, expected):
