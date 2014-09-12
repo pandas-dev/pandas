@@ -110,7 +110,7 @@ class CheckNameIntegration(object):
         tm.assert_series_equal(s.dt.second,Series(np.array([0,1,2],dtype='int64'),index=index))
 
         # periodindex
-        for s in [Series(period_range('20130101',periods=5,freq='D').asobject)]:
+        for s in [Series(period_range('20130101',periods=5,freq='D'))]:
 
             for prop in ok_for_period:
                 tm.assert_series_equal(getattr(s.dt,prop),get_expected(s,prop))
@@ -746,6 +746,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(s.dtype,'datetime64[ns]')
         s = Series([pd.NaT, np.nan, '2013-08-05 15:30:00.000001'])
         self.assertEqual(s.dtype,'datetime64[ns]')
+
+    def test_constructor_periodindex(self):
+        # GH7932
+        # converting a PeriodIndex when put in a Series
+
+        pi = period_range('20130101',periods=5,freq='D')
+        s = Series(pi)
+        expected = Series(pi.asobject)
+        assert_series_equal(s, expected)
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}

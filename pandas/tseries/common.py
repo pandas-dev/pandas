@@ -39,14 +39,8 @@ def maybe_to_datetimelike(data, copy=False):
     if issubclass(data.dtype.type, np.datetime64):
         return DatetimeProperties(DatetimeIndex(data, copy=copy), index)
     else:
-
-        if isinstance(data, PeriodIndex):
+        if com.is_period_arraylike(data):
             return PeriodProperties(PeriodIndex(data, copy=copy), index)
-
-        data = com._values_from_object(data)
-        inferred = lib.infer_dtype(data)
-        if inferred == 'period':
-            return PeriodProperties(PeriodIndex(data), index)
 
     raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
