@@ -367,6 +367,8 @@ API changes
    # should be replaced by
    Index(['a','b','c']).difference(Index(['b','c','d']))
 
+- ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
