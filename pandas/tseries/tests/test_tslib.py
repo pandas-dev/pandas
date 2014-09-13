@@ -232,6 +232,17 @@ class TestTimestamp(tm.TestCase):
         conv = local.tz_convert('US/Eastern')
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
+        
+    def test_tz_localize_ambiguous(self):
+        
+        ts = Timestamp('2014-11-02 01:00')
+        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
+        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
+        
+        rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
+        self.assertEqual(rng[1], ts_dst)
+        self.assertEqual(rng[2], ts_no_dst)
+        self.assertRaises(ValueError, ts.tz_localize, 'US/Eastern', ambiguous='infer')
 
         # GH 8025
         with tm.assertRaisesRegexp(TypeError, 'Cannot localize tz-aware Timestamp, use '

@@ -1357,6 +1357,9 @@ Pandas provides rich support for working with timestamps in different time zones
 ``dateutil`` support is new [in 0.14.1] and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
 
+Working with Time Zones
+~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, pandas objects are time zone unaware:
 
 .. ipython:: python
@@ -1488,23 +1491,9 @@ TimeSeries, aligning the data on the UTC timestamps:
    result
    result.index
 
-In some cases, localize cannot determine the DST and non-DST hours when there are
-duplicates.  This often happens when reading files that simply duplicate the hours.
-The infer_dst argument in tz_localize will attempt
-to determine the right offset.
-
-.. ipython:: python
-   :okexcept:
-
-   rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
-                               '11/06/2011 01:00', '11/06/2011 02:00',
-                               '11/06/2011 03:00'])
-   rng_hourly.tz_localize('US/Eastern')
-   rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', infer_dst=True)
-   rng_hourly_eastern.values
-
-
-To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or ``tz_convert(None)``. ``tz_localize(None)`` will remove timezone holding local time representations. ``tz_convert(None)`` will remove timezone after converting to UTC time.
+To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or ``tz_convert(None)``. 
+``tz_localize(None)`` will remove timezone holding local time representations. 
+``tz_convert(None)`` will remove timezone after converting to UTC time.
 
 .. ipython:: python
 
@@ -1515,6 +1504,41 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UCT').tz_localize(None)
+
+.. _timeseries.timezone_ambiguous:
+
+Ambiguous Times when Localizing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases, localize cannot determine the DST and non-DST hours when there are
+duplicates.  This often happens when reading files or database records that simply 
+duplicate the hours.  Passing ``ambiguous='infer'`` (``infer_dst`` argument in prior
+releases) into ``tz_localize`` will attempt to determine the right offset.
+
+.. ipython:: python
+   :okexcept:
+
+   rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
+                               '11/06/2011 01:00', '11/06/2011 02:00',
+                               '11/06/2011 03:00'])
+   rng_hourly.tz_localize('US/Eastern')
+   rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
+   rng_hourly_eastern.values
+
+In addition to 'infer', there are several other arguments supported.  Passing
+an array-like of bools or 0s/1s where True represents a DST hour and False a 
+non-DST hour, allows for distinguishing more than one DST 
+transition (e.g., if you have multiple records in a database each with their 
+own DST transition).  Or passing 'NaT' will fill in transition times
+with not-a-time values.  These methods are available in the ``DatetimeIndex``
+constructor as well as ``tz_localize``.
+
+.. ipython:: python
+   
+   rng_hourly_dst = np.array([1, 1, 0, 0, 0])
+   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).values
+   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').values
+
 
 .. _timeseries.timedeltas:
 
