@@ -4327,12 +4327,12 @@ class TestGroupBy(tm.TestCase):
             gb = obj.groupby(df.letters)
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
-                getattr(gb, m)
-                # Also make sure that the class itself has
-                # the method defined (dtypes is not a method)
-                if m not in ['dtypes'] :
-                    self.assertTrue(hasattr(type(gb), m))
+                getattr(type(gb), m)
 
+    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
+                     'mad', 'std', 'var', 'sem']
+    AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
+        
     def test_regression_whitelist_methods(self) :
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -4345,7 +4345,7 @@ class TestGroupBy(tm.TestCase):
         raw_frame.ix[1, [1, 2]] = np.nan
         raw_frame.ix[7, [0, 1]] = np.nan
 
-        for op, level, axis, skipna in cart_product(['skew', 'mad'],
+        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
                                                     lrange(2), lrange(2),
                                                     [True,False]) :
 
@@ -4354,10 +4354,16 @@ class TestGroupBy(tm.TestCase):
             else :
                 frame = raw_frame.T
 
-            grouped = frame.groupby(level=level,axis=axis)
-            result = getattr(grouped,op)(skipna=skipna)
-            expected = getattr(frame,op)(level=level,axis=axis,skipna=skipna)
-            assert_frame_equal(result, expected)
+            if op in self.AGG_FUNCTIONS_WITH_SKIPNA :
+                grouped = frame.groupby(level=level,axis=axis)
+                result = getattr(grouped,op)(skipna=skipna)
+                expected = getattr(frame,op)(level=level,axis=axis,skipna=skipna)
+                assert_frame_equal(result, expected)
+            else :
+                grouped = frame.groupby(level=level,axis=axis)
+                result = getattr(grouped,op)()
+                expected = getattr(frame,op)(level=level,axis=axis)
+                assert_frame_equal(result, expected)
 
     def test_groupby_blacklist(self):
         from string import ascii_lowercase

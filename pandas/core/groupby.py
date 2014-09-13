@@ -2133,7 +2133,6 @@ def _convert_grouper(axis, grouper):
     else:
         return grouper
 
-from inspect import getargspec
 def _make_signature(func) :
     """
     Returns a string repr of the arg list of a func call, with any defaults
@@ -2146,6 +2145,7 @@ def _make_signature(func) :
     >>> print(_make_signature(f))
     a,b,c=2
     """
+    from inspect import getargspec
     spec = getargspec(func)
     if spec.defaults == None :
         n_wo_defaults = len(spec.args)
