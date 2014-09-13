@@ -562,10 +562,10 @@ following usable methods and properties (all available as ``Series.cat.<method_o
 .. autosummary::
    :toctree: generated/
 
-   Categorical.levels
+   Categorical.categories
    Categorical.ordered
-   Categorical.reorder_levels
-   Categorical.remove_unused_levels
+   Categorical.reorder_categories
+   Categorical.remove_unused_categories
 
 The following methods are considered API when using ``Categorical`` directly:
 

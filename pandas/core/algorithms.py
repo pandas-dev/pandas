@@ -213,7 +213,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
     elif is_category:
-        bins = values.levels
+        bins = values.categories
         cat = values
         values = cat.codes
 
@@ -248,11 +248,11 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     result = Series(counts, index=com._values_from_object(keys))
     if bins is not None:
         # TODO: This next line should be more efficient
-        result = result.reindex(np.arange(len(cat.levels)), fill_value=0)
+        result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
         if not is_category:
             result.index = bins[:-1]
         else:
-            result.index = cat.levels
+            result.index = cat.categories
 
     if sort:
         result.sort()

@@ -1113,7 +1113,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     # Series avoids inconsistent NaN handling
     cat = Categorical.from_array(Series(data))
-    levels = cat.levels
+    levels = cat.categories
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
@@ -1130,7 +1130,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     dummy_mat = np.eye(number_of_cols).take(cat.codes, axis=0)
 
     if dummy_na:
-        levels = np.append(cat.levels, np.nan)
+        levels = np.append(cat.categories, np.nan)
     else:
         # reset NaN GH4446
         dummy_mat[cat.codes == -1] = 0
@@ -1182,7 +1182,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
         mapped_items = items.map(transform)
         cat = Categorical.from_array(mapped_items.take(labels))
         labels = cat.codes
-        items = cat.levels
+        items = cat.categories
 
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)

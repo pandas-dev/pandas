@@ -997,7 +997,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Categorical.from_array(zp).levels for zp in zipped]
+            levels = [Categorical.from_array(zp).categories for zp in zipped]
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1036,7 +1036,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             label_list.extend(concat_index.labels)
         else:
             factor = Categorical.from_array(concat_index)
-            levels.append(factor.levels)
+            levels.append(factor.categories)
             label_list.append(factor.codes)
 
         if len(names) == len(levels):

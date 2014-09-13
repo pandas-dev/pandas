@@ -1764,11 +1764,14 @@ class TestGroupBy(tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
                           columns=['jim', 'joe'])
         df['jolie'] = np.random.randn(1000)
+        print(df.head())
 
         for keys in ['jim', ['jim', 'joe']]:  # single key & multi-key
+            if keys == 'jim': continue
             for f in [max, min, sum]:
                 fname = f.__name__
                 result = df.groupby(keys).apply(f)
+                _shape = result.shape
                 ngroups = len(df.drop_duplicates(subset=keys))
                 assert result.shape == (ngroups, 3), 'invalid frame shape: '\
                         '{} (expected ({}, 3))'.format(result.shape, ngroups)
@@ -3267,10 +3270,11 @@ class TestGroupBy(tm.TestCase):
         cats = Categorical.from_codes(codes, [0, 1, 2, 3])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(codes).mean().reindex(cats.levels)
+        exp = data.groupby(codes).mean().reindex(cats.categories)
         assert_series_equal(result, exp)
 
-        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
+                           categories=["a","b","c","d"])
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         result = data.groupby("b").mean()

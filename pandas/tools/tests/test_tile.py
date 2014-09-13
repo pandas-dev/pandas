@@ -76,12 +76,12 @@ class TestCut(tm.TestCase):
         result, bins = cut(arr, 4, retbins=True)
         ex_levels = ['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
                      '(0.75, 1]']
-        self.assert_numpy_array_equal(result.levels, ex_levels)
+        self.assert_numpy_array_equal(result.categories, ex_levels)
 
         result, bins = cut(arr, 4, retbins=True, right=False)
         ex_levels = ['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
                      '[0.75, 1.001)']
-        self.assert_numpy_array_equal(result.levels, ex_levels)
+        self.assert_numpy_array_equal(result.categories, ex_levels)
 
     def test_cut_pass_series_name_to_factor(self):
         s = Series(np.random.randn(100), name='foo')
@@ -95,7 +95,7 @@ class TestCut(tm.TestCase):
         result = cut(arr, 4, precision=2)
         ex_levels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
                      '(0.54, 0.72]']
-        self.assert_numpy_array_equal(result.levels, ex_levels)
+        self.assert_numpy_array_equal(result.categories, ex_levels)
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)
@@ -120,10 +120,10 @@ class TestCut(tm.TestCase):
         result = cut(data, [-np.inf, 2, 4, np.inf])
         result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
 
-        ex_levels = ['(-inf, 2]', '(2, 4]', '(4, inf]']
+        ex_categories = ['(-inf, 2]', '(2, 4]', '(4, inf]']
 
-        np.testing.assert_array_equal(result.levels, ex_levels)
-        np.testing.assert_array_equal(result_ser.cat.levels, ex_levels)
+        np.testing.assert_array_equal(result.categories, ex_categories)
+        np.testing.assert_array_equal(result_ser.cat.categories, ex_categories)
         self.assertEqual(result[5], '(4, inf]')
         self.assertEqual(result[0], '(-inf, 2]')
         self.assertEqual(result_ser[5], '(4, inf]')
@@ -172,7 +172,7 @@ class TestCut(tm.TestCase):
         result = cut(arr, bins, labels=labels)
 
         exp = cut(arr, bins)
-        exp.levels = labels
+        exp.categories = labels
 
         self.assertTrue(result.equals(exp))
 
@@ -182,7 +182,7 @@ class TestCut(tm.TestCase):
         cats = qcut(values, 4)
 
         ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
-        self.assertTrue((cats.levels == ex_levels).all())
+        self.assertTrue((cats.categories == ex_levels).all())
 
     def test_qcut_nas(self):
         arr = np.random.randn(100)
@@ -216,7 +216,7 @@ class TestCut(tm.TestCase):
 
         starts = []
         ends = []
-        for lev in result.levels:
+        for lev in result.categories:
             s, e = lev[1:-1].split(',')
 
             self.assertTrue(s != e)
