@@ -6493,7 +6493,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(4, None), (4, False), (9, True)]:
+        for len_, verbose in [(5, None), (5, False), (10, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context('max_info_columns', 4):
                 buf = StringIO()
@@ -6501,7 +6501,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 res = buf.getvalue()
                 self.assertEqual(len(res.split('\n')), len_)
 
-        for len_, verbose in [(9, None), (4, False), (9, True)]:
+        for len_, verbose in [(10, None), (5, False), (10, True)]:
 
             # max_cols no exceeded
             with option_context('max_info_columns', 5):
@@ -6510,7 +6510,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 res = buf.getvalue()
                 self.assertEqual(len(res.split('\n')), len_)
 
-        for len_, max_cols in [(9, 5), (4, 4)]:
+        for len_, max_cols in [(10, 5), (5, 4)]:
             # setting truncates
             with option_context('max_info_columns', 4):
                 buf = StringIO()

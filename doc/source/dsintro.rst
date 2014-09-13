@@ -828,7 +828,7 @@ Conversion to DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 A Panel can be represented in 2D form as a hierarchically indexed
-DataFrame. See the section :ref:`hierarchical indexing <indexing.hierarchical>`
+DataFrame. See the section :ref:`hierarchical indexing <advanced.hierarchical>`
 for more on this. To convert a Panel to a DataFrame, use the ``to_frame``
 method:
 

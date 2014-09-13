@@ -90,7 +90,7 @@ this using the ``keys`` argument:
    concatenated
 
 As you can see (if you've read the rest of the documentation), the resulting
-object's index has a :ref:`hierarchical index <indexing.hierarchical>`. This
+object's index has a :ref:`hierarchical index <advanced.hierarchical>`. This
 means that we can now do stuff like select out each chunk by key:
 
 .. ipython:: python

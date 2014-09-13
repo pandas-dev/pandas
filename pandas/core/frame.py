@@ -1473,7 +1473,7 @@ class DataFrame(NDFrame):
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
-        lines.append('dtypes: %s' % ', '.join(dtypes))
+        lines.append('dtypes: %s\n' % ', '.join(dtypes))
         _put_lines(buf, lines)
 
     def transpose(self):

@@ -711,7 +711,7 @@ class Panel(NDFrame):
         major_xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of major_xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+        it is a superset of major_xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:
@@ -741,7 +741,7 @@ class Panel(NDFrame):
         minor_xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of minor_xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+        it is a superset of minor_xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:
@@ -771,7 +771,7 @@ class Panel(NDFrame):
         xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <indexing.mi_slicers>`
+        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:

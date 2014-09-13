@@ -50,8 +50,7 @@ three types of multi-axis indexing.
   is interpreted as position based or label based, it's usually better to be
   explicit and use ``.iloc`` or ``.loc``.
 
-  See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and
-  :ref:`Fallback Indexing <indexing.fallback>`
+  See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced Hierarchical <advanced.advanced_hierarchical>`.
 
 
 Selection Deprecations

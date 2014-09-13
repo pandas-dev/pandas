@@ -116,7 +116,10 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         colors = color
     else:
         if color_type == 'default':
-            colors = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+            # need to call list() on the result to copy so we don't
+            # modify the global rcParams below
+            colors = list(plt.rcParams.get('axes.color_cycle',
+                                           list('bgrcmyk')))
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':

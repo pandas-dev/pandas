@@ -20,6 +20,8 @@ users upgrade to this version.
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+  - API change in using Indexs set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+  - Split indexing documentation into :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -364,6 +366,8 @@ API changes
 
    # should be replaced by
    Index(['a','b','c']).difference(Index(['b','c','d']))
+
+- ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 
 .. _whatsnew_0150.dt:
 
@@ -790,6 +794,6 @@ needed interpolating (:issue:`7173`).
   (:issue:`8230`).
 - Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and
 returning the wrong date (:issue:`8245`).
-
-
+- Bug in plotting methods modifying the global matplotlib
+rcParams (:issue:`8242`).
 
