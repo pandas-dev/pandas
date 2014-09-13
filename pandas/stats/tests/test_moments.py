@@ -321,6 +321,21 @@ class TestMoments(tm.TestCase):
         self._check_moment_func(mom.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False))
 
+    def test_affine_invariance(self):
+        """
+        rolling skew/kurt should be invariant under affine transformations
+        """
+
+        xs = np.random.rand(50)
+        window = 10
+
+        for f in mom.rolling_skew, mom.rolling_kurt:
+            left = f(xs, window)
+
+            for a, b in [(1, 100), (1, 5000), (100, 100), (100, 5000)]:
+                right = f(a*xs  + b, window)
+                assert_almost_equal(left, right)
+
     def test_fperr_robustness(self):
         # TODO: remove this once python 2.5 out of picture
         if PY3:
@@ -524,7 +539,7 @@ class TestMoments(tm.TestCase):
         self.assertTrue(np.abs(result - 1) < 1e-2)
 
         s = Series([1.0, 2.0, 4.0, 8.0])
-        
+
         expected = Series([1.0, 1.6, 2.736842, 4.923077])
         for f in [lambda s: mom.ewma(s, com=2.0, adjust=True),
                   lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=False),
@@ -750,7 +765,7 @@ class TestMoments(tm.TestCase):
 
             for (std, var, cov) in [(std_biased, var_biased, cov_biased),
                                     (std_unbiased, var_unbiased, cov_unbiased)]:
-                
+
                 # check that var(x), std(x), and cov(x) are all >= 0
                 var_x = var(x)
                 std_x = std(x)
@@ -762,7 +777,7 @@ class TestMoments(tm.TestCase):
 
                     # check that var(x) == cov(x, x)
                     assert_equal(var_x, cov_x_x)
-                
+
                 # check that var(x) == std(x)^2
                 assert_equal(var_x, std_x * std_x)
 
@@ -796,7 +811,7 @@ class TestMoments(tm.TestCase):
                             cov_x_y = cov(x, y)
                             cov_y_x = cov(y, x)
                             assert_equal(cov_x_y, cov_y_x)
-                    
+
                             # check that cov(x, y) == (var(x+y) - var(x) - var(y)) / 2
                             var_x_plus_y = var(x + y)
                             var_y = var(y)
@@ -1007,7 +1022,7 @@ class TestMoments(tm.TestCase):
                                         expected.iloc[:, i, j] = rolling_f(x.iloc[:, i], x.iloc[:, j],
                                                                            window=window, min_periods=min_periods, center=center)
                                 assert_panel_equal(rolling_f_result, expected)
-    
+
     # binary moments
     def test_rolling_cov(self):
         A = self.series
@@ -1432,7 +1447,7 @@ class TestMoments(tm.TestCase):
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected)
         assert_frame_equal(result4, expected)
-    
+
     def test_pairwise_stats_column_names_order(self):
         # GH 7738
         df1s = [DataFrame([[2,4],[1,2],[5,2],[8,1]], columns=[0,1]),
