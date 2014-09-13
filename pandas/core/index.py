@@ -11,7 +11,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
-from pandas.lib import Timestamp, is_datetime_array
+from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs
 from pandas.util.decorators import Appender, cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
@@ -136,7 +136,12 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     return result
             elif issubclass(data.dtype.type, np.timedelta64):
-                return Int64Index(data, copy=copy, name=name)
+                from pandas.tseries.tdi import TimedeltaIndex
+                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+                if dtype is not None and _o_dtype == dtype:
+                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
+                else:
+                    return result
 
             if dtype is not None:
                 try:
@@ -196,6 +201,10 @@ class Index(IndexOpsMixin, PandasObject):
                         tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+                elif (inferred.startswith('timedelta') or
+                        lib.is_timedelta_array(subarr)):
+                    from pandas.tseries.tdi import TimedeltaIndex
+                    return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
                 elif inferred == 'period':
                     return PeriodIndex(subarr, name=name, **kwargs)
 
@@ -398,27 +407,25 @@ class Index(IndexOpsMixin, PandasObject):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-    def to_series(self, keep_tz=False):
+    def to_series(self, **kwargs):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
-
-        Parameters
-        ----------
-        keep_tz : optional, defaults False.
-                  applies only to a DatetimeIndex
 
         Returns
         -------
         Series : dtype will be based on the type of the Index values.
         """
 
-        import pandas as pd
-        values = self._to_embed(keep_tz)
-        return pd.Series(values, index=self, name=self.name)
+        from pandas import Series
+        return Series(self._to_embed(), index=self, name=self.name)
 
     def _to_embed(self, keep_tz=False):
-        """ return an array repr of this object, potentially casting to object """
+        """
+        return an array repr of this object, potentially casting to object
+
+        This is for internal compat
+        """
         return self.values
 
     def astype(self, dtype):
@@ -931,8 +938,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @staticmethod
     def _ensure_compat_concat(indexes):
-        from pandas.tseries.api import DatetimeIndex, PeriodIndex
-        klasses = DatetimeIndex, PeriodIndex
+        from pandas.tseries.api import DatetimeIndex, PeriodIndex, TimedeltaIndex
+        klasses = DatetimeIndex, PeriodIndex, TimedeltaIndex
 
         is_ts = [isinstance(idx, klasses) for idx in indexes]
 
@@ -2043,6 +2050,13 @@ class Index(IndexOpsMixin, PandasObject):
     def duplicated(self, take_last=False):
         return super(Index, self).duplicated(take_last=take_last)
 
+
+    def _evaluate_with_timedelta_like(self, other, op, opstr):
+        raise TypeError("can only perform ops with timedelta like values")
+
+    def _evaluate_with_datetime_like(self, other, op, opstr):
+        raise TypeError("can only perform ops with datetime like values")
+
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable """
@@ -2054,11 +2068,15 @@ class Index(IndexOpsMixin, PandasObject):
                                                                                          typ=type(self)))
             return _invalid_op
 
-        cls.__mul__ = cls.__rmul__ = _make_invalid_op('multiplication')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('floor division')
-        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('true division')
+        cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
+        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
+        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('__truediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_invalid_op('division')
+            cls.__div__ = cls.__rdiv__ = _make_invalid_op('__div__')
+        cls.__neg__ = _make_invalid_op('__neg__')
+        cls.__pos__ = _make_invalid_op('__pos__')
+        cls.__abs__ = _make_invalid_op('__abs__')
+        cls.__inv__ = _make_invalid_op('__inv__')
 
     @classmethod
     def _add_numeric_methods(cls):
@@ -2067,6 +2085,7 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_binop(op, opstr):
 
             def _evaluate_numeric_binop(self, other):
+                import pandas.tseries.offsets as offsets
 
                 # if we are an inheritor of numeric, but not actually numeric (e.g. DatetimeIndex/PeriodInde)
                 if not self._is_numeric_dtype:
@@ -2086,6 +2105,10 @@ class Index(IndexOpsMixin, PandasObject):
                     other = _values_from_object(other)
                     if other.dtype.kind not in ['f','i']:
                         raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
+                elif isinstance(other, (offsets.DateOffset, np.timedelta64, Timedelta, datetime.timedelta)):
+                    return self._evaluate_with_timedelta_like(other, op, opstr)
+                elif isinstance(other, (Timestamp, np.datetime64)):
+                    return self._evaluate_with_datetime_like(other, op, opstr)
                 else:
                     if not (com.is_float(other) or com.is_integer(other)):
                         raise TypeError("can only perform ops with scalar values")
@@ -2093,12 +2116,29 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _evaluate_numeric_binop
 
+        def _make_evaluate_unary(op, opstr):
 
-        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'multiplication')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'floor division')
-        cls.__truediv__ = cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'true division')
+            def _evaluate_numeric_unary(self):
+
+                # if we are an inheritor of numeric, but not actually numeric (e.g. DatetimeIndex/PeriodInde)
+                if not self._is_numeric_dtype:
+                    raise TypeError("cannot evaluate a numeric op {opstr} for type: {typ}".format(opstr=opstr,
+                                                                                                  typ=type(self)))
+
+                return self._shallow_copy(op(self.values))
+
+            return _evaluate_numeric_unary
+
+        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'__mul__')
+        cls.__floordiv__ = cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__')
+        cls.__truediv__ = cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'__truediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_evaluate_binop(operator.div,'division')
+            cls.__div__ = cls.__rdiv__ = _make_evaluate_binop(operator.div,'__div__')
+        cls.__neg__ = _make_evaluate_unary(lambda x: -x,'__neg__')
+        cls.__pos__ = _make_evaluate_unary(lambda x: x,'__pos__')
+        cls.__abs__ = _make_evaluate_unary(lambda x: np.abs(x),'__abs__')
+        cls.__inv__ = _make_evaluate_unary(lambda x: -x,'__inv__')
+
 Index._add_numeric_methods_disabled()
 
 class NumericIndex(Index):
@@ -4490,8 +4530,8 @@ def _get_consensus_names(indexes):
 
 
 def _maybe_box(idx):
-    from pandas.tseries.api import DatetimeIndex, PeriodIndex
-    klasses = DatetimeIndex, PeriodIndex
+    from pandas.tseries.api import DatetimeIndex, PeriodIndex, TimedeltaIndex
+    klasses = DatetimeIndex, PeriodIndex, TimedeltaIndex
 
     if isinstance(idx, klasses):
         return idx.asobject

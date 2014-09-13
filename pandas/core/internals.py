@@ -24,7 +24,7 @@ import pandas.tslib as tslib
 import pandas.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 
-from pandas.tslib import Timestamp
+from pandas.tslib import Timestamp, Timedelta
 from pandas import compat
 from pandas.compat import range, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
@@ -357,6 +357,9 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
+        if klass is None:
+            if dtype == np.object_:
+                klass = ObjectBlock
         try:
             # force the copy here
             if values is None:
@@ -1232,6 +1235,8 @@ class TimeDeltaBlock(IntBlock):
         """ if we are a NaT, return the actual fill value """
         if isinstance(value, type(tslib.NaT)) or np.array(isnull(value)).all():
             value = tslib.iNaT
+        elif isinstance(value, Timedelta):
+            value = value.value
         elif isinstance(value, np.timedelta64):
             pass
         elif com.is_integer(value):
@@ -1257,8 +1262,8 @@ class TimeDeltaBlock(IntBlock):
 
         if _is_null_datelike_scalar(other):
             other = np.nan
-        elif isinstance(other, np.timedelta64):
-            other = _coerce_scalar_to_timedelta_type(other, unit='s').item()
+        elif isinstance(other, (np.timedelta64, Timedelta, timedelta)):
+            other = _coerce_scalar_to_timedelta_type(other, unit='s', box=False).item()
             if other == tslib.iNaT:
                 other = np.nan
         else:
@@ -1278,7 +1283,7 @@ class TimeDeltaBlock(IntBlock):
                 result = result.astype('m8[ns]')
             result[mask] = tslib.iNaT
         elif isinstance(result, np.integer):
-            result = np.timedelta64(result)
+            result = lib.Timedelta(result)
         return result
 
     def should_store(self, value):
@@ -1297,17 +1302,21 @@ class TimeDeltaBlock(IntBlock):
             na_rep = 'NaT'
         rvalues[mask] = na_rep
         imask = (~mask).ravel()
-        rvalues.flat[imask] = np.array([lib.repr_timedelta64(val)
+
+        #### FIXME ####
+        # should use the core.format.Timedelta64Formatter here
+        # to figure what format to pass to the Timedelta
+        # e.g. to not show the decimals say
+        rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
                                         for val in values.ravel()[imask]],
                                        dtype=object)
         return rvalues.tolist()
 
 
     def get_values(self, dtype=None):
-        # return object dtypes as datetime.timedeltas
+        # return object dtypes as Timedelta
         if dtype == object:
-            return lib.map_infer(self.values.ravel(),
-                                 lambda x: timedelta(microseconds=x.item() / 1000)
+            return lib.map_infer(self.values.ravel(), lib.Timedelta
                                  ).reshape(self.values.shape)
         return self.values
 
@@ -1815,16 +1824,6 @@ class DatetimeBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
-
-    def astype(self, dtype, copy=False, raise_on_error=True):
-        """
-        handle convert to object as a special case
-        """
-        klass = None
-        if np.dtype(dtype).type == np.object_:
-            klass = ObjectBlock
-        return self._astype(dtype, copy=copy, raise_on_error=raise_on_error,
-                            klass=klass)
 
     def set(self, locs, values, check=False):
         """

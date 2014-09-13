@@ -39,6 +39,7 @@ from pandas.computation import expressions as expr
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex
 
 from pandas import _testing
@@ -733,25 +734,23 @@ def getArangeMat():
 def makeStringIndex(k=10):
     return Index([rands(10) for _ in range(k)])
 
-
 def makeUnicodeIndex(k=10):
     return Index([randu(10) for _ in range(k)])
-
 
 def makeIntIndex(k=10):
     return Index(lrange(k))
 
-
 def makeFloatIndex(k=10):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
     return Index(values * (10 ** np.random.randint(0, 9)))
-
 
 def makeDateIndex(k=10, freq='B'):
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq)
     return DatetimeIndex(dr)
 
+def makeTimedeltaIndex(k=10, freq='D'):
+    return TimedeltaIndex(start='1 day',periods=k,freq=freq)
 
 def makePeriodIndex(k=10):
     dt = datetime(2000, 1, 1)
@@ -863,11 +862,12 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
        len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"u"/"dt/"p".
+    idx_type - "i"/"f"/"s"/"u"/"dt"/"p"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
        "s"/"u" creates a string/unicode index
        "dt" create a datetime index.
+       "td" create a datetime index.
 
         if unspecified, string labels will be generated.
     """
@@ -878,7 +878,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (names is None or names is False
             or names is True or len(names) is nlevels)
     assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and nlevels == 1)
+        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and nlevels == 1)
 
     if names is True:
         # build default names
@@ -893,7 +893,8 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # specific 1D index type requested?
     idx_func = dict(i=makeIntIndex, f=makeFloatIndex, s=makeStringIndex,
-                    u=makeUnicodeIndex, dt=makeDateIndex, p=makePeriodIndex).get(idx_type)
+                    u=makeUnicodeIndex, dt=makeDateIndex, td=makeTimedeltaIndex,
+                    p=makePeriodIndex).get(idx_type)
     if idx_func:
         idx = idx_func(nentries)
         # but we need to fill in the name
@@ -902,7 +903,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         return idx
     elif idx_type is not None:
         raise ValueError('"%s" is not a legal value for `idx_type`, use  '
-                         '"i"/"f"/"s"/"u"/"dt/"p".' % idx_type)
+                         '"i"/"f"/"s"/"u"/"dt/"p"/"td".' % idx_type)
 
     if len(ndupe_l) < nlevels:
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
@@ -959,11 +960,12 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
         doesn't divide nrows/ncol, the last label might have lower multiplicity.
    dtype - passed to the DataFrame constructor as is, in case you wish to
         have more control in conjuncion with a custom `data_gen_f`
-   r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt".
+   r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
        "s"/"u" creates a string/unicode index
        "dt" create a datetime index.
+       "td" create a timedelta index.
 
         if unspecified, string labels will be generated.
 
@@ -996,9 +998,9 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and r_idx_nlevels == 1)
+        (r_idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and r_idx_nlevels == 1)
     assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and c_idx_nlevels == 1)
+        (c_idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,

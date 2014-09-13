@@ -46,7 +46,7 @@ from datetime cimport *
 
 from tslib cimport convert_to_tsobject, convert_to_timedelta64
 import tslib
-from tslib import NaT, Timestamp, repr_timedelta64
+from tslib import NaT, Timestamp, Timedelta
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -235,7 +235,7 @@ cpdef checknull_old(object val):
         return util._checknull(val)
 
 def isscalar(object val):
-    return np.isscalar(val) or val is None or PyDateTime_Check(val)
+    return np.isscalar(val) or val is None or PyDateTime_Check(val) or PyDelta_Check(val)
 
 
 @cython.wraparound(False)

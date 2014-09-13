@@ -1122,6 +1122,16 @@ This enables nice expressions like this:
 
    s[s.dt.day==2]
 
+You can easily produces tz aware transformations:
+
+.. ipython:: python
+
+   stz = s.dt.tz_localize('US/Eastern')
+   stz
+   stz.dt.tz
+
+The ``.dt`` accessor works for period and timedelta dtypes.
+
 .. ipython:: python
 
    # period
@@ -1129,6 +1139,15 @@ This enables nice expressions like this:
    s
    s.dt.year
    s.dt.day
+
+.. ipython:: python
+
+   # timedelta
+   s = Series(timedelta_range('1 day 00:00:05',periods=4,freq='s'))
+   s
+   s.dt.days
+   s.dt.seconds
+   s.dt.components
 
 .. note::
 
