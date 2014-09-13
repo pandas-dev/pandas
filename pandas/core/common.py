@@ -1961,15 +1961,24 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
     return value
 
 
-def _possibly_infer_to_datetimelike(value):
-    # we might have a array (or single object) that is datetime like,
-    # and no dtype is passed don't change the value unless we find a
-    # datetime/timedelta set
+def _possibly_infer_to_datetimelike(value, convert_dates=False):
+    """
+    we might have a array (or single object) that is datetime like,
+    and no dtype is passed don't change the value unless we find a
+    datetime/timedelta set
 
-    # this is pretty strict in that a datetime/timedelta is REQUIRED
-    # in addition to possible nulls/string likes
+    this is pretty strict in that a datetime/timedelta is REQUIRED
+    in addition to possible nulls/string likes
 
-    # ONLY strings are NOT datetimelike
+    ONLY strings are NOT datetimelike
+
+    Parameters
+    ----------
+    convert_dates : boolean, default False
+       if True try really hard to convert dates (such as datetime.date), other
+       leave inferred dtype 'date' alone
+
+    """
 
     v = value
     if not is_list_like(v):
@@ -2011,7 +2020,7 @@ def _possibly_infer_to_datetimelike(value):
         sample = v[:min(3,len(v))]
         inferred_type = lib.infer_dtype(sample)
 
-        if inferred_type in ['datetime', 'datetime64']:
+        if inferred_type in ['datetime', 'datetime64'] or (convert_dates and inferred_type in ['date']):
             value = _try_datetime(v)
         elif inferred_type in ['timedelta', 'timedelta64']:
             value = _try_timedelta(v)
