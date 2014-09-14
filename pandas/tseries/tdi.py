@@ -327,6 +327,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             result[mask] = tslib.iNaT
         return DatetimeIndex(result,name=self.name,copy=False)
 
+    def _sub_datelike(self, other):
+        raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
         from pandas.core.format import Timedelta64Formatter

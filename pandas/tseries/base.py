@@ -312,10 +312,10 @@ class DatetimeIndexOpsMixin(object):
         return get_reso_string(self._resolution)
 
     def _add_datelike(self, other):
-        return NotImplemented
+        raise NotImplementedError
 
     def _sub_datelike(self, other):
-        return NotImplemented
+        raise NotImplementedError
 
     def __add__(self, other):
         from pandas.core.index import Index
@@ -326,7 +326,7 @@ class DatetimeIndexOpsMixin(object):
         elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
             if hasattr(other,'_add_delta'):
                 return other._add_delta(self)
-            raise TypeError("cannot perform a numeric operation with a TimedeltaIndex and {typ}".format(typ=type(other)))
+            raise TypeError("cannot add TimedeltaIndex and {typ}".format(typ=type(other)))
         elif isinstance(other, Index):
             return self.union(other)
         elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
@@ -344,8 +344,12 @@ class DatetimeIndexOpsMixin(object):
         from pandas.tseries.offsets import DateOffset
         if isinstance(other, TimedeltaIndex):
             return self._add_delta(-other)
+        elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
+            if not isinstance(other, TimedeltaIndex):
+                raise TypeError("cannot subtract TimedeltaIndex and {typ}".format(typ=type(other)))
+            return self._add_delta(-other)
         elif isinstance(other, Index):
-            return self.diff(other)
+            return self.difference(other)
         elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
             return self._add_delta(-other)
         elif com.is_integer(other):

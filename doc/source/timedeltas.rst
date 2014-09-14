@@ -56,6 +56,10 @@ You can construct a ``Timedelta`` scalar thru various arguments:
    Timedelta(timedelta(days=1,seconds=1))
    Timedelta(np.timedelta64(1,'ms'))
 
+   # negative Timedeltas have this string repr
+   # to be more consistent with datetime.timedelta conventions
+   Timedelta('-1us')
+
    # a NaT
    Timedelta('nan')
    Timedelta('nat')
@@ -160,7 +164,7 @@ Operands can also appear in a reversed order (a singular object operated with a 
    df.idxmin()
    df.idxmax()
 
-``min, max, idxmin, idxmax`` operations are supported on Series / DataFrames. A single result will be a ``Timedelta``.
+``min, max, idxmin, idxmax`` operations are supported on Series as well. A scalar result will be a ``Timedelta``.
 
 .. ipython:: python
 
@@ -184,6 +188,7 @@ You can also negate, multiply and use ``abs`` on  ``Timedeltas``
 .. ipython:: python
 
    td1 = Timedelta('-1 days 2 hours 3 seconds')
+   tdi
    -1 * td1
    - td1
    abs(td1)
@@ -193,14 +198,17 @@ You can also negate, multiply and use ``abs`` on  ``Timedeltas``
 Reductions
 ----------
 
-Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` objects.
+Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` objects. As usual
+``NaT`` are skipped during evaluation.
 
 .. ipython:: python
 
-   y2 = y.fillna(timedelta(days=-1,seconds=5))
+   y2 = Series(to_timedelta(['-1 days +00:00:05','nat','-1 days +00:00:05','1 days']))
    y2
    y2.mean()
+   y2.median()
    y2.quantile(.1)
+   y2.sum()
 
 .. _timedeltas.timedeltas_convert:
 
@@ -336,6 +344,9 @@ Furthermore you can use partial string selection and the range will be inferred:
 
    s['1 day':'1 day 5 hours']
 
+Operations
+~~~~~~~~~~
+
 Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow certain combination operations that are NaT preserving:
 
 .. ipython:: python
@@ -347,6 +358,9 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
    (dti + tdi).tolist()
    (dti - tdi).tolist()
 
+Conversions
+~~~~~~~~~~~
+
 Similarly to frequency conversion on a ``Series`` above, you can convert these indices to yield another Index.
 
 .. ipython:: python
@@ -354,11 +368,22 @@ Similarly to frequency conversion on a ``Series`` above, you can convert these i
    tdi / np.timedelta64(1,'s')
    tdi.astype('timedelta64[s]')
 
-Scalars type ops work as well
+Scalars type ops work as well. These can potentially return a *different* type of index.
 
 .. ipython:: python
 
+   # adding or timedelta and date -> datelike
    tdi + Timestamp('20130101')
-   tdi + Timedelta('10 days')
+
+   # subtraction of a date and a timedelta -> datelike
+   # note that trying to subtract a date from a Timedelta will raise an exception
    (Timestamp('20130101') - tdi).tolist()
+
+   # timedelta + timedelta -> timedelta
+   tdi + Timedelta('10 days')
+
+   # division can result in a Timedelta if the divisor is an integer
+   tdi / 2
+
+   # or a Float64Index if the divisor is a Timedelta
    tdi / tdi[0]

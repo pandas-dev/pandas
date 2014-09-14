@@ -2063,9 +2063,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         def _make_invalid_op(opstr):
 
-            def _invalid_op(self, other):
+            def _invalid_op(self, other=None):
                 raise TypeError("cannot perform {opstr} with this index type: {typ}".format(opstr=opstr,
-                                                                                         typ=type(self)))
+                                                                                            typ=type(self)))
             return _invalid_op
 
         cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')

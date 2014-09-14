@@ -445,6 +445,8 @@ Length: 3, Freq: None"""
 
         self.assertRaises(TypeError, lambda : tdi - dt)
         self.assertRaises(TypeError, lambda : tdi - dti)
+        self.assertRaises(TypeError, lambda : td - dt)
+        self.assertRaises(TypeError, lambda : td - dti)
 
         result = dt-dti
         expected = TimedeltaIndex(['0 days','-1 days','-2 days'])

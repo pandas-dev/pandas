@@ -18,7 +18,7 @@ users upgrade to this version.
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
   - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
-  - Split indexing documentation into :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+  - Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
@@ -510,6 +510,10 @@ Consruct a scalar
    Timedelta('1 days 06:05:01.00003')
    Timedelta('15.5us')
    Timedelta('1 hour 15.5us')
+
+   # negative Timedeltas have this string repr
+   # to be more consistent with datetime.timedelta conventions
+   Timedelta('-1us')
 
    # a NaT
    Timedelta('nan')
