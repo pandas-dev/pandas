@@ -124,7 +124,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     from pandas.core.index import Index
     from pandas.core.series import Series
     vals = np.asarray(values)
+
     is_datetime = com.is_datetime64_dtype(vals)
+    is_timedelta = com.is_timedelta64_dtype(vals)
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
     table = hash_klass(len(vals))
@@ -161,6 +163,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     if is_datetime:
         uniques = uniques.astype('M8[ns]')
+    elif is_timedelta:
+        uniques = uniques.astype('m8[ns]')
     if isinstance(values, Index):
         uniques = values._simple_new(uniques, None, freq=getattr(values, 'freq', None),
                                      tz=getattr(values, 'tz', None))
@@ -401,7 +405,8 @@ def _get_data_algo(values, func_map):
     if com.is_float_dtype(values):
         f = func_map['float64']
         values = com._ensure_float64(values)
-    elif com.is_datetime64_dtype(values):
+
+    elif com.needs_i8_conversion(values):
 
         # if we have NaT, punt to object dtype
         mask = com.isnull(values)

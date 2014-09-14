@@ -661,13 +661,17 @@ def infer_freq(index, warn=True):
 
     if isinstance(index, com.ABCSeries):
         values = index.values
-        if not (com.is_datetime64_dtype(index.values) or values.dtype == object):
+        if not (com.is_datetime64_dtype(index.values) or com.is_timedelta64_dtype(index.values) or values.dtype == object):
             raise TypeError("cannot infer freq from a non-convertible dtype on a Series of {0}".format(index.dtype))
         index = values
 
     if com.is_period_arraylike(index):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                         "instead of using infer_freq.")
+    elif isinstance(index, pd.TimedeltaIndex):
+        inferer = _TimedeltaFrequencyInferer(index, warn=warn)
+        return inferer.get_freq()
+
     if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
             raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
@@ -694,8 +698,9 @@ class _FrequencyInferer(object):
         self.index = index
         self.values = np.asarray(index).view('i8')
 
-        if index.tz is not None:
-            self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
+        if hasattr(index,'tz'):
+            if index.tz is not None:
+                self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
 
         self.warn = warn
 
@@ -891,6 +896,18 @@ class _FrequencyInferer(object):
         return 'WOM-%d%s' % (week, wd)
 
 import pandas.core.algorithms as algos
+
+class _TimedeltaFrequencyInferer(_FrequencyInferer):
+
+    def _infer_daily_rule(self):
+        if self.is_unique:
+            days = self.deltas[0] / _ONE_DAY
+            if days % 7 == 0:
+                # Weekly
+                alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                return _maybe_add_count('W-%s' % alias, days / 7)
+            else:
+                return _maybe_add_count('D', days)
 
 
 def _maybe_add_count(base, count):

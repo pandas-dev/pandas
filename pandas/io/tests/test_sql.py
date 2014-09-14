@@ -325,7 +325,7 @@ class PandasSQLTest(unittest.TestCase):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def _to_sql_save_index(self):
-        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')], 
+        df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')],
                                     columns=['A','B','C'], index=['A'])
         self.pandasSQL.to_sql(df, 'test_to_sql_saves_index')
         ix_cols = self._get_index_columns('test_to_sql_saves_index')
@@ -523,6 +523,7 @@ class _TestSQLApi(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_timedelta(self):
+
         # see #6921
         df = to_timedelta(Series(['00:00:01', '00:00:03'], name='foo')).to_frame()
         with tm.assert_produces_warning(UserWarning):
@@ -952,9 +953,6 @@ class _TestSQLAlchemy(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_datetime(self):
-        if self.driver == 'pymysql':
-             raise nose.SkipTest('writing datetime not working with pymysql')
-
         df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
                         'B': np.arange(3.0)})
         df.to_sql('test_datetime', self.conn)
@@ -975,17 +973,6 @@ class _TestSQLAlchemy(PandasSQLTest):
             tm.assert_frame_equal(result, df)
 
     def test_datetime_NaT(self):
-        # status:
-        # - postgresql: gives error on inserting "0001-255-255T00:00:00"
-        # - sqlite3: works, but reading it with query returns '-001--1--1 -1:-1:-1.-00001'
-
-        if self.driver == 'pymysql':
-            raise nose.SkipTest('writing datetime not working with pymysql')
-        if self.driver == 'psycopg2':
-            raise nose.SkipTest('writing datetime NaT not working with psycopg2')
-        if self.flavor == 'sqlite':
-            raise nose.SkipTest('reading datetime NaT not working with sqlite')
-
         df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
                         'B': np.arange(3.0)})
         df.loc[1, 'A'] = np.nan
@@ -1032,9 +1019,6 @@ class _TestSQLAlchemy(PandasSQLTest):
         tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
 
     def test_nan_numeric(self):
-        if self.driver == 'pymysql':
-            raise nose.SkipTest('writing NaNs not working with pymysql')
-
         # NaNs in numeric float column
         df = DataFrame({'A':[0, 1, 2], 'B':[0.2, np.nan, 5.6]})
         df.to_sql('test_nan', self.conn, index=False)
@@ -1048,37 +1032,27 @@ class _TestSQLAlchemy(PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def test_nan_fullcolumn(self):
-        if self.driver == 'pymysql':
-            raise nose.SkipTest('writing NaNs not working with pymysql')
-
         # full NaN column (numeric float column)
         df = DataFrame({'A':[0, 1, 2], 'B':[np.nan, np.nan, np.nan]})
         df.to_sql('test_nan', self.conn, index=False)
-
-        if self.flavor == 'sqlite':
-            df['B'] = df['B'].astype('object')
-            df['B'] = None
 
         # with read_table
         result = sql.read_sql_table('test_nan', self.conn)
         tm.assert_frame_equal(result, df)
 
-        # with read_sql
+        # with read_sql -> not type info from table -> stays None
+        df['B'] = df['B'].astype('object')
+        df['B'] = None
         result = sql.read_sql_query('SELECT * FROM test_nan', self.conn)
         tm.assert_frame_equal(result, df)
 
     def test_nan_string(self):
-        if self.driver == 'pymysql':
-             raise nose.SkipTest('writing NaNs not working with pymysql')
-
         # NaNs in string column
         df = DataFrame({'A':[0, 1, 2], 'B':['a', 'b', np.nan]})
         df.to_sql('test_nan', self.conn, index=False)
 
-        if self.flavor == 'sqlite':
-            df.loc[2, 'B'] = None
-        elif self.flavor == 'postgresql':
-            df = df.fillna('NaN')
+        # NaNs are coming back as None
+        df.loc[2, 'B'] = None
 
         # with read_table
         result = sql.read_sql_table('test_nan', self.conn)
@@ -1094,7 +1068,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         ixs = insp.get_indexes(tbl_name)
         ixs = [i['column_names'] for i in ixs]
         return ixs
-        
+
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 

@@ -460,7 +460,7 @@ Enhancements
      get_dummies([1, 2, np.nan], dummy_na=True)
 
 
-- ``timedelta64[ns]`` operations. See :ref:`the docs<timeseries.timedeltas_convert>`.
+- ``timedelta64[ns]`` operations. See :ref:`the docs<timedeltas.timedeltas_convert>`.
 
   .. warning::
 
@@ -479,7 +479,7 @@ Enhancements
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
   ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
-  is frequency conversion. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
+  is frequency conversion. See :ref:`the docs<timedeltas.timedeltas_convert>` for the docs.
 
   .. ipython:: python
 

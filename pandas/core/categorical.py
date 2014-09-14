@@ -232,7 +232,7 @@ class Categorical(PandasObject):
             # which is fine, but since factorize does this correctly no need here
             # this is an issue because _sanitize_array also coerces np.nan to a string
             # under certain versions of numpy as well
-            values = com._possibly_infer_to_datetimelike(values)
+            values = com._possibly_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array

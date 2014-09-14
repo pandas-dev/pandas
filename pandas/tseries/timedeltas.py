@@ -12,19 +12,17 @@ from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype,
                                 is_timedelta64_dtype, _values_from_object,
                                 is_list_like, isnull, _ensure_object)
 
-repr_timedelta = tslib.repr_timedelta64
-repr_timedelta64 = tslib.repr_timedelta64
-
-def to_timedelta(arg, box=True, unit='ns'):
+def to_timedelta(arg, unit='ns', box=True):
     """
     Convert argument to timedelta
 
     Parameters
     ----------
     arg : string, timedelta, array of strings (with possible NAs)
-    box : boolean, default True
-        If True returns a Series of the results, if False returns ndarray of values
     unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an integer/float number
+    box : boolean, default True
+        If True returns a Timedelta/TimedeltaIndex of the results
+        if False returns a np.timedelta64 or ndarray of values of dtype timedelta64[ns]
 
     Returns
     -------
@@ -34,8 +32,8 @@ def to_timedelta(arg, box=True, unit='ns'):
 
     def _convert_listlike(arg, box, unit):
 
-        if isinstance(arg, (list,tuple)):
-            arg = np.array(arg, dtype='O')
+        if isinstance(arg, (list,tuple)) or ((hasattr(arg,'__iter__') and not hasattr(arg,'dtype'))):
+            arg = np.array(list(arg), dtype='O')
 
         if is_timedelta64_dtype(arg):
             value = arg.astype('timedelta64[ns]')
@@ -47,11 +45,16 @@ def to_timedelta(arg, box=True, unit='ns'):
             try:
                 value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit)
             except:
-                value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
+
+                # try to process strings fast; may need to fallback
+                try:
+                    value = np.array([ _get_string_converter(r, unit=unit)() for r in arg ],dtype='m8[ns]')
+                except:
+                    value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
 
         if box:
-            from pandas import Series
-            value = Series(value,dtype='m8[ns]')
+            from pandas import TimedeltaIndex
+            value = TimedeltaIndex(value,unit='ns')
         return value
 
     if arg is None:
@@ -64,7 +67,7 @@ def to_timedelta(arg, box=True, unit='ns'):
         return _convert_listlike(arg, box=box, unit=unit)
 
     # ...so it must be a scalar value. Return scalar.
-    return _coerce_scalar_to_timedelta_type(arg, unit=unit)
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box)
 
 _unit_map = {
     'Y' : 'Y',
@@ -92,24 +95,48 @@ _unit_map = {
     'NS' : 'ns',
     'ns' : 'ns',
     }
+_unit_scale = {
+    'd' : 86400*1e9,
+    'h' : 3600*1e9,
+    'm' : 60*1e9,
+    's' : 1e9,
+    'ms' : 1e6,
+    'us' : 1e3,
+    'ns' : 1,
+    }
 
 def _validate_timedelta_unit(arg):
     """ provide validation / translation for timedelta short units """
     try:
         return _unit_map[arg]
     except:
+        if arg is None:
+            return 'ns'
         raise ValueError("invalid timedelta unit {0} provided".format(arg))
 
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
 _full_search = re.compile(
-    "^\s*(?P<neg>-?)\s*(?P<days>\d+)?\s*(days|d|day)?,?\s*(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
+    "^\s*(?P<neg>-?)\s*(?P<days>\d*\.?\d*)?\s*(days|d|day)?,?\s*\+?(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
 _nat_search = re.compile(
     "^\s*(nat|nan)\s*$",re.IGNORECASE)
 _whitespace = re.compile('^\s*$')
+_number_split = re.compile("^(\d+\.?\d*)")
 
-def _coerce_scalar_to_timedelta_type(r, unit='ns'):
-    """ convert strings to timedelta; coerce to np.timedelta64"""
+# construct the full2_search
+abbrevs = [('d' ,'days|d|day'),
+           ('h' ,'hours|h|hour'),
+           ('m' ,'minutes|min|minute|m'),
+           ('s' ,'seconds|sec|second|s'),
+           ('ms','milliseconds|milli|millis|millisecond|ms'),
+           ('us','microseconds|micro|micros|microsecond|us'),
+           ('ns','nanoseconds|nano|nanos|nanosecond|ns')]
+
+_full_search2 = re.compile(''.join(
+    ["^\s*(?P<neg>-?)\s*"] + [ "(?P<" + p + ">\\d+\.?\d*\s*(" + ss + "))?\\s*" for p, ss in abbrevs ] + ['$']))
+
+def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True):
+    """ convert strings to timedelta; coerce to Timedelta (if box), else np.timedelta64"""
 
     if isinstance(r, compat.string_types):
 
@@ -118,12 +145,21 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns'):
         r = converter()
         unit='ns'
 
-    return tslib.convert_to_timedelta(r,unit)
+    result = tslib.convert_to_timedelta(r,unit)
+    if box:
+        result = tslib.Timedelta(result)
+
+    return result
 
 def _get_string_converter(r, unit='ns'):
     """ return a string converter for r to process the timedelta format """
 
     # treat as a nan
+    if isnull(r):
+        def convert(r=None, unit=None):
+            return tslib.iNaT
+        return convert
+
     if _whitespace.search(r):
         def convert(r=None, unit=None):
             return tslib.iNaT
@@ -141,9 +177,10 @@ def _get_string_converter(r, unit='ns'):
             u = gd.get('unit')
             if u is not None:
                 unit = u.lower()
+            result = tslib.cast_from_unit(r, unit)
             if gd['neg']:
-                r *= -1
-            return tslib.cast_from_unit(r, unit)
+                result *= -1
+            return result
         return convert
 
     m = _full_search.search(r)
@@ -154,21 +191,66 @@ def _get_string_converter(r, unit='ns'):
 
             gd = m.groupdict()
 
-            # convert to seconds
-            value = float(gd['days'] or 0) * 86400
-
+            # handle time
+            value = 0
             time = gd['time']
             if time:
                 (hh,mm,ss) = time.split(':')
-                value += float(hh)*3600 + float(mm)*60 + float(ss)
+                value += int((float(hh)*3600 + float(mm)*60 + float(ss))*1e9)
 
+            # handle frac
             frac = gd['frac']
             if frac:
-                value += float(frac)
+                value += round(float(frac)*1e9)
 
-            if gd['neg']:
-                value *= -1
-            return tslib.cast_from_unit(value, 's')
+            # handle days (possibly negative)
+            is_neg = gd['neg']
+            if gd['days']:
+                days = int((float(gd['days'] or 0) * 86400)*1e9)
+                if gd['neg']:
+                    days *= -1
+                value += days
+            else:
+                if gd['neg']:
+                    value *= -1
+
+            return tslib.cast_from_unit(value, 'ns')
+        return convert
+
+    # look for combo strings
+    m = _full_search2.search(r)
+    if m:
+        def convert(r=None, unit=None, m=m):
+            if r is not None:
+                m = _full_search2.search(r)
+
+            gd = m.groupdict()
+
+            # the parser
+            def parse(k, v):
+                if v is None:
+                    return 0
+                v = float(_number_split.search(v).group())
+                return int(v*_unit_scale[k])
+
+            # handle non-days
+            days = gd.pop('days',None)
+            neg = gd.pop('neg',None)
+            value = 0
+            for k, v in gd.items():
+                value += parse(k,v)
+
+            # parse days / neg
+            if days:
+                days = parse('days',days)
+                if neg:
+                    days *= -1
+                value += days
+            else:
+                if neg:
+                    value *= -1
+
+            return tslib.cast_from_unit(value, 'ns')
         return convert
 
     m = _nat_search.search(r)
@@ -209,4 +291,3 @@ def _possibly_cast_to_timedelta(value, coerce=True, dtype=None):
             value = np.array(new_value, dtype='timedelta64[ns]')
 
     return value
-

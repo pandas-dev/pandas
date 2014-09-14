@@ -16,7 +16,7 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
-from pandas.tslib import iNaT
+from pandas.tslib import iNaT, Timestamp, Timedelta
 
 import numpy as np
 
@@ -1230,10 +1230,10 @@ class CSVFormatter(object):
                 writer.writerow(encoded_cols)
 
         if date_format is None:
-            date_formatter = lambda x: lib.Timestamp(x)._repr_base
+            date_formatter = lambda x: Timestamp(x)._repr_base
         else:
             def strftime_with_nulls(x):
-                x = lib.Timestamp(x)
+                x = Timestamp(x)
                 if notnull(x):
                     return x.strftime(date_format)
 
@@ -1273,7 +1273,7 @@ class CSVFormatter(object):
 
                 if float_format is not None and com.is_float(val):
                     val = float_format % val
-                elif isinstance(val, (np.datetime64, lib.Timestamp)):
+                elif isinstance(val, (np.datetime64, Timestamp)):
                     val = date_formatter(val)
 
                 row_fields.append(val)
@@ -1922,8 +1922,8 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
     if x is None or lib.checknull(x):
         return nat_rep
 
-    if tz is not None or not isinstance(x, lib.Timestamp):
-        x = lib.Timestamp(x, tz=tz)
+    if tz is not None or not isinstance(x, Timestamp):
+        x = Timestamp(x, tz=tz)
 
     return str(x)
 
@@ -1932,8 +1932,8 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
     if x is None or lib.checknull(x):
         return nat_rep
 
-    if not isinstance(x, lib.Timestamp):
-        x = lib.Timestamp(x)
+    if not isinstance(x, Timestamp):
+        x = Timestamp(x)
 
     if date_format:
         return x.strftime(date_format)
@@ -1944,7 +1944,7 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
 def _is_dates_only(values):
     for d in values:
         if isinstance(d, np.datetime64):
-            d = lib.Timestamp(d)
+            d = Timestamp(d)
 
         if d is not None and not lib.checknull(d) and d._has_time_component():
             return False
@@ -1972,15 +1972,24 @@ def _get_format_datetime64_from_values(values,
 
 class Timedelta64Formatter(GenericArrayFormatter):
 
+    def __init__(self, values, nat_rep='NaT', box=False, **kwargs):
+        super(Timedelta64Formatter, self).__init__(values, **kwargs)
+        self.nat_rep = nat_rep
+        self.box = box
+
     def _format_strings(self):
-        formatter = self.formatter or _get_format_timedelta64(self.values)
-
+        formatter = self.formatter or _get_format_timedelta64(self.values, nat_rep=self.nat_rep, box=self.box)
         fmt_values = [formatter(x) for x in self.values]
-
         return fmt_values
 
 
-def _get_format_timedelta64(values):
+def _get_format_timedelta64(values, nat_rep='NaT', box=False):
+    """
+    return a formatter function for a range of timedeltas. These will all have the same format argument
+
+    if box, then show the return in quotes
+    """
+
     values_int = values.astype(np.int64)
 
     consider_values = values_int != iNaT
@@ -1989,19 +1998,25 @@ def _get_format_timedelta64(values):
     even_days = np.logical_and(consider_values, values_int % one_day_in_nanos != 0).sum() == 0
     all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= one_day_in_nanos).sum() == 0
 
-    format_short = even_days or all_sub_day
-    format = "short" if format_short else "long"
+    if even_days:
+        format = 'even_day'
+    elif all_sub_day:
+        format = 'sub_day'
+    else:
+        format = 'long'
 
-    def impl(x):
+    def _formatter(x):
         if x is None or lib.checknull(x):
-            return 'NaT'
-        elif format_short and com.is_integer(x) and x.view('int64') == 0:
-            return "0 days" if even_days else "00:00:00"
-        else:
-            return lib.repr_timedelta64(x, format=format)
+            return nat_rep
 
-    return impl
+        if not isinstance(x, Timedelta):
+            x = Timedelta(x)
+        result = x._repr_base(format=format)
+        if box:
+            result = "'{0}'".format(result)
+        return result
 
+    return _formatter
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0 or justify == 'all':

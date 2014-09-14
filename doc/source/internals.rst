@@ -36,7 +36,8 @@ containers for the axis labels:
   data, such as time stamps
 - ``Float64Index``: a version of ``Index`` highly optimized for 64-bit float data
 - ``MultiIndex``: the standard hierarchical index object
-- ``DatetimeIndex``: An Index object with Timestamp elements
+- ``DatetimeIndex``: An Index object with ``Timestamp`` boxed elements (impl are the int64 values)
+- ``TimedeltaIndex``: An Index object with ``Timedelta`` boxed elements (impl are the in64 values)
 - ``PeriodIndex``: An Index object with Period elements
 
 These are range generates to make the creation of a regular index easy:

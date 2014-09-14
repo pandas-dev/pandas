@@ -1,7 +1,7 @@
 from numpy cimport ndarray
 
 from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
-                    NPY_DATETIME)
+                    NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
 cimport numpy as cnp
@@ -16,7 +16,7 @@ import numpy as np
 cimport tslib
 from hashtable cimport *
 from pandas import algos, tslib, hashtable as _hash
-from pandas.tslib import Timestamp
+from pandas.tslib import Timestamp, Timedelta
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
@@ -57,6 +57,8 @@ cdef inline is_definitely_invalid_key(object val):
 def get_value_at(ndarray arr, object loc):
     if arr.descr.type_num == NPY_DATETIME:
         return Timestamp(util.get_value_at(arr, loc))
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
 
 def set_value_at(ndarray arr, object loc, object val):
@@ -108,6 +110,8 @@ cdef class IndexEngine:
         else:
             if arr.descr.type_num == NPY_DATETIME:
                 return Timestamp(util.get_value_at(arr, loc))
+            elif arr.descr.type_num == NPY_TIMEDELTA:
+                return Timedelta(util.get_value_at(arr, loc))
             return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
@@ -498,6 +502,9 @@ cdef class ObjectEngine(IndexEngine):
 
 cdef class DatetimeEngine(Int64Engine):
 
+    cdef _get_box_dtype(self):
+        return 'M8[ns]'
+
     def __contains__(self, object val):
         if self.over_size_threshold and self.is_monotonic:
             if not self.is_unique:
@@ -559,25 +566,30 @@ cdef class DatetimeEngine(Int64Engine):
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
-        if values.dtype != 'M8[ns]':
+        if values.dtype != self._get_box_dtype():
             return np.repeat(-1, len(values)).astype('i4')
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
     def get_pad_indexer(self, other, limit=None):
-        if other.dtype != 'M8[ns]':
+        if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.pad_int64(self._get_index_values(), other,
                                 limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        if other.dtype != 'M8[ns]':
+        if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.backfill_int64(self._get_index_values(), other,
                                      limit=limit)
 
+
+cdef class TimedeltaEngine(DatetimeEngine):
+
+    cdef _get_box_dtype(self):
+        return 'm8[ns]'
 
 cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
@@ -589,6 +601,15 @@ cpdef convert_scalar(ndarray arr, object value):
             return iNaT
         else:
             return Timestamp(value).value
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        if isinstance(value,np.ndarray):
+            pass
+        elif isinstance(value, Timedelta):
+            return value.value
+        elif value is None or value != value:
+            return iNaT
+        else:
+            return Timedelta(value).value
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:

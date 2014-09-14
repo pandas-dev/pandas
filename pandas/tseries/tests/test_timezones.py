@@ -423,31 +423,98 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = date_range(datetime(2011, 3, 13), periods=48,
                         freq=datetools.Minute(30), tz=pytz.utc)
 
-    def test_infer_dst(self):
+    def test_ambiguous_infer(self):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
         tz = self.tz('US/Eastern')
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
                         freq=datetools.Hour())
-        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize,
-                          tz, infer_dst=True)
+        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # With repeated hours, we can infer the transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
                         freq=datetools.Hour(), tz=tz)
-        di = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
-                            '11/06/2011 01:00', '11/06/2011 02:00',
-                            '11/06/2011 03:00'])
-        localized = di.tz_localize(tz, infer_dst=True)
+        times = ['11/06/2011 00:00', '11/06/2011 01:00',
+                 '11/06/2011 01:00', '11/06/2011 02:00',
+                 '11/06/2011 03:00']
+        di = DatetimeIndex(times)
+        localized = di.tz_localize(tz, ambiguous='infer')
+        self.assert_numpy_array_equal(dr, localized)
+        localized_old = di.tz_localize(tz, infer_dst=True)
+        self.assert_numpy_array_equal(dr, localized_old)
+        self.assert_numpy_array_equal(dr, DatetimeIndex(times, tz=tz, ambiguous='infer'))
+        
+        # When there is no dst transition, nothing special happens
+        dr = date_range(datetime(2011, 6, 1, 0), periods=10,
+                        freq=datetools.Hour())
+        localized = dr.tz_localize(tz)
+        localized_infer = dr.tz_localize(tz, ambiguous='infer')
+        self.assert_numpy_array_equal(localized, localized_infer)
+        localized_infer_old = dr.tz_localize(tz, infer_dst=True)
+        self.assert_numpy_array_equal(localized, localized_infer_old)
+
+    def test_ambiguous_flags(self):
+        # November 6, 2011, fall back, repeat 2 AM hour
+        tz = self.tz('US/Eastern')
+
+        # Pass in flags to determine right dst transition
+        dr = date_range(datetime(2011, 11, 6, 0), periods=5,
+                        freq=datetools.Hour(), tz=tz)
+        times = ['11/06/2011 00:00', '11/06/2011 01:00',
+                 '11/06/2011 01:00', '11/06/2011 02:00',
+                 '11/06/2011 03:00']
+        
+        # Test tz_localize
+        di = DatetimeIndex(times)
+        is_dst = [1, 1, 0, 0, 0]
+        localized = di.tz_localize(tz, ambiguous=is_dst)
+        self.assert_numpy_array_equal(dr, localized)
+        self.assert_numpy_array_equal(dr, DatetimeIndex(times, tz=tz, ambiguous=is_dst))
+        
+        localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
+        self.assert_numpy_array_equal(dr, localized)
+        
+        localized = di.tz_localize(tz, ambiguous=np.array(is_dst).astype('bool'))
+        self.assert_numpy_array_equal(dr, localized)
+        
+        # Test constructor
+        localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst)
+        self.assert_numpy_array_equal(dr, localized)
+             
+        # Test duplicate times where infer_dst fails
+        times += times
+        di = DatetimeIndex(times)
+        
+        # When the sizes are incompatible, make sure error is raised
+        self.assertRaises(Exception, di.tz_localize, tz, ambiguous=is_dst)
+        
+        # When sizes are compatible and there are repeats ('infer' won't work)
+        is_dst = np.hstack((is_dst, is_dst))
+        localized = di.tz_localize(tz, ambiguous=is_dst)
+        dr = dr.append(dr)
         self.assert_numpy_array_equal(dr, localized)
 
         # When there is no dst transition, nothing special happens
         dr = date_range(datetime(2011, 6, 1, 0), periods=10,
                         freq=datetools.Hour())
+        is_dst = np.array([1] * 10)
         localized = dr.tz_localize(tz)
-        localized_infer = dr.tz_localize(tz, infer_dst=True)
-        self.assert_numpy_array_equal(localized, localized_infer)
-
+        localized_is_dst = dr.tz_localize(tz, ambiguous=is_dst)
+        self.assert_numpy_array_equal(localized, localized_is_dst)
+        
+    def test_ambiguous_nat(self):
+        tz = self.tz('US/Eastern')
+        times = ['11/06/2011 00:00', '11/06/2011 01:00',
+                 '11/06/2011 01:00', '11/06/2011 02:00',
+                 '11/06/2011 03:00']
+        di = DatetimeIndex(times)
+        localized = di.tz_localize(tz, ambiguous='NaT')
+        
+        times = ['11/06/2011 00:00', np.NaN,
+                 np.NaN, '11/06/2011 02:00',
+                 '11/06/2011 03:00']
+        di_test = DatetimeIndex(times, tz='US/Eastern')
+        self.assert_numpy_array_equal(di_test, localized)
 
     # test utility methods
     def test_infer_tz(self):

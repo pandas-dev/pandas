@@ -96,13 +96,15 @@ of multi-axis indexing.
   See more at :ref:`Selection by Position <indexing.integer>`
 
 - ``.ix`` supports mixed integer and label based access. It is primarily label
-  based, but will fall back to integer positional access. ``.ix`` is the most
-  general and will support any of the inputs to ``.loc`` and ``.iloc``, as well
-  as support for floating point label schemes. ``.ix`` is especially useful
-  when dealing with mixed positional and label based hierarchical indexes.
-  As using integer slices with ``.ix`` have different behavior depending on
-  whether the slice is interpreted as position based or label based, it's
-  usually better to be explicit and use ``.iloc`` or ``.loc``.
+  based, but will fall back to integer positional access unless the corresponding
+  axis is of integer type. ``.ix`` is the most general and will
+  support any of the inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating point
+  label schemes. ``.ix`` is exceptionally useful when dealing with mixed positional
+  and label based hierachical indexes.
+
+  However, when an axis is integer based, ONLY
+  label based access and not positional access is supported.
+  Thus, in such cases, it's usually better to be explicit and use ``.iloc`` or ``.loc``.
 
   See more at :ref:`Advanced Indexing <advanced>`, :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>` and :ref:`Fallback Indexing
@@ -230,10 +232,16 @@ new column.
 .. warning::
 
    - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
-     see `here for an explanation of valid identifiers
+     See `here for an explanation of valid identifiers
      <http://docs.python.org/2.7/reference/lexical_analysis.html#identifiers>`__.
 
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
+
+   - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
+     ``major_axis``, ``minor_axis``, ``items``, ``labels``.
+
+   - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
+     access the corresponding element or column.
 
    - The ``Series/Panel`` accesses are available starting in 0.13.0.
 

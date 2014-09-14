@@ -575,7 +575,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             values = self.get_values()
             other = _index.convert_scalar(values,_values_from_object(other))
 
-            if issubclass(values.dtype.type, np.datetime64):
+            if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
                 values = values.view('i8')
 
             # scalars

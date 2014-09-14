@@ -180,7 +180,7 @@ class BinOp(ops.BinOp):
             v = time.mktime(v.timetuple())
             return TermValue(v, pd.Timestamp(v), kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = _coerce_scalar_to_timedelta_type(v, unit='s').item()
+            v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
         elif kind == u('integer'):
             v = int(float(v))

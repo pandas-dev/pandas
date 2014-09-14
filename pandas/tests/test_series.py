@@ -16,10 +16,12 @@ import numpy.ma as ma
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
-                    date_range, period_range)
+                    date_range, period_range, timedelta_range)
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
+from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
+from pandas.tseries.tdi import Timedelta, TimedeltaIndex
 import pandas.core.common as com
 import pandas.core.config as cf
 import pandas.lib as lib
@@ -76,17 +78,30 @@ class CheckNameIntegration(object):
         # GH 7207
         # test .dt namespace accessor
 
-        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter']
+        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq']
         ok_for_period = ok_for_base + ['qyear']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
-                                   'is_quarter_end', 'is_year_start', 'is_year_end']
+                                   'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert']
+        ok_for_td = ['days','hours','minutes','seconds','milliseconds','microseconds','nanoseconds']
+        ok_for_td_methods = ['components','to_pytimedelta']
 
         def get_expected(s, name):
             result = getattr(Index(s.values),prop)
             if isinstance(result, np.ndarray):
                 if com.is_integer_dtype(result):
                     result = result.astype('int64')
+            elif not com.is_list_like(result):
+                return result
             return Series(result,index=s.index)
+
+        def compare(s, name):
+            a = getattr(s.dt,prop)
+            b = get_expected(s,prop)
+            if not (com.is_list_like(a) and com.is_list_like(b)):
+                self.assertEqual(a,b)
+            else:
+                tm.assert_series_equal(a,b)
 
         # invalids
         for s in [Series(np.arange(5)),
@@ -98,9 +113,51 @@ class CheckNameIntegration(object):
         for s in [Series(date_range('20130101',periods=5)),
                   Series(date_range('20130101',periods=5,freq='s')),
                   Series(date_range('20130101 00:00:00',periods=5,freq='ms'))]:
-
             for prop in ok_for_dt:
-                tm.assert_series_equal(getattr(s.dt,prop),get_expected(s,prop))
+
+                # we test freq below
+                if prop != 'freq':
+                    compare(s, prop)
+
+            for prop in ok_for_dt_methods:
+                getattr(s.dt,prop)
+
+            result = s.dt.to_pydatetime()
+            self.assertIsInstance(result,np.ndarray)
+            self.assertTrue(result.dtype == object)
+
+            result = s.dt.tz_localize('US/Eastern')
+            expected = Series(DatetimeIndex(s.values).tz_localize('US/Eastern'),index=s.index)
+            tm.assert_series_equal(result, expected)
+
+            tz_result = result.dt.tz
+            self.assertEqual(str(tz_result), 'US/Eastern')
+            freq_result = s.dt.freq
+            self.assertEqual(freq_result, DatetimeIndex(s.values, freq='infer').freq)
+
+        # timedeltaindex
+        for s in [Series(timedelta_range('1 day',periods=5)),
+                  Series(timedelta_range('1 day 01:23:45',periods=5,freq='s')),
+                  Series(timedelta_range('2 days 01:23:45.012345',periods=5,freq='ms'))]:
+            for prop in ok_for_td:
+
+                # we test freq below
+                if prop != 'freq':
+                    compare(s, prop)
+
+            for prop in ok_for_td_methods:
+                getattr(s.dt,prop)
+
+            result = s.dt.components
+            self.assertIsInstance(result,DataFrame)
+            tm.assert_index_equal(result.index,s.index)
+
+            result = s.dt.to_pytimedelta()
+            self.assertIsInstance(result,np.ndarray)
+            self.assertTrue(result.dtype == object)
+
+            freq_result = s.dt.freq
+            self.assertEqual(freq_result, TimedeltaIndex(s.values, freq='infer').freq)
 
         # both
         index = date_range('20130101',periods=3,freq='D')
@@ -113,7 +170,13 @@ class CheckNameIntegration(object):
         for s in [Series(period_range('20130101',periods=5,freq='D'))]:
 
             for prop in ok_for_period:
-                tm.assert_series_equal(getattr(s.dt,prop),get_expected(s,prop))
+
+                # we test freq below
+                if prop != 'freq':
+                    compare(s, prop)
+
+            freq_result = s.dt.freq
+            self.assertEqual(freq_result, PeriodIndex(s.values).freq)
 
         # test limited display api
         def get_dir(s):
@@ -122,7 +185,7 @@ class CheckNameIntegration(object):
 
         s = Series(date_range('20130101',periods=5,freq='D'))
         results = get_dir(s)
-        tm.assert_almost_equal(results,list(sorted(set(ok_for_dt))))
+        tm.assert_almost_equal(results,list(sorted(set(ok_for_dt + ok_for_dt_methods))))
 
         s = Series(period_range('20130101',periods=5,freq='D').asobject)
         results = get_dir(s)
@@ -2216,7 +2279,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.series[5:15] = np.NaN
 
             # idxmax, idxmin, min, and max are valid for dates
-            if not ('max' in name or 'min' in name):
+            if name not in ['max','min']:
                 ds = Series(date_range('1/1/2001', periods=10))
                 self.assertRaises(TypeError, f, ds)
 
@@ -2820,6 +2883,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 expected = s1.apply(lambda x: np.timedelta64(m,unit) / x)
                 result = np.timedelta64(m,unit) / s1
 
+        # astype
+        s = Series(date_range('20130101',periods=3))
+        result = s.astype(object)
+        self.assertIsInstance(result.iloc[0],datetime)
+        self.assertTrue(result.dtype == np.object_)
+
+        result = s1.astype(object)
+        self.assertIsInstance(result.iloc[0],timedelta)
+        self.assertTrue(result.dtype == np.object_)
+
     def test_timedelta64_equal_timedelta_supported_ops(self):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
                       Timestamp('20130228 22:00:00'),
@@ -2845,6 +2918,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             except:
                 raise AssertionError(
                     "invalid comparsion [op->{0},d->{1},h->{2},m->{3},s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s, us, lhs, rhs))
+
+    def test_timedelta_assignment(self):
+        # GH 8209
+        s = Series([])
+        s.loc['B'] = timedelta(1)
+        tm.assert_series_equal(s,Series(Timedelta('1 days'),index=['B']))
+
+        s = s.reindex(s.index.insert(0, 'A'))
+        tm.assert_series_equal(s,Series([np.nan,Timedelta('1 days')],index=['A','B']))
+
+        result = s.fillna(timedelta(1))
+        expected = Series(Timedelta('1 days'),index=['A','B'])
+        tm.assert_series_equal(result, expected)
+
+        s.loc['A'] = timedelta(1)
+        tm.assert_series_equal(s, expected)
 
     def test_operators_datetimelike(self):
 
@@ -2955,12 +3044,37 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # max/min
         result = td.max()
-        expected = Series([timedelta(2)], dtype='timedelta64[ns]')
-        assert_series_equal(result, expected)
+        expected = Timedelta('2 days')
+        self.assertEqual(result, expected)
 
         result = td.min()
-        expected = Series([timedelta(1)], dtype='timedelta64[ns]')
-        assert_series_equal(result, expected)
+        expected = Timedelta('1 days')
+        self.assertEqual(result, expected)
+
+    def test_ops_consistency_on_empty(self):
+
+        # GH 7869
+        # consistency on empty
+
+        # float
+        result = Series(dtype=float).sum()
+        self.assertEqual(result,0)
+
+        result = Series(dtype=float).mean()
+        self.assertTrue(isnull(result))
+
+        result = Series(dtype=float).median()
+        self.assertTrue(isnull(result))
+
+        # timedelta64[ns]
+        result = Series(dtype='m8[ns]').sum()
+        self.assertEqual(result, Timedelta(0))
+
+        result = Series(dtype='m8[ns]').mean()
+        self.assertTrue(result is pd.NaT)
+
+        result = Series(dtype='m8[ns]').median()
+        self.assertTrue(result is pd.NaT)
 
     def test_timedelta_fillna(self):
         #GH 3371
@@ -3212,19 +3326,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td1 = td.copy()
         td1[0] = np.nan
         self.assertTrue(isnull(td1[0]))
-        self.assertEqual(td1[0].view('i8'), tslib.iNaT)
+        self.assertEqual(td1[0].value, tslib.iNaT)
         td1[0] = td[0]
         self.assertFalse(isnull(td1[0]))
 
         td1[1] = tslib.iNaT
         self.assertTrue(isnull(td1[1]))
-        self.assertEqual(td1[1].view('i8'), tslib.iNaT)
+        self.assertEqual(td1[1].value, tslib.iNaT)
         td1[1] = td[1]
         self.assertFalse(isnull(td1[1]))
 
         td1[2] = tslib.NaT
         self.assertTrue(isnull(td1[2]))
-        self.assertEqual(td1[2].view('i8'), tslib.iNaT)
+        self.assertEqual(td1[2].value, tslib.iNaT)
         td1[2] = td[2]
         self.assertFalse(isnull(td1[2]))
 

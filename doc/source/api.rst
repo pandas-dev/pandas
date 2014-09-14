@@ -146,8 +146,8 @@ Top-level missing data
    isnull
    notnull
 
-Top-level dealing with datetimes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with datetimelike
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -157,6 +157,7 @@ Top-level dealing with datetimes
    date_range
    bdate_range
    period_range
+   timedelta_range
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -440,12 +441,15 @@ Time series-related
 
 Datetimelike Properties
 ~~~~~~~~~~~~~~~~~~~~~~~
+
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
 Due to implementation details the methods show up here as methods of the
-``DatetimeProperties/PeriodProperties`` classes. These can be accessed like ``Series.dt.<property>``.
+``DatetimeProperties/PeriodProperties/TimedeltaProperties`` classes. These can be accessed like ``Series.dt.<property>``.
 
 .. currentmodule:: pandas.tseries.common
+
+**Datetime Properties**
 
 .. autosummary::
    :toctree: generated/
@@ -472,6 +476,37 @@ Due to implementation details the methods show up here as methods of the
    DatetimeProperties.is_quarter_end
    DatetimeProperties.is_year_start
    DatetimeProperties.is_year_end
+
+**Datetime Methods**
+
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeProperties.to_period
+   DatetimeProperties.to_pydatetime
+   DatetimeProperties.tz_localize
+   DatetimeProperties.tz_convert
+
+**Timedelta Properties**
+
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaProperties.days
+   TimedeltaProperties.hours
+   TimedeltaProperties.minutes
+   TimedeltaProperties.seconds
+   TimedeltaProperties.milliseconds
+   TimedeltaProperties.microseconds
+   TimedeltaProperties.nanoseconds
+   TimedeltaProperties.components
+
+**Timedelta Methods**
+
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaProperties.to_pytimedelta
 
 String handling
 ~~~~~~~~~~~~~~~
@@ -1288,6 +1323,37 @@ Conversion
    DatetimeIndex.to_period
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
+
+TimedeltaIndex
+--------------
+
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaIndex
+
+Components
+~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaIndex.days
+   TimedeltaIndex.hours
+   TimedeltaIndex.minutes
+   TimedeltaIndex.seconds
+   TimedeltaIndex.milliseconds
+   TimedeltaIndex.microseconds
+   TimedeltaIndex.nanoseconds
+   TimedeltaIndex.components
+
+Conversion
+~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaIndex.to_pytimedelta
+   TimedeltaIndex.to_series
 
 GroupBy
 -------
