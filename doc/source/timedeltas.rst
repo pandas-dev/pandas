@@ -188,7 +188,7 @@ You can also negate, multiply and use ``abs`` on  ``Timedeltas``
 .. ipython:: python
 
    td1 = Timedelta('-1 days 2 hours 3 seconds')
-   tdi
+   td1
    -1 * td1
    - td1
    abs(td1)
