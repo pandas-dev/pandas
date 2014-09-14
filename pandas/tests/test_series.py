@@ -2371,6 +2371,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         q = tds.quantile(.25)
         self.assertEqual(q, pd.to_timedelta('24:00:00'))
 
+        # GH7661
+        result = Series([np.timedelta64('NaT')]).sum()
+        self.assertTrue(result is pd.NaT)
+
     def test_quantile_multi(self):
         from numpy import percentile
 
