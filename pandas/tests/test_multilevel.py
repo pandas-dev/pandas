@@ -1,12 +1,13 @@
 # pylint: disable-msg=W0612,E1101,W0141
 import datetime
+import itertools
 import nose
 
 from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notnull, isnull
+from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -2065,6 +2066,17 @@ Thur,Lunch,Yes,51.51,17"""
 
         self.assertTrue(idx.levels[0].equals(expected1))
         self.assertTrue(idx.levels[1].equals(idx2))
+
+        # from datetime combos
+        # GH 7888
+        date1 = datetime.date.today()
+        date2 = datetime.datetime.today()
+        date3 = Timestamp.today()
+
+        for d1, d2 in itertools.product([date1,date2,date3],[date1,date2,date3]):
+            index = pd.MultiIndex.from_product([[d1],[d2]])
+            self.assertIsInstance(index.levels[0],pd.DatetimeIndex)
+            self.assertIsInstance(index.levels[1],pd.DatetimeIndex)
 
     def test_set_index_datetime(self):
         # GH 3950

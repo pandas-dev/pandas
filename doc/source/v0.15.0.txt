@@ -676,8 +676,8 @@ Enhancements
 
 
 
-- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools 
-  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT, 
+- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
+  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
   'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
 
@@ -756,7 +756,7 @@ Bug Fixes
 - Bug in HDFStore iteration when passing a where (:issue:`8014`)
 - Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
-
+- Bug in inference in a MultiIndex with ``datetime.date`` inputs (:issue:`7888`)
 
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
