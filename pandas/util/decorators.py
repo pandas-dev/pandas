@@ -258,3 +258,29 @@ def knownfailureif(fail_condition, msg=None):
         return nose.tools.make_decorator(f)(knownfailer)
 
     return knownfail_decorator
+
+def make_signature(func) :
+    """
+    Returns a string repr of the arg list of a func call, with any defaults
+
+    Examples
+    --------
+
+    >>> def f(a,b,c=2) :
+    >>>     return a*b*c
+    >>> print(_make_signature(f))
+    a,b,c=2
+    """
+    from inspect import getargspec
+    spec = getargspec(func)
+    if spec.defaults == None :
+        n_wo_defaults = len(spec.args)
+        defaults = ('',) * n_wo_defaults
+    else :
+        n_wo_defaults = len(spec.args) - len(spec.defaults)
+        defaults = ('',) * n_wo_defaults + spec.defaults
+    args = []
+    for i, (var, default) in enumerate(zip(spec.args, defaults)) :
+        args.append(var if default=='' else var+'='+repr(default))
+    return args, spec.args
+

@@ -18,7 +18,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index, _union_indexes
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.util.decorators import cache_readonly, Appender
+from pandas.util.decorators import cache_readonly, Appender, make_signature
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -2133,31 +2133,6 @@ def _convert_grouper(axis, grouper):
     else:
         return grouper
 
-def _make_signature(func) :
-    """
-    Returns a string repr of the arg list of a func call, with any defaults
-
-    Examples
-    --------
-
-    >>> def f(a,b,c=2) :
-    >>>     return a*b*c
-    >>> print(_make_signature(f))
-    a,b,c=2
-    """
-    from inspect import getargspec
-    spec = getargspec(func)
-    if spec.defaults == None :
-        n_wo_defaults = len(spec.args)
-        defaults = ('',) * n_wo_defaults
-    else :
-        n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + spec.defaults
-    args = []
-    for i, (var, default) in enumerate(zip(spec.args, defaults)) :
-        args.append(var if default=='' else var+'='+repr(default))
-    return args, spec.args
-
 def _whitelist_method_generator(klass, whitelist) :
     """
     Yields all GroupBy member defs for DataFrame/Series names in _whitelist.
@@ -2203,7 +2178,7 @@ def %(name)s(self) :
         doc = doc if type(doc)==str else ''
         if type(f) == types.MethodType :
             wrapper_template = method_wrapper_template
-            decl, args = _make_signature(f)
+            decl, args = make_signature(f)
             # pass args by name to f because otherwise
             # GroupBy._make_wrapper won't know whether
             # we passed in an axis parameter.
@@ -2223,14 +2198,7 @@ class SeriesGroupBy(GroupBy):
     # Make class defs of attributes on SeriesGroupBy whitelist
     _apply_whitelist = _series_apply_whitelist
     for _def_str in _whitelist_method_generator(Series,_series_apply_whitelist) :
-        try :
-            exec(_def_str)
-        except SyntaxError as e :
-            print('-'*80)
-            print(_def_str)
-            print('-'*80)
-            print(e)
-            raise e
+        exec(_def_str)
         
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
@@ -3144,13 +3112,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     #
     # Make class defs of attributes on DataFrameGroupBy whitelist.
     for _def_str in _whitelist_method_generator(DataFrame,_apply_whitelist) :
-        try :
-            exec(_def_str)
-        except SyntaxError as e :
-            print('-'*80)
-            print(_def_str)
-            print('-'*80)
-            raise e
+        exec(_def_str)
 
     _block_agg_axis = 1
 
