@@ -341,7 +341,11 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional
-        List of parameters to pass to execute method.
+        List of parameters to pass to execute method.  The syntax used
+        to pass parameters is database driver dependent. Check your 
+        database driver documentation for which of the five syntax styles,
+        described in PEP 249's paramstyle, is supported.
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
     parse_dates : list or dict
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
@@ -387,7 +391,11 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional
-        List of parameters to pass to execute method.
+        List of parameters to pass to execute method.  The syntax used
+        to pass parameters is database driver dependent. Check your 
+        database driver documentation for which of the five syntax styles,
+        described in PEP 249's paramstyle, is supported.
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
     parse_dates : list or dict
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
