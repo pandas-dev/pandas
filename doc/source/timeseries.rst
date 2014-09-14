@@ -1513,7 +1513,9 @@ Ambiguous Times when Localizing
 In some cases, localize cannot determine the DST and non-DST hours when there are
 duplicates.  This often happens when reading files or database records that simply
 duplicate the hours.  Passing ``ambiguous='infer'`` (``infer_dst`` argument in prior
-releases) into ``tz_localize`` will attempt to determine the right offset.
+releases) into ``tz_localize`` will attempt to determine the right offset.  Below
+the top example will fail as it contains ambiguous times and the bottom will
+infer the right offset.
 
 .. ipython:: python
    :okexcept:
@@ -1521,9 +1523,11 @@ releases) into ``tz_localize`` will attempt to determine the right offset.
    rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
                                '11/06/2011 01:00', '11/06/2011 02:00',
                                '11/06/2011 03:00'])
-   rng_hourly.tz_localize('US/Eastern')
+
+   # This will fail as there are ambiguous times
+   rng_hourly.tz_localize('US/Eastern') 
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
-   rng_hourly_eastern.values
+   rng_hourly_eastern.tolist()
 
 In addition to 'infer', there are several other arguments supported.  Passing
 an array-like of bools or 0s/1s where True represents a DST hour and False a
@@ -1536,8 +1540,8 @@ constructor as well as ``tz_localize``.
 .. ipython:: python
 
    rng_hourly_dst = np.array([1, 1, 0, 0, 0])
-   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).values
-   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').values
+   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).tolist()
+   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').tolist()
 
    didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
    didx
