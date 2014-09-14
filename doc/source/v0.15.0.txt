@@ -17,11 +17,11 @@ users upgrade to this version.
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
   - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
-  - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
-  - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
-  - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
   - Split indexing documentation into :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+  - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+  - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
+  - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
@@ -29,11 +29,7 @@ users upgrade to this version.
 
 - :ref:`Performance Improvements <whatsnew_0150.performance>`
 
-- :ref:`Prior Deprecations <whatsnew_0150.prior_deprecations>`
-
 - :ref:`Deprecations <whatsnew_0150.deprecations>`
-
-- :ref:`Known Issues <whatsnew_0150.knownissues>`
 
 - :ref:`Bug Fixes <whatsnew_0150.bug_fixes>`
 
@@ -350,21 +346,21 @@ API changes
 
 - The Index set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
 
-.. code-block:: python
+  .. code-block:: python
 
-   # +
-   Index(['a','b','c']) + Index(['b','c','d'])
+     # +
+     Index(['a','b','c']) + Index(['b','c','d'])
 
-   # should be replaced by
-   Index(['a','b','c']).union(Index(['b','c','d']))
+     # should be replaced by
+     Index(['a','b','c']).union(Index(['b','c','d']))
 
-.. code-block:: python
+  .. code-block:: python
 
-   # -
-   Index(['a','b','c']) - Index(['b','c','d'])
+     # -
+     Index(['a','b','c']) - Index(['b','c','d'])
 
-   # should be replaced by
-   Index(['a','b','c']).difference(Index(['b','c','d']))
+     # should be replaced by
+     Index(['a','b','c']).difference(Index(['b','c','d']))
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 
@@ -498,14 +494,14 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
       # datetime.timedelta accessor
       # this is 5 minutes * 60 + 3 seconds
-      tds.to_timedelta().seconds
+      tds.to_pytimedelta().seconds
 
 .. warning::
 
-       Prior to 0.15.0 ``to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
+       Prior to 0.15.0 ``pd.to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
        It will now return a ``TimedeltaIndex`` for list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
 
-       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,unit='ns',box=True)`` as these are more logical.
+       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
 
 Consruct a scalar
 
@@ -596,11 +592,6 @@ Deprecations
   Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
 
-.. _whatsnew_0150.knownissues:
-
-Known Issues
-~~~~~~~~~~~~
-
 .. _whatsnew_0150.enhancements:
 
 Enhancements
@@ -611,10 +602,10 @@ Enhancements
 - Added support for specifying a ``schema`` to read from/write to with ``read_sql_table`` and ``to_sql`` (:issue:`7441`, :issue:`7952`).
   For example:
 
-.. code-block:: python
+  .. code-block:: python
 
-   df.to_sql('table', engine, schema='other_schema')
-   pd.read_sql_table('table', engine, schema='other_schema')
+     df.to_sql('table', engine, schema='other_schema')
+     pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
@@ -718,13 +709,6 @@ Performance
 
 
 
-
-.. _whatsnew_0150.experimental:
-
-Experimental
-~~~~~~~~~~~~
-
-There are no experimental changes in 0.15.0
 
 .. _whatsnew_0150.bug_fixes:
 
@@ -919,12 +903,7 @@ Bug Fixes
 
 
 
-- Bug in interpolation methods with the ``limit`` keyword when no values
-needed interpolating (:issue:`7173`).
-- Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False``
-  (:issue:`8230`).
-- Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and
-returning the wrong date (:issue:`8245`).
-- Bug in plotting methods modifying the global matplotlib
-rcParams (:issue:`8242`).
-
+- Bug in interpolation methods with the ``limit`` keyword when no values needed interpolating (:issue:`7173`).
+- Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
+- Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and returning the wrong date (:issue:`8245`).
+- Bug in plotting methods modifying the global matplotlib rcParams (:issue:`8242`).

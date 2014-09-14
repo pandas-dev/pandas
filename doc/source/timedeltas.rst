@@ -77,10 +77,10 @@ to_timedelta
 
 .. warning::
 
-       Prior to 0.15.0 ``to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
+       Prior to 0.15.0 ``pd.to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
        It will now return a ``TimedeltaIndex`` for list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
 
-       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,unit='ns',box=True)`` as these are more logical.
+       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
 
 Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list, or Series from a recognized timedelta format / value into a ``Timedelta`` type.
 It will construct Series if the input is a Series, a scalar if the input is scalar-like, otherwise will output a ``TimedeltaIndex``
@@ -284,7 +284,7 @@ similarly to the ``Series``
 
       # datetime.timedelta accessor
       # this is 5 minutes * 60 + 3 seconds
-      tds.to_timedelta().seconds
+      tds.to_pytimedelta().seconds
 
 
 TimedeltaIndex
