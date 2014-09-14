@@ -18,7 +18,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index, _union_indexes
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.util.decorators import cache_readonly, Appender
+from pandas.util.decorators import cache_readonly, Appender, make_signature
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -533,7 +533,7 @@ class GroupBy(PandasObject):
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
-            if 'axis' not in kwargs_with_axis:
+            if 'axis' not in kwargs_with_axis or kwargs_with_axis['axis']==None:
                 kwargs_with_axis['axis'] = self.axis
 
             def curried_with_axis(x):
@@ -2133,9 +2133,73 @@ def _convert_grouper(axis, grouper):
     else:
         return grouper
 
-class SeriesGroupBy(GroupBy):
-    _apply_whitelist = _series_apply_whitelist
+def _whitelist_method_generator(klass, whitelist) :
+    """
+    Yields all GroupBy member defs for DataFrame/Series names in _whitelist.
 
+    Parameters
+    ----------
+    klass - class where members are defined.  Should be Series or DataFrame
+
+    whitelist - list of names of klass methods to be constructed
+
+    Returns
+    -------
+    The generator yields a sequence of strings, each suitable for exec'ing,
+    that define implementations of the named methods for DataFrameGroupBy
+    or SeriesGroupBy.
+
+    Since we don't want to override methods explicitly defined in the
+    base class, any such name is skipped.
+    """
+
+    method_wrapper_template = \
+    """def %(name)s(%(sig)s) :
+    \"""
+    %(doc)s
+    \"""
+    f = %(self)s.__getattr__('%(name)s')
+    return f(%(args)s)"""
+    property_wrapper_template = \
+    """@property
+def %(name)s(self) :
+    \"""
+    %(doc)s
+    \"""
+    return self.__getattr__('%(name)s')"""
+    for name in whitelist :
+        # don't override anything that was explicitly defined
+        # in the base class
+        if hasattr(GroupBy,name) :
+            continue
+        # ugly, but we need the name string itself in the method.
+        f = getattr(klass,name)
+        doc = f.__doc__
+        doc = doc if type(doc)==str else ''
+        if type(f) == types.MethodType :
+            wrapper_template = method_wrapper_template
+            decl, args = make_signature(f)
+            # pass args by name to f because otherwise
+            # GroupBy._make_wrapper won't know whether
+            # we passed in an axis parameter.
+            args_by_name = ['{0}={0}'.format(arg) for arg in args[1:]]
+            params = {'name':name,
+                      'doc':doc,
+                      'sig':','.join(decl),
+                      'self':args[0],
+                      'args':','.join(args_by_name)}
+        else :
+            wrapper_template = property_wrapper_template
+            params = {'name':name, 'doc':doc}
+        yield wrapper_template % params
+
+class SeriesGroupBy(GroupBy):
+    #
+    # Make class defs of attributes on SeriesGroupBy whitelist
+    _apply_whitelist = _series_apply_whitelist
+    for _def_str in _whitelist_method_generator(Series,_series_apply_whitelist) :
+        exec(_def_str)
+        
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
         Apply aggregation function or functions to groups, yielding most likely
@@ -3045,6 +3109,10 @@ class NDFrameGroupBy(GroupBy):
 
 class DataFrameGroupBy(NDFrameGroupBy):
     _apply_whitelist = _dataframe_apply_whitelist
+    #
+    # Make class defs of attributes on DataFrameGroupBy whitelist.
+    for _def_str in _whitelist_method_generator(DataFrame,_apply_whitelist) :
+        exec(_def_str)
 
     _block_agg_axis = 1
 

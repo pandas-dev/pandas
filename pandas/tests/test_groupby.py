@@ -19,7 +19,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_index_equal, assertRaisesRegexp)
 from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map,
-    zip, builtins, OrderedDict
+    zip, builtins, OrderedDict, product as cart_product
 )
 from pandas import compat
 from pandas.core.panel import Panel
@@ -4327,7 +4327,43 @@ class TestGroupBy(tm.TestCase):
             gb = obj.groupby(df.letters)
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
-                getattr(gb, m)
+                getattr(type(gb), m)
+
+    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
+                     'mad', 'std', 'var', 'sem']
+    AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
+        
+    def test_regression_whitelist_methods(self) :
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        raw_frame = DataFrame(np.random.randn(10, 3), index=index,
+                               columns=Index(['A', 'B', 'C'], name='exp'))
+        raw_frame.ix[1, [1, 2]] = np.nan
+        raw_frame.ix[7, [0, 1]] = np.nan
+
+        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
+                                                    lrange(2), lrange(2),
+                                                    [True,False]) :
+
+            if axis == 0 :
+                frame = raw_frame
+            else :
+                frame = raw_frame.T
+
+            if op in self.AGG_FUNCTIONS_WITH_SKIPNA :
+                grouped = frame.groupby(level=level,axis=axis)
+                result = getattr(grouped,op)(skipna=skipna)
+                expected = getattr(frame,op)(level=level,axis=axis,skipna=skipna)
+                assert_frame_equal(result, expected)
+            else :
+                grouped = frame.groupby(level=level,axis=axis)
+                result = getattr(grouped,op)()
+                expected = getattr(frame,op)(level=level,axis=axis)
+                assert_frame_equal(result, expected)
 
     def test_groupby_blacklist(self):
         from string import ascii_lowercase
