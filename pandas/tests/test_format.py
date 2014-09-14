@@ -2105,11 +2105,11 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
         result = df.T.to_latex()
-        expected = r"""\begin{tabular}{ll}
+        expected = r"""\begin{tabular}{lll}
 \toprule
-{} &  0 \\
+  &   &  0 \\
 \midrule
-x y &  a \\
+x & y &  a \\
 \bottomrule
 \end{tabular}
 """
