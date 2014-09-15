@@ -1,3 +1,4 @@
+import os
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pandas.compat import range
@@ -22,6 +23,7 @@ from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_r
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
+from pandas.io.pickle import read_pickle
 from pandas.tslib import NaT, Timestamp
 import pandas.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
@@ -848,6 +850,24 @@ class TestCustomBusinessDay(Base):
         dt = datetime(2014, 1, 17)
         assertEq(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
+    def test_roundtrip_pickle(self):
+        def _check_roundtrip(obj):
+            unpickled = self.round_trip_pickle(obj)
+            self.assertEqual(unpickled, obj)
+        _check_roundtrip(self.offset)
+        _check_roundtrip(self.offset2)
+        _check_roundtrip(self.offset*2)
+
+    def test_pickle_compat_0_14_1(self):
+        hdays = [datetime(2013,1,1) for ele in range(4)]
+
+        pth = tm.get_data_path()
+
+        cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
+        cday = CDay(holidays=hdays)
+        self.assertEqual(cday, cday0_14_1)
+
+
 class CustomBusinessMonthBase(object):
     _multiprocess_can_split_ = True
 
@@ -893,6 +913,15 @@ class CustomBusinessMonthBase(object):
         offset1 = self._object()
         offset2 = self._object()
         self.assertFalse(offset1 != offset2)
+
+    def test_roundtrip_pickle(self):
+        def _check_roundtrip(obj):
+            unpickled = self.round_trip_pickle(obj)
+            self.assertEqual(unpickled, obj)
+        _check_roundtrip(self._object())
+        _check_roundtrip(self._object(2))
+        _check_roundtrip(self._object()*2)
+
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _object = CBMonthEnd
@@ -1006,8 +1035,12 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
-        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthEnd(calendar=USFederalHolidayCalendar())).tolist()[0],
-        datetime(2012,1,31))
+        hcal = USFederalHolidayCalendar()
+        freq = CBMonthEnd(calendar=hcal)
+
+        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',
+                                       freq=freq).tolist()[0],
+                         datetime(2012,1,31))
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _object = CBMonthBegin
@@ -1120,8 +1153,11 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         self.assertEqual(dt + 2*bm_offset,datetime(2012,2,3))
 
     def test_datetimeindex(self):
-        self.assertEqual(DatetimeIndex(start='20120101',end='20130101',freq=CBMonthBegin(calendar=USFederalHolidayCalendar())).tolist()[0],
-        datetime(2012,1,3))
+        hcal = USFederalHolidayCalendar()
+        cbmb = CBMonthBegin(calendar=hcal)
+        self.assertEqual(DatetimeIndex(start='20120101', end='20130101',
+                                       freq=cbmb).tolist()[0],
+                         datetime(2012,1,3))
 
 
 def assertOnOffset(offset, date, expected):

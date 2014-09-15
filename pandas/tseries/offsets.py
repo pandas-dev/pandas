@@ -225,12 +225,12 @@ class DateOffset(object):
         return self.isAnchored() and self._cacheable
 
     def _params(self):
-        attrs = [(k, v) for k, v in compat.iteritems(vars(self))
-                 if (k not in ['kwds', 'name', 'normalize',
-                 'busdaycalendar']) and (k[0] != '_')]
-        attrs.extend(list(self.kwds.items()))
+        all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
+        if 'holidays' in all_paras and not all_paras['holidays']:
+            all_paras.pop('holidays')
+        exclude = ['kwds', 'name','normalize', 'calendar']
+        attrs = [(k, v) for k, v in all_paras.items() if (k not in exclude ) and (k[0] != '_')]
         attrs = sorted(set(attrs))
-
         params = tuple([str(self.__class__)] + attrs)
         return params
 
@@ -547,38 +547,57 @@ class CustomBusinessDay(BusinessDay):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
-    calendar : HolidayCalendar instance
-        instance of AbstractHolidayCalendar that provide the list of holidays
+    calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-
     _cacheable = False
     _prefix = 'C'
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, **kwds):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        
-        if 'calendar' in kwds:
-            holidays = kwds['calendar'].holidays()
-        else:
-            holidays = kwds.get('holidays', [])
+        calendar, holidays = self.get_calendar(weekmask=weekmask,
+                                                         holidays=holidays,
+                                                         calendar=calendar)
+        # CustomBusinessDay instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+    def get_calendar(self, weekmask, holidays, calendar):
+        '''Generate busdaycalendar'''
+        if isinstance(calendar, np.busdaycalendar):
+            if not holidays:
+                holidays = tuple(calendar.holidays)
+            elif not isinstance(holidays, tuple):
+                holidays = tuple(holidays)
+            else:
+                 # trust that calendar.holidays and holidays are
+                 # consistent
+                pass
+            return calendar, holidays
+
+        if holidays is None:
+            holidays = []
+        try:
+            holidays = holidays + calendar.holidays().tolist()
+        except AttributeError:
+            pass
         holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
                     holidays]
-        self.holidays = tuple(sorted(holidays))
-        self.kwds['holidays'] = self.holidays
+        holidays = tuple(sorted(holidays))
 
-        self._set_busdaycalendar()
+        kwargs = {'weekmask': weekmask}
+        if holidays:
+            kwargs['holidays'] = holidays
 
-    def _set_busdaycalendar(self):
-        if self.holidays:
-            kwargs = {'weekmask':self.weekmask,'holidays':self.holidays}
-        else:
-            kwargs = {'weekmask':self.weekmask}
         try:
-            self.busdaycalendar = np.busdaycalendar(**kwargs)
+            busdaycalendar = np.busdaycalendar(**kwargs)
         except:
             # Check we have the required numpy version
             from distutils.version import LooseVersion
@@ -589,17 +608,23 @@ class CustomBusinessDay(BusinessDay):
                                           np.__version__)
             else:
                 raise
+        return busdaycalendar, holidays
 
     def __getstate__(self):
         """Return a pickleable state"""
         state = self.__dict__.copy()
-        del state['busdaycalendar']
+        del state['calendar']
         return state
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
         self.__dict__ = state
-        self._set_busdaycalendar()
+        calendar, holidays = self.get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['weekmask'] = state['weekmask']
 
     @apply_wraps
     def apply(self, other):
@@ -613,7 +638,7 @@ class CustomBusinessDay(BusinessDay):
             np_dt = np.datetime64(date_in.date())
 
             np_incr_dt = np.busday_offset(np_dt, self.n, roll=roll,
-                                  busdaycal=self.busdaycalendar)
+                                  busdaycal=self.calendar)
 
             dt_date = np_incr_dt.astype(datetime)
             result = datetime.combine(dt_date, date_in.time())
@@ -635,7 +660,6 @@ class CustomBusinessDay(BusinessDay):
         # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
         # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
         # Thus astype is needed to cast datetime to datetime64[D]
-
         if getattr(dt, 'tzinfo', None) is not None:
             i8 = tslib.pydt_to_i8(dt)
             dt = tslib.tz_convert_single(i8, 'UTC', dt.tzinfo)
@@ -649,7 +673,7 @@ class CustomBusinessDay(BusinessDay):
         if self.normalize and not _is_normalized(dt):
             return False
         day64 = self._to_dt64(dt,'datetime64[D]')
-        return np.is_busday(day64, busdaycal=self.busdaycalendar)
+        return np.is_busday(day64, busdaycal=self.calendar)
 
 
 class MonthOffset(SingleConstructorOffset):
@@ -767,7 +791,6 @@ class BusinessMonthBegin(MonthOffset):
     _prefix = 'BMS'
 
 
-
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     """
     **EXPERIMENTAL** DateOffset of one custom business month
@@ -788,18 +811,22 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
+    calendar : pd.HolidayCalendar or np.busdaycalendar
     """
 
     _cacheable = False
     _prefix = 'CBM'
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False,  weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, **kwds):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        self.cbday = CustomBusinessDay(n=self.n, **kwds)
-        self.m_offset = MonthEnd()
+        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
+                                       weekmask=weekmask, holidays=holidays,
+                                       calendar=calendar, **kwds)
+        self.m_offset = MonthEnd(n=1, normalize=normalize, **kwds)
+        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
 
     @apply_wraps
     def apply(self,other):
@@ -817,11 +844,11 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
             n -= 1
         elif other > cur_cmend and n <= -1:
             n += 1
- 
-        new = cur_mend + n * MonthEnd()
+
+        new = cur_mend + n * self.m_offset
         result = self.cbday.rollback(new)
         return result
-        
+
 class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
     **EXPERIMENTAL** DateOffset of one custom business month
@@ -842,18 +869,22 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
+    calendar : pd.HolidayCalendar or np.busdaycalendar
     """
 
     _cacheable = False
     _prefix = 'CBMS'
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False,  weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, **kwds):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize, **kwds)
-        self.m_offset = MonthBegin(normalize=normalize)
+        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
+                                       weekmask=weekmask, holidays=holidays,
+                                       calendar=calendar, **kwds)
+        self.m_offset = MonthBegin(n=1, normalize=normalize, **kwds)
+        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
 
     @apply_wraps
     def apply(self,other):
@@ -872,8 +903,8 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
             n += 1
         elif dt_in < cur_cmbegin and n >= 1:
             n -= 1
- 
-        new = cur_mbegin + n * MonthBegin()
+
+        new = cur_mbegin + n * self.m_offset
         result = self.cbday.rollforward(new)
         return result
 
