@@ -625,10 +625,17 @@ class DataFrameFormatter(TableFormatter):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes.values
+
+            # if we have a Float level, they don't use leading space at all
+            restrict_formatting = any([ l.is_floating for l in columns.levels ])
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = list(zip(*[
-                [' ' + y if y not in self.formatters and need_leadsp[x]
-                 else y for y in x] for x in fmt_columns]))
+
+            def space_format(x,y):
+                if y not in self.formatters and need_leadsp[x] and not restrict_formatting:
+                    return ' ' + y
+                return y
+
+            str_columns = list(zip(*[ [ space_format(x,y) for y in x ] for x in fmt_columns ]))
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
