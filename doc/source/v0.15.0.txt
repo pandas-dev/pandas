@@ -88,7 +88,8 @@ API changes
   :func:`rolling_window`, and :func:`rolling_apply` with ``center=True`` previously would return a result of the same
   structure as the input ``arg`` with ``NaN`` in the final ``(window-1)/2`` entries.
   Now the final ``(window-1)/2`` entries of the result are calculated as if the input ``arg`` were followed
-  by ``(window-1)/2`` ``NaN`` values. (:issue:`7925`)
+  by ``(window-1)/2`` ``NaN`` values (or with shrinking windows, in the case of :func:`rolling_apply`).
+  (:issue:`7925`, :issue:`8269`)
 
   Prior behavior (note final value is ``NaN``):
 

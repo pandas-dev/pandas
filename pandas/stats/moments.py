@@ -738,11 +738,12 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
+    offset = int((window - 1) / 2.) if center else 0
     def call_cython(arg, window, minp, args, kwargs):
         minp = _use_window(minp, window)
-        return algos.roll_generic(arg, window, minp, func, args, kwargs)
+        return algos.roll_generic(arg, window, minp, offset, func, args, kwargs)
     return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
-                           center=center, args=args, kwargs=kwargs)
+                           center=False, args=args, kwargs=kwargs)
 
 
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
