@@ -1087,7 +1087,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
     sum_wt = 1.
     sum_wt2 = 1.
     old_wt = 1.
-    
+
     for i from 1 <= i < N:
         cur_x = input_x[i]
         cur_y = input_y[i]
@@ -1117,7 +1117,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
         elif is_observation:
             mean_x = cur_x
             mean_y = cur_y
-        
+
         if nobs >= minp:
             if not bias:
                 numerator = sum_wt * sum_wt
@@ -1251,6 +1251,82 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
                     result[xi, yi] = result[yi, xi] = np.NaN
 
     return result
+
+
+#----------------------------------------------------------------------
+# Rolling covariance
+
+def roll_cov(ndarray[double_t] x, ndarray[double_t] y, int win, int minp,
+             int ddof=1):
+    """
+    Numerically stable implementation using a Welford-like method.
+    """
+    cdef double val_x, val_y, prev_x, prev_y, delta_x, delta_y, temp_x, temp_y
+    cdef double mean_x = 0, mean_y = 0, proddm_xy = 0
+    cdef Py_ssize_t nobs = 0, i, N = len(x)
+    cdef bint val_not_nan, prev_not_nan
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < N:
+        val_x = x[i]
+        val_y = y[i]
+        val_not_nan = val_x == val_x and val_y == val_y
+        if i < win:
+            prev_x = prev_y = NaN
+            prev_not_nan = 0
+        else:
+            prev_x = x[i - win]
+            prev_y = y[i - win]
+            prev_not_nan = prev_x == prev_x and prev_y == prev_y
+
+        if val_not_nan:
+            # Adding one observation...
+            nobs += 1
+            if prev_not_nan:
+                # ...and removing another
+                nobs -= 1
+                delta_x = val_x - prev_x
+                prev_x -= mean_x
+                mean_x += delta_x / nobs
+                val_x -= mean_x
+                delta_y = val_y - prev_y
+                prev_y -= mean_y
+                mean_y += delta_y / nobs
+                val_y -= mean_y
+                proddm_xy += (delta_x * (val_y + prev_y) + delta_y * (val_x + prev_x)) / 2
+            else:
+                # ...and not removing any
+                delta_x = val_x - mean_x
+                mean_x += delta_x / nobs
+                delta_y = val_y - mean_y
+                mean_y += delta_y / nobs
+                proddm_xy += ((val_x - mean_x) * delta_y +
+                              (val_y - mean_y) * delta_x) * 0.5
+        elif prev_not_nan:
+            # Adding no new observation, but removing one
+            nobs -= 1
+            if nobs:
+                delta_x = prev_x - mean_x
+                mean_x -= delta_x / nobs
+                delta_y = prev_y - mean_y
+                mean_y -= delta_y / nobs
+                proddm_xy -= ((prev_x - mean_x) * delta_y +
+                              (prev_y - mean_y) * delta_x) * 0.5
+            else:
+                mean_x = mean_y = proddm_xy = 0
+        # Covariance is unchanged if no observation is added or removed
+
+        # Finally, compute and write the rolling covariance to output
+        if nobs >= minp and nobs > ddof:
+            output[i] = proddm_xy / (nobs - ddof)
+        else:
+            output[i] = NaN
+
+    return output
+
 
 #----------------------------------------------------------------------
 # Rolling variance
