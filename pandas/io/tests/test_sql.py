@@ -331,6 +331,28 @@ class PandasSQLTest(unittest.TestCase):
         ix_cols = self._get_index_columns('test_to_sql_saves_index')
         self.assertEqual(ix_cols, [['A',],])
 
+    def _transaction_test(self):
+        self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
+
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        
+        # Make sure when transaction is rolled back, no rows get inserted
+        try:
+            with self.pandasSQL.run_transaction() as trans:
+                trans.execute(ins_sql)
+                raise Exception('error')
+        except:
+            # ignore raised exception
+            pass
+        res = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        self.assertEqual(len(res), 0)
+        
+        # Make sure when transaction is committed, rows do get inserted
+        with self.pandasSQL.run_transaction() as trans:
+            trans.execute(ins_sql)
+        res2 = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        self.assertEqual(len(res2), 1)
+
 
 #------------------------------------------------------------------------------
 #--- Testing the public API
@@ -1072,6 +1094,8 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
+    def test_transactions(self):
+        self._transaction_test()
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -1380,6 +1404,8 @@ class TestSQLiteLegacy(PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
+    def test_transactions(self):
+        self._transaction_test()
 
 class TestMySQLLegacy(TestSQLiteLegacy):
     """
