@@ -1941,7 +1941,8 @@ class Grouping(object):
             # no level passed
             if not isinstance(self.grouper, (Series, Index, np.ndarray)):
                 if getattr(self.grouper,'ndim', 1) != 1:
-                    raise ValueError("Grouper result with an ndim != 1")
+                    t = self.name or str(type(self.grouper))
+                    raise ValueError("Grouper for '%s' not 1-dimensional" % t)
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper, "__len__") and
                         len(self.grouper) == len(self.index)):
