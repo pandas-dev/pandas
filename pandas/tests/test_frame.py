@@ -4032,7 +4032,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r'Shape of passed values is \(3,\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
         with assertRaisesRegexp(ValueError, msg):
             DataFrame.from_records(arr, index=index[:-1])
 
