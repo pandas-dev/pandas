@@ -19,6 +19,7 @@ from pandas.core.common import notnull, isnull
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
 
+from contextlib import contextmanager
 
 class SQLAlchemyRequired(ImportError):
     pass
@@ -645,13 +646,9 @@ class PandasSQLTable(PandasObject):
 
         return column_names, data_list
 
-    def get_session(self):
-        con = self.pd_sql.engine.connect()
-        return con.begin()
-
-    def _execute_insert(self, trans, keys, data_iter):
+    def _execute_insert(self, conn, keys, data_iter):
         data = [dict( (k, v) for k, v in zip(keys, row) ) for row in data_iter]
-        trans.connection.execute(self.insert_statement(), data)
+        conn.execute(self.insert_statement(), data)
 
     def insert(self, chunksize=None):
         keys, data_list = self.insert_data()
@@ -661,7 +658,7 @@ class PandasSQLTable(PandasObject):
             chunksize = nrows
         chunks = int(nrows / chunksize) + 1
 
-        with self.get_session() as trans:
+        with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, nrows)
@@ -669,7 +666,7 @@ class PandasSQLTable(PandasObject):
                     break
 
                 chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-                self._execute_insert(trans, keys, chunk_iter)
+                self._execute_insert(conn, keys, chunk_iter)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
 
@@ -892,6 +889,9 @@ class PandasSQLAlchemy(PandasSQL):
 
         self.meta = meta
 
+    def run_transaction(self):
+       return self.engine.begin()
+
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy engine"""
         return self.engine.execute(*args, **kwargs)
@@ -1025,9 +1025,9 @@ class PandasSQLTableLegacy(PandasSQLTable):
         return str(";\n".join(self.table))
 
     def _execute_create(self):
-        with self.get_session():
+        with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
-                self.pd_sql.execute(stmt)
+                conn.execute(stmt)
 
     def insert_statement(self):
         names = list(map(str, self.frame.columns))
@@ -1046,12 +1046,9 @@ class PandasSQLTableLegacy(PandasSQLTable):
             self.name, col_names, wildcards)
         return insert_statement
 
-    def get_session(self):
-        return self.pd_sql.con
-
-    def _execute_insert(self, trans, keys, data_iter):
+    def _execute_insert(self, conn, keys, data_iter):
         data_list = list(data_iter)
-        trans.executemany(self.insert_statement(), data_list)
+        conn.executemany(self.insert_statement(), data_list)
 
     def _create_table_setup(self):
         """Return a list of SQL statement that create a table reflecting the 
@@ -1132,6 +1129,17 @@ class PandasSQLLegacy(PandasSQL):
             raise NotImplementedError
         else:
             self.flavor = flavor
+
+    @contextmanager
+    def run_transaction(self):
+        cur = self.con.cursor()
+        try:
+            yield cur
+            self.con.commit()
+        except:
+            self.con.rollback()
+        finally:
+            cur.close()
 
     def execute(self, *args, **kwargs):
         if self.is_cursor:
