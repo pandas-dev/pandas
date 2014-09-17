@@ -4,6 +4,7 @@ import functools
 
 from datetime import datetime
 from numpy.random import randn
+from numpy.testing.decorators import slow
 import numpy as np
 from distutils.version import LooseVersion
 
@@ -813,6 +814,7 @@ class TestMoments(tm.TestCase):
                                 mean_x_times_y = mean(x * y)
                                 assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
 
+    @slow
     def test_ewm_consistency(self):
 
         def _weights(s, com, adjust, ignore_na):
@@ -877,6 +879,7 @@ class TestMoments(tm.TestCase):
                         cov_biased=lambda x, y: mom.ewmcov(x, y, com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na, bias=True),
                         var_debiasing_factors=lambda x: _variance_debiasing_factors(x, com=com, adjust=adjust, ignore_na=ignore_na))
 
+    @slow
     def test_expanding_consistency(self):
         base_functions = [
             (mom.expanding_count, lambda v: Series(v).count(), None),
@@ -931,7 +934,7 @@ class TestMoments(tm.TestCase):
                 cov_unbiased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods),
                 var_biased=lambda x: mom.expanding_var(x, min_periods=min_periods, ddof=0),
                 std_biased=lambda x: mom.expanding_std(x, min_periods=min_periods, ddof=0),
-                cov_biased=None,
+                cov_biased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods, ddof=0),
                 var_debiasing_factors=lambda x: mom.expanding_count(x) / (mom.expanding_count(x) - 1.).replace(0., np.nan)
                 )
 
@@ -967,6 +970,7 @@ class TestMoments(tm.TestCase):
                                 expected.iloc[:, i, j] = expanding_f(x.iloc[:, i], x.iloc[:, j], min_periods=min_periods)
                         assert_panel_equal(expanding_f_result, expected)
 
+    @slow
     def test_rolling_consistency(self):
         base_functions = [
             (mom.rolling_count, lambda v: Series(v).count(), None),
@@ -979,7 +983,7 @@ class TestMoments(tm.TestCase):
             (mom.rolling_corr, lambda v: Series(v).corr(Series(v)), None),
             (mom.rolling_var, lambda v: Series(v).var(), 1),
             #(mom.rolling_skew, lambda v: Series(v).skew(), 3), # restore once GH 8086 is fixed
-            # (mom.rolling_kurt, lambda v: Series(v).kurt(), 4), # restore once GH 8086 is fixed
+            #(mom.rolling_kurt, lambda v: Series(v).kurt(), 4), # restore once GH 8086 is fixed
             #(lambda x, window, min_periods, center: mom.rolling_quantile(x, window, 0.3, min_periods=min_periods, center=center),
             # lambda v: Series(v).quantile(0.3), None), # restore once GH 8084 is fixed
             (mom.rolling_median, lambda v: Series(v).median(), None),
@@ -1026,7 +1030,7 @@ class TestMoments(tm.TestCase):
                         cov_unbiased=lambda x, y: mom.rolling_cov(x, y, window=window, min_periods=min_periods, center=center),
                         var_biased=lambda x: mom.rolling_var(x, window=window, min_periods=min_periods, center=center, ddof=0),
                         std_biased=lambda x: mom.rolling_std(x, window=window, min_periods=min_periods, center=center, ddof=0),
-                        cov_biased=None,
+                        cov_biased=lambda x, y: mom.rolling_cov(x, y, window=window, min_periods=min_periods, center=center, ddof=0),
                         var_debiasing_factors=lambda x: mom.rolling_count(x, window=window, center=center).divide(
                                                         (mom.rolling_count(x, window=window, center=center) - 1.).replace(0., np.nan)),
                         )

@@ -167,6 +167,11 @@ _pairwise_kw = """pairwise : bool, default False
     elements, only complete pairwise observations will be used.
 """
 
+_ddof_kw = """ddof : int, default 1
+    Delta Degrees of Freedom.  The divisor used in calculations
+    is ``N - ddof``, where ``N`` represents the number of elements.
+"""
+
 _bias_kw = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
@@ -216,10 +221,10 @@ def rolling_count(arg, window, freq=None, center=False, how=None):
 
 
 @Substitution("Unbiased moving covariance.", _binary_arg_flex,
-              _roll_kw%'None'+_pairwise_kw, _flex_retval, _roll_notes)
+              _roll_kw%'None'+_pairwise_kw+_ddof_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
-                center=False, pairwise=None, how=None):
+                center=False, pairwise=None, how=None, ddof=1):
     if window is None and isinstance(arg2, (int, float)):
         window = arg2
         arg2 = arg1
@@ -233,7 +238,7 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
     def _get_cov(X, Y):
         mean = lambda x: rolling_mean(x, window, min_periods, center=center)
         count = rolling_count(X + Y, window, center=center)
-        bias_adj = count / (count - 1)
+        bias_adj = count / (count - ddof)
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     rs = _flex_binary_moment(arg1, arg2, _get_cov, pairwise=bool(pairwise))
     return rs
@@ -620,14 +625,14 @@ def _use_window(minp, window):
         return minp
 
 
-def _rolling_func(func, desc, check_minp=_use_window, how=None):
+def _rolling_func(func, desc, check_minp=_use_window, how=None, additional_kw=''):
     if how is None:
         how_arg_str = 'None'
     else:
         how_arg_str = "'%s"%how
 
-    @Substitution(desc, _unary_arg, _roll_kw%how_arg_str, _type_of_input_retval,
-                  _roll_notes)
+    @Substitution(desc, _unary_arg, _roll_kw%how_arg_str + additional_kw,
+                  _type_of_input_retval, _roll_notes)
     @Appender(_doc_template)
     @wraps(func)
     def f(arg, window, min_periods=None, freq=None, center=False, how=how,
@@ -648,10 +653,12 @@ rolling_median = _rolling_func(algos.roll_median_cython, 'Moving median.',
                                how='median')
 
 _ts_std = lambda *a, **kw: _zsqrt(algos.roll_var(*a, **kw))
-rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation.',
-                            check_minp=_require_min_periods(1))
-rolling_var = _rolling_func(algos.roll_var, 'Unbiased moving variance.',
-                            check_minp=_require_min_periods(1))
+rolling_std = _rolling_func(_ts_std, 'Moving standard deviation.',
+                            check_minp=_require_min_periods(1),
+                            additional_kw=_ddof_kw)
+rolling_var = _rolling_func(algos.roll_var, 'Moving variance.',
+                            check_minp=_require_min_periods(1),
+                            additional_kw=_ddof_kw)
 rolling_skew = _rolling_func(algos.roll_skew, 'Unbiased moving skewness.',
                              check_minp=_require_min_periods(3))
 rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis.',
@@ -864,8 +871,9 @@ def _pop_args(win_type, arg_names, kwargs):
     return all_args
 
 
-def _expanding_func(func, desc, check_minp=_use_window):
-    @Substitution(desc, _unary_arg, _expanding_kw, _type_of_input_retval, "")
+def _expanding_func(func, desc, check_minp=_use_window, additional_kw=''):
+    @Substitution(desc, _unary_arg, _expanding_kw + additional_kw,
+                  _type_of_input_retval, "")
     @Appender(_doc_template)
     @wraps(func)
     def f(arg, min_periods=1, freq=None, **kwargs):
@@ -883,20 +891,18 @@ expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum.')
 expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum.')
 expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum.')
 expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean.')
-expanding_median = _expanding_func(
-    algos.roll_median_cython, 'Expanding median.')
+expanding_median = _expanding_func(algos.roll_median_cython, 'Expanding median.')
 
-expanding_std = _expanding_func(_ts_std,
-                                'Unbiased expanding standard deviation.',
-                                check_minp=_require_min_periods(1))
-expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance.',
-                                check_minp=_require_min_periods(1))
-expanding_skew = _expanding_func(
-    algos.roll_skew, 'Unbiased expanding skewness.',
-    check_minp=_require_min_periods(3))
-expanding_kurt = _expanding_func(
-    algos.roll_kurt, 'Unbiased expanding kurtosis.',
-    check_minp=_require_min_periods(4))
+expanding_std = _expanding_func(_ts_std, 'Expanding standard deviation.',
+                                check_minp=_require_min_periods(1),
+                                additional_kw=_ddof_kw)
+expanding_var = _expanding_func(algos.roll_var, 'Expanding variance.',
+                                check_minp=_require_min_periods(1),
+                                additional_kw=_ddof_kw)
+expanding_skew = _expanding_func(algos.roll_skew, 'Unbiased expanding skewness.',
+                                 check_minp=_require_min_periods(3))
+expanding_kurt = _expanding_func(algos.roll_kurt, 'Unbiased expanding kurtosis.',
+                                 check_minp=_require_min_periods(4))
 
 
 def expanding_count(arg, freq=None):
@@ -953,9 +959,9 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None):
 
 
 @Substitution("Unbiased expanding covariance.", _binary_arg_flex,
-              _expanding_kw+_pairwise_kw, _flex_retval, "")
+              _expanding_kw+_pairwise_kw+_ddof_kw, _flex_retval, "")
 @Appender(_doc_template)
-def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
+def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None, ddof=1):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -966,7 +972,7 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
     window = max((len(arg1) + len(arg2)), min_periods) if min_periods else (len(arg1) + len(arg2))
     return rolling_cov(arg1, arg2, window,
                        min_periods=min_periods, freq=freq,
-                       pairwise=pairwise)
+                       pairwise=pairwise, ddof=ddof)
 
 
 @Substitution("Expanding sample correlation.", _binary_arg_flex,
