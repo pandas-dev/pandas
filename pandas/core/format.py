@@ -962,12 +962,17 @@ class HTMLFormatter(TableFormatter):
         else:
             index_values = self.fmt.tr_frame.index.format()
 
+        if include_index:
+            nindex_levels = 1
+        else:
+            nindex_levels = 0
+
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = [ '...' for ele in row ]
                 self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
-                              nindex_levels=1)
+                              nindex_levels=nindex_levels)
 
             row = []
             if include_index:
@@ -977,10 +982,7 @@ class HTMLFormatter(TableFormatter):
             if truncate_h:
                 dot_col_ix = self.fmt.tr_col_num + 1
                 row.insert(dot_col_ix, '...')
-            if include_index:
-                nindex_levels = 1
-            else:
-                nindex_levels = 0
+
             self.write_tr(row, indent, self.indent_delta, tags=None,
                           nindex_levels=nindex_levels)
 

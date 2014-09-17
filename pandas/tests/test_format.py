@@ -898,7 +898,7 @@ class TestDataFrameFormatting(tm.TestCase):
       <td> 9</td>
     </tr>
     <tr>
-      <th>...</th>
+      <td>...</td>
       <td>...</td>
     </tr>
     <tr>
