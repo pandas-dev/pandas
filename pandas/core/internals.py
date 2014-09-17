@@ -827,7 +827,7 @@ class Block(PandasObject):
             axis = new_values.ndim - axis - 1
 
         if np.prod(new_values.shape):
-            new_values = np.roll(new_values, periods, axis=axis)
+            new_values = np.roll(new_values, com._ensure_platform_int(periods), axis=axis)
 
         axis_indexer = [ slice(None) ] * self.ndim
         if periods > 0:

@@ -4602,6 +4602,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         shifted5 = ps.shift(1, offset=datetools.bday)
         assert_series_equal(shifted5, shifted4)
 
+        # 32-bit taking
+        # GH 8129
+        index=date_range('2000-01-01',periods=5)
+        for dtype in ['int32','int64']:
+            s1 = Series(np.arange(5,dtype=dtype),index=index)
+            p = s1.iloc[1]
+            result = s1.shift(periods=p)
+            expected = Series([np.nan,0,1,2,3],index=index)
+            assert_series_equal(result,expected)
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodSeries()
