@@ -573,6 +573,10 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
+        # Default rot 0
+        axes = df.plot()
+        self._check_ticks_props(axes, xrot=0)
+
         axes = df.plot(rot=30)
         self._check_ticks_props(axes, xrot=30)
 
@@ -974,7 +978,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.xaxis)
             self._check_visible(ax.get_xticklabels())
             self._check_visible([ax.xaxis.get_label()])
-            self._check_ticks_props(ax, xrot=30)
+            self._check_ticks_props(ax, xrot=0)
 
         _check_plot_works(df.plot, title='blah')
 
@@ -1178,7 +1182,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(axes[-1].get_xticklabels(minor=True))
             self._check_visible(axes[-1].xaxis.get_label())
             self._check_visible(axes[-1].get_yticklabels())
-            self._check_ticks_props(axes, xrot=30)
+            self._check_ticks_props(axes, xrot=0)
 
             axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
             for ax in axes:
