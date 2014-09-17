@@ -115,6 +115,13 @@ API changes
   :func:`expanding_cov`, :func:`expanding_corr`, :func:`expanding_corr_pairwise`, and :func:`expanding_apply`,
   as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
 
+- Added optional ``ddof`` argument to :func:`expanding_cov` and :func:`rolling_cov`.
+  The default value of ``1`` is backwards-compatible. (:issue:`8279`)
+
+- Documented the ``ddof`` argument to :func:`expanding_var`, :func:`expanding_std`,
+  :func:`rolling_var`, and :func:`rolling_std`. These functions' support of a
+  ``ddof`` argument (with a default value of ``1``) was previously undocumented. (:issue:`8064`)
+
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now interpret ``min_periods`` in the same manner that the ``rolling_*`` and ``expanding_*`` functions do:
   a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
