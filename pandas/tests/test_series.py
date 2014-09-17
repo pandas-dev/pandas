@@ -3286,15 +3286,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+        from pandas.tseries.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
-        result = _possibly_cast_to_timedelta(np.abs(a - b))
-        self.assertEqual(result.dtype, 'timedelta64[ns]')
-
-        result = _possibly_cast_to_timedelta(np.abs(b - a))
+        result = to_timedelta(np.abs(a - b))
         self.assertEqual(result.dtype, 'timedelta64[ns]')
 
     def test_datetime64_with_index(self):
