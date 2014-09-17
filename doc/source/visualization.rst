@@ -1106,12 +1106,22 @@ The layout of subplots can be specified by ``layout`` keyword. It can accept
 
 The number of axes which can be contained by rows x columns specified by ``layout`` must be
 larger than the number of required subplots. If layout can contain more axes than required,
-blank axes are not drawn.
+blank axes are not drawn. Similar to a numpy array's ``reshape`` method, you
+can use ``-1`` for one dimension to automatically calculate the number of rows
+or columns needed, given the other.
 
 .. ipython:: python
 
    @savefig frame_plot_subplots_layout.png
    df.plot(subplots=True, layout=(2, 3), figsize=(6, 6));
+
+The above example is identical to using
+
+.. ipython:: python
+   df.plot(subplots=True, layout=(-1, 3), figsize=(6, 6));
+
+The required number of rows (2) is inferred from the number of series to plot
+and the given number of columns (3).
 
 Also, you can pass multiple axes created beforehand as list-like via ``ax`` keyword.
 This allows to use more complicated layout.
