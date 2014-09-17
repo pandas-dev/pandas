@@ -2770,6 +2770,12 @@ class DataFrame(NDFrame):
                                     na_position=na_position)
 
         elif isinstance(labels, MultiIndex):
+
+            # make sure that the axis is lexsorted to start
+            # if not we need to reconstruct to get the correct indexer
+            if not labels.is_lexsorted():
+                labels = MultiIndex.from_tuples(labels.values)
+
             indexer = _lexsort_indexer(labels.labels, orders=ascending,
                                        na_position=na_position)
             indexer = com._ensure_platform_int(indexer)

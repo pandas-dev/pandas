@@ -667,7 +667,6 @@ Enhancements
 
 
 
-- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 
 
 
@@ -745,10 +744,10 @@ Bug Fixes
 - Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
 - Bug in inference in a MultiIndex with ``datetime.date`` inputs (:issue:`7888`)
-
+- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-
+- Bug in sorting a multi-index frame with a Float64Index (:issue:`8017`)
 
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 
