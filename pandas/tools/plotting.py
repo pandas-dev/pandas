@@ -1392,6 +1392,9 @@ class ScatterPlot(MPLPlot):
         return 1
 
     def _make_plot(self):
+        import matplotlib as mpl
+        mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
+
         import matplotlib.pyplot as plt
 
         x, y, c, data = self.x, self.y, self.c, self.data
@@ -1419,8 +1422,10 @@ class ScatterPlot(MPLPlot):
                              label=label, cmap=cmap, **self.kwds)
         if cb:
             img = ax.collections[0]
-            cb_label = c if c in self.data.columns else ''
-            self.fig.colorbar(img, ax=ax, label=cb_label)
+            kws = dict(ax=ax)
+            if mpl_ge_1_3_1:
+                kws['label'] = c if c in self.data.columns else ''
+            self.fig.colorbar(img, **kws)
 
         self._add_legend_handle(scatter, label)
 

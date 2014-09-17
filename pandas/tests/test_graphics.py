@@ -910,6 +910,7 @@ class TestDataFramePlots(TestPlotBase):
         mpl.rcdefaults()
 
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
+        self.mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
 
         self.tdf = tm.makeTimeDataFrame()
         self.hexbin_df = DataFrame({"A": np.random.uniform(size=20),
@@ -1531,9 +1532,12 @@ class TestDataFramePlots(TestPlotBase):
         for ax in axes:
             # default to RdBu
             self.assertEqual(ax.collections[0].cmap.name, 'RdBu')
-            # n.b. there appears to be no public method to get the colorbar
-            # label
-            self.assertEqual(ax.collections[0].colorbar._label, 'z')
+
+            if self.mpl_ge_1_3_1:
+
+                # n.b. there appears to be no public method to get the colorbar
+                # label
+                self.assertEqual(ax.collections[0].colorbar._label, 'z')
 
         cm = 'cubehelix'
         ax = df.plot(kind='scatter', x='x', y='y', c='z', colormap=cm)
@@ -1893,7 +1897,7 @@ class TestDataFramePlots(TestPlotBase):
 
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
-            self.assertLessEqual(y_min, col.min())
+            self.assertTrue(y_min <= col.min())
             self.assertGreaterEqual(y_max, col.max())
 
         df = self.hist_df.copy()
