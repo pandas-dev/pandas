@@ -12,7 +12,7 @@ from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype,
                                 is_timedelta64_dtype, _values_from_object,
                                 is_list_like, isnull, _ensure_object)
 
-def to_timedelta(arg, unit='ns', box=True):
+def to_timedelta(arg, unit='ns', box=True, coerce=False):
     """
     Convert argument to timedelta
 
@@ -23,6 +23,7 @@ def to_timedelta(arg, unit='ns', box=True):
     box : boolean, default True
         If True returns a Timedelta/TimedeltaIndex of the results
         if False returns a np.timedelta64 or ndarray of values of dtype timedelta64[ns]
+    coerce : force errors to NaT (False by default)
 
     Returns
     -------
@@ -43,14 +44,14 @@ def to_timedelta(arg, unit='ns', box=True):
             value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]')
         else:
             try:
-                value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit)
+                value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit, coerce=coerce)
             except:
 
                 # try to process strings fast; may need to fallback
                 try:
                     value = np.array([ _get_string_converter(r, unit=unit)() for r in arg ],dtype='m8[ns]')
                 except:
-                    value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
+                    value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit, coerce=coerce) for r in arg ])
 
         if box:
             from pandas import TimedeltaIndex
@@ -67,7 +68,7 @@ def to_timedelta(arg, unit='ns', box=True):
         return _convert_listlike(arg, box=box, unit=unit)
 
     # ...so it must be a scalar value. Return scalar.
-    return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box)
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box, coerce=coerce)
 
 _unit_map = {
     'Y' : 'Y',
@@ -135,7 +136,7 @@ abbrevs = [('d' ,'days|d|day'),
 _full_search2 = re.compile(''.join(
     ["^\s*(?P<neg>-?)\s*"] + [ "(?P<" + p + ">\\d+\.?\d*\s*(" + ss + "))?\\s*" for p, ss in abbrevs ] + ['$']))
 
-def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True):
+def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, coerce=False):
     """ convert strings to timedelta; coerce to Timedelta (if box), else np.timedelta64"""
 
     if isinstance(r, compat.string_types):
@@ -145,7 +146,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True):
         r = converter()
         unit='ns'
 
-    result = tslib.convert_to_timedelta(r,unit)
+    result = tslib.convert_to_timedelta(r,unit,coerce)
     if box:
         result = tslib.Timedelta(result)
 
@@ -262,32 +263,3 @@ def _get_string_converter(r, unit='ns'):
     # no converter
     raise ValueError("cannot create timedelta string converter for [{0}]".format(r))
 
-def _possibly_cast_to_timedelta(value, coerce=True, dtype=None):
-    """ try to cast to timedelta64, if already a timedeltalike, then make
-        sure that we are [ns] (as numpy 1.6.2 is very buggy in this regards,
-        don't force the conversion unless coerce is True
-
-        if dtype is passed then this is the target dtype
-        """
-
-    # deal with numpy not being able to handle certain timedelta operations
-    if isinstance(value, (ABCSeries, np.ndarray)):
-
-        # i8 conversions
-        if value.dtype == 'int64' and np.dtype(dtype) == 'timedelta64[ns]':
-            value = value.astype('timedelta64[ns]')
-            return value
-        elif value.dtype.kind == 'm':
-            if value.dtype != 'timedelta64[ns]':
-                value = value.astype('timedelta64[ns]')
-            return value
-
-    # we don't have a timedelta, but we want to try to convert to one (but
-    # don't force it)
-    if coerce:
-        new_value = tslib.array_to_timedelta64(
-            _values_from_object(value).astype(object), coerce=False)
-        if new_value.dtype == 'i8':
-            value = np.array(new_value, dtype='timedelta64[ns]')
-
-    return value

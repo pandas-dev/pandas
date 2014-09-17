@@ -20,7 +20,8 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name, _coerce_to_dtype,
-                                _ensure_object, SettingWithCopyError)
+                                _ensure_object, SettingWithCopyError,
+                                _maybe_box_datetimelike)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
 from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
@@ -781,7 +782,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         value : scalar value
         """
         if takeable is True:
-            return self.values[label]
+            return _maybe_box_datetimelike(self.values[label])
         return self.index.get_value(self.values, label)
 
     def set_value(self, label, value, takeable=False):
