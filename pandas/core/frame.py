@@ -43,6 +43,7 @@ from numpy import percentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.sparse.array import SparseArray
 from pandas.util.decorators import deprecate, Appender, Substitution, \
     deprecate_kwarg
 
@@ -2164,8 +2165,8 @@ class DataFrame(NDFrame):
             value = np.repeat(value, len(self.index)).astype(dtype)
             value = com._possibly_cast_to_datetime(value, dtype)
 
-        # return categoricals directly
-        if isinstance(value, Categorical):
+        # return unconsolidatables directly
+        if isinstance(value, (Categorical, SparseArray)):
             return value
 
         # broadcast across multiple columns if necessary
