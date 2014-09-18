@@ -69,10 +69,6 @@ class CheckNameIntegration(object):
         com.pprint_thing(self.ts.index.name)
         self.assertIsNone(self.ts.index.name)
 
-    def test_append_preserve_name(self):
-        result = self.ts[:5].append(self.ts[5:])
-        self.assertEqual(result.name, self.ts.name)
-
     def test_dt_namespace_accessor(self):
 
         # GH 7207
@@ -1209,20 +1205,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s['C']
         assert_series_equal(result, expected)
 
-    def test_setitem_ambiguous_keyerror(self):
-        s = Series(lrange(10), index=lrange(0, 20, 2))
-
-        # equivalent of an append
-        s2 = s.copy()
-        s2[1] = 5
-        expected = s.append(Series([5],index=[1]))
-        assert_series_equal(s2,expected)
-
-        s2 = s.copy()
-        s2.ix[1] = 5
-        expected = s.append(Series([5],index=[1]))
-        assert_series_equal(s2,expected)
-
     def test_setitem_float_labels(self):
         # note labels are floats
         s = Series(['a', 'b', 'c'], index=[0, 0.5, 1])
@@ -1321,12 +1303,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         series[::2] = 0
         self.assertTrue((series[::2] == 0).all())
-
-        # set item that's not contained
-        s = self.series.copy()
-        s['foobar'] = 1
-        expected = self.series.append(Series([1],index=['foobar']))
-        assert_series_equal(s,expected)
 
     def test_setitem_dtypes(self):
 
@@ -2390,25 +2366,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, Series([Timestamp('2000-01-10 19:12:00'),
                                             Timestamp('2000-01-10 19:12:00')],
                                            index=[.2, .2]))
-
-    def test_append(self):
-        appendedSeries = self.series.append(self.objSeries)
-        for idx, value in compat.iteritems(appendedSeries):
-            if idx in self.series.index:
-                self.assertEqual(value, self.series[idx])
-            elif idx in self.objSeries.index:
-                self.assertEqual(value, self.objSeries[idx])
-            else:
-                self.fail("orphaned index!")
-
-        self.assertRaises(ValueError, self.ts.append, self.ts,
-                          verify_integrity=True)
-
-    def test_append_many(self):
-        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
-
-        result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, self.ts)
 
     def test_all_any(self):
         ts = tm.makeTimeSeries()

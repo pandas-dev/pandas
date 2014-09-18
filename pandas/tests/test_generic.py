@@ -6,7 +6,7 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, Panel,
+from pandas import (Index, Series, DataFrame, Panel, Timestamp,
                     isnull, notnull, date_range, period_range)
 from pandas.core.index import Index, MultiIndex
 
@@ -18,6 +18,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_panel_equal,
                                  assert_almost_equal,
+                                 assertRaisesRegexp,
                                  ensure_clean)
 import pandas.util.testing as tm
 
@@ -1307,6 +1308,216 @@ class TestNDFrame(tm.TestCase):
     def test_describe_raises(self):
         with tm.assertRaises(NotImplementedError):
             tm.makePanel().describe()
+
+    # GH8295
+    # ENH: allow axis argument to append / move append code to generic.py
+
+    # test_append functions for Panel
+    def test_append_on_panel_raises(self):
+        with tm.assertRaises(NotImplementedError):
+            tm.makePanel().append(tm.makePanel())
+
+    # test_append functions for DataFrame
+    def test_append_series_dict(self):
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        series = df.ix[4]
+        with assertRaisesRegexp(ValueError, 'Indexes have overlapping values'):
+            df.append(series, verify_integrity=True)
+        series.name = None
+        with assertRaisesRegexp(TypeError, 'Can only append a Series if '
+                                'ignore_index=True'):
+            df.append(series, verify_integrity=True)
+
+        result = df.append(series[::-1], ignore_index=True)
+        expected = df.append(DataFrame({0: series[::-1]}, index=df.columns).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        # dict
+        result = df.append(series.to_dict(), ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        result = df.append(series[::-1][:3], ignore_index=True)
+        expected = df.append(DataFrame({0: series[::-1][:3]}).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        # can append when name set
+        row = df.ix[4]
+        row.name = 5
+        result = df.append(row)
+        expected = df.append(df[-1:], ignore_index=True)
+        assert_frame_equal(result, expected)
+
+    def test_append_list_of_series_dicts(self):
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        dicts = [x.to_dict() for idx, x in df.iterrows()]
+
+        result = df.append(dicts, ignore_index=True)
+        expected = df.append(df, ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        # different columns
+        dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
+                 {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
+        result = df.append(dicts, ignore_index=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True)
+        assert_frame_equal(result, expected)
+
+    def test_append_empty_dataframe(self):
+
+        # Empty df append empty df
+        df1 = DataFrame([])
+        df2 = DataFrame([])
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Non-empty df append empty df
+        df1 = DataFrame(np.random.randn(5, 2))
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Empty df with columns append empty df
+        df1 = DataFrame(columns=['bar', 'foo'])
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Non-Empty df with columns append empty df
+        df1 = DataFrame(np.random.randn(5, 2), columns=['bar', 'foo'])
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+    def test_append_dtypes(self):
+
+        # GH 5754
+        # row appends of different dtypes (so need to do by-item)
+        # can sometimes infer the correct type
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(5))
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : 'foo' }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : [ Timestamp('20130101'), 'foo' ]})
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : np.nan }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), np.nan ],dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : np.nan }, index=lrange(1,2), dtype=object)
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), np.nan ],dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : np.nan }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ np.nan, Timestamp('20130101')] ,dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : 1 }, index=lrange(1,2), dtype=object)
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), 1 ]) })
+        assert_frame_equal(result, expected)
+
+    def test_append_with_axis_argument_for_dataframe(self):
+        # GH8295: actual test for `axis` argument for `DataFrame`
+        df1 = DataFrame(np.random.randn(4, 2), columns=['FIRST', 'SECOND'], index=list('ABCD'))
+        df2 = DataFrame(np.random.randn(4, 2), columns=['THIRD', 'FORTH'], index=list('ABCD'))
+
+        df1_df2_ax1 = df1.append(df2, axis=1)
+        self.assertEqual(df1_df2_ax1.shape,
+                         (len(df1.index), len(df1.columns) + len(df2.columns)))
+
+        with tm.assertRaises(ValueError):
+            df1.append(df1, axis=1, verify_integrity=True)
+
+        df1_df1_ax0 = df1.append(df1, axis=0)
+        df1_df2_ax0 = df1.append(df2, axis=0)
+        self.assertEqual(df1_df2_ax0.shape,
+                         (len(df1.index) + len(df2.index), len(df1.columns) + len(df2.columns)))
+        self.assertEqual(df1_df1_ax0.shape,
+                         (len(df1.index) + len(df1.index), len(df1.columns)))
+
+    # test_append functions for Series
+    def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
+        _ts = tm.makeTimeSeries()
+        self.ts = _ts.copy()
+        self.ts.name = 'ts'
+
+        self.series = tm.makeStringSeries()
+        self.series.name = 'series'
+
+        self.objSeries = tm.makeObjectSeries()
+        self.objSeries.name = 'objects'
+
+        self.empty = Series([], index=[])
+
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_setitem_ambiguous_keyerror(self):
+        s = Series(lrange(10), index=lrange(0, 20, 2))
+
+        # equivalent of an append
+        s2 = s.copy()
+        s2[1] = 5
+        expected = s.append(Series([5],index=[1]))
+        assert_series_equal(s2,expected)
+
+        s2 = s.copy()
+        s2.ix[1] = 5
+        expected = s.append(Series([5],index=[1]))
+        assert_series_equal(s2,expected)
+
+    def test_set_item_thats_not_contained(self):
+        s = self.series.copy()
+        s['foobar'] = 1
+        expected = self.series.append(Series([1],index=['foobar']))
+        assert_series_equal(s,expected)
+
+    def test_append(self):
+        appendedSeries = self.series.append(self.objSeries)
+        for idx, value in compat.iteritems(appendedSeries):
+            if idx in self.series.index:
+                self.assertEqual(value, self.series[idx])
+            elif idx in self.objSeries.index:
+                self.assertEqual(value, self.objSeries[idx])
+            else:
+                self.fail("orphaned index!")
+
+        self.assertRaises(ValueError, self.ts.append, self.ts,
+                          verify_integrity=True)
+
+    def test_append_many(self):
+        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+
+        result = pieces[0].append(pieces[1:])
+        assert_series_equal(result, self.ts)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

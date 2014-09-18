@@ -3619,6 +3619,41 @@ class NDFrame(PandasObject):
         return result.__finalize__(self)
 
     #----------------------------------------------------------------------
+    # Merging / joining methods
+
+    def append(self, other, ignore_index=False, verify_integrity=False, axis=0):
+        if self.ndim >= 3:
+            msg = "append is not implemented on on Panel or PanelND objects."
+            raise NotImplementedError(msg)
+
+        if isinstance(other, (pd.Series, dict)):
+            if isinstance(other, dict):
+                other = pd.Series(other)
+            if other.name is None and not ignore_index:
+                raise TypeError('Can only append a Series if '
+                                'ignore_index=True')
+
+            index = None if other.name is None else [other.name]
+            combined_columns = self.columns.tolist() + ((self.columns | other.index) - self.columns).tolist()
+            other = other.reindex(combined_columns, copy=False)
+            other = pd.DataFrame(other.values.reshape((1, len(other))),
+                              index=index, columns=combined_columns).convert_objects()
+            if not self.columns.equals(combined_columns):
+                self = self.reindex(columns=combined_columns)
+        elif isinstance(other, list) and not isinstance(other[0], pd.DataFrame):
+            other = pd.DataFrame(other)
+            if (self.columns.get_indexer(other.columns) >= 0).all():
+                other = other.ix[:, self.columns]
+
+        from pandas.tools.merge import concat
+        if isinstance(other, (list, tuple)):
+            to_concat = [self] + other
+        else:
+            to_concat = [self, other]
+        return concat(to_concat, ignore_index=ignore_index, axis=axis,
+                      verify_integrity=verify_integrity)
+
+    #----------------------------------------------------------------------
     # Numeric Methods
     def abs(self):
         """
