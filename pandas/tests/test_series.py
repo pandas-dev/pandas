@@ -5299,6 +5299,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             result = s.convert_objects(convert_dates='coerce')
             assert_series_equal(result, s)
 
+        s = Series(['a', 1, 'b'])
+        r = s.convert_objects(convert_numeric=True, keep_objects=True)
+        tm.assert_series_equal(r, s)
+
+        s = Series([1, 'a', 'b'])
+        r = s.convert_objects(convert_numeric=True, keep_objects=True)
+        tm.assert_series_equal(r, s)
+
+        s = Series([1, 2, ''])
+        r = s.convert_objects(convert_numeric=True, keep_objects=True)
+        tm.assert_series_equal(r, Series([1, 2, np.nan]))
+
+
     def test_convert_objects_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)
         r = s.convert_objects(convert_numeric=True)
@@ -6282,6 +6295,8 @@ class TestSeriesNonUnique(tm.TestCase):
     def test_unique_data_ownership(self):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
+
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
