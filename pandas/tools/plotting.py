@@ -3,6 +3,7 @@
 import datetime
 import warnings
 import re
+from math import ceil
 from collections import namedtuple
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -3059,6 +3060,17 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError('Layout must be a tuple of (rows, columns)')
 
         nrows, ncols = layout
+
+        # Python 2 compat
+        ceil_ = lambda x: int(ceil(x))
+        if nrows == -1 and ncols >0:
+            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+        elif ncols == -1 and nrows > 0:
+            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+        elif ncols <= 0 and nrows <= 0:
+            msg = "At least one dimension of layout must be positive"
+            raise ValueError(msg)
+
         if nrows * ncols < nplots:
             raise ValueError('Layout of %sx%s must be larger than required size %s' %
                 (nrows, ncols, nplots))

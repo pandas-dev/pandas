@@ -624,7 +624,9 @@ Enhancements
 
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 
-- Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
+- Added ``layout`` keyword to ``DataFrame.plot``. You can pass a tuple of
+  ``(rows, columns)``, one of which can be ``-1`` to automatically
+  infer (:issue:`6667`, :issue:`8071`).
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)
 - Added support for ``c``, ``colormap`` and ``colorbar`` arguments for
   ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
