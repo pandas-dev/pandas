@@ -1010,9 +1010,12 @@ class HTMLFormatter(TableFormatter):
             else:
                 self._write_regular_rows(fmt_values, indent)
         else:
-            for i in range(len(self.frame)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+            if isinstance(self.frame.index, MultiIndex):
+                for i in range(len(self.frame)):
+                    row = [fmt_values[j][i] for j in range(len(self.columns))]
+                    self.write_tr(row, indent, self.indent_delta, tags=None)
+            else:
+                self._write_regular_rows(fmt_values, indent, include_index=False)
 
         indent -= self.indent_delta
         self.write('</tbody>', indent)
@@ -1020,7 +1023,7 @@ class HTMLFormatter(TableFormatter):
 
         return indent
 
-    def _write_regular_rows(self, fmt_values, indent):
+    def _write_regular_rows(self, fmt_values, indent, include_index=True):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
@@ -1032,22 +1035,29 @@ class HTMLFormatter(TableFormatter):
         else:
             index_values = self.fmt.tr_frame.index.format()
 
+        if include_index:
+            nindex_levels = 1
+        else:
+            nindex_levels = 0
+
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = [ '...' for ele in row ]
                 self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
-                              nindex_levels=1)
+                              nindex_levels=nindex_levels)
 
             row = []
-            row.append(index_values[i])
+            if include_index:
+                row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
 
             if truncate_h:
                 dot_col_ix = self.fmt.tr_col_num + 1
                 row.insert(dot_col_ix, '...')
+
             self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=1)
+                          nindex_levels=nindex_levels)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="%d" valign="top"'

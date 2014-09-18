@@ -911,6 +911,36 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
+    def test_to_html_truncate_no_index(self):
+        df = pd.DataFrame({'a': np.arange(0, 10), 'b': np.arange(9, -1, -1)})
+        result = df.to_html(index=False, max_rows=3)
+        expected = '''\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>a</th>
+      <th>b</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 0</td>
+      <td> 9</td>
+    </tr>
+    <tr>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <td> 9</td>
+      <td> 0</td>
+    </tr>
+  </tbody>
+</table>'''
+        if sys.version_info[0] < 3:
+            expected = expected.decode('utf-8')
+        self.assertEqual(result, expected)
+
     def test_to_html_truncate_multi_index(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
