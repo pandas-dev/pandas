@@ -1118,6 +1118,7 @@ or columns needed, given the other.
 The above example is identical to using
 
 .. ipython:: python
+
    df.plot(subplots=True, layout=(-1, 3), figsize=(6, 6));
 
 The required number of rows (2) is inferred from the number of series to plot
