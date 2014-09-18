@@ -2,7 +2,7 @@
 Utilities for making working with rpy2 more user- and
 developer-friendly.
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 from pandas.compat import zip, range
 import numpy as np
@@ -72,7 +72,7 @@ def _convert_array(obj):
             return list(item)
         except TypeError:
             return []
-        
+
     # For iris3, HairEyeColor, UCBAdmissions, Titanic
     dim = list(obj.dim)
     values = np.array(list(obj))
@@ -101,9 +101,9 @@ def _convert_vector(obj):
     except AttributeError:
         return list(obj)
     if 'names' in attributes:
-        return pd.Series(list(obj), index=r['names'](obj)) 
+        return pd.Series(list(obj), index=r['names'](obj))
     elif 'tsp' in attributes:
-        return pd.Series(list(obj), index=r['time'](obj)) 
+        return pd.Series(list(obj), index=r['time'](obj))
     elif 'labels' in attributes:
         return pd.Series(list(obj), index=r['labels'](obj))
     if _rclass(obj) == 'dist':

@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 from numpy.testing import run_module_suite, assert_equal, TestCase
 
 from pandas.util.testing import assert_almost_equal

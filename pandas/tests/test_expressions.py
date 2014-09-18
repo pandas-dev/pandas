@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 # pylint: disable-msg=W0612,E1101
 
 import nose

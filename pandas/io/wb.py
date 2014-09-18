@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from pandas.compat import map, reduce, range, lrange
 from pandas.io.common import urlopen

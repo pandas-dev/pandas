@@ -11,7 +11,7 @@ Harco Kuppens (http://stackoverflow.com/users/825214/harco-kuppens)
 It is mentioned in the stackoverflow response that this code works
 on linux, os x, windows and cygwin (windows).
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 import os
 

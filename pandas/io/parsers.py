@@ -1,7 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-from __future__ import print_function
+from __future__ import print_function, division
 from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
 from pandas import compat
 import re
