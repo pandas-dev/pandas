@@ -609,7 +609,13 @@ class _NDFrameIndexer(object):
     def _align_frame(self, indexer, df):
         is_frame = self.obj.ndim == 2
         is_panel = self.obj.ndim >= 3
+
         if isinstance(indexer, tuple):
+
+            aligners = [not _is_null_slice(idx) for idx in indexer]
+            sum_aligners = sum(aligners)
+            single_aligner = sum_aligners == 1
+
             idx, cols = None, None
             sindexers = []
             for i, ix in enumerate(indexer):
@@ -626,13 +632,21 @@ class _NDFrameIndexer(object):
 
             # panel
             if is_panel:
-                if len(sindexers) == 1 and idx is None and cols is None:
-                    if sindexers[0] == 0:
-                        df = df.T
-                    return self.obj.conform(df, axis=sindexers[0])
-                df = df.T
+
+                # need to conform to the convention
+                # as we are not selecting on the items axis
+                # and we have a single indexer
+                # GH 7763
+                if len(sindexers) == 1 and sindexers[0] != 0:
+                    df = df.T
+
+                if idx is None:
+                    idx = df.index
+                if cols is None:
+                    cols = df.columns
 
             if idx is not None and cols is not None:
+
                 if df.index.equals(idx) and df.columns.equals(cols):
                     val = df.copy().values
                 else:
@@ -655,21 +669,15 @@ class _NDFrameIndexer(object):
                 val = df.reindex(index=ax).values
             return val
 
-        elif np.isscalar(indexer) and not is_frame:
+        elif np.isscalar(indexer) and is_panel:
             idx = self.obj.axes[1]
             cols = self.obj.axes[2]
 
             # by definition we are indexing on the 0th axis
-            if is_panel:
-                df = df.T
-
-            if idx.equals(df.index) and cols.equals(df.columns):
-                return df.copy().values
-
             # a passed in dataframe which is actually a transpose
             # of what is needed
-            elif idx.equals(df.columns) and cols.equals(df.index):
-                return df.T.copy().values
+            if idx.equals(df.index) and cols.equals(df.columns):
+                return df.copy().values
 
             return df.reindex(idx, columns=cols).values
 
