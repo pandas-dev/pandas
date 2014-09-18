@@ -405,10 +405,10 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     for kls in classes:
         to_plot[kls] = [[], []]
 
-    n = len(frame.columns) - 1
+    m = len(frame.columns) - 1
     s = np.array([(np.cos(t), np.sin(t))
-                  for t in [2.0 * np.pi * (i / float(n))
-                            for i in range(n)]])
+                  for t in [2.0 * np.pi * (i / float(m))
+                            for i in range(m)]])
 
     for i in range(n):
         row = df.iloc[i].values

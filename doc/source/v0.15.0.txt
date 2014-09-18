@@ -920,3 +920,4 @@ Bug Fixes
 - Bug in plotting methods modifying the global matplotlib rcParams (:issue:`8242`).
 - Bug in ``DataFrame.__setitem__`` that caused errors when setting a dataframe column to a sparse array (:issue:`8131`)
 - Bug where ``Dataframe.boxplot()`` failed when entire column was empty (:issue:`8181`).
+- Bug with messed variables in ``radviz`` visualization (:issue:`8199`).
