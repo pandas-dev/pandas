@@ -473,7 +473,8 @@ cdef double fINT64_MIN = <double> INT64_MIN
 
 
 def maybe_convert_numeric(object[:] values, set na_values,
-                          bint convert_empty=True, bint coerce_numeric=False):
+                          bint convert_empty=True, bint coerce_numeric=False,
+                          bint keep_objects=False):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -536,7 +537,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
                     else:
                         seen_float = True
             except:
-                if not coerce_numeric:
+                if not coerce_numeric or keep_objects:
                     raise
 
                 floats[i] = nan

@@ -2191,7 +2191,7 @@ class NDFrame(PandasObject):
         return self._constructor(data).__finalize__(self)
 
     def convert_objects(self, convert_dates=True, convert_numeric=False,
-                        convert_timedeltas=True, copy=True):
+                        convert_timedeltas=True, copy=True, keep_objects=False):
         """
         Attempt to infer better dtype for object columns
 
@@ -2206,6 +2206,8 @@ class NDFrame(PandasObject):
         copy : Boolean, if True, return copy even if no copy is necessary
             (e.g. no conversion was done), default is True.
             It is meant for internal use, not to be confused with `inplace` kw.
+        keep_objects : bool
+            If True don't convert object elements when convert_numeric is True
 
         Returns
         -------
@@ -2215,6 +2217,7 @@ class NDFrame(PandasObject):
             self._data.convert(convert_dates=convert_dates,
                                convert_numeric=convert_numeric,
                                convert_timedeltas=convert_timedeltas,
+                               keep_objects=keep_objects,
                                copy=copy)).__finalize__(self)
 
     #----------------------------------------------------------------------

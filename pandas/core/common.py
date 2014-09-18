@@ -1798,7 +1798,8 @@ _values_from_object = lib.values_from_object
 
 def _possibly_convert_objects(values, convert_dates=True,
                               convert_numeric=True,
-                              convert_timedeltas=True):
+                              convert_timedeltas=True,
+                              keep_objects=False):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     # if we have passed in a list or scalar
@@ -1843,7 +1844,8 @@ def _possibly_convert_objects(values, convert_dates=True,
         if convert_numeric:
             try:
                 new_values = lib.maybe_convert_numeric(
-                    values, set(), coerce_numeric=True)
+                    values, set(), coerce_numeric=True,
+                    keep_objects=keep_objects)
 
                 # if we are all nans then leave me alone
                 if not isnull(new_values).all():
