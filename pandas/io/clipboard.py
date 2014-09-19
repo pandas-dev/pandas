@@ -1,5 +1,5 @@
 """ io on the clipboard """
-from pandas import compat, get_option, DataFrame
+from pandas import compat, get_option, option_context, DataFrame
 from pandas.compat import StringIO
 
 
@@ -91,7 +91,8 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
 
     if isinstance(obj, DataFrame):
         # str(df) has various unhelpful defaults, like truncation
-        objstr = obj.to_string()
+        with option_context('display.max_colwidth', 999999):
+            objstr = obj.to_string(**kwargs)
     else:
         objstr = str(obj)
     clipboard_set(objstr)

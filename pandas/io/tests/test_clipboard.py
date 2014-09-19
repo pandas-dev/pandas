@@ -35,6 +35,12 @@ class TestClipboard(tm.TestCase):
         cls.data['mixed'] = DataFrame({'a': np.arange(1.0, 6.0) + 0.01,
                                        'b': np.arange(1, 6),
                                        'c': list('abcde')})
+
+        # Test columns exceeding "max_colwidth" (GH8305)
+        _cw = get_option('display.max_colwidth') + 1
+        cls.data['colwidth'] = mkdf(5, 3, data_gen_f=lambda *args: 'x' * _cw,
+                                   c_idx_type='s', r_idx_type='i',
+                                   c_idx_names=[None], r_idx_names=[None])
         # Test GH-5346
         max_rows = get_option('display.max_rows')
         cls.data['longdf'] = mkdf(max_rows+1, 3, data_gen_f=lambda *args: randint(2),
