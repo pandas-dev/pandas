@@ -2993,8 +2993,9 @@ class NDFrameGroupBy(GroupBy):
              type(result.index) != type(obj.index)) or
             len(result.index) != len(obj.index)):
             results = obj.values.copy()
+            indices = self.indices
             for (name, group), (i, row) in zip(self, result.iterrows()):
-                indexer = self._get_index(name)
+                indexer = indices[name]
                 results[indexer] = np.tile(row.values,len(indexer)).reshape(len(indexer),-1)
             return DataFrame(results,columns=result.columns,index=obj.index).convert_objects()
 
