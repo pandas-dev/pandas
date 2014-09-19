@@ -253,6 +253,10 @@ class PandasSQLTest(unittest.TestCase):
         # Nuke table
         self.drop_table('test_frame1')
 
+    def _to_sql_empty(self):
+        self.drop_table('test_frame1')
+        self.pandasSQL.to_sql(self.test_frame1.iloc[:0], 'test_frame1')
+
     def _to_sql_fail(self):
         self.drop_table('test_frame1')
 
@@ -850,6 +854,9 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_to_sql(self):
         self._to_sql()
 
+    def test_to_sql_empty(self):
+        self._to_sql_empty()
+
     def test_to_sql_fail(self):
         self._to_sql_fail()
 
@@ -1345,6 +1352,9 @@ class TestSQLiteLegacy(PandasSQLTest):
 
     def test_to_sql(self):
         self._to_sql()
+
+    def test_to_sql_empty(self):
+        self._to_sql_empty()
 
     def test_to_sql_fail(self):
         self._to_sql_fail()
