@@ -445,7 +445,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     for k in path:
         if not bool(re.match('^' + tokenize.Name + '$', k)):
             raise ValueError("%s is not a valid identifier" % k)
-        if keyword.iskeyword(key):
+        if keyword.iskeyword(k):
             raise ValueError("%s is a python keyword" % k)
 
     cursor = _global_config
