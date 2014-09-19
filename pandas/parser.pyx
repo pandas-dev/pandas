@@ -82,6 +82,7 @@ cdef extern from "parser/tokenizer.h":
         EAT_WHITESPACE
         EAT_COMMENT
         EAT_LINE_COMMENT
+        WHITESPACE_LINE
         FINISHED
 
     enum: ERROR_OVERFLOW
@@ -159,6 +160,8 @@ cdef extern from "parser/tokenizer.h":
         #  error handling
         char *warn_msg
         char *error_msg
+
+        int skip_empty_lines
 
     ctypedef struct coliter_t:
         char **words
@@ -315,7 +318,8 @@ cdef class TextReader:
                   skip_footer=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False):
+                  tupleize_cols=False,
+                  skip_blank_lines=True):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -346,6 +350,7 @@ cdef class TextReader:
 
         self.parser.doublequote = doublequote
         self.parser.skipinitialspace = skipinitialspace
+        self.parser.skip_empty_lines = skip_blank_lines
 
         if lineterminator is not None:
             if len(lineterminator) != 1:
@@ -599,16 +604,21 @@ cdef class TextReader:
                 if self.parser.lines < hr + 1:
                     self._tokenize_rows(hr + 2)
 
+                if self.parser.lines == 0:
+                    field_count = 0
+                    start = self.parser.line_start[0]
+
                 # e.g., if header=3 and file only has 2 lines
-                if self.parser.lines < hr + 1:
+                elif self.parser.lines < hr + 1:
                     msg = self.orig_header
                     if isinstance(msg,list):
                            msg = "[%s], len of %d," % (','.join([ str(m) for m in msg ]),len(msg))
                     raise CParserError('Passed header=%s but only %d lines in file'
                                        % (msg, self.parser.lines))
 
-                field_count = self.parser.line_fields[hr]
-                start = self.parser.line_start[hr]
+                else:
+                    field_count = self.parser.line_fields[hr]
+                    start = self.parser.line_start[hr]
 
                 # TODO: Py3 vs. Py2
                 counts = {}
