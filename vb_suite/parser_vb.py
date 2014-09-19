@@ -79,3 +79,22 @@ data = data * 200
 cmd = "read_table(StringIO(data), sep=',', header=None, parse_dates=[1])"
 sdate = datetime(2012, 5, 7)
 read_table_multiple_date_baseline = Benchmark(cmd, setup, start_date=sdate)
+
+setup = common_setup + """
+from cStringIO import StringIO
+data = '''\
+0.1213700904466425978256438611,0.0525708283766902484401839501,0.4174092731488769913994474336
+0.4096341697147408700274695547,0.1587830198973579909349496119,0.1292545832485494372576795285
+0.8323255650024565799327547210,0.9694902427379478160318626578,0.6295047811546814475747169126
+0.4679375305798131323697930383,0.2963942381834381301075609371,0.5268936082160610157032465394
+0.6685382761849776311890991564,0.6721207066140679753374342908,0.6519975277021627935170045020
+'''
+data = data * 200
+"""
+cmd = "read_csv(StringIO(data), sep=',', header=None, float_precision=None)"
+sdate = datetime(2014, 8, 20)
+read_csv_default_converter = Benchmark(cmd, setup, start_date=sdate)
+cmd = "read_csv(StringIO(data), sep=',', header=None, float_precision='high')"
+read_csv_precise_converter = Benchmark(cmd, setup, start_date=sdate)
+cmd = "read_csv(StringIO(data), sep=',', header=None, float_precision='round_trip')"
+read_csv_roundtrip_converter = Benchmark(cmd, setup, start_date=sdate)

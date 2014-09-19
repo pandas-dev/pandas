@@ -303,7 +303,8 @@ _c_parser_defaults = {
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'dtype': None,
-    'decimal': b'.'
+    'decimal': b'.',
+    'float_precision': None
 }
 
 _fwf_defaults = {
@@ -369,6 +370,7 @@ def _make_parser_function(name, sep=','):
                  date_parser=None,
 
                  memory_map=False,
+                 float_precision=None,
                  nrows=None,
                  iterator=False,
                  chunksize=None,
@@ -437,6 +439,7 @@ def _make_parser_function(name, sep=','):
                     encoding=encoding,
                     squeeze=squeeze,
                     memory_map=memory_map,
+                    float_precision=float_precision,
 
                     na_filter=na_filter,
                     compact_ints=compact_ints,
@@ -1264,6 +1267,11 @@ def TextParser(*args, **kwds):
         If True and `parse_dates` is True for a column, try to infer the
         datetime format based on the first datetime string. If the format
         can be inferred, there often will be a large parsing speed-up.
+    float_precision : string, default None
+        Specifies which converter the C engine should use for floating-point
+        values. The options are None for the ordinary converter,
+        'high' for the high-precision converter, and 'round_trip' for the
+        round-trip converter.
     """
     kwds['engine'] = 'python'
     return TextFileReader(*args, **kwds)

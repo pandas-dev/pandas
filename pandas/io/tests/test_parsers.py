@@ -2523,6 +2523,12 @@ eight,1,2,3"""
         finally:
             sys.stdout = sys.__stdout__
 
+    def test_float_precision_specified(self):
+        # Should raise an error if float_precision (C parser option) is specified
+        with tm.assertRaisesRegexp(ValueError, "The 'float_precision' option "
+                                   "is not supported with the 'python' engine"):
+            self.read_csv(StringIO('a,b,c\n1,2,3'), float_precision='high')
+
     def test_iteration_open_handle(self):
         if PY3:
             raise nose.SkipTest("won't work in Python 3 {0}".format(sys.version_info))
@@ -3087,6 +3093,25 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
                           use_unsigned=True)
         ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
+
+    def test_precise_conversion(self):
+        # GH #8002
+        from decimal import Decimal
+        normal_errors = []
+        precise_errors = []
+        for num in np.linspace(1., 2., num=500): # test numbers between 1 and 2
+            text = 'a\n{0:.25}'.format(num) # 25 decimal digits of precision
+            normal_val = float(self.read_csv(StringIO(text))['a'][0])
+            precise_val = float(self.read_csv(StringIO(text), float_precision='high')['a'][0])
+            roundtrip_val = float(self.read_csv(StringIO(text), float_precision='round_trip')['a'][0])
+            actual_val = Decimal(text[2:])
+            def error(val):
+                return abs(Decimal('{0:.100}'.format(val)) - actual_val)
+            normal_errors.append(error(normal_val))
+            precise_errors.append(error(precise_val))
+            self.assertEqual(roundtrip_val, float(text[2:])) # round-trip should match float()
+        self.assertTrue(sum(precise_errors) < sum(normal_errors))
+        self.assertTrue(max(precise_errors) < max(normal_errors))
 
     def test_pass_dtype(self):
         data = """\

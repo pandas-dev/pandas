@@ -631,6 +631,8 @@ Enhancements
 - Added support for ``c``, ``colormap`` and ``colorbar`` arguments for
   ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
 
+- ``read_csv`` now has a keyword parameter ``float_precision`` which specifies which floating-point
+  converter the C engine should use during parsing, see :ref:`_io` (:issue:`8002`, :issue:`8044`)
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
