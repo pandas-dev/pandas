@@ -65,8 +65,8 @@ header : int row number(s) to use as the column names, and the start of the
     a list of integers that specify row locations for a multi-index on the
     columns E.g. [0,1,3]. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example are skipped). Note that this parameter
-    ignores commented lines, so header=0 denotes the first line of
-    data rather than the first line of the file.
+    ignores commented lines and empty lines if ``skip_blank_lines=True``, so header=0
+    denotes the first line of data rather than the first line of the file.
 skiprows : list-like or integer
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file
@@ -110,10 +110,11 @@ thousands : str, default None
 comment : str, default None
     Indicates remainder of line should not be parsed. If found at the
     beginning of a line, the line will be ignored altogether. This parameter
-    must be a single character. Also, fully commented lines
-    are ignored by the parameter `header` but not by `skiprows`. For example,
-    if comment='#', parsing '#empty\n1,2,3\na,b,c' with `header=0` will
-    result in '1,2,3' being treated as the header.
+    must be a single character. Like empty lines (as long as ``skip_blank_lines=True``),
+    fully commented lines are ignored by the parameter `header`
+    but not by `skiprows`. For example, if comment='#', parsing
+    '#empty\n1,2,3\na,b,c' with `header=0` will result in '1,2,3' being
+    treated as the header.
 decimal : str, default '.'
     Character to recognize as decimal point. E.g. use ',' for European data
 nrows : int, default None
@@ -160,6 +161,8 @@ warn_bad_lines : boolean, default True
 infer_datetime_format : boolean, default False
     If True and parse_dates is enabled for a column, attempt to infer
     the datetime format to speed up the processing
+skip_blank_lines : boolean, default True
+    If True, skip over blank lines rather than interpreting as NaN values
 
 Returns
 -------
@@ -288,6 +291,7 @@ _parser_defaults = {
     'mangle_dupe_cols': True,
     'tupleize_cols': False,
     'infer_datetime_format': False,
+    'skip_blank_lines': True
 }
 
 
@@ -380,7 +384,8 @@ def _make_parser_function(name, sep=','):
                  squeeze=False,
                  mangle_dupe_cols=True,
                  tupleize_cols=False,
-                 infer_datetime_format=False):
+                 infer_datetime_format=False,
+                 skip_blank_lines=True):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -452,7 +457,8 @@ def _make_parser_function(name, sep=','):
                     buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
-                    infer_datetime_format=infer_datetime_format)
+                    infer_datetime_format=infer_datetime_format,
+                    skip_blank_lines=skip_blank_lines)
 
         return _read(filepath_or_buffer, kwds)
 
@@ -1346,6 +1352,7 @@ class PythonParser(ParserBase):
         self.quoting = kwds['quoting']
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.usecols = kwds['usecols']
+        self.skip_blank_lines = kwds['skip_blank_lines']
 
         self.names_passed = kwds['names'] or None
 
@@ -1401,6 +1408,7 @@ class PythonParser(ParserBase):
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
+
         if not self._has_complex_date_col:
             (index_names,
              self.orig_names, self.columns) = self._get_index_name(self.columns)
@@ -1598,6 +1606,7 @@ class PythonParser(ParserBase):
 
                 while self.line_pos <= hr:
                     line = self._next_line()
+
                 unnamed_count = 0
                 this_columns = []
                 for i, c in enumerate(line):
@@ -1735,25 +1744,35 @@ class PythonParser(ParserBase):
                     line = self._check_comments([self.data[self.pos]])[0]
                     self.pos += 1
                     # either uncommented or blank to begin with
-                    if self._empty(self.data[self.pos - 1]) or line:
+                    if not self.skip_blank_lines and (self._empty(self.data[
+                            self.pos - 1]) or line):
                         break
+                    elif self.skip_blank_lines:
+                        ret = self._check_empty([line])
+                        if ret:
+                            line = ret[0]
+                            break
                 except IndexError:
                     raise StopIteration
         else:
             while self.pos in self.skiprows:
-                next(self.data)
                 self.pos += 1
+                next(self.data)
 
             while True:
                 orig_line = next(self.data)
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
-                if self._empty(orig_line) or line:
+                if not self.skip_blank_lines and (self._empty(orig_line) or line):
                     break
+                elif self.skip_blank_lines:
+                    ret = self._check_empty([line])
+                    if ret:
+                        line = ret[0]
+                        break
 
         self.line_pos += 1
         self.buf.append(line)
-
         return line
 
     def _check_comments(self, lines):
@@ -1772,6 +1791,15 @@ class PythonParser(ParserBase):
                         rl.append(x)
                     break
             ret.append(rl)
+        return ret
+
+    def _check_empty(self, lines):
+        ret = []
+        for l in lines:
+            # Remove empty lines and lines with only one whitespace value
+            if len(l) > 1 or len(l) == 1 and (not isinstance(l[0],
+                                compat.string_types) or l[0].strip()):
+                ret.append(l)
         return ret
 
     def _check_thousands(self, lines):
@@ -1909,7 +1937,6 @@ class PythonParser(ParserBase):
 
         # already fetched some number
         if rows is not None:
-
             # we already have the lines in the buffer
             if len(self.buf) >= rows:
                 new_rows, self.buf = self.buf[:rows], self.buf[rows:]
@@ -1974,6 +2001,8 @@ class PythonParser(ParserBase):
             lines = lines[:-self.skip_footer]
 
         lines = self._check_comments(lines)
+        if self.skip_blank_lines:
+            lines = self._check_empty(lines)
         return self._check_thousands(lines)
 
 

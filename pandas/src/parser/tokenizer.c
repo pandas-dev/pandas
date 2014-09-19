@@ -693,13 +693,32 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
 
             if (c == '\n') {
                 // \n\r possible?
-                END_LINE();
+                if (self->skip_empty_lines)
+                {
+                    self->file_lines++;
+                }
+                else
+                {
+                    END_LINE();
+                }
                 break;
-            } else if (c == '\r') {
-                self->state = EAT_CRNL;
+            }
+            else if (c == '\r') {
+                if (self->skip_empty_lines)
+                {
+                    self->file_lines++;
+                    self->state = EAT_CRNL_NOP;
+                }
+                else
+                    self->state = EAT_CRNL;
                 break;
-            } else if (c == self->commentchar) {
+            } 
+            else if (c == self->commentchar) {
                 self->state = EAT_LINE_COMMENT;
+                break;
+            }
+            else if (IS_WHITESPACE(c) && c != self->delimiter && self->skip_empty_lines) {
+                self->state = WHITESPACE_LINE;
                 break;
             }
 
@@ -744,6 +763,32 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 // TRACE(("pushing %c", c));
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
+            }
+            break;
+
+        case WHITESPACE_LINE: // check if line is whitespace-only
+            if (c == '\n') {
+                self->file_lines++;
+                self->state = START_RECORD; // ignore empty line
+            }
+            else if (c == '\r') {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
+            }
+            else if (IS_WHITESPACE(c) && c != self->delimiter)
+                ;
+            else { // backtrack
+                /* We have to use i + 1 because buf has been incremented but not i */
+                while (i + 1 > self->datapos && *buf != '\n') {
+                    --buf;
+                    --i;
+                }
+                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                {
+                    ++buf; // move pointer to first char after newline
+                    ++i;
+                }
+                self->state = START_FIELD;
             }
             break;
 
@@ -904,7 +949,6 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 --buf;
             }
             break;
-
         default:
             break;
 
@@ -966,11 +1010,23 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
             // start of record
             if (c == self->lineterminator) {
                 // \n\r possible?
-                END_LINE();
+                if (self->skip_empty_lines)
+                {
+                    self->file_lines++;
+                }
+                else
+                {
+                    END_LINE();
+                }
                 break;
             }
             else if (c == self->commentchar) {
                 self->state = EAT_LINE_COMMENT;
+                break;
+            }
+            else if (IS_WHITESPACE(c) && c != self->delimiter && self->skip_empty_lines)
+            {
+                self->state = WHITESPACE_LINE;
                 break;
             }
             /* normal character - handle as START_FIELD */
@@ -1011,6 +1067,28 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
                 // TRACE(("pushing %c", c));
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
+            }
+            break;
+
+        case WHITESPACE_LINE: // check if line is whitespace-only
+            if (c == self->lineterminator) {
+                self->file_lines++;
+                self->state = START_RECORD; // ignore empty line
+            }
+            else if (IS_WHITESPACE(c) && c != self->delimiter)
+                ;
+            else { // backtrack
+                /* We have to use i + 1 because buf has been incremented but not i */
+                while (i + 1 > self->datapos && *buf != self->lineterminator) {
+                    --buf;
+                    --i;
+                }
+                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                {
+                    ++buf; // move pointer to first char after newline
+                    ++i;
+                }
+                self->state = START_FIELD;
             }
             break;
 
@@ -1174,9 +1252,27 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                self->state));
 
         switch(self->state) {
+        case WHITESPACE_LINE:
+            if (c == '\n') {
+                self->file_lines++;
+                self->state = START_RECORD;
+                break;
+            }
+            else if (c == '\r') {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
+                break;
+            }
+            // fall through
 
         case EAT_WHITESPACE:
-            if (!IS_WHITESPACE(c)) {
+            if (c == '\n') {
+                END_LINE();
+                self->state = START_RECORD;
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
+                break;
+            } else if (!IS_WHITESPACE(c)) {
                 // END_FIELD();
                 self->state = START_FIELD;
                 // Fall through to subsequent state
@@ -1189,13 +1285,29 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             // start of record
             if (c == '\n') {
                 // \n\r possible?
-                END_LINE();
+                if (self->skip_empty_lines)
+                {
+                    self->file_lines++;
+                }
+                else
+                {
+                    END_LINE();
+                }
                 break;
             } else if (c == '\r') {
-                self->state = EAT_CRNL;
+                if (self->skip_empty_lines)
+                {
+                    self->file_lines++;
+                    self->state = EAT_CRNL_NOP;
+                }
+                else
+                    self->state = EAT_CRNL;
                 break;
             } else if (IS_WHITESPACE(c)) {
-                self->state = EAT_WHITESPACE;
+                /*if (self->skip_empty_lines)
+                    self->state = WHITESPACE_LINE;
+                    else*/
+                    self->state = EAT_WHITESPACE;
                 break;
             } else if (c == self->commentchar) {
                 self->state = EAT_LINE_COMMENT;
