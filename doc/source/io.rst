@@ -100,8 +100,8 @@ They can take a number of arguments:
     a list of integers that specify row locations for a multi-index on the columns
     E.g. [0,1,3]. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example are skipped). Note that this parameter
-    ignores commented lines and empty lines if ``skip_blank_lines=True``, so header=0
-    denotes the first line of data rather than the first line of the file.
+    ignores commented lines and empty lines if ``skip_blank_lines=True`` (the default),
+    so header=0 denotes the first line of data rather than the first line of the file.
   - ``skip_blank_lines``: whether to skip over blank lines rather than interpreting
     them as NaN values
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
