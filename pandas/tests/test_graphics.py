@@ -1948,7 +1948,7 @@ class TestDataFramePlots(TestPlotBase):
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
             self.assertTrue(y_min <= col.min())
-            self.assertGreaterEqual(y_max, col.max())
+            self.assertTrue(y_max >= col.max())
 
         df = self.hist_df.copy()
         df['age'] = np.random.randint(1, 20, df.shape[0])
