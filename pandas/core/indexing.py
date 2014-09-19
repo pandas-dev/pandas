@@ -1510,6 +1510,18 @@ class _AtIndexer(_ScalarAccessIndexer):
     """ label based scalar accessor """
     _takeable = False
 
+    def _convert_key(self, key):
+        """ require they keys to be the same type as the index (so we don't fallback) """
+        for ax, i in zip(self.obj.axes, key):
+            if ax.is_integer():
+                if not com.is_integer(i):
+                    raise ValueError("At based indexing on an integer index can only have integer "
+                                     "indexers")
+            else:
+                if com.is_integer(i):
+                    raise ValueError("At based indexing on an non-integer index can only have non-integer "
+                                     "indexers")
+        return key
 
 class _iAtIndexer(_ScalarAccessIndexer):
 

@@ -866,6 +866,28 @@ class TestIndexing(tm.TestCase):
             df.loc[[3]]
         self.assertRaises(KeyError, f)
 
+        # at should not fallback
+        # GH 7814
+        s = Series([1,2,3], index=list('abc'))
+        result = s.at['a']
+        self.assertEquals(result, 1)
+        self.assertRaises(ValueError, lambda : s.at[0])
+
+        df = DataFrame({'A' : [1,2,3]},index=list('abc'))
+        result = df.at['a','A']
+        self.assertEquals(result, 1)
+        self.assertRaises(ValueError, lambda : df.at['a',0])
+
+        s = Series([1,2,3], index=[3,2,1])
+        result = s.at[1]
+        self.assertEquals(result, 3)
+        self.assertRaises(ValueError, lambda : s.at['a'])
+
+        df = DataFrame({0 : [1,2,3]},index=[3,2,1])
+        result = df.at[1,0]
+        self.assertEquals(result, 3)
+        self.assertRaises(ValueError, lambda : df.at['a',0])
+
     def test_loc_getitem_label_slice(self):
 
         # label slices (with ints)
