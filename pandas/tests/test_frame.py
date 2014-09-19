@@ -534,6 +534,15 @@ class CheckIndexing(object):
         self.frame['something'] = 2.5
         self.assertEqual(self.frame['something'].dtype, np.float64)
 
+        # GH 7704
+        # dtype conversion on setting
+        df = DataFrame(np.random.rand(30, 3), columns=tuple('ABC'))
+        df['event'] = np.nan
+        df.loc[10,'event'] = 'foo'
+        result = df.get_dtype_counts().order()
+        expected = Series({'float64' : 3, 'object' : 1 }).order()
+        assert_series_equal(result, expected)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
