@@ -1284,10 +1284,8 @@ def roll_cov(ndarray[double_t] x, ndarray[double_t] y, int win, int minp,
 
         if val_not_nan:
             # Adding one observation...
-            nobs += 1
             if prev_not_nan:
                 # ...and removing another
-                nobs -= 1
                 delta_x = val_x - prev_x
                 prev_x -= mean_x
                 mean_x += delta_x / nobs
@@ -1299,6 +1297,7 @@ def roll_cov(ndarray[double_t] x, ndarray[double_t] y, int win, int minp,
                 proddm_xy += (delta_x * (val_y + prev_y) + delta_y * (val_x + prev_x)) / 2
             else:
                 # ...and not removing any
+                nobs += 1
                 delta_x = val_x - mean_x
                 mean_x += delta_x / nobs
                 delta_y = val_y - mean_y
@@ -1335,7 +1334,7 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
-    cdef double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
+    cdef double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta, out
     cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
 
@@ -1343,42 +1342,15 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
     minp = _check_minp(win, minp, N)
 
-    # Check for windows larger than array, addresses #7297
-    win = min(win, N)
-
-    # Over the first window, observations can only be added, never removed
-    for i from 0 <= i < win:
+    for i from 0 <= i < N:
         val = input[i]
-
-        # Not NaN
-        if val == val:
-            nobs += 1
-            delta = (val - mean_x)
-            mean_x += delta / nobs
-            ssqdm_x += delta * (val - mean_x)
-
-        if (nobs >= minp) and (nobs > ddof):
-            #pathological case
-            if nobs == 1:
-                val = 0
-            else:
-                val = ssqdm_x / (nobs - ddof)
-                if val < 0:
-                    val = 0
-        else:
-            val = NaN
-
-        output[i] = val
-
-    # After the first window, observations can both be added and removed
-    for i from win <= i < N:
-        val = input[i]
-        prev = input[i - win]
+        prev = NaN if i < win else input[i - win]
 
         if val == val:
+            # Adding one observation...
             if prev == prev:
-                # Adding one observation and removing another one
-                delta = val - prev
+                # ...and removing another
+                delta  val - prev
                 prev -= mean_x
                 mean_x += delta / nobs
                 val -= mean_x
@@ -1386,33 +1358,27 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
             else:
                 # Adding one observation and not removing any
                 nobs += 1
-                delta = (val - mean_x)
+                delta = val - mean_x
                 mean_x += delta / nobs
                 ssqdm_x += delta * (val - mean_x)
         elif prev == prev:
-            # Adding no new observation, but removing one
+            # adding no new observation, but removing one
             nobs -= 1
             if nobs:
-                delta = (prev - mean_x)
-                mean_x -= delta  / nobs
+                delta = prev - mean_x
+                mean_x -= delta / nobs
                 ssqdm_x -= delta * (prev - mean_x)
             else:
-                mean_x = 0
-                ssqdm_x = 0
+                mean_x = ssqdm_x = 0
         # Variance is unchanged if no observation is added or removed
 
-        if (nobs >= minp) and (nobs > ddof):
-            #pathological case
-            if nobs == 1:
-                val = 0
-            else:
-                val = ssqdm_x / (nobs - ddof)
-                if val < 0:
-                    val = 0
+        if nobs >= minp and nobs > ddof:
+            out = ssqdm_x / (nobs - ddof)
+            out = 0 if out < 0 else out
         else:
-            val = NaN
+            out = NaN
 
-        output[i] = val
+        output[i] = out
 
     return output
 
