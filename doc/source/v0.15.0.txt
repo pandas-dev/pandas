@@ -909,7 +909,7 @@ Bug Fixes
 
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
-
+- Bug in ``.at`` that would accept integer indexers on a non-integer index and do fallback (:issue:`7814`)
 - Bug with kde plot and NaNs (:issue:`8182`)
 - Bug in ``GroupBy.count`` with float32 data type were nan values were not excluded (:issue:`8169`).
 - Bug with stacked barplots and NaNs (:issue:`8175`).
