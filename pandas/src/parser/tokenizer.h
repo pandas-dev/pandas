@@ -125,6 +125,7 @@ typedef enum {
     EAT_WHITESPACE,
     EAT_COMMENT,
     EAT_LINE_COMMENT,
+    WHITESPACE_LINE,
     FINISHED
 } ParserState;
 
@@ -206,6 +207,8 @@ typedef struct parser_t {
     // error handling
     char *warn_msg;
     char *error_msg;
+
+    int skip_empty_lines;
 } parser_t;
 
 

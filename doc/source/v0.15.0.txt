@@ -153,6 +153,11 @@ API changes
 
     ewma(s, com=3., min_periods=2)
 
+- Made both the C-based and Python engines for `read_csv` and `read_table` ignore empty lines in input as well as
+  whitespace-filled lines, as long as `sep` is not whitespace. This is an API change
+  that can be controlled by the keyword parameter `skip_blank_lines`.
+  (:issue:`4466`)
+
 - :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now have an optional ``adjust`` argument, just like :func:`ewma` does,
   affecting how the weights are calculated.
@@ -672,8 +677,6 @@ Enhancements
     df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
                        'C': [1, 2, 3]})
     pd.get_dummies(df)
-
-
 
 
 
