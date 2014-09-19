@@ -556,9 +556,15 @@ class Block(PandasObject):
             else:
                 dtype = 'infer'
             values = self._try_coerce_and_cast_result(values, dtype)
-            return [make_block(transf(values),
+            block = make_block(transf(values),
                                ndim=self.ndim, placement=self.mgr_locs,
-                               fastpath=True)]
+                               fastpath=True)
+
+            # may have to soft convert_objects here
+            if block.is_object and not self.is_object:
+                block = block.convert(convert_numeric=False)
+
+            return block
         except (ValueError, TypeError) as detail:
             raise
         except Exception as detail:
