@@ -799,7 +799,11 @@ class MPLPlot(object):
 
         if rot is not None:
             self.rot = rot
+            # need to know for format_date_labels since it's rotated to 30 by
+            # default
+            self._rot_set = True
         else:
+            self._rot_set = False
             if isinstance(self._default_rot, dict):
                 self.rot = self._default_rot[self.kind]
             else:
@@ -1498,7 +1502,7 @@ class HexBinPlot(MPLPlot):
 
 class LinePlot(MPLPlot):
 
-    _default_rot = 30
+    _default_rot = 0
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
@@ -1679,6 +1683,10 @@ class LinePlot(MPLPlot):
 
         for ax in self.axes:
             if condition:
+                # irregular TS rotated 30 deg. by default
+                # probably a better place to check / set this.
+                if not self._rot_set:
+                    self.rot = 30
                 format_date_labels(ax, rot=self.rot)
 
             if index_name is not None:
