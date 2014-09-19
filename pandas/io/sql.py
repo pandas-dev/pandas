@@ -654,8 +654,15 @@ class PandasSQLTable(PandasObject):
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
+
+        if nrows == 0:
+            return
+
         if chunksize is None: 
             chunksize = nrows
+        elif chunksize == 0:
+            raise ValueError('chunksize argument should be non-zero')
+            
         chunks = int(nrows / chunksize) + 1
 
         with self.pd_sql.run_transaction() as conn:
