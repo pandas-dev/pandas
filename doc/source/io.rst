@@ -405,7 +405,7 @@ result in byte strings being decoded to unicode in the result:
 
 Some formats which encode all characters as multiple bytes, like UTF-16, won't
 parse correctly at all without specifying the encoding. `Full list of Python
-standard encodings 
+standard encodings
 <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
 
 .. _io.index_col:
@@ -541,6 +541,8 @@ data columns:
    dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
    specify `index_col` as a column label rather then as an index on the resulting frame.
 
+
+.. _io.float_precision:
 
 Specifying method for floating-point conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3382,7 +3384,7 @@ functions. Note however that this depends on the database flavor (sqlite does no
 have schema's). For example:
 
 .. code-block:: python
-   
+
    df.to_sql('table', engine, schema='other_schema')
    pd.read_sql_table('table', engine, schema='other_schema')
 
