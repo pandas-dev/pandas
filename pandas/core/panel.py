@@ -145,6 +145,10 @@ class Panel(NDFrame):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
+        # convert unhandled array-like objects
+        if com._unhandled_array_interface(data):
+            data = np.asarray(data)
+
         passed_axes = [kwargs.get(a) for a in self._AXIS_ORDERS]
         axes = None
         if isinstance(data, BlockManager):

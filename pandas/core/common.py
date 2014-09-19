@@ -217,7 +217,7 @@ def _isnull_new(obj):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isnull(func=isnull))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list) or is_array_like(obj):
         return _isnull_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -243,7 +243,7 @@ def _isnull_old(obj):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isnull(func=_isnull_old))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list) or is_array_like(obj):
         return _isnull_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
@@ -2266,7 +2266,7 @@ def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
 
     if not (isinstance(values, (list, tuple))
-            or hasattr(values, '__array__')):
+            or is_array_like(values)):
         values = list(values)
     elif isinstance(values, Index):
         return values.values
@@ -2489,6 +2489,38 @@ def is_list_like(arg):
     return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
 
+def is_array_like(obj):
+    """
+    Check if object provides access to a data buffer via one of the numpy
+    array apis.
+
+    http://docs.scipy.org/doc/numpy/reference/arrays.classes.html
+    http://docs.scipy.org/doc/numpy/reference/arrays.interface.html
+
+    Parameters
+    ----------
+    obj : Object
+
+    Note
+    ----
+    Remember that ndarrays and NDFrames are array-like.
+    """
+    # numpy ndarray subclass api
+    tmp = getattr(obj, '__array__', None)
+    if callable(tmp):
+        return True
+
+    # Python side
+    # __array_interface__ is a dict
+    tmp = getattr(obj, '__array_interface__', None)
+    if isinstance(tmp, dict):
+        return True
+
+    # C-struct access
+    if hasattr(obj, '__array_struct__'):
+        return True
+
+    return False
 
 def _is_sequence(x):
     try:
@@ -3105,3 +3137,39 @@ def _maybe_match_name(a, b):
     if a_name == b_name:
         return a_name
     return None
+
+def _unhandled_array_interface(obj):
+    """
+    Checks whether an object:
+        1) Implements the array interface
+        2) Is not an object type that pandas handles natively
+
+    #2 is a moving target. Essentially any 3rd party module can implement the
+    NumPy Array Interface and should be treated as array-like. For example,
+    the rpy2 SexpVector implements `__array_struct__` which we do not
+    explicitly handle.
+
+    In the future, if we add explicit handling for the SexpVector, this
+    function would have to account for that.
+
+    Parameters
+    ----------
+    obj : Object
+
+    Usage
+    -----
+
+    ```
+    if com._unhandled_array_interface(data):
+        data = np.asarray(data)
+    ```
+
+    """
+    if isinstance(obj, (np.ndarray)):
+        return False
+
+    import pandas.core.base as base
+    if isinstance(obj, (base.PandasObject)):
+        return False
+
+    return is_array_like(obj)

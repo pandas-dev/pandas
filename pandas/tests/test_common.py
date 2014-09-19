@@ -42,7 +42,7 @@ def test_get_callable_name():
     from functools import partial
     getname = com._get_callable_name
 
-    def fn(x): 
+    def fn(x):
         return x
     lambda_ = lambda x: x
     part1 = partial(fn)
@@ -890,6 +890,69 @@ class TestTake(tm.TestCase):
         expected[:, [2, 4]] = datetime(2007, 1, 1)
         tm.assert_almost_equal(result, expected)
 
+class FakeArrArray(object):
+    def __init__(self, arr):
+        self.arr = arr
+
+    def __array__(self):
+        return self.arr.__array__()
+
+class FakeArrInterface(object):
+    def __init__(self, arr):
+        self.arr = arr
+
+    @property
+    def __array_interface__(self):
+        return self.arr.__array_interface__
+
+class FakeArrStruct(object):
+    def __init__(self, arr):
+        self.arr = arr
+
+    @property
+    def __array_struct__(self):
+        return self.arr.__array_struct__
+
+def test_is_array_like():
+    """
+    Test interface from:
+    http://docs.scipy.org/doc/numpy/reference/arrays.interface.html
+
+    Different from ndarray subclass
+    """
+    arr = np.arange(10)
+    assert com.is_array_like(arr) is True
+
+    # __array__
+    arr_array = FakeArrArray(arr)
+    assert com.is_array_like(arr_array) is True
+
+    # __array_interface__
+    arr_interface = FakeArrInterface(arr)
+    assert com.is_array_like(arr_interface) is True
+
+    # __array_struct__
+    arr_struct= FakeArrStruct(arr)
+    assert com.is_array_like(arr_struct) is True
+
+def test_unhandled_array_interface():
+    """
+    """
+    # skip the strutures we already explicitly handle
+    arr = np.arange(10)
+    series = Series(arr)
+    frame = tm.makeDataFrame()
+    assert not com._unhandled_array_interface(series)
+    assert not com._unhandled_array_interface(frame)
+    assert not com._unhandled_array_interface(arr)
+
+    # __array_interface__
+    arr_interface = FakeArrInterface(arr)
+    assert com._unhandled_array_interface(arr_interface) is True
+
+    # __array_struct__
+    arr_struct= FakeArrStruct(arr)
+    assert com._unhandled_array_interface(arr_struct) is True
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -166,7 +166,7 @@ class Index(IndexOpsMixin, PandasObject):
             if copy:
                 subarr = subarr.copy()
 
-        elif hasattr(data, '__array__'):
+        elif com.is_array_like(data):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
                          **kwargs)
         elif data is None or np.isscalar(data):

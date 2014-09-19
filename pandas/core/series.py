@@ -190,6 +190,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             else:
+                # unhandled array-like objects
+                if com.is_array_like(data):
+                    data = np.asarray(data)
 
                 # handle sparse passed here (and force conversion)
                 if isinstance(data, ABCSparseArray):

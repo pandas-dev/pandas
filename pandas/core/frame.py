@@ -197,6 +197,10 @@ class DataFrame(NDFrame):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
+        # convert unhandled array-like objects
+        if com._unhandled_array_interface(data):
+            data = np.asarray(data)
+
         if isinstance(data, DataFrame):
             data = data._data
 

@@ -227,6 +227,41 @@ class Generic(object):
         f('float64')
         f('M8[ns]')
 
+    def test_constructor_array_interface(self):
+        """
+        Test that objects implementing NumPy Array Interface get treated
+        like arrays in constructor
+        """
+        class FakeArrInterface(object):
+            def __init__(self, arr):
+                self.arr = arr
+
+            @property
+            def __array_interface__(self):
+                return self.arr.__array_interface__
+
+        class FakeArrStruct(object):
+            def __init__(self, arr):
+                self.arr = arr
+
+            @property
+            def __array_struct__(self):
+                return self.arr.__array_struct__
+
+        shape = [10] * self._ndim
+        arr = np.random.randn(*shape)
+        fai = FakeArrInterface(arr)
+        pobj = self._typ(fai)
+        assert_almost_equal(pobj.values, arr)
+        assert_almost_equal(pobj.values, np.array(fai))
+
+        arr = np.random.randn(*shape)
+        fas = FakeArrStruct(arr)
+        pobj2 = self._typ(fas)
+        assert_almost_equal(pobj2.values, arr)
+        assert_almost_equal(pobj2.values, np.array(fas))
+
+
     def check_metadata(self, x, y=None):
         for m in x._metadata:
             v = getattr(x,m,None)
