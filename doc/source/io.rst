@@ -2060,10 +2060,10 @@ files if `Xlsxwriter`_ is not available.
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-- `'openpyxl`': This includes stable support for OpenPyxl 1.6.1 up to but
+- ``openpyxl``: This includes stable support for OpenPyxl 1.6.1 up to but
   not including 2.0.0, and experimental support for OpenPyxl 2.0.0 and later.
-- `'xlsxwriter'`
-- `'xlwt'`
+- ``xlsxwriter``
+- ``xlwt``
 
 .. code-block:: python
 
