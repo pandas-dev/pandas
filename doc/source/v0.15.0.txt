@@ -738,6 +738,12 @@ Enhancements
 
 
 
+- Added experimental compatibility with openpyxl v2. The ``DataFrame.to_excel``
+  method ``engine`` keyword now recognizes ``openpyxl1`` and ``openpyxl2``
+  which will explicitly require openpyxl v1 and v2 respectively, failing if
+  the requested version is not available. The ``openpyxl`` engine is a now a
+  meta-engine that automatically uses whichever version of openpyxl is
+  installed. (:issue:`7177`)
 
 
 
