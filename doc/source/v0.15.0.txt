@@ -276,6 +276,7 @@ API changes
      Index(['a','b','c']).difference(Index(['b','c','d']))
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
+- add ``copy=True`` argument to ``pd.concat`` to enable pass thrue of complete blocks (:issue:`8252`)
 
 .. _whatsnew_0150.dt:
 
