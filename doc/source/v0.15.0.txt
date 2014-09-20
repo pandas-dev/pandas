@@ -801,7 +801,8 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
-- Added support for a ``chunksize`` parameter to ``to_sql`` function.  This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`)
+- Added support for a ``chunksize`` parameter to ``to_sql`` function. This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`).
+- Added support for a ``chunksize`` parameter to ``read_sql`` function. Specifying this argument will return an iterator through chunks of the query result (:issue:`2908`).
 - Added support for writing ``datetime.date`` and ``datetime.time`` object columns with ``to_sql`` (:issue:`6932`).
 - Added support for specifying a ``schema`` to read from/write to with ``read_sql_table`` and ``to_sql`` (:issue:`7441`, :issue:`7952`).
   For example:

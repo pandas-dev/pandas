@@ -3411,6 +3411,18 @@ Of course, you can specify a more "complex" query.
 
    pd.read_sql_query("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
 
+The func:`~pandas.read_sql_query` function supports a ``chunksize`` argument.
+Specifying this will return an iterator through chunks of the query result:
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.random.randn(20, 3), columns=list('abc'))
+    df.to_sql('data_chunks', engine, index=False)
+
+.. ipython:: python
+
+    for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize):
+        print(chunk)
 
 You can also run a plain query without creating a dataframe with
 :func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
