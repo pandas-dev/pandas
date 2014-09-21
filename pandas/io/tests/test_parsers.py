@@ -3201,8 +3201,8 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
             normal_errors.append(error(normal_val))
             precise_errors.append(error(precise_val))
             self.assertEqual(roundtrip_val, float(text[2:])) # round-trip should match float()
-        self.assertTrue(sum(precise_errors) < sum(normal_errors))
-        self.assertTrue(max(precise_errors) < max(normal_errors))
+        self.assertTrue(sum(precise_errors) <= sum(normal_errors))
+        self.assertTrue(max(precise_errors) <= max(normal_errors))
 
     def test_pass_dtype(self):
         data = """\
