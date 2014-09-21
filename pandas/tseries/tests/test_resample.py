@@ -146,7 +146,7 @@ class TestResample(tm.TestCase):
         data = np.arange(5, dtype=np.int64)
         ind = pd.DatetimeIndex(start='2014-01-01', periods=len(data), freq='d')
         df = pd.DataFrame({"A": data, "B": data}, index=ind)
-        
+
         def fn(x, a=1):
             return str(type(x))
 
@@ -164,7 +164,18 @@ class TestResample(tm.TestCase):
         assert_frame_equal(df_standard, df_partial)
         assert_frame_equal(df_standard, df_partial2)
         assert_frame_equal(df_standard, df_class)
-        
+
+    def test_resample_with_timedeltas(self):
+
+        expected = DataFrame({'A' : np.arange(1480)})
+        expected = expected.groupby(expected.index // 30).sum()
+        expected.index = pd.timedelta_range('0 days',freq='30T',periods=50)
+
+        df = DataFrame({'A' : np.arange(1480)},index=pd.to_timedelta(np.arange(1480),unit='T'))
+        result = df.resample('30T',how='sum')
+
+        assert_frame_equal(result, expected)
+
     def test_resample_basic_from_daily(self):
         # from daily
         dti = DatetimeIndex(
