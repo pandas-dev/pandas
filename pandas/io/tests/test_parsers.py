@@ -3187,7 +3187,8 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
 
     def test_precise_conversion(self):
         # GH #8002
-        from decimal import Decimal
+        from decimal import Decimal, getcontext
+        getcontext().prec = 100
         normal_errors = []
         precise_errors = []
         for num in np.linspace(1., 2., num=500): # test numbers between 1 and 2
