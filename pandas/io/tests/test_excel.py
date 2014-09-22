@@ -1238,7 +1238,7 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         alignment = styles.Alignment(horizontal='center', vertical='top')
         fill_color = styles.Color(rgb='006666FF', tint=0.3)
         fill = styles.PatternFill(patternType='solid', fgColor=fill_color)
-        number_format = styles.NumberFormat(format_code='0.00')
+        number_format = '0.00' # XXX: Only works with openpyxl-2.1.0
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl2Writer._convert_to_style_kwargs(hstyle)
