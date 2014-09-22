@@ -266,6 +266,34 @@ class TestPivotTable(tm.TestCase):
             gmarg = table[item]['All', '']
             self.assertEqual(gmarg, self.data[item].mean())
 
+        # issue number #8349: pivot_table with margins and dictionary aggfunc
+
+        df=DataFrame([  {'JOB':'Worker','NAME':'Bob' ,'YEAR':2013,'MONTH':12,'DAYS': 3,'SALARY': 17}, 
+                        {'JOB':'Employ','NAME':'Mary','YEAR':2013,'MONTH':12,'DAYS': 5,'SALARY': 23}, 
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':10,'SALARY':100}, 
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':11,'SALARY':110}, 
+                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 1,'DAYS':15,'SALARY':200}, 
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 2,'DAYS': 8,'SALARY': 80}, 
+                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 2,'DAYS': 5,'SALARY':190} ])
+
+        df=df.set_index(['JOB','NAME','YEAR','MONTH'],drop=False,append=False)
+
+        rs=df.pivot_table(  index=['JOB','NAME'],
+                            columns=['YEAR','MONTH'],
+                            values=['DAYS','SALARY'],
+                            aggfunc={'DAYS':'mean','SALARY':'sum'},
+                            margins=True)
+
+        ex=df.pivot_table(index=['JOB','NAME'],columns=['YEAR','MONTH'],values=['DAYS'],aggfunc='mean',margins=True)
+
+        tm.assert_frame_equal(rs['DAYS'], ex['DAYS'])
+
+        ex=df.pivot_table(index=['JOB','NAME'],columns=['YEAR','MONTH'],values=['SALARY'],aggfunc='sum',margins=True)
+
+        tm.assert_frame_equal(rs['SALARY'], ex['SALARY'])
+
+
+
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
 
