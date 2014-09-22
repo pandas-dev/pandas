@@ -383,9 +383,9 @@ Rolling/Expanding Moments API changes
 
     rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
 
-- :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that 
-  the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those 
-  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization 
+- :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
+  the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
+  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization
   <stats.moments.normalization>` for further details. (:issue:`7618`)
 
   .. ipython:: python
@@ -393,7 +393,7 @@ Rolling/Expanding Moments API changes
     s = Series([10.5, 8.8, 11.4, 9.7, 9.3])
 
   Behavior prior to 0.15.0:
-  
+
   .. code-block:: python
 
     In [39]: rolling_window(s, window=3, win_type='triang', center=True)
@@ -968,3 +968,6 @@ Bug Fixes
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
 
 - Bug in DataFrame terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).
+- Bug in OLS where running with "cluster" and "nw_lags" parameters did not work correctly, but also did not throw an error
+  (:issue:`5884').
+
