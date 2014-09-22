@@ -207,6 +207,11 @@ def _compute_grand_margin(data, values, aggfunc):
             try:
                 if isinstance(aggfunc, compat.string_types):
                     grand_margin[k] = getattr(v, aggfunc)()
+                elif isinstance(aggfunc, dict):
+                    if isinstance(aggfunc[k], compat.string_types):
+                        grand_margin[k] = getattr(v, aggfunc[k])()
+                    else:
+                        grand_margin[k] = aggfunc[k](v)
                 else:
                     grand_margin[k] = aggfunc(v)
             except TypeError:
