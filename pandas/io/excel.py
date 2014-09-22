@@ -706,7 +706,7 @@ class _Openpyxl2Writer(_Openpyxl1Writer):
 
                 # Excel requires that the format of the first cell in a merged
                 # range is repeated in the rest of the merged range.
-                if style:
+                if style_kwargs:
                     first_row = startrow + cell.row + 1
                     last_row = startrow + cell.mergestart + 1
                     first_col = startcol + cell.col + 1
