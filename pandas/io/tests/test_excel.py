@@ -1198,6 +1198,7 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         if not openpyxl_compat.is_compat(major_ver=2):
             raise nose.SkipTest('incompatiable openpyxl version')
 
+        import openpyxl
         from openpyxl import styles
 
         hstyle = {
@@ -1238,7 +1239,14 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         alignment = styles.Alignment(horizontal='center', vertical='top')
         fill_color = styles.Color(rgb='006666FF', tint=0.3)
         fill = styles.PatternFill(patternType='solid', fgColor=fill_color)
-        number_format = styles.NumberFormat(format_code='0.00')
+
+        # ahh openpyxl API changes
+        ver = openpyxl.__version__
+        if ver >= LooseVersion('2.0.0') and ver < LooseVersion('2.1.0'):
+            number_format = styles.NumberFormat(format_code='0.00')
+        else:
+            number_format = '0.00' # XXX: Only works with openpyxl-2.1.0
+
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl2Writer._convert_to_style_kwargs(hstyle)
