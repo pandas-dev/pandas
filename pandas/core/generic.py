@@ -3112,9 +3112,13 @@ class NDFrame(PandasObject):
                 raise ValueError('cannot align series to a series other than '
                                  'axis 0')
 
-            join_index, lidx, ridx = self.index.join(other.index, how=join,
-                                                     level=level,
-                                                     return_indexers=True)
+            # equal
+            if  self.index.equals(other.index):
+                join_index, lidx, ridx = None, None, None
+            else:
+                join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                         level=level,
+                                                         return_indexers=True)
 
             left_result = self._reindex_indexer(join_index, lidx, copy)
             right_result = other._reindex_indexer(join_index, ridx, copy)

@@ -867,7 +867,7 @@ Bug Fixes
 
 - Bug in ``tslib.tz_convert`` and ``tslib.tz_convert_single`` may return different results (:issue:`7798`)
 - Bug in ``DatetimeIndex.intersection`` of non-overlapping timestamps with tz raises ``IndexError`` (:issue:`7880`)
-
+- Bug in alignment with TimeOps and non-unique indexes (:issue:`8363`)
 
 
 - Bug in ``GroupBy.filter()`` where fast path vs. slow path made the filter
