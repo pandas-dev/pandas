@@ -295,6 +295,8 @@ similarly to the ``Series``
       tds.to_pytimedelta().seconds
 
 
+.. _timedeltas.index:
+
 TimedeltaIndex
 --------------
 
@@ -387,3 +389,14 @@ Scalars type ops work as well. These can potentially return a *different* type o
 
    # or a Float64Index if the divisor is a Timedelta
    tdi / tdi[0]
+
+.. _timedeltas.resampling:
+
+Resampling
+----------
+
+Similar to :ref:`timeseries resampling <timeseries.resampling>`, we can resample with a ``TimedeltaIndex``.
+
+.. ipython:: python
+
+   s.resample('D')
