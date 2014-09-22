@@ -652,11 +652,11 @@ Since version 0.15, pandas can include categorical data in a ``DataFrame``. For 
     # Alternative: df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-    # Rename the levels
-    df["grade"].cat.levels = ["very good", "good", "very bad"]
+    # Rename the categories inplace
+    df["grade"].cat.categories = ["very good", "good", "very bad"]
 
-    # Reorder the levels and simultaneously add the missing levels
-    df["grade"].cat.reorder_levels(["very bad", "bad", "medium", "good", "very good"])
+    # Reorder the categories and simultaneously add the missing categories
+    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df["grade"]
     df.sort("grade")
     df.groupby("grade").size()

@@ -85,6 +85,8 @@ each individual category).
 The assigned value has to be a list-like object. All items must be unique and the number of items
 in the new categories must be the same as the number of items in the old categories.
 
+Assigning to `categories` is a inplace operation!
+
 Raises
 ------
 ValueError
@@ -1332,13 +1334,20 @@ class CategoricalAccessor(PandasDelegate):
     """
     Accessor object for categorical properties of the Series values.
 
+    Be aware that assigning to `categories` is a inplace operation, while all methods return
+    new categorical data per default (but can be called with `inplace=True`).
+
     Examples
     --------
     >>> s.cat.categories
     >>> s.cat.categories = list('abc')
+    >>> s.cat.rename_categories(list('cab'))
     >>> s.cat.reorder_categories(list('cab'))
+    >>> s.cat.add_categories(['d','e'])
+    >>> s.cat.remove_categories(['d'])
+    >>> s.cat.remove_unused_categories()
+    >>> s.cat.set_categories(list('abcde'))
 
-    Allows accessing to specific getter and access methods
     """
 
     def __init__(self, values, index):
