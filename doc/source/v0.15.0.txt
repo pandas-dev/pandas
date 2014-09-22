@@ -856,7 +856,7 @@ Performance
 
 Bug Fixes
 ~~~~~~~~~
-
+- Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)
 - Bug in ``read_csv`` where ``squeeze=True`` would return a view (:issue:`8217`)
 - Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
 - Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
