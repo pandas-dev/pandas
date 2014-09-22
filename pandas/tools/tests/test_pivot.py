@@ -278,7 +278,7 @@ class TestPivotTable(tm.TestCase):
 
         self.data=self.data.set_index(['JOB','NAME','YEAR','MONTH'],drop=False,append=False)
 
-        table=df=df.pivot_table(index=['JOB','NAME'],
+        table=self.data.pivot_table(index=['JOB','NAME'],
                                 columns=['YEAR','MONTH'],
                                 values=['DAYS','SALARY'],
                                 aggfunc={'DAYS':'mean','SALARY':'sum'},
