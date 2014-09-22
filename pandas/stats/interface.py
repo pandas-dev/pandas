@@ -83,6 +83,14 @@ def ols(**kwargs):
     The appropriate OLS object, which allows you to obtain betas and various
     statistics, such as std err, t-stat, etc.
     """
+
+    if (kwargs.get('cluster') is not None and
+        kwargs.get('nw_lags') is not None):
+        raise ValueError(
+            'Pandas OLS does not work with Newey-West correction '
+            'and clustering.')
+
+
     pool = kwargs.get('pool')
     if 'pool' in kwargs:
         del kwargs['pool']

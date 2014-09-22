@@ -682,13 +682,15 @@ class TestPanelOLS(BaseTest):
                             cluster='time')
 
     def testRollingWithNeweyWestAndEntityCluster(self):
-        self.checkMovingOLS(self.panel_x, self.panel_y,
-                            nw_lags=1, cluster='entity')
+        self.assertRaises(ValueError, self.checkMovingOLS,
+                          self.panel_x, self.panel_y,
+                          nw_lags=1, cluster='entity')
 
     def testRollingWithNeweyWestAndTimeEffectsAndEntityCluster(self):
-        self.checkMovingOLS(self.panel_x, self.panel_y,
-                            nw_lags=1, cluster='entity',
-                            time_effects=True)
+        self.assertRaises(ValueError,
+                          self.checkMovingOLS, self.panel_x, self.panel_y,
+                          nw_lags=1, cluster='entity',
+                          time_effects=True)
 
     def testExpanding(self):
         self.checkMovingOLS(
