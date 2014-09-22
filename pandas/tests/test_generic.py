@@ -1480,26 +1480,6 @@ class TestNDFrame(tm.TestCase):
         result = self.ts[:5].append(self.ts[5:])
         self.assertEqual(result.name, self.ts.name)
 
-    def test_setitem_ambiguous_keyerror(self):
-        s = Series(lrange(10), index=lrange(0, 20, 2))
-
-        # equivalent of an append
-        s2 = s.copy()
-        s2[1] = 5
-        expected = s.append(Series([5],index=[1]))
-        assert_series_equal(s2,expected)
-
-        s2 = s.copy()
-        s2.ix[1] = 5
-        expected = s.append(Series([5],index=[1]))
-        assert_series_equal(s2,expected)
-
-    def test_set_item_thats_not_contained(self):
-        s = self.series.copy()
-        s['foobar'] = 1
-        expected = self.series.append(Series([1],index=['foobar']))
-        assert_series_equal(s,expected)
-
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in compat.iteritems(appendedSeries):
