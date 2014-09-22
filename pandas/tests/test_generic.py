@@ -364,6 +364,9 @@ class TestSeries(tm.TestCase, Generic):
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
+        self.objSeries = tm.makeObjectSeries()
+        self.objSeries.name = 'objects'
+
     def test_rename_mi(self):
         s = Series([11,21,31],
                    index=MultiIndex.from_tuples([("A",x) for x in ["a","B","c"]]))
@@ -715,6 +718,32 @@ class TestSeries(tm.TestCase, Generic):
         noneSeries.name = 'None'
         assert_series_equal(noneSeries.describe(),
                             Series([0, 0], index=['count', 'unique']))
+
+    # GH8295
+    # ENH: allow axis argument to append / move append code to generic.py
+    # test cases for Panel and DataFrame are in TestNDFrame class.
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_append(self):
+        appendedSeries = self.series.append(self.objSeries)
+        for idx, value in compat.iteritems(appendedSeries):
+            if idx in self.series.index:
+                self.assertEqual(value, self.series[idx])
+            elif idx in self.objSeries.index:
+                self.assertEqual(value, self.objSeries[idx])
+            else:
+                self.fail("orphaned index!")
+
+        self.assertRaises(ValueError, self.ts.append, self.ts,
+                          verify_integrity=True)
+
+    def test_append_many(self):
+        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+
+        result = pieces[0].append(pieces[1:])
+        assert_series_equal(result, self.ts)
 
 
 class TestDataFrame(tm.TestCase, Generic):
@@ -1311,6 +1340,7 @@ class TestNDFrame(tm.TestCase):
 
     # GH8295
     # ENH: allow axis argument to append / move append code to generic.py
+    # test cases for Series are in TestSeries class.
 
     # test_append functions for Panel
     def test_append_on_panel_raises(self):
@@ -1458,46 +1488,6 @@ class TestNDFrame(tm.TestCase):
                          (len(df1.index) + len(df2.index), len(df1.columns) + len(df2.columns)))
         self.assertEqual(df1_df1_ax0.shape,
                          (len(df1.index) + len(df1.index), len(df1.columns)))
-
-    # test_append functions for Series
-    def setUp(self):
-        import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
-
-        _ts = tm.makeTimeSeries()
-        self.ts = _ts.copy()
-        self.ts.name = 'ts'
-
-        self.series = tm.makeStringSeries()
-        self.series.name = 'series'
-
-        self.objSeries = tm.makeObjectSeries()
-        self.objSeries.name = 'objects'
-
-        self.empty = Series([], index=[])
-
-    def test_append_preserve_name(self):
-        result = self.ts[:5].append(self.ts[5:])
-        self.assertEqual(result.name, self.ts.name)
-
-    def test_append(self):
-        appendedSeries = self.series.append(self.objSeries)
-        for idx, value in compat.iteritems(appendedSeries):
-            if idx in self.series.index:
-                self.assertEqual(value, self.series[idx])
-            elif idx in self.objSeries.index:
-                self.assertEqual(value, self.objSeries[idx])
-            else:
-                self.fail("orphaned index!")
-
-        self.assertRaises(ValueError, self.ts.append, self.ts,
-                          verify_integrity=True)
-
-    def test_append_many(self):
-        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
-
-        result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, self.ts)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
