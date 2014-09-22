@@ -71,7 +71,7 @@ def read_excel(io, sheetname=0, **kwds):
 
     Parameters
     ----------
-    io : string, file-like object, or xlrd workbook. 
+    io : string, file-like object, or xlrd workbook.
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         and file. For file URLs, a host is expected. For instance, a local
         file could be file://localhost/path/to/workbook.xlsx
@@ -166,7 +166,7 @@ class ExcelFile(object):
             self.book = io
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
-            data = io.read() 
+            data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
@@ -1029,21 +1029,24 @@ class _Openpyxl2Writer(_Openpyxl1Writer):
     @classmethod
     def _convert_to_number_format(cls, number_format_dict):
         """
-        Convert ``number_format_dict`` to an openpyxl v2 NumberFormat object.
+        Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
+        initializer.
         Parameters
         ----------
         number_format_dict : dict
             A dict with zero or more of the following keys.
-                'format_code'
+                'format_code' : str
         Returns
         -------
-        number_format : openpyxl.styles.NumberFormat
+        number_format : str
         """
-
-        from openpyxl.styles import NumberFormat
-
-        return NumberFormat(**number_format_dict)
-
+        try:
+            # >= 2.0.0 < 2.1.0
+            from openpyxl.styles import NumberFormat
+            return NumberFormat(**number_format_dict)
+        except:
+            # >= 2.1.0
+            return number_format_dict['format_code']
 
     @classmethod
     def _convert_to_protection(cls, protection_dict):
