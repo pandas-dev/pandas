@@ -1,6 +1,7 @@
 import nose
 import sys
 import functools
+import warnings
 
 from datetime import datetime
 from numpy.random import randn
@@ -38,6 +39,8 @@ class TestMoments(tm.TestCase):
 
         self.frame = DataFrame(randn(N, K), index=self.rng,
                                columns=np.arange(K))
+
+        warnings.simplefilter("ignore", category=FutureWarning)
 
     def test_centered_axis_validation(self):
         # ok
@@ -337,17 +340,20 @@ class TestMoments(tm.TestCase):
             self._check_moment_func(f, alt)
 
     def test_rolling_apply(self):
-        ser = Series([])
-        assert_series_equal(
-            ser, mom.rolling_apply(ser, 10, lambda x: x.mean()))
+        # suppress warnings about empty slices, as we are deliberately testing with a 0-length Series
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning)
 
-        def roll_mean(x, window, min_periods=None, freq=None, center=False):
-            return mom.rolling_apply(x, window,
-                                     lambda x: x[np.isfinite(x)].mean(),
-                                     min_periods=min_periods,
-                                     freq=freq,
-                                     center=center)
-        self._check_moment_func(roll_mean, np.mean)
+            ser = Series([])
+            assert_series_equal(ser, mom.rolling_apply(ser, 10, lambda x: x.mean()))
+
+            def roll_mean(x, window, min_periods=None, freq=None, center=False):
+                return mom.rolling_apply(x, window,
+                                         lambda x: x[np.isfinite(x)].mean(),
+                                         min_periods=min_periods,
+                                         freq=freq,
+                                         center=center)
+            self._check_moment_func(roll_mean, np.mean)
 
         # GH 8080
         s = Series([None, None, None])
@@ -1023,55 +1029,59 @@ class TestMoments(tm.TestCase):
             (mom.expanding_median, np.median, None),
             ]
 
-        for min_periods in [0, 1, 2, 3, 4]:
+        # suppress warnings about empty slices, as we are deliberately testing with empty/0-length Series/DataFrames
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning)
 
-            # test consistency between different expanding_* moments
-            self._test_moments_consistency(
-                min_periods=min_periods,
-                count=mom.expanding_count,
-                mean=lambda x: mom.expanding_mean(x, min_periods=min_periods),
-                mock_mean=lambda x: mom.expanding_sum(x, min_periods=min_periods) / mom.expanding_count(x),
-                corr=lambda x, y: mom.expanding_corr(x, y, min_periods=min_periods),
-                var_unbiased=lambda x: mom.expanding_var(x, min_periods=min_periods),
-                std_unbiased=lambda x: mom.expanding_std(x, min_periods=min_periods),
-                cov_unbiased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods),
-                var_biased=lambda x: mom.expanding_var(x, min_periods=min_periods, ddof=0),
-                std_biased=lambda x: mom.expanding_std(x, min_periods=min_periods, ddof=0),
-                cov_biased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods, ddof=0),
-                var_debiasing_factors=lambda x: mom.expanding_count(x) / (mom.expanding_count(x) - 1.).replace(0., np.nan)
-                )
+            for min_periods in [0, 1, 2, 3, 4]:
 
-            # test consistency between expanding_xyz() and either (a) expanding_apply of Series.xyz(),
-            #                                                  or (b) expanding_apply of np.nanxyz()
-            for x in self._test_data():
-                assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
-                functions = base_functions
-                # GH 8269
-                if x.notnull().all().all():
-                    functions = base_functions + no_nan_functions
-                for (expanding_f, f, require_min_periods) in functions:
-                    if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
-                        continue
+                # test consistency between different expanding_* moments
+                self._test_moments_consistency(
+                    min_periods=min_periods,
+                    count=mom.expanding_count,
+                    mean=lambda x: mom.expanding_mean(x, min_periods=min_periods),
+                    mock_mean=lambda x: mom.expanding_sum(x, min_periods=min_periods) / mom.expanding_count(x),
+                    corr=lambda x, y: mom.expanding_corr(x, y, min_periods=min_periods),
+                    var_unbiased=lambda x: mom.expanding_var(x, min_periods=min_periods),
+                    std_unbiased=lambda x: mom.expanding_std(x, min_periods=min_periods),
+                    cov_unbiased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods),
+                    var_biased=lambda x: mom.expanding_var(x, min_periods=min_periods, ddof=0),
+                    std_biased=lambda x: mom.expanding_std(x, min_periods=min_periods, ddof=0),
+                    cov_biased=lambda x, y: mom.expanding_cov(x, y, min_periods=min_periods, ddof=0),
+                    var_debiasing_factors=lambda x: mom.expanding_count(x) / (mom.expanding_count(x) - 1.).replace(0., np.nan)
+                    )
 
-                    if expanding_f is mom.expanding_count:
-                        expanding_f_result = expanding_f(x)
-                        expanding_apply_f_result = mom.expanding_apply(x, func=f, min_periods=0)
-                    else:
-                        if expanding_f in [mom.expanding_cov, mom.expanding_corr]:
-                            expanding_f_result = expanding_f(x, min_periods=min_periods, pairwise=False)
+                # test consistency between expanding_xyz() and either (a) expanding_apply of Series.xyz(),
+                #                                                  or (b) expanding_apply of np.nanxyz()
+                for x in self._test_data():
+                    assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
+                    functions = base_functions
+                    # GH 8269
+                    if x.notnull().all().all():
+                        functions = base_functions + no_nan_functions
+                    for (expanding_f, f, require_min_periods) in functions:
+                        if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
+                            continue
+
+                        if expanding_f is mom.expanding_count:
+                            expanding_f_result = expanding_f(x)
+                            expanding_apply_f_result = mom.expanding_apply(x, func=f, min_periods=0)
                         else:
-                            expanding_f_result = expanding_f(x, min_periods=min_periods)
-                        expanding_apply_f_result = mom.expanding_apply(x, func=f, min_periods=min_periods)
-                    assert_equal(expanding_f_result, expanding_apply_f_result)
+                            if expanding_f in [mom.expanding_cov, mom.expanding_corr]:
+                                expanding_f_result = expanding_f(x, min_periods=min_periods, pairwise=False)
+                            else:
+                                expanding_f_result = expanding_f(x, min_periods=min_periods)
+                            expanding_apply_f_result = mom.expanding_apply(x, func=f, min_periods=min_periods)
+                        assert_equal(expanding_f_result, expanding_apply_f_result)
 
-                    if (expanding_f in [mom.expanding_cov, mom.expanding_corr]) and isinstance(x, DataFrame):
-                        # test pairwise=True
-                        expanding_f_result = expanding_f(x, x, min_periods=min_periods, pairwise=True)
-                        expected = Panel(items=x.index, major_axis=x.columns, minor_axis=x.columns)
-                        for i, _ in enumerate(x.columns):
-                            for j, _ in enumerate(x.columns):
-                                expected.iloc[:, i, j] = expanding_f(x.iloc[:, i], x.iloc[:, j], min_periods=min_periods)
-                        assert_panel_equal(expanding_f_result, expected)
+                        if (expanding_f in [mom.expanding_cov, mom.expanding_corr]) and isinstance(x, DataFrame):
+                            # test pairwise=True
+                            expanding_f_result = expanding_f(x, x, min_periods=min_periods, pairwise=True)
+                            expected = Panel(items=x.index, major_axis=x.columns, minor_axis=x.columns)
+                            for i, _ in enumerate(x.columns):
+                                for j, _ in enumerate(x.columns):
+                                    expected.iloc[:, i, j] = expanding_f(x.iloc[:, i], x.iloc[:, j], min_periods=min_periods)
+                            assert_panel_equal(expanding_f_result, expected)
 
     @slow
     def test_rolling_consistency(self):
@@ -1615,102 +1625,106 @@ class TestMoments(tm.TestCase):
         df2 = DataFrame([[None,1,1],[None,1,2],[None,3,2],[None,8,1]], columns=['Y','Z','X'])
         s = Series([1,1,3,8])
 
-        # DataFrame methods (which do not call _flex_binary_moment())
-        for f in [lambda x: x.cov(),
-                  lambda x: x.corr(),
-                 ]:
-            results = [f(df) for df in df1s]
-            for (df, result) in zip(df1s, results):
-                assert_index_equal(result.index, df.columns)
-                assert_index_equal(result.columns, df.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.assert_numpy_array_equivalent(result, results[0])
+        # suppress warnings about incomparable objects, as we are deliberately testing with such column labels
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*incomparable objects.*", category=RuntimeWarning)
 
-        # DataFrame with itself, pairwise=True
-        for f in [lambda x: mom.expanding_cov(x, pairwise=True),
-                  lambda x: mom.expanding_corr(x, pairwise=True),
-                  lambda x: mom.rolling_cov(x, window=3, pairwise=True),
-                  lambda x: mom.rolling_corr(x, window=3, pairwise=True),
-                  lambda x: mom.ewmcov(x, com=3, pairwise=True),
-                  lambda x: mom.ewmcorr(x, com=3, pairwise=True),
-                 ]:
-            results = [f(df) for df in df1s]
-            for (df, result) in zip(df1s, results):
-                assert_index_equal(result.items, df.index)
-                assert_index_equal(result.major_axis, df.columns)
-                assert_index_equal(result.minor_axis, df.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.assert_numpy_array_equivalent(result, results[0])
+            # DataFrame methods (which do not call _flex_binary_moment())
+            for f in [lambda x: x.cov(),
+                      lambda x: x.corr(),
+                     ]:
+                results = [f(df) for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    assert_index_equal(result.index, df.columns)
+                    assert_index_equal(result.columns, df.columns)
+                for i, result in enumerate(results):
+                    if i > 0:
+                        self.assert_numpy_array_equivalent(result, results[0])
 
-        # DataFrame with itself, pairwise=False
-        for f in [lambda x: mom.expanding_cov(x, pairwise=False),
-                  lambda x: mom.expanding_corr(x, pairwise=False),
-                  lambda x: mom.rolling_cov(x, window=3, pairwise=False),
-                  lambda x: mom.rolling_corr(x, window=3, pairwise=False),
-                  lambda x: mom.ewmcov(x, com=3, pairwise=False),
-                  lambda x: mom.ewmcorr(x, com=3, pairwise=False),
-                 ]:
-            results = [f(df) for df in df1s]
-            for (df, result) in zip(df1s, results):
-                assert_index_equal(result.index, df.index)
-                assert_index_equal(result.columns, df.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.assert_numpy_array_equivalent(result, results[0])
+            # DataFrame with itself, pairwise=True
+            for f in [lambda x: mom.expanding_cov(x, pairwise=True),
+                      lambda x: mom.expanding_corr(x, pairwise=True),
+                      lambda x: mom.rolling_cov(x, window=3, pairwise=True),
+                      lambda x: mom.rolling_corr(x, window=3, pairwise=True),
+                      lambda x: mom.ewmcov(x, com=3, pairwise=True),
+                      lambda x: mom.ewmcorr(x, com=3, pairwise=True),
+                     ]:
+                results = [f(df) for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    assert_index_equal(result.items, df.index)
+                    assert_index_equal(result.major_axis, df.columns)
+                    assert_index_equal(result.minor_axis, df.columns)
+                for i, result in enumerate(results):
+                    if i > 0:
+                        self.assert_numpy_array_equivalent(result, results[0])
 
-        # DataFrame with another DataFrame, pairwise=True
-        for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=True),
-                  lambda x, y: mom.expanding_corr(x, y, pairwise=True),
-                  lambda x, y: mom.rolling_cov(x, y, window=3, pairwise=True),
-                  lambda x, y: mom.rolling_corr(x, y, window=3, pairwise=True),
-                  lambda x, y: mom.ewmcov(x, y, com=3, pairwise=True),
-                  lambda x, y: mom.ewmcorr(x, y, com=3, pairwise=True),
-                 ]:
-            results = [f(df, df2) for df in df1s]
-            for (df, result) in zip(df1s, results):
-                assert_index_equal(result.items, df.index)
-                assert_index_equal(result.major_axis, df.columns)
-                assert_index_equal(result.minor_axis, df2.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.assert_numpy_array_equivalent(result, results[0])
+            # DataFrame with itself, pairwise=False
+            for f in [lambda x: mom.expanding_cov(x, pairwise=False),
+                      lambda x: mom.expanding_corr(x, pairwise=False),
+                      lambda x: mom.rolling_cov(x, window=3, pairwise=False),
+                      lambda x: mom.rolling_corr(x, window=3, pairwise=False),
+                      lambda x: mom.ewmcov(x, com=3, pairwise=False),
+                      lambda x: mom.ewmcorr(x, com=3, pairwise=False),
+                     ]:
+                results = [f(df) for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    assert_index_equal(result.index, df.index)
+                    assert_index_equal(result.columns, df.columns)
+                for i, result in enumerate(results):
+                    if i > 0:
+                        self.assert_numpy_array_equivalent(result, results[0])
 
-        # DataFrame with another DataFrame, pairwise=False
-        for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=False),
-                  lambda x, y: mom.expanding_corr(x, y, pairwise=False),
-                  lambda x, y: mom.rolling_cov(x, y, window=3, pairwise=False),
-                  lambda x, y: mom.rolling_corr(x, y, window=3, pairwise=False),
-                  lambda x, y: mom.ewmcov(x, y, com=3, pairwise=False),
-                  lambda x, y: mom.ewmcorr(x, y, com=3, pairwise=False),
-                 ]:
-            results = [f(df, df2) if df.columns.is_unique else None for df in df1s]
-            for (df, result) in zip(df1s, results):
-                if result is not None:
-                    expected_index = df.index.union(df2.index)
-                    expected_columns = df.columns.union(df2.columns)
-                    assert_index_equal(result.index, expected_index)
-                    assert_index_equal(result.columns, expected_columns)
-                else:
-                    tm.assertRaisesRegexp(ValueError, "'arg1' columns are not unique", f, df, df2)
-                    tm.assertRaisesRegexp(ValueError, "'arg2' columns are not unique", f, df2, df)
+            # DataFrame with another DataFrame, pairwise=True
+            for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=True),
+                      lambda x, y: mom.expanding_corr(x, y, pairwise=True),
+                      lambda x, y: mom.rolling_cov(x, y, window=3, pairwise=True),
+                      lambda x, y: mom.rolling_corr(x, y, window=3, pairwise=True),
+                      lambda x, y: mom.ewmcov(x, y, com=3, pairwise=True),
+                      lambda x, y: mom.ewmcorr(x, y, com=3, pairwise=True),
+                     ]:
+                results = [f(df, df2) for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    assert_index_equal(result.items, df.index)
+                    assert_index_equal(result.major_axis, df.columns)
+                    assert_index_equal(result.minor_axis, df2.columns)
+                for i, result in enumerate(results):
+                    if i > 0:
+                        self.assert_numpy_array_equivalent(result, results[0])
 
-        # DataFrame with a Series
-        for f in [lambda x, y: mom.expanding_cov(x, y),
-                  lambda x, y: mom.expanding_corr(x, y),
-                  lambda x, y: mom.rolling_cov(x, y, window=3),
-                  lambda x, y: mom.rolling_corr(x, y, window=3),
-                  lambda x, y: mom.ewmcov(x, y, com=3),
-                  lambda x, y: mom.ewmcorr(x, y, com=3),
-                 ]:
-            results = [f(df, s) for df in df1s] + [f(s, df) for df in df1s]
-            for (df, result) in zip(df1s, results):
-                assert_index_equal(result.index, df.index)
-                assert_index_equal(result.columns, df.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.assert_numpy_array_equivalent(result, results[0])
+            # DataFrame with another DataFrame, pairwise=False
+            for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=False),
+                      lambda x, y: mom.expanding_corr(x, y, pairwise=False),
+                      lambda x, y: mom.rolling_cov(x, y, window=3, pairwise=False),
+                      lambda x, y: mom.rolling_corr(x, y, window=3, pairwise=False),
+                      lambda x, y: mom.ewmcov(x, y, com=3, pairwise=False),
+                      lambda x, y: mom.ewmcorr(x, y, com=3, pairwise=False),
+                     ]:
+                results = [f(df, df2) if df.columns.is_unique else None for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    if result is not None:
+                        expected_index = df.index.union(df2.index)
+                        expected_columns = df.columns.union(df2.columns)
+                        assert_index_equal(result.index, expected_index)
+                        assert_index_equal(result.columns, expected_columns)
+                    else:
+                        tm.assertRaisesRegexp(ValueError, "'arg1' columns are not unique", f, df, df2)
+                        tm.assertRaisesRegexp(ValueError, "'arg2' columns are not unique", f, df2, df)
+
+            # DataFrame with a Series
+            for f in [lambda x, y: mom.expanding_cov(x, y),
+                      lambda x, y: mom.expanding_corr(x, y),
+                      lambda x, y: mom.rolling_cov(x, y, window=3),
+                      lambda x, y: mom.rolling_corr(x, y, window=3),
+                      lambda x, y: mom.ewmcov(x, y, com=3),
+                      lambda x, y: mom.ewmcorr(x, y, com=3),
+                     ]:
+                results = [f(df, s) for df in df1s] + [f(s, df) for df in df1s]
+                for (df, result) in zip(df1s, results):
+                    assert_index_equal(result.index, df.index)
+                    assert_index_equal(result.columns, df.columns)
+                for i, result in enumerate(results):
+                    if i > 0:
+                        self.assert_numpy_array_equivalent(result, results[0])
 
     def test_rolling_skew_edge_cases(self):
 
