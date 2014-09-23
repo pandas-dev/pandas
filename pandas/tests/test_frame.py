@@ -3528,7 +3528,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # GH 8363
         # datetime ops with a non-unique index
-        df = DataFrame({'A' : np.arange(5), 'B' : np.arange(1,6)},index=[2,2,3,3,4])
+        df = DataFrame({'A' : np.arange(5,dtype='int64'), 
+                        'B' : np.arange(1,6,dtype='int64')},
+                       index=[2,2,3,3,4])
         result = df.B-df.A
         expected = Series(1,index=[2,2,3,3,4])
         assert_series_equal(result,expected)
