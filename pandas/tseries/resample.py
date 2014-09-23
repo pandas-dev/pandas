@@ -6,7 +6,7 @@ from pandas.core.groupby import BinGrouper, Grouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
+from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.tseries.tools as tools
 import pandas.core.common as com
@@ -385,9 +385,11 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
         offset = to_offset(offset)
 
     if isinstance(offset, Tick):
+        is_day = isinstance(offset, Day)
         day_nanos = _delta_to_nanoseconds(timedelta(1))
+
         # #1165
-        if (day_nanos % offset.nanos) == 0:
+        if (is_day and day_nanos % offset.nanos == 0) or not is_day:
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
