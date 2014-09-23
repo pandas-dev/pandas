@@ -7183,6 +7183,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # bad input
         self.assertRaises(ValueError, self.frame.dropna, how='foo')
         self.assertRaises(TypeError, self.frame.dropna, how=None)
+        # non-existent column - 8303
+        self.assertRaises(KeyError, self.frame.dropna, subset=['A','X'])
 
     def test_dropna_multiple_axes(self):
         df = DataFrame([[1, np.nan, 2, 3],
