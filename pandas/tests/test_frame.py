@@ -7650,6 +7650,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(TypeError, self.frame.fillna, [1, 2])
         # tuple
         self.assertRaises(TypeError, self.frame.fillna, (1, 2))
+        # frame
+        self.assertRaises(NotImplementedError, self.frame.fillna, self.frame)
+        # frame with series
+        self.assertRaises(ValueError, self.frame.iloc[:,0].fillna, self.frame)
 
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan

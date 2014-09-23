@@ -278,6 +278,8 @@ API changes
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - add ``copy=True`` argument to ``pd.concat`` to enable pass thrue of complete blocks (:issue:`8252`)
 
+- ``.fillna`` will now raise a ``NotImplementedError`` when passed a ``DataFrame`` (:issue:`8377`)
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
@@ -954,7 +956,6 @@ Bug Fixes
 - Bug with kde plot and NaNs (:issue:`8182`)
 - Bug in ``GroupBy.count`` with float32 data type were nan values were not excluded (:issue:`8169`).
 - Bug with stacked barplots and NaNs (:issue:`8175`).
-
 
 
 - Bug in interpolation methods with the ``limit`` keyword when no values needed interpolating (:issue:`7173`).
