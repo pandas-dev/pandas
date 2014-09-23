@@ -1279,6 +1279,7 @@ class Index(IndexOpsMixin, PandasObject):
         except:
             # duplicates
             indexer = self.get_indexer_non_unique(other.values)[0].unique()
+            indexer = indexer[indexer != -1]
 
         taken = self.take(indexer)
         if self.name != other.name:
