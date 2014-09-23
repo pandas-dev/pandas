@@ -105,6 +105,17 @@ def _ensure_datetime64(other):
 
 _midnight = time(0, 0)
 
+def _new_DatetimeIndex(cls, d):
+    """ This is called upon unpickling, rather than the default which doesn't have arguments
+        and breaks __new__ """
+
+    # simply set the tz
+    # data are already in UTC
+    tz = d.pop('tz',None)
+    result = cls.__new__(cls, **d)
+    result.tz = tz
+    return result
+
 class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -582,6 +593,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         from pandas.core.format import _get_format_datetime64
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: formatter(x, tz=self.tz)
+
+    def __reduce__(self):
+
+        # we use a special reudce here because we need
+        # to simply set the .tz (and not reinterpret it)
+
+        d = dict(data=self._data)
+        d.update(self._get_attributes_dict())
+        return _new_DatetimeIndex, (self.__class__, d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
