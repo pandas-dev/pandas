@@ -68,7 +68,6 @@ def show_versions(as_json=False):
         ("IPython", lambda mod: mod.__version__),
         ("sphinx", lambda mod: mod.__version__),
         ("patsy", lambda mod: mod.__version__),
-        ("scikits.timeseries", lambda mod: mod.__version__),
         ("dateutil", lambda mod: mod.__version__),
         ("pytz", lambda mod: mod.VERSION),
         ("bottleneck", lambda mod: mod.__version__),
