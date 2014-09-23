@@ -3523,6 +3523,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = z.ix[['a', 'c', 'a']]
         check(result,expected)
 
+
+    def test_column_dups_indexing2(self):
+
+        # GH 8363
+        # datetime ops with a non-unique index
+        df = DataFrame({'A' : np.arange(5), 'B' : np.arange(1,6)},index=[2,2,3,3,4])
+        result = df.B-df.A
+        expected = Series(1,index=[2,2,3,3,4])
+        assert_series_equal(result,expected)
+
+        df = DataFrame({'A' : date_range('20130101',periods=5), 'B' : date_range('20130101 09:00:00', periods=5)},index=[2,2,3,3,4])
+        result = df.B-df.A
+        expected = Series(Timedelta('9 hours'),index=[2,2,3,3,4])
+        assert_series_equal(result,expected)
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
