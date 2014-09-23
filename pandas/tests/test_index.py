@@ -1645,6 +1645,14 @@ class TestDatetimeIndex(Base, tm.TestCase):
                       lambda : pd.date_range('2000-01-01', periods=3) * np.timedelta64(1, 'D').astype('m8[ns]') ]:
                 self.assertRaises(TypeError, f)
 
+    def test_roundtrip_pickle_with_tz(self):
+
+        # GH 8367
+        # round-trip of timezone
+        index=date_range('20130101',periods=3,tz='US/Eastern',name='foo')
+        unpickled = self.round_trip_pickle(index)
+        self.assertTrue(index.equals(unpickled))
+
 class TestPeriodIndex(Base, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
@@ -2346,6 +2354,14 @@ class TestMultiIndex(Base, tm.TestCase):
         exp2 = obj2.get_indexer(obj2[::-1])
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
+
+    def test_roundtrip_pickle_with_tz(self):
+
+        # GH 8367
+        # round-trip of timezone
+        index=MultiIndex.from_product([[1,2],['a','b'],date_range('20130101',periods=3,tz='US/Eastern')],names=['one','two','three'])
+        unpickled = self.round_trip_pickle(index)
+        self.assertTrue(index.equal_levels(unpickled))
 
     def test_from_tuples_index_values(self):
         result = MultiIndex.from_tuples(self.index)

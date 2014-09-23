@@ -3323,8 +3323,8 @@ class MultiIndex(Index):
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
-        d = dict(levels = [lev.view(np.ndarray) for lev in self.levels],
-                 labels = [label.view(np.ndarray) for label in self.labels],
+        d = dict(levels = [lev for lev in self.levels],
+                 labels = [label for label in self.labels],
                  sortorder = self.sortorder,
                  names = list(self.names))
         return _new_Index, (self.__class__, d), None
