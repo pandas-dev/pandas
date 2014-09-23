@@ -1,13 +1,14 @@
+# -*- coding: utf-8 -*-
 """
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
+
 from __future__ import print_function, division
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 import warnings
 import traceback
-import itertools
 import re
 import numpy as np
 
@@ -15,9 +16,11 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame, Series
-from pandas.core.common import notnull, isnull
+from pandas.core.common import isnull
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
+
+from contextlib import contextmanager
 
 
 class SQLAlchemyRequired(ImportError):
@@ -32,6 +35,7 @@ class DatabaseError(IOError):
 # Helper functions
 
 _SQLALCHEMY_INSTALLED = None
+
 
 def _is_sqlalchemy_engine(con):
     global _SQLALCHEMY_INSTALLED
@@ -79,7 +83,8 @@ def _handle_date_column(col, format=None):
     else:
         if format in ['D', 's', 'ms', 'us', 'ns']:
             return to_datetime(col, coerce=True, unit=format)
-        elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
+        elif (issubclass(col.dtype.type, np.floating)
+                or issubclass(col.dtype.type, np.integer)):
             # parse dates as timestamp
             format = 's' if format is None else format
             return to_datetime(col, coerce=True, unit=format)
@@ -88,8 +93,9 @@ def _handle_date_column(col, format=None):
 
 
 def _parse_date_columns(data_frame, parse_dates):
-    """ Force non-datetime columns to be read as such.
-        Supports both string formatted and integer timestamp columns
+    """
+    Force non-datetime columns to be read as such.
+    Supports both string formatted and integer timestamp columns
     """
     # handle non-list entries for parse_dates gracefully
     if parse_dates is True or parse_dates is None or parse_dates is False:
@@ -151,6 +157,7 @@ def _safe_fetch(cur):
         if excName == 'OperationalError':
             return []
 
+
 def tquery(sql, con=None, cur=None, retry=True):
     """
     DEPRECATED. Returns list of tuples corresponding to each row in given sql
@@ -208,8 +215,8 @@ def tquery(sql, con=None, cur=None, retry=True):
 
 def uquery(sql, con=None, cur=None, retry=True, params=None):
     """
-    DEPRECATED. Does the same thing as tquery, but instead of returning results, it
-    returns the number of rows affected.  Good for update queries.
+    DEPRECATED. Does the same thing as tquery, but instead of returning
+    results, it returns the number of rows affected.  Good for update queries.
 
     To obtain the same result in the future, you can use the following:
 
@@ -268,8 +275,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     con : SQLAlchemy engine
         Sqlite DBAPI connection mode not supported
     schema : string, default None
-        Name of SQL schema in database to query (if database flavor supports this).
-        If None, use default schema (default).
+        Name of SQL schema in database to query (if database flavor
+        supports this). If None, use default schema (default).
     index_col : string, optional
         Column to set as index
     coerce_float : boolean, default True
@@ -341,7 +348,11 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional
-        List of parameters to pass to execute method.
+        List of parameters to pass to execute method.  The syntax used
+        to pass parameters is database driver dependent. Check your
+        database driver documentation for which of the five syntax styles,
+        described in PEP 249's paramstyle, is supported.
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
     parse_dates : list or dict
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
@@ -387,7 +398,11 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional
-        List of parameters to pass to execute method.
+        List of parameters to pass to execute method.  The syntax used
+        to pass parameters is database driver dependent. Check your
+        database driver documentation for which of the five syntax styles,
+        described in PEP 249's paramstyle, is supported.
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
     parse_dates : list or dict
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
@@ -460,8 +475,8 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         'mysql' is deprecated and will be removed in future versions, but it
         will be further supported through SQLAlchemy engines.
     schema : string, default None
-        Name of SQL schema in database to write to (if database flavor supports
-        this). If None, use default schema (default).
+        Name of SQL schema in database to write to (if database flavor
+        supports this). If None, use default schema (default).
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
@@ -473,7 +488,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         `index` is True, then the index names are used.
         A sequence should be given if the DataFrame uses MultiIndex.
     chunksize : int, default None
-        If not None, then rows will be written in batches of this size at a 
+        If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
 
     """
@@ -526,7 +541,9 @@ _MYSQL_WARNING = ("The 'mysql' flavor with DBAPI connection is deprecated "
                   "and will be removed in future versions. "
                   "MySQL will be further supported with SQLAlchemy engines.")
 
-def pandasSQL_builder(con, flavor=None, schema=None, meta=None, is_cursor=False):
+
+def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
+                      is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
@@ -552,33 +569,19 @@ class PandasSQLTable(PandasObject):
     # TODO: support for multiIndex
     def __init__(self, name, pandas_sql_engine, frame=None, index=True,
                  if_exists='fail', prefix='pandas', index_label=None,
-                 schema=None):
+                 schema=None, keys=None):
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
         self.frame = frame
         self.index = self._index_name(index, index_label)
         self.schema = schema
+        self.if_exists = if_exists
+        self.keys = keys
 
         if frame is not None:
-            # We want to write a frame
-            if self.pd_sql.has_table(self.name, self.schema):
-                if if_exists == 'fail':
-                    raise ValueError("Table '%s' already exists." % name)
-                elif if_exists == 'replace':
-                    self.pd_sql.drop_table(self.name, self.schema)
-                    self.table = self._create_table_setup()
-                    self.create()
-                elif if_exists == 'append':
-                    self.table = self.pd_sql.get_table(self.name, self.schema)
-                    if self.table is None:
-                        self.table = self._create_table_setup()
-                else:
-                    raise ValueError(
-                        "'{0}' is not valid for if_exists".format(if_exists))
-            else:
-                self.table = self._create_table_setup()
-                self.create()
+            # We want to initialize based on a dataframe
+            self.table = self._create_table_setup()
         else:
             # no data provided, read-only mode
             self.table = self.pd_sql.get_table(self.name, self.schema)
@@ -593,8 +596,25 @@ class PandasSQLTable(PandasObject):
         from sqlalchemy.schema import CreateTable
         return str(CreateTable(self.table))
 
-    def create(self):
+    def _execute_create(self):
+        # Inserting table into database, add to MetaData object
+        self.table = self.table.tometadata(self.pd_sql.meta)
         self.table.create()
+
+    def create(self):
+        if self.exists():
+            if self.if_exists == 'fail':
+                raise ValueError("Table '%s' already exists." % self.name)
+            elif self.if_exists == 'replace':
+                self.pd_sql.drop_table(self.name, self.schema)
+                self._execute_create()
+            elif self.if_exists == 'append':
+                pass
+            else:
+                raise ValueError(
+                    "'{0}' is not valid for if_exists".format(self.if_exists))
+        else:
+            self._execute_create()
 
     def insert_statement(self):
         return self.table.insert()
@@ -610,7 +630,7 @@ class PandasSQLTable(PandasObject):
                     "duplicate name in index/columns: {0}".format(err))
         else:
             temp = self.frame
-        
+
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
@@ -619,7 +639,8 @@ class PandasSQLTable(PandasObject):
         for i in range(len(blocks)):
             b = blocks[i]
             if b.is_datetime:
-                # convert to microsecond resolution so this yields datetime.datetime
+                # convert to microsecond resolution so this yields
+                # datetime.datetime
                 d = b.values.astype('M8[us]').astype(object)
             else:
                 d = np.array(b.values, dtype=object)
@@ -634,28 +655,34 @@ class PandasSQLTable(PandasObject):
 
         return column_names, data_list
 
-    def insert(self, chunksize=None):
+    def _execute_insert(self, conn, keys, data_iter):
+        data = [dict((k, v) for k, v in zip(keys, row)) for row in data_iter]
+        conn.execute(self.insert_statement(), data)
 
-        ins = self.insert_statement()
+    def insert(self, chunksize=None):
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
-        if chunksize is None: 
+
+        if nrows == 0:
+            return
+
+        if chunksize is None:
             chunksize = nrows
+        elif chunksize == 0:
+            raise ValueError('chunksize argument should be non-zero')
+
         chunks = int(nrows / chunksize) + 1
 
-        con = self.pd_sql.engine.connect()
-        with con.begin() as trans:
+        with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, nrows)
                 if start_i >= end_i:
                     break
 
-                chunk_list = [arr[start_i:end_i] for arr in data_list]
-                insert_list = [dict((k, v) for k, v in zip(keys, row))
-                               for row in zip(*chunk_list)]
-                con.execute(ins, insert_list)
+                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+                self._execute_insert(conn, keys, chunk_iter)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
 
@@ -697,7 +724,8 @@ class PandasSQLTable(PandasObject):
                 else:
                     return index_label
             # return the used column labels for the index columns
-            if nlevels == 1 and 'index' not in self.frame.columns and self.frame.index.name is None:
+            if (nlevels == 1 and 'index' not in self.frame.columns
+                    and self.frame.index.name is None):
                 return ['index']
             else:
                 return [l if l is not None else "level_{0}".format(i)
@@ -721,7 +749,7 @@ class PandasSQLTable(PandasObject):
 
         column_names_and_types += [
             (str(self.frame.columns[i]),
-             dtype_mapper(self.frame.iloc[:,i]),
+             dtype_mapper(self.frame.iloc[:, i]),
              False)
             for i in range(len(self.frame.columns))
             ]
@@ -729,7 +757,7 @@ class PandasSQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Table, Column
+        from sqlalchemy import Table, Column, PrimaryKeyConstraint
 
         column_names_and_types = \
             self._get_column_names_and_types(self._sqlalchemy_type)
@@ -737,20 +765,30 @@ class PandasSQLTable(PandasObject):
         columns = [Column(name, typ, index=is_index)
                    for name, typ, is_index in column_names_and_types]
 
-        return Table(self.name, self.pd_sql.meta, *columns, schema=self.schema)
+        if self.keys is not None:
+            pkc = PrimaryKeyConstraint(self.keys, name=self.name + '_pk')
+            columns.append(pkc)
+
+        schema = self.schema or self.pd_sql.meta.schema
+
+        # At this point, attach to new metadata, only attach to self.meta
+        # once table is created.
+        from sqlalchemy.schema import MetaData
+        meta = MetaData(self.pd_sql, schema=schema)
+
+        return Table(self.name, meta, *columns, schema=schema)
 
     def _harmonize_columns(self, parse_dates=None):
-        """ Make a data_frame's column type align with an sql_table
-            column types
-            Need to work around limited NA value support.
-            Floats are always fine, ints must always
-            be floats if there are Null values.
-            Booleans are hard because converting bool column with None replaces
-            all Nones with false. Therefore only convert bool if there are no
-            NA values.
-            Datetimes should already be converted
-            to np.datetime if supported, but here we also force conversion
-            if required
+        """
+        Make the DataFrame's column types align with the SQL table
+        column types.
+        Need to work around limited NA value support. Floats are always
+        fine, ints must always be floats if there are Null values.
+        Booleans are hard because converting bool column with None replaces
+        all Nones with false. Therefore only convert bool if there are no
+        NA values.
+        Datetimes should already be converted to np.datetime64 if supported,
+        but here we also force conversion if required
         """
         # handle non-list entries for parse_dates gracefully
         if parse_dates is True or parse_dates is None or parse_dates is False:
@@ -793,7 +831,7 @@ class PandasSQLTable(PandasObject):
 
     def _sqlalchemy_type(self, col):
         from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
-            DateTime, Date, Time, Interval)
+            DateTime, Date, Time)
 
         if com.is_datetime64_dtype(col):
             try:
@@ -844,12 +882,12 @@ class PandasSQL(PandasObject):
     """
 
     def read_sql(self, *args, **kwargs):
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
+        raise ValueError("PandasSQL must be created with an SQLAlchemy engine"
+                         " or connection+sql flavor")
 
     def to_sql(self, *args, **kwargs):
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
+        raise ValueError("PandasSQL must be created with an SQLAlchemy engine"
+                         " or connection+sql flavor")
 
 
 class PandasSQLAlchemy(PandasSQL):
@@ -866,13 +904,15 @@ class PandasSQLAlchemy(PandasSQL):
 
         self.meta = meta
 
+    def run_transaction(self):
+        return self.engine.begin()
+
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy engine"""
         return self.engine.execute(*args, **kwargs)
 
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None, schema=None):
-
         table = PandasSQLTable(
             table_name, self, index=index_col, schema=schema)
         return table.read(coerce_float=coerce_float,
@@ -901,6 +941,7 @@ class PandasSQLAlchemy(PandasSQL):
         table = PandasSQLTable(
             name, self, frame=frame, index=index, if_exists=if_exists,
             index_label=index_label, schema=schema)
+        table.create()
         table.insert(chunksize)
         # check for potentially case sensitivity issues (GH7815)
         if name not in self.engine.table_names(schema=schema or self.meta.schema):
@@ -930,8 +971,9 @@ class PandasSQLAlchemy(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name):
-        table = PandasSQLTable(table_name, self, frame=frame)
+    def _create_sql_schema(self, frame, table_name, keys=None):
+        table = PandasSQLTable(table_name, self, frame=frame, index=False,
+                               keys=keys)
         return str(table.sql_schema())
 
 
@@ -991,16 +1033,18 @@ _SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed. "
 
 
 class PandasSQLTableLegacy(PandasSQLTable):
-    """Patch the PandasSQLTable for legacy support.
-        Instead of a table variable just use the Create Table
-        statement"""
+    """
+    Patch the PandasSQLTable for legacy support.
+    Instead of a table variable just use the Create Table statement.
+    """
+
     def sql_schema(self):
         return str(";\n".join(self.table))
 
-    def create(self):
-        with self.pd_sql.con:
+    def _execute_create(self):
+        with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
-                self.pd_sql.execute(stmt)
+                conn.execute(stmt)
 
     def insert_statement(self):
         names = list(map(str, self.frame.columns))
@@ -1019,35 +1063,16 @@ class PandasSQLTableLegacy(PandasSQLTable):
             self.name, col_names, wildcards)
         return insert_statement
 
-    def insert(self, chunksize=None):
-
-        ins = self.insert_statement()
-        keys, data_list = self.insert_data()
-
-        nrows = len(self.frame)
-        if chunksize is None: 
-            chunksize = nrows
-        chunks = int(nrows / chunksize) + 1
-
-        with self.pd_sql.con:
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, nrows)
-                if start_i >= end_i:
-                    break
-                chunk_list = [arr[start_i:end_i] for arr in data_list]
-                insert_list = [tuple((v for v in row))
-                               for row in zip(*chunk_list)]
-                cur = self.pd_sql.con.cursor()
-                cur.executemany(ins, insert_list)
-                cur.close()
+    def _execute_insert(self, conn, keys, data_iter):
+        data_list = list(data_iter)
+        conn.executemany(self.insert_statement(), data_list)
 
     def _create_table_setup(self):
-        """Return a list of SQL statement that create a table reflecting the 
+        """
+        Return a list of SQL statement that create a table reflecting the
         structure of a DataFrame.  The first entry will be a CREATE TABLE
         statement while the rest will be CREATE INDEX statements
         """
-
         column_names_and_types = \
             self._get_column_names_and_types(self._sql_type_name)
 
@@ -1061,21 +1086,25 @@ class PandasSQLTableLegacy(PandasSQLTable):
         br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
         br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
 
-        col_template = br_l + '%s' + br_r + ' %s'
+        create_tbl_stmts = [(br_l + '%s' + br_r + ' %s') % (cname, ctype)
+                            for cname, ctype, _ in column_names_and_types]
+        if self.keys is not None and len(self.keys):
+            cnames_br = ",".join([br_l + c + br_r for c in self.keys])
+            create_tbl_stmts.append(
+                "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
+                tbl=self.name, cnames_br=cnames_br))
 
-        columns = ',\n  '.join(col_template % (cname, ctype)
-                               for cname, ctype, _ in column_names_and_types)
-        template = """CREATE TABLE %(name)s (
-                      %(columns)s
-                      )"""
-        create_stmts = [template % {'name': self.name, 'columns': columns}, ]
+        create_stmts = ["CREATE TABLE " + self.name + " (\n" +
+                        ',\n  '.join(create_tbl_stmts) + "\n)"]
 
-        ix_tpl = "CREATE INDEX ix_{tbl}_{col} ON {tbl} ({br_l}{col}{br_r})"
-        for cname, _, is_index in column_names_and_types:
-            if not is_index: 
-                continue
-            create_stmts.append(ix_tpl.format(tbl=self.name, col=cname, 
-                br_l=br_l, br_r=br_r))
+        ix_cols = [cname for cname, _, is_index in column_names_and_types
+                   if is_index]
+        if len(ix_cols):
+            cnames = "_".join(ix_cols)
+            cnames_br = ",".join([br_l + c + br_r for c in ix_cols])
+            create_stmts.append(
+                "CREATE INDEX ix_{tbl}_{cnames} ON {tbl} ({cnames_br})".format(
+                tbl=self.name, cnames=cnames, cnames_br=cnames_br))
 
         return create_stmts
 
@@ -1118,6 +1147,17 @@ class PandasSQLLegacy(PandasSQL):
         else:
             self.flavor = flavor
 
+    @contextmanager
+    def run_transaction(self):
+        cur = self.con.cursor()
+        try:
+            yield cur
+            self.con.commit()
+        except:
+            self.con.rollback()
+        finally:
+            cur.close()
+
     def execute(self, *args, **kwargs):
         if self.is_cursor:
             cur = self.con
@@ -1129,15 +1169,15 @@ class PandasSQLLegacy(PandasSQL):
             else:
                 cur.execute(*args)
             return cur
-        except Exception as e:
+        except Exception as exc:
             try:
                 self.con.rollback()
             except Exception:  # pragma: no cover
-                ex = DatabaseError(
-                    "Execution failed on sql: %s\n%s\nunable to rollback" % (args[0], e))
+                ex = DatabaseError("Execution failed on sql: %s\n%s\nunable"
+                                   " to rollback" % (args[0], exc))
                 raise_with_traceback(ex)
 
-            ex = DatabaseError("Execution failed on sql '%s': %s" % (args[0], e))
+            ex = DatabaseError("Execution failed on sql '%s': %s" % (args[0], exc))
             raise_with_traceback(ex)
 
     def read_sql(self, sql, index_col=None, coerce_float=True, params=None,
@@ -1172,16 +1212,28 @@ class PandasSQLLegacy(PandasSQL):
         ----------
         frame: DataFrame
         name: name of SQL table
-        flavor: {'sqlite', 'mysql'}, default 'sqlite'
         if_exists: {'fail', 'replace', 'append'}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
+        index : boolean, default True
+            Write DataFrame index as a column
+        index_label : string or sequence, default None
+            Column label for index column(s). If None is given (default) and
+            `index` is True, then the index names are used.
+            A sequence should be given if the DataFrame uses MultiIndex.
+        schema : string, default None
+            Ignored parameter included for compatability with SQLAlchemy
+            version of ``to_sql``.
+        chunksize : int, default None
+            If not None, then rows will be written in batches of this
+            size at a time. If None, all rows will be written at once.
 
         """
         table = PandasSQLTableLegacy(
             name, self, frame=frame, index=index, if_exists=if_exists,
             index_label=index_label)
+        table.create()
         table.insert(chunksize)
 
     def has_table(self, name, schema=None):
@@ -1200,8 +1252,9 @@ class PandasSQLLegacy(PandasSQL):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name):
-        table = PandasSQLTableLegacy(table_name, self, frame=frame)
+    def _create_sql_schema(self, frame, table_name, keys=None):
+        table = PandasSQLTableLegacy(table_name, self, frame=frame,
+                                     index=False, keys=keys)
         return str(table.sql_schema())
 
 
@@ -1227,58 +1280,8 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
 
     """
 
-    if con is None:
-        if flavor == 'mysql':
-            warnings.warn(_MYSQL_WARNING, FutureWarning)
-        return _get_schema_legacy(frame, name, flavor, keys)
-
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
-    return pandas_sql._create_sql_schema(frame, name)
-
-
-def _get_schema_legacy(frame, name, flavor, keys=None):
-    """Old function from 0.13.1. To keep backwards compatibility.
-    When mysql legacy support is dropped, it should be possible to
-    remove this code
-    """
-
-    def get_sqltype(dtype, flavor):
-        pytype = dtype.type
-        pytype_name = "text"
-        if issubclass(pytype, np.floating):
-            pytype_name = "float"
-        elif issubclass(pytype, np.integer):
-            pytype_name = "int"
-        elif issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            pytype_name = "datetime"
-        elif pytype is datetime.date:
-            pytype_name = "date"
-        elif issubclass(pytype, np.bool_):
-            pytype_name = "bool"
-
-        return _SQL_TYPES[pytype_name][flavor]
-
-    lookup_type = lambda dtype: get_sqltype(dtype, flavor)
-
-    column_types = lzip(frame.dtypes.index, map(lookup_type, frame.dtypes))
-    if flavor == 'sqlite':
-        columns = ',\n  '.join('[%s] %s' % x for x in column_types)
-    else:
-        columns = ',\n  '.join('`%s` %s' % x for x in column_types)
-
-    keystr = ''
-    if keys is not None:
-        if isinstance(keys, string_types):
-            keys = (keys,)
-        keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
-    template = """CREATE TABLE %(name)s (
-                  %(columns)s
-                  %(keystr)s
-                  );"""
-    create_statement = template % {'name': name, 'columns': columns,
-                                   'keystr': keystr}
-    return create_statement
+    return pandas_sql._create_sql_schema(frame, name, keys=keys)
 
 
 # legacy names, with depreciation warnings and copied docs

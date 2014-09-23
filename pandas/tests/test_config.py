@@ -59,6 +59,7 @@ class TestConfig(unittest.TestCase):
 
         # no python keywords
         self.assertRaises(ValueError, self.cf.register_option, 'for', 0)
+        self.assertRaises(ValueError, self.cf.register_option, 'a.for.b', 0)
         # must be valid identifier (ensure attribute access works)
         self.assertRaises(ValueError, self.cf.register_option,
                           'Oh my Goddess!', 0)

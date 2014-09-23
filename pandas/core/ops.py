@@ -314,7 +314,7 @@ class _TimeOp(object):
 
     def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
-        from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+        from pandas.tseries.timedeltas import to_timedelta
 
         coerce = True
         if not is_list_like(values):
@@ -337,7 +337,7 @@ class _TimeOp(object):
                 values = tslib.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
-            values = _possibly_cast_to_timedelta(values, coerce=coerce, dtype='timedelta64[ns]')
+            values = to_timedelta(values, coerce=coerce)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -356,7 +356,7 @@ class _TimeOp(object):
                                 "datetime/timedelta operations [{0}]".format(
                                     ', '.join([com.pprint_thing(v)
                                                for v in values[mask]])))
-            values = _possibly_cast_to_timedelta(os, coerce=coerce)
+            values = to_timedelta(os, coerce=coerce)
         elif inferred_type == 'floating':
 
             # all nan, so ok, use the other dtype (e.g. timedelta or datetime)

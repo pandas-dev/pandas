@@ -1628,6 +1628,7 @@ class NDFrame(PandasObject):
 
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
+
     _shared_docs['reindex'] = """
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
@@ -3558,10 +3559,10 @@ class NDFrame(PandasObject):
         result = self._constructor(self._data, copy=copy)
         result.set_axis(axis,ax)
         return result.__finalize__(self)
-    
+
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
-    def tz_localize(self, tz, axis=0, level=None, copy=True, 
+    def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise'):
         """
         Localize tz-naive TimeSeries to target time zone
@@ -3583,7 +3584,7 @@ class NDFrame(PandasObject):
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
         infer_dst : boolean, default False (DEPRECATED)
             Attempt to infer fall dst-transition hours based on order
-            
+
         Returns
         -------
         """

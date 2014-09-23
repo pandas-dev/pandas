@@ -952,7 +952,8 @@ def diff(arr, n, axis=0):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        out_arr = lib.map_infer(out_arr.ravel(),lib.Timedelta).reshape(out_arr.shape)
+        from pandas import TimedeltaIndex
+        out_arr = TimedeltaIndex(out_arr.ravel().astype('int64')).asi8.reshape(out_arr.shape).astype('timedelta64[ns]')
 
     return out_arr
 
@@ -1827,9 +1828,8 @@ def _possibly_convert_objects(values, convert_dates=True,
     if convert_timedeltas and values.dtype == np.object_:
 
         if convert_timedeltas == 'coerce':
-            from pandas.tseries.timedeltas import \
-                 _possibly_cast_to_timedelta
-            values = _possibly_cast_to_timedelta(values, coerce=True)
+            from pandas.tseries.timedeltas import to_timedelta
+            values = to_timedelta(values, coerce=True)
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
@@ -1889,7 +1889,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
-    from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+    from pandas.tseries.timedeltas import to_timedelta
     from pandas.tseries.tools import to_datetime
 
     if dtype is not None:
@@ -1931,8 +1931,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                         if is_datetime64:
                             value = to_datetime(value, coerce=coerce).values
                         elif is_timedelta64:
-                            value = _possibly_cast_to_timedelta(value,
-                                                                dtype=dtype)
+                            value = to_timedelta(value, coerce=coerce).values
                     except (AttributeError, ValueError):
                         pass
 
@@ -1949,7 +1948,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 value = value.astype(_NS_DTYPE)
 
             elif dtype.kind == 'm' and dtype != _TD_DTYPE:
-                value = _possibly_cast_to_timedelta(value)
+                value = to_timedelta(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
@@ -2005,16 +2004,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
             try:
                 return to_timedelta(v).values.reshape(shape)
             except:
-
-                # this is for compat with numpy < 1.7
-                # but string-likes will fail here
-
-                from pandas.tseries.timedeltas import \
-                     _possibly_cast_to_timedelta
-                try:
-                    return _possibly_cast_to_timedelta(v, coerce='compat').reshape(shape)
-                except:
-                    return v
+                return v
 
         # do a quick inference for perf
         sample = v[:min(3,len(v))]

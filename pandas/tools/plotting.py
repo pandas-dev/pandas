@@ -3,6 +3,7 @@
 import datetime
 import warnings
 import re
+from math import ceil
 from collections import namedtuple
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -405,10 +406,10 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     for kls in classes:
         to_plot[kls] = [[], []]
 
-    n = len(frame.columns) - 1
+    m = len(frame.columns) - 1
     s = np.array([(np.cos(t), np.sin(t))
-                  for t in [2.0 * np.pi * (i / float(n))
-                            for i in range(n)]])
+                  for t in [2.0 * np.pi * (i / float(m))
+                            for i in range(m)]])
 
     for i in range(n):
         row = df.iloc[i].values
@@ -798,7 +799,11 @@ class MPLPlot(object):
 
         if rot is not None:
             self.rot = rot
+            # need to know for format_date_labels since it's rotated to 30 by
+            # default
+            self._rot_set = True
         else:
+            self._rot_set = False
             if isinstance(self._default_rot, dict):
                 self.rot = self._default_rot[self.kind]
             else:
@@ -1392,6 +1397,9 @@ class ScatterPlot(MPLPlot):
         return 1
 
     def _make_plot(self):
+        import matplotlib as mpl
+        mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
+
         import matplotlib.pyplot as plt
 
         x, y, c, data = self.x, self.y, self.c, self.data
@@ -1419,8 +1427,10 @@ class ScatterPlot(MPLPlot):
                              label=label, cmap=cmap, **self.kwds)
         if cb:
             img = ax.collections[0]
-            cb_label = c if c in self.data.columns else ''
-            self.fig.colorbar(img, ax=ax, label=cb_label)
+            kws = dict(ax=ax)
+            if mpl_ge_1_3_1:
+                kws['label'] = c if c in self.data.columns else ''
+            self.fig.colorbar(img, **kws)
 
         self._add_legend_handle(scatter, label)
 
@@ -1492,7 +1502,7 @@ class HexBinPlot(MPLPlot):
 
 class LinePlot(MPLPlot):
 
-    _default_rot = 30
+    _default_rot = 0
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
@@ -1673,6 +1683,10 @@ class LinePlot(MPLPlot):
 
         for ax in self.axes:
             if condition:
+                # irregular TS rotated 30 deg. by default
+                # probably a better place to check / set this.
+                if not self._rot_set:
+                    self.rot = 30
                 format_date_labels(ax, rot=self.rot)
 
             if index_name is not None:
@@ -2081,6 +2095,10 @@ class BoxPlot(LinePlot):
         def plotf(ax, y, column_num=None, **kwds):
             if y.ndim == 2:
                 y = [remove_na(v) for v in y]
+                # Boxplot fails with empty arrays, so need to add a NaN
+                #   if any cols are empty
+                # GH 8181
+                y = [v if v.size > 0 else np.array([np.nan]) for v in y]
             else:
                 y = remove_na(y)
             bp = ax.boxplot(y, **kwds)
@@ -3050,6 +3068,17 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError('Layout must be a tuple of (rows, columns)')
 
         nrows, ncols = layout
+
+        # Python 2 compat
+        ceil_ = lambda x: int(ceil(x))
+        if nrows == -1 and ncols >0:
+            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+        elif ncols == -1 and nrows > 0:
+            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+        elif ncols <= 0 and nrows <= 0:
+            msg = "At least one dimension of layout must be positive"
+            raise ValueError(msg)
+
         if nrows * ncols < nplots:
             raise ValueError('Layout of %sx%s must be larger than required size %s' %
                 (nrows, ncols, nplots))

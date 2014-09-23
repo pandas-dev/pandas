@@ -1846,8 +1846,9 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int win,
 
     return output
 
-def roll_generic(ndarray[float64_t, cast=True] input, int win,
-                 int minp, object func, object args, object kwargs):
+def roll_generic(ndarray[float64_t, cast=True] input,
+                 int win, int minp, int offset,
+                 object func, object args, object kwargs):
     cdef ndarray[double_t] output, counts, bufarr
     cdef Py_ssize_t i, n
     cdef float64_t *buf
@@ -1856,36 +1857,40 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     if not input.flags.c_contiguous:
         input = input.copy('C')
 
-    buf = <float64_t*> input.data
-
     n = len(input)
     if n == 0:
         return input
 
     minp = _check_minp(win, minp, n, floor=0)
     output = np.empty(n, dtype=float)
-    counts = roll_sum(np.isfinite(input).astype(float), win, minp)
+    counts = roll_sum(np.concatenate((np.isfinite(input).astype(float), np.array([0.] * offset))), win, minp)[offset:]
 
-    bufarr = np.empty(win, dtype=float)
-    oldbuf = <float64_t*> bufarr.data
-
-    n = len(input)
-    for i from 0 <= i < int_min(win, n):
+    # truncated windows at the beginning, through first full-length window
+    for i from 0 <= i < (int_min(win, n) - offset):
         if counts[i] >= minp:
-            output[i] = func(input[int_max(i - win + 1, 0) : i + 1], *args,
-                             **kwargs)
+            output[i] = func(input[0 : (i + offset + 1)], *args, **kwargs)
         else:
             output[i] = NaN
 
-    for i from win <= i < n:
+    # remaining full-length windows
+    buf = <float64_t*> input.data
+    bufarr = np.empty(win, dtype=float)
+    oldbuf = <float64_t*> bufarr.data
+    for i from (win - offset) <= i < (n - offset):
         buf = buf + 1
         bufarr.data = <char*> buf
         if counts[i] >= minp:
             output[i] = func(bufarr, *args, **kwargs)
         else:
             output[i] = NaN
-
     bufarr.data = <char*> oldbuf
+
+    # truncated windows at the end
+    for i from int_max(n - offset, 0) <= i < n:
+        if counts[i] >= minp:
+            output[i] = func(input[int_max(i + offset - win + 1, 0) : n], *args, **kwargs)
+        else:
+            output[i] = NaN
 
     return output
 

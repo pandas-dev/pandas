@@ -43,6 +43,7 @@ from numpy import percentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.sparse.array import SparseArray
 from pandas.util.decorators import deprecate, Appender, Substitution, \
     deprecate_kwarg
 
@@ -2164,8 +2165,8 @@ class DataFrame(NDFrame):
             value = np.repeat(value, len(self.index)).astype(dtype)
             value = com._possibly_cast_to_datetime(value, dtype)
 
-        # return categoricals directly
-        if isinstance(value, Categorical):
+        # return unconsolidatables directly
+        if isinstance(value, (Categorical, SparseArray)):
             return value
 
         # broadcast across multiple columns if necessary
@@ -2774,6 +2775,12 @@ class DataFrame(NDFrame):
                                     na_position=na_position)
 
         elif isinstance(labels, MultiIndex):
+
+            # make sure that the axis is lexsorted to start
+            # if not we need to reconstruct to get the correct indexer
+            if not labels.is_lexsorted():
+                labels = MultiIndex.from_tuples(labels.values)
+
             indexer = _lexsort_indexer(labels.labels, orders=ascending,
                                        na_position=na_position)
             indexer = com._ensure_platform_int(indexer)

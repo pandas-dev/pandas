@@ -19,13 +19,14 @@ users upgrade to this version.
   - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+  - ``read_csv`` will now by default ignore blank lines when parsing, see :ref:`here <whatsnew_0150.blanklines>`
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
-- :ref:`API Changes <whatsnew_0150.api>`
+- :ref:`API Changes <whatsnew_0150.api>`, and :ref:`Rolling/Expanding Moments API Changes <whatsnew_0150.roll>`
 
 - :ref:`Performance Improvements <whatsnew_0150.performance>`
 
@@ -61,107 +62,11 @@ API changes
 
 - Raise a ``ValueError`` in ``df.to_hdf`` with 'fixed' format, if ``df`` has non-unique columns as the resulting file will be broken (:issue:`7761`)
 
-- :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
-  now return objects with all ``NaN`` when ``len(arg) < min_periods <= window`` rather
-  than raising. (This makes all rolling functions consistent in this behavior), (:issue:`7766`)
+.. _whatsnew_0150.blanklines:
 
-  Prior to 0.15.0
-
-  .. ipython:: python
-
-     s = Series([10, 11, 12, 13])
-
-  .. code-block:: python
-
-     In [15]: rolling_min(s, window=10, min_periods=5)
-     ValueError: min_periods (5) must be <= window (4)
-
-  New behavior
-
-  .. ipython:: python
-
-     rolling_min(s, window=10, min_periods=5)
-
-- :func:`rolling_max`, :func:`rolling_min`, :func:`rolling_sum`, :func:`rolling_mean`, :func:`rolling_median`,
-  :func:`rolling_std`, :func:`rolling_var`, :func:`rolling_skew`, :func:`rolling_kurt`, :func:`rolling_quantile`,
-  :func:`rolling_cov`, :func:`rolling_corr`, :func:`rolling_corr_pairwise`,
-  :func:`rolling_window`, and :func:`rolling_apply` with ``center=True`` previously would return a result of the same
-  structure as the input ``arg`` with ``NaN`` in the final ``(window-1)/2`` entries.
-  Now the final ``(window-1)/2`` entries of the result are calculated as if the input ``arg`` were followed
-  by ``(window-1)/2`` ``NaN`` values. (:issue:`7925`)
-
-  Prior behavior (note final value is ``NaN``):
-
-  .. code-block:: python
-
-    In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
-    Out[7]:
-    0     1
-    1     3
-    2     6
-    3   NaN
-    dtype: float64
-
-  New behavior (note final value is ``5 = sum([2, 3, NaN])``):
-
-  .. ipython:: python
-
-    rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
-
-- Removed ``center`` argument from :func:`expanding_max`, :func:`expanding_min`, :func:`expanding_sum`,
-  :func:`expanding_mean`, :func:`expanding_median`, :func:`expanding_std`, :func:`expanding_var`,
-  :func:`expanding_skew`, :func:`expanding_kurt`, :func:`expanding_quantile`, :func:`expanding_count`,
-  :func:`expanding_cov`, :func:`expanding_corr`, :func:`expanding_corr_pairwise`, and :func:`expanding_apply`,
-  as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
-
-- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now interpret ``min_periods`` in the same manner that the ``rolling_*`` and ``expanding_*`` functions do:
-  a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
-  at least ``min_periods`` values. The previous behavior was to set to ``NaN`` the ``min_periods`` entries
-  starting with the first non- ``NaN`` value. (:issue:`7977`)
-
-  Prior behavior (note values start at index ``2``, which is ``min_periods`` after index ``0``
-  (the index of the first non-empty value)):
-
-  .. ipython:: python
-
-    s  = Series([1, None, None, None, 2, 3])
-
-  .. code-block:: python
-
-	In [51]: ewma(s, com=3., min_periods=2)
-	Out[51]:
-	0         NaN
-	1         NaN
-	2    1.000000
-	3    1.000000
-	4    1.571429
-	5    2.189189
-	dtype: float64
-
-  New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
-
-  .. ipython:: python
-
-    ewma(s, com=3., min_periods=2)
-
-- :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now have an optional ``adjust`` argument, just like :func:`ewma` does,
-  affecting how the weights are calculated.
-  The default value of ``adjust`` is ``True``, which is backwards-compatible.
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7911`)
-
-- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now have an optional ``ignore_na`` argument.
-  When ``ignore_na=False`` (the default), missing values are taken into account in the weights calculation.
-  When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
-  (:issue:`7543`)
-
-  .. ipython:: python
-
-     ewma(Series([None, 1., 8.]), com=2.)
-     ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
-     ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+- Made both the C-based and Python engines for `read_csv` and `read_table` ignore empty lines in input as well as
+  whitespace-filled lines, as long as ``sep`` is not whitespace. This is an API change
+  that can be controlled by the keyword parameter ``skip_blank_lines``.  See :ref:`the docs <io.skiplines>` (:issue:`4466`)
 
 - Bug in passing a ``DatetimeIndex`` with a timezone that was not being retained in DataFrame construction from a dict (:issue:`7822`)
 
@@ -238,6 +143,10 @@ API changes
      didx
      didx.tz_localize(None)
 
+- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
+  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
+  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised. See :ref:`the docs<timeseries.timezone_ambiguous>` for more details (:issue:`7943`)
+
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
 - ``Timestamp.tz_localize`` and ``Timestamp.tz_convert`` now raise ``TypeError`` in error cases, rather than ``Exception`` (:issue:`8025`)
@@ -256,12 +165,17 @@ API changes
 
   In prior versions there was a difference in these two constructs:
 
-    - ``df.loc[[3]]`` would (prior to 0.15.0) return a frame reindexed by 3 (with all ``np.nan`` values)
-    - ``df.loc[[3],:]`` would raise ``KeyError``.
+  - ``df.loc[[3]]`` would return a frame reindexed by 3 (with all ``np.nan`` values)
+  - ``df.loc[[3],:]`` would raise ``KeyError``.
 
   Both will now raise a ``KeyError``. The rule is that *at least 1* indexer must be found when using a list-like and ``.loc`` (:issue:`7999`)
 
-  There was also a difference between ``df.loc[[1,3]]`` (returns a frame reindexed by ``[1, 3]``) and ``df.loc[[1, 3],:]`` (would raise ``KeyError`` prior to 0.15.0). Both will now return a reindexed frame.
+  Furthermore in prior versions these were also different:
+
+  - ``df.loc[[1,3]]`` would return a frame reindexed by [1,3]
+  - ``df.loc[[1,3],:]`` would raise ``KeyError``.
+
+  Both will now return a frame reindex by [1,3]. E.g.
 
   .. ipython:: python
 
@@ -339,8 +253,7 @@ API changes
      df
      df.dtypes
 
-- ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of
-    ``DataFrame.to_csv()`` (:issue:`8215`).
+- ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
 .. _whatsnew_0150.index_set_ops:
 
@@ -363,6 +276,7 @@ API changes
      Index(['a','b','c']).difference(Index(['b','c','d']))
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
+- add ``copy=True`` argument to ``pd.concat`` to enable pass thrue of complete blocks (:issue:`8252`)
 
 .. _whatsnew_0150.dt:
 
@@ -414,6 +328,176 @@ The ``.dt`` accessor works for period and timedelta dtypes.
    s.dt.days
    s.dt.seconds
    s.dt.components
+
+.. _whatsnew_0150.roll:
+
+Rolling/Expanding Moments API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
+  now return objects with all ``NaN`` when ``len(arg) < min_periods <= window`` rather
+  than raising. (This makes all rolling functions consistent in this behavior), (:issue:`7766`)
+
+  Prior to 0.15.0
+
+  .. ipython:: python
+
+     s = Series([10, 11, 12, 13])
+
+  .. code-block:: python
+
+     In [15]: rolling_min(s, window=10, min_periods=5)
+     ValueError: min_periods (5) must be <= window (4)
+
+  New behavior
+
+  .. ipython:: python
+
+     rolling_min(s, window=10, min_periods=5)
+
+- :func:`rolling_max`, :func:`rolling_min`, :func:`rolling_sum`, :func:`rolling_mean`, :func:`rolling_median`,
+  :func:`rolling_std`, :func:`rolling_var`, :func:`rolling_skew`, :func:`rolling_kurt`, :func:`rolling_quantile`,
+  :func:`rolling_cov`, :func:`rolling_corr`, :func:`rolling_corr_pairwise`,
+  :func:`rolling_window`, and :func:`rolling_apply` with ``center=True`` previously would return a result of the same
+  structure as the input ``arg`` with ``NaN`` in the final ``(window-1)/2`` entries.
+
+  Now the final ``(window-1)/2`` entries of the result are calculated as if the input ``arg`` were followed
+  by ``(window-1)/2`` ``NaN`` values (or with shrinking windows, in the case of :func:`rolling_apply`).
+  (:issue:`7925`, :issue:`8269`)
+
+  Prior behavior (note final value is ``NaN``):
+
+  .. code-block:: python
+
+    In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+    Out[7]:
+    0     1
+    1     3
+    2     6
+    3   NaN
+    dtype: float64
+
+  New behavior (note final value is ``5 = sum([2, 3, NaN])``):
+
+  .. ipython:: python
+
+    rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+
+- Removed ``center`` argument from :func:`expanding_max`, :func:`expanding_min`, :func:`expanding_sum`,
+  :func:`expanding_mean`, :func:`expanding_median`, :func:`expanding_std`, :func:`expanding_var`,
+  :func:`expanding_skew`, :func:`expanding_kurt`, :func:`expanding_quantile`, :func:`expanding_count`,
+  :func:`expanding_cov`, :func:`expanding_corr`, :func:`expanding_corr_pairwise`, and :func:`expanding_apply`,
+  as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
+
+- Added optional ``ddof`` argument to :func:`expanding_cov` and :func:`rolling_cov`.
+  The default value of ``1`` is backwards-compatible. (:issue:`8279`)
+
+- Documented the ``ddof`` argument to :func:`expanding_var`, :func:`expanding_std`,
+  :func:`rolling_var`, and :func:`rolling_std`. These functions' support of a
+  ``ddof`` argument (with a default value of ``1``) was previously undocumented. (:issue:`8064`)
+
+- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
+  now interpret ``min_periods`` in the same manner that the ``rolling_*`` and ``expanding_*`` functions do:
+  a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
+  at least ``min_periods`` values. The previous behavior was to set to ``NaN`` the ``min_periods`` entries
+  starting with the first non- ``NaN`` value. (:issue:`7977`)
+
+  Prior behavior (note values start at index ``2``, which is ``min_periods`` after index ``0``
+  (the index of the first non-empty value)):
+
+  .. ipython:: python
+
+    s  = Series([1, None, None, None, 2, 3])
+
+  .. code-block:: python
+
+	In [51]: ewma(s, com=3., min_periods=2)
+	Out[51]:
+	0         NaN
+	1         NaN
+	2    1.000000
+	3    1.000000
+	4    1.571429
+	5    2.189189
+	dtype: float64
+
+  New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
+
+  .. ipython:: python
+
+    ewma(s, com=3., min_periods=2)
+
+- :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
+  now have an optional ``adjust`` argument, just like :func:`ewma` does,
+  affecting how the weights are calculated.
+  The default value of ``adjust`` is ``True``, which is backwards-compatible.
+  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7911`)
+
+- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
+  now have an optional ``ignore_na`` argument.
+  When ``ignore_na=False`` (the default), missing values are taken into account in the weights calculation.
+  When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
+  (:issue:`7543`)
+
+  .. ipython:: python
+
+     ewma(Series([None, 1., 8.]), com=2.)
+     ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+
+- Bug in :func:`expanding_cov`, :func:`expanding_corr`, :func:`rolling_cov`, :func:`rolling_cor`, :func:`ewmcov`, and :func:`ewmcorr`
+  returning results with columns sorted by name and producing an error for non-unique columns;
+  now handles non-unique columns and returns columns in original order
+  (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
+- Bug in :func:`rolling_count` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
+- Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
+- Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
+- Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
+
+- Bug in :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, and :func:`ewmcov`
+  calculation of de-biasing factors when ``bias=False`` (the default).
+  Previously an incorrect constant factor was used, based on ``adjust=True``, ``ignore_na=True``,
+  and an infinite number of observations.
+  Now a different factor is used for each entry, based on the actual weights
+  (analogous to the usual ``N/(N-1)`` factor).
+  In particular, for a single point a value of ``NaN`` is returned when ``bias=False``,
+  whereas previously a value of (approximately) ``0`` was returned.
+
+  For example, consider the following pre-0.15.0 results for ``ewmvar(..., bias=False)``,
+  and the corresponding debiasing factors:
+
+  .. ipython:: python
+
+     s = Series([1., 2., 0., 4.])
+
+  .. code-block:: python
+
+	 In [69]: ewmvar(s, com=2., bias=False)
+	 Out[69]:
+	 0   -2.775558e-16
+	 1    3.000000e-01
+	 2    9.556787e-01
+	 3    3.585799e+00
+	 dtype: float64
+
+	 In [70]: ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
+	 Out[70]:
+	 0    1.25
+	 1    1.25
+	 2    1.25
+	 3    1.25
+	 dtype: float64
+
+  Note that entry ``0`` is approximately 0, and the debiasing factors are a constant 1.25.
+  By comparison, the following 0.15.0 results have a ``NaN`` for entry ``0``,
+  and the debiasing factors are decreasing (towards 1.25):
+
+  .. ipython:: python
+
+     ewmvar(s, com=2., bias=False)
+     ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
+
+  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
 
 .. _whatsnew_0150.refactoring:
 
@@ -479,7 +563,7 @@ TimedeltaIndex/Scalar
 We introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
 but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation, parsing, and attributes.
 This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a nice-API box for the type. See the :ref:`docs <timedeltas.timedeltas>`.
-(:issue:`3009`, :issue:`4533`, :issue:`8209`, :issue:`8187`, :issue:`8190`, :issue:`7869`, :issue:`7661`)
+(:issue:`3009`, :issue:`4533`, :issue:`8209`, :issue:`8187`, :issue:`8190`, :issue:`7869`, :issue:`7661`, :issue:`8345`)
 
 .. warning::
 
@@ -501,7 +585,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
        Prior to 0.15.0 ``pd.to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
        It will now return a ``TimedeltaIndex`` for list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
 
-       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
+       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True,coerce=False)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
 
 Consruct a scalar
 
@@ -608,19 +692,19 @@ Enhancements
 
   .. code-block:: python
 
-     df.to_sql('table', engine, schema='other_schema')
-     pd.read_sql_table('table', engine, schema='other_schema')
+         df.to_sql('table', engine, schema='other_schema')
+         pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
 
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 
-- Added ``layout`` keyword to ``DataFrame.plot`` (:issue:`6667`)
+- Added ``layout`` keyword to ``DataFrame.plot``. You can pass a tuple of ``(rows, columns)``, one of which can be ``-1`` to automatically infer (:issue:`6667`, :issue:`8071`).
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)
-- Added support for ``c``, ``colormap`` and ``colorbar`` arguments for
-  ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
+- Added support for ``c``, ``colormap`` and ``colorbar`` arguments for ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)
 
+- ``read_csv`` now has a keyword parameter ``float_precision`` which specifies which floating-point converter the C engine should use during parsing, see :ref:`here <io.float_precision>` (:issue:`8002`, :issue:`8044`)
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
@@ -637,15 +721,14 @@ Enhancements
 
 - ``Period`` and ``PeriodIndex`` supports addition/subtraction with ``timedelta``-likes (:issue:`7966`)
 
-  If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
+  If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``Timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
   .. ipython:: python
 
     idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
     idx
     idx + pd.offsets.Hour(2)
-    idx + timedelta(minutes=120)
-    idx + np.timedelta64(7200, 's')
+    idx + Timedelta('120m')
 
     idx = pd.period_range('2014-07', periods=5, freq='M')
     idx
@@ -665,19 +748,12 @@ Enhancements
 
 
 
-
-
-- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
-
-
-
-- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
-  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
-  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised (:issue:`7943`).
-  See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
-
-
-
+- Added experimental compatibility with ``openpyxl`` for versions >= 2.0. The ``DataFrame.to_excel``
+  method ``engine`` keyword now recognizes ``openpyxl1`` and ``openpyxl2``
+  which will explicitly require openpyxl v1 and v2 respectively, failing if
+  the requested version is not available. The ``openpyxl`` engine is a now a
+  meta-engine that automatically uses whichever version of openpyxl is
+  installed. (:issue:`7177`)
 
 
 
@@ -745,13 +821,13 @@ Bug Fixes
 - Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
 - Bug in inference in a MultiIndex with ``datetime.date`` inputs (:issue:`7888`)
-
+- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-
+- Bug in sorting a multi-index frame with a Float64Index (:issue:`8017`)
 
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
-
+- Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
 - Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
 
 - Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
@@ -761,60 +837,6 @@ Bug Fixes
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
 - Bug in ``StataReader`` which did not read variable labels in 117 files due to difference between Stata documentation and implementation (:issue:`7816`)
 - Bug in ``StataReader`` where strings were always converted to 244 characters-fixed width irrespective of underlying string size (:issue:`7858`)
-
-- Bug in :func:`expanding_cov`, :func:`expanding_corr`, :func:`rolling_cov`, :func:`rolling_cor`, :func:`ewmcov`, and :func:`ewmcorr`
-  returning results with columns sorted by name and producing an error for non-unique columns;
-  now handles non-unique columns and returns columns in original order
-  (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-- Bug in :func:`rolling_count` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
-- Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
-- Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
-- Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
-
-- Bug in :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, and :func:`ewmcov`
-  calculation of de-biasing factors when ``bias=False`` (the default).
-  Previously an incorrect constant factor was used, based on ``adjust=True``, ``ignore_na=True``,
-  and an infinite number of observations.
-  Now a different factor is used for each entry, based on the actual weights
-  (analogous to the usual ``N/(N-1)`` factor).
-  In particular, for a single point a value of ``NaN`` is returned when ``bias=False``,
-  whereas previously a value of (approximately) ``0`` was returned.
-
-  For example, consider the following pre-0.15.0 results for ``ewmvar(..., bias=False)``,
-  and the corresponding debiasing factors:
-
-  .. ipython:: python
-
-     s = Series([1., 2., 0., 4.])
-
-  .. code-block:: python
-
-	 In [69]: ewmvar(s, com=2., bias=False)
-	 Out[69]:
-	 0   -2.775558e-16
-	 1    3.000000e-01
-	 2    9.556787e-01
-	 3    3.585799e+00
-	 dtype: float64
-
-	 In [70]: ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
-	 Out[70]:
-	 0    1.25
-	 1    1.25
-	 2    1.25
-	 3    1.25
-	 dtype: float64
-
-  Note that entry ``0`` is approximately 0, and the debiasing factors are a constant 1.25.
-  By comparison, the following 0.15.0 results have a ``NaN`` for entry ``0``,
-  and the debiasing factors are decreasing (towards 1.25):
-
-  .. ipython:: python
-
-     ewmvar(s, com=2., bias=False)
-     ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
-
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
 
 - Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
 
@@ -897,10 +919,10 @@ Bug Fixes
   a custom line terminator or ``delim_whitespace=True`` (:issue:`8122`).
 
 - Bug in ``read_html`` where empty tables caused a ``StopIteration`` (:issue:`7575`)
-
+- Bug in casting when setting a column in a same-dtype block (:issue:`7704`)
 - Bug in accessing groups from a ``GroupBy`` when the original grouper
   was a tuple (:issue:`8121`).
-
+- Bug in ``.at`` that would accept integer indexers on a non-integer index and do fallback (:issue:`7814`)
 - Bug with kde plot and NaNs (:issue:`8182`)
 - Bug in ``GroupBy.count`` with float32 data type were nan values were not excluded (:issue:`8169`).
 - Bug with stacked barplots and NaNs (:issue:`8175`).
@@ -911,3 +933,10 @@ Bug Fixes
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
 - Bug with ``DatetimeIndex.asof`` incorrectly matching partial strings and returning the wrong date (:issue:`8245`).
 - Bug in plotting methods modifying the global matplotlib rcParams (:issue:`8242`).
+- Bug in ``DataFrame.__setitem__`` that caused errors when setting a dataframe column to a sparse array (:issue:`8131`)
+- Bug where ``Dataframe.boxplot()`` failed when entire column was empty (:issue:`8181`).
+- Bug with messed variables in ``radviz`` visualization (:issue:`8199`).
+- Bug in interpolation methods with the ``limit`` keyword when no values needed interpolating (:issue:`7173`).
+- Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
+
+- Bug in DataFrame terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).

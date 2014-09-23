@@ -666,7 +666,7 @@ def _sort_labels(uniques, left, right):
 
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, levels=None, names=None, verify_integrity=False):
+           keys=None, levels=None, names=None, verify_integrity=False, copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes. Can also add a layer of hierarchical indexing on the
@@ -704,6 +704,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         concatenating objects where the concatenation axis does not have
         meaningful indexing information. Note the the index values on the other
         axes are still respected in the join.
+    copy : boolean, default True
+        If False, do not copy data unnecessarily
 
     Notes
     -----
@@ -716,7 +718,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
-                       verify_integrity=verify_integrity)
+                       verify_integrity=verify_integrity,
+                       copy=copy)
     return op.get_result()
 
 
@@ -727,7 +730,7 @@ class _Concatenator(object):
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False):
+                 ignore_index=False, verify_integrity=False, copy=True):
         if not isinstance(objs, (list,tuple,types.GeneratorType,dict,TextFileReader)):
             raise TypeError('first argument must be a list-like of pandas '
                             'objects, you passed an object of type '
@@ -846,6 +849,7 @@ class _Concatenator(object):
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
+        self.copy = copy
 
         self.new_axes = self._get_new_axes()
 
@@ -879,7 +883,9 @@ class _Concatenator(object):
                 mgrs_indexers.append((obj._data, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=True)
+                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=self.copy)
+            if not self.copy:
+                new_data._consolidate_inplace()
 
             return self.objs[0]._from_axes(new_data, self.new_axes).__finalize__(self, method='concat')
 

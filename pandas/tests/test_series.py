@@ -3286,15 +3286,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+        from pandas.tseries.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
-        result = _possibly_cast_to_timedelta(np.abs(a - b))
-        self.assertEqual(result.dtype, 'timedelta64[ns]')
-
-        result = _possibly_cast_to_timedelta(np.abs(b - a))
+        result = to_timedelta(np.abs(a - b))
         self.assertEqual(result.dtype, 'timedelta64[ns]')
 
     def test_datetime64_with_index(self):
@@ -4601,6 +4598,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         shifted5 = ps.shift(1, offset=datetools.bday)
         assert_series_equal(shifted5, shifted4)
+
+        # 32-bit taking
+        # GH 8129
+        index=date_range('2000-01-01',periods=5)
+        for dtype in ['int32','int64']:
+            s1 = Series(np.arange(5,dtype=dtype),index=index)
+            p = s1.iloc[1]
+            result = s1.shift(periods=p)
+            expected = Series([np.nan,0,1,2,3],index=index)
+            assert_series_equal(result,expected)
 
     def test_tshift(self):
         # PeriodIndex

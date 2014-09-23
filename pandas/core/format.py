@@ -1,19 +1,17 @@
-
-#coding: utf-8
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 # pylint: disable=W0141
 
 import sys
-import re
 
 from pandas.core.base import PandasObject
-from pandas.core.common import adjoin, isnull, notnull
+from pandas.core.common import adjoin, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
                           OrderedDict)
 from pandas.util.terminal import get_terminal_size
-from pandas.core.config import get_option, set_option, reset_option
+from pandas.core.config import get_option, set_option
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta
@@ -22,7 +20,6 @@ import numpy as np
 
 import itertools
 import csv
-from datetime import time
 
 from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
@@ -117,7 +114,6 @@ class CategoricalFormatter(object):
                 return u('')
 
         fmt_values = self._get_formatted_values()
-        pad_space = 10
 
         result = ['%s' % i for i in fmt_values]
         if self.footer:
@@ -181,7 +177,6 @@ class SeriesFormatter(object):
             if footer:
                 footer += "\n"
             footer += level_info
-
 
         return compat.text_type(footer)
 
@@ -250,7 +245,8 @@ class TableFormatter(object):
 
     @property
     def should_show_dimensions(self):
-        return self.show_dimensions is True or (self.show_dimensions == 'truncate' and self.is_truncated)
+        return self.show_dimensions is True or (self.show_dimensions == 'truncate' and
+                                                self.is_truncated)
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
@@ -321,30 +317,69 @@ class DataFrameFormatter(TableFormatter):
         self._chk_truncate()
 
     def _chk_truncate(self):
+        '''
+        Checks whether the frame should be truncated. If so, slices
+        the frame up.
+        '''
         from pandas.tools.merge import concat
 
-        truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
-        truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
+        # Column of which first element is used to determine width of a dot col
+        self.tr_size_col = -1
 
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
+
+        if max_cols == 0 or max_rows == 0:  # assume we are in the terminal (why else = 0)
+            (w, h) = get_terminal_size()
+            self.w = w
+            self.h = h
+            if self.max_rows == 0:
+                dot_row = 1
+                prompt_row = 1
+                if self.show_dimensions:
+                    show_dimension_rows = 3
+                n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
+                max_rows_adj = self.h - n_add_rows  # rows available to fill with actual data
+                self.max_rows_adj = max_rows_adj
+
+            # Format only rows and columns that could potentially fit the screen
+            if max_cols == 0 and len(self.frame.columns) > w:
+                max_cols = w
+            if max_rows == 0 and len(self.frame) > h:
+                max_rows = h
+
+        if not hasattr(self, 'max_rows_adj'):
+            self.max_rows_adj = max_rows
+        if not hasattr(self, 'max_cols_adj'):
+            self.max_cols_adj = max_cols
+
+        max_cols_adj = self.max_cols_adj
+        max_rows_adj = self.max_rows_adj
+
+        truncate_h = max_cols_adj and (len(self.columns) > max_cols_adj)
+        truncate_v = max_rows_adj and (len(self.frame) > max_rows_adj)
+
         frame = self.frame
         if truncate_h:
-            if max_cols > 1:
-                col_num = (max_cols // 2)
-                frame = concat( (frame.iloc[:,:col_num],frame.iloc[:,-col_num:]),axis=1 )
-            else:
+            if max_cols_adj == 0:
+                col_num = len(frame.columns)
+            elif max_cols_adj == 1:
+                frame = frame.iloc[:, :max_cols]
                 col_num = max_cols
-                frame = frame.iloc[:,:max_cols]
+            else:
+                col_num = (max_cols_adj // 2)
+                frame = concat((frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows > 1:
-                row_num = max_rows // 2
-                frame = concat( (frame.iloc[:row_num,:],frame.iloc[-row_num:,:]) )
-            else:
+            if max_rows_adj == 0:
+                row_num = len(frame)
+            if max_rows_adj == 1:
                 row_num = max_rows
-                frame = frame.iloc[:max_rows,:]
+                frame = frame.iloc[:max_rows, :]
+            else:
+                row_num = max_rows_adj // 2
+                frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
 
         self.tr_frame = frame
@@ -360,13 +395,12 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
 
         # may include levels names also
-        str_index = self._get_formatted_index(frame)
 
+        str_index = self._get_formatted_index(frame)
         str_columns = self._get_formatted_column_labels(frame)
 
         if self.header:
             stringified = []
-            col_headers = frame.columns
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 max_colwidth = max(self.col_space or 0,
@@ -376,7 +410,6 @@ class DataFrameFormatter(TableFormatter):
 
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=max_colwidth)
-
 
                 max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
@@ -389,7 +422,6 @@ class DataFrameFormatter(TableFormatter):
         else:
             stringified = []
             for i, c in enumerate(frame):
-                formatter = self._get_formatter(i)
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=(self.col_space or 0))
@@ -406,12 +438,12 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            col_width = len(strcols[col_num][0])  # infer from column header
-            strcols.insert(col_num + 1, ['...'.center(col_width)] * (len(str_index)))
+            col_width = len(strcols[self.tr_size_col][0])  # infer from column header
+            strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
-            for ix,col in enumerate(strcols):
+            for ix, col in enumerate(strcols):
                 cwidth = len(strcols[ix][row_num])  # infer from above row
                 is_dot_col = False
                 if truncate_h:
@@ -424,19 +456,19 @@ class DataFrameFormatter(TableFormatter):
                 if ix == 0:
                     dot_str = my_str.ljust(cwidth)
                 elif is_dot_col:
+                    cwidth = len(strcols[self.tr_size_col][0])
                     dot_str = my_str.center(cwidth)
                 else:
                     dot_str = my_str.rjust(cwidth)
 
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
-
         return strcols
 
     def to_string(self):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-
+        from pandas import Series
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -447,10 +479,40 @@ class DataFrameFormatter(TableFormatter):
             text = info_line
         else:
             strcols = self._to_str_columns()
-            if self.line_width is None:
+            if self.line_width is None:  # no need to wrap around just print the whole frame
                 text = adjoin(1, *strcols)
-            else:
+            elif not isinstance(self.max_cols, int) or self.max_cols > 0:  # need to wrap around
                 text = self._join_multiline(*strcols)
+            else:  # max_cols == 0. Try to fit frame to terminal
+                text = adjoin(1, *strcols).split('\n')
+                row_lens = Series(text).apply(len)
+                max_len_col_ix = np.argmax(row_lens)
+                max_len = row_lens[max_len_col_ix]
+                headers = [ele[0] for ele in strcols]
+                # Size of last col determines dot col size. See `self._to_str_columns
+                size_tr_col = len(headers[self.tr_size_col])
+                max_len += size_tr_col  # Need to make space for largest row plus truncate dot col
+                dif = max_len - self.w
+                adj_dif = dif
+                col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+                n_cols = len(col_lens)
+                counter = 0
+                while adj_dif > 0 and n_cols > 1:
+                    counter += 1
+                    mid = int(round(n_cols / 2.))
+                    mid_ix = col_lens.index[mid]
+                    col_len = col_lens[mid_ix]
+                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    col_lens = col_lens.drop(mid_ix)
+                    n_cols = len(col_lens)
+                max_cols_adj = n_cols - self.index  # subtract index column
+                self.max_cols_adj = max_cols_adj
+
+                # Call again _chk_truncate to cut frame appropriately
+                # and then generate string representation
+                self._chk_truncate()
+                strcols = self._to_str_columns()
+                text = adjoin(1, *strcols)
 
         self.buf.writelines(text)
 
@@ -472,8 +534,8 @@ class DataFrameFormatter(TableFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.max_rows and len(self.frame) > self.max_rows:
-            nrows = self.max_rows + 1
+        if self.truncate_v:
+            nrows = self.max_rows_adj + 1
         else:
             nrows = len(self.frame)
 
@@ -497,7 +559,8 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
         self.escape = self.kwds.get('escape', True)
-        #TODO: column_format is not settable in df.to_latex
+
+        # TODO: column_format is not settable in df.to_latex
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return 'r'
@@ -515,7 +578,6 @@ class DataFrameFormatter(TableFormatter):
             strcols = self._to_str_columns()
 
         if self.index and isinstance(self.frame.index, MultiIndex):
-            fmt = self._get_formatter('__index__')
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
             name = any(self.frame.columns.names)
@@ -530,7 +592,7 @@ class DataFrameFormatter(TableFormatter):
             column_format = ''.join(map(get_col_type, dtypes))
             if self.index:
                 index_format = 'l' * self.frame.index.nlevels
-                column_format = index_format +  column_format
+                column_format = index_format + column_format
         elif not isinstance(column_format,
                             compat.string_types):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, not %s'
@@ -558,7 +620,7 @@ class DataFrameFormatter(TableFormatter):
                         buf.write('\\bottomrule\n')
                         buf.write('\\endlastfoot\n')
                 if self.escape:
-                    crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
+                    crow = [(x.replace('\\', '\\textbackslash')  # escape backslashes first
                              .replace('_', '\\_')
                              .replace('%', '\\%')
                              .replace('$', '\\$')
@@ -613,7 +675,7 @@ class DataFrameFormatter(TableFormatter):
             raise TypeError('buf is not a file name and it has no write '
                             ' method')
 
-    def _get_formatted_column_labels(self,frame):
+    def _get_formatted_column_labels(self, frame):
         from pandas.core.index import _sparsify
 
         def is_numeric_dtype(dtype):
@@ -625,10 +687,17 @@ class DataFrameFormatter(TableFormatter):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes.values
+
+            # if we have a Float level, they don't use leading space at all
+            restrict_formatting = any([l.is_floating for l in columns.levels])
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = list(zip(*[
-                [' ' + y if y not in self.formatters and need_leadsp[x]
-                 else y for y in x] for x in fmt_columns]))
+
+            def space_format(x, y):
+                if y not in self.formatters and need_leadsp[x] and not restrict_formatting:
+                    return ' ' + y
+                return y
+
+            str_columns = list(zip(*[[space_format(x, y) for y in x] for x in fmt_columns]))
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
@@ -647,6 +716,7 @@ class DataFrameFormatter(TableFormatter):
             for x in str_columns:
                 x.append('')
 
+        # self.str_columns = str_columns
         return str_columns
 
     @property
@@ -715,7 +785,8 @@ class HTMLFormatter(TableFormatter):
         self.max_rows = max_rows or len(self.fmt.frame)
         self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = self.max_rows < len(self.fmt.frame) or self.max_cols < len(self.fmt.columns)
+        self.is_truncated = (self.max_rows < len(self.fmt.frame) or
+                             self.max_cols < len(self.fmt.columns))
 
     def write(self, s, indent=0):
         rs = com.pprint_thing(s)
@@ -849,7 +920,7 @@ class HTMLFormatter(TableFormatter):
                     if self.fmt.sparsify:
                         recs_new = {}
                         # Increment tags after ... col.
-                        for tag,span in list(records.items()):
+                        for tag, span in list(records.items()):
                             if tag >= ins_col:
                                 recs_new[tag + 1] = span
                             elif tag + span > ins_col:
@@ -858,8 +929,8 @@ class HTMLFormatter(TableFormatter):
                                     values = values[:ins_col] + (u('...'),) + \
                                         values[ins_col:]
                                 else:  # sparse col headers do not receive a ...
-                                    values = values[:ins_col] + \
-                                        (values[ins_col - 1],) + values[ins_col:]
+                                    values = (values[:ins_col] + (values[ins_col - 1],) +
+                                              values[ins_col:])
                             else:
                                 recs_new[tag] = span
                             # if ins_col lies between tags, all col headers get ...
@@ -873,7 +944,7 @@ class HTMLFormatter(TableFormatter):
                             records[ins_col] = 1
                     else:
                         recs_new = {}
-                        for tag,span in list(records.items()):
+                        for tag, span in list(records.items()):
                             if tag >= ins_col:
                                 recs_new[tag + 1] = span
                             else:
@@ -959,10 +1030,11 @@ class HTMLFormatter(TableFormatter):
         else:
             index_values = self.fmt.tr_frame.index.format()
 
+        row = []
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
-                str_sep_row = [ '...' for ele in row ]
+                str_sep_row = ['...' for ele in row]
                 self.write_tr(str_sep_row, indent, self.indent_delta, tags=None,
                               nindex_levels=1)
 
@@ -986,15 +1058,13 @@ class HTMLFormatter(TableFormatter):
         nrows = len(frame)
         row_levels = self.frame.index.nlevels
 
-        idx_values = frame.index.format(sparsify=False, adjoin=False,
-                                                names=False)
+        idx_values = frame.index.format(sparsify=False, adjoin=False, names=False)
         idx_values = lzip(*idx_values)
 
         if self.fmt.sparsify:
             # GH3547
             sentinel = com.sentinel_factory()
-            levels = frame.index.format(sparsify=sentinel,
-                                                adjoin=False, names=False)
+            levels = frame.index.format(sparsify=sentinel, adjoin=False, names=False)
 
             level_lengths = _get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
@@ -1002,28 +1072,28 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
-                for lnum,records in enumerate(level_lengths):
+                for lnum, records in enumerate(level_lengths):
                     rec_new = {}
-                    for tag,span in list(records.items()):
+                    for tag, span in list(records.items()):
                         if tag >= ins_row:
                             rec_new[tag + 1] = span
                         elif tag + span > ins_row:
                             rec_new[tag] = span + 1
                             dot_row = list(idx_values[ins_row - 1])
                             dot_row[-1] = u('...')
-                            idx_values.insert(ins_row,tuple(dot_row))
+                            idx_values.insert(ins_row, tuple(dot_row))
                         else:
                             rec_new[tag] = span
                         # If ins_row lies between tags, all cols idx cols receive ...
                         if tag + span == ins_row:
                             rec_new[ins_row] = 1
                             if lnum == 0:
-                                idx_values.insert(ins_row,tuple([u('...')]*len(level_lengths)))
+                                idx_values.insert(ins_row, tuple([u('...')]*len(level_lengths)))
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
                 for ix_col in range(len(fmt_values)):
-                    fmt_values[ix_col].insert(ins_row,'...')
+                    fmt_values[ix_col].insert(ins_row, '...')
                 nrows += 1
 
             for i in range(nrows):
@@ -1060,6 +1130,7 @@ class HTMLFormatter(TableFormatter):
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
+
 
 def _get_level_lengths(levels, sentinel=''):
     from itertools import groupby
@@ -1314,7 +1385,7 @@ class CSVFormatter(object):
                 self.writer = csv.writer(f, **writer_kwargs)
 
             if self.engine == 'python':
-            # to be removed in 0.13
+                # to be removed in 0.13
                 self._helper_csv(self.writer, na_rep=self.na_rep,
                                  float_format=self.float_format,
                                  cols=self.cols, header=self.header,
@@ -1750,7 +1821,7 @@ class ExcelFormatter(object):
             cell.val = self._format_value(cell.val)
             yield cell
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Array formatters
 
 
@@ -1919,10 +1990,10 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
-        formatter = self.formatter or _get_format_datetime64_from_values(
-                                                self.values,
-                                                nat_rep=self.nat_rep,
-                                                date_format=self.date_format)
+        formatter = (self.formatter or
+                     _get_format_datetime64_from_values(self.values,
+                                                        nat_rep=self.nat_rep,
+                                                        date_format=self.date_format))
 
         fmt_values = [formatter(x) for x in self.values]
 
@@ -1966,8 +2037,8 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
     if is_dates_only:
         return lambda x, tz=None: _format_datetime64_dateonly(x,
-                                nat_rep=nat_rep,
-                                date_format=date_format)
+                                                              nat_rep=nat_rep,
+                                                              date_format=date_format)
     else:
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
@@ -1989,25 +2060,27 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self):
-        formatter = self.formatter or _get_format_timedelta64(self.values, nat_rep=self.nat_rep, box=self.box)
+        formatter = self.formatter or _get_format_timedelta64(self.values, nat_rep=self.nat_rep,
+                                                              box=self.box)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
 
 def _get_format_timedelta64(values, nat_rep='NaT', box=False):
     """
-    return a formatter function for a range of timedeltas. These will all have the same format argument
+    Return a formatter function for a range of timedeltas.
+    These will all have the same format argument
 
-    if box, then show the return in quotes
+    If box, then show the return in quotes
     """
 
     values_int = values.astype(np.int64)
 
     consider_values = values_int != iNaT
 
-    one_day_in_nanos = (86400 * 1e9)
-    even_days = np.logical_and(consider_values, values_int % one_day_in_nanos != 0).sum() == 0
-    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= one_day_in_nanos).sum() == 0
+    one_day_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
 
     if even_days:
         format = 'even_day'
@@ -2028,6 +2101,7 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
         return result
 
     return _formatter
+
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0 or justify == 'all':
@@ -2109,7 +2183,7 @@ def _has_names(index):
         return index.name is not None
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Global formatting options
 
 _initial_defencoding = None

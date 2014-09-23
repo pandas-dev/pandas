@@ -14,7 +14,7 @@ import pandas as pd
 import pandas.core.common as com
 from pandas import option_context
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
-                             MultiIndex, Float64Index, Timestamp)
+                             MultiIndex, Float64Index, Timestamp, Timedelta)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal)
@@ -322,7 +322,7 @@ class TestIndexing(tm.TestCase):
             _check(d['ts'],    'at')
             _check(d['floats'],'at')
 
-    def test_at_timestamp(self):
+    def test_at_iat_coercion(self):
 
         # as timestamp is not a tuple!
         dates = date_range('1/1/2000', periods=8)
@@ -332,6 +332,22 @@ class TestIndexing(tm.TestCase):
         result = s.at[dates[5]]
         xp     = s.values[5]
         self.assertEqual(result, xp)
+
+        # GH 7729
+        # make sure we are boxing the returns
+        s = Series(['2014-01-01', '2014-02-02'], dtype='datetime64[ns]')
+        expected = Timestamp('2014-02-02')
+
+        for r in [ lambda : s.iat[1], lambda : s.iloc[1] ]:
+            result = r()
+            self.assertEqual(result, expected)
+
+        s = Series(['1 days','2 days'], dtype='timedelta64[ns]')
+        expected = Timedelta('2 days')
+
+        for r in [ lambda : s.iat[1], lambda : s.iloc[1] ]:
+            result = r()
+            self.assertEqual(result, expected)
 
     def test_iat_invalid_args(self):
         pass
@@ -849,6 +865,28 @@ class TestIndexing(tm.TestCase):
         def f():
             df.loc[[3]]
         self.assertRaises(KeyError, f)
+
+        # at should not fallback
+        # GH 7814
+        s = Series([1,2,3], index=list('abc'))
+        result = s.at['a']
+        self.assertEquals(result, 1)
+        self.assertRaises(ValueError, lambda : s.at[0])
+
+        df = DataFrame({'A' : [1,2,3]},index=list('abc'))
+        result = df.at['a','A']
+        self.assertEquals(result, 1)
+        self.assertRaises(ValueError, lambda : df.at['a',0])
+
+        s = Series([1,2,3], index=[3,2,1])
+        result = s.at[1]
+        self.assertEquals(result, 3)
+        self.assertRaises(ValueError, lambda : s.at['a'])
+
+        df = DataFrame({0 : [1,2,3]},index=[3,2,1])
+        result = df.at[1,0]
+        self.assertEquals(result, 3)
+        self.assertRaises(ValueError, lambda : df.at['a',0])
 
     def test_loc_getitem_label_slice(self):
 

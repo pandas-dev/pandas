@@ -62,6 +62,9 @@ cdef extern from "headers/stdint.h":
 cdef extern from "headers/portable.h":
     pass
 
+cdef extern from "errno.h":
+    int errno
+
 try:
     basestring
 except NameError:
@@ -82,6 +85,7 @@ cdef extern from "parser/tokenizer.h":
         EAT_WHITESPACE
         EAT_COMMENT
         EAT_LINE_COMMENT
+        WHITESPACE_LINE
         FINISHED
 
     enum: ERROR_OVERFLOW
@@ -155,10 +159,13 @@ cdef extern from "parser/tokenizer.h":
 
         void *skipset
         int skip_footer
+        double (*converter)(const char *, char **, char, char, char, int)
 
         #  error handling
         char *warn_msg
         char *error_msg
+
+        int skip_empty_lines
 
     ctypedef struct coliter_t:
         char **words
@@ -189,8 +196,13 @@ cdef extern from "parser/tokenizer.h":
                          int64_t int_max, int *error, char tsep)
     uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
 
-    inline int to_double(char *item, double *p_value,
-                         char sci, char decimal, char thousands)
+    double xstrtod(const char *p, char **q, char decimal, char sci,
+                   char tsep, int skip_trailing)
+    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                   char tsep, int skip_trailing)
+    double round_trip(const char *p, char **q, char decimal, char sci,
+                   char tsep, int skip_trailing)
+
     inline int to_complex(char *item, double *p_real,
                           double *p_imag, char sci, char decimal)
     inline int to_longlong(char *item, long long *p_value)
@@ -315,7 +327,9 @@ cdef class TextReader:
                   skip_footer=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False):
+                  tupleize_cols=False,
+                  float_precision=None,
+                  skip_blank_lines=True):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -346,6 +360,7 @@ cdef class TextReader:
 
         self.parser.doublequote = doublequote
         self.parser.skipinitialspace = skipinitialspace
+        self.parser.skip_empty_lines = skip_blank_lines
 
         if lineterminator is not None:
             if len(lineterminator) != 1:
@@ -415,6 +430,11 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
+        self.parser.converter = xstrtod
+        if float_precision == 'high':
+            self.parser.converter = precise_xstrtod
+        elif float_precision == 'round_trip':
+            self.parser.converter = round_trip
 
         # encoding
         if encoding is not None:
@@ -537,7 +557,7 @@ cdef class TextReader:
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
-                source = source.encode(sys.getfilesystemencoding() or 'utf-8') 
+                source = source.encode(sys.getfilesystemencoding() or 'utf-8')
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -599,16 +619,21 @@ cdef class TextReader:
                 if self.parser.lines < hr + 1:
                     self._tokenize_rows(hr + 2)
 
+                if self.parser.lines == 0:
+                    field_count = 0
+                    start = self.parser.line_start[0]
+
                 # e.g., if header=3 and file only has 2 lines
-                if self.parser.lines < hr + 1:
+                elif self.parser.lines < hr + 1:
                     msg = self.orig_header
                     if isinstance(msg,list):
                            msg = "[%s], len of %d," % (','.join([ str(m) for m in msg ]),len(msg))
                     raise CParserError('Passed header=%s but only %d lines in file'
                                        % (msg, self.parser.lines))
 
-                field_count = self.parser.line_fields[hr]
-                start = self.parser.line_start[hr]
+                else:
+                    field_count = self.parser.line_fields[hr]
+                    start = self.parser.line_start[hr]
 
                 # TODO: Py3 vs. Py2
                 counts = {}
@@ -1018,7 +1043,7 @@ cdef class TextReader:
 
         elif dtype[1] == 'f':
             result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset, na_flist)
+                          na_filter, na_hashset, na_flist)
 
             if dtype[1:] != 'f8':
                 result = result.astype(dtype)
@@ -1415,12 +1440,14 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         size_t i, lines
         coliter_t it
         char *word
+        char *p_end
         double *data
         double NA = na_values[np.float64]
         ndarray result
         khiter_t k
         bint use_na_flist = len(na_flist) > 0
 
+    global errno
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
     data = <double *> result.data
@@ -1436,8 +1463,9 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                 na_count += 1
                 data[0] = NA
             else:
-                error = to_double(word, data, parser.sci, parser.decimal, parser.thousands)
-                if error != 1:
+                data[0] = parser.converter(word, &p_end, parser.decimal, parser.sci,
+                                         parser.thousands, 1)
+                if errno != 0 or p_end[0] or p_end == word:
                     if strcasecmp(word, cinf) == 0:
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
@@ -1452,8 +1480,9 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
-            error = to_double(word, data, parser.sci, parser.decimal, parser.thousands)
-            if error != 1:
+            data[0] = parser.converter(word, &p_end, parser.decimal, parser.sci,
+                                         parser.thousands, 1)
+            if errno != 0 or p_end[0] or p_end == word:
                 if strcasecmp(word, cinf) == 0:
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:

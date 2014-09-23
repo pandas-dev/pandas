@@ -33,22 +33,30 @@ pc_colspace_doc = """
 
 pc_max_rows_doc = """
 : int
-    This sets the maximum number of rows pandas should output when printing
-    out various output. For example, this value determines whether the repr()
-    for a dataframe prints out fully or just a summary repr.
-    'None' value means unlimited.
+    If max_rows is exceeded, switch to truncate view. Depending on
+    `large_repr`, objects are either centrally truncated or printed as
+    a summary view. 'None' value means unlimited.
+
+    In case python/IPython is running in a terminal and `large_repr`
+    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    the height of the terminal and print a truncated object which fits
+    the screen height. The IPython notebook, IPython qtconsole, or
+    IDLE do not run in a terminal and hence it is not possible to do
+    correct auto-detection.
 """
 
 pc_max_cols_doc = """
 : int
-    max_rows and max_columns are used in __repr__() methods to decide if
-    to_string() or info() is used to render an object to a string.  In case
-    python/IPython is running in a terminal this can be set to 0 and pandas
-    will correctly auto-detect the width the terminal and swap to a smaller
-    format in case all columns would not fit vertically. The IPython notebook,
-    IPython qtconsole, or IDLE do not run in a terminal and hence it is not
-    possible to do correct auto-detection.
-    'None' value means unlimited.
+    If max_cols is exceeded, switch to truncate view. Depending on
+    `large_repr`, objects are either centrally truncated or printed as
+    a summary view. 'None' value means unlimited.
+
+    In case python/IPython is running in a terminal and `large_repr`
+    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    the width of the terminal and print a truncated object which fits
+    the screen width. The IPython notebook, IPython qtconsole, or IDLE
+    do not run in a terminal and hence it is not possible to do
+    correct auto-detection.
 """
 
 pc_max_levels_doc = """

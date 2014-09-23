@@ -556,9 +556,15 @@ class Block(PandasObject):
             else:
                 dtype = 'infer'
             values = self._try_coerce_and_cast_result(values, dtype)
-            return [make_block(transf(values),
+            block = make_block(transf(values),
                                ndim=self.ndim, placement=self.mgr_locs,
-                               fastpath=True)]
+                               fastpath=True)
+
+            # may have to soft convert_objects here
+            if block.is_object and not self.is_object:
+                block = block.convert(convert_numeric=False)
+
+            return block
         except (ValueError, TypeError) as detail:
             raise
         except Exception as detail:
@@ -827,7 +833,7 @@ class Block(PandasObject):
             axis = new_values.ndim - axis - 1
 
         if np.prod(new_values.shape):
-            new_values = np.roll(new_values, periods, axis=axis)
+            new_values = np.roll(new_values, com._ensure_platform_int(periods), axis=axis)
 
         axis_indexer = [ slice(None) ] * self.ndim
         if periods > 0:
@@ -3507,7 +3513,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
         mgr._consolidate_inplace()
         return mgr
     except (ValueError) as e:
-        construction_error(len(arrays), arrays[0].shape[1:], axes, e)
+        construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
 def form_blocks(arrays, names, axes):

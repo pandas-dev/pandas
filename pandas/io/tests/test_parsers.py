@@ -732,7 +732,6 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             return buf
 
         data = StringIO('\n'.join([ f(i, v) for i, v in enumerate(_NA_VALUES) ]))
-
         expected = DataFrame(np.nan,columns=range(nv),index=range(nv))
         df = self.read_csv(data, header=None)
         tm.assert_frame_equal(df, expected)
@@ -1288,11 +1287,11 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         # skipping lines in the header
-        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         #### invalid options ####
@@ -2523,6 +2522,12 @@ eight,1,2,3"""
         finally:
             sys.stdout = sys.__stdout__
 
+    def test_float_precision_specified(self):
+        # Should raise an error if float_precision (C parser option) is specified
+        with tm.assertRaisesRegexp(ValueError, "The 'float_precision' option "
+                                   "is not supported with the 'python' engine"):
+            self.read_csv(StringIO('a,b,c\n1,2,3'), float_precision='high')
+
     def test_iteration_open_handle(self):
         if PY3:
             raise nose.SkipTest("won't work in Python 3 {0}".format(sys.version_info))
@@ -2803,6 +2808,58 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         actual = self.read_table(StringIO(data), sep='\s+')
         tm.assert_frame_equal(actual, expected)
 
+    def test_line_comment(self):
+        data = """# empty
+A,B,C
+1,2.,4.#hello world
+#ignore this line
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_empty_lines(self):
+        data = """\
+A,B,C
+1,2.,4.
+
+
+5.,NaN,10.0
+
+-70,.4,1
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.],
+                    [-70., .4, 1.]]
+        df = self.read_csv(StringIO(data))
+        tm.assert_almost_equal(df.values, expected)
+        df = self.read_csv(StringIO(data.replace(',', '  ')), sep='\s+')
+        tm.assert_almost_equal(df.values, expected)
+        expected = [[1., 2., 4.],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [5., np.nan, 10.],
+                    [np.nan, np.nan, np.nan],
+                    [-70., .4, 1.]]
+        df = self.read_csv(StringIO(data), skip_blank_lines=False)
+        tm.assert_almost_equal(list(df.values), list(expected))
+
+    def test_whitespace_lines(self):
+        data = """
+
+\t  \t\t 
+  \t  
+A,B,C
+  \t    1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1, 2., 4.],
+                     [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data))
+        tm.assert_almost_equal(df.values, expected)
+
 class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
         # File with all values
@@ -3009,6 +3066,46 @@ A,B,C
         df = self.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
         tm.assert_almost_equal(df.values, expected)
 
+    def test_empty_lines(self):
+        data = """\
+A,B,C
+1,2.,4.
+
+
+5.,NaN,10.0
+
+-70,.4,1
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.],
+                    [-70., .4, 1.]]
+        df = self.read_csv(StringIO(data))
+        tm.assert_almost_equal(df.values, expected)
+        df = self.read_csv(StringIO(data.replace(',', '  ')), sep='\s+')
+        tm.assert_almost_equal(df.values, expected)
+        expected = [[1., 2., 4.],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [5., np.nan, 10.],
+                    [np.nan, np.nan, np.nan],
+                    [-70., .4, 1.]]
+        df = self.read_csv(StringIO(data), skip_blank_lines=False)
+        tm.assert_almost_equal(list(df.values), list(expected))
+
+    def test_whitespace_lines(self):
+        data = """
+
+\t  \t\t 
+  \t  
+A,B,C
+  \t    1,2.,4.
+5.,NaN,10.0
+"""
+        expected = [[1, 2., 4.],
+                     [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data))
+        tm.assert_almost_equal(df.values, expected)
+
     def test_passing_dtype(self):
         # GH 6607
         # This is a copy which should eventually be merged into ParserTests
@@ -3087,6 +3184,25 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
                           use_unsigned=True)
         ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
+
+    def test_precise_conversion(self):
+        # GH #8002
+        from decimal import Decimal
+        normal_errors = []
+        precise_errors = []
+        for num in np.linspace(1., 2., num=500): # test numbers between 1 and 2
+            text = 'a\n{0:.25}'.format(num) # 25 decimal digits of precision
+            normal_val = float(self.read_csv(StringIO(text))['a'][0])
+            precise_val = float(self.read_csv(StringIO(text), float_precision='high')['a'][0])
+            roundtrip_val = float(self.read_csv(StringIO(text), float_precision='round_trip')['a'][0])
+            actual_val = Decimal(text[2:])
+            def error(val):
+                return abs(Decimal('{0:.100}'.format(val)) - actual_val)
+            normal_errors.append(error(normal_val))
+            precise_errors.append(error(precise_val))
+            self.assertEqual(roundtrip_val, float(text[2:])) # round-trip should match float()
+        self.assertTrue(sum(precise_errors) <= sum(normal_errors))
+        self.assertTrue(max(precise_errors) <= max(normal_errors))
 
     def test_pass_dtype(self):
         data = """\
@@ -3455,6 +3571,7 @@ class TestMiscellaneous(tm.TestCase):
         data = '    a b c\n1 2 3 \n4 5  6\n 7 8 9'
         result_c = pd.read_table(StringIO(data), sep='\s+', engine='c')
         result_py = pd.read_table(StringIO(data), sep='\s+', engine='python')
+        print(result_c)
         tm.assert_frame_equal(result_c, result_py)
 
     def test_fallback_to_python(self):

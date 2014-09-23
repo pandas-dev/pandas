@@ -253,6 +253,10 @@ class PandasSQLTest(unittest.TestCase):
         # Nuke table
         self.drop_table('test_frame1')
 
+    def _to_sql_empty(self):
+        self.drop_table('test_frame1')
+        self.pandasSQL.to_sql(self.test_frame1.iloc[:0], 'test_frame1')
+
     def _to_sql_fail(self):
         self.drop_table('test_frame1')
 
@@ -330,6 +334,28 @@ class PandasSQLTest(unittest.TestCase):
         self.pandasSQL.to_sql(df, 'test_to_sql_saves_index')
         ix_cols = self._get_index_columns('test_to_sql_saves_index')
         self.assertEqual(ix_cols, [['A',],])
+
+    def _transaction_test(self):
+        self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
+
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        
+        # Make sure when transaction is rolled back, no rows get inserted
+        try:
+            with self.pandasSQL.run_transaction() as trans:
+                trans.execute(ins_sql)
+                raise Exception('error')
+        except:
+            # ignore raised exception
+            pass
+        res = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        self.assertEqual(len(res), 0)
+        
+        # Make sure when transaction is committed, rows do get inserted
+        with self.pandasSQL.run_transaction() as trans:
+            trans.execute(ins_sql)
+        res2 = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        self.assertEqual(len(res2), 1)
 
 
 #------------------------------------------------------------------------------
@@ -828,6 +854,9 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_to_sql(self):
         self._to_sql()
 
+    def test_to_sql_empty(self):
+        self._to_sql_empty()
+
     def test_to_sql_fail(self):
         self._to_sql_fail()
 
@@ -1072,6 +1101,8 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
+    def test_transactions(self):
+        self._transaction_test()
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -1322,6 +1353,9 @@ class TestSQLiteLegacy(PandasSQLTest):
     def test_to_sql(self):
         self._to_sql()
 
+    def test_to_sql_empty(self):
+        self._to_sql_empty()
+
     def test_to_sql_fail(self):
         self._to_sql_fail()
 
@@ -1380,6 +1414,8 @@ class TestSQLiteLegacy(PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
+    def test_transactions(self):
+        self._transaction_test()
 
 class TestMySQLLegacy(TestSQLiteLegacy):
     """
@@ -1445,6 +1481,15 @@ class TestMySQLLegacy(TestSQLiteLegacy):
                 ix_cols[ix_name] = []
             ix_cols[ix_name].append(ix_col)
         return list(ix_cols.values())
+
+    def test_to_sql_save_index(self):
+        self._to_sql_save_index()
+
+        for ix_name, ix_col in zip(ixs.Key_name, ixs.Column_name):
+            if ix_name not in ix_cols:
+                ix_cols[ix_name] = []
+            ix_cols[ix_name].append(ix_col)
+        return ix_cols.values()
 
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
@@ -1545,7 +1590,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY ([A],[B])' in create_sql)
         cur = self.db.cursor()
         cur.execute(create_sql)
 
@@ -1824,7 +1869,7 @@ class TestXMySQL(tm.TestCase):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (A,B)' in create_sql)
+        self.assertTrue('PRIMARY KEY (`A`,`B`)' in create_sql)
         cur = self.db.cursor()
         cur.execute(drop_sql)
         cur.execute(create_sql)

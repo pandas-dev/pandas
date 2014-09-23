@@ -1941,7 +1941,8 @@ class Grouping(object):
             # no level passed
             if not isinstance(self.grouper, (Series, Index, np.ndarray)):
                 if getattr(self.grouper,'ndim', 1) != 1:
-                    raise ValueError("Grouper result with an ndim != 1")
+                    t = self.name or str(type(self.grouper))
+                    raise ValueError("Grouper for '%s' not 1-dimensional" % t)
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper, "__len__") and
                         len(self.grouper) == len(self.index)):
@@ -2992,8 +2993,9 @@ class NDFrameGroupBy(GroupBy):
              type(result.index) != type(obj.index)) or
             len(result.index) != len(obj.index)):
             results = obj.values.copy()
+            indices = self.indices
             for (name, group), (i, row) in zip(self, result.iterrows()):
-                indexer = self._get_index(name)
+                indexer = indices[name]
                 results[indexer] = np.tile(row.values,len(indexer)).reshape(len(indexer),-1)
             return DataFrame(results,columns=result.columns,index=obj.index).convert_objects()
 

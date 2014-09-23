@@ -265,6 +265,10 @@ class TestTimedeltas(tm.TestCase):
         result = timedelta_range('1 days, 00:00:02',periods=5,freq='2D')
         tm.assert_index_equal(result, expected)
 
+        expected = to_timedelta(np.arange(50),unit='T')*30
+        result = timedelta_range('0 days',freq='30T',periods=50)
+        tm.assert_index_equal(result, expected)
+
     def test_numeric_conversions(self):
         self.assertEqual(ct(0), np.timedelta64(0,'ns'))
         self.assertEqual(ct(10), np.timedelta64(10,'ns'))

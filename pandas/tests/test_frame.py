@@ -534,6 +534,15 @@ class CheckIndexing(object):
         self.frame['something'] = 2.5
         self.assertEqual(self.frame['something'].dtype, np.float64)
 
+        # GH 7704
+        # dtype conversion on setting
+        df = DataFrame(np.random.rand(30, 3), columns=tuple('ABC'))
+        df['event'] = np.nan
+        df.loc[10,'event'] = 'foo'
+        result = df.get_dtype_counts().order()
+        expected = Series({'float64' : 3, 'object' : 1 }).order()
+        assert_series_equal(result, expected)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
@@ -1790,6 +1799,20 @@ class CheckIndexing(object):
 
         expect = df.iloc[[1, -1], 0]
         tm.assert_series_equal(df.loc[0.2, 'a'], expect)
+
+    def test_setitem_with_sparse_value(self):
+        # GH8131
+        df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
+        sp_series = pd.Series([0, 0, 1]).to_sparse(fill_value=0)
+        df['new_column'] = sp_series
+        tm.assert_series_equal(df['new_column'], sp_series)
+
+    def test_setitem_with_unaligned_sparse_value(self):
+        df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
+        sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
+                     .to_sparse(fill_value=0))
+        df['new_column'] = sp_series
+        tm.assert_series_equal(df['new_column'], pd.Series([1, 0, 0]))
 
 
 _seriesd = tm.getSeriesData()
@@ -4018,7 +4041,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r'Shape of passed values is \(3,\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
         with assertRaisesRegexp(ValueError, msg):
             DataFrame.from_records(arr, index=index[:-1])
 

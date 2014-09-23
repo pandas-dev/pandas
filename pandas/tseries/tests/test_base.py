@@ -213,13 +213,9 @@ Length: 3, Freq: None, Timezone: US/Eastern"""
 
             for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
                                          (rng3, other3, expected3)]:
-                result_add = rng - other
-                result_union = rng.diff(other)
+                result_union = rng.difference(other)
 
-                tm.assert_index_equal(result_add, expected)
                 tm.assert_index_equal(result_union, expected)
-                rng -= other
-                tm.assert_index_equal(rng, expected)
 
             # offset
             offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h'),
@@ -859,13 +855,8 @@ Length: 3, Freq: Q-DEC"""
                                      (rng3, other3, expected3), (rng4, other4, expected4),
                                      (rng5, other5, expected5), (rng6, other6, expected6),
                                      (rng7, other7, expected7),]:
-            result_add = rng - other
-            result_union = rng.diff(other)
-
-            tm.assert_index_equal(result_add, expected)
+            result_union = rng.difference(other)
             tm.assert_index_equal(result_union, expected)
-            rng -= other
-            tm.assert_index_equal(rng, expected)
 
         # offset
         # DateOffset

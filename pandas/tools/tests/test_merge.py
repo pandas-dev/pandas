@@ -1485,6 +1485,38 @@ class TestConcatenate(tm.TestCase):
         self.assertEqual(appended['A'].dtype, 'f8')
         self.assertEqual(appended['B'].dtype, 'O')
 
+    def test_concat_copy(self):
+
+        df = DataFrame(np.random.randn(4, 3))
+        df2 = DataFrame(np.random.randint(0,10,size=4).reshape(4,1))
+        df3 = DataFrame({5 : 'foo'},index=range(4))
+
+        # these are actual copies
+        result = concat([df,df2,df3],axis=1,copy=True)
+        for b in result._data.blocks:
+            self.assertIsNone(b.values.base)
+
+        # these are the same
+        result = concat([df,df2,df3],axis=1,copy=False)
+        for b in result._data.blocks:
+            if b.is_float:
+                self.assertTrue(b.values.base is df._data.blocks[0].values.base)
+            elif b.is_integer:
+                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
+            elif b.is_object:
+                self.assertIsNotNone(b.values.base)
+
+        # float block was consolidated
+        df4 = DataFrame(np.random.randn(4,1))
+        result = concat([df,df2,df3,df4],axis=1,copy=False)
+        for b in result._data.blocks:
+            if b.is_float:
+                self.assertIsNone(b.values.base)
+            elif b.is_integer:
+                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
+            elif b.is_object:
+                self.assertIsNotNone(b.values.base)
+
     def test_concat_with_group_keys(self):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randn(4, 4))

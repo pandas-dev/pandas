@@ -1525,7 +1525,7 @@ infer the right offset.
                                '11/06/2011 03:00'])
 
    # This will fail as there are ambiguous times
-   rng_hourly.tz_localize('US/Eastern') 
+   rng_hourly.tz_localize('US/Eastern')
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
    rng_hourly_eastern.tolist()
 

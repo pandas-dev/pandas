@@ -5,6 +5,7 @@ import numpy as np
 from pandas.core.groupby import BinGrouper, Grouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.tseries.tools as tools
@@ -96,10 +97,12 @@ class TimeGrouper(Grouper):
                 obj = self.obj.to_timestamp(how=self.convention)
                 self._set_grouper(obj)
                 rs = self._resample_timestamps()
+        elif isinstance(ax, TimedeltaIndex):
+            rs = self._resample_timestamps(kind='timedelta')
         elif len(ax) == 0:
             return self.obj
         else:  # pragma: no cover
-            raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
+            raise TypeError('Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex')
 
         rs_axis = rs._get_axis(self.axis)
         rs_axis.name = ax.name
@@ -109,13 +112,17 @@ class TimeGrouper(Grouper):
         self._set_grouper(obj)
         return self._get_binner_for_resample()
 
-    def _get_binner_for_resample(self):
+    def _get_binner_for_resample(self, kind=None):
         # create the BinGrouper
         # assume that self.set_grouper(obj) has already been called
 
         ax = self.ax
-        if self.kind is None or self.kind == 'timestamp':
+        if kind is None:
+            kind = self.kind
+        if kind is None or kind == 'timestamp':
             self.binner, bins, binlabels = self._get_time_bins(ax)
+        elif kind == 'timedelta':
+            self.binner, bins, binlabels = self._get_time_delta_bins(ax)
         else:
             self.binner, bins, binlabels = self._get_time_period_bins(ax)
 
@@ -217,6 +224,25 @@ class TimeGrouper(Grouper):
 
         return binner, bin_edges
 
+    def _get_time_delta_bins(self, ax):
+        if not isinstance(ax, TimedeltaIndex):
+            raise TypeError('axis must be a TimedeltaIndex, but got '
+                            'an instance of %r' % type(ax).__name__)
+
+        if not len(ax):
+            binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)
+            return binner, [], labels
+
+        labels = binner = TimedeltaIndex(start=ax[0],
+                                         end=ax[-1],
+                                         freq=self.freq,
+                                         name=ax.name)
+
+        end_stamps = labels + 1
+        bins = ax.searchsorted(end_stamps, side='left')
+
+        return binner, bins, labels
+
     def _get_time_period_bins(self, ax):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError('axis must be a DatetimeIndex, but got '
@@ -242,11 +268,11 @@ class TimeGrouper(Grouper):
     def _agg_method(self):
         return self.how if self.how else _DEFAULT_METHOD
 
-    def _resample_timestamps(self):
+    def _resample_timestamps(self, kind=None):
         # assumes set_grouper(obj) already called
         axlabels = self.ax
 
-        self._get_binner_for_resample()
+        self._get_binner_for_resample(kind=kind)
         grouper = self.grouper
         binner = self.binner
         obj = self.obj

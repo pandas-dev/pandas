@@ -46,6 +46,20 @@ def register_writer(klass):
 
 
 def get_writer(engine_name):
+    if engine_name == 'openpyxl':
+        try:
+            import openpyxl
+
+            # with version-less openpyxl engine
+            # make sure we make the intelligent choice for the user
+            if LooseVersion(openpyxl.__version__) < '2.0.0':
+                 return _writers['openpyxl1']
+            else:
+                 return _writers['openpyxl2']
+        except ImportError:
+            # fall through to normal exception handling below
+            pass
+
     try:
         return _writers[engine_name]
     except KeyError:
@@ -57,7 +71,7 @@ def read_excel(io, sheetname=0, **kwds):
 
     Parameters
     ----------
-    io : string, file-like object, or xlrd workbook. 
+    io : string, file-like object, or xlrd workbook.
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         and file. For file URLs, a host is expected. For instance, a local
         file could be file://localhost/path/to/workbook.xlsx
@@ -152,7 +166,7 @@ class ExcelFile(object):
             self.book = io
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
-            data = io.read() 
+            data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
@@ -527,20 +541,20 @@ class ExcelWriter(object):
         return self.save()
 
 
-class _OpenpyxlWriter(ExcelWriter):
-    engine = 'openpyxl'
+class _Openpyxl1Writer(ExcelWriter):
+    engine = 'openpyxl1'
     supported_extensions = ('.xlsx', '.xlsm')
+    openpyxl_majorver = 1
 
     def __init__(self, path, engine=None, **engine_kwargs):
-        if not openpyxl_compat.is_compat():
+        if not openpyxl_compat.is_compat(major_ver=self.openpyxl_majorver):
             raise ValueError('Installed openpyxl is not supported at this '
-                             'time. Use >={0} and '
-                             '<{1}.'.format(openpyxl_compat.start_ver,
-                                            openpyxl_compat.stop_ver))
+                             'time. Use {0}.x.y.'
+                             .format(self.openpyxl_majorver))
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super(_OpenpyxlWriter, self).__init__(path, **engine_kwargs)
+        super(_Openpyxl1Writer, self).__init__(path, **engine_kwargs)
 
         # Create workbook object with default optimized_write=True.
         self.book = Workbook()
@@ -632,7 +646,428 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return xls_style
 
+register_writer(_Openpyxl1Writer)
+
+
+class _OpenpyxlWriter(_Openpyxl1Writer):
+    engine = 'openpyxl'
+
 register_writer(_OpenpyxlWriter)
+
+
+class _Openpyxl2Writer(_Openpyxl1Writer):
+    """
+    Note: Support for OpenPyxl v2 is currently EXPERIMENTAL (GH7565).
+    """
+    engine = 'openpyxl2'
+    openpyxl_majorver = 2
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using openpyxl.
+        from openpyxl.cell import get_column_letter
+
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.create_sheet()
+            wks.title = sheet_name
+            self.sheets[sheet_name] = wks
+
+        for cell in cells:
+            colletter = get_column_letter(startcol + cell.col + 1)
+            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell.value = _conv_value(cell.val)
+            style_kwargs = {}
+
+            # Apply format codes before cell.style to allow override
+            if isinstance(cell.val, datetime.datetime):
+                style_kwargs.update(self._convert_to_style_kwargs({
+                        'number_format':{'format_code': self.datetime_format}}))
+            elif isinstance(cell.val, datetime.date):
+                style_kwargs.update(self._convert_to_style_kwargs({
+                        'number_format':{'format_code': self.date_format}}))
+
+            if cell.style:
+                style_kwargs.update(self._convert_to_style_kwargs(cell.style))
+
+            if style_kwargs:
+                xcell.style = xcell.style.copy(**style_kwargs)
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                cletterstart = get_column_letter(startcol + cell.col + 1)
+                cletterend = get_column_letter(startcol + cell.mergeend + 1)
+
+                wks.merge_cells('%s%s:%s%s' % (cletterstart,
+                                               startrow + cell.row + 1,
+                                               cletterend,
+                                               startrow + cell.mergestart + 1))
+
+                # Excel requires that the format of the first cell in a merged
+                # range is repeated in the rest of the merged range.
+                if style:
+                    first_row = startrow + cell.row + 1
+                    last_row = startrow + cell.mergestart + 1
+                    first_col = startcol + cell.col + 1
+                    last_col = startcol + cell.mergeend + 1
+
+                    for row in range(first_row, last_row + 1):
+                        for col in range(first_col, last_col + 1):
+                            if row == first_row and col == first_col:
+                                # Ignore first cell. It is already handled.
+                                continue
+                            colletter = get_column_letter(col)
+                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell.style = xcell.style.copy(**style_kwargs)
+
+    @classmethod
+    def _convert_to_style_kwargs(cls, style_dict):
+        """
+        Convert a style_dict to a set of kwargs suitable for initializing
+        or updating-on-copy an openpyxl v2 style object
+        Parameters
+        ----------
+        style_dict : dict
+            A dict with zero or more of the following keys (or their synonyms).
+                'font'
+                'fill'
+                'border' ('borders')
+                'alignment'
+                'number_format'
+                'protection'
+        Returns
+        -------
+        style_kwargs : dict
+            A dict with the same, normalized keys as ``style_dict`` but each
+            value has been replaced with a native openpyxl style object of the
+            appropriate class.
+        """
+
+        _style_key_map = {
+            'borders': 'border',
+        }
+
+        style_kwargs = {}
+        for k, v in style_dict.items():
+            if k in _style_key_map:
+                k = _style_key_map[k]
+            _conv_to_x = getattr(cls, '_convert_to_{0}'.format(k),
+                    lambda x: None)
+            new_v = _conv_to_x(v)
+            if new_v:
+                style_kwargs[k] = new_v
+
+        return style_kwargs
+
+
+    @classmethod
+    def _convert_to_color(cls, color_spec):
+        """
+        Convert ``color_spec`` to an openpyxl v2 Color object
+        Parameters
+        ----------
+        color_spec : str, dict
+            A 32-bit ARGB hex string, or a dict with zero or more of the
+            following keys.
+                'rgb'
+                'indexed'
+                'auto'
+                'theme'
+                'tint'
+                'index'
+                'type'
+        Returns
+        -------
+        color : openpyxl.styles.Color
+        """
+
+        from openpyxl.styles import Color
+
+        if isinstance(color_spec, str):
+            return Color(color_spec)
+        else:
+            return Color(**color_spec)
+
+
+    @classmethod
+    def _convert_to_font(cls, font_dict):
+        """
+        Convert ``font_dict`` to an openpyxl v2 Font object
+        Parameters
+        ----------
+        font_dict : dict
+            A dict with zero or more of the following keys (or their synonyms).
+                'name'
+                'size' ('sz')
+                'bold' ('b')
+                'italic' ('i')
+                'underline' ('u')
+                'strikethrough' ('strike')
+                'color'
+                'vertAlign' ('vertalign')
+                'charset'
+                'scheme'
+                'family'
+                'outline'
+                'shadow'
+                'condense'
+        Returns
+        -------
+        font : openpyxl.styles.Font
+        """
+
+        from openpyxl.styles import Font
+
+        _font_key_map = {
+            'sz': 'size',
+            'b': 'bold',
+            'i': 'italic',
+            'u': 'underline',
+            'strike': 'strikethrough',
+            'vertalign': 'vertAlign',
+        }
+
+        font_kwargs = {}
+        for k, v in font_dict.items():
+            if k in _font_key_map:
+                k = _font_key_map[k]
+            if k == 'color':
+                v = cls._convert_to_color(v)
+            font_kwargs[k] = v
+
+        return Font(**font_kwargs)
+
+
+    @classmethod
+    def _convert_to_stop(cls, stop_seq):
+        """
+        Convert ``stop_seq`` to a list of openpyxl v2 Color objects,
+        suitable for initializing the ``GradientFill`` ``stop`` parameter.
+        Parameters
+        ----------
+        stop_seq : iterable
+            An iterable that yields objects suitable for consumption by
+            ``_convert_to_color``.
+        Returns
+        -------
+        stop : list of openpyxl.styles.Color
+        """
+
+        return map(cls._convert_to_color, stop_seq)
+
+
+    @classmethod
+    def _convert_to_fill(cls, fill_dict):
+        """
+        Convert ``fill_dict`` to an openpyxl v2 Fill object
+        Parameters
+        ----------
+        fill_dict : dict
+            A dict with one or more of the following keys (or their synonyms),
+                'fill_type' ('patternType', 'patterntype')
+                'start_color' ('fgColor', 'fgcolor')
+                'end_color' ('bgColor', 'bgcolor')
+            or one or more of the following keys (or their synonyms).
+                'type' ('fill_type')
+                'degree'
+                'left'
+                'right'
+                'top'
+                'bottom'
+                'stop'
+        Returns
+        -------
+        fill : openpyxl.styles.Fill
+        """
+
+        from openpyxl.styles import PatternFill, GradientFill
+
+        _pattern_fill_key_map = {
+            'patternType': 'fill_type',
+            'patterntype': 'fill_type',
+            'fgColor': 'start_color',
+            'fgcolor': 'start_color',
+            'bgColor': 'end_color',
+            'bgcolor': 'end_color',
+        }
+
+        _gradient_fill_key_map = {
+            'fill_type': 'type',
+        }
+
+        pfill_kwargs = {}
+        gfill_kwargs = {}
+        for k, v in fill_dict.items():
+            pk = gk = None
+            if k in _pattern_fill_key_map:
+                pk = _pattern_fill_key_map[k]
+            if k in _gradient_fill_key_map:
+                gk = _gradient_fill_key_map[k]
+            if pk in ['start_color', 'end_color']:
+                v = cls._convert_to_color(v)
+            if gk == 'stop':
+                v = cls._convert_to_stop(v)
+            if pk:
+                pfill_kwargs[pk] = v
+            elif gk:
+                gfill_kwargs[gk] = v
+            else:
+                pfill_kwargs[k] = v
+                gfill_kwargs[k] = v
+
+        try:
+            return PatternFill(**pfill_kwargs)
+        except TypeError:
+            return GradientFill(**gfill_kwargs)
+
+
+    @classmethod
+    def _convert_to_side(cls, side_spec):
+        """
+        Convert ``side_spec`` to an openpyxl v2 Side object
+        Parameters
+        ----------
+        side_spec : str, dict
+            A string specifying the border style, or a dict with zero or more
+            of the following keys (or their synonyms).
+                'style' ('border_style')
+                'color'
+        Returns
+        -------
+        side : openpyxl.styles.Side
+        """
+
+        from openpyxl.styles import Side
+
+        _side_key_map = {
+            'border_style': 'style',
+        }
+
+        if isinstance(side_spec, str):
+            return Side(style=side_spec)
+
+        side_kwargs = {}
+        for k, v in side_spec.items():
+            if k in _side_key_map:
+                k = _side_key_map[k]
+            if k == 'color':
+                v = cls._convert_to_color(v)
+            side_kwargs[k] = v
+
+        return Side(**side_kwargs)
+
+
+    @classmethod
+    def _convert_to_border(cls, border_dict):
+        """
+        Convert ``border_dict`` to an openpyxl v2 Border object
+        Parameters
+        ----------
+        border_dict : dict
+            A dict with zero or more of the following keys (or their synonyms).
+                'left'
+                'right'
+                'top'
+                'bottom'
+                'diagonal'
+                'diagonal_direction'
+                'vertical'
+                'horizontal'
+                'diagonalUp' ('diagonalup')
+                'diagonalDown' ('diagonaldown')
+                'outline'
+        Returns
+        -------
+        border : openpyxl.styles.Border
+        """
+
+        from openpyxl.styles import Border
+
+        _border_key_map = {
+            'diagonalup': 'diagonalUp',
+            'diagonaldown': 'diagonalDown',
+        }
+
+        border_kwargs = {}
+        for k, v in border_dict.items():
+            if k in _border_key_map:
+                k = _border_key_map[k]
+            if k == 'color':
+                v = cls._convert_to_color(v)
+            if k in ['left', 'right', 'top', 'bottom', 'diagonal']:
+                v = cls._convert_to_side(v)
+            border_kwargs[k] = v
+
+        return Border(**border_kwargs)
+
+
+    @classmethod
+    def _convert_to_alignment(cls, alignment_dict):
+        """
+        Convert ``alignment_dict`` to an openpyxl v2 Alignment object
+        Parameters
+        ----------
+        alignment_dict : dict
+            A dict with zero or more of the following keys (or their synonyms).
+                'horizontal'
+                'vertical'
+                'text_rotation'
+                'wrap_text'
+                'shrink_to_fit'
+                'indent'
+        Returns
+        -------
+        alignment : openpyxl.styles.Alignment
+        """
+
+        from openpyxl.styles import Alignment
+
+        return Alignment(**alignment_dict)
+
+
+    @classmethod
+    def _convert_to_number_format(cls, number_format_dict):
+        """
+        Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
+        initializer.
+        Parameters
+        ----------
+        number_format_dict : dict
+            A dict with zero or more of the following keys.
+                'format_code' : str
+        Returns
+        -------
+        number_format : str
+        """
+        try:
+            # >= 2.0.0 < 2.1.0
+            from openpyxl.styles import NumberFormat
+            return NumberFormat(**number_format_dict)
+        except:
+            # >= 2.1.0
+            return number_format_dict['format_code']
+
+    @classmethod
+    def _convert_to_protection(cls, protection_dict):
+        """
+        Convert ``protection_dict`` to an openpyxl v2 Protection object.
+        Parameters
+        ----------
+        protection_dict : dict
+            A dict with zero or more of the following keys.
+                'locked'
+                'hidden'
+        Returns
+        -------
+        """
+
+        from openpyxl.styles import Protection
+
+        return Protection(**protection_dict)
+
+
+register_writer(_Openpyxl2Writer)
 
 
 class _XlwtWriter(ExcelWriter):
