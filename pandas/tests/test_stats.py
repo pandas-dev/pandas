@@ -44,6 +44,43 @@ class TestRank(tm.TestCase):
             series = s if dtype is None else s.astype(dtype)
             _check(series, results[method], method=method)
 
+    def test_rank_methods_series(self):
+        tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        from scipy.stats import rankdata
+
+        xs = np.random.randn(9)
+        xs = np.concatenate([xs[i:] for i in range(0, 9, 2)]) # add duplicates
+        np.random.shuffle(xs)
+
+        index = [chr(ord('a') + i) for i in range(len(xs))]
+
+        for vals in [xs, xs + 1e6, xs * 1e-6]:
+            ts = Series(vals, index=index)
+
+            for m in ['average', 'min', 'max', 'first', 'dense']:
+                result = ts.rank(m)
+                sprank = rankdata(vals, m if m != 'first' else 'ordinal')
+                tm.assert_series_equal(result, Series(sprank, index=index))
+
+    def test_rank_methods_frame(self):
+        tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        from scipy.stats import rankdata
+
+        xs = np.random.randint(0, 21, (100, 26))
+        xs = (xs - 10.0) / 10.0
+        cols = [chr(ord('z') - i) for i in range(xs.shape[1])]
+
+        for vals in [xs, xs + 1e6, xs * 1e-6]:
+            df = DataFrame(vals, columns=cols)
+
+            for ax in [0, 1]:
+                for m in ['average', 'min', 'max', 'first', 'dense']:
+                    result = df.rank(axis=ax, method=m)
+                    sprank = np.apply_along_axis(rankdata, ax, vals,
+                                      m if m != 'first' else 'ordinal')
+                    expected = DataFrame(sprank, columns=cols)
+                    tm.assert_frame_equal(result, expected)
+
     def test_rank_dense_method(self):
         dtypes = ['O', 'f8', 'i8']
         in_out = [([1], [1]),
