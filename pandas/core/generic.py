@@ -2266,6 +2266,7 @@ class NDFrame(PandasObject):
         axis = self._get_axis_number(axis)
         method = com._clean_fill_method(method)
 
+        from pandas import DataFrame
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
@@ -2308,10 +2309,14 @@ class NDFrame(PandasObject):
             if len(self._get_axis(axis)) == 0:
                 return self
 
-            if self.ndim == 1 and value is not None:
+            if self.ndim == 1:
                 if isinstance(value, (dict, com.ABCSeries)):
                     from pandas import Series
                     value = Series(value)
+                elif not com.is_list_like(value):
+                    pass
+                else:
+                    raise ValueError("invalid fill value with a %s" % type(value))
 
                 new_data = self._data.fillna(value=value,
                                              limit=limit,
@@ -2331,11 +2336,15 @@ class NDFrame(PandasObject):
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True)
                 return result
-            else:
+            elif not com.is_list_like(value):
                 new_data = self._data.fillna(value=value,
                                              limit=limit,
                                              inplace=inplace,
                                              downcast=downcast)
+            elif isinstance(value, DataFrame) and self.ndim == 2:
+                raise NotImplementedError("can't use fillna with a DataFrame, use .where instead")
+            else:
+                raise ValueError("invalid fill value with a %s" % type(value))
 
         if inplace:
             self._update_inplace(new_data)
