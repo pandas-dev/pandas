@@ -2231,10 +2231,10 @@ class NDFrame(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar, dict, or Series
-            Value to use to fill holes (e.g. 0), alternately a dict/Series of
+        value : scalar, dict, Series, or DataFrame
+            Value to use to fill holes (e.g. 0), alternately a dict/Series/DataFrame of
             values specifying which value to use for each index (for a Series) or
-            column (for a DataFrame). (values not in the dict/Series will not be
+            column (for a DataFrame). (values not in the dict/Series/DataFrame will not be
             filled). This value cannot be a list.
         axis : {0, 1}, default 0
             * 0: fill column-by-column
@@ -2342,7 +2342,7 @@ class NDFrame(PandasObject):
                                              inplace=inplace,
                                              downcast=downcast)
             elif isinstance(value, DataFrame) and self.ndim == 2:
-                raise NotImplementedError("can't use fillna with a DataFrame, use .where instead")
+                new_data = self.where(self.notnull(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
 

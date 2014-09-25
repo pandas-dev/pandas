@@ -278,7 +278,7 @@ API changes
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - add ``copy=True`` argument to ``pd.concat`` to enable pass thrue of complete blocks (:issue:`8252`)
 
-- ``.fillna`` will now raise a ``NotImplementedError`` when passed a ``DataFrame`` (:issue:`8377`)
+
 
 .. _whatsnew_0150.dt:
 
@@ -785,7 +785,7 @@ Enhancements
   meta-engine that automatically uses whichever version of openpyxl is
   installed. (:issue:`7177`)
 
-
+- ``DataFrame.fillna`` can now accept a ``DataFrame`` as a fill value (:issue:`8377`)
 
 .. _whatsnew_0150.performance:
 
