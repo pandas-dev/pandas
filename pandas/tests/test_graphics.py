@@ -637,6 +637,13 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(series.plot, kind='pie')
         self._check_text_labels(ax.texts, series.index)
 
+    def test_pie_nan(self):
+        s = Series([1, np.nan, 1, 1])
+        ax = s.plot(kind='pie', legend=True)
+        expected = ['0', '', '2', '3']
+        result = [x.get_text() for x in ax.texts]
+        self.assertEqual(result, expected)
+
     @slow
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
@@ -2782,6 +2789,22 @@ class TestDataFramePlots(TestPlotBase):
             self._check_text_labels(ax.texts, labels)
             self._check_colors(ax.patches, facecolors=color_args)
 
+    def test_pie_df_nan(self):
+        df = DataFrame(np.random.rand(4, 4))
+        for i in range(4):
+            df.iloc[i, i] = np.nan
+        fig, axes = self.plt.subplots(ncols=4)
+        df.plot(kind='pie', subplots=True, ax=axes, legend=True)
+
+        base_expected = ['0', '1', '2', '3']
+        for i, ax in enumerate(axes):
+            expected = list(base_expected)  # copy
+            expected[i] = ''
+            result = [x.get_text() for x in ax.texts]
+            self.assertEqual(result, expected)
+            # legend labels
+            self.assertEqual([x.get_text() for x in ax.get_legend().get_texts()],
+                              base_expected)
     def test_errorbar_plot(self):
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
         df = DataFrame(d)

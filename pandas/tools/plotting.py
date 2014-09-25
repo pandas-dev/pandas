@@ -2047,10 +2047,20 @@ class PiePlot(MPLPlot):
 
             kwds = self.kwds.copy()
 
+            def blank_labeler(label, value):
+                if value == 0:
+                    return ''
+                else:
+                    return label
+
             idx = [com.pprint_thing(v) for v in self.data.index]
             labels = kwds.pop('labels', idx)
             # labels is used for each wedge's labels
-            results = ax.pie(y, labels=labels, **kwds)
+            # Blank out labels for values of 0 so they don't overlap
+            # with nonzero wedges
+            blabels = [blank_labeler(label, value) for
+                       label, value in zip(labels, y)]
+            results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get('autopct', None) is not None:
                 patches, texts, autotexts = results
