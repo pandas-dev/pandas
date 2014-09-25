@@ -2058,8 +2058,11 @@ class PiePlot(MPLPlot):
             # labels is used for each wedge's labels
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
-            blabels = [blank_labeler(label, value) for
-                       label, value in zip(labels, y)]
+            if labels is not None:
+                blabels = [blank_labeler(label, value) for
+                           label, value in zip(labels, y)]
+            else:
+                blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get('autopct', None) is not None:

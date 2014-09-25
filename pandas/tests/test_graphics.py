@@ -635,7 +635,7 @@ class TestSeriesPlots(TestPlotBase):
         series = Series([1, 2, np.nan, 4],
                         index=['a', 'b', 'c', 'd'], name='YLABEL')
         ax = _check_plot_works(series.plot, kind='pie')
-        self._check_text_labels(ax.texts, series.index)
+        self._check_text_labels(ax.texts, ['a', 'b', '', 'd'])
 
     def test_pie_nan(self):
         s = Series([1, np.nan, 1, 1])
@@ -2798,13 +2798,17 @@ class TestDataFramePlots(TestPlotBase):
 
         base_expected = ['0', '1', '2', '3']
         for i, ax in enumerate(axes):
-            expected = list(base_expected)  # copy
+            expected = list(base_expected)  # force copy
             expected[i] = ''
             result = [x.get_text() for x in ax.texts]
             self.assertEqual(result, expected)
             # legend labels
-            self.assertEqual([x.get_text() for x in ax.get_legend().get_texts()],
-                              base_expected)
+            # NaN's not included in legend with subplots
+            # see https://github.com/pydata/pandas/issues/8390
+            self.assertEqual([x.get_text() for x in
+                              ax.get_legend().get_texts()],
+                             base_expected[:i] + base_expected[i+1:])
+
     def test_errorbar_plot(self):
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
         df = DataFrame(d)
