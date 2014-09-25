@@ -641,7 +641,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-       def to_dict(self, outtype='dict', dropna=False):
+    def to_dict(self, outtype='dict', dropna=False):
         """
         Convert DataFrame to dictionary.
 
