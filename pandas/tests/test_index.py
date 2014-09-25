@@ -532,6 +532,13 @@ class TestIndex(Base, tm.TestCase):
         result3 = idx1.intersection(idx3)
         self.assertTrue(tm.equalContents(result3, expected3))
         self.assertEqual(result3.name, expected3.name)
+        
+        # non-monotonic non-unique
+        idx1 = Index(['A','B','A','C'])
+        idx2 = Index(['B','D'])
+        expected = Index(['B'], dtype='object')
+        result = idx1.intersection(idx2)
+        self.assertTrue(result.equals(expected))
 
     def test_union(self):
         first = self.strIndex[5:20]

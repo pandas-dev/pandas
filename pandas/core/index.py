@@ -1275,6 +1275,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             indexer = self.get_indexer(other.values)
+            indexer = indexer[indexer != -1]
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except:
             # duplicates
