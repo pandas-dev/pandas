@@ -59,10 +59,10 @@ pc_max_cols_doc = """
     correct auto-detection.
 """
 
-pc_max_levels_doc = """
+pc_max_categories_doc = """
 : int
-    This sets the maximum number of levels pandas should output when printing
-    out a `Categorical`.
+    This sets the maximum number of categories pandas should output when printing
+    out a `Categorical` or a Series of dtype "category".
 """
 
 pc_max_info_cols_doc = """
@@ -237,7 +237,7 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
                        validator=is_instance_factory([type(None), int]))
-    cf.register_option('max_levels', 8, pc_max_levels_doc, validator=is_int)
+    cf.register_option('max_categories', 8, pc_max_categories_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))

@@ -555,26 +555,33 @@ Categorical
 
 .. currentmodule:: pandas.core.categorical
 
-If the Series is of dtype ``category``, ``Series.cat`` can be used to access the the underlying
-``Categorical``. This accessor is similar to the ``Series.dt`` or ``Series.str``and has the
+If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
+data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties (all available as ``Series.cat.<method_or_property>``).
 
 .. autosummary::
    :toctree: generated/
 
-   Categorical.levels
+   Categorical.categories
    Categorical.ordered
-   Categorical.reorder_levels
-   Categorical.remove_unused_levels
+   Categorical.rename_categories
+   Categorical.reorder_categories
+   Categorical.add_categories
+   Categorical.remove_categories
+   Categorical.remove_unused_categories
+   Categorical.set_categories
+   Categorical.codes
 
-The following methods are considered API when using ``Categorical`` directly:
+To create a Series of dtype ``category``, use ``cat = s.astype("category")``.
+
+The following two ``Categorical`` constructors are considered API but should only be used when
+adding ordering information or special categories is need at creation time of the categorical data:
 
 .. autosummary::
    :toctree: generated/
 
    Categorical
    Categorical.from_codes
-   Categorical.codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
 the Categorical back to a numpy array, so levels and order information is not preserved!

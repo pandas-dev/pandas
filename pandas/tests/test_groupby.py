@@ -1764,11 +1764,14 @@ class TestGroupBy(tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
                           columns=['jim', 'joe'])
         df['jolie'] = np.random.randn(1000)
+        print(df.head())
 
         for keys in ['jim', ['jim', 'joe']]:  # single key & multi-key
+            if keys == 'jim': continue
             for f in [max, min, sum]:
                 fname = f.__name__
                 result = df.groupby(keys).apply(f)
+                _shape = result.shape
                 ngroups = len(df.drop_duplicates(subset=keys))
                 assert result.shape == (ngroups, 3), 'invalid frame shape: '\
                         '{} (expected ({}, 3))'.format(result.shape, ngroups)
@@ -3267,10 +3270,11 @@ class TestGroupBy(tm.TestCase):
         cats = Categorical.from_codes(codes, [0, 1, 2, 3])
 
         result = data.groupby(cats).mean()
-        exp = data.groupby(codes).mean().reindex(cats.levels)
+        exp = data.groupby(codes).mean().reindex(cats.categories)
         assert_series_equal(result, exp)
 
-        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], levels=["a","b","c","d"])
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
+                           categories=["a","b","c","d"])
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         result = data.groupby("b").mean()
@@ -3313,7 +3317,8 @@ class TestGroupBy(tm.TestCase):
         import pandas as pd
         #GH3011
         series = Series([np.nan, np.nan, 1, 1, 2, 2, 3, 3, 4, 4])
-        bins =  pd.cut(series.dropna(), 4)
+        # The raises only happens with categorical, not with series of types category
+        bins =  pd.cut(series.dropna().values, 4)
 
         # len(bins) != len(series) here
         self.assertRaises(ValueError,lambda : series.groupby(bins).mean())
@@ -4726,7 +4731,41 @@ class TestGroupBy(tm.TestCase):
         expected = gb2.transform('mean')
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_categorical_two_columns(self):
 
+        # https://github.com/pydata/pandas/issues/8138
+        d = {'cat': pd.Categorical(["a","b","a","b"], categories=["a", "b", "c"]),
+             'ints': [1, 1, 2, 2],'val': [10, 20, 30, 40]}
+        test = pd.DataFrame(d)
+
+        # Grouping on a single column
+        groups_single_key = test.groupby("cat")
+        res = groups_single_key.agg('mean')
+        exp = DataFrame({"ints":[1.5,1.5,np.nan], "val":[20,30,np.nan]},
+                        index=pd.Index(["a", "b", "c"], name="cat"))
+        tm.assert_frame_equal(res, exp)
+
+        # Grouping on two columns
+        groups_double_key = test.groupby(["cat","ints"])
+        res = groups_double_key.agg('mean')
+        exp = DataFrame({"val":[10,30,20,40,np.nan,np.nan],
+                         "cat": ["a","a","b","b","c","c"],
+                         "ints": [1,2,1,2,1,2]}).set_index(["cat","ints"])
+        tm.assert_frame_equal(res, exp)
+
+        d = {'C1': [3, 3, 4, 5], 'C2': [1, 2, 3, 4], 'C3': [10, 100, 200, 34]}
+        test = pd.DataFrame(d)
+        values = pd.cut(test['C1'], [1, 2, 3, 6])
+        values.name = "cat"
+        groups_double_key = test.groupby([values,'C2'])
+
+        res = groups_double_key.agg('mean')
+        nan = np.nan
+        idx = MultiIndex.from_product([["(1, 2]", "(2, 3]", "(3, 6]"],[1,2,3,4]],
+                                      names=["cat", "C2"])
+        exp = DataFrame({"C1":[nan,nan,nan,nan,  3,  3,nan,nan, nan,nan,  4, 5],
+                         "C3":[nan,nan,nan,nan, 10,100,nan,nan, nan,nan,200,34]}, index=idx)
+        tm.assert_frame_equal(res, exp)
 
 
 def assert_fp_equal(a, b):

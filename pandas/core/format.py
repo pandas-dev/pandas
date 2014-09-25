@@ -90,7 +90,7 @@ class CategoricalFormatter(object):
                 footer += ', '
             footer += "Length: %d" % len(self.categorical)
 
-        level_info = self.categorical._repr_level_info()
+        level_info = self.categorical._repr_categories_info()
 
         # Levels are added in a newline
         if footer:
@@ -116,6 +116,9 @@ class CategoricalFormatter(object):
         fmt_values = self._get_formatted_values()
 
         result = ['%s' % i for i in fmt_values]
+        result = [i.strip() for i in result]
+        result = u(', ').join(result)
+        result = [u('[')+result+u(']')]
         if self.footer:
             footer = self._get_footer()
             if footer:
@@ -173,7 +176,7 @@ class SeriesFormatter(object):
         # level infos are added to the end and in a new line, like it is done for Categoricals
         # Only added when we request a name
         if self.name and com.is_categorical_dtype(self.series.dtype):
-            level_info = self.series.values._repr_level_info()
+            level_info = self.series.values._repr_categories_info()
             if footer:
                 footer += "\n"
             footer += level_info

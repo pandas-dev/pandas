@@ -1924,7 +1924,7 @@ class Grouping(object):
                 self.grouper = np.asarray(factor)
 
                 self._labels = factor.codes
-                self._group_index = factor.levels
+                self._group_index = factor.categories
                 if self.name is None:
                     self.name = factor.name
 
@@ -3545,7 +3545,7 @@ def _lexsort_indexer(keys, orders=None, na_position='last'):
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
-        n = len(c.levels)
+        n = len(c.categories)
         codes = c.codes.copy()
 
         mask = (c.codes == -1)

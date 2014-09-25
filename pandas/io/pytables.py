@@ -3522,8 +3522,8 @@ class LegacyTable(Table):
             return None
 
         factors = [Categorical.from_array(a.values) for a in self.index_axes]
-        levels = [f.levels for f in factors]
-        N = [len(f.levels) for f in factors]
+        levels = [f.categories for f in factors]
+        N = [len(f.categories) for f in factors]
         labels = [f.codes for f in factors]
 
         # compute the key

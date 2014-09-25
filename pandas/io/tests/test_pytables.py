@@ -4541,7 +4541,7 @@ class TestHDFStore(tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
 
-            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], levels=['a','b','c','d']))
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d']))
 
             self.assertRaises(NotImplementedError, store.put, 's_fixed', s, format='fixed')
             self.assertRaises(NotImplementedError, store.append, 's_table', s, format='table')

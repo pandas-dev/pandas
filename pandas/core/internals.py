@@ -1698,12 +1698,12 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return the block concatenation
         """
 
-        levels = self.values.levels
+        categories = self.values.categories
         for b in blocks:
-            if not levels.equals(b.values.levels):
+            if not categories.equals(b.values.categories):
                 raise ValueError("incompatible levels in categorical block merge")
 
-        return self._holder(values[0], levels=levels)
+        return self._holder(values[0], categories=categories)
 
     def to_native_types(self, slicer=None, na_rep='', **kwargs):
         """ convert to our native types format, slicing if desired """

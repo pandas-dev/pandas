@@ -3206,7 +3206,7 @@ class MultiIndex(Index):
             return Index(arrays[0], name=name)
 
         cats = [Categorical.from_array(arr) for arr in arrays]
-        levels = [c.levels for c in cats]
+        levels = [c.categories for c in cats]
         labels = [c.codes for c in cats]
         if names is None:
             names = [c.name for c in cats]
@@ -3301,7 +3301,7 @@ class MultiIndex(Index):
         categoricals = [Categorical.from_array(it) for it in iterables]
         labels = cartesian_product([c.codes for c in categoricals])
 
-        return MultiIndex(levels=[c.levels for c in categoricals],
+        return MultiIndex(levels=[c.categories for c in categoricals],
                           labels=labels, sortorder=sortorder, names=names)
 
     @property

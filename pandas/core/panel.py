@@ -99,7 +99,7 @@ def panel_index(time, panels, names=['time', 'panel']):
     panel_factor = Categorical.from_array(panels)
 
     labels = [time_factor.codes, panel_factor.codes]
-    levels = [time_factor.levels, panel_factor.levels]
+    levels = [time_factor.categories, panel_factor.categories]
     return MultiIndex(levels, labels, sortorder=None, names=names,
                       verify_integrity=False)
 

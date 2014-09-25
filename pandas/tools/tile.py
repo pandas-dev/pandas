@@ -34,7 +34,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         right == True (the default), then the bins [1,2,3,4] indicate
         (1,2], (2,3], (3,4].
     labels : array or boolean, default None
-        Labels to use for bin edges, or False to return integer bin labels
+        Labels to use for bins, or False to return integer bin labels.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -45,7 +45,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Returns
     -------
-    out : Categorical or array of integers if labels is False
+    out : Categorical or Series or array of integers if labels is False
+        The return type (Categorical or Series) depends on the input: a Series of type category if
+        input is a Series else Categorical.
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
@@ -102,9 +104,12 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,
-                         retbins=retbins, precision=precision,
-                         include_lowest=include_lowest)
+    res = _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
+                        include_lowest=include_lowest)
+    if isinstance(x, Series):
+        res = Series(res, index=x.index)
+    return res
+
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -130,7 +135,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
     Returns
     -------
-    cat : Categorical
+    cat : Categorical or Series
+        Returns a Series of type category if input is a Series else Categorical.
 
     Notes
     -----
@@ -144,8 +150,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                         precision=precision, include_lowest=True)
+    res = _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
+                        include_lowest=True)
+    if isinstance(x, Series):
+        res = Series(res, index=x.index)
+    return res
+
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
@@ -189,7 +199,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         levels = np.asarray(levels, dtype=object)
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, name=name, fastpath=True)
+        fac = Categorical(ids - 1, levels, ordered=True, name=name, fastpath=True)
     else:
         fac = ids - 1
         if has_nas:
