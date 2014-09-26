@@ -979,4 +979,4 @@ Bug Fixes
 - Bug in DataFrame terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).
 - Bug in OLS where running with "cluster" and "nw_lags" parameters did not work correctly, but also did not throw an error
   (:issue:`5884').
-
+- Bug in ``DataFrame.dropna`` that interpreted non-existent columns in the subset argument as the 'last column' (:issue:`8303`)
