@@ -2309,14 +2309,11 @@ class NDFrame(PandasObject):
                                 axis=new_axis, inplace=inplace,
                                 limit=limit, downcast=downcast))
                                 for col, s in compat.iteritems(data)])
-                result = self._constructor.from_dict(result)
 
-                if axis == 0:
-                    result = result.transpose(1, 0 ,2)
-                if inplace:
-                    self._update_inplace(self._data)
-                    return
-                else:
+                if not inplace:
+                    result = self._constructor.from_dict(result)
+                    if axis == 0:
+                        result = result.transpose(1, 0 ,2)
                     return result.__finalize__(self)
 
             if self._is_mixed_type and axis == 1:
