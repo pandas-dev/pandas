@@ -336,18 +336,18 @@ This keyword is available in other rolling functions as well.
 
    rolling_mean(ser, 5, center=True)
 
-.. _stats.moments.normalization
+.. _stats.moments.normalization:
 
 .. note::
 
-    In rolling sum mode (``mean=False``) there is no normalization done to the 
-    weights. Passing custom weights of ``[1, 1, 1]`` will yield a different 
-    result than passing weights of ``[2, 2, 2]``, for example. When passing a 
-    ``win_type`` instead of explicitly specifying the weights, the weights are 
-    already normalized so that the largest weight is 1. 
+    In rolling sum mode (``mean=False``) there is no normalization done to the
+    weights. Passing custom weights of ``[1, 1, 1]`` will yield a different
+    result than passing weights of ``[2, 2, 2]``, for example. When passing a
+    ``win_type`` instead of explicitly specifying the weights, the weights are
+    already normalized so that the largest weight is 1.
 
-    In contrast, the nature of the rolling mean calculation (``mean=True``)is 
-    such that the weights are normalized with respect to each other. Weights 
+    In contrast, the nature of the rolling mean calculation (``mean=True``)is
+    such that the weights are normalized with respect to each other. Weights
     of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
 
 .. _stats.moments.binary:
@@ -512,7 +512,7 @@ functions are provided:
 .. csv-table::
     :header: "Function", "Description"
     :widths: 20, 80
-    
+
     ``ewma``, EW moving average
     ``ewmvar``, EW moving variance
     ``ewmstd``, EW moving standard deviation

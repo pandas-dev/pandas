@@ -1,7 +1,7 @@
 .. _whatsnew_0150:
 
-v0.15.0 (???)
--------------
+v0.15.0 (October ??, 2014)
+--------------------------
 
 This is a major release from 0.14.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -11,7 +11,7 @@ users upgrade to this version.
 
    pandas >= 0.15.0 will no longer support compatibility with NumPy versions <
    1.7.0. If you want to use the latest versions of pandas, please upgrade to
-   NumPy >= 1.7.0.
+   NumPy >= 1.7.0 (:issue:`7711`)
 
 - Highlights include:
 
@@ -45,7 +45,7 @@ users upgrade to this version.
    The refactorings in :class:`~pandas.Categorical` changed the two argument constructor from
    "codes/labels and levels" to "values and levels". This can lead to subtle bugs. If you use
    :class:`~pandas.Categorical` directly, please audit your code before updating to this pandas
-   version and change it to use the :meth:`~pandas.Categorical.from_codes` constructor.
+   version and change it to use the :meth:`~pandas.Categorical.from_codes` constructor. See more on ``Categorical`` :ref:`here <whatsnew_0150.cat>`
 
 .. _whatsnew_0150.api:
 
@@ -194,7 +194,9 @@ API changes
   .. ipython:: python
 
      p = Panel(np.arange(2*3*4).reshape(2,3,4),
-               items=['ItemA','ItemB'],major_axis=[1,2,3],minor_axis=['A','B','C','D'])
+               items=['ItemA','ItemB'],
+               major_axis=[1,2,3],
+               minor_axis=['A','B','C','D'])
      p
 
   The following would raise ``KeyError`` prior to 0.15.0:
@@ -208,8 +210,10 @@ API changes
   .. ipython:: python
      :okexcept:
 
-     s = Series(np.arange(3,dtype='int64'),index=MultiIndex.from_product([['A'],['foo','bar','baz']],
-                                                                         names=['one','two'])).sortlevel()
+     s = Series(np.arange(3,dtype='int64'),
+                index=MultiIndex.from_product([['A'],['foo','bar','baz']],
+                                              names=['one','two'])
+               ).sortlevel()
      s
      s.loc[['D']]
 
@@ -226,7 +230,7 @@ API changes
 
   Previously, assigning to ``None`` in numeric containers changed the
   dtype to object (or errored, depending on the call). It now uses
-  NaN:
+  ``NaN``:
 
   .. ipython:: python
 
@@ -236,8 +240,8 @@ API changes
 
   ``NaT`` is now used similarly for datetime containers.
 
-  For object containers, we now preserve None values (previously these
-  were converted to NaN values).
+  For object containers, we now preserve ``None`` values (previously these
+  were converted to ``NaN`` values).
 
   .. ipython:: python
 
@@ -245,7 +249,7 @@ API changes
      s.loc[0] = None
      s
 
-  To insert a NaN, you must explicitly use ``np.nan``. See the :ref:`docs <missing.inserting>`.
+  To insert a ``NaN``, you must explicitly use ``np.nan``. See the :ref:`docs <missing.inserting>`.
 
 - Previously an enlargement with a mixed-dtype frame would act unlike ``.append`` which will preserve dtypes (related :issue:`2578`, :issue:`8176`):
 
@@ -262,30 +266,10 @@ API changes
 
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
--``read_hdf`` now raises IOError properly when a file that doesn't exist is passed in. Previously, a new, empty file was created, read and stored in an HDFStore object (:issue `7715`).
-
-.. _whatsnew_0150.index_set_ops:
-
-- The Index set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
-
-  .. code-block:: python
-
-     # +
-     Index(['a','b','c']) + Index(['b','c','d'])
-
-     # should be replaced by
-     Index(['a','b','c']).union(Index(['b','c','d']))
-
-  .. code-block:: python
-
-     # -
-     Index(['a','b','c']) - Index(['b','c','d'])
-
-     # should be replaced by
-     Index(['a','b','c']).difference(Index(['b','c','d']))
+- ``read_hdf`` now raises ``IOError`` when a file that doesn't exist is passed in. Previously, a new, empty file was created, and a ``KeyError`` raised (:issue `7715`).
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
-- add ``copy=True`` argument to ``pd.concat`` to enable pass thrue of complete blocks (:issue:`8252`)
+- add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
 
 
 
@@ -396,8 +380,7 @@ Rolling/Expanding Moments API changes
 
 - :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
-  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization
-  <stats.moments.normalization>` for further details. (:issue:`7618`)
+  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <stats.moments.normalization>` for further details. (:issue:`7618`)
 
   .. ipython:: python
 
@@ -687,7 +670,7 @@ You can select with partial string selections
    s['1 day 00:00:02']
    s['1 day':'1 day 00:00:02']
 
-Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow certain combination operations that are NaT preserving:
+Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow certain combination operations that are ``NaT`` preserving:
 
 .. ipython:: python
 
@@ -719,6 +702,26 @@ Deprecations
   ``ambiguous`` to allow for more flexibility in dealing with DST transitions.
   Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
+
+.. _whatsnew_0150.index_set_ops:
+
+- The ``Index`` set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
+
+  .. code-block:: python
+
+     # +
+     Index(['a','b','c']) + Index(['b','c','d'])
+
+     # should be replaced by
+     Index(['a','b','c']).union(Index(['b','c','d']))
+
+  .. code-block:: python
+
+     # -
+     Index(['a','b','c']) - Index(['b','c','d'])
+
+     # should be replaced by
+     Index(['a','b','c']).difference(Index(['b','c','d']))
 
 .. _whatsnew_0150.enhancements:
 
@@ -865,7 +868,7 @@ Bug Fixes
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
 - Bug in sorting a multi-index frame with a Float64Index (:issue:`8017`)
-
+- Bug in inconsistent panel setitem with a rhs of a DataFrame for alignment (:issue:`7763`)
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 - Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
 - Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)

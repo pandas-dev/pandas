@@ -48,12 +48,23 @@ analysis / manipulation tool available in any language.
 pandas 0.15.0
 -------------
 
-**Release date:** (???)
+**Release date:** (October ??, 2014)
 
 This is a major release from 0.14.1 and includes a number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
 
 Highlights include:
+
+- Drop support for numpy < 1.7.0 (:issue:`7711`)
+- The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
+- New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
+- New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
+- Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+- ``read_csv`` will now by default ignore blank lines when parsing, see :ref:`here <whatsnew_0150.blanklines>`
+- API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
+- Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
+- dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
+- Refactor ``Index`` to no longer subclass ``ndarray`` See :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
 
 See the :ref:`v0.15.0 Whatsnew <whatsnew_0140>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.15.0.
