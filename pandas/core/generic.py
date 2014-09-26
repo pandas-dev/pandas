@@ -2300,19 +2300,24 @@ class NDFrame(PandasObject):
             elif self.ndim == 3:
                 if axis == 0:
                     data = self.transpose(1, 0, 2)
-                    result = dict([(col, s.fillna(method=method, value=value,
-                                    axis=0, limit=limit))
-                                   for col, s in compat.iteritems(data)])
-                    result = self._constructor.from_dict(result)
-                    result = result.transpose(1, 0, 2)
-
+                    new_axis = 0
                 else:
-                    result = dict([(col, s.fillna(method=method, value=value,
-                                    axis=axis-1, limit=limit))
-                                    for col, s in compat.iteritems(self)])
-                    result = self._constructor.from_dict(result)
+                    data = self
+                    new_axis = axis - 1
 
-                return result.__finalize__(self)
+                result = dict([(col, s.fillna(value=value, method=method,
+                                axis=new_axis, inplace=inplace,
+                                limit=limit, downcast=downcast))
+                                for col, s in compat.iteritems(data)])
+                result = self._constructor.from_dict(result)
+
+                if axis == 0:
+                    result = result.transpose(1, 0 ,2)
+                if inplace:
+                    self._update_inplace(self._data)
+                    return
+                else:
+                    return result.__finalize__(self)
 
             if self._is_mixed_type and axis == 1:
                 if inplace:
