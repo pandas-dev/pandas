@@ -2244,18 +2244,16 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series, or DataFrame
             Value to use to fill holes (e.g. 0), alternately a dict/Series/DataFrame of
             values specifying which value to use for each index (for a Series) or
             column (for a DataFrame). (values not in the dict/Series/DataFrame will not be
             filled). This value cannot be a list.
-        axis : {0, 1}, default 0
-            * 0: fill column-by-column
-            * 1: fill row-by-row
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        axis : {0, 1, 2}, default 0
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
@@ -2305,11 +2303,21 @@ class NDFrame(PandasObject):
 
             # 3d
             elif self.ndim == 3:
+                if axis == 0:
+                    data = self.transpose(1, 0, 2)
+                    result = dict([(col, s.fillna(method=method, value=value,
+                                    axis=0, limit=limit))
+                                   for col, s in compat.iteritems(data)])
+                    result = self._constructor.from_dict(result)
+                    result = result.transpose(1, 0, 2)
 
-                # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in compat.iteritems(self)])
-                return self._constructor.from_dict(result).__finalize__(self)
+                else:
+                    result = dict([(col, s.fillna(method=method, value=value,
+                                    axis=axis-1, limit=limit))
+                                    for col, s in compat.iteritems(self)])
+                    result = self._constructor.from_dict(result)
+
+                return result.__finalize__(self)
 
             # 2d or less
             method = com._clean_fill_method(method)
