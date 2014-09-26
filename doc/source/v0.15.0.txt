@@ -262,6 +262,8 @@ API changes
 
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
+-``read_hdf`` now raises IOError properly when a file that doesn't exist is passed in. Previously, a new, empty file was created, read and stored in an HDFStore object (:issue `7715`).
+
 .. _whatsnew_0150.index_set_ops:
 
 - The Index set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
