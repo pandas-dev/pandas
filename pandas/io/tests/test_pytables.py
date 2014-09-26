@@ -288,6 +288,10 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,format='foo')
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,format='bar')
 
+        #File path doesn't exist
+        path = ""
+        self.assertRaises(IOError, read_hdf, path, 'df') 
+
     def test_api_default_format(self):
 
         # default_format option

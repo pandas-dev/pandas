@@ -332,6 +332,16 @@ def read_hdf(path_or_buf, key, **kwargs):
         key, auto_close=auto_close, **kwargs)
 
     if isinstance(path_or_buf, string_types):
+        
+        try:
+            exists = os.path.exists(path_or_buf)
+
+        #if filepath is too long
+        except (TypeError,ValueError):
+            exists = False
+
+        if not exists:
+            raise IOError('File %s does not exist' % path_or_buf)
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
