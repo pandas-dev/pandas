@@ -643,10 +643,11 @@ class Categorical(PandasObject):
         """
         if not com.is_list_like(removals):
             removals = [removals]
-        not_included = set(removals) - set(self._categories)
+        removals = set(list(removals))
+        not_included = removals - set(self._categories)
         if len(not_included) != 0:
             raise ValueError("removals must all be in old categories: %s" % str(not_included))
-        new_categories = set(self._categories) - set(removals)
+        new_categories = [ c for c in self._categories if c not in removals ]
         return self.set_categories(new_categories, ordered=self.ordered, rename=False,
                                    inplace=inplace)
 

@@ -41,7 +41,7 @@ operations (additions, divisions, ...) are not possible.
 
 All values of categorical data are either in `categories` or `np.nan`. Order is defined by
 the order of `categories`, not lexical order of the values. Internally, the data structure
-consists of a `categories` array and an integer array of `codes` which point to the real value in 
+consists of a `categories` array and an integer array of `codes` which point to the real value in
 the `categories` array.
 
 The categorical data type is useful in the following cases:
@@ -769,9 +769,3 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse `Categorical
     using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behaviour, while using
     a string array (e.g. ``np.array(["a","b","c","a"])``) will not.
 
-
-Future compatibility
-~~~~~~~~~~~~~~~~~~~~
-
-As `Categorical` is not a native `numpy` dtype, the implementation details of
-`Series.cat` can change if such a `numpy` dtype is implemented.
