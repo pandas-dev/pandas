@@ -641,12 +641,17 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
-        if not com.is_list_like(removals):
-            removals = [removals]
-        not_included = set(removals) - set(self._categories)
+        removals = set(removals if com.is_list_like(removals) else [removals])
+        not_included = removals - set(self._categories)
+
         if len(not_included) != 0:
             raise ValueError("removals must all be in old categories: %s" % str(not_included))
-        new_categories = set(self._categories) - set(removals)
+
+        # order matters, set collections/operations are unordered
+        # new_categories != set(self._categories) - removals
+        pred = lambda cat: cat not in removals  # filtering predicate for cats
+        new_categories = list(filter(pred, self._categories))
+
         return self.set_categories(new_categories, ordered=self.ordered, rename=False,
                                    inplace=inplace)
 
@@ -1414,4 +1419,3 @@ def _convert_to_list_like(list_like):
     else:
         # is this reached?
         return [list_like]
-
