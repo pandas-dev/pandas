@@ -2291,6 +2291,33 @@ class TestIndexing(tm.TestCase):
         test1 = panel.ix[:, "2002"]
         tm.assert_panel_equal(test1,test2)
 
+    def test_panel_setitem(self):
+
+        # GH 7763
+        # loc and setitem have setting differences
+        np.random.seed(0)
+        index=range(3)
+        columns = list('abc')
+
+        panel = Panel({'A' : DataFrame(np.random.randn(3, 3), index=index, columns=columns),
+                       'B' : DataFrame(np.random.randn(3, 3), index=index, columns=columns),
+                       'C' : DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+                       })
+
+        replace = DataFrame(np.eye(3,3), index=range(3), columns=columns)
+        expected = Panel({ 'A' : replace, 'B' : replace, 'C' : replace })
+
+        p = panel.copy()
+        for idx in list('ABC'):
+            p[idx] = replace
+        tm.assert_panel_equal(p, expected)
+
+        p = panel.copy()
+        for idx in list('ABC'):
+            p.loc[idx,:,:] = replace
+        tm.assert_panel_equal(p, expected)
+
+
     def test_panel_assignment(self):
 
         # GH3777
