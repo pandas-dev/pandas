@@ -1345,16 +1345,19 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         filled = self.panel.fillna(0)
         self.assertTrue(np.isfinite(filled.values).all())
 
-        filled = self.panel.fillna(method='backfill')
+        filled = self.panel.fillna(method='backfill', axis=1)
         assert_frame_equal(filled['ItemA'],
                            self.panel['ItemA'].fillna(method='backfill'))
 
         panel = self.panel.copy()
         panel['str'] = 'foo'
 
-        filled = panel.fillna(method='backfill')
+        filled = panel.fillna(method='backfill', axis=1)
         assert_frame_equal(filled['ItemA'],
                            panel['ItemA'].fillna(method='backfill'))
+
+        filled = self.panel.fillna(method='ffill', axis=0)
+        self.assertEqual(filled.iloc[2,3,3], self.panel.iloc[0,3,3])
 
         empty = self.panel.reindex(items=[])
         filled = empty.fillna(0)

@@ -2285,15 +2285,6 @@ class NDFrame(PandasObject):
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
-                if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
-
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
-
-                return result
 
             # > 3d
             if self.ndim > 3:
@@ -2318,6 +2309,16 @@ class NDFrame(PandasObject):
                     result = self._constructor.from_dict(result)
 
                 return result.__finalize__(self)
+
+            if self._is_mixed_type and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
+                result = self.T.fillna(method=method, limit=limit).T
+
+                # need to downcast here because of all of the transposes
+                result._data = result._data.downcast()
+
+                return result
 
             # 2d or less
             method = com._clean_fill_method(method)
