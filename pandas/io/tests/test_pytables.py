@@ -288,6 +288,95 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,format='foo')
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,format='bar')
 
+    def test_attrs(self):
+        df = tm.makeDataFrame()
+
+        attrs = {'val': 42, 
+                 'test': True, 
+                 'meta': dict(name='pandas', what='rocks')}
+        over = {'val': 13, 'meta': dict(foo='bar'), 'more': 37}
+        mix = attrs.copy()
+        mix.update(over)
+
+        def assert_attrs(st, key, attrs=attrs):
+            access = st.get_node(key)._v_attrs
+            for name, val in attrs.items():
+                self.assertEqual(access[name], val)
+
+        with ensure_clean_store(self.path) as st:
+            st.put('grp/df', df)
+            st.set_attrs('grp/df', **attrs)
+            assert_attrs(st, 'grp/df')
+            st.set_attrs('grp/df', **over)
+            assert_attrs(st, 'grp/df', attrs=mix)
+
+            st.set_attrs('grp', **attrs)
+            assert_attrs(st, 'grp')
+
+            res1 = st.get_attrs('grp/df', ['val', 'test', 'meta', 'more'])
+            self.assertEqual(res1._fields, ('val', 'test', 'meta', 'more'))
+            self.assertEqual(list(res1), [13, True, dict(foo='bar'), 37])
+
+            res2 = st.get_attrs('grp/df', 'val test meta more')
+            self.assertEqual(list(res2), [13, True, dict(foo='bar'), 37])
+            self.assertEqual(res2._fields, ('val', 'test', 'meta', 'more'))
+
+            res3 = st.get_attrs('grp/df', 'val')
+            self.assertEqual(res3, 13)
+
+            res4 = st.get_attrs('grp/df', ['val'])
+            self.assertEqual(list(res4), [13])
+
+            with tm.assertRaises(KeyError):
+                st.set_attrs('nil', val=42)
+            with tm.assertRaises(KeyError):
+                st.get_attrs('nil', 'val')
+            with tm.assertRaises(AttributeError):
+                st.get_attrs('grp', 'val nil test')
+            with tm.assertRaises(ValueError):
+                st.get_attrs('grp', 'valid and in-valid!')
+
+            res4 = st.get_attrs('grp', 'val nil test', None)
+            self.assertEqual(list(res4), [42, None, True])
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'tbl', format='t', attrs=attrs)
+            df.to_hdf(path, 'fix', format='f', attrs=attrs)
+            with get_store(path) as st:
+                assert_attrs(st, 'tbl')
+                assert_attrs(st, 'fix')
+                # also check if data is stored
+                assert_frame_equal(st.tbl, df)
+                assert_frame_equal(st.fix, df)
+
+        from pandas.io.pytables import set_attrs, get_attrs
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df')
+            set_attrs(path, 'df', **attrs)
+            with get_store(path) as st:
+                assert_attrs(st, 'df')
+            res = get_attrs(path, 'df', 'val nil test', None)
+            self.assertEqual(list(res), [42, None, True])
+
+        with ensure_clean_store(self.path) as st:
+            st.put('fix', df, attrs=attrs)
+            assert_attrs(st, 'fix')
+            st.append('tbl', df, attrs=attrs)
+            assert_attrs(st, 'tbl')
+            st.append('fst', df.iloc[:10], attrs=attrs)
+            st.append('fst', df.iloc[10:])
+            assert_attrs(st, 'fst')
+            st.append('snd', df.iloc[:10])
+            st.append('snd', df.iloc[10:], attrs=attrs)
+            assert_attrs(st, 'snd')
+            st.append('mix', df.iloc[:10], attrs=attrs)
+            st.append('mix', df.iloc[10:], attrs=over)
+            assert_attrs(st, 'mix', attrs=mix)
+
+            with tm.assertRaises(TypeError):
+                st.append_to_multiple({'a': ['A', 'B'], 'b': ['C', 'D']}, df, attrs=attrs)
+
+
     def test_api_default_format(self):
 
         # default_format option
