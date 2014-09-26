@@ -3924,14 +3924,16 @@ def _putmask_smart(v, m, n):
 
     Parameters
     ----------
-    v : array_like
-    m : array_like
-    n : array_like
+    v : `values`, updated in-place (array like)
+    m : `mask`, applies to both sides (array like)
+    n : `new values` either scalar or an array like aligned with `values`
     """
 
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.array([n] * len(m))
+    elif isinstance(n, np.ndarray) and n.ndim == 0: # numpy scalar
+        n = np.repeat(np.array(n, ndmin=1), len(m))
 
     # see if we are only masking values that if putted
     # will work in the current dtype
@@ -3949,10 +3951,10 @@ def _putmask_smart(v, m, n):
     dtype, _ = com._maybe_promote(n.dtype)
     nv = v.astype(dtype)
     try:
-        nv[m] = n
+        nv[m] = n[m]
     except ValueError:
         idx, = np.where(np.squeeze(m))
-        for mask_index, new_val in zip(idx, n):
+        for mask_index, new_val in zip(idx, n[m]):
             nv[mask_index] = new_val
     return nv
 

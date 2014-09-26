@@ -986,3 +986,4 @@ Bug Fixes
   (:issue:`5884').
 - Bug in ``DataFrame.dropna`` that interpreted non-existent columns in the subset argument as the 'last column' (:issue:`8303`)
 - Bug in Index.intersection on non-monotonic non-unique indexes (:issue:`8362`).
+- Bug in masked series assignment where mismatching types would break alignment (:issue:`8387`)
