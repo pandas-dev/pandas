@@ -964,7 +964,7 @@ Bug Fixes
 - Bug with kde plot and NaNs (:issue:`8182`)
 - Bug in ``GroupBy.count`` with float32 data type were nan values were not excluded (:issue:`8169`).
 - Bug with stacked barplots and NaNs (:issue:`8175`).
-
+- Bug in resample with non evenly divisible offsets (e.g. '7s') (:issue:`8371`)
 
 - Bug in interpolation methods with the ``limit`` keyword when no values needed interpolating (:issue:`7173`).
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
