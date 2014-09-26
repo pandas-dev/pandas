@@ -2237,7 +2237,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method=None, axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         """
         Fill NA/NaN values using the specified method
@@ -2253,7 +2253,8 @@ class NDFrame(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        axis : {0, 1, 2}, default 0
+        axis : {0, 1, 2}, defaults to the stat axis
+            The stat axis is 0 for Series and DataFrame and 1 for Panel
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
@@ -2278,7 +2279,10 @@ class NDFrame(PandasObject):
                             'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
-        axis = self._get_axis_number(axis)
+        if axis is None:
+            axis = self._get_axis_number(self._stat_axis_name)
+        else:
+            axis = self._get_axis_number(axis)
         method = com._clean_fill_method(method)
 
         from pandas import DataFrame
