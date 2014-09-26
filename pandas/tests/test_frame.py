@@ -7632,6 +7632,29 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(NotImplementedError, 'column by column'):
             df.fillna(df.max(1), axis=1)
 
+    def test_fillna_dataframe(self):
+        # GH 8377
+        df = DataFrame({'a': [nan, 1, 2, nan, nan],
+                        'b': [1, 2, 3, nan, nan],
+                        'c': [nan, 1, 2, 3, 4]},
+                       index = list('VWXYZ'))
+
+        # df2 may have different index and columns
+        df2 = DataFrame({'a': [nan, 10, 20, 30, 40],
+                         'b': [50, 60, 70, 80, 90],
+                         'foo': ['bar']*5},
+                        index = list('VWXuZ'))
+
+        result = df.fillna(df2)
+
+        # only those columns and indices which are shared get filled
+        expected = DataFrame({'a': [nan, 1, 2, nan, 40],
+                              'b': [1, 2, 3, nan, 90],
+                              'c': [nan, 1, 2, 3, 4]},
+                             index = list('VWXYZ'))
+
+        assert_frame_equal(result, expected)
+        
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))
         df.values[:, ::2] = np.nan
@@ -7645,6 +7668,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(method='ffill', axis=1)
         assert_frame_equal(result, expected)
 
+
     def test_fillna_invalid_method(self):
         with assertRaisesRegexp(ValueError, 'ffil'):
             self.frame.fillna(method='ffil')
@@ -7654,8 +7678,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(TypeError, self.frame.fillna, [1, 2])
         # tuple
         self.assertRaises(TypeError, self.frame.fillna, (1, 2))
-        # frame
-        self.assertRaises(NotImplementedError, self.frame.fillna, self.frame)
         # frame with series
         self.assertRaises(ValueError, self.frame.iloc[:,0].fillna, self.frame)
 
