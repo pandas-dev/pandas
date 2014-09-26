@@ -5014,6 +5014,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         assert_series_equal(s, expected)
 
+    def test_type_promote_putmask(self):
+        # GH8387: test that changing types does not break alignment
+        ts = Series(np.random.randn(100), index=np.arange(100,0,-1)).round(5)
+        left, mask = ts.copy(), ts > 0
+        right = ts[mask].copy().map(str)
+        left[mask] = right
+        assert_series_equal(left, ts.map(lambda t: str(t) if t > 0 else t))
+
     def test_astype_cast_nan_int(self):
         df = Series([1.0, 2.0, 3.0, np.nan])
         self.assertRaises(ValueError, df.astype, np.int64)
@@ -6286,4 +6294,3 @@ class TestSeriesNonUnique(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-
