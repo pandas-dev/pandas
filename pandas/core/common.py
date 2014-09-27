@@ -22,7 +22,6 @@ from pandas import compat
 from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 
 from pandas.core.config import get_option
-from pandas.core import array as pa
 
 class PandasError(Exception):
     pass
@@ -999,7 +998,7 @@ def _infer_dtype_from_scalar(val):
     dtype = np.object_
 
     # a 1-element ndarray
-    if isinstance(val, pa.Array):
+    if isinstance(val, np.ndarray):
         if val.ndim != 0:
             raise ValueError(
                 "invalid ndarray passed to _infer_dtype_from_scalar")
@@ -1350,7 +1349,7 @@ def _fill_zeros(result, x, y, name, fill):
 
         if not isinstance(y, np.ndarray):
             dtype, value = _infer_dtype_from_scalar(y)
-            y = pa.empty(result.shape, dtype=dtype)
+            y = np.empty(result.shape, dtype=dtype)
             y.fill(value)
 
         if is_integer_dtype(y):
@@ -1575,7 +1574,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
             inds = np.asarray(xvalues)
             # hack for DatetimeIndex, #1646
             if issubclass(inds.dtype.type, np.datetime64):
-                inds = inds.view(pa.int64)
+                inds = inds.view(np.int64)
 
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)

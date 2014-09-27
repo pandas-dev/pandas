@@ -12,7 +12,6 @@ from pandas import compat, lib, tslib
 import pandas.index as _index
 from pandas.util.decorators import Appender
 import pandas.core.common as com
-import pandas.core.array as pa
 import pandas.computation.expressions as expressions
 from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _maybe_match_name)
@@ -332,7 +331,7 @@ class _TimeOp(object):
             # a datelike
             elif isinstance(values, pd.DatetimeIndex):
                 values = values.to_series()
-            elif not (isinstance(values, (pa.Array, pd.Series)) and
+            elif not (isinstance(values, (np.ndarray, pd.Series)) and
                       com.is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
@@ -349,7 +348,7 @@ class _TimeOp(object):
                                 "operation [{0}]".format(name))
         elif isinstance(values[0], pd.DateOffset):
             # handle DateOffsets
-            os = pa.array([getattr(v, 'delta', None) for v in values])
+            os = np.array([getattr(v, 'delta', None) for v in values])
             mask = isnull(os)
             if mask.any():
                 raise TypeError("cannot use a non-absolute DateOffset in "
@@ -366,10 +365,10 @@ class _TimeOp(object):
             else:
                 raise TypeError(
                     'incompatible type [{0}] for a datetime/timedelta '
-                    'operation'.format(pa.array(values).dtype))
+                    'operation'.format(np.array(values).dtype))
         else:
             raise TypeError("incompatible type [{0}] for a datetime/timedelta"
-                            " operation".format(pa.array(values).dtype))
+                            " operation".format(np.array(values).dtype))
 
         return values
 
@@ -408,7 +407,7 @@ class _TimeOp(object):
         if mask is not None:
             if mask.any():
                 def f(x):
-                    x = pa.array(x, dtype=self.dtype)
+                    x = np.array(x, dtype=self.dtype)
                     np.putmask(x, mask, self.fill_value)
                     return x
                 self.wrap_results = f
@@ -449,19 +448,19 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
-            if isinstance(y, (pa.Array, pd.Series, pd.Index)):
+            if isinstance(y, (np.ndarray, pd.Series, pd.Index)):
                 dtype = np.find_common_type([x.dtype, y.dtype], [])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], _values_from_object(y[mask]))
-            elif isinstance(x, pa.Array):
-                result = pa.empty(len(x), dtype=x.dtype)
+            elif isinstance(x, np.ndarray):
+                result = np.empty(len(x), dtype=x.dtype)
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
             else:
                 raise TypeError("{typ} cannot perform the operation {op}".format(typ=type(x).__name__,op=str_rep))
 
-            result, changed = com._maybe_upcast_putmask(result, ~mask, pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -531,7 +530,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (pa.Array, pd.Series)):
+            if isinstance(y, (np.ndarray, pd.Series)):
                 if y.dtype != np.object_:
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
@@ -558,7 +557,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                                      index=self.index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (pa.Array, pd.Index)):
+        elif isinstance(other, (np.ndarray, pd.Index)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
@@ -610,7 +609,7 @@ def _bool_method_SERIES(op, name, str_rep):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (pa.Array, pd.Series)):
+            if isinstance(y, (np.ndarray, pd.Series)):
                 if (x.dtype == np.bool_ and
                         y.dtype == np.bool_):  # pragma: no cover
                     result = op(x, y)  # when would this be hit?
@@ -688,7 +687,7 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None,
         self._get_axis_number(axis)
         if isinstance(other, pd.Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (pa.Array, pd.Series, list, tuple)):
+        elif isinstance(other, (np.ndarray, pd.Series, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(self._constructor(other, self.index), op,
@@ -925,10 +924,10 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
         except TypeError:
 
             # TODO: might need to find_common_type here?
-            result = pa.empty(len(x), dtype=x.dtype)
+            result = np.empty(len(x), dtype=x.dtype)
             mask = notnull(x)
             result[mask] = op(x[mask], y)
-            result, changed = com._maybe_upcast_putmask(result, ~mask, pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
