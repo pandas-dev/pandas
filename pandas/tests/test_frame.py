@@ -7628,9 +7628,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.fillna(df.max().to_dict())
         assert_frame_equal(result, expected)
 
-        # disable this for now
+        # disable these for now
         with assertRaisesRegexp(NotImplementedError, 'column by column'):
             df.fillna(df.max(1), axis=1)
+        with assertRaisesRegexp(NotImplementedError, 'downcast'):
+            df.fillna(df.max(1), downcast='infer')
 
     def test_fillna_dataframe(self):
         # GH 8377
@@ -7668,6 +7670,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(method='ffill', axis=1)
         assert_frame_equal(result, expected)
 
+        # disable these for now
+        with assertRaisesRegexp(NotImplementedError, 'axis 1.*in place'):
+            df.fillna(method='ffill', axis=1, inplace=True)
+        with assertRaisesRegexp(NotImplementedError, 'axis 1.*downcast'):
+            df.fillna(method='ffill', axis=1, downcast='infer')
 
     def test_fillna_invalid_method(self):
         with assertRaisesRegexp(ValueError, 'ffil'):

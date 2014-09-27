@@ -2220,7 +2220,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method=None, axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         """
         Fill NA/NaN values using the specified method
@@ -2236,9 +2236,11 @@ class NDFrame(PandasObject):
             values specifying which value to use for each index (for a Series) or
             column (for a DataFrame). (values not in the dict/Series/DataFrame will not be
             filled). This value cannot be a list.
-        axis : {0, 1}, default 0
+        axis : {0, 1, 2}
+            Fill along this axis. For a DataFrame:
             * 0: fill column-by-column
             * 1: fill row-by-row
+            Default: fill column-by-column (0 for DataFrame, 1 for Panel)
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
@@ -2263,6 +2265,9 @@ class NDFrame(PandasObject):
                             'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
+        if axis is None:
+            axis = max(0, self.ndim - 2)
+
         axis = self._get_axis_number(axis)
         method = com._clean_fill_method(method)
 
@@ -2270,38 +2275,66 @@ class NDFrame(PandasObject):
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
+
+            # 2d or less
+            if self.ndim <= 2:
+                if self._is_mixed_type and axis == 1:
+                    if inplace:
+                        raise NotImplementedError(
+                            'Cannot fill mixed type on axis 1 in place')
+                    if downcast:
+                        raise NotImplementedError(
+                            'Cannot fill mixed type on axis 1 with downcast')
+
+                    result = self.T.fillna(method=method, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._data = result._data.downcast()
+
+                    return result
+
+                method = com._clean_fill_method(method)
+                new_data = self._data.interpolate(method=method,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
+
+            # 3d
+            elif self.ndim == 3:
                 if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
+                    raise NotImplementedError('Cannot fill Panel in place')
 
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
+                if axis == 0:
+                    if downcast:
+                        raise NotImplementedError(
+                            'Cannot fill Panel on axis 0 with downcast')
 
-                return result
+                    swapped = self.swapaxes(0, 1, copy=False)
+                    filled = swapped.fillna(method=method, axis=1, limit=limit)
+                    result = filled.swapaxes(0, 1, copy=False)
+
+                    # need to downcast here because of all of the transposes
+                    result._data = result._data.downcast()
+
+                    return result
+
+                else:
+                                    # fill in 2d chunks
+                    result = dict([(col, s.fillna(method=method,
+                                                  axis=axis - 1,
+                                                  limit=limit,
+                                                  downcast=downcast))
+                                   for col, s in compat.iteritems(self)])
+                    return self._constructor.from_dict(result).__finalize__(self)
 
             # > 3d
-            if self.ndim > 3:
+            elif self.ndim > 3:
                 raise NotImplementedError(
                     'Cannot fillna with a method for > 3dims'
                 )
 
-            # 3d
-            elif self.ndim == 3:
-
-                # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in compat.iteritems(self)])
-                return self._constructor.from_dict(result).__finalize__(self)
-
-            # 2d or less
-            method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method=method,
-                                              axis=axis,
-                                              limit=limit,
-                                              inplace=inplace,
-                                              coerce=True,
-                                              downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -2324,10 +2357,18 @@ class NDFrame(PandasObject):
                                              downcast=downcast)
 
             elif isinstance(value, (dict, com.ABCSeries)):
+                if self.ndim >= 3:
+                    raise NotImplementedError('Cannot fillna with a dict/Series '
+                                              'for >= 3 dims')
+
                 if axis == 1:
                     raise NotImplementedError('Currently only can fill '
                                               'with dict/Series column '
                                               'by column')
+
+                if downcast:
+                    raise NotImplementedError(
+                        'Cannot downcast with dict/Series')
 
                 result = self if inplace else self.copy()
                 for k, v in compat.iteritems(value):
@@ -2336,11 +2377,13 @@ class NDFrame(PandasObject):
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True)
                 return result
+
             elif not com.is_list_like(value):
                 new_data = self._data.fillna(value=value,
                                              limit=limit,
                                              inplace=inplace,
                                              downcast=downcast)
+
             elif isinstance(value, DataFrame) and self.ndim == 2:
                 new_data = self.where(self.notnull(), value)
             else:
@@ -2351,12 +2394,12 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
+    def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='ffill')"
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
-    def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
+    def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='bfill')"
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
