@@ -28,6 +28,15 @@ from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
 
+def _skip_if_mpl_14_or_dev_boxplot():
+    # GH 8382
+    # Boxplot failures on 1.4 and 1.4.1
+    # Don't need try / except since that's done at class level
+    import matplotlib
+    if matplotlib.__version__ in ('1.4.0', '1.5.x'):
+        raise nose.SkipTest("Matplotlib Regression in 1.4 and current dev.")
+
+
 def _skip_if_no_scipy_gaussian_kde():
     try:
         import scipy
@@ -1790,6 +1799,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot(self):
+        _skip_if_mpl_14_or_dev_boxplot()
         df = self.hist_df
         series = df['height']
         numeric_cols = df._get_numeric_data().columns
@@ -1823,6 +1833,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot_vertical(self):
+        _skip_if_mpl_14_or_dev_boxplot()
         df = self.hist_df
         series = df['height']
         numeric_cols = df._get_numeric_data().columns
@@ -1982,6 +1993,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot_empty_column(self):
+        _skip_if_mpl_14_or_dev_boxplot()
         df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
