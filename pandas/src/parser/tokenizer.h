@@ -12,6 +12,7 @@ See LICENSE for the license
 #ifndef _PARSER_COMMON_H_
 #define _PARSER_COMMON_H_
 
+#include "Python.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
