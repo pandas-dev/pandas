@@ -1087,7 +1087,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
     sum_wt = 1.
     sum_wt2 = 1.
     old_wt = 1.
-    
+
     for i from 1 <= i < N:
         cur_x = input_x[i]
         cur_y = input_y[i]
@@ -1117,7 +1117,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
         elif is_observation:
             mean_x = cur_x
             mean_y = cur_y
-        
+
         if nobs >= minp:
             if not bias:
                 numerator = sum_wt * sum_wt
@@ -1344,10 +1344,32 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 #-------------------------------------------------------------------------------
 # Rolling skewness
 
-def roll_skew(ndarray[double_t] input, int win, int minp):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _get_zscores(ndarray[double_t] inp):
+    """removes mean and scales variance to one"""
+    cdef:
+        ndarray[double_t] out
+        ndarray[np.uint8_t, ndim=1, cast=True] mask
+        double_t mu, sigma
+
+    mask = np.isfinite(inp)
+    if not mask.any():
+        return inp
+
+    mu = inp[mask].mean()
+    out = inp - mu
+    sigma = out[mask].std()
+    if sigma > 0 and not np.isclose(sigma, 0.0):
+        out[mask] /= sigma
+
+    return out
+
+def roll_skew(ndarray[double_t] inp, int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0
     cdef Py_ssize_t nobs = 0, i
+    cdef ndarray[double_t] input = _get_zscores(inp)
     cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
@@ -1405,11 +1427,12 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
 # Rolling kurtosis
 
 
-def roll_kurt(ndarray[double_t] input,
+def roll_kurt(ndarray[double_t] inp,
                int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0, xxxx = 0
     cdef Py_ssize_t nobs = 0, i
+    cdef ndarray[double_t] input = _get_zscores(inp)
     cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
