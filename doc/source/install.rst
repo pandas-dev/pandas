@@ -302,6 +302,8 @@ Optional Dependencies
 * Google's `python-gflags <http://code.google.com/p/python-gflags/>`__
   and `google-api-python-client <http://github.com/google/google-api-python-client>`__
    * Needed for :mod:`~pandas.io.gbq`
+* `setuptools <https://pypi.python.org/pypi/setuptools/>`__
+   * Needed for :mod:`~pandas.io.gbq` (specifically, it utilizes `pkg_resources`)
 * `httplib2 <http://pypi.python.org/pypi/httplib2>`__
    * Needed for :mod:`~pandas.io.gbq`
 * One of the following combinations of libraries is needed to use the
