@@ -65,6 +65,28 @@ Monkey-patching existing methods is usually a bad idea in that respect.
 When used with proper care, however, it's a very useful tool to have.
 
 
+.. _ref-python-startup:
+
+Setting startup options for pandas in python/ipython environment
+----------------------------------------------------------------
+
+Using startup scripts for the python/ipython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+
+.. code-block:: python
+
+  $IPYTHONDIR/profile_default/startup
+
+More information can be found in the `ipython profile documentation
+<http://ipython.org/ipython-doc/1/config/overview.html>`__.  An example startup script for pandas is displayed below:
+
+.. code-block:: python
+
+  import pandas as pd
+  pd.set_option('display.max_rows', 999)
+  pd.set_option('precision', 5)
+
+For a list of options available for pandas, see the :ref:`pandas options documentation <options>`.
+
 .. _ref-scikits-migration:
 
 Migrating from scikits.timeseries to pandas >= 0.8.0

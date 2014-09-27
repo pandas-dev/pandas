@@ -86,6 +86,8 @@ pandas namespace.  To change an option, call ``set_option('option regex', new_va
    pd.set_option('mode.sim_interactive', True)
    pd.get_option('mode.sim_interactive')
 
+**Note:** that the option 'mode.sim_interactive' is mostly used for debugging purposes.  
+
 All options also have a default value, and you can use ``reset_option`` to do just that:
 
 .. ipython:: python
