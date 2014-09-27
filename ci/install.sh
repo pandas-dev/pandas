@@ -45,6 +45,7 @@ pip install -I -U setuptools
 pip install wheel==0.22
 #pip install nose==1.3.3
 pip install nose==1.3.4
+pip install coveralls
 
 # comment this line to disable the fetching of wheel files
 base_url=http://pandas.pydata.org/pandas-build/dev/wheels

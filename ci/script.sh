@@ -17,7 +17,7 @@ fi
 # doc build log will be shown after tests
 
 echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
-nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml --with-coverage --cover-package=pandas
 
 RET="$?"
 
