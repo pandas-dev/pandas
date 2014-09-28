@@ -2315,6 +2315,8 @@ class NDFrame(PandasObject):
                     if axis == 0:
                         result = result.transpose(1, 0 ,2)
                     return result.__finalize__(self)
+                else:
+                    return
 
             if self._is_mixed_type and axis == 1:
                 if inplace:
