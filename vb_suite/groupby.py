@@ -484,3 +484,75 @@ df = DataFrame(np.random.randint(1, n / 100, (n, 3)),
 
 groupby_agg_builtins1 = Benchmark("df.groupby('jim').agg([sum, min, max])", setup)
 groupby_agg_builtins2 = Benchmark("df.groupby(['jim', 'joe']).agg([sum, min, max])", setup)
+
+#----------------------------------------------------------------------
+# groupby with a large value for ngroups
+
+setup = common_setup + """
+np.random.seed(1234)
+ngroups = 10000
+size = ngroups * 10
+rng = np.arange(ngroups)
+df = DataFrame(dict(
+    timestamp=rng.take(np.random.randint(0, ngroups, size=size)),
+    value=np.random.randint(0, size, size=size)
+))
+"""
+
+no_arg_func_list = [
+    'all',
+    'any',
+    'count',
+    'cumcount',
+    'cummax',
+    'cummin',
+    'cumprod',
+    'cumsum',
+    'describe',
+    'diff',
+    'first',
+    'head',
+    'last',
+    'mad',
+    'max',
+    'mean',
+    'median',
+    'min',
+    'nunique',
+    'pct_change',
+    'prod',
+    'rank',
+    'sem',
+    'size',
+    'skew',
+    'std',
+    'sum',
+    'tail',
+    'unique',
+    'var',
+    'value_counts',
+]
+
+
+_stmt_template = "df.groupby('value')['timestamp'].%s"
+START_DATE = datetime(2011, 7, 1)
+
+
+def make_large_ngroups_bmark(func_name, func_args=''):
+    bmark_name = 'groupby_large_ngroups_%s' % func_name
+    stmt = _stmt_template % ('%s(%s)' % (func_name, func_args))
+    bmark = Benchmark(stmt, setup, start_date=START_DATE)
+    # MUST set name
+    bmark.name = bmark_name
+    return bmark
+
+
+def inject_bmark_into_globals(bmark):
+    if not bmark.name:
+        raise AssertionError('benchmark must have a name')
+    globals()[bmark.name] = bmark
+
+
+for func_name in no_arg_func_list:
+    bmark = make_large_ngroups_bmark(func_name)
+    inject_bmark_into_globals(bmark)
