@@ -2299,21 +2299,20 @@ class NDFrame(PandasObject):
             # 3d
             elif self.ndim == 3:
                 if axis == 0:
-                    data = self.transpose(1, 0, 2)
-                    new_axis = 0
+                    new_axis = 1
+                    apply_axes = (0,1)
                 else:
-                    data = self
                     new_axis = axis - 1
-
-                result = dict([(col, s.fillna(value=value, method=method,
-                                axis=new_axis, inplace=inplace,
-                                limit=limit, downcast=downcast))
-                                for col, s in compat.iteritems(data)])
+                    apply_axes = (1,2)
+                result = self.apply(lambda s: s.fillna(value=value, 
+                                                       method=method,
+                                                       axis=new_axis, 
+                                                       inplace=inplace, 
+                                                       limit=limit, 
+                                                       downcast=downcast), 
+                                    axis=apply_axes)
 
                 if not inplace:
-                    result = self._constructor.from_dict(result)
-                    if axis == 0:
-                        result = result.transpose(1, 0 ,2)
                     return result.__finalize__(self)
                 else:
                     return
