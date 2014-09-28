@@ -640,16 +640,14 @@ Categoricals
 ------------
 
 Since version 0.15, pandas can include categorical data in a ``DataFrame``. For full docs, see the
-:ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>` .
+:ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>` .
 
 .. ipython:: python
 
     df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
     # convert the raw grades to a categorical
-    df["grade"] = pd.Categorical(df["raw_grade"])
-
-    # Alternative: df["grade"] = df["raw_grade"].astype("category")
+    df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
     # Rename the categories inplace
@@ -658,7 +656,9 @@ Since version 0.15, pandas can include categorical data in a ``DataFrame``. For 
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df["grade"]
+    # Sorting is per order in the categories
     df.sort("grade")
+    # groupby shows also empty categories
     df.groupby("grade").size()
 
 
