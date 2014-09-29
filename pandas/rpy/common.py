@@ -4,6 +4,7 @@ developer-friendly.
 """
 from __future__ import print_function
 
+from distutils.version import LooseVersion
 from pandas.compat import zip, range
 import numpy as np
 
@@ -72,7 +73,7 @@ def _convert_array(obj):
             return list(item)
         except TypeError:
             return []
-        
+
     # For iris3, HairEyeColor, UCBAdmissions, Titanic
     dim = list(obj.dim)
     values = np.array(list(obj))
@@ -101,9 +102,9 @@ def _convert_vector(obj):
     except AttributeError:
         return list(obj)
     if 'names' in attributes:
-        return pd.Series(list(obj), index=r['names'](obj)) 
+        return pd.Series(list(obj), index=r['names'](obj))
     elif 'tsp' in attributes:
-        return pd.Series(list(obj), index=r['time'](obj)) 
+        return pd.Series(list(obj), index=r['time'](obj))
     elif 'labels' in attributes:
         return pd.Series(list(obj), index=r['labels'](obj))
     if _rclass(obj) == 'dist':
@@ -268,6 +269,7 @@ VECTOR_TYPES = {np.float64: robj.FloatVector,
                 np.str: robj.StrVector,
                 np.bool: robj.BoolVector}
 
+
 NA_TYPES = {np.float64: robj.NA_Real,
             np.float32: robj.NA_Real,
             np.float: robj.NA_Real,
@@ -277,6 +279,16 @@ NA_TYPES = {np.float64: robj.NA_Real,
             np.object_: robj.NA_Character,
             np.str: robj.NA_Character,
             np.bool: robj.NA_Logical}
+
+
+if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+    for dict_ in (VECTOR_TYPES, NA_TYPES):
+        dict_.update({
+            np.bool_: dict_[np.bool],
+            np.int_: dict_[np.int],
+            np.float_: dict_[np.float],
+            np.string_: dict_[np.str]
+        })
 
 
 def convert_to_r_dataframe(df, strings_as_factors=False):

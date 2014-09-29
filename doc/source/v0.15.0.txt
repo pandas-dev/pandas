@@ -271,7 +271,7 @@ API changes
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
 
-
+- Added support for numpy 1.8+ data types (bool_, int_, float_, string_) for conversion to R dataframe  (:issue:`8400`)
 
 .. _whatsnew_0150.dt:
 
