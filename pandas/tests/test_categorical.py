@@ -884,6 +884,11 @@ class TestCategorical(tm.TestCase):
         exp = np.array([0,1,3,2])
         self.assert_numpy_array_equal(cat.codes, exp)
 
+    def test_nbytes(self):
+        cat = pd.Categorical([1,2,3])
+        exp = cat._codes.nbytes + cat._categories.values.nbytes
+        self.assertEqual(cat.nbytes, exp)
+
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017, whatever is earlier
         cat = pd.Categorical([1,2,3, np.nan], categories=[1,2,3])
