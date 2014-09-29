@@ -1495,6 +1495,16 @@ class TestGroupBy(tm.TestCase):
         result3 = grouped['C'].agg({'Q': np.sum})
         assert_frame_equal(result3, expected3)
 
+    def test_mulitindex_passthru(self):
+
+        # GH 7997
+        # regression from 0.14.1
+        df = pd.DataFrame([[1,2,3],[4,5,6],[7,8,9]])
+        df.columns = pd.MultiIndex.from_tuples([(0,1),(1,1),(2,1)])
+
+        result = df.groupby(axis=1, level=[0,1]).first()
+        assert_frame_equal(result, df)
+
     def test_multifunc_select_col_integer_cols(self):
         df = self.df
         df.columns = np.arange(len(df.columns))
