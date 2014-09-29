@@ -124,6 +124,25 @@ are restored automatically when you exit the `with` block:
    print(pd.get_option("display.max_columns"))
 
 
+Setting Startup Options in python/ipython Environment
+-----------------------------------------------------
+
+Using startup scripts for the python/ipython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+
+.. code-block:: python
+
+  $IPYTHONDIR/profile_default/startup
+
+More information can be found in the `ipython documentation
+<http://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
+
+.. code-block:: python
+
+  import pandas as pd
+  pd.set_option('display.max_rows', 999)
+  pd.set_option('precision', 5)
+
+
 Frequently Used Options
 -----------------------
 The following is a walkthrough of the more frequently used display options.
