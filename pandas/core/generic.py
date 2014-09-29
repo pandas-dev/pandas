@@ -2311,12 +2311,9 @@ class NDFrame(PandasObject):
                                                        limit=limit, 
                                                        downcast=downcast), 
                                     axis=apply_axes)
-                if not inplace:
-                    if axis == 0:
-                        result = result.transpose(2, 1, 0)
-                    return result.__finalize__(self)
-                else:
-                    return
+                if axis == 0:
+                    result = result.transpose(2, 1, 0)
+                return result if not inplace else None
 
             if self._is_mixed_type and axis == 1:
                 if inplace:
