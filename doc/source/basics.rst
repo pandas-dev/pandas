@@ -1130,6 +1130,12 @@ You can easily produces tz aware transformations:
    stz
    stz.dt.tz
 
+You can also chain these types of operations:
+
+.. ipython:: python
+
+   s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+
 The ``.dt`` accessor works for period and timedelta dtypes.
 
 .. ipython:: python

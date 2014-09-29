@@ -744,7 +744,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         This is for internal compat
         """
-        if keep_tz and self.tz is not None and str(self.tz) != 'UTC':
+        if keep_tz and self.tz is not None:
             return self.asobject.values
         return self.values
 

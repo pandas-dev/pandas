@@ -135,6 +135,11 @@ class CheckNameIntegration(object):
             freq_result = s.dt.freq
             self.assertEqual(freq_result, DatetimeIndex(s.values, freq='infer').freq)
 
+            # let's localize, then convert
+            result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+            expected = Series(DatetimeIndex(s.values).tz_localize('UTC').tz_convert('US/Eastern'),index=s.index)
+            tm.assert_series_equal(result, expected)
+
         # timedeltaindex
         for s in [Series(timedelta_range('1 day',periods=5)),
                   Series(timedelta_range('1 day 01:23:45',periods=5,freq='s')),
@@ -809,6 +814,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(s.dtype,'datetime64[ns]')
         s = Series([pd.NaT, np.nan, '2013-08-05 15:30:00.000001'])
         self.assertEqual(s.dtype,'datetime64[ns]')
+
+        # tz-aware (UTC and other tz's)
+        # GH 8411
+        dr = date_range('20130101',periods=3)
+        self.assertTrue(Series(dr).iloc[0].tz is None)
+        dr = date_range('20130101',periods=3,tz='UTC')
+        self.assertTrue(str(Series(dr).iloc[0].tz) == 'UTC')
+        dr = date_range('20130101',periods=3,tz='US/Eastern')
+        self.assertTrue(str(Series(dr).iloc[0].tz) == 'US/Eastern')
 
     def test_constructor_periodindex(self):
         # GH7932
