@@ -722,6 +722,10 @@ class Categorical(PandasObject):
     def T(self):
         return self
 
+    @property
+    def nbytes(self):
+        return self._codes.nbytes + self._categories.values.nbytes
+
     def isnull(self):
         """
         Detect missing values
