@@ -1072,8 +1072,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
         ts = datetime.combine(ts, datetime_time())
         return convert_to_tsobject(ts, tz, None)
     else:
-        raise ValueError("Could not construct Timestamp from argument %s" %
-                         type(ts))
+        raise ValueError("Cannot convert Period to Timestamp unambiguously. Use to_timestamp")
 
     if obj.value != NPY_NAT:
         _check_dts_bounds(&obj.dts)
