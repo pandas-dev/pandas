@@ -726,6 +726,9 @@ class Categorical(PandasObject):
     def nbytes(self):
         return self._codes.nbytes + self._categories.values.nbytes
 
+    def searchsorted(self, v, side='left', sorter=None):
+        raise NotImplementedError("See https://github.com/pydata/pandas/issues/8420")
+
     def isnull(self):
         """
         Detect missing values

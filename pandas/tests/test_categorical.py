@@ -889,6 +889,15 @@ class TestCategorical(tm.TestCase):
         exp = cat._codes.nbytes + cat._categories.values.nbytes
         self.assertEqual(cat.nbytes, exp)
 
+    def test_searchsorted(self):
+
+        # See https://github.com/pydata/pandas/issues/8420
+        # TODO: implement me...
+        cat = pd.Categorical([1,2,3])
+        def f():
+            cat.searchsorted(3)
+        self.assertRaises(NotImplementedError, f)
+
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017, whatever is earlier
         cat = pd.Categorical([1,2,3, np.nan], categories=[1,2,3])
