@@ -26,7 +26,11 @@ users upgrade to this version.
 
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
-- :ref:`API Changes <whatsnew_0150.api>`, and :ref:`Rolling/Expanding Moments API Changes <whatsnew_0150.roll>`
+- :ref:`API Changes <whatsnew_0150.api>`
+
+- :ref:`Timezone API Change <whatsnew_0150.tz>`
+
+- :ref:`Rolling/Expanding Moments API Changes <whatsnew_0150.roll>`
 
 - :ref:`Performance Improvements <whatsnew_0150.performance>`
 
@@ -137,27 +141,6 @@ API changes
      In [3]: idx.isin(['a', 'c', 'e'], level=1)
      Out[3]: array([ True, False,  True,  True, False,  True], dtype=bool)
 
-- ``tz_localize(None)`` for tz-aware ``Timestamp`` and ``DatetimeIndex`` now removes timezone holding local time,
-  previously results in ``Exception`` or ``TypeError`` (:issue:`7812`)
-
-  .. ipython:: python
-
-     ts = Timestamp('2014-08-01 09:00', tz='US/Eastern')
-     ts
-     ts.tz_localize(None)
-
-     didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
-     didx
-     didx.tz_localize(None)
-
-- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
-  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
-  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised. See :ref:`the docs<timeseries.timezone_ambiguous>` for more details (:issue:`7943`)
-
-- ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
-  for localizing a specific level of a MultiIndex (:issue:`7846`)
-- ``Timestamp.tz_localize`` and ``Timestamp.tz_convert`` now raise ``TypeError`` in error cases, rather than ``Exception`` (:issue:`8025`)
-- ``Timestamp.__repr__`` displays ``dateutil.tz.tzoffset`` info (:issue:`7907`)
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument.  (:issue:`7737`)
 
@@ -305,6 +288,12 @@ You can easily produce tz aware transformations:
    stz
    stz.dt.tz
 
+You can also chain these types of operations:
+
+.. ipython:: python
+
+   s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+
 The ``.dt`` accessor works for period and timedelta dtypes.
 
 .. ipython:: python
@@ -323,6 +312,37 @@ The ``.dt`` accessor works for period and timedelta dtypes.
    s.dt.days
    s.dt.seconds
    s.dt.components
+
+.. _whatsnew_0150.tz:
+
+Timezone API changes
+~~~~~~~~~~~~~~~~~~~~
+
+- ``tz_localize(None)`` for tz-aware ``Timestamp`` and ``DatetimeIndex`` now removes timezone holding local time,
+  previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
+
+  .. ipython:: python
+
+     ts = Timestamp('2014-08-01 09:00', tz='US/Eastern')
+     ts
+     ts.tz_localize(None)
+
+     didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
+     didx
+     didx.tz_localize(None)
+
+- ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
+  indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
+  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised. See :ref:`the docs<timeseries.timezone_ambiguous>` for more details (:issue:`7943`)
+
+- ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
+  for localizing a specific level of a MultiIndex (:issue:`7846`)
+
+- ``Timestamp.tz_localize`` and ``Timestamp.tz_convert`` now raise ``TypeError`` in error cases, rather than ``Exception`` (:issue:`8025`)
+
+- a  timeseries/index localized to UTC when inserted into a Series/DataFrame will preserve the UTC timezone (rather than being a naive ``datetime64[ns]``) as ``object`` dtype (:issue:`8411`)
+
+- ``Timestamp.__repr__`` displays ``dateutil.tz.tzoffset`` info (:issue:`7907`)
 
 .. _whatsnew_0150.roll:
 

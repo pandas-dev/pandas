@@ -3528,7 +3528,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # GH 8363
         # datetime ops with a non-unique index
-        df = DataFrame({'A' : np.arange(5,dtype='int64'), 
+        df = DataFrame({'A' : np.arange(5,dtype='int64'),
                         'B' : np.arange(1,6,dtype='int64')},
                        index=[2,2,3,3,4])
         result = df.B-df.A
@@ -3653,6 +3653,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame([{'End Date': dt}])
         self.assertEqual(df.iat[0,0],dt)
         assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
+
+        # tz-aware (UTC and other tz's)
+        # GH 8411
+        dr = date_range('20130101',periods=3)
+        df = DataFrame({ 'value' : dr})
+        self.assertTrue(df.iat[0,0].tz is None)
+        dr = date_range('20130101',periods=3,tz='UTC')
+        df = DataFrame({ 'value' : dr})
+        self.assertTrue(str(df.iat[0,0].tz) == 'UTC')
+        dr = date_range('20130101',periods=3,tz='US/Eastern')
+        df = DataFrame({ 'value' : dr})
+        self.assertTrue(str(df.iat[0,0].tz) == 'US/Eastern')
 
         # GH 7822
         # preserver an index with a tz on dict construction
@@ -7654,7 +7666,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                              index = list('VWXYZ'))
 
         assert_frame_equal(result, expected)
-        
+
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))
         df.values[:, ::2] = np.nan
@@ -12791,8 +12803,8 @@ starting,ending,measure
         df.starting = ser_starting.index
         df.ending = ser_ending.index
 
-        assert_array_equal(df.starting.values, ser_starting.index.values)
-        assert_array_equal(df.ending.values, ser_ending.index.values)
+        tm.assert_index_equal(pd.DatetimeIndex(df.starting), ser_starting.index)
+        tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):
