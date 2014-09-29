@@ -433,7 +433,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`
 String Methods
 ~~~~~~~~~~~~~~
 
-See more at :ref:`Vectorized String Methods <basics.string_methods>`
+See more at :ref:`Vectorized String Methods <text.string_methods>`
 
 .. ipython:: python
 

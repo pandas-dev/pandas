@@ -10,7 +10,7 @@ processing functionality and a series of new plot types and options.
 New features
 ~~~~~~~~~~~~
 
-  - Add :ref:`vectorized string processing methods <basics.string_methods>`
+  - Add :ref:`vectorized string processing methods <text.string_methods>`
     accessible via Series.str (:issue:`620`)
   - Add option to disable adjustment in EWMA (:issue:`1584`)
   - :ref:`Radviz plot <visualization.radviz>` (:issue:`1566`)
