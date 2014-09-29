@@ -6,7 +6,7 @@
 
    import pandas as pd
    import numpy as np
-   options.display.max_rows=15
+   pd.options.display.max_rows=15
 
 Comparison with R / R libraries
 *******************************
@@ -51,7 +51,7 @@ Selecting multiple columns by name in ``pandas`` is straightforward
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(10, 3), columns=list('abc'))
+   df = pd.DataFrame(np.random.randn(10, 3), columns=list('abc'))
    df[['a', 'c']]
    df.loc[:, ['a', 'c']]
 
@@ -63,7 +63,7 @@ with a combination of the ``iloc`` indexer attribute and ``numpy.r_``.
    named = list('abcdefg')
    n = 30
    columns = named + np.arange(len(named), n).tolist()
-   df = DataFrame(np.random.randn(n, n), columns=columns)
+   df = pd.DataFrame(np.random.randn(n, n), columns=columns)
 
    df.iloc[:, np.r_[:10, 24:30]]
 
@@ -88,8 +88,7 @@ function.
 
 .. ipython:: python
 
-   from pandas import DataFrame
-   df = DataFrame({
+   df = pd.DataFrame({
      'v1': [1,3,5,7,8,3,5,np.nan,4,5,7,9],
      'v2': [11,33,55,77,88,33,55,np.nan,44,55,77,99],
      'by1': ["red", "blue", 1, 2, np.nan, "big", 1, 2, "red", 1, np.nan, 12],
@@ -166,7 +165,7 @@ In ``pandas`` we may use :meth:`~pandas.pivot_table` method to handle this:
    import random
    import string
 
-   baseball = DataFrame({
+   baseball = pd.DataFrame({
       'team': ["team %d" % (x+1) for x in range(5)]*5,
       'player': random.sample(list(string.ascii_lowercase),25),
       'batting avg': np.random.uniform(.200, .400, 25)
@@ -197,7 +196,7 @@ index/slice as well as standard boolean indexing:
 
 .. ipython:: python
 
-   df = DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
+   df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.query('a <= b')
    df[df.a <= df.b]
    df.loc[df.a <= df.b]
@@ -225,7 +224,7 @@ In ``pandas`` the equivalent expression, using the
 
 .. ipython:: python
 
-   df = DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
+   df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.eval('a + b')
    df.a + df.b  # same as the previous expression
 
@@ -283,7 +282,7 @@ In ``pandas`` the equivalent expression, using the
 
 .. ipython:: python
 
-   df = DataFrame({
+   df = pd.DataFrame({
        'x': np.random.uniform(1., 168., 120),
        'y': np.random.uniform(7., 334., 120),
        'z': np.random.uniform(1.7, 20.7, 120),
@@ -317,7 +316,7 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
 .. ipython:: python
 
    a = np.array(list(range(1,24))+[np.NAN]).reshape(2,3,4)
-   DataFrame([tuple(list(x)+[val]) for x, val in np.ndenumerate(a)])
+   pd.DataFrame([tuple(list(x)+[val]) for x, val in np.ndenumerate(a)])
 
 |meltlist|_
 ~~~~~~~~~~~~
@@ -336,7 +335,7 @@ In Python, this list would be a list of tuples, so
 .. ipython:: python
 
    a = list(enumerate(list(range(1,5))+[np.NAN]))
-   DataFrame(a)
+   pd.DataFrame(a)
 
 For more details and examples see :ref:`the Into to Data Structures
 documentation <basics.dataframe.from_items>`.
@@ -361,7 +360,7 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
 
 .. ipython:: python
 
-   cheese = DataFrame({'first' : ['John', 'Mary'],
+   cheese = pd.DataFrame({'first' : ['John', 'Mary'],
                        'last' : ['Doe', 'Bo'],
                        'height' : [5.5, 6.0],
                        'weight' : [130, 150]})
@@ -394,7 +393,7 @@ In Python the best way is to make use of :meth:`~pandas.pivot_table`:
 
 .. ipython:: python
 
-   df = DataFrame({
+   df = pd.DataFrame({
         'x': np.random.uniform(1., 168., 12),
         'y': np.random.uniform(7., 334., 12),
         'z': np.random.uniform(1.7, 20.7, 12),
@@ -426,7 +425,7 @@ using :meth:`~pandas.pivot_table`:
 
 .. ipython:: python
 
-   df = DataFrame({
+   df = pd.DataFrame({
        'Animal': ['Animal1', 'Animal2', 'Animal3', 'Animal2', 'Animal1',
                   'Animal2', 'Animal3'],
        'FeedType': ['A', 'B', 'A', 'A', 'B', 'B', 'A'],
@@ -443,6 +442,30 @@ The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`.
+
+|factor|_
+~~~~~~~~
+
+.. versionadded:: 0.15
+
+pandas has a data type for categorical data.
+
+.. code-block:: r
+
+   cut(c(1,2,3,4,5,6), 3)
+   factor(c(1,2,3,2,2,3))
+
+In pandas this is accomplished with ``pd.cut`` and ``astype("category")``:
+
+.. ipython:: python
+
+   pd.cut(pd.Series([1,2,3,4,5,6]), 3)
+   pd.Series([1,2,3,2,2,3]).astype("category")
+
+For more details and examples see :ref:`categorical introduction <categorical>` and the
+:ref:`API documentation <api.categorical>`. There is also a documentation regarding the
+:ref:`differences to R's factor <categorical.rfactor>`.
+
 
 .. |c| replace:: ``c``
 .. _c: http://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
@@ -477,3 +500,5 @@ For more details and examples see :ref:`the reshaping documentation
 .. |cast| replace:: ``cast``
 .. cast: http://www.inside-r.org/packages/cran/reshape2/docs/cast
 
+.. |factor| replace:: ``factor``
+.. _factor: https://stat.ethz.ch/R-manual/R-devel/library/base/html/factor.html

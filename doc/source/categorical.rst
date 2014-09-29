@@ -611,6 +611,8 @@ available ("missing value") or `np.nan` is a valid category.
     pd.isnull(s)
     s.fillna("a")
 
+.. _categorical.rfactor:
+
 Differences to R's `factor`
 ---------------------------
 

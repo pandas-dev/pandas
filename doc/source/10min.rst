@@ -640,27 +640,44 @@ Categoricals
 ------------
 
 Since version 0.15, pandas can include categorical data in a ``DataFrame``. For full docs, see the
-:ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>` .
+:ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
 
 .. ipython:: python
 
     df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
-    # convert the raw grades to a categorical
-    df["grade"] = pd.Categorical(df["raw_grade"])
+Convert the raw grades to a categorical data type.
 
-    # Alternative: df["grade"] = df["raw_grade"].astype("category")
+.. ipython:: python
+
+    df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-    # Rename the categories inplace
+Rename the categories to more meaningful names (assigning to ``Series.cat.categories`` is inplace!)
+
+.. ipython:: python
+
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
-    # Reorder the categories and simultaneously add the missing categories
+Reorder the categories and simultaneously add the missing categories (methods under ``Series
+.cat`` return a new ``Series`` per default).
+
+.. ipython:: python
+
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df["grade"]
-    df.sort("grade")
-    df.groupby("grade").size()
 
+Sorting is per order in the categories, not lexical order.
+
+.. ipython:: python
+
+    df.sort("grade")
+
+Grouping by a categorical column shows also empty categories.
+
+.. ipython:: python
+
+    df.groupby("grade").size()
 
 
 Plotting

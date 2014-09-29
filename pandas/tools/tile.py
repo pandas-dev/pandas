@@ -34,7 +34,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         right == True (the default), then the bins [1,2,3,4] indicate
         (1,2], (2,3], (3,4].
     labels : array or boolean, default None
-        Labels to use for bins, or False to return integer bin labels.
+        Used as labels for the resulting bins. Must be of the same length as the resulting
+        bins. If False, return only integer indicators of the bins.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -47,7 +48,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     -------
     out : Categorical or Series or array of integers if labels is False
         The return type (Categorical or Series) depends on the input: a Series of type category if
-        input is a Series else Categorical.
+        input is a Series else Categorical. Bins are represented as categories when categorical
+        data is returned.
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
@@ -63,12 +65,15 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Examples
     --------
-    >>> cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
-    (array([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533],
-           (6.533, 9.7], (0.191, 3.367]], dtype=object),
-     array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
-    >>> cut(np.ones(5), 4, labels=False)
-    array([2, 2, 2, 2, 2])
+    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
+    ([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533], (6.533, 9.7], (0.191, 3.367]]
+    Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
+    array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, labels=["good","medium","bad"])
+    [good, good, good, medium, bad, good]
+    Categories (3, object): [good < medium < bad]
+    >>> pd.cut(np.ones(5), 4, labels=False)
+    array([1, 1, 1, 1, 1], dtype=int64)
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     if not np.iterable(bins):
@@ -126,7 +131,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
     labels : array or boolean, default None
-        Labels to use for bin edges, or False to return integer bin labels
+        Used as labels for the resulting bins. Must be of the same length as the resulting
+        bins. If False, return only integer indicators of the bins.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -135,8 +141,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
     Returns
     -------
-    cat : Categorical or Series
-        Returns a Series of type category if input is a Series else Categorical.
+    out : Categorical or Series or array of integers if labels is False
+        The return type (Categorical or Series) depends on the input: a Series of type category if
+        input is a Series else Categorical. Bins are represented as categories when categorical
+        data is returned.
+    bins : ndarray of floats
+        Returned only if `retbins` is True.
 
     Notes
     -----
@@ -144,6 +154,14 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
     Examples
     --------
+    >>> pd.qcut(range(5), 4)
+    [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
+    Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+    >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
+    [good, good, medium, bad, bad]
+    Categories (3, object): [good < medium < bad]
+    >>> pd.qcut(range(5), 4, labels=False)
+    array([0, 0, 1, 2, 3], dtype=int64)
     """
     if com.is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
