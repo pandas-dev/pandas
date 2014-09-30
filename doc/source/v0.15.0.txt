@@ -831,6 +831,7 @@ Performance
 - Performance and memory usage improvements in multi-key ``groupby`` (:issue:`8128`)
 - Performance improvements in groupby ``.agg`` and ``.apply`` where builtins max/min were not mapped to numpy/cythonized versions (:issue:`7722`)
 - Performance improvement in writing to sql (``to_sql``) of up to 50% (:issue:`8208`).
+- Performance benchmarking of groupby for large value of ngroups (:issue:`6787`)
 
 
 
