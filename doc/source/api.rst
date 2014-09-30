@@ -1410,7 +1410,7 @@ Computations / Descriptive Stats
    GroupBy.mean
    GroupBy.median
    GroupBy.min
-   GroupBy.nth 
+   GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
    GroupBy.size

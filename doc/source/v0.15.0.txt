@@ -19,6 +19,7 @@ users upgrade to this version.
   - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+  - Split out string methods documentation into :ref:`Working with Text Data <text>`
   - ``read_csv`` will now by default ignore blank lines when parsing, see :ref:`here <whatsnew_0150.blanklines>`
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`

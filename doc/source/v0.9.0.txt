@@ -18,7 +18,7 @@ New features
 ~~~~~~~~~~~~
 
   - Add ``encode`` and ``decode`` for unicode handling to :ref:`vectorized
-    string processing methods <basics.string_methods>` in Series.str  (:issue:`1706`)
+    string processing methods <text.string_methods>` in Series.str  (:issue:`1706`)
   - Add ``DataFrame.to_latex`` method (:issue:`1735`)
   - Add convenient expanding window equivalents of all rolling_* ops (:issue:`1785`)
   - Add Options class to pandas.io.data for fetching options data from Yahoo!
