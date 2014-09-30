@@ -3233,7 +3233,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         levels_list = [ ping._group_index for ping in groupings ]
         index = MultiIndex.from_product(levels_list, names=self.grouper.names)
-        return result.reindex(**{ self.obj._get_axis_name(self.axis) : index, 'copy' : False }).sortlevel()
+        d = { self.obj._get_axis_name(self.axis) : index, 'copy' : False }
+        return result.reindex(**d).sortlevel(axis=self.axis)
 
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
