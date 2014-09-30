@@ -1159,6 +1159,28 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 
    ``Series.dt`` will raise a ``TypeError`` if you access with a non-datetimelike values
 
+Vectorized string methods
+-------------------------
+
+Series is equipped with a set of string processing methods that make it easy to
+operate on each element of the array. Perhaps most importantly, these methods
+exclude missing/NA values automatically. These are accessed via the Series's
+``str`` attribute and generally have names matching the equivalent (scalar)
+built-in string methods. For example:
+
+ .. ipython:: python
+
+  s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+  s.str.lower()
+
+Powerful pattern-matching methods are provided as well, but note that
+pattern-matching generally uses `regular expressions
+<https://docs.python.org/2/library/re.html>`__ by default (and in some cases
+always uses them).
+
+Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
+description.
+
 .. _basics.sorting:
 
 Sorting by index and value
