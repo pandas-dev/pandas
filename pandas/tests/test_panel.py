@@ -1345,14 +1345,14 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         filled = self.panel.fillna(0)
         self.assertTrue(np.isfinite(filled.values).all())
 
-        filled = self.panel.fillna(method='backfill', axis=1)
+        filled = self.panel.fillna(method='backfill')
         assert_frame_equal(filled['ItemA'],
                            self.panel['ItemA'].fillna(method='backfill'))
 
         panel = self.panel.copy()
         panel['str'] = 'foo'
 
-        filled = panel.fillna(method='backfill', axis=1)
+        filled = panel.fillna(method='backfill')
         assert_frame_equal(filled['ItemA'],
                            panel['ItemA'].fillna(method='backfill'))
 
@@ -1403,18 +1403,23 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(NotImplementedError, lambda : p.fillna(999, limit=1))
 
     def test_fillna_axis_0(self):
+        # GH 8395
+
         # Forward fill along axis 0, interpolating values across DataFrames.
         filled = self.panel.fillna(method='ffill', axis=0)
         nan_indexes = self.panel['ItemB']['C'].index[
             self.panel['ItemB']['C'].apply(np.isnan)]
+
         # Values from ItemA are filled into ItemB.
         assert_series_equal(filled['ItemB']['C'][nan_indexes],
                             self.panel['ItemA']['C'][nan_indexes])
 
         # Backfill along axis 0.
         filled = self.panel.fillna(method='backfill', axis=0)
+
         # The test data lacks values that can be backfilled on axis 0.
         assert_panel_equal(filled, self.panel)
+
         # Reverse the panel and backfill along axis 0, to properly test
         # backfill.
         reverse_panel = self.panel.reindex_axis(reversed(self.panel.axes[0]))
@@ -1430,6 +1435,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
             self.panel['ItemA']['C'].apply(np.isnan)]
         b_nan = self.panel['ItemB']['C'].index[
             self.panel['ItemB']['C'].apply(np.isnan)]
+
         # Cells that are nan in ItemB but not in ItemA remain unfilled in
         # ItemC.
         self.assertTrue(

@@ -2290,31 +2290,35 @@ class NDFrame(PandasObject):
             if method is None:
                 raise ValueError('must specify a fill method or value')
 
-            # > 3d
+            # >3d
             if self.ndim > 3:
                 raise NotImplementedError(
                     'Cannot fillna with a method for > 3dims'
                 )
 
+
             # 3d
-            elif self.ndim == 3:
+            if self.ndim == 3:
                 if axis == 0:
-                    new_axis = 1
+                    fill_axis = 1
                     apply_axes = (0, 1)
                 else:
-                    new_axis = axis - 1
+                    fill_axis = axis - 1
                     apply_axes = (1, 2)
-                result = self.apply(lambda s: s.fillna(value=value, 
+
+                result = self.apply(lambda f: f.fillna(value=value,
                                                        method=method,
-                                                       axis=new_axis, 
-                                                       inplace=inplace, 
-                                                       limit=limit, 
-                                                       downcast=downcast), 
+                                                       axis=fill_axis,
+                                                       inplace=inplace,
+                                                       limit=limit,
+                                                       downcast=downcast),
                                     axis=apply_axes)
+
                 if axis == 0:
                     result = result.transpose(2, 1, 0)
                 return result if not inplace else None
 
+            # 2d or less
             if self._is_mixed_type and axis == 1:
                 if inplace:
                     raise NotImplementedError()
@@ -2325,7 +2329,6 @@ class NDFrame(PandasObject):
 
                 return result
 
-            # 2d or less
             method = com._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,
