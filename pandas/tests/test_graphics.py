@@ -33,7 +33,7 @@ def _skip_if_mpl_14_or_dev_boxplot():
     # Boxplot failures on 1.4 and 1.4.1
     # Don't need try / except since that's done at class level
     import matplotlib
-    if matplotlib.__version__ in ('1.4.0', '1.5.x'):
+    if matplotlib.__version__ >= LooseVersion('1.4'):
         raise nose.SkipTest("Matplotlib Regression in 1.4 and current dev.")
 
 
@@ -71,6 +71,11 @@ class TestPlotBase(tm.TestCase):
                                       'height': random.normal(66, 4, size=n),
                                       'weight': random.normal(161, 32, size=n),
                                       'category': random.randint(4, size=n)})
+
+        if mpl.__version__ >= LooseVersion('1.4'):
+            self.bp_n_objects = 7
+        else:
+            self.bp_n_objects = 8
 
     def tearDown(self):
         tm.close()
@@ -1799,7 +1804,6 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot(self):
-        _skip_if_mpl_14_or_dev_boxplot()
         df = self.hist_df
         series = df['height']
         numeric_cols = df._get_numeric_data().columns
@@ -1807,15 +1811,19 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, kind='box')
         self._check_text_labels(ax.get_xticklabels(), labels)
-        assert_array_equal(ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1))
-        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+        assert_array_equal(ax.xaxis.get_ticklocs(),
+                           np.arange(1, len(numeric_cols) + 1))
+        self.assertEqual(len(ax.lines),
+                         self.bp_n_objects * len(numeric_cols))
 
-        axes = _check_plot_works(df.plot, kind='box', subplots=True, logy=True)
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.plot, kind='box',
+                                     subplots=True, logy=True)
         self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
         self._check_ax_scales(axes, yaxis='log')
         for ax, label in zip(axes, labels):
             self._check_text_labels(ax.get_xticklabels(), [label])
-            self.assertEqual(len(ax.lines), 8)
+            self.assertEqual(len(ax.lines), self.bp_n_objects)
 
         axes = series.plot(kind='box', rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)
@@ -1829,13 +1837,11 @@ class TestDataFramePlots(TestPlotBase):
         labels = [com.pprint_thing(c) for c in numeric_cols]
         self._check_text_labels(ax.get_xticklabels(), labels)
         assert_array_equal(ax.xaxis.get_ticklocs(), positions)
-        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+        self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
     @slow
     def test_boxplot_vertical(self):
-        _skip_if_mpl_14_or_dev_boxplot()
         df = self.hist_df
-        series = df['height']
         numeric_cols = df._get_numeric_data().columns
         labels = [com.pprint_thing(c) for c in numeric_cols]
 
@@ -1843,7 +1849,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind='box', rot=50, fontsize=8, vert=False)
         self._check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         self._check_text_labels(ax.get_yticklabels(), labels)
-        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+        self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
         axes = _check_plot_works(df.plot, kind='box', subplots=True,
                                  vert=False, logx=True)
@@ -1851,13 +1857,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ax_scales(axes, xaxis='log')
         for ax, label in zip(axes, labels):
             self._check_text_labels(ax.get_yticklabels(), [label])
-            self.assertEqual(len(ax.lines), 8)
+            self.assertEqual(len(ax.lines), self.bp_n_objects)
 
         positions = np.array([3, 2, 8])
         ax = df.plot(kind='box', positions=positions, vert=False)
         self._check_text_labels(ax.get_yticklabels(), labels)
         assert_array_equal(ax.yaxis.get_ticklocs(), positions)
-        self.assertEqual(len(ax.lines), 8 * len(numeric_cols))
+        self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
     @slow
     def test_boxplot_return_type(self):
