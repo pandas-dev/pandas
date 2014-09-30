@@ -9,14 +9,19 @@ from numpy.testing.decorators import slow
 import numpy as np
 from distutils.version import LooseVersion
 
-from pandas import Series, DataFrame, Panel, bdate_range, isnull, notnull, concat
+from pandas import (
+    Series, DataFrame, Panel, bdate_range, isnull, notnull, concat
+)
 from pandas.util.testing import (
-    assert_almost_equal, assert_series_equal, assert_frame_equal, assert_panel_equal, assert_index_equal
+    assert_almost_equal, assert_series_equal, assert_frame_equal,
+    assert_panel_equal, assert_index_equal
 )
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
 from pandas.compat import range, zip, PY3, StringIO
+from pandas.stats.moments import (_roll_skew, _roll_kurt, _rolling_func,
+                                  _require_min_periods)
 
 N, K = 100, 10
 
@@ -425,6 +430,16 @@ class TestMoments(Base):
             raise nose.SkipTest('no scipy')
         self._check_moment_func(mom.rolling_skew,
                                 lambda x: skew(x, bias=False))
+        # To test the algorithm stability we need the raw function, as
+        # rolling_skew centers the data
+        test_roll_skew = _rolling_func(_roll_skew, 'Test rolling_skew',
+                                       check_minp=_require_min_periods(3),
+                                       center_data=False, norm_data=False)
+        self._check_moment_func(test_roll_skew,
+                                lambda x: skew(x, bias=False),
+                                has_min_periods=True, has_center=False,
+                                has_time_rule=False, test_stable=True)
+
 
     def test_rolling_kurt(self):
         try:
@@ -433,6 +448,15 @@ class TestMoments(Base):
             raise nose.SkipTest('no scipy')
         self._check_moment_func(mom.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False))
+        # To test the algorithm stability we need the raw function, as
+        # rolling_kurt centers and normalizes the data
+        test_roll_kurt = _rolling_func(_roll_kurt, 'Test rolling_kurt',
+                                       check_minp=_require_min_periods(4),
+                                       center_data=False, norm_data=False)
+        self._check_moment_func(test_roll_kurt,
+                                lambda x: kurtosis(x, bias=False),
+                                has_min_periods=True, has_center=False,
+                                has_time_rule=False, test_stable=True)
 
     def test_fperr_robustness(self):
         # TODO: remove this once python 2.5 out of picture
@@ -542,8 +566,8 @@ class TestMoments(Base):
 
         if test_stable:
             result = func(self.arr + 1e9, window)
-            assert_almost_equal(result[-1],
-                                static_comp(self.arr[-50:] + 1e9))
+            assert_almost_equal(result[-1], static_comp(self.arr[-50:]),
+                                check_less_precise=True)
 
         # Test window larger than array, #7297
         if test_window:

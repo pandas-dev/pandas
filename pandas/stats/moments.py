@@ -355,7 +355,8 @@ def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
-                    how=None, args=(), kwargs={}, **kwds):
+                    how=None, args=(), kwargs={}, center_data=False,
+                    norm_data=False, **kwds):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -378,6 +379,11 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
         Passed on to func
     kwargs : dict
         Passed on to func
+    center_data : bool
+        If True, subtract the mean of the data from the values
+    norm_data: bool
+        If True, subtract the mean of the data from the values, and divide
+        by their standard deviation.
 
     Returns
     -------
@@ -385,8 +391,9 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     """
     arg = _conv_timerule(arg, freq, how)
 
-    return_hook, values = _process_data_structure(arg)
-
+    return_hook, values = _process_data_structure(arg,
+                                                  center_data=center_data,
+                                                  norm_data=norm_data)
     if values.size == 0:
         result = values.copy()
     else:
@@ -423,7 +430,8 @@ def _center_window(rs, window, axis):
     return rs
 
 
-def _process_data_structure(arg, kill_inf=True):
+def _process_data_structure(arg, kill_inf=True, center_data=False,
+                            norm_data=False):
     if isinstance(arg, DataFrame):
         return_hook = lambda v: type(arg)(v, index=arg.index,
                                           columns=arg.columns)
@@ -438,9 +446,15 @@ def _process_data_structure(arg, kill_inf=True):
     if not issubclass(values.dtype.type, float):
         values = values.astype(float)
 
-    if kill_inf:
+    if kill_inf or center_data or norm_data:
         values = values.copy()
-        values[np.isinf(values)] = np.NaN
+        mask = np.isfinite(values)
+        if kill_inf:
+            values[~mask] = np.NaN
+        if center_data or norm_data:
+            values -= np.mean(values[mask])
+        if norm_data:
+            values /= np.std(values[mask])
 
     return return_hook, values
 
@@ -629,7 +643,8 @@ def _use_window(minp, window):
         return minp
 
 
-def _rolling_func(func, desc, check_minp=_use_window, how=None, additional_kw=''):
+def _rolling_func(func, desc, check_minp=_use_window, how=None,
+                  additional_kw='', center_data=False, norm_data=False):
     if how is None:
         how_arg_str = 'None'
     else:
@@ -645,7 +660,8 @@ def _rolling_func(func, desc, check_minp=_use_window, how=None, additional_kw=''
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
-                               center=center, how=how, **kwargs)
+                               center=center, how=how, center_data=center_data,
+                               norm_data=norm_data, **kwargs)
 
     return f
 
@@ -657,16 +673,24 @@ rolling_median = _rolling_func(algos.roll_median_c, 'Moving median.',
                                how='median')
 
 _ts_std = lambda *a, **kw: _zsqrt(algos.roll_var(*a, **kw))
+def _roll_skew(*args, **kwargs):
+    kwargs['kurt'] = False
+    return algos.roll_higher_moment(*args, **kwargs)
+def _roll_kurt(*args, **kwargs):
+    kwargs['kurt'] = True
+    return algos.roll_higher_moment(*args, **kwargs)
 rolling_std = _rolling_func(_ts_std, 'Moving standard deviation.',
                             check_minp=_require_min_periods(1),
                             additional_kw=_ddof_kw)
 rolling_var = _rolling_func(algos.roll_var, 'Moving variance.',
                             check_minp=_require_min_periods(1),
                             additional_kw=_ddof_kw)
-rolling_skew = _rolling_func(algos.roll_skew, 'Unbiased moving skewness.',
-                             check_minp=_require_min_periods(3))
-rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis.',
-                             check_minp=_require_min_periods(4))
+rolling_skew = _rolling_func(_roll_skew, 'Unbiased moving skewness.',
+                             check_minp=_require_min_periods(3),
+                             center_data=True, norm_data=False)
+rolling_kurt = _rolling_func(_roll_kurt, 'Unbiased moving kurtosis.',
+                             check_minp=_require_min_periods(4),
+                             center_data=True, norm_data=True)
 
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
@@ -903,9 +927,9 @@ expanding_std = _expanding_func(_ts_std, 'Expanding standard deviation.',
 expanding_var = _expanding_func(algos.roll_var, 'Expanding variance.',
                                 check_minp=_require_min_periods(1),
                                 additional_kw=_ddof_kw)
-expanding_skew = _expanding_func(algos.roll_skew, 'Unbiased expanding skewness.',
+expanding_skew = _expanding_func(_roll_skew, 'Unbiased expanding skewness.',
                                  check_minp=_require_min_periods(3))
-expanding_kurt = _expanding_func(algos.roll_kurt, 'Unbiased expanding kurtosis.',
+expanding_kurt = _expanding_func(_roll_kurt, 'Unbiased expanding kurtosis.',
                                  check_minp=_require_min_periods(4))
 
 
