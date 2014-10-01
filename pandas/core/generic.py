@@ -2253,8 +2253,8 @@ class NDFrame(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        axis : {0, 1, 2}, defaults to the stat axis
-            The stat axis is 0 for Series and DataFrame and 1 for Panel
+        axis : {0, 1, 2, 3}, defaults to the stat axis
+            The stat axis is 0 for Series and DataFrame, 1 for Panel, and 2 for Panel4D
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
