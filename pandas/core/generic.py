@@ -2290,15 +2290,14 @@ class NDFrame(PandasObject):
             if method is None:
                 raise ValueError('must specify a fill method or value')
 
-            # >3d
-            if self.ndim > 3:
+            # >4d
+            if self.ndim > 4:
                 raise NotImplementedError(
-                    'Cannot fillna with a method for > 3dims'
+                    'Cannot fillna with a method for >4 dims'
                 )
 
-
-            # 3d
-            if self.ndim == 3:
+            # 3d or 4d
+            if self.ndim >= 3:
                 if axis == 0:
                     fill_axis = 1
                     apply_axes = (0, 1)
@@ -2315,7 +2314,10 @@ class NDFrame(PandasObject):
                                     axis=apply_axes)
 
                 if axis == 0:
-                    result = result.transpose(2, 1, 0)
+                    if self.ndim == 3:
+                        result = result.transpose(2, 1, 0)
+                    else:
+                        result = result.transpose(1, 2, 0, 3)
                 return result if not inplace else None
 
             # 2d or less
