@@ -484,8 +484,7 @@ class GroupBy(PandasObject):
         indices = self.indices
 
         # shortcut of we have an already ordered grouper
-
-        if not Index(self.grouper.group_info[0]).is_monotonic:
+        if not self.grouper.is_monotonic:
             index = Index(np.concatenate([ indices[v] for v in self.grouper.result_index ]))
             result.index = index
             result = result.sort_index()
@@ -1349,6 +1348,11 @@ class BaseGrouper(object):
             return self.axis.groupby(to_groupby.values)
 
     @cache_readonly
+    def is_monotonic(self):
+        # return if my group orderings are monotonic
+        return Index(self.group_info[0]).is_monotonic
+
+    @cache_readonly
     def group_info(self):
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
@@ -1738,6 +1742,11 @@ class BinGrouper(BaseGrouper):
                     indices[label] = list(range(i, bin))
                 i = bin
         return indices
+
+    @cache_readonly
+    def group_info(self):
+        # for compat
+        return self.bins, self.binlabels, self.ngroups
 
     @cache_readonly
     def ngroups(self):
