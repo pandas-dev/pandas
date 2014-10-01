@@ -897,6 +897,11 @@ class TestGroupBy(tm.TestCase):
         expected = people.groupby(key).apply(demean).groupby(key).mean()
         assert_frame_equal(result, expected)
 
+        # GH 8430
+        df = tm.makeTimeDataFrame()
+        g = df.groupby(pd.TimeGrouper('M'))
+        g.transform(lambda x: x-1)
+
     def test_transform_fast(self):
 
         df = DataFrame( { 'id' : np.arange( 100000 ) / 3,
