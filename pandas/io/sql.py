@@ -315,7 +315,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     except sqlalchemy.exc.InvalidRequestError:
         raise ValueError("Table %s not found" % table_name)
 
-    pandas_sql = PandasSQLAlchemy(con, meta=meta)
+    pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
         table_name, index_col=index_col, coerce_float=coerce_float,
         parse_dates=parse_dates, columns=columns)
@@ -374,7 +374,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
 
     """
     pandas_sql = pandasSQL_builder(con)
-    return pandas_sql.read_sql(
+    return pandas_sql.read_query(
         sql, index_col=index_col, params=params, coerce_float=coerce_float,
         parse_dates=parse_dates)
 
@@ -388,7 +388,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed or database table name.
-    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or DBAPI2 connection (fallback mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -435,8 +435,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     """
     pandas_sql = pandasSQL_builder(con)
 
-    if isinstance(pandas_sql, PandasSQLLegacy):
-        return pandas_sql.read_sql(
+    if isinstance(pandas_sql, SQLiteDatabase):
+        return pandas_sql.read_query(
             sql, index_col=index_col, params=params,
             coerce_float=coerce_float, parse_dates=parse_dates)
 
@@ -451,7 +451,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
             sql, index_col=index_col, coerce_float=coerce_float,
             parse_dates=parse_dates, columns=columns)
     else:
-        return pandas_sql.read_sql(
+        return pandas_sql.read_query(
             sql, index_col=index_col, params=params,
             coerce_float=coerce_float, parse_dates=parse_dates)
 
@@ -551,14 +551,14 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
     # When support for DBAPI connections is removed,
     # is_cursor should not be necessary.
     if _is_sqlalchemy_engine(con):
-        return PandasSQLAlchemy(con, schema=schema, meta=meta)
+        return SQLDatabase(con, schema=schema, meta=meta)
     else:
         if flavor == 'mysql':
             warnings.warn(_MYSQL_WARNING, FutureWarning)
-        return PandasSQLLegacy(con, flavor, is_cursor=is_cursor)
+        return SQLiteDatabase(con, flavor, is_cursor=is_cursor)
 
 
-class PandasSQLTable(PandasObject):
+class SQLTable(PandasObject):
     """
     For mapping Pandas tables to SQL tables.
     Uses fact that table is reflected by SQLAlchemy to
@@ -890,10 +890,24 @@ class PandasSQL(PandasObject):
                          " or connection+sql flavor")
 
 
-class PandasSQLAlchemy(PandasSQL):
+class SQLDatabase(PandasSQL):
     """
     This class enables convertion between DataFrame and SQL databases
     using SQLAlchemy to handle DataBase abstraction
+
+    Parameters
+    ----------
+    engine : SQLAlchemy engine
+        Engine to connect with the database. Using SQLAlchemy makes it possible to use any DB supported by that
+        library.
+    schema : string, default None
+        Name of SQL schema in database to write to (if database flavor
+        supports this). If None, use default schema (default).
+    meta : SQLAlchemy MetaData object, default None
+        If provided, this MetaData object is used instead of a newly
+        created. This allows to specify database flavor specific
+        arguments in the MetaData object.
+
     """
 
     def __init__(self, engine, schema=None, meta=None):
@@ -913,13 +927,86 @@ class PandasSQLAlchemy(PandasSQL):
 
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None, schema=None):
-        table = PandasSQLTable(
-            table_name, self, index=index_col, schema=schema)
+        """Read SQL database table into a DataFrame.
+    
+        Parameters
+        ----------
+        table_name : string
+            Name of SQL table in database
+        index_col : string, optional
+            Column to set as index
+        coerce_float : boolean, default True
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point. Can result in loss of Precision.
+        parse_dates : list or dict
+            - List of column names to parse as dates
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps
+            - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+              to the keyword arguments of :func:`pandas.to_datetime`
+              Especially useful with databases without native Datetime support,
+              such as SQLite
+        columns : list
+            List of column names to select from sql table
+        schema : string, default None
+            Name of SQL schema in database to query (if database flavor
+            supports this).  If specified, this overwrites the default
+            schema of the SQLDatabase object.
+
+        Returns
+        -------
+        DataFrame
+
+        See also
+        --------
+        pandas.read_sql_table
+        SQLDatabase.read_query
+
+        """
+        table = SQLTable(table_name, self, index=index_col, schema=schema)
         return table.read(coerce_float=coerce_float,
                           parse_dates=parse_dates, columns=columns)
-
-    def read_sql(self, sql, index_col=None, coerce_float=True,
+                
+    def read_query(self, sql, index_col=None, coerce_float=True,
                  parse_dates=None, params=None):
+        """Read SQL query into a DataFrame.
+
+        Parameters
+        ----------
+        sql : string
+            SQL query to be executed
+        index_col : string, optional
+            Column name to use as index for the returned DataFrame object.
+        coerce_float : boolean, default True
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets
+        params : list, tuple or dict, optional
+            List of parameters to pass to execute method.  The syntax used
+            to pass parameters is database driver dependent. Check your
+            database driver documentation for which of the five syntax styles,
+            described in PEP 249's paramstyle, is supported.
+            Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        parse_dates : list or dict
+            - List of column names to parse as dates
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps
+            - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+              to the keyword arguments of :func:`pandas.to_datetime`
+              Especially useful with databases without native Datetime support,
+              such as SQLite
+
+        Returns
+        -------
+        DataFrame
+
+        See also
+        --------
+        read_sql_table : Read SQL database table into a DataFrame
+        read_sql
+
+        """        
         args = _convert_params(sql, params)
 
         result = self.execute(*args)
@@ -935,12 +1022,41 @@ class PandasSQLAlchemy(PandasSQL):
             data_frame.set_index(index_col, inplace=True)
 
         return data_frame
+    
+    read_sql = read_query
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
                index_label=None, schema=None, chunksize=None):
-        table = PandasSQLTable(
-            name, self, frame=frame, index=index, if_exists=if_exists,
-            index_label=index_label, schema=schema)
+        """
+        Write records stored in a DataFrame to a SQL database.
+    
+        Parameters
+        ----------
+        frame : DataFrame
+        name : string
+            Name of SQL table
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            - fail: If table exists, do nothing.
+            - replace: If table exists, drop it, recreate it, and insert data.
+            - append: If table exists, insert data. Create if does not exist.
+        index : boolean, default True
+            Write DataFrame index as a column
+        index_label : string or sequence, default None
+            Column label for index column(s). If None is given (default) and
+            `index` is True, then the index names are used.
+            A sequence should be given if the DataFrame uses MultiIndex.
+        schema : string, default None
+            Name of SQL schema in database to write to (if database flavor
+            supports this). If specified, this overwrites the default
+            schema of the SQLDatabase object.
+        chunksize : int, default None
+            If not None, then rows will be written in batches of this size at a
+            time.  If None, all rows will be written at once.
+    
+        """
+        table = SQLTable(name, self, frame=frame, index=index,
+                         if_exists=if_exists, index_label=index_label,
+                         schema=schema)
         table.create()
         table.insert(chunksize)
         # check for potentially case sensitivity issues (GH7815)
@@ -972,8 +1088,7 @@ class PandasSQLAlchemy(PandasSQL):
             self.meta.clear()
 
     def _create_sql_schema(self, frame, table_name, keys=None):
-        table = PandasSQLTable(table_name, self, frame=frame, index=False,
-                               keys=keys)
+        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys)
         return str(table.sql_schema())
 
 
@@ -1032,9 +1147,9 @@ _SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed. "
                        "underscores.")
 
 
-class PandasSQLTableLegacy(PandasSQLTable):
+class SQLiteTable(SQLTable):
     """
-    Patch the PandasSQLTable for legacy support.
+    Patch the SQLTable for fallback support.
     Instead of a table variable just use the Create Table statement.
     """
 
@@ -1135,7 +1250,19 @@ class PandasSQLTableLegacy(PandasSQLTable):
         return _SQL_TYPES[pytype_name][self.pd_sql.flavor]
 
 
-class PandasSQLLegacy(PandasSQL):
+class SQLiteDatabase(PandasSQL):
+    """
+    Version of SQLDatabase to support sqlite connections (fallback without
+    sqlalchemy). This should only be used internally.
+
+    For now still supports `flavor` argument to deal with 'mysql' database
+    for backwards compatibility, but this will be removed in future versions.
+
+    Parameters
+    ----------
+    con : sqlite connection object
+
+    """
 
     def __init__(self, con, flavor, is_cursor=False):
         self.is_cursor = is_cursor
@@ -1180,7 +1307,7 @@ class PandasSQLLegacy(PandasSQL):
             ex = DatabaseError("Execution failed on sql '%s': %s" % (args[0], exc))
             raise_with_traceback(ex)
 
-    def read_sql(self, sql, index_col=None, coerce_float=True, params=None,
+    def read_query(self, sql, index_col=None, coerce_float=True, params=None,
                  parse_dates=None):
         args = _convert_params(sql, params)
         cursor = self.execute(*args)
@@ -1196,7 +1323,7 @@ class PandasSQLLegacy(PandasSQL):
         if index_col is not None:
             data_frame.set_index(index_col, inplace=True)
         return data_frame
-
+    
     def _fetchall_as_list(self, cur):
         result = cur.fetchall()
         if not isinstance(result, list):
@@ -1230,9 +1357,8 @@ class PandasSQLLegacy(PandasSQL):
             size at a time. If None, all rows will be written at once.
 
         """
-        table = PandasSQLTableLegacy(
-            name, self, frame=frame, index=index, if_exists=if_exists,
-            index_label=index_label)
+        table = SQLiteTable(name, self, frame=frame, index=index,
+                            if_exists=if_exists, index_label=index_label)
         table.create()
         table.insert(chunksize)
 
@@ -1246,15 +1372,15 @@ class PandasSQLLegacy(PandasSQL):
         return len(self.execute(query).fetchall()) > 0
 
     def get_table(self, table_name, schema=None):
-        return None  # not supported in Legacy mode
+        return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None):
-        table = PandasSQLTableLegacy(table_name, self, frame=frame,
-                                     index=False, keys=keys)
+        table = SQLiteTable(table_name, self, frame=frame, index=False,
+                            keys=keys)
         return str(table.sql_schema())
 
 
