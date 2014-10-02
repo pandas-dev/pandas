@@ -1903,6 +1903,7 @@ class DataFrame(NDFrame):
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
           <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+        * To select Pandas categorical dtypes, use 'category'
 
         Examples
         --------
