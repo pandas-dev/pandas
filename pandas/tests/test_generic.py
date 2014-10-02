@@ -1304,6 +1304,21 @@ class TestNDFrame(tm.TestCase):
         df2 = df1.set_index(['floats'], append=True)
         self.assertTrue(df3.equals(df2))
 
+        # GH 8437
+        a = pd.Series([False, np.nan])
+        b = pd.Series([False, np.nan])
+        c = pd.Series(index=range(2))
+        d = pd.Series(index=range(2))
+        e = pd.Series(index=range(2))
+        f = pd.Series(index=range(2))
+        c[:-1] = d[:-1] = e[0] = f[0] = False
+        self.assertTrue(a.equals(a))
+        self.assertTrue(a.equals(b))
+        self.assertTrue(a.equals(c))
+        self.assertTrue(a.equals(d))
+        self.assertFalse(a.equals(e))
+        self.assertTrue(e.equals(f)) 
+        
     def test_describe_raises(self):
         with tm.assertRaises(NotImplementedError):
             tm.makePanel().describe()

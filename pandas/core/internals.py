@@ -13,7 +13,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 _is_null_datelike_scalar,
                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                _possibly_infer_to_datetimelike)
+                                _possibly_infer_to_datetimelike, array_equivalent)
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
 from pandas.core.categorical import Categorical, _maybe_to_categorical, _is_categorical
@@ -1057,7 +1057,7 @@ class Block(PandasObject):
 
     def equals(self, other):
         if self.dtype != other.dtype or self.shape != other.shape: return False
-        return np.array_equal(self.values, other.values)
+        return array_equivalent(self.values, other.values)
 
 
 class NonConsolidatableMixIn(object):
