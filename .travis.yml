@@ -2,6 +2,7 @@
 language: python
 
 env:
+
   global:
   # scatterci API key
   #- secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
@@ -19,6 +20,7 @@ matrix:
       - NOSE_ARGS="not slow and not network and not disabled"
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
+      - BUILD_TYPE=conda
       - JOB_NAME: "26_nslow_nnet"
     - python: 2.7
       env:
@@ -26,12 +28,14 @@ matrix:
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
+      - BUILD_TYPE=conda
       - JOB_NAME: "27_slow_nnet_LOCALE"
     - python: 2.7
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
+      - BUILD_TYPE=conda
       - JOB_NAME: "27_nslow"
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.3
@@ -39,18 +43,21 @@ matrix:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      - BUILD_TYPE=conda
       - JOB_NAME: "33_nslow"
     - python: 3.4
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      - BUILD_TYPE=conda
       - JOB_NAME: "34_nslow"
     - python: 3.2
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=qt4
+      - BUILD_TYPE=pydata
       - JOB_NAME: "32_nslow"
     - python: 2.7
       env:
@@ -59,6 +66,7 @@ matrix:
       - JOB_NAME: "27_numpy_master"
       - JOB_TAG=_NUMPY_DEV_master
       - NUMPY_BUILD=master
+      - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
       - python: 3.2
@@ -66,6 +74,7 @@ matrix:
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD_GUI=qt4
+        - BUILD_TYPE=pydata
         - JOB_NAME: "32_nslow"
       - python: 2.7
         env:
@@ -74,11 +83,14 @@ matrix:
         - JOB_NAME: "27_numpy_master"
         - JOB_TAG=_NUMPY_DEV_master
         - NUMPY_BUILD=master
+        - BUILD_TYPE=pydata
         - PANDAS_TESTING_MODE="deprecate"
 
 before_install:
   - echo "before_install"
   - echo $VIRTUAL_ENV
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - sudo apt-get install ccache
   - df -h
   - date
   - pwd
@@ -92,7 +104,7 @@ before_install:
 install:
   - echo "install"
   - ci/prep_ccache.sh
-  - ci/install.sh
+  - ci/install_${BUILD_TYPE}.sh
   - ci/submit_ccache.sh
 
 before_script:
@@ -106,6 +118,6 @@ script:
 
 after_script:
   - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
-  - ci/print_versions.py
+  - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
   - ci/after_script.sh

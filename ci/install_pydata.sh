@@ -137,11 +137,8 @@ if [ "$IRON_TOKEN" ]; then
 fi
 
 # build pandas
-time python setup.py sdist
-pip uninstall cython -y
-
-# install pandas
-time pip install $(find dist | grep gz | head -n 1)
+python setup.py build_ext --inplace
+python setup.py develop
 
 # restore cython (if not numpy building)
 if [ -z "$NUMPY_BUILD" ]; then
