@@ -720,7 +720,8 @@ Deprecations
   ``ambiguous`` to allow for more flexibility in dealing with DST transitions.
   Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
-
+- Remove ``DataFrame.delevel`` method in favor of ``DataFrame.reset_index``
+  (:issue:`420`)
 .. _whatsnew_0150.index_set_ops:
 
 - The ``Index`` set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
