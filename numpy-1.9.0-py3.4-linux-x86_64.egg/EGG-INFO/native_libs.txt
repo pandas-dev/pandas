@@ -1,0 +1,14 @@
+numpy/random/mtrand.cpython-34m.so
+numpy/core/struct_ufunc_test.cpython-34m.so
+numpy/core/test_rational.cpython-34m.so
+numpy/core/umath.cpython-34m.so
+numpy/core/_dummy.cpython-34m.so
+numpy/core/operand_flag_tests.cpython-34m.so
+numpy/core/umath_tests.cpython-34m.so
+numpy/core/multiarray_tests.cpython-34m.so
+numpy/core/scalarmath.cpython-34m.so
+numpy/core/multiarray.cpython-34m.so
+numpy/linalg/_umath_linalg.cpython-34m.so
+numpy/linalg/lapack_lite.cpython-34m.so
+numpy/fft/fftpack_lite.cpython-34m.so
+numpy/lib/_compiled_base.cpython-34m.so
