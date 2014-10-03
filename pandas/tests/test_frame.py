@@ -1405,6 +1405,7 @@ class CheckIndexing(object):
         # key is unaligned with values
         f = self.mixed_frame.copy()
         piece = f.ix[:2, ['A']]
+        piece.index = f.index[-2:]
         key = (slice(-2, None), ['A', 'B'])
         f.ix[key] = piece
         piece['B'] = np.nan

@@ -1007,3 +1007,4 @@ Bug Fixes
 - Bug in Index.intersection on non-monotonic non-unique indexes (:issue:`8362`).
 - Bug in masked series assignment where mismatching types would break alignment (:issue:`8387`)
 - Bug in NDFrame.equals gives false negatives with dtype=object (:issue:`8437`)
+- Bug in assignment with indexer where type diversity would break alignment (:issue:`8258`)

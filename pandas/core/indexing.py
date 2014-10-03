@@ -439,16 +439,10 @@ class _NDFrameIndexer(object):
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
 
                     for item in labels:
-
                         # align to
-                        if item in value:
-                            v = value[item]
-                            i = self.obj[item].index
-                            v = v.reindex(i & v.index)
-
-                            setter(item, v.values)
-                        else:
-                            setter(item, np.nan)
+                        v = np.nan if item not in value else \
+                                self._align_series(indexer[0], value[item])
+                        setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
                 elif np.array(value).ndim == 2:
@@ -511,6 +505,10 @@ class _NDFrameIndexer(object):
 
         if isinstance(indexer, tuple):
 
+            # flatten np.ndarray indexers
+            ravel = lambda i: i.ravel() if isinstance(i, np.ndarray) else i
+            indexer = tuple(map(ravel, indexer))
+
             aligners = [not _is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
@@ -536,12 +534,11 @@ class _NDFrameIndexer(object):
             # series, so need to broadcast (see GH5206)
             if (sum_aligners == self.ndim and
                     all([com._is_sequence(_) for _ in indexer])):
-                ser = ser.reindex(obj.axes[0][indexer[0].ravel()],
-                                  copy=True).values
+                ser = ser.reindex(obj.axes[0][indexer[0]], copy=True).values
 
                 # single indexer
                 if len(indexer) > 1:
-                    l = len(indexer[1].ravel())
+                    l = len(indexer[1])
                     ser = np.tile(ser, l).reshape(l, -1).T
 
                 return ser
@@ -557,7 +554,7 @@ class _NDFrameIndexer(object):
                     if not is_list_like(new_ix):
                         new_ix = Index([new_ix])
                     else:
-                        new_ix = Index(new_ix.ravel())
+                        new_ix = Index(new_ix)
                     if ser.index.equals(new_ix) or not len(new_ix):
                         return ser.values.copy()
 
@@ -1765,4 +1762,3 @@ def _maybe_droplevels(index, key):
             pass
 
     return index
-
