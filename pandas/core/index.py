@@ -843,6 +843,7 @@ class Index(IndexOpsMixin, PandasObject):
                 np.ndarray.__setstate__(data, state)
 
             self._data = data
+            self._reset_identity()
         else:
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
@@ -3349,6 +3350,7 @@ class MultiIndex(Index):
         self._set_names(names)
         self.sortorder = sortorder
         self._verify_integrity()
+        self._reset_identity()
 
     def __getitem__(self, key):
         if np.isscalar(key):
