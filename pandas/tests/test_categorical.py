@@ -1306,6 +1306,18 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertEqual(exp,a.__unicode__())
 
 
+    def test_info(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({ 'int64' : np.random.randint(100,size=n) })
+        df['category'] = Series(np.array(list('abcdefghij')).take(np.random.randint(0,10,size=n))).astype('category')
+        df.isnull()
+        df.info()
+
+        df2 = df[df['category']=='d']
+        df2.info()
+
     def test_groupby_sort(self):
 
         # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
