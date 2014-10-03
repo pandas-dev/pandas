@@ -62,6 +62,7 @@ New features
 - ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 - Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
 - Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
+- Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
 
 DataFrame Assign
 ~~~~~~~~~~~~~~~~

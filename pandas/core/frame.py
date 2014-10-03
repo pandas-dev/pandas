@@ -1112,7 +1112,7 @@ class DataFrame(NDFrame):
                mode='w', encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
-               escapechar=None, **kwds):
+               escapechar=None, decimal='.', **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1164,6 +1164,8 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         date_format : string, default None
             Format string for datetime objects
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
 
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -1178,7 +1180,8 @@ class DataFrame(NDFrame):
                                      tupleize_cols=tupleize_cols,
                                      date_format=date_format,
                                      doublequote=doublequote,
-                                     escapechar=escapechar)
+                                     escapechar=escapechar,
+                                     decimal=decimal)
         formatter.save()
 
         if path_or_buf is None:

@@ -1173,7 +1173,7 @@ class CSVFormatter(object):
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
                  tupleize_cols=False, quotechar='"', date_format=None,
-                 doublequote=True, escapechar=None):
+                 doublequote=True, escapechar=None, decimal='.'):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -1185,6 +1185,7 @@ class CSVFormatter(object):
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
+        self.decimal = decimal
 
         self.header = header
         self.index = index
@@ -1513,6 +1514,7 @@ class CSVFormatter(object):
             b = self.blocks[i]
             d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
                                   float_format=self.float_format,
+                                  decimal=self.decimal,
                                   date_format=self.date_format)
 
             for col_loc, col in zip(b.mgr_locs, d):
