@@ -2511,7 +2511,6 @@ class DataFrame(NDFrame):
         if not inplace:
             return new_obj
 
-    delevel = deprecate('delevel', reset_index)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
