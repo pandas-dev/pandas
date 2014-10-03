@@ -714,12 +714,12 @@ class TestCategorical(tm.TestCase):
 
         # Codes should be read only
         c = Categorical(["a","b","c","a", np.nan])
-        exp = np.array([0,1,2,0, -1])
+        exp = np.array([0,1,2,0,-1],dtype='int8')
         self.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
         def f():
-            c.codes = np.array([0,1,2,0,1])
+            c.codes = np.array([0,1,2,0,1],dtype='int8')
         self.assertRaises(ValueError, f)
 
         # changes in the codes array should raise
@@ -731,10 +731,10 @@ class TestCategorical(tm.TestCase):
 
         # But even after getting the codes, the original array should still be writeable!
         c[4] = "a"
-        exp = np.array([0,1,2,0, 0])
+        exp = np.array([0,1,2,0,0],dtype='int8')
         self.assert_numpy_array_equal(c.codes, exp)
         c._codes[4] = 2
-        exp = np.array([0,1,2,0, 2])
+        exp = np.array([0,1,2,0, 2],dtype='int8')
         self.assert_numpy_array_equal(c.codes, exp)
 
 
@@ -975,6 +975,28 @@ class TestCategoricalAsBlock(tm.TestCase):
         expected = Series([True,False,False],index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_codes_dtypes(self):
+
+        # GH 8453
+        result = Categorical(['foo','bar','baz'])
+        self.assertTrue(result.codes.dtype == 'int8')
+
+        result = Categorical(['foo%05d' % i for i in range(400) ])
+        self.assertTrue(result.codes.dtype == 'int16')
+
+        result = Categorical(['foo%05d' % i for i in range(40000) ])
+        self.assertTrue(result.codes.dtype == 'int32')
+
+        # adding cats
+        result = Categorical(['foo','bar','baz'])
+        self.assertTrue(result.codes.dtype == 'int8')
+        result = result.add_categories(['foo%05d' % i for i in range(400) ])
+        self.assertTrue(result.codes.dtype == 'int16')
+
+        # removing cats
+        result = result.remove_categories(['foo%05d' % i for i in range(300) ])
+        self.assertTrue(result.codes.dtype == 'int8')
+
     def test_basic(self):
 
         # test basic creation / coercion of categoricals
@@ -1192,7 +1214,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         exp_categories = np.array([1,2,3])
         self.assert_numpy_array_equal(s.cat.categories, exp_categories)
 
-        exp_codes = Series(com._ensure_platform_int([0,1,2,0]))
+        exp_codes = Series([0,1,2,0],dtype='int8')
         tm.assert_series_equal(s.cat.codes, exp_codes)
 
         self.assertEqual(s.cat.ordered, True)

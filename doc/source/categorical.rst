@@ -47,7 +47,7 @@ the `categories` array.
 The categorical data type is useful in the following cases:
 
 * A string variable consisting of only a few different values. Converting such a string
-  variable to a categorical variable will save some memory.
+  variable to a categorical variable will save some memory, see :ref:`here<categorical.memory>`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
   min/max will use the logical order instead of the lexical order.
@@ -632,6 +632,27 @@ The following differences to R's factor functions can be observed:
 
 Gotchas
 -------
+
+.. _categorical.memory:
+
+Memory Usage
+~~~~~~~~~~~~
+
+The memory usage of a ``Categorical`` is proportional to the length of the categories times the length of the data. In contrast,
+the an ``object`` dtype is a fixed function of the length of the data.
+
+.. ipython:: python
+
+   s = Series(['foo','bar']*1000)
+
+   # object dtype
+   s.nbytes
+
+   # category dtype
+   s.astype('category').nbytes
+
+Note that if the number of categories approaches the length of the data, the ``Categorical`` will use nearly (or more) memory than an
+equivalent ``object`` dtype representation.
 
 Old style constructor usage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
