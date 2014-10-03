@@ -1,9 +1,0 @@
-!    -*- f90 -*-
-python module fib2
-    interface
-        subroutine fib(a,n)
-            real*8 dimension(n),intent(out),depend(n) :: a
-            integer intent(in) :: n
-        end subroutine fib
-    end interface 
-end python module fib2
