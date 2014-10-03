@@ -630,6 +630,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 np.ndarray.__setstate__(data, state)
 
             self._data = data
+            self._reset_identity()
 
         else:
             raise Exception("invalid pickle state")

@@ -270,6 +270,15 @@ class TestIndex(Base, tm.TestCase):
         i_view = i.view()
         self.assertEqual(i_view.name, 'Foo')
 
+    def test_legacy_pickle_identity(self):
+
+        # GH 8431
+        pth = tm.get_data_path()
+        s1 = pd.read_pickle(os.path.join(pth,'s1-0.12.0.pkl'))
+        s2 = pd.read_pickle(os.path.join(pth,'s2-0.12.0.pkl'))
+        self.assertFalse(s1.index.identical(s2.index))
+        self.assertFalse(s1.index.equals(s2.index))
+
     def test_astype(self):
         casted = self.intIndex.astype('i8')
 
@@ -532,7 +541,7 @@ class TestIndex(Base, tm.TestCase):
         result3 = idx1.intersection(idx3)
         self.assertTrue(tm.equalContents(result3, expected3))
         self.assertEqual(result3.name, expected3.name)
-        
+
         # non-monotonic non-unique
         idx1 = Index(['A','B','A','C'])
         idx2 = Index(['B','D'])
