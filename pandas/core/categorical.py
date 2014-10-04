@@ -67,7 +67,6 @@ def _maybe_to_categorical(array):
         return array.values
     return array
 
-
 _codes_doc = """The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
@@ -194,7 +193,7 @@ class Categorical(PandasObject):
 
         if fastpath:
             # fast path
-            self._codes = values
+            self._codes = _coerce_codes_dtype(values, categories)
             self.name = name
             self.categories = categories
             self.ordered = ordered
@@ -285,9 +284,9 @@ class Categorical(PandasObject):
                 ordered = True
 
         self.ordered = False if ordered is None else ordered
-        self._codes = codes
         self.categories = categories
         self.name = name
+        self._codes = _coerce_codes_dtype(codes, categories)
 
     def copy(self):
         """ Copy constructor. """
@@ -607,6 +606,7 @@ class Categorical(PandasObject):
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = new_categories
+        cat._codes = _coerce_codes_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
 
@@ -1105,6 +1105,12 @@ class Categorical(PandasObject):
 
         return result
 
+    def _maybe_coerce_indexer(self, indexer):
+        """ return an indexer coerced to the codes dtype """
+        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == 'i':
+            indexer = indexer.astype(self._codes.dtype)
+        return indexer
+
     def __getitem__(self, key):
         """ Return an item. """
         if isinstance(key, (int, np.integer)):
@@ -1114,6 +1120,7 @@ class Categorical(PandasObject):
             else:
                 return self.categories[i]
         else:
+            key = self._maybe_coerce_indexer(key)
             return Categorical(values=self._codes[key], categories=self.categories,
                                ordered=self.ordered, fastpath=True)
 
@@ -1181,6 +1188,8 @@ class Categorical(PandasObject):
             nan_pos = np.where(com.isnull(self.categories))[0]
             lindexer[lindexer == -1] = nan_pos
 
+        key = self._maybe_coerce_indexer(key)
+        lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
     #### reduction ops ####
@@ -1395,6 +1404,22 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
 
 ##### utility routines #####
 
+_int8_max = np.iinfo(np.int8).max
+_int16_max = np.iinfo(np.int16).max
+_int32_max = np.iinfo(np.int32).max
+
+def _coerce_codes_dtype(codes, categories):
+    """ coerce the code input array to an appropriate dtype """
+    codes = np.array(codes,copy=False)
+    l = len(categories)
+    if l < _int8_max:
+        return codes.astype('int8')
+    elif l < _int16_max:
+        return codes.astype('int16')
+    elif l < _int32_max:
+        return codes.astype('int32')
+    return codes.astype('int64')
+
 def _get_codes_for_values(values, categories):
     """"
     utility routine to turn values into codes given the specified categories
@@ -1407,7 +1432,7 @@ def _get_codes_for_values(values, categories):
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     t = hash_klass(len(categories))
     t.map_locations(com._values_from_object(categories))
-    return com._ensure_platform_int(t.lookup(values))
+    return _coerce_codes_dtype(t.lookup(values), categories)
 
 def _convert_to_list_like(list_like):
     if hasattr(list_like, "dtype"):
