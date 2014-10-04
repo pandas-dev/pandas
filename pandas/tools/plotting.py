@@ -2281,7 +2281,8 @@ def _plot(data, x=None, y=None, subplots=False,
 
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
-                    (isinstance(kwds[kw], string_types) or com.is_integer(kwds[kw])):
+                        (isinstance(kwds[kw], string_types) or
+                            com.is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
@@ -2303,8 +2304,8 @@ df_coord = """x : label or position, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
-df_unique = """stacked : boolean, default False in line and bar plots, and True in area plot.
-        If True, create stacked plot.
+df_unique = """stacked : boolean, default False in line and
+        bar plots, and True in area plot. If True, create stacked plot.
     sort_columns : boolean, default False
         Sort column names to determine plot ordering
     secondary_y : boolean or sequence, default False
@@ -2344,7 +2345,8 @@ _shared_doc_df_kwargs = dict(klass='DataFrame', klass_kind=df_kind,
                              klass_unique=df_unique, klass_note=df_note)
 _shared_doc_series_kwargs = dict(klass='Series', klass_kind=series_kind,
                                  klass_coord=series_coord, klass_ax=series_ax,
-                                 klass_unique=series_unique, klass_note=series_note)
+                                 klass_unique=series_unique,
+                                 klass_note=series_note)
 
 _shared_docs['plot'] = """
     Make plots of %(klass)s using matplotlib / pylab.
@@ -2440,33 +2442,33 @@ _shared_docs['plot'] = """
 @Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
 def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
                subplots=False, sharex=True, sharey=False, layout=None,     # Dataframe unique
-               figsize=None, use_index=True, title=None, grid=None, legend=True,
-               style=None, logx=False, logy=False, loglog=False,
+               figsize=None, use_index=True, title=None, grid=None,
+               legend=True, style=None, logx=False, logy=False, loglog=False,
                xticks=None, yticks=None, xlim=None, ylim=None,
                rot=None, fontsize=None, colormap=None, table=False,
                yerr=None, xerr=None,
                secondary_y=False, sort_columns=False,        # Dataframe unique
                **kwds):
     return _plot(data, kind=kind, x=x, y=y, ax=ax,
-               subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
-               figsize=figsize, use_index=use_index, title=title,
-               grid=grid, legend=legend,
-               style=style, logx=logx, logy=logy, loglog=loglog,
-               xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-               rot=rot, fontsize=fontsize, colormap=colormap, table=table,
-               yerr=yerr, xerr=xerr,
-               secondary_y=secondary_y, sort_columns=sort_columns,
-               **kwds)
+                 subplots=subplots, sharex=sharex, sharey=sharey,
+                 layout=layout, figsize=figsize, use_index=use_index,
+                 title=title, grid=grid, legend=legend,
+                 style=style, logx=logx, logy=logy, loglog=loglog,
+                 xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                 rot=rot, fontsize=fontsize, colormap=colormap, table=table,
+                 yerr=yerr, xerr=xerr,
+                 secondary_y=secondary_y, sort_columns=sort_columns,
+                 **kwds)
 
 
 @Appender(_shared_docs['plot'] % _shared_doc_series_kwargs)
-def plot_series(data, kind='line', ax=None,                                 # Series unique
-                figsize=None, use_index=True, title=None, grid=None, legend=True,
-                style=None, logx=False, logy=False, loglog=False,
+def plot_series(data, kind='line', ax=None,                    # Series unique
+                figsize=None, use_index=True, title=None, grid=None,
+                legend=True, style=None, logx=False, logy=False, loglog=False,
                 xticks=None, yticks=None, xlim=None, ylim=None,
                 rot=None, fontsize=None, colormap=None, table=False,
                 yerr=None, xerr=None,
-                label=None, secondary_y=False,                              # Series unique
+                label=None, secondary_y=False,                 # Series unique
                 **kwds):
 
     import matplotlib.pyplot as plt
@@ -2543,7 +2545,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             **kwds):
 
     # validate return_type:
-    valid_types = (None, 'axes', 'dict', 'both')
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
@@ -2556,11 +2557,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         return _get_standard_colors(color=kwds.get('color'), num_colors=1)
 
     def maybe_color_bp(bp):
-        if 'color' not in kwds :
+        if 'color' not in kwds:
             from matplotlib.artist import setp
-            setp(bp['boxes'],color=colors[0],alpha=1)
-            setp(bp['whiskers'],color=colors[0],alpha=1)
-            setp(bp['medians'],color=colors[2],alpha=1)
+            setp(bp['boxes'], color=colors[0], alpha=1)
+            setp(bp['whiskers'], color=colors[0], alpha=1)
+            setp(bp['medians'], color=colors[2], alpha=1)
 
     def plot_group(keys, values, ax):
         keys = [com.pprint_thing(x) for x in keys]
@@ -2592,7 +2593,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if by is not None:
         result = _grouped_plot_by_column(plot_group, data, columns=columns,
                                          by=by, grid=grid, figsize=figsize,
-                                         ax=ax, layout=layout, return_type=return_type)
+                                         ax=ax, layout=layout,
+                                         return_type=return_type)
     else:
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
@@ -2632,7 +2634,8 @@ def format_date_labels(ax, rot):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
+                 **kwargs):
     """
     Make a scatter plot from two DataFrame columns
 
