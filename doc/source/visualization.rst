@@ -621,7 +621,11 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    series = Series(3 * rand(4), index=['a', 'b', 'c', 'd'], name='series')
 
    @savefig series_pie_plot.png
-   series.plot(kind='pie')
+   series.plot(kind='pie', figsize=(6, 6))
+
+For pie plots it's best to use square figures, one's with an equal aspect ratio. You can create the
+figure with equal width and height, or force the aspect ratio to be equal after plotting by
+calling ``ax.set_aspect('equal')`` on the returned ``axes`` object.
 
 Note that pie plot with :class:`DataFrame` requires that you either specify a target column by the ``y``
 argument or ``subplots=True``. When ``y`` is specified, pie plot of selected column
@@ -639,7 +643,7 @@ A legend will be drawn in each pie plots by default; specify ``legend=False`` to
    df = DataFrame(3 * rand(4, 2), index=['a', 'b', 'c', 'd'], columns=['x', 'y'])
 
    @savefig df_pie_plot.png
-   df.plot(kind='pie', subplots=True)
+   df.plot(kind='pie', subplots=True, figsize=(8, 4))
 
 You can use the ``labels`` and ``colors`` keywords to specify the labels and colors of each wedge.
 
@@ -662,7 +666,7 @@ Also, other keywords supported by :func:`matplotlib.pyplot.pie` can be used.
 
    @savefig series_pie_plot_options.png
    series.plot(kind='pie', labels=['AA', 'BB', 'CC', 'DD'], colors=['r', 'g', 'b', 'c'],
-               autopct='%.2f', fontsize=20)
+               autopct='%.2f', fontsize=20, figsize=(6, 6))
 
 If you pass values whose sum total is less than 1.0, matplotlib draws a semicircle.
 
@@ -676,7 +680,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    series = Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
    @savefig series_pie_plot_semi.png
-   series.plot(kind='pie')
+   series.plot(kind='pie', figsize=(6, 6))
 
 See the `matplotlib pie documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
 
@@ -1113,16 +1117,16 @@ or columns needed, given the other.
 .. ipython:: python
 
    @savefig frame_plot_subplots_layout.png
-   df.plot(subplots=True, layout=(2, 3), figsize=(6, 6));
+   df.plot(subplots=True, layout=(3, 2), figsize=(6, 6), sharex=False);
 
 The above example is identical to using
 
 .. ipython:: python
 
-   df.plot(subplots=True, layout=(-1, 3), figsize=(6, 6));
+   df.plot(subplots=True, layout=(3, -1), figsize=(6, 6), sharex=False);
 
-The required number of rows (2) is inferred from the number of series to plot
-and the given number of columns (3).
+The required number of columns (2) is inferred from the number of series to plot
+and the given number of rows (3).
 
 Also, you can pass multiple axes created beforehand as list-like via ``ax`` keyword.
 This allows to use more complicated layout.
