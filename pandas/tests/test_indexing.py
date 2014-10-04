@@ -1031,11 +1031,12 @@ class TestIndexing(tm.TestCase):
 
 
     def test_loc_setitem_frame_multiples(self):
-
         # multiple setting
         df = DataFrame({ 'A' : ['foo','bar','baz'],
                          'B' : Series(range(3),dtype=np.int64) })
-        df.loc[0:1] = df.loc[1:2]
+        rhs = df.loc[1:2]
+        rhs.index = df.index[0:2]
+        df.loc[0:1] = rhs
         expected = DataFrame({ 'A' : ['bar','baz','baz'],
                                'B' : Series([1,2,2],dtype=np.int64) })
         assert_frame_equal(df, expected)
@@ -1047,8 +1048,9 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame({ 'date' : [Timestamp('20000101'),Timestamp('20000102'),Timestamp('20000101'),
                                          Timestamp('20000102'),Timestamp('20000103')],
                                'val'  : Series([0,1,0,1,2],dtype=np.int64) })
-
-        df.loc[2:4] = df.loc[0:2]
+        rhs = df.loc[0:2]
+        rhs.index = df.index[2:5]
+        df.loc[2:4] = rhs
         assert_frame_equal(df, expected)
 
     def test_iloc_getitem_frame(self):
@@ -3987,6 +3989,54 @@ class TestIndexing(tm.TestCase):
         for i in range(len(s)):
             self.assertEqual(s.iat[i], i + 1)
 
+    def test_rhs_alignment(self):
+        # GH8258, tests that both rows & columns are aligned to what is
+        # assigned to. covers both uniform data-type & multi-type cases
+        def run_tests(df, rhs, right):
+            # label, index, slice
+            r, i, s = list('bcd'), [1, 2, 3], slice(1, 4)
+            c, j, l = ['joe', 'jolie'], [1, 2], slice(1, 3)
+
+            left = df.copy()
+            left.loc[r, c] = rhs
+            assert_frame_equal(left, right)
+
+            left = df.copy()
+            left.iloc[i, j] = rhs
+            assert_frame_equal(left, right)
+
+            left = df.copy()
+            left.ix[s, l] = rhs
+            assert_frame_equal(left, right)
+
+            left = df.copy()
+            left.ix[i, j] = rhs
+            assert_frame_equal(left, right)
+
+            left = df.copy()
+            left.ix[r, c] = rhs
+            assert_frame_equal(left, right)
+
+        xs = np.arange(20).reshape(5, 4)
+        cols = ['jim', 'joe', 'jolie', 'joline']
+        df = pd.DataFrame(xs, columns=cols, index=list('abcde'))
+
+        # right hand side; permute the indices and multiplpy by -2
+        rhs = - 2 * df.iloc[3:0:-1, 2:0:-1]
+
+        # expected `right` result; just multiply by -2
+        right = df.copy()
+        right.iloc[1:4, 1:3] *= -2
+
+        # run tests with uniform dtypes
+        run_tests(df, rhs, right)
+
+        # make frames multi-type & re-run tests
+        for frame in [df, rhs, right]:
+            frame['joe'] = frame['joe'].astype('float64')
+            frame['jolie'] = frame['jolie'].map('@{0}'.format)
+
+        run_tests(df, rhs, right)
 
 class TestSeriesNoneCoercion(tm.TestCase):
     EXPECTED_RESULTS = [
