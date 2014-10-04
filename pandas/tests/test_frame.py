@@ -10117,6 +10117,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.applymap(str)
         assert_frame_equal(result,expected)
 
+        # datetime/timedelta
+        df['datetime'] = Timestamp('20130101')
+        df['timedelta'] = Timedelta('1 min')
+        result = df.applymap(str)
+        for f in ['datetime','timedelta']:
+            self.assertEquals(result.loc[0,f],str(df.loc[0,f]))
+
     def test_filter(self):
         # items
         filtered = self.frame.filter(['A', 'B', 'E'])
