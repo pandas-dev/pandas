@@ -2790,6 +2790,9 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, kind='pie', y='Y')
         self._check_text_labels(ax.texts, df.index)
 
+        ax = _check_plot_works(df.plot, kind='pie', y=2)
+        self._check_text_labels(ax.texts, df.index)
+
         axes = _check_plot_works(df.plot, kind='pie', subplots=True)
         self.assertEqual(len(axes), len(df.columns))
         for ax in axes:
