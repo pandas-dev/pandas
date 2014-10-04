@@ -47,7 +47,7 @@ the `categories` array.
 The categorical data type is useful in the following cases:
 
 * A string variable consisting of only a few different values. Converting such a string
-  variable to a categorical variable will save some memory, see :ref:`here<categorical.memory>`.
+  variable to a categorical variable will save some memory, see :ref:`here <categorical.memory>`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
   min/max will use the logical order instead of the lexical order.
@@ -611,10 +611,13 @@ available ("missing value") or `np.nan` is a valid category.
     pd.isnull(s)
     s.fillna("a")
 
+Gotchas
+-------
+
 .. _categorical.rfactor:
 
 Differences to R's `factor`
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following differences to R's factor functions can be observed:
 
@@ -629,14 +632,10 @@ The following differences to R's factor functions can be observed:
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
 
-
-Gotchas
--------
-
-.. _categorical.memory:
-
 Memory Usage
 ~~~~~~~~~~~~
+
+.. _categorical.memory:
 
 The memory usage of a ``Categorical`` is proportional to the length of the categories times the length of the data. In contrast,
 the an ``object`` dtype is a fixed function of the length of the data.
@@ -738,7 +737,7 @@ basic type) and applying along columns will also convert to object.
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
 
-No categorical index
+No Categorical Index
 ~~~~~~~~~~~~~~~~~~~~
 
 There is currently no index of type ``category``, so setting the index to categorical column will
@@ -760,7 +759,7 @@ ordering of the categories:
     https://github.com/pydata/pandas/issues/7629)
 
 
-Side effects
+Side Effects
 ~~~~~~~~~~~~
 
 Constructing a `Series` from a `Categorical` will not copy the input `Categorical`. This
