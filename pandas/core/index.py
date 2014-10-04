@@ -1594,7 +1594,14 @@ class Index(IndexOpsMixin, PandasObject):
         # (i.e. neither Index nor Series).
         preserve_names = not hasattr(target, 'name')
 
-        target = _ensure_index(target)
+        # GH7774: preserve dtype/tz if target is empty and not an Index.
+        target = _ensure_has_len(target)  # target may be an iterator
+        if not isinstance(target, Index) and len(target) == 0:
+            attrs = self._get_attributes_dict()
+            attrs.pop('freq', None)  # don't preserve freq
+            target = self._simple_new(np.empty(0, dtype=self.dtype), **attrs)
+        else:
+            target = _ensure_index(target)
         if level is not None:
             if method is not None:
                 raise TypeError('Fill method not supported if level passed')
@@ -3706,7 +3713,17 @@ class MultiIndex(Index):
         if level is not None:
             if method is not None:
                 raise TypeError('Fill method not supported if level passed')
-            target = _ensure_index(target)
+
+            # GH7774: preserve dtype/tz if target is empty and not an Index.
+            target = _ensure_has_len(target)  # target may be an iterator
+            if len(target) == 0 and not isinstance(target, Index):
+                idx = self.levels[level]
+                attrs = idx._get_attributes_dict()
+                attrs.pop('freq', None)  # don't preserve freq
+                target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype),
+                                               **attrs)
+            else:
+                target = _ensure_index(target)
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:
@@ -4566,3 +4583,13 @@ def _get_na_rep(dtype):
 def _get_na_value(dtype):
     return {np.datetime64: tslib.NaT, np.timedelta64: tslib.NaT}.get(dtype,
                                                                      np.nan)
+
+
+def _ensure_has_len(seq):
+    """If seq is an iterator, put its values into a list."""
+    try:
+        len(seq)
+    except TypeError:
+        return list(seq)
+    else:
+        return seq

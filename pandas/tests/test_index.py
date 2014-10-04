@@ -1049,6 +1049,34 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(idx.reindex(dt_idx.values)[0].name, 'foobar')
         self.assertEqual(idx.reindex(dt_idx.tolist())[0].name, 'foobar')
 
+    def test_reindex_preserves_type_if_target_is_empty_list_or_array(self):
+        # GH7774
+        idx = pd.Index(list('abc'))
+        def get_reindex_type(target):
+            return idx.reindex(target)[0].dtype.type
+
+        self.assertEqual(get_reindex_type([]), np.object_)
+        self.assertEqual(get_reindex_type(np.array([])), np.object_)
+        self.assertEqual(get_reindex_type(np.array([], dtype=np.int64)),
+                         np.object_)
+
+    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
+        # GH7774
+        idx = pd.Index(list('abc'))
+        def get_reindex_type(target):
+            return idx.reindex(target)[0].dtype.type
+
+        self.assertEqual(get_reindex_type(pd.Int64Index([])), np.int_)
+        self.assertEqual(get_reindex_type(pd.Float64Index([])), np.float_)
+        self.assertEqual(get_reindex_type(pd.DatetimeIndex([])), np.datetime64)
+
+        reindexed = idx.reindex(pd.MultiIndex([pd.Int64Index([]),
+                                               pd.Float64Index([])],
+                                              [[], []]))[0]
+        self.assertEqual(reindexed.levels[0].dtype.type, np.int64)
+        self.assertEqual(reindexed.levels[1].dtype.type, np.float64)
+
+
 
 class Numeric(Base):
 
@@ -1698,6 +1726,13 @@ class TestDatetimeIndex(Base, tm.TestCase):
         index=date_range('20130101',periods=3,tz='US/Eastern',name='foo')
         unpickled = self.round_trip_pickle(index)
         self.assertTrue(index.equals(unpickled))
+
+    def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
+        # GH7774
+        index = date_range('20130101', periods=3, tz='US/Eastern')
+        self.assertEqual(str(index.reindex([])[0].tz), 'US/Eastern')
+        self.assertEqual(str(index.reindex(np.array([]))[0].tz), 'US/Eastern')
+
 
 class TestPeriodIndex(Base, tm.TestCase):
     _holder = PeriodIndex
@@ -3320,6 +3355,21 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(idx.reindex(target.values)[0].names, ['foo', 'bar'])
         self.assertEqual(idx.reindex(other_dtype.tolist())[0].names, ['foo', 'bar'])
         self.assertEqual(idx.reindex(other_dtype.values)[0].names, ['foo', 'bar'])
+
+    def test_reindex_lvl_preserves_names_when_target_is_list_or_array(self):
+        # GH7774
+        idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b']],
+                                         names=['foo', 'bar'])
+        self.assertEqual(idx.reindex([], level=0)[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex([], level=1)[0].names, ['foo', 'bar'])
+
+    def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(self):
+        # GH7774
+        idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+        self.assertEqual(idx.reindex([], level=0)[0].levels[0].dtype.type,
+                         np.int_)
+        self.assertEqual(idx.reindex([], level=1)[0].levels[1].dtype.type,
+                         np.object_)
 
 
 def test_get_combined_index():
