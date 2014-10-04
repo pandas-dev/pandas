@@ -3836,9 +3836,7 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df.iloc[[],:], df.iloc[:0, :])  # horizontal empty
         assert_frame_equal(df.iloc[[]], df.iloc[:0, :])  # horizontal empty
 
-    # FIXME: fix loc & xs
     def test_loc_empty_list_indexer_is_ok(self):
-        raise nose.SkipTest('loc discards columns names')
         from pandas.util.testing import makeCustomDataframe as mkdf
         df = mkdf(5, 2)
         assert_frame_equal(df.loc[:,[]], df.iloc[:, :0])  # vertical empty
@@ -3846,7 +3844,6 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df.loc[[]], df.iloc[:0, :])  # horizontal empty
 
     def test_ix_empty_list_indexer_is_ok(self):
-        raise nose.SkipTest('ix discards columns names')
         from pandas.util.testing import makeCustomDataframe as mkdf
         df = mkdf(5, 2)
         assert_frame_equal(df.ix[:,[]], df.iloc[:, :0])  # vertical empty

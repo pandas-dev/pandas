@@ -1019,6 +1019,36 @@ class TestIndex(Base, tm.TestCase):
         exp = Index([idx[-1], idx[0], idx[1]])
         tm.assert_index_equal(res, exp)
 
+    def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
+        # GH6552
+        idx = pd.Index([0, 1, 2])
+
+        dt_idx = pd.date_range('20130101', periods=3)
+
+        idx.name = None
+        self.assertEqual(idx.reindex([])[0].name, None)
+        self.assertEqual(idx.reindex(np.array([]))[0].name, None)
+        self.assertEqual(idx.reindex(idx.tolist())[0].name, None)
+        self.assertEqual(idx.reindex(idx.tolist()[:-1])[0].name, None)
+        self.assertEqual(idx.reindex(idx.values)[0].name, None)
+        self.assertEqual(idx.reindex(idx.values[:-1])[0].name, None)
+
+        # Must preserve name even if dtype changes.
+        self.assertEqual(idx.reindex(dt_idx.values)[0].name, None)
+        self.assertEqual(idx.reindex(dt_idx.tolist())[0].name, None)
+
+        idx.name = 'foobar'
+        self.assertEqual(idx.reindex([])[0].name, 'foobar')
+        self.assertEqual(idx.reindex(np.array([]))[0].name, 'foobar')
+        self.assertEqual(idx.reindex(idx.tolist())[0].name, 'foobar')
+        self.assertEqual(idx.reindex(idx.tolist()[:-1])[0].name, 'foobar')
+        self.assertEqual(idx.reindex(idx.values)[0].name, 'foobar')
+        self.assertEqual(idx.reindex(idx.values[:-1])[0].name, 'foobar')
+
+        # Must preserve name even if dtype changes.
+        self.assertEqual(idx.reindex(dt_idx.values)[0].name, 'foobar')
+        self.assertEqual(idx.reindex(dt_idx.tolist())[0].name, 'foobar')
+
 
 class Numeric(Base):
 
@@ -3266,6 +3296,30 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
 
         self.assertRaises(KeyError, idx.isin, vals_1, level='C')
+
+    def test_reindex_preserves_names_when_target_is_list_or_ndarray(self):
+        # GH6552
+        idx = self.index.copy()
+        target = idx.copy()
+        idx.names = target.names = [None, None]
+
+        other_dtype = pd.MultiIndex.from_product([[1, 2], [3, 4]])
+
+        # list & ndarray cases
+        self.assertEqual(idx.reindex([])[0].names, [None, None])
+        self.assertEqual(idx.reindex(np.array([]))[0].names, [None, None])
+        self.assertEqual(idx.reindex(target.tolist())[0].names, [None, None])
+        self.assertEqual(idx.reindex(target.values)[0].names, [None, None])
+        self.assertEqual(idx.reindex(other_dtype.tolist())[0].names, [None, None])
+        self.assertEqual(idx.reindex(other_dtype.values)[0].names, [None, None])
+
+        idx.names = ['foo', 'bar']
+        self.assertEqual(idx.reindex([])[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex(np.array([]))[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex(target.tolist())[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex(target.values)[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex(other_dtype.tolist())[0].names, ['foo', 'bar'])
+        self.assertEqual(idx.reindex(other_dtype.values)[0].names, ['foo', 'bar'])
 
 
 def test_get_combined_index():
