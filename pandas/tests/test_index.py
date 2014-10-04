@@ -274,8 +274,8 @@ class TestIndex(Base, tm.TestCase):
 
         # GH 8431
         pth = tm.get_data_path()
-        s1 = pd.read_pickle(os.path.join(pth,'s1-0.12.0.pkl'))
-        s2 = pd.read_pickle(os.path.join(pth,'s2-0.12.0.pkl'))
+        s1 = pd.read_pickle(os.path.join(pth,'s1-0.12.0.pickle'))
+        s2 = pd.read_pickle(os.path.join(pth,'s2-0.12.0.pickle'))
         self.assertFalse(s1.index.identical(s2.index))
         self.assertFalse(s1.index.equals(s2.index))
 
