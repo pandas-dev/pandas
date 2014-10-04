@@ -3652,8 +3652,9 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if com.is_datetime64_dtype(x):
-                x = lib.map_infer(_values_from_object(x), lib.Timestamp)
+            if com.needs_i8_conversion(x):
+                f = com.i8_boxer(x)
+                x = lib.map_infer(_values_from_object(x), f)
             return lib.map_infer(_values_from_object(x), func)
         return self.apply(infer)
 
