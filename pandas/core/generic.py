@@ -1776,8 +1776,8 @@ class NDFrame(PandasObject):
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
         method = com._clean_fill_method(method)
-        new_index, indexer = axis_values.reindex(
-            labels, method, level, limit=limit, copy_if_needed=True)
+        new_index, indexer = axis_values.reindex(labels, method, level,
+                                                 limit=limit)
         return self._reindex_with_indexers(
             {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
             limit=limit, copy=copy)

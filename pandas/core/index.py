@@ -1578,17 +1578,22 @@ class Index(IndexOpsMixin, PandasObject):
         }
         return aliases.get(method, method)
 
-    def reindex(self, target, method=None, level=None, limit=None,
-                copy_if_needed=False):
+    def reindex(self, target, method=None, level=None, limit=None):
         """
-        For Index, simply returns the new index and the results of
-        get_indexer. Provided here to enable an interface that is amenable for
-        subclasses of Index whose internals are different (like MultiIndex)
+        Create index with target's values (move/add/delete values as necessary)
 
         Returns
         -------
-        (new_index, indexer, mask) : tuple
+        new_index : pd.Index
+            Resulting index
+        indexer : np.ndarray or None
+            Indices of output values in original index
+
         """
+        # GH6552: preserve names when reindexing to non-named target
+        # (i.e. neither Index nor Series).
+        preserve_names = not hasattr(target, 'name')
+
         target = _ensure_index(target)
         if level is not None:
             if method is not None:
@@ -1596,16 +1601,8 @@ class Index(IndexOpsMixin, PandasObject):
             _, indexer, _ = self._join_level(target, level, how='right',
                                              return_indexers=True)
         else:
-
             if self.equals(target):
                 indexer = None
-
-                # to avoid aliasing an existing index
-                if (copy_if_needed and target.name != self.name and
-                        self.name is not None):
-                    if target.name is None:
-                        target = self.copy()
-
             else:
                 if self.is_unique:
                     indexer = self.get_indexer(target, method=method,
@@ -1615,6 +1612,10 @@ class Index(IndexOpsMixin, PandasObject):
                         raise ValueError("cannot reindex a non-unique index "
                                          "with a method or limit")
                     indexer, missing = self.get_indexer_non_unique(target)
+
+        if preserve_names and target.nlevels == 1 and target.name != self.name:
+            target = target.copy()
+            target.name = self.name
 
         return target, indexer
 
@@ -3686,17 +3687,21 @@ class MultiIndex(Index):
 
         return com._ensure_platform_int(indexer)
 
-    def reindex(self, target, method=None, level=None, limit=None,
-                copy_if_needed=False):
+    def reindex(self, target, method=None, level=None, limit=None):
         """
-        Performs any necessary conversion on the input index and calls
-        get_indexer. This method is here so MultiIndex and an Index of
-        like-labeled tuples can play nice together
+        Create index with target's values (move/add/delete values as necessary)
 
         Returns
         -------
-        (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
+        new_index : pd.MultiIndex
+            Resulting index
+        indexer : np.ndarray or None
+            Indices of output values in original index
+
         """
+        # GH6552: preserve names when reindexing to non-named target
+        # (i.e. neither Index nor Series).
+        preserve_names = not hasattr(target, 'names')
 
         if level is not None:
             if method is not None:
@@ -3723,6 +3728,11 @@ class MultiIndex(Index):
             else:
                 # hopefully?
                 target = MultiIndex.from_tuples(target)
+
+        if (preserve_names and target.nlevels == self.nlevels and
+            target.names != self.names):
+            target = target.copy(deep=False)
+            target.names = self.names
 
         return target, indexer
 
