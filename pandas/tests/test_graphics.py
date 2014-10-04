@@ -266,9 +266,9 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if xlabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(), xlabelsize)
+                        assert_allclose(label.get_fontsize(), xlabelsize)
                     if xrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), xrot)
+                        assert_allclose(label.get_rotation(), xrot)
 
             if ylabelsize or yrot:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
@@ -278,9 +278,9 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if ylabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(), ylabelsize)
+                        assert_allclose(label.get_fontsize(), ylabelsize)
                     if yrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), yrot)
+                        assert_allclose(label.get_rotation(), yrot)
 
     def _check_ax_scales(self, axes, xaxis='linear', yaxis='linear'):
         """
@@ -444,13 +444,13 @@ class TestSeriesPlots(TestPlotBase):
         mpl.rcdefaults()
 
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
-        self.ts = tm.makeTimeSeries()
+        self.ts = tm.makeTimeSeries(20)
         self.ts.name = 'ts'
 
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
-        self.iseries = tm.makePeriodSeries()
+        self.iseries = tm.makePeriodSeries(20)
         self.iseries.name = 'iseries'
 
     @slow
@@ -2151,16 +2151,15 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 3))
+        df = DataFrame(randn(10, 3))
         axes = _check_plot_works(df.hist, grid=False)
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
         self.assertFalse(axes[1, 1].get_visible())
 
-        df = DataFrame(randn(100, 1))
-        _check_plot_works(df.hist)
+        _check_plot_works(df[[0]].hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 6))
+        df = DataFrame(randn(10, 6))
         axes = _check_plot_works(df.hist, layout=(4, 2))
         self._check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
@@ -2191,7 +2190,7 @@ class TestDataFramePlots(TestPlotBase):
         # make sure kwargs to hist are handled
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
-        self.assertAlmostEqual(ax.get_children()[5].get_height(), 1.0)
+        assert_allclose(ax.get_children()[5].get_height(), 1.0)
 
         tm.close()
         ax = ser.hist(log=True)
@@ -2240,7 +2239,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_scatter(self):
         tm._skip_if_no_scipy()
 
-        df = DataFrame(randn(100, 2))
+        df = DataFrame(randn(10, 2))
         import pandas.tools.plotting as plt
 
         def scat(**kwds):
@@ -2260,7 +2259,7 @@ class TestDataFramePlots(TestPlotBase):
             return plt.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, 0, 1)
-        grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
+        grouper = Series(np.repeat([1, 2], 5), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
 
     @slow
@@ -3130,10 +3129,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             result = df.groupby('gender').boxplot()
         self._check_box_return_type(result, 'dict', expected_keys=['Male', 'Female'])
 
-        columns2 = 'X B C D A G Y N Q O'.split()
-        df2 = DataFrame(random.randn(50, 10), columns=columns2)
-        categories2 = 'A B C D E F G H I J'.split()
-        df2['category'] = categories2 * 5
+        columns2 = 'X B'.split()
+        df2 = DataFrame(random.randn(4, 2), columns=columns2)
+        categories2 = 'A B'.split()
+        df2['category'] = categories2 * 2
 
         for t in ['dict', 'axes', 'both']:
             returned = df.groupby('classroom').boxplot(return_type=t)

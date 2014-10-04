@@ -51,15 +51,14 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_frame_inferred(self):
         # inferred freq
-        import matplotlib.pyplot as plt
-        idx = date_range('1/1/1987', freq='MS', periods=100)
+        idx = date_range('1/1/1987', freq='MS', periods=10)
         idx = DatetimeIndex(idx.values, freq=None)
 
         df = DataFrame(np.random.randn(len(idx), 3), index=idx)
         _check_plot_works(df.plot)
 
         # axes freq
-        idx = idx[0:40].union(idx[45:99])
+        idx = idx[0:4].union(idx[6:])
         df2 = DataFrame(np.random.randn(len(idx), 3), index=idx)
         _check_plot_works(df2.plot)
 
@@ -113,7 +112,7 @@ class TestTSPlot(tm.TestCase):
     def test_high_freq(self):
         freaks = ['ms', 'us']
         for freq in freaks:
-            rng = date_range('1/1/2012', periods=100000, freq=freq)
+            rng = date_range('1/1/2012', periods=100, freq=freq)
             ser = Series(np.random.randn(len(rng)), rng)
             _check_plot_works(ser.plot)
 
