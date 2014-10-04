@@ -9,7 +9,7 @@ from numpy.testing.decorators import slow
 import numpy as np
 from distutils.version import LooseVersion
 
-from pandas import Series, DataFrame, Panel, bdate_range, isnull, notnull
+from pandas import Series, DataFrame, Panel, bdate_range, isnull, notnull, concat
 from pandas.util.testing import (
     assert_almost_equal, assert_series_equal, assert_frame_equal, assert_panel_equal, assert_index_equal
 )
@@ -20,15 +20,14 @@ from pandas.compat import range, zip, PY3, StringIO
 
 N, K = 100, 10
 
-
-class TestMoments(tm.TestCase):
+class Base(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
 
-    def setUp(self):
+    def _create_data(self):
         arr = randn(N)
         arr[self._nan_locs] = np.NaN
 
@@ -40,6 +39,10 @@ class TestMoments(tm.TestCase):
         self.frame = DataFrame(randn(N, K), index=self.rng,
                                columns=np.arange(K))
 
+class TestMoments(Base):
+
+    def setUp(self):
+        self._create_data()
         warnings.simplefilter("ignore", category=FutureWarning)
 
     def test_centered_axis_validation(self):
@@ -71,7 +74,7 @@ class TestMoments(tm.TestCase):
         # GH 8238
         tm._skip_if_no_scipy()
 
-        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49,
                          16.68, 9.48, 10.63, 14.48])
         xp = np.array([np.nan, np.nan, 9.962, 11.27 , 11.564, 12.516,
                        12.818,  12.952, np.nan, np.nan])
@@ -87,7 +90,7 @@ class TestMoments(tm.TestCase):
         # GH 8238
         tm._skip_if_no_scipy()
 
-        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81,
                          13.49, 16.68, 9.48, 10.63, 14.48])
         xp = np.array([np.nan, np.nan, 9.962, 11.27 , 11.564, 12.516,
                        12.818,  12.952, np.nan, np.nan])
@@ -173,21 +176,21 @@ class TestMoments(tm.TestCase):
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81,
                          13.49, 16.68, 9.48, 10.63, 14.48])
         xps = {
-            'hamming': [np.nan, np.nan, 8.71384, 9.56348, 12.38009, 
-                        14.03687, 13.8567, 11.81473, np.nan, np.nan], 
-            'triang': [np.nan, np.nan, 9.28667, 10.34667, 12.00556, 
-                       13.33889, 13.38, 12.33667, np.nan, np.nan], 
-            'barthann': [np.nan, np.nan, 8.4425, 9.1925, 12.5575, 
-                         14.3675, 14.0825, 11.5675, np.nan, np.nan], 
-            'bohman': [np.nan, np.nan, 7.61599, 9.1764, 12.83559, 
-                       14.17267, 14.65923, 11.10401, np.nan, np.nan], 
-            'blackmanharris': [np.nan, np.nan, 6.97691, 9.16438, 13.05052, 
+            'hamming': [np.nan, np.nan, 8.71384, 9.56348, 12.38009,
+                        14.03687, 13.8567, 11.81473, np.nan, np.nan],
+            'triang': [np.nan, np.nan, 9.28667, 10.34667, 12.00556,
+                       13.33889, 13.38, 12.33667, np.nan, np.nan],
+            'barthann': [np.nan, np.nan, 8.4425, 9.1925, 12.5575,
+                         14.3675, 14.0825, 11.5675, np.nan, np.nan],
+            'bohman': [np.nan, np.nan, 7.61599, 9.1764, 12.83559,
+                       14.17267, 14.65923, 11.10401, np.nan, np.nan],
+            'blackmanharris': [np.nan, np.nan, 6.97691, 9.16438, 13.05052,
                                14.02156, 15.10512, 10.74574, np.nan, np.nan],
-            'nuttall': [np.nan, np.nan, 7.04618, 9.16786, 13.02671, 
-                        14.03559, 15.05657, 10.78514, np.nan, np.nan], 
-            'blackman': [np.nan, np.nan, 7.73345, 9.17869, 12.79607, 
-                         14.20036, 14.57726, 11.16988, np.nan, np.nan], 
-            'bartlett': [np.nan, np.nan, 8.4425, 9.1925, 12.5575, 
+            'nuttall': [np.nan, np.nan, 7.04618, 9.16786, 13.02671,
+                        14.03559, 15.05657, 10.78514, np.nan, np.nan],
+            'blackman': [np.nan, np.nan, 7.73345, 9.17869, 12.79607,
+                         14.20036, 14.57726, 11.16988, np.nan, np.nan],
+            'bartlett': [np.nan, np.nan, 8.4425, 9.1925, 12.5575,
                          14.3675, 14.0825, 11.5675, np.nan, np.nan]}
 
         for wt in win_types:
@@ -219,25 +222,25 @@ class TestMoments(tm.TestCase):
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
 
-        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 
+        vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81,
                          13.49, 16.68, np.nan, 10.63, 14.48])
         xps = {
-            'bartlett': [np.nan, np.nan, 9.70333, 10.5225, 8.4425, 
-                         9.1925, 12.5575, 14.3675, 15.61667, 13.655], 
-            'blackman': [np.nan, np.nan, 9.04582, 11.41536, 7.73345, 
-                         9.17869, 12.79607, 14.20036, 15.8706, 13.655], 
-            'barthann': [np.nan, np.nan, 9.70333, 10.5225, 8.4425, 
-                         9.1925, 12.5575, 14.3675, 15.61667, 13.655], 
-            'bohman': [np.nan, np.nan, 8.9444, 11.56327, 7.61599, 
-                       9.1764, 12.83559, 14.17267, 15.90976, 13.655], 
-            'hamming': [np.nan, np.nan, 9.59321, 10.29694, 8.71384, 
-                        9.56348, 12.38009, 14.20565, 15.24694, 13.69758], 
-            'nuttall': [np.nan, np.nan, 8.47693, 12.2821, 7.04618, 
-                        9.16786, 13.02671, 14.03673, 16.08759, 13.65553], 
-            'triang': [np.nan, np.nan, 9.33167, 9.76125, 9.28667, 
-                       10.34667, 12.00556, 13.82125, 14.49429, 13.765], 
+            'bartlett': [np.nan, np.nan, 9.70333, 10.5225, 8.4425,
+                         9.1925, 12.5575, 14.3675, 15.61667, 13.655],
+            'blackman': [np.nan, np.nan, 9.04582, 11.41536, 7.73345,
+                         9.17869, 12.79607, 14.20036, 15.8706, 13.655],
+            'barthann': [np.nan, np.nan, 9.70333, 10.5225, 8.4425,
+                         9.1925, 12.5575, 14.3675, 15.61667, 13.655],
+            'bohman': [np.nan, np.nan, 8.9444, 11.56327, 7.61599,
+                       9.1764, 12.83559, 14.17267, 15.90976, 13.655],
+            'hamming': [np.nan, np.nan, 9.59321, 10.29694, 8.71384,
+                        9.56348, 12.38009, 14.20565, 15.24694, 13.69758],
+            'nuttall': [np.nan, np.nan, 8.47693, 12.2821, 7.04618,
+                        9.16786, 13.02671, 14.03673, 16.08759, 13.65553],
+            'triang': [np.nan, np.nan, 9.33167, 9.76125, 9.28667,
+                       10.34667, 12.00556, 13.82125, 14.49429, 13.765],
             'blackmanharris': [np.nan, np.nan, 8.42526, 12.36824, 6.97691,
-                               9.16438, 13.05052, 14.02175, 16.1098, 
+                               9.16438, 13.05052, 14.02175, 16.1098,
                                13.65509]
             }
 
@@ -258,14 +261,14 @@ class TestMoments(tm.TestCase):
                          13.49, 16.68, 9.48, 10.63, 14.48])
 
         xps = {
-            'gaussian': [np.nan, np.nan, 8.97297, 9.76077, 12.24763, 
-                         13.89053, 13.65671, 12.01002, np.nan, np.nan], 
-            'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 
-                                 11.73161, 13.08516, 12.95111, 12.74577, 
-                                 np.nan, np.nan], 
-            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284, 
-                        12.88331, 12.96079, 12.77008, np.nan, np.nan], 
-            'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 
+            'gaussian': [np.nan, np.nan, 8.97297, 9.76077, 12.24763,
+                         13.89053, 13.65671, 12.01002, np.nan, np.nan],
+            'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589,
+                                 11.73161, 13.08516, 12.95111, 12.74577,
+                                 np.nan, np.nan],
+            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284,
+                        12.88331, 12.96079, 12.77008, np.nan, np.nan],
+            'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161,
                        12.75129, 12.90702, 12.83757, np.nan, np.nan]
         }
 
@@ -635,7 +638,7 @@ class TestMoments(tm.TestCase):
         self.assertTrue(np.abs(result - 1) < 1e-2)
 
         s = Series([1.0, 2.0, 4.0, 8.0])
-        
+
         expected = Series([1.0, 1.6, 2.736842, 4.923077])
         for f in [lambda s: mom.ewma(s, com=2.0, adjust=True),
                   lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=False),
@@ -783,7 +786,10 @@ class TestMoments(tm.TestCase):
         frame_result = func(self.frame, com=10)
         self.assertEqual(type(frame_result), DataFrame)
 
-    def _test_series(self):
+# create the data only once as we are not setting it
+def _create_consistency_data():
+
+    def create_series():
        return [Series(),
                Series([np.nan]),
                Series([np.nan, np.nan]),
@@ -804,7 +810,7 @@ class TestMoments(tm.TestCase):
                Series(range(20, 0, -2)),
               ]
 
-    def _test_dataframes(self):
+    def create_dataframes():
        return [DataFrame(),
                DataFrame(columns=['a']),
                DataFrame(columns=['a', 'a']),
@@ -812,10 +818,30 @@ class TestMoments(tm.TestCase):
                DataFrame(np.arange(10).reshape((5, 2))),
                DataFrame(np.arange(25).reshape((5, 5))),
                DataFrame(np.arange(25).reshape((5, 5)), columns=['a', 'b', 99, 'd', 'd']),
-              ] + [DataFrame(s) for s in self._test_series()]
+              ] + [DataFrame(s) for s in create_series()]
 
-    def _test_data(self):
-       return self._test_series() + self._test_dataframes()
+    def is_constant(x):
+        values = x.values.ravel()
+        return len(set(values[notnull(values)])) == 1
+
+    def no_nans(x):
+        return x.notnull().all().all()
+
+    # data is a tuple(object, is_contant, no_nans)
+    data = create_series() + create_dataframes()
+
+    return [ (x, is_constant(x), no_nans(x)) for x in data ]
+_consistency_data = _create_consistency_data()
+
+class TestMomentsConsistency(Base):
+
+    def _create_data(self):
+        super(TestMomentsConsistency, self)._create_data()
+        self.data = _consistency_data
+
+    def setUp(self):
+        self._create_data()
+        warnings.simplefilter("ignore", category=FutureWarning)
 
     def _test_moments_consistency(self,
                                   min_periods,
@@ -825,11 +851,11 @@ class TestMoments(tm.TestCase):
                                   var_debiasing_factors=None):
 
         def _non_null_values(x):
-            return set([v for v in x.values.reshape(x.values.size) if notnull(v)])
+            values = x.values.ravel()
+            return set(values[notnull(values)].tolist())
 
-        for x in self._test_data():
+        for (x, is_constant, no_nans) in self.data:
             assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
-            is_constant = (len(_non_null_values(x)) == 1)
             count_x = count(x)
             mean_x = mean(x)
 
@@ -861,7 +887,7 @@ class TestMoments(tm.TestCase):
 
             for (std, var, cov) in [(std_biased, var_biased, cov_biased),
                                     (std_unbiased, var_unbiased, cov_unbiased)]:
-                
+
                 # check that var(x), std(x), and cov(x) are all >= 0
                 var_x = var(x)
                 std_x = std(x)
@@ -873,7 +899,7 @@ class TestMoments(tm.TestCase):
 
                     # check that var(x) == cov(x, x)
                     assert_equal(var_x, cov_x_x)
-                
+
                 # check that var(x) == std(x)^2
                 assert_equal(var_x, std_x * std_x)
 
@@ -892,7 +918,7 @@ class TestMoments(tm.TestCase):
                     assert_equal(var_x, expected)
 
                 if isinstance(x, Series):
-                    for y in self._test_data():
+                    for (y, is_constant, no_nans) in self.data:
                         if not x.isnull().equals(y.isnull()):
                             # can only easily test two Series with similar structure
                             continue
@@ -907,7 +933,7 @@ class TestMoments(tm.TestCase):
                             cov_x_y = cov(x, y)
                             cov_y_x = cov(y, x)
                             assert_equal(cov_x_y, cov_y_x)
-                    
+
                             # check that cov(x, y) == (var(x+y) - var(x) - var(y)) / 2
                             var_x_plus_y = var(x + y)
                             var_y = var(y)
@@ -928,9 +954,15 @@ class TestMoments(tm.TestCase):
 
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):
-                w = DataFrame(index=s.index, columns=s.columns)
-                for i, _ in enumerate(s.columns):
-                    w.iloc[:, i] = _weights(s.iloc[:, i], com=com, adjust=adjust, ignore_na=ignore_na)
+                if not len(s.columns):
+                    return DataFrame(index=s.index, columns=s.columns)
+                w = concat([ _weights(s.iloc[:, i],
+                                      com=com,
+                                      adjust=adjust,
+                                      ignore_na=ignore_na) for i, _ in enumerate(s.columns) ],
+                           axis=1)
+                w.index=s.index
+                w.columns=s.columns
                 return w
 
             w = Series(np.nan, index=s.index)
@@ -1053,11 +1085,12 @@ class TestMoments(tm.TestCase):
 
                 # test consistency between expanding_xyz() and either (a) expanding_apply of Series.xyz(),
                 #                                                  or (b) expanding_apply of np.nanxyz()
-                for x in self._test_data():
+                for (x, is_constant, no_nans) in self.data:
                     assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
                     functions = base_functions
+
                     # GH 8269
-                    if x.notnull().all().all():
+                    if no_nans:
                         functions = base_functions + no_nan_functions
                     for (expanding_f, f, require_min_periods) in functions:
                         if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
@@ -1085,6 +1118,7 @@ class TestMoments(tm.TestCase):
 
     @slow
     def test_rolling_consistency(self):
+
         base_functions = [
             (mom.rolling_count, lambda v: Series(v).count(), None),
             (mom.rolling_max, lambda v: Series(v).max(), None),
@@ -1150,11 +1184,12 @@ class TestMoments(tm.TestCase):
 
                     # test consistency between rolling_xyz() and either (a) rolling_apply of Series.xyz(),
                     #                                                or (b) rolling_apply of np.nanxyz()
-                    for x in self._test_data():
+                    for (x, is_constant, no_nans) in self.data:
+
                         assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
                         functions = base_functions
                         # GH 8269
-                        if x.notnull().all().all():
+                        if no_nans:
                             functions = base_functions + no_nan_functions
                         for (rolling_f, f, require_min_periods) in functions:
                             if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
@@ -1183,7 +1218,7 @@ class TestMoments(tm.TestCase):
                                         expected.iloc[:, i, j] = rolling_f(x.iloc[:, i], x.iloc[:, j],
                                                                            window=window, min_periods=min_periods, center=center)
                                 assert_panel_equal(rolling_f_result, expected)
-    
+
     # binary moments
     def test_rolling_cov(self):
         A = self.series
@@ -1608,7 +1643,7 @@ class TestMoments(tm.TestCase):
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected)
         assert_frame_equal(result4, expected)
-    
+
     def test_pairwise_stats_column_names_order(self):
         # GH 7738
         df1s = [DataFrame([[2,4],[1,2],[5,2],[8,1]], columns=[0,1]),
