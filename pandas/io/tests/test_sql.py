@@ -6,12 +6,12 @@ The SQL tests are broken down in different classes:
 - Tests for the public API (only tests with sqlite3)
     - `_TestSQLApi` base class
     - `TestSQLApi`: test the public API with sqlalchemy engine
-    - `TesySQLLegacyApi`: test the public API with DBAPI connection
+    - `TesySQLiteFallbackApi`: test the public API with a sqlite DBAPI connection
 - Tests for the different SQL flavors (flavor specific type conversions)
     - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
       common methods, the different tested flavors (sqlite3, MySQL, PostgreSQL)
       derive from the base class
-    - Tests for the legacy mode (`TestSQLiteLegacy` and `TestMySQLLegacy`)
+    - Tests for the fallback mode (`TestSQLiteFallback` and `TestMySQLLegacy`)
 
 """
 
@@ -228,19 +228,19 @@ class PandasSQLTest(unittest.TestCase):
         return result[0]
 
     def _read_sql_iris(self):
-        iris_frame = self.pandasSQL.read_sql("SELECT * FROM iris")
+        iris_frame = self.pandasSQL.read_query("SELECT * FROM iris")
         self._check_iris_loaded_frame(iris_frame)
 
     def _read_sql_iris_parameter(self):
         query = SQL_STRINGS['read_parameters'][self.flavor]
         params = ['Iris-setosa', 5.1]
-        iris_frame = self.pandasSQL.read_sql(query, params=params)
+        iris_frame = self.pandasSQL.read_query(query, params=params)
         self._check_iris_loaded_frame(iris_frame)
 
     def _read_sql_iris_named_parameter(self):
         query = SQL_STRINGS['read_named_parameters'][self.flavor]
         params = {'name': 'Iris-setosa', 'length': 5.1}
-        iris_frame = self.pandasSQL.read_sql(query, params=params)
+        iris_frame = self.pandasSQL.read_query(query, params=params)
         self._check_iris_loaded_frame(iris_frame)
 
     def _to_sql(self):
@@ -313,7 +313,7 @@ class PandasSQLTest(unittest.TestCase):
     def _roundtrip(self):
         self.drop_table('test_frame_roundtrip')
         self.pandasSQL.to_sql(self.test_frame1, 'test_frame_roundtrip')
-        result = self.pandasSQL.read_sql('SELECT * FROM test_frame_roundtrip')
+        result = self.pandasSQL.read_query('SELECT * FROM test_frame_roundtrip')
 
         result.set_index('level_0', inplace=True)
         # result.index.astype(int)
@@ -348,13 +348,13 @@ class PandasSQLTest(unittest.TestCase):
         except:
             # ignore raised exception
             pass
-        res = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        res = self.pandasSQL.read_query('SELECT * FROM test_trans')
         self.assertEqual(len(res), 0)
         
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-        res2 = self.pandasSQL.read_sql('SELECT * FROM test_trans')
+        res2 = self.pandasSQL.read_query('SELECT * FROM test_trans')
         self.assertEqual(len(res2), 1)
 
 
@@ -367,7 +367,7 @@ class _TestSQLApi(PandasSQLTest):
     Base class to test the public API.
 
     From this two classes are derived to run these tests for both the
-    sqlalchemy mode (`TestSQLApi`) and the legacy mode (`TestSQLLegacyApi`).
+    sqlalchemy mode (`TestSQLApi`) and the fallback mode (`TestSQLiteFallbackApi`).
     These tests are run with sqlite3. Specific tests for the different
     sql flavours are included in `_TestSQLAlchemy`.
 
@@ -736,9 +736,9 @@ class TestSQLApi(_TestSQLApi):
         return ixs
 
 
-class TestSQLLegacyApi(_TestSQLApi):
+class TestSQLiteFallbackApi(_TestSQLApi):
     """
-    Test the public legacy API
+    Test the public sqlite connection fallback API
 
     """
     flavor = 'sqlite'
@@ -833,7 +833,7 @@ class _TestSQLAlchemy(PandasSQLTest):
     def setup_connect(self):
         try:
             self.conn = self.connect()
-            self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+            self.pandasSQL = sql.SQLDatabase(self.conn)
             # to test if connection can be made:
             self.conn.connect()
         except sqlalchemy.exc.OperationalError:
@@ -871,7 +871,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         temp_frame = DataFrame(
             {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
 
-        pandasSQL = sql.PandasSQLAlchemy(temp_conn)
+        pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, 'temp_frame')
 
         self.assertTrue(
@@ -883,7 +883,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         temp_frame = DataFrame(
             {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
 
-        pandasSQL = sql.PandasSQLAlchemy(temp_conn)
+        pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, 'temp_frame')
 
         self.assertTrue(
@@ -1302,7 +1302,7 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 
         engine2 = self.connect()
         meta = sqlalchemy.MetaData(engine2, schema='other')
-        pdsql = sql.PandasSQLAlchemy(engine2, meta=meta)
+        pdsql = sql.SQLDatabase(engine2, meta=meta)
         pdsql.to_sql(df, 'test_schema_other2', index=False)
         pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='replace')
         pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='append')
@@ -1314,9 +1314,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 #------------------------------------------------------------------------------
 #--- Test Sqlite / MySQL fallback
 
-class TestSQLiteLegacy(PandasSQLTest):
+class TestSQLiteFallback(PandasSQLTest):
     """
-    Test the legacy mode against an in-memory sqlite database.
+    Test the fallback mode against an in-memory sqlite database.
 
     """
     flavor = 'sqlite'
@@ -1331,7 +1331,7 @@ class TestSQLiteLegacy(PandasSQLTest):
 
     def setUp(self):
         self.conn = self.connect()
-        self.pandasSQL = sql.PandasSQLLegacy(self.conn, 'sqlite')
+        self.pandasSQL = sql.SQLiteDatabase(self.conn, 'sqlite')
 
         self._load_iris_data()
 
@@ -1339,7 +1339,7 @@ class TestSQLiteLegacy(PandasSQLTest):
 
     def test_invalid_flavor(self):
         self.assertRaises(
-            NotImplementedError, sql.PandasSQLLegacy, self.conn, 'oracle')
+            NotImplementedError, sql.SQLiteDatabase, self.conn, 'oracle')
 
     def test_read_sql(self):
         self._read_sql_iris()
@@ -1417,7 +1417,7 @@ class TestSQLiteLegacy(PandasSQLTest):
     def test_transactions(self):
         self._transaction_test()
 
-class TestMySQLLegacy(TestSQLiteLegacy):
+class TestMySQLLegacy(TestSQLiteFallback):
     """
     Test the legacy mode against a MySQL database.
 
@@ -1451,7 +1451,7 @@ class TestMySQLLegacy(TestSQLiteLegacy):
         except self.driver.err.OperationalError:
             raise nose.SkipTest("Can't connect to MySQL server")
 
-        self.pandasSQL = sql.PandasSQLLegacy(self.conn, 'mysql')
+        self.pandasSQL = sql.SQLiteDatabase(self.conn, 'mysql')
 
         self._load_iris_data()
         self._load_test1_data()
