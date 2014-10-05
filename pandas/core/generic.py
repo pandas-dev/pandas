@@ -2260,9 +2260,9 @@ class NDFrame(PandasObject):
             other views on this object, (e.g. a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            eaxinum size gap to forward or backward fill
+            Maximum size gap to forward or backward fill
         downcast : dict, default is None
-            a dict of item->dtype of what to downcast if possible,
+            A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible)
 
@@ -2277,7 +2277,7 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         if axis is None:
-            axis = self._get_axis_number(self._stat_axis_name)
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 

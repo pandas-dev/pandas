@@ -910,41 +910,41 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_fillna_axis_0(self):
         # GH 8395
 
-        # Forward fill along axis 0, interpolating values across DataFrames.
-        filled = self.panel4d.fillna(method='ffill', axis=0)
+        # Back fill along axis 0, interpolating values across Panels
+        filled = self.panel4d.fillna(method='bfill', axis=0)
         nan_indexes = self.panel4d['l1']['ItemB']['C'].index[
             self.panel4d['l1']['ItemB']['C'].apply(np.isnan)]
 
-        # Values from ItemA are filled into ItemB.
+        # Values from ItemC are filled into ItemB.
         assert_series_equal(filled['l1']['ItemB']['C'][nan_indexes],
-                            self.panel4d['l1']['ItemA']['C'][nan_indexes])
+                            self.panel4d['l1']['ItemC']['C'][nan_indexes])
 
-        # Backfill along axis 0.
-        filled = self.panel4d.fillna(method='backfill', axis=0)
+        # Forward fill along axis 0.
+        filled = self.panel4d.fillna(method='ffill', axis=0)
 
         # The test data lacks values that can be backfilled on axis 0.
         assert_panel4d_equal(filled, self.panel4d)
 
         # Reverse the panel and backfill along axis 0, to properly test
-        # backfill.
+        # forward fill.
         reverse_panel = self.panel4d.reindex_axis(reversed(self.panel4d.axes[0]))
-        filled = reverse_panel.fillna(method='bfill', axis=0)
+        filled = reverse_panel.fillna(method='ffill', axis=0)
         nan_indexes = reverse_panel['l3']['ItemB']['C'].index[
             reverse_panel['l3']['ItemB']['C'].apply(np.isnan)]
-        assert_series_equal(filled['l1']['ItemB']['C'][nan_indexes],
-                            reverse_panel['l3']['ItemB']['C'][nan_indexes])
+        assert_series_equal(filled['l3']['ItemB']['C'][nan_indexes],
+                            reverse_panel['l1']['ItemB']['C'][nan_indexes])
 
         # Fill along axis 0 with limit.
-        filled = self.panel4d.fillna(method='ffill', axis=0, limit=1)
-        a_nan = self.panel4d['l1']['ItemA']['C'].index[
-            self.panel4d['l1']['ItemA']['C'].apply(np.isnan)]
+        filled = self.panel4d.fillna(method='bfill', axis=0, limit=1)
+        c_nan = self.panel4d['l1']['ItemC']['C'].index[
+            self.panel4d['l1']['ItemC']['C'].apply(np.isnan)]
         b_nan = self.panel4d['l1']['ItemB']['C'].index[
             self.panel4d['l1']['ItemB']['C'].apply(np.isnan)]
 
-        # Cells that are nan in ItemB but not in ItemA remain unfilled in
-        # ItemC.
+        # Cells that are nan in ItemB but not in ItemC remain unfilled in
+        # ItemA.
         self.assertTrue(
-            filled['l1']['ItemC']['C'][b_nan.diff(a_nan)].apply(np.isnan).all())
+            filled['l1']['ItemA']['C'][b_nan.diff(c_nan)].apply(np.isnan).all())
 
 
     def test_swapaxes(self):
