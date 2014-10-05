@@ -134,7 +134,7 @@ class TestEvalNumexprPandas(tm.TestCase):
 
     @slow
     def test_complex_cmp_ops(self):
-        cmp_ops = ('not in', 'in', '!=', '==', '<=', '>=', '<', '>')
+        cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
         cmp2_ops = ('>', '<')
         for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, cmp_ops,
                                                    self.rhses, self.bin_ops,
