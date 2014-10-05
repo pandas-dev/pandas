@@ -6553,7 +6553,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.split('\n')), len_)
+                self.assertEqual(len(res.strip().split('\n')), len_)
 
         for len_, verbose in [(10, None), (5, False), (10, True)]:
 
@@ -6562,7 +6562,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.split('\n')), len_)
+                self.assertEqual(len(res.strip().split('\n')), len_)
 
         for len_, max_cols in [(10, 5), (5, 4)]:
             # setting truncates
@@ -6570,15 +6570,49 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.split('\n')), len_)
+                self.assertEqual(len(res.strip().split('\n')), len_)
 
             # setting wouldn't truncate
             with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.split('\n')), len_)
+                self.assertEqual(len(res.strip().split('\n')), len_)
 
+    def test_info_memory_usage(self):
+        # Ensure memory usage is displayed, when asserted, on the last line
+        dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+                  'complex128', 'object', 'bool']
+        data = {}
+        n = 10
+        for i, dtype in enumerate(dtypes):
+            data[i] = np.random.randint(2, size=n).astype(dtype)
+        df = DataFrame(data)
+        buf = StringIO()
+        # display memory usage case
+        df.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        self.assertTrue("memory usage: " in res[-1])
+        # do not display memory usage cas
+        df.info(buf=buf, memory_usage=False)
+        res = buf.getvalue().splitlines()
+        self.assertTrue("memory usage: " not in res[-1])
+
+        # Test a DataFrame with duplicate columns
+        dtypes = ['int64', 'int64', 'int64', 'float64']
+        data = {}
+        n = 100
+        for i, dtype in enumerate(dtypes):
+            data[i] = np.random.randint(2, size=n).astype(dtype)
+        df = DataFrame(data)
+        df.columns = dtypes
+        # Ensure df size is as expected
+        df_size = df.memory_usage().sum()
+        exp_size = len(dtypes) * n * 8  # cols * rows * bytes
+        self.assertEqual(df_size, exp_size)
+        # Ensure number of cols in memory_usage is the same as df
+        size_df = np.size(df.columns.values)  # index=False; default
+        self.assertEqual(size_df, np.size(df.memory_usage()))
 
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0

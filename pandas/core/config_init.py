@@ -203,6 +203,12 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+pc_memory_usage_doc = """
+: bool or None
+    This specifies if the memory usage of a DataFrame should be displayed when
+    df.info() is called.
+"""
+
 style_backup = dict()
 
 
@@ -274,6 +280,8 @@ with cf.config_prefix('display'):
     # redirected to width, make defval identical
     cf.register_option('line_width', get_default_val('display.width'),
                        pc_line_width_doc)
+    cf.register_option('memory_usage', True, pc_memory_usage_doc,
+                        validator=is_instance_factory([type(None), bool]))
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
