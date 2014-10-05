@@ -683,6 +683,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
+                    if freq is None:
+                        try:
+                            freq = getattr(Period(data[0]), 'freq', None)
+                        except Exception:
+                            pass
 
                 if freq is None:
                     raise ValueError('freq not specified and cannot be '
@@ -702,6 +707,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
+                    if freq is None:
+                        try:
+                            freq = getattr(Period(data[0]), 'freq', None)
+                        except Exception:
+                            pass
 
                 if freq is None:
                     raise ValueError('freq not specified and cannot be '
