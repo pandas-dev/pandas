@@ -332,6 +332,10 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_funs_ddof(nanops.nanvar, np.var,
                              allow_complex=False, allow_date=False, allow_tdelta=False)
 
+    def test_nanstd(self):
+        self.check_funs_ddof(nanops.nanstd, np.std,
+                             allow_complex=False, allow_date=False, allow_tdelta=True)
+
     def test_nansem(self):
         tm.skip_if_no_package('scipy.stats')
         self.check_funs_ddof(nanops.nansem, np.var,

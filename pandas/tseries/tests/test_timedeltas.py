@@ -479,6 +479,9 @@ class TestTimedeltas(tm.TestCase):
         expected = to_timedelta(timedelta(seconds=9))
         self.assertEqual(result, expected)
 
+        result = td.to_frame().mean()
+        self.assertEqual(result[0], expected)
+
         result = td.quantile(.1)
         expected = Timedelta(np.timedelta64(2600,'ms'))
         self.assertEqual(result, expected)
@@ -487,18 +490,28 @@ class TestTimedeltas(tm.TestCase):
         expected = to_timedelta('00:00:08')
         self.assertEqual(result, expected)
 
+        result = td.to_frame().median()
+        self.assertEqual(result[0], expected)
+
         # GH 6462
         # consistency in returned values for sum
         result = td.sum()
         expected = to_timedelta('00:01:21')
         self.assertEqual(result, expected)
 
-        # you can technically do a std, but var overflows
-        # so this is tricky
-        self.assertRaises(TypeError, lambda : td.std())
+        result = td.to_frame().sum()
+        self.assertEqual(result[0], expected)
+
+        # std
+        result = td.std()
+        expected = to_timedelta(Series(td.dropna().values).std())
+        self.assertEqual(result, expected)
+
+        result = td.to_frame().std()
+        self.assertEqual(result[0], expected)
 
         # invalid ops
-        for op in ['skew','kurt','sem','var']:
+        for op in ['skew','kurt','sem','var','prod']:
             self.assertRaises(TypeError, lambda : getattr(td,op)())
 
     def test_timedelta_ops_scalar(self):
