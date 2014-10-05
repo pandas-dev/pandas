@@ -21,7 +21,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name, _coerce_to_dtype,
                                 _ensure_object, SettingWithCopyError,
-                                _maybe_box_datetimelike)
+                                _maybe_box_datetimelike, ABCDataFrame)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
 from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
@@ -545,6 +545,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, typ='getitem')
             return self._get_values(indexer)
+        elif isinstance(key, ABCDataFrame):
+            raise TypeError('Indexing a Series with DataFrame is not supported, '\
+                            'use the appropriate DataFrame column')
         else:
             if isinstance(key, tuple):
                 try:

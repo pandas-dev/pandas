@@ -1222,6 +1222,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([3,4],index=['C','C'],dtype=np.int64)
         result = s['C']
         assert_series_equal(result, expected)
+        
+    def test_getitem_dataframe(self):
+        rng = list(range(10))
+        s   = pd.Series(10, index=rng)
+        df  = pd.DataFrame(rng, index=rng)
+        self.assertRaises(TypeError, s.__getitem__, df>5)
 
     def test_setitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
