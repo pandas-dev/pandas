@@ -3950,60 +3950,42 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
             return np.abs(demeaned).mean(axis=axis, skipna=skipna)
         cls.mad = mad
 
-        @Substitution(outname='variance',
-                      desc="Return unbiased variance over requested "
-                           "axis.\n\nNormalized by N-1 by default. "
-                           "This can be changed using the ddof argument")
-        @Appender(_num_doc)
-        def var(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
-            if skipna is None:
-                skipna = True
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('var', axis=axis, level=level,
-                                          skipna=skipna, ddof=ddof)
+        def _make_stat_function_ddof(name, desc, f):
 
-            return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                                ddof=ddof)
-        cls.var = var
+            @Substitution(outname=name, desc=desc)
+            @Appender(_num_doc)
+            def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
+                          **kwargs):
+                if skipna is None:
+                    skipna = True
+                if axis is None:
+                    axis = self._stat_axis_number
+                if level is not None:
+                    return self._agg_by_level(name, axis=axis, level=level,
+                                              skipna=skipna, ddof=ddof)
+                return self._reduce(f, axis=axis,
+                                    skipna=skipna, ddof=ddof)
+            stat_func.__name__ = name
+            return stat_func
 
-        @Substitution(outname='stdev',
-                      desc="Return unbiased standard deviation over requested "
-                           "axis.\n\nNormalized by N-1 by default. "
-                           "This can be changed using the ddof argument")
-        @Appender(_num_doc)
-        def std(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
-            if skipna is None:
-                skipna = True
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('std', axis=axis, level=level,
-                                          skipna=skipna, ddof=ddof)
-            result = self.var(axis=axis, skipna=skipna, ddof=ddof)
-            if getattr(result, 'ndim', 0) > 0:
-                return result.apply(np.sqrt)
-            return np.sqrt(result)
-        cls.std = std
-
-        @Substitution(outname='standarderror',
-                      desc="Return unbiased standard error of the mean over "
-                           "requested axis.\n\nNormalized by N-1 by default. "
-                           "This can be changed using the ddof argument")
-        @Appender(_num_doc)
-        def sem(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
-            if skipna is None:
-                skipna = True
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('sem', axis=axis, level=level,
-                                          skipna=skipna, ddof=ddof)
-
-            return self._reduce(nanops.nansem, axis=axis, skipna=skipna,
-                                ddof=ddof)
-        cls.sem = sem
+        cls.sem = _make_stat_function_ddof(
+            'sem',
+            "Return unbiased standard error of the mean over "
+            "requested axis.\n\nNormalized by N-1 by default. "
+            "This can be changed using the ddof argument",
+            nanops.nansem)
+        cls.var = _make_stat_function_ddof(
+            'var',
+            "Return unbiased variance over requested "
+            "axis.\n\nNormalized by N-1 by default. "
+            "This can be changed using the ddof argument",
+            nanops.nanvar)
+        cls.std = _make_stat_function_ddof(
+            'std',
+            "Return unbiased standard deviation over requested "
+            "axis.\n\nNormalized by N-1 by default. "
+            "This can be changed using the ddof argument",
+            nanops.nanstd)
 
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "

@@ -638,7 +638,7 @@ TimedeltaIndex/Scalar
 We introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
 but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation, parsing, and attributes.
 This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a nice-API box for the type. See the :ref:`docs <timedeltas.timedeltas>`.
-(:issue:`3009`, :issue:`4533`, :issue:`8209`, :issue:`8187`, :issue:`8190`, :issue:`7869`, :issue:`7661`, :issue:`8345`)
+(:issue:`3009`, :issue:`4533`, :issue:`8209`, :issue:`8187`, :issue:`8190`, :issue:`7869`, :issue:`7661`, :issue:`8345`, :issue:`8471`)
 
 .. warning::
 

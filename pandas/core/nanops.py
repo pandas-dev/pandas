@@ -228,7 +228,7 @@ def _wrap_results(result, dtype):
         if not isinstance(result, np.ndarray):
             result = lib.Timedelta(result)
         else:
-            result = result.view(dtype)
+            result = result.astype('i8').view(dtype)
 
     return result
 
@@ -295,7 +295,7 @@ def nanmedian(values, axis=None, skipna=True):
     if values.ndim > 1:
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
-            return np.apply_along_axis(get_median, axis, values)
+            return _wrap_results(np.apply_along_axis(get_median, axis, values), dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
@@ -305,7 +305,7 @@ def nanmedian(values, axis=None, skipna=True):
         dims = np.arange(values.ndim)
         ret = np.empty(shp[dims != axis])
         ret.fill(np.nan)
-        return ret
+        return _wrap_results(ret, dtype)
 
     # otherwise return a scalar value
     return _wrap_results(get_median(values) if notempty else np.nan, dtype)
@@ -329,15 +329,8 @@ def _get_counts_nanvar(mask, axis, ddof):
     return count, d
 
 
-@disallow('M8','m8')
-@bottleneck_switch(ddof=1)
-def nanvar(values, axis=None, skipna=True, ddof=1):
-
-    # we are going to allow timedelta64[ns] here
-    # but NOT going to coerce them to the Timedelta type
-    # as this could cause overflow
-    # so var cannot be computed (but std can!)
-
+def _nanvar(values, axis=None, skipna=True, ddof=1):
+    # private nanvar calculator
     mask = isnull(values)
     if not _is_floating_dtype(values):
         values = values.astype('f8')
@@ -351,6 +344,23 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
     return np.fabs((XX - X ** 2 / count) / d)
+
+@disallow('M8')
+@bottleneck_switch(ddof=1)
+def nanstd(values, axis=None, skipna=True, ddof=1):
+
+    result = np.sqrt(_nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
+    return _wrap_results(result, values.dtype)
+
+@disallow('M8','m8')
+@bottleneck_switch(ddof=1)
+def nanvar(values, axis=None, skipna=True, ddof=1):
+
+    # we are going to allow timedelta64[ns] here
+    # but NOT going to coerce them to the Timedelta type
+    # as this could cause overflow
+    # so var cannot be computed (but std can!)
+    return _nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
 
 @disallow('M8','m8')
 def nansem(values, axis=None, skipna=True, ddof=1):
@@ -517,7 +527,7 @@ def nankurt(values, axis=None, skipna=True):
         return result
 
 
-@disallow('M8')
+@disallow('M8','m8')
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not _is_any_int_dtype(values):
