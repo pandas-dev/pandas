@@ -43,7 +43,7 @@ def has_info_repr(df):
 def has_non_verbose_info_repr(df):
     has_info = has_info_repr(df)
     r = repr(df)
-    nv = len(r.split('\n')) == 5  # 1. <class>, 2. Index, 3. Columns, 4. dtype, 5. trailing newline
+    nv = len(r.split('\n')) == 6  # 1. <class>, 2. Index, 3. Columns, 4. dtype, 5. memory usage, 6. trailing newline
     return has_info and nv
 
 def has_horizontally_truncated_repr(df):

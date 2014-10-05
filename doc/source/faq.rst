@@ -24,6 +24,81 @@ Frequently Asked Questions (FAQ)
    options.display.mpl_style='default'
    from pandas.compat import lrange
 
+
+.. _df-memory-usage:
+
+DataFrame memory usage
+~~~~~~~~~~~~~~~~~~~~~~
+As of pandas version 0.15.0, the memory usage of a dataframe (including
+the index) is shown when accessing the ``info`` method of a dataframe. A
+configuration option, ``display.memory_usage`` (see :ref:`options`),
+specifies if the dataframe's memory usage will be displayed when
+invoking the df.info() method.
+
+For example, the memory usage of the dataframe below is shown
+when calling df.info():
+
+.. ipython:: python
+
+    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+                'complex128', 'object', 'bool']
+    n = 5000
+    data = dict([ (t, np.random.randint(100, size=n).astype(t))
+                    for t in dtypes])
+    df = DataFrame(data)
+
+    df.info()
+
+By default the display option is set to True but can be explicitly
+overridden by passing the memory_usage argument when invoking df.info().
+Note that ``memory_usage=None`` is the default value for the  df.info()
+method and follows the setting specified by display.memory_usage.
+
+The memory usage of each column can be found by calling the ``memory_usage``
+method. This returns a Series with an index represented by column names
+and memory usage of each column shown in bytes. For the dataframe above,
+the memory usage of each column and the total memory usage of the
+dataframe can be found with the memory_usage method:
+
+.. ipython:: python
+
+    df.memory_usage()
+
+    # total memory usage of dataframe
+    df.memory_usage().sum()
+
+By default the memory usage of the dataframe's index is not shown in the
+returned Series, the memory usage of the index can be shown by passing
+the ``index=True`` argument:
+
+.. ipython:: python
+
+    df.memory_usage(index=True)
+
+The memory usage displayed by the ``info`` method utilizes the
+``memory_usage`` method to determine the memory usage of a dataframe
+while also formatting the output in human-readable units (base-2
+representation; i.e., 1KB = 1024 bytes).
+
+Pandas version 0.15.0 introduces a new categorical data type (see
+:ref:`categorical`), which can be used in Series and DataFrames.
+Significant memory savings can be achieved when using the category
+datatype. This is demonstrated below:
+
+.. ipython:: python
+
+  df['bases_object'] = Series(np.array(['adenine', 'cytosine', 'guanine', 'thymine']).take(np.random.randint(0,4,size=len(df))))
+
+  df['bases_categorical'] = df['bases_object'].astype('category')
+
+  df.memory_usage()
+
+While the *base_object* and *bases_categorical* appear as identical
+columns in the dataframe, the memory savings of the categorical
+datatype, versus the object datatype, is revealed by ``memory_usage``.
+
+
+
 .. _ref-monkey-patching:
 
 Adding Features to your pandas Installation

@@ -348,6 +348,9 @@ display.max_seq_items      100          when pretty-printing a long sequence,
                                         of "..." to the resulting string.
                                         If set to None, the number of items
                                         to be printed is unlimited.
+display.memory_usage       True         This specifies if the memory usage of
+                                        a DataFrame should be displayed when the
+                                        df.info() method is invoked.
 display.mpl_style          None         Setting this to 'default' will modify
                                         the rcParams used by matplotlib
                                         to give plots a more pleasing visual

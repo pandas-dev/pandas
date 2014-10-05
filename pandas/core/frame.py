@@ -1390,7 +1390,7 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=None, buf=None, max_cols=None):
+    def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None):
         """
         Concise summary of a DataFrame.
 
@@ -1404,6 +1404,12 @@ class DataFrame(NDFrame):
         max_cols : int, default None
             Determines whether full summary or short summary is printed.
             None follows the `display.max_info_columns` setting.
+        memory_usage : boolean, default None
+            Specifies whether total memory usage of the DataFrame
+            elements (including index) should be displayed. None follows
+            the `display.memory_usage` setting. True or False overrides
+            the `display.memory_usage` setting. Memory usage is shown in
+            human-readable units (base-2 representation).
         """
         from pandas.core.format import _put_lines
 
@@ -1462,6 +1468,14 @@ class DataFrame(NDFrame):
         def _non_verbose_repr():
             lines.append(self.columns.summary(name='Columns'))
 
+        def _sizeof_fmt(num):
+            # returns size in human readable format
+            for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+                if num < 1024.0:
+                    return "%3.1f %s" % (num, x)
+                num /= 1024.0
+            return "%3.1f %s" % (num, 'PB')
+
         if verbose:
             _verbose_repr()
         elif verbose is False:  # specifically set to False, not nesc None
@@ -1474,8 +1488,45 @@ class DataFrame(NDFrame):
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
-        lines.append('dtypes: %s\n' % ', '.join(dtypes))
+        lines.append('dtypes: %s' % ', '.join(dtypes))
+        if memory_usage is None:
+            memory_usage = get_option('display.memory_usage')
+        if memory_usage:  # append memory usage of df to display
+            lines.append("memory usage: %s\n" %
+                            _sizeof_fmt(self.memory_usage(index=True).sum()))
         _put_lines(buf, lines)
+
+    def memory_usage(self, index=False):
+        """Memory usage of DataFrame columns.
+
+        Parameters
+        ----------
+        index : bool
+            Specifies whether to include memory usage of DataFrame's
+            index in returned Series. If `index=True` (default is False)
+            the first index of the Series is `Index`.
+
+        Returns
+        -------
+        sizes : Series
+            A series with column names as index and memory usage of
+            columns with units of bytes.
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array.
+
+        See Also
+        --------
+        numpy.ndarray.nbytes
+        """
+        result = Series([ c.values.nbytes for col, c in self.iteritems() ],
+                        index=self.columns)
+        if index:
+             result = Series(self.index.values.nbytes,
+                        index=['Index']).append(result)
+        return result
 
     def transpose(self):
         """Transpose index and columns"""

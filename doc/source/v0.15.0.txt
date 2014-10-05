@@ -259,6 +259,16 @@ API changes
 
 - ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 
+- Implements methods to find memory usage of a DataFrame (:issue:`6852`). A new display option ``display.memory_usage`` (see :ref:`options`) sets the default behavior of the ``memory_usage`` argument in the ``df.info()`` method; by default ``display.memory_usage`` is True but this can be overridden by explicitly passing the memory_usage argument to the df.info() method, as shown below. Additionally `memory_usage` is an available method for a dataframe object which returns the memory usage of each column (for more information see :ref:`df-memory-usage`):
+
+  .. ipython:: python
+
+     df = DataFrame({ 'float' : np.random.randn(1000), 'int' : np.random.randint(0,5,size=1000)})
+     df.memory_usage()
+
+     df.info(memory_usage=True)
+
+
 .. _whatsnew_0150.dt:
 
 .dt accessor
