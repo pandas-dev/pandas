@@ -1398,8 +1398,12 @@ class TestSQLiteFallback(PandasSQLTest):
 
     def test_datetime_time(self):
         # test support for datetime.time
-        raise nose.SkipTest("datetime.time not supported for sqlite fallback")
-
+        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+        # test it raises an error and not fails silently (GH8341)
+        if self.flavor == 'sqlite':
+            self.assertRaises(sqlite3.InterfaceError, sql.to_sql, df,
+                              'test_time', self.conn)
+                          
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' " +
