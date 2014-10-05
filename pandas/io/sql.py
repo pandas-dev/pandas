@@ -1155,6 +1155,7 @@ class PandasSQLLegacy(PandasSQL):
             self.con.commit()
         except:
             self.con.rollback()
+            raise
         finally:
             cur.close()
 
