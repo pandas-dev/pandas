@@ -1484,7 +1484,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
     """ access scalars quickly """
 
-    def _convert_key(self, key):
+    def _convert_key(self, key, is_setter=False):
         return list(key)
 
     def __getitem__(self, key):
@@ -1505,7 +1505,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
         if len(key) != self.obj.ndim:
             raise ValueError('Not enough indexers for scalar access '
                              '(setting)!')
-        key = list(self._convert_key(key))
+        key = list(self._convert_key(key, is_setter=True))
         key.append(value)
         self.obj.set_value(*key, takeable=self._takeable)
 
@@ -1515,8 +1515,13 @@ class _AtIndexer(_ScalarAccessIndexer):
     """ label based scalar accessor """
     _takeable = False
 
-    def _convert_key(self, key):
+    def _convert_key(self, key, is_setter=False):
         """ require they keys to be the same type as the index (so we don't fallback) """
+
+        # allow arbitrary setting
+        if is_setter:
+            return list(key)
+
         for ax, i in zip(self.obj.axes, key):
             if ax.is_integer():
                 if not com.is_integer(i):
@@ -1536,7 +1541,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
-    def _convert_key(self, key):
+    def _convert_key(self, key, is_setter=False):
         """ require  integer args (and convert to label arguments) """
         for a, i in zip(self.obj.axes, key):
             if not com.is_integer(i):
