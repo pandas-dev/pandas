@@ -444,7 +444,7 @@ For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`.
 
 |factor|_
-~~~~~~~~
+~~~~~~~~~
 
 .. versionadded:: 0.15
 

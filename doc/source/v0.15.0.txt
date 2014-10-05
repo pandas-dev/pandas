@@ -260,7 +260,7 @@ API changes
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
 
-- Added support for numpy 1.8+ data types (bool_, int_, float_, string_) for conversion to R dataframe  (:issue:`8400`)
+- Added support for numpy 1.8+ data types (``bool_``, ``int_``, ``float_``, ``string_``) for conversion to R dataframe  (:issue:`8400`)
 
 - ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 
@@ -1039,7 +1039,7 @@ Bug Fixes
 - Bug in ``to_clipboard`` that would clip long column data (:issue:`8305`)
 - Bug in DataFrame terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).
 - Bug in OLS where running with "cluster" and "nw_lags" parameters did not work correctly, but also did not throw an error
-  (:issue:`5884').
+  (:issue:`5884`).
 - Bug in ``DataFrame.dropna`` that interpreted non-existent columns in the subset argument as the 'last column' (:issue:`8303`)
 - Bug in Index.intersection on non-monotonic non-unique indexes (:issue:`8362`).
 - Bug in masked series assignment where mismatching types would break alignment (:issue:`8387`)
