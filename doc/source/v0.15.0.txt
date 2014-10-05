@@ -17,6 +17,7 @@ users upgrade to this version.
 
   - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
   - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
+  - New DataFrame default display for ``df.info()`` to include memory usage, see :ref:`Memory Usage <whatsnew_0150.memory>`
   - New datetimelike properties accessor ``.dt`` for Series, see :ref:`Datetimelike Properties <whatsnew_0150.dt>`
   - Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
   - Split out string methods documentation into :ref:`Working with Text Data <text>`
@@ -57,7 +58,7 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
-- Passing multiple levels to `DataFrame.stack()` will now work when multiple level
+- Passing multiple levels to :meth:`~pandas.DataFrame.stack()` will now work when multiple level
   numbers are passed (:issue:`7660`), and will raise a ``ValueError`` when the
   levels aren't all level names or all level numbers. See
   :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
@@ -134,7 +135,7 @@ API changes
 
   .. code-block:: python
 
-     In [1]: idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
+     In [1]: idx = MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
 
      In [2]: idx.values
      Out[2]: array([(0, 'a'), (0, 'b'), (0, 'c'), (1, 'a'), (1, 'b'), (1, 'c')], dtype=object)
@@ -199,7 +200,10 @@ API changes
                                               names=['one','two'])
                ).sortlevel()
      s
-     s.loc[['D']]
+     try:
+        s.loc[['D']]
+     except KeyError as e:
+        print("KeyError: " + str(e))
 
 - ``Index`` now supports ``duplicated`` and ``drop_duplicates``. (:issue:`4060`)
 
@@ -239,7 +243,8 @@ API changes
 
   .. ipython:: python
 
-     df = DataFrame([[True, 1],[False, 2]], columns = ["female","fitness"])
+     df = DataFrame([[True, 1],[False, 2]],
+                    columns=["female","fitness"])
      df
      df.dtypes
 
@@ -259,15 +264,32 @@ API changes
 
 - ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 
-- Implements methods to find memory usage of a DataFrame (:issue:`6852`). A new display option ``display.memory_usage`` (see :ref:`options`) sets the default behavior of the ``memory_usage`` argument in the ``df.info()`` method; by default ``display.memory_usage`` is True but this can be overridden by explicitly passing the memory_usage argument to the df.info() method, as shown below. Additionally `memory_usage` is an available method for a dataframe object which returns the memory usage of each column (for more information see :ref:`df-memory-usage`):
+.. _whatsnew_0150.memory:
 
-  .. ipython:: python
+Memory Usage
+~~~~~~~~~~~~~
 
-     df = DataFrame({ 'float' : np.random.randn(1000), 'int' : np.random.randint(0,5,size=1000)})
-     df.memory_usage()
+Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-memory-usage>` for more. (:issue:`6852`).
 
-     df.info(memory_usage=True)
+A new display option ``display.memory_usage`` (see :ref:`options`) sets the default behavior of the ``memory_usage`` argument in the ``df.info()`` method. By default ``display.memory_usage`` is ``True``.
 
+.. ipython:: python
+
+    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+              'complex128', 'object', 'bool']
+    n = 5000
+    data = dict([ (t, np.random.randint(100, size=n).astype(t))
+                    for t in dtypes])
+    df = DataFrame(data)
+    df['categorical'] = df['object'].astype('category')
+
+    df.info()
+
+Additionally :meth:`~pandas.DataFrame.memory_usage` is an available method for a dataframe object which returns the memory usage of each column.
+
+.. ipython:: python
+
+    df.memory_usage(index=True)
 
 .. _whatsnew_0150.dt:
 
@@ -582,7 +604,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 .. ipython:: python
 
-    df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+    df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
@@ -719,7 +741,8 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are no prior version deprecations that are taking effect as of 0.15.0.
+- Remove ``DataFrame.delevel`` method in favor of ``DataFrame.reset_index``
+  (:issue:`420`)
 
 .. _whatsnew_0150.deprecations:
 
@@ -732,8 +755,7 @@ Deprecations
   ``ambiguous`` to allow for more flexibility in dealing with DST transitions.
   Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
-- Remove ``DataFrame.delevel`` method in favor of ``DataFrame.reset_index``
-  (:issue:`420`)
+
 .. _whatsnew_0150.index_set_ops:
 
 - The ``Index`` set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
@@ -816,8 +838,8 @@ Enhancements
 
   .. ipython:: python
 
-    df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
-                       'C': [1, 2, 3]})
+    df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
+                    'C': [1, 2, 3]})
     pd.get_dummies(df)
 
 

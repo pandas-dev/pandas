@@ -294,7 +294,7 @@ This is even true for strings and numeric data:
     s
     s.sort()
     s
-    print(s.min(), s.max())
+    s.min(), s.max()
 
 Reordering the categories is possible via the :func:`Categorical.reorder_categories` and
 the :func:`Categorical.set_categories` methods. For :func:`Categorical.reorder_categories`, all
@@ -307,7 +307,7 @@ old categories must be included in the new categories and no new categories are 
     s
     s.sort()
     s
-    print(s.min(), s.max())
+    s.min(), s.max()
 
 .. note::
 

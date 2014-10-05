@@ -33,26 +33,25 @@ As of pandas version 0.15.0, the memory usage of a dataframe (including
 the index) is shown when accessing the ``info`` method of a dataframe. A
 configuration option, ``display.memory_usage`` (see :ref:`options`),
 specifies if the dataframe's memory usage will be displayed when
-invoking the df.info() method.
+invoking the ``df.info()`` method.
 
 For example, the memory usage of the dataframe below is shown
-when calling df.info():
+when calling ``df.info()``:
 
 .. ipython:: python
 
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-                'complex128', 'object', 'bool']
+               'complex128', 'object', 'bool']
     n = 5000
     data = dict([ (t, np.random.randint(100, size=n).astype(t))
                     for t in dtypes])
     df = DataFrame(data)
+    df['categorical'] = df['object'].astype('category')
 
     df.info()
 
-By default the display option is set to True but can be explicitly
-overridden by passing the memory_usage argument when invoking df.info().
-Note that ``memory_usage=None`` is the default value for the  df.info()
-method and follows the setting specified by display.memory_usage.
+By default the display option is set to ``True`` but can be explicitly
+overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
 
 The memory usage of each column can be found by calling the ``memory_usage``
 method. This returns a Series with an index represented by column names
@@ -80,24 +79,7 @@ The memory usage displayed by the ``info`` method utilizes the
 while also formatting the output in human-readable units (base-2
 representation; i.e., 1KB = 1024 bytes).
 
-Pandas version 0.15.0 introduces a new categorical data type (see
-:ref:`categorical`), which can be used in Series and DataFrames.
-Significant memory savings can be achieved when using the category
-datatype. This is demonstrated below:
-
-.. ipython:: python
-
-  df['bases_object'] = Series(np.array(['adenine', 'cytosine', 'guanine', 'thymine']).take(np.random.randint(0,4,size=len(df))))
-
-  df['bases_categorical'] = df['bases_object'].astype('category')
-
-  df.memory_usage()
-
-While the *base_object* and *bases_categorical* appear as identical
-columns in the dataframe, the memory savings of the categorical
-datatype, versus the object datatype, is revealed by ``memory_usage``.
-
-
+See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
 .. _ref-monkey-patching:
 
