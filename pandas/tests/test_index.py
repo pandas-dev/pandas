@@ -1066,8 +1066,8 @@ class TestIndex(Base, tm.TestCase):
         def get_reindex_type(target):
             return idx.reindex(target)[0].dtype.type
 
-        self.assertEqual(get_reindex_type(pd.Int64Index([])), np.int_)
-        self.assertEqual(get_reindex_type(pd.Float64Index([])), np.float_)
+        self.assertEqual(get_reindex_type(pd.Int64Index([])), np.int64)
+        self.assertEqual(get_reindex_type(pd.Float64Index([])), np.float64)
         self.assertEqual(get_reindex_type(pd.DatetimeIndex([])), np.datetime64)
 
         reindexed = idx.reindex(pd.MultiIndex([pd.Int64Index([]),
@@ -3367,7 +3367,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # GH7774
         idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
         self.assertEqual(idx.reindex([], level=0)[0].levels[0].dtype.type,
-                         np.int_)
+                         np.int64)
         self.assertEqual(idx.reindex([], level=1)[0].levels[1].dtype.type,
                          np.object_)
 

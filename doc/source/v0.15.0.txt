@@ -742,7 +742,6 @@ Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Remove ``DataFrame.delevel`` method in favor of ``DataFrame.reset_index``
-  (:issue:`420`)
 
 .. _whatsnew_0150.deprecations:
 
