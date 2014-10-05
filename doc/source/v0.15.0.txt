@@ -1025,3 +1025,4 @@ Bug Fixes
 - Bug in NDFrame.equals gives false negatives with dtype=object (:issue:`8437`)
 - Bug in assignment with indexer where type diversity would break alignment (:issue:`8258`)
 - Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
+- Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)

@@ -1707,15 +1707,11 @@ class NDFrame(PandasObject):
             if labels is None:
                 continue
 
-            # convert to an index if we are not a multi-selection
             ax = self._get_axis(a)
-            if level is None:
-                labels = _ensure_index(labels)
-
-            axis = self._get_axis_number(a)
             new_index, indexer = ax.reindex(
                 labels, level=level, limit=limit, method=method)
 
+            axis = self._get_axis_number(a)
             obj = obj._reindex_with_indexers(
                 {axis: [new_index, indexer]}, method=method,
                 fill_value=fill_value, limit=limit, copy=copy,
