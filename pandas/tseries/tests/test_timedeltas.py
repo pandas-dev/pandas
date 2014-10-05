@@ -491,8 +491,15 @@ class TestTimedeltas(tm.TestCase):
         # consistency in returned values for sum
         result = td.sum()
         expected = to_timedelta('00:01:21')
-        tm.assert_almost_equal(result, expected)
         self.assertEqual(result, expected)
+
+        # you can technically do a std, but var overflows
+        # so this is tricky
+        self.assertRaises(TypeError, lambda : td.std())
+
+        # invalid ops
+        for op in ['skew','kurt','sem','var']:
+            self.assertRaises(TypeError, lambda : getattr(td,op)())
 
     def test_timedelta_ops_scalar(self):
         # GH 6808

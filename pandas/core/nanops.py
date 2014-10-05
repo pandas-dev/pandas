@@ -329,13 +329,18 @@ def _get_counts_nanvar(mask, axis, ddof):
     return count, d
 
 
-@disallow('M8')
+@disallow('M8','m8')
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
-    if not _is_floating_dtype(values):
-        values = values.astype('f8')
+
+    # we are going to allow timedelta64[ns] here
+    # but NOT going to coerce them to the Timedelta type
+    # as this could cause overflow
+    # so var cannot be computed (but std can!)
 
     mask = isnull(values)
+    if not _is_floating_dtype(values):
+        values = values.astype('f8')
 
     count, d = _get_counts_nanvar(mask, axis, ddof)
 
@@ -347,13 +352,13 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     XX = _ensure_numeric((values ** 2).sum(axis))
     return np.fabs((XX - X ** 2 / count) / d)
 
-
+@disallow('M8','m8')
 def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
+    mask = isnull(values)
     if not _is_floating_dtype(values):
         values = values.astype('f8')
-    mask = isnull(values)
     count, _ = _get_counts_nanvar(mask, axis, ddof)
 
     return np.sqrt(var)/np.sqrt(count)
@@ -442,12 +447,13 @@ def nanargmin(values, axis=None, skipna=True):
     return result
 
 
-@disallow('M8')
+@disallow('M8','m8')
 def nanskew(values, axis=None, skipna=True):
+
+    mask = isnull(values)
     if not _is_floating_dtype(values):
         values = values.astype('f8')
 
-    mask = isnull(values)
     count = _get_counts(mask, axis)
 
     if skipna:
@@ -476,12 +482,13 @@ def nanskew(values, axis=None, skipna=True):
         return result
 
 
-@disallow('M8')
+@disallow('M8','m8')
 def nankurt(values, axis=None, skipna=True):
+
+    mask = isnull(values)
     if not _is_floating_dtype(values):
         values = values.astype('f8')
 
-    mask = isnull(values)
     count = _get_counts(mask, axis)
 
     if skipna:
@@ -574,7 +581,7 @@ def _zero_out_fperr(arg):
         return 0 if np.abs(arg) < 1e-14 else arg
 
 
-@disallow('M8')
+@disallow('M8','m8')
 def nancorr(a, b, method='pearson', min_periods=None):
     """
     a, b: ndarrays
@@ -621,7 +628,7 @@ def get_corr_func(method):
     return _cor_methods[method]
 
 
-@disallow('M8')
+@disallow('M8','m8')
 def nancov(a, b, min_periods=None):
     if len(a) != len(b):
         raise AssertionError('Operands to nancov must have same size')
