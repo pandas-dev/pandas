@@ -2932,6 +2932,26 @@ class TestIndexing(tm.TestCase):
         p.loc[:,:,'C'] = Series([30,32],index=p_orig.items)
         assert_panel_equal(p,expected)
 
+        # GH 8473
+        dates = date_range('1/1/2000', periods=8)
+        df_orig = DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+
+        expected = pd.concat([df_orig,DataFrame({'A' : 7},index=[dates[-1]+1])])
+        df = df_orig.copy()
+        df.loc[dates[-1]+1, 'A'] = 7
+        assert_frame_equal(df,expected)
+        df = df_orig.copy()
+        df.at[dates[-1]+1, 'A'] = 7
+        assert_frame_equal(df,expected)
+
+        expected = pd.concat([df_orig,DataFrame({0 : 7},index=[dates[-1]+1])],axis=1)
+        df = df_orig.copy()
+        df.loc[dates[-1]+1, 0] = 7
+        assert_frame_equal(df,expected)
+        df = df_orig.copy()
+        df.at[dates[-1]+1, 0] = 7
+        assert_frame_equal(df,expected)
+
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
