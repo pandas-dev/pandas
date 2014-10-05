@@ -2260,7 +2260,7 @@ class NDFrame(PandasObject):
             other views on this object, (e.g. a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            Maximum size gap to forward or backward fill
+            eaxinum size gap to forward or backward fill
         downcast : dict, default is None
             a dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -2274,73 +2274,40 @@ class NDFrame(PandasObject):
         -------
         filled : same type as caller
         """
-        if isinstance(value, (list, tuple)):
-            raise TypeError('"value" parameter must be a scalar or dict, but '
-                            'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
         if axis is None:
             axis = self._get_axis_number(self._stat_axis_name)
         else:
             axis = self._get_axis_number(axis)
-        method = com._clean_fill_method(method)
 
         from pandas import DataFrame
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
 
-            # >4d
-            if self.ndim > 4:
-                raise NotImplementedError(
-                    'Cannot fillna with a method for >4 dims'
-                )
+            method = com._clean_fill_method(method)
 
-            # 3d or 4d
-            if self.ndim >= 3:
-                if axis == 0:
-                    fill_axis = 1
-                    apply_axes = (0, 1)
-                else:
-                    fill_axis = axis - 1
-                    apply_axes = (1, 2)
-
-                result = self.apply(lambda f: f.fillna(value=value,
-                                                       method=method,
-                                                       axis=fill_axis,
-                                                       inplace=inplace,
+            if self.ndim > 1:
+                result = self.apply(lambda s: s.fillna(method=method,
                                                        limit=limit,
                                                        downcast=downcast),
-                                    axis=apply_axes)
-
-                if axis == 0:
-                    if self.ndim == 3:
-                        result = result.transpose(2, 1, 0)
-                    else:
-                        result = result.transpose(1, 2, 0, 3)
-                return result if not inplace else None
-
-            # 2d or less
-            if self._is_mixed_type and axis == 1:
-                if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
-
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
-
-                return result
-
-            method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method=method,
-                                              axis=axis,
-                                              limit=limit,
-                                              inplace=inplace,
-                                              coerce=True,
-                                              downcast=downcast)
+                                    axis=axis)
+                result = result.convert_objects(convert_numeric=True)
+                new_data = result._data
+            else:
+                new_data = self._data.interpolate(method=method,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  coerce=True,
+                                                  downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
+
+            if isinstance(value, (list, tuple)):
+                raise TypeError('"value" parameter must be a scalar or dict, but '
+                                'you passed a "{0}"'.format(type(value).__name__))
 
             if len(self._get_axis(axis)) == 0:
                 return self
@@ -2385,7 +2352,8 @@ class NDFrame(PandasObject):
         if inplace:
             self._update_inplace(new_data)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            result = self._constructor(new_data).__finalize__(self)
+            return result
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='ffill')"
