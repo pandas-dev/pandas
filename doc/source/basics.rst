@@ -509,9 +509,6 @@ arguments. The special value ``all`` can also be used:
 
 That feature relies on :ref:`select_dtypes <basics.selectdtypes>`. Refer to there for details about accepted inputs.
 
-There also is a utility function, ``value_range`` which takes a DataFrame and
-returns a series with the minimum/maximum values in the DataFrame.
-
 .. _basics.idxmin:
 
 Index of Min/Max Values

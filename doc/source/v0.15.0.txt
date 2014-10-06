@@ -772,6 +772,7 @@ Deprecations
   ``ambiguous`` to allow for more flexibility in dealing with DST transitions.
   Replace ``infer_dst=True`` with ``ambiguous='infer'`` for the same behavior (:issue:`7943`).
   See :ref:`the docs<timeseries.timezone_ambiguous>` for more details.
+- The top-level ``pd.value_range`` has been deprecated and can be replaced by ``.describe()`` (:issue:`8481`)
 
 .. _whatsnew_0150.index_set_ops:
 
