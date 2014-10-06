@@ -649,13 +649,13 @@ class DataFrame(NDFrame):
         orient : str {'dict', 'list', 'series', 'split', 'records'}
             Determines the type of the values of the dictionary.
 
-                - dict (default) : dict like {column -> {index -> value}}
-                - list : dict like {column -> [values]}
-                - series : dict like {column -> Series(values)}
-                - split : dict like
-                  {index -> [index], columns -> [columns], data -> [values]}
-                - records : list like
-                  [{column -> value}, ... , {column -> value}]
+            - dict (default) : dict like {column -> {index -> value}}
+            - list : dict like {column -> [values]}
+            - series : dict like {column -> Series(values)}
+            - split : dict like
+              {index -> [index], columns -> [columns], data -> [values]}
+            - records : list like
+              [{column -> value}, ... , {column -> value}]
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
