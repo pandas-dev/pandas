@@ -78,6 +78,7 @@ On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the column
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    np.random.seed(123456)
 
 .. ipython:: python
@@ -94,6 +95,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
    np.random.seed(123456)
 
@@ -170,6 +172,7 @@ bar plot:
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
    np.random.seed(123456)
 
@@ -185,6 +188,7 @@ To produce a stacked bar plot, pass ``stacked=True``:
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
 
 .. ipython:: python
@@ -197,6 +201,7 @@ To get horizontal bar plots, pass ``kind='barh'``:
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
 
 .. ipython:: python
@@ -223,6 +228,12 @@ Histogram can be drawn specifying ``kind='hist'``.
    @savefig hist_new.png
    df4.plot(kind='hist', alpha=0.5)
 
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`` keyword.
 
 .. ipython:: python
@@ -231,6 +242,11 @@ Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`
 
    @savefig hist_new_stacked.png
    df4.plot(kind='hist', stacked=True, bins=20)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histgram can be drawn by ``orientation='horizontal'`` and ``cumulative='True'``.
 
@@ -241,6 +257,10 @@ You can pass other keywords supported by matplotlib ``hist``. For example, horiz
    @savefig hist_new_kwargs.png
    df4['a'].plot(kind='hist', orientation='horizontal', cumulative=True)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
 `matplotlib hist documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
@@ -255,6 +275,10 @@ The existing interface ``DataFrame.hist`` to plot histogram still can be used.
    @savefig hist_plot_ex.png
    df['A'].diff().hist()
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 :meth:`DataFrame.hist` plots the histograms of the columns on multiple
 subplots:
@@ -274,6 +298,7 @@ The ``by`` keyword can be specified to plot grouped histograms:
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
    np.random.seed(123456)
 
@@ -303,6 +328,7 @@ a uniform random variable on [0,1).
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    np.random.seed(123456)
 
 .. ipython:: python
@@ -333,6 +359,11 @@ more complicated colorization, you can get each drawn artists by passing
    @savefig box_new_colorize.png
    df.plot(kind='box', color=color, sym='r+')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Also, you can pass other keywords supported by matplotlib ``boxplot``.
 For example, horizontal and custom-positioned boxplot can be drawn by
 ``vert=False`` and ``positions`` keywords.
@@ -352,6 +383,7 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    np.random.seed(123456)
 
 .. ipython:: python
@@ -369,6 +401,7 @@ groupings.  For instance,
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    np.random.seed(123456)
 
 .. ipython:: python
@@ -388,6 +421,7 @@ columns:
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    np.random.seed(123456)
 
 .. ipython:: python
@@ -443,6 +477,11 @@ DataFrame.
    @savefig boxplot_groupby.png
    bp = df_box.boxplot(by='g')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Compare to:
 
 .. ipython:: python
@@ -450,6 +489,11 @@ Compare to:
 
    @savefig groupby_boxplot_vis.png
    bp = df_box.groupby('g').boxplot()
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 .. _visualization.area_plot:
 
@@ -480,6 +524,7 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
 
 .. ipython:: python
@@ -502,6 +547,7 @@ These can be specified by ``x`` and ``y`` keywords each.
    :suppress:
 
    np.random.seed(123456)
+   plt.close('all')
    plt.figure()
 
 .. ipython:: python
@@ -522,6 +568,11 @@ It is recommended to specify ``color`` and ``label`` keywords to distinguish eac
    df.plot(kind='scatter', x='c', y='d',
            color='DarkGreen', label='Group 2', ax=ax);
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 The keyword ``c`` may be given as the name of a column to provide colors for
 each point:
 
@@ -530,6 +581,12 @@ each point:
    @savefig scatter_plot_colored.png
    df.plot(kind='scatter', x='a', y='b', c='c', s=50);
 
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 You can pass other keywords supported by matplotlib ``scatter``.
 Below example shows a bubble chart using a dataframe column values as bubble size.
 
@@ -537,6 +594,11 @@ Below example shows a bubble chart using a dataframe column values as bubble siz
 
    @savefig scatter_plot_bubble.png
    df.plot(kind='scatter', x='a', y='b', s=df['c']*200);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 `matplotlib scatter documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
@@ -583,6 +645,7 @@ given by column ``z``. The bins are aggregated with numpy's ``max`` function.
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
    np.random.seed(123456)
 
@@ -596,6 +659,10 @@ given by column ``z``. The bins are aggregated with numpy's ``max`` function.
    df.plot(kind='hexbin', x='a', y='b', C='z', reduce_C_function=np.max,
            gridsize=25)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
 `matplotlib hexbin documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
@@ -624,6 +691,11 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    @savefig series_pie_plot.png
    series.plot(kind='pie', figsize=(6, 6))
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 For pie plots it's best to use square figures, one's with an equal aspect ratio. You can create the
 figure with equal width and height, or force the aspect ratio to be equal after plotting by
 calling ``ax.set_aspect('equal')`` on the returned ``axes`` object.
@@ -645,6 +717,11 @@ A legend will be drawn in each pie plots by default; specify ``legend=False`` to
 
    @savefig df_pie_plot.png
    df.plot(kind='pie', subplots=True, figsize=(8, 4))
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 You can use the ``labels`` and ``colors`` keywords to specify the labels and colors of each wedge.
 
@@ -674,6 +751,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
 .. ipython:: python
    :suppress:
 
+   plt.close('all')
    plt.figure()
 
 .. ipython:: python
@@ -759,6 +837,11 @@ You can create a scatter plot matrix using the
    @savefig scatter_matrix_kde.png
    scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 .. _visualization.kde:
 
 Density Plot
@@ -781,6 +864,11 @@ setting ``kind='kde'``:
 
    @savefig kde_plot.png
    ser.plot(kind='kde')
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 .. _visualization.andrews_curves:
 
@@ -830,6 +918,11 @@ represents one data point. Points that tend to cluster will appear closer togeth
    @savefig parallel_coordinates.png
    parallel_coordinates(data, 'Name')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 .. _visualization.lag:
 
 Lag Plot
@@ -855,6 +948,11 @@ implies that the underlying data are not random.
 
    @savefig lag_plot.png
    lag_plot(data)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 .. _visualization.autocorrelation:
 
@@ -885,6 +983,11 @@ confidence band.
 
    @savefig autocorrelation_plot.png
    autocorrelation_plot(data)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 .. _visualization.bootstrap:
 
@@ -946,6 +1049,11 @@ be colored differently.
    @savefig radviz.png
    radviz(data, 'Name')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 .. _visualization.formatting:
 
 Plot Formatting
@@ -958,6 +1066,11 @@ layout and formatting of the returned plot:
 
    @savefig series_plot_basic2.png
    plt.figure(); ts.plot(style='k--', label='Series');
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 For each kind of plot (e.g. `line`, `bar`, `scatter`) any additional arguments
 keywords are passed along to the corresponding matplotlib function
@@ -985,6 +1098,11 @@ shown by default.
    @savefig frame_plot_basic_noleg.png
    df.plot(legend=False)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Scales
 ~~~~~~
 
@@ -996,7 +1114,6 @@ You may pass ``logy`` to get a log-scale Y axis.
    plt.figure()
    np.random.seed(123456)
 
-
 .. ipython:: python
 
    ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
@@ -1004,6 +1121,11 @@ You may pass ``logy`` to get a log-scale Y axis.
 
    @savefig series_plot_logy.png
    ts.plot(logy=True)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 See also the ``logx`` and ``loglog`` keyword arguments.
 
@@ -1024,6 +1146,11 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
    @savefig series_plot_secondary_y.png
    df.B.plot(secondary_y=True, style='g')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 To plot some columns in a DataFrame, give the column names to the ``secondary_y``
 keyword:
 
@@ -1035,6 +1162,10 @@ keyword:
    @savefig frame_plot_secondary_y.png
    ax.right_ax.set_ylabel('AB scale')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
@@ -1047,6 +1178,10 @@ with "(right)" in the legend. To turn off the automatic marking, use the
    @savefig frame_plot_secondary_y_no_right.png
    df.plot(secondary_y=['A', 'B'], mark_right=False)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Suppressing Tick Resolution Adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1065,6 +1200,10 @@ Here is the default behavior, notice how the x-axis tick labelling is performed:
    @savefig ser_plot_suppress.png
    df.A.plot()
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Using the ``x_compat`` parameter, you can suppress this behavior:
 
@@ -1075,6 +1214,10 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    @savefig ser_plot_suppress_parm.png
    df.A.plot(x_compat=True)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 If you have more than one plot that needs to be suppressed, the ``use`` method
 in ``pandas.plot_params`` can be used in a `with statement`:
@@ -1091,6 +1234,11 @@ in ``pandas.plot_params`` can be used in a `with statement`:
        df.B.plot(color='g')
        df.C.plot(color='b')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Subplots
 ~~~~~~~~
 
@@ -1101,6 +1249,11 @@ with the ``subplots`` keyword:
 
    @savefig frame_plot_subplots.png
    df.plot(subplots=True, figsize=(6, 6));
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Using Layout and Targetting Multiple Axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1120,11 +1273,21 @@ or columns needed, given the other.
    @savefig frame_plot_subplots_layout.png
    df.plot(subplots=True, layout=(3, 2), figsize=(6, 6), sharex=False);
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 The above example is identical to using
 
 .. ipython:: python
 
    df.plot(subplots=True, layout=(3, -1), figsize=(6, 6), sharex=False);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 The required number of columns (2) is inferred from the number of series to plot
 and the given number of rows (3).
@@ -1139,13 +1302,18 @@ These must be configured when creating axes.
 .. ipython:: python
 
    fig, axes = plt.subplots(4, 4, figsize=(6, 6));
-   plt.adjust_subplots(wspace=0.5, hspace=0.5);
+   plt.subplots_adjust(wspace=0.5, hspace=0.5);
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
 
    df.plot(subplots=True, ax=target1, legend=False);
    @savefig frame_plot_subplots_multi_ax.png
    (-df).plot(subplots=True, ax=target2, legend=False);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a particular axis:
 
@@ -1158,6 +1326,11 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 
    df = DataFrame(randn(1000, 4), index=ts.index, columns=list('ABCD'))
    df = df.cumsum()
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 .. ipython:: python
 
@@ -1211,6 +1384,11 @@ Here is an example of one way to easily plot group means with standard deviation
    @savefig errorbar_example.png
    means.plot(yerr=errors, ax=ax, kind='bar')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 .. _visualization.table:
 
 Plotting Tables
@@ -1234,6 +1412,11 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Also, you can pass different :class:`DataFrame` or :class:`Series` for ``table`` keyword. The data will be drawn as displayed in print method (not transposed automatically). If required, it should be transposed manually as below example.
 
 .. ipython:: python
@@ -1243,6 +1426,10 @@ Also, you can pass different :class:`DataFrame` or :class:`Series` for ``table``
    @savefig line_plot_table_data.png
    df.plot(table=np.round(df.T, 2), ax=ax)
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Finally, there is a helper function ``pandas.tools.plotting.table`` to create a table from :class:`DataFrame` and :class:`Series`, and add it to an ``matplotlib.Axes``. This function can accept keywords which matplotlib table has.
 
@@ -1256,6 +1443,11 @@ Finally, there is a helper function ``pandas.tools.plotting.table`` to create a 
 
    @savefig line_plot_table_describe.png
    df.plot(ax=ax, ylim=(0, 2), legend=None)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 **Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documenation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
 
@@ -1294,6 +1486,11 @@ To use the cubehelix colormap, we can simply pass ``'cubehelix'`` to ``colormap=
    @savefig cubehelix.png
    df.plot(colormap='cubehelix')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 or we can pass the colormap itself
 
 .. ipython:: python
@@ -1304,6 +1501,11 @@ or we can pass the colormap itself
 
    @savefig cubehelix_cm.png
    df.plot(colormap=cm.cubehelix)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Colormaps can also be used other plot types, like bar charts:
 
@@ -1322,6 +1524,11 @@ Colormaps can also be used other plot types, like bar charts:
    @savefig greens.png
    dd.plot(kind='bar', colormap='Greens')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Parallel coordinates charts:
 
 .. ipython:: python
@@ -1330,6 +1537,11 @@ Parallel coordinates charts:
 
    @savefig parallel_gist_rainbow.png
    parallel_coordinates(data, 'Name', colormap='gist_rainbow')
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Andrews curves charts:
 
@@ -1340,6 +1552,10 @@ Andrews curves charts:
    @savefig andrews_curve_winter.png
    andrews_curves(data, 'Name', colormap='winter')
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Plotting directly with matplotlib
 ---------------------------------
@@ -1444,6 +1660,11 @@ RPlot is a flexible API for producing Trellis plots. These plots allow you to ar
    @savefig rplot1_tips.png
    plot.render(plt.gcf())
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 In the example above, data from the tips data set is arranged by the attributes 'sex' and 'smoker'. Since both of those attributes can take on one of two values, the resulting grid has two columns and two rows. A histogram is displayed for each cell of the grid.
 
 .. ipython:: python
@@ -1456,6 +1677,11 @@ In the example above, data from the tips data set is arranged by the attributes 
 
    @savefig rplot2_tips.png
    plot.render(plt.gcf())
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 Example above is the same as previous except the plot is set to kernel density estimation. This shows how easy it is to have different plots for the same Trellis structure.
 
@@ -1471,6 +1697,11 @@ Example above is the same as previous except the plot is set to kernel density e
    @savefig rplot3_tips.png
    plot.render(plt.gcf())
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 The plot above shows that it is possible to have two or more plots for the same data displayed on the same Trellis grid cell.
 
 .. ipython:: python
@@ -1485,6 +1716,11 @@ The plot above shows that it is possible to have two or more plots for the same 
    @savefig rplot4_tips.png
    plot.render(plt.gcf())
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Above is a similar plot but with 2D kernel density estimation plot superimposed.
 
 .. ipython:: python
@@ -1498,6 +1734,11 @@ Above is a similar plot but with 2D kernel density estimation plot superimposed.
    @savefig rplot5_tips.png
    plot.render(plt.gcf())
 
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 It is possible to only use one attribute for grouping data. The example above only uses 'sex' attribute. If the second grouping attribute is not specified, the plots will be arranged in a column.
 
 .. ipython:: python
@@ -1510,6 +1751,11 @@ It is possible to only use one attribute for grouping data. The example above on
 
    @savefig rplot6_tips.png
    plot.render(plt.gcf())
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 If the first grouping attribute is not specified the plots will be arranged in a row.
 
@@ -1527,6 +1773,11 @@ If the first grouping attribute is not specified the plots will be arranged in a
 
    @savefig rplot7_tips.png
    plot.render(plt.gcf())
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
 
 As shown above, scatter plots are also possible. Scatter plots allow you to map various data attributes to graphical properties of the plot. In the example above the colour and shape of the scatter plot graphical objects is mapped to 'day' and 'size' attributes respectively. You use scale objects to specify these mappings. The list of scale classes is given below with initialization arguments for quick reference.
 
