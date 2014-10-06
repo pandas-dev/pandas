@@ -1066,3 +1066,4 @@ Bug Fixes
 - Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
 - Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
 - Bug in Series that allows it to be indexed by a DataFrame which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
+- Bug in item assignment of a DataFrame with multi-index columns where right-hand-side columns were not aligned (:issue:`7655`)

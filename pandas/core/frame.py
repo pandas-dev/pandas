@@ -2194,6 +2194,15 @@ class DataFrame(NDFrame):
             value = reindexer(value)
 
         elif isinstance(value, DataFrame):
+            # align right-hand-side columns if self.columns
+            # is multi-index and self[key] is a sub-frame
+            if isinstance(self.columns, MultiIndex) and key in self.columns:
+                loc = self.columns.get_loc(key)
+                if isinstance(loc, (slice, Series, np.ndarray, Index)):
+                    cols = _maybe_droplevels(self.columns[loc], key)
+                    if len(cols) and not cols.equals(value.columns):
+                        value = value.reindex_axis(cols, axis=1)
+            # now align rows
             value = reindexer(value).T
 
         elif isinstance(value, Categorical):
