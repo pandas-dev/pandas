@@ -6199,6 +6199,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         e = np.array([1, 2])
         tm.assert_array_equal(r, e)
 
+    def test_searchsorted_sorter(self):
+        # GH8490
+        s = Series([3, 1, 2])
+        r = s.searchsorted([0, 3], sorter=np.argsort(s))
+        e = np.array([0, 2])
+        tm.assert_array_equal(r, e)
 
 
 

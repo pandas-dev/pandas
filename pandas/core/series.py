@@ -1429,6 +1429,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> x.searchsorted([1, 2], side='right', sorter=[0, 2, 1])
         array([1, 3])
         """
+        if sorter is not None:
+            sorter = com._ensure_platform_int(sorter)
+
         return self.values.searchsorted(Series(v).values, side=side,
                                         sorter=sorter)
 
