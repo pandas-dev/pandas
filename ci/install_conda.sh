@@ -70,7 +70,7 @@ python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 function mc_version()
 {
     wget -O - -o /dev/null http://repo.continuum.io/miniconda | \
-        egrep -o "\">Miniconda${python_major_version}-.+-Linux-x86_64.sh</" | \
+        egrep -o "\">Miniconda${python_major_version}.+Linux-x86_64.sh</" | \
         egrep -o '\d+\.\d+\.\d+' | sort -V  | tail -1
 }
 
