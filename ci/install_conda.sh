@@ -65,10 +65,9 @@ if [ -n "$CLIPBOARD" ]; then
 fi
 
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
-miniconda_version=$python_major_version
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-wget http://repo.continuum.io/miniconda/Miniconda${miniconda_version}-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+wget http://repo.continuum.io/miniconda/Miniconda${python_major_version}-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
 bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
 conda config --set always_yes yes --set changeps1 no || exit 1
