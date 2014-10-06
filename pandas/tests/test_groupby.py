@@ -2112,6 +2112,18 @@ class TestGroupBy(tm.TestCase):
         grpby_no_copy = mydf.groupby('cat1').apply(f_no_copy)
         assert_series_equal(grpby_copy,grpby_no_copy)
 
+    def test_no_mutate_but_looks_like(self):
+
+        # GH 8467
+        # first show's mutation indicator
+        # second does not, but should yield the same results
+        df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                        'value': range(9)})
+
+        result1 = df.groupby('key', group_keys=True).apply(lambda x: x[:].key)
+        result2 = df.groupby('key', group_keys=True).apply(lambda x: x.key)
+        assert_series_equal(result1, result2)
+
     def test_apply_chunk_view(self):
         # Low level tinkering could be unsafe, make sure not
         df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
