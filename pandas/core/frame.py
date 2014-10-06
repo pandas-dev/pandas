@@ -3752,7 +3752,7 @@ class DataFrame(NDFrame):
                                 'ignore_index=True')
 
             index = None if other.name is None else [other.name]
-            combined_columns = self.columns.tolist() + (self.columns | other.index).difference(self.columns).tolist()
+            combined_columns = self.columns.tolist() + self.columns.union(other.index).difference(self.columns).tolist()
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index, columns=combined_columns).convert_objects()

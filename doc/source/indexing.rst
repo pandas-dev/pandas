@@ -1191,39 +1191,8 @@ The name, if set, will be shown in the console display:
    df
    df['A']
 
-
-Set operations on Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _indexing.set_ops:
-
-The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
-(-)``. These can be directly called as instance methods or used via overloaded
-operators:
-
-.. ipython:: python
-
-   a = Index(['c', 'b', 'a'])
-   b = Index(['c', 'e', 'd'])
-   a.union(b)
-   a | b
-   a & b
-   a - b
-
-Also available is the ``sym_diff (^)`` operation, which returns elements
-that appear in either ``idx1`` or ``idx2`` but not both. This is
-equivalent to the Index created by ``(idx1 - idx2) + (idx2 - idx1)``,
-with duplicates dropped.
-
-.. ipython:: python
-
-   idx1 = Index([1, 2, 3, 4])
-   idx2 = Index([2, 3, 4, 5])
-   idx1.sym_diff(idx2)
-   idx1 ^ idx2
-
-Setting index metadata (``name(s)``, ``levels``, ``labels``)
-------------------------------------------------------------
+Setting metadata
+~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.13.0
 
@@ -1260,6 +1229,40 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   index
   index.levels[1]
   index.set_levels(["a", "b"], level=1)
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
+
+.. warning::
+
+   In 0.15.0. the set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain
+   index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``.
+
+The two main operations are ``union (|)``, ``intersection (&)``
+These can be directly called as instance methods or used via overloaded
+operators. Difference is provided via the ``.difference()`` method.
+
+.. ipython:: python
+
+   a = Index(['c', 'b', 'a'])
+   b = Index(['c', 'e', 'd'])
+   a | b
+   a & b
+   a.difference(b)
+
+Also available is the ``sym_diff (^)`` operation, which returns elements
+that appear in either ``idx1`` or ``idx2`` but not both. This is
+equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
+with duplicates dropped.
+
+.. ipython:: python
+
+   idx1 = Index([1, 2, 3, 4])
+   idx2 = Index([2, 3, 4, 5])
+   idx1.sym_diff(idx2)
+   idx1 ^ idx2
 
 Set / Reset Index
 -----------------
