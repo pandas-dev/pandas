@@ -13,7 +13,11 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style = 'default'
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    options.display.max_rows = 15
    from pandas.compat import lrange
 
@@ -29,14 +33,11 @@ We use the standard convention for referencing the matplotlib API:
 
 .. versionadded:: 0.11.0
 
-The ``display.mpl_style`` produces more appealing plots.
+The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4).
+If your version of matplotlib is 1.3 or lower, setting the ``display.mpl_style`` to ``'default'``
+with ``pd.options.display.mpl_style = 'default'``
+to produce more appealing plots.
 When set, matplotlib's ``rcParams`` are changed (globally!) to nicer-looking settings.
-All the plots in the documentation are rendered with this option set to the
-'default' style.
-
-.. ipython:: python
-
-   pd.options.display.mpl_style = 'default'
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
