@@ -767,6 +767,7 @@ Prior Version Deprecations/Changes
 Deprecations
 ~~~~~~~~~~~~
 
+- The ``outtype`` argument to ``pd.DataFrame.to_dict`` has been deprecated in favor of ``orient``. (:issue:`7840`)
 - The ``convert_dummies`` method has been deprecated in favor of
   ``get_dummies`` (:issue:`8140`)
 - The ``infer_dst`` argument in ``tz_localize`` will be deprecated in favor of
@@ -849,7 +850,7 @@ Enhancements
     idx
     idx + pd.offsets.MonthEnd(3)
 
-
+- Added ``split`` as an option to the ``orient`` argument in ``pd.DataFrame.to_dict``. (:issue:`7840`)
 
 - The ``get_dummies`` method can now be used on DataFrames. By default only
   catagorical columns are encoded as 0's and 1's, while other columns are
