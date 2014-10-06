@@ -51,7 +51,6 @@ takes a list or dict of homogeneously-typed objects and concatenates them with
 some configurable handling of "what to do with the other axes":
 
 ::
-
     concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False)
 
@@ -99,6 +98,18 @@ means that we can now do stuff like select out each chunk by key:
 
 It's not a stretch to see how this can be very useful. More detail on this
 functionality below.
+
+.. note::
+   It is worth noting however, that ``concat`` (and therefore ``append``) makes
+   a full copy of the data, and that constantly reusing this function can 
+   create a signifcant performance hit. If you need to use the operation over 
+   several datasets, use a list comprehension. 
+
+::
+   
+   frames = [ process_your_file(f) for f in files ]
+   result = pd.concat(frames)
+
 
 Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
