@@ -2851,8 +2851,9 @@ class NDFrameGroupBy(GroupBy):
                             return concat(values)
 
                     if not all_indexed_same:
+                        # GH 8467
                         return self._concat_objects(
-                            keys, values, not_indexed_same=not_indexed_same
+                            keys, values, not_indexed_same=True,
                         )
 
                 try:
