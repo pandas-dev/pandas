@@ -819,7 +819,6 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.delevel
    DataFrame.pivot
    DataFrame.reorder_levels
    DataFrame.sort

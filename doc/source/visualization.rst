@@ -689,7 +689,7 @@ See the `matplotlib pie documenation <http://matplotlib.org/api/pyplot_api.html#
 
     plt.close('all')
 
-.. _visualization.missing_data
+.. _visualization.missing_data:
 
 Plotting with Missing Data
 --------------------------
