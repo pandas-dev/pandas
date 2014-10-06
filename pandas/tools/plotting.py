@@ -2328,10 +2328,10 @@ df_ax = """ax : matplotlib axes object, default None
 series_ax = """ax : matplotlib axes object
         If not passed, uses gca()"""
 
-df_note = """- If `kind`='bar' or 'barh', you can specify relative alignments
+df_note = """- If `kind` = 'bar' or 'barh', you can specify relative alignments
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    - If `kind`='hexbin', you can control the size of the bins with the
+    - If `kind` = 'hexbin', you can control the size of the bins with the
       `gridsize` argument. By default, a histogram of the counts around each
       `(x, y)` point is computed. You can specify alternative aggregations
       by passing values to the `C` and `reduce_C_function` arguments.
@@ -2425,7 +2425,7 @@ _shared_docs['plot'] = """
     Notes
     -----
 
-    If `kind`='hexbin', you can control the size of the bins with the
+    If `kind` = 'hexbin', you can control the size of the bins with the
     `gridsize` argument. By default, a histogram of the counts around each
     `(x, y)` point is computed. You can specify alternative aggregations
     by passing values to the `C` and `reduce_C_function` arguments.
@@ -2433,10 +2433,11 @@ _shared_docs['plot'] = """
     is a function of one argument that reduces all the values in a bin to
     a single number (e.g. `mean`, `max`, `sum`, `std`).
 
-    If `kind`='scatter' and the argument `c` is the name of a dataframe column,
+    If `kind` = 'scatter' and the argument `c` is the name of a dataframe column,
     the values of that column are used to color each point.
     - See matplotlib documentation online for more on this subject
     %(klass_note)s
+    
     """
 
 @Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)

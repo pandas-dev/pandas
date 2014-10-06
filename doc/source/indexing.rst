@@ -106,9 +106,8 @@ of multi-axis indexing.
   label based access and not positional access is supported.
   Thus, in such cases, it's usually better to be explicit and use ``.iloc`` or ``.loc``.
 
-  See more at :ref:`Advanced Indexing <advanced>`, :ref:`Advanced
-  Hierarchical <advanced.advanced_hierarchical>` and :ref:`Fallback Indexing
-  <advanced.fallback>`
+  See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
+  Hierarchical <advanced.advanced_hierarchical>`.
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as

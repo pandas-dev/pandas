@@ -918,8 +918,8 @@ class GroupBy(PandasObject):
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
 
-        Example
-        -------
+        Examples
+        --------
 
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
         ...                   columns=['A'])
@@ -963,8 +963,8 @@ class GroupBy(PandasObject):
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
 
-        Example
-        -------
+        Examples
+        --------
 
         >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
                             columns=['A', 'B'])
@@ -990,8 +990,8 @@ class GroupBy(PandasObject):
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
 
-        Example
-        -------
+        Examples
+        --------
 
         >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
                             columns=['A', 'B'])
@@ -2452,8 +2452,8 @@ class SeriesGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
-        Example
-        -------
+        Examples
+        --------
         >>> grouped.filter(lambda x: x.mean() > 0)
 
         Returns
@@ -3083,7 +3083,7 @@ class NDFrameGroupBy(GroupBy):
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        Example
+        Examples
         --------
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)

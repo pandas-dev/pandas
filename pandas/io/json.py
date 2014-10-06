@@ -573,7 +573,9 @@ def nested_to_record(ds, prefix="", level=0):
     -------
     d - dict or list of dicts, matching `ds`
 
-    Example:
+    Examples
+    --------
+
     IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
                                   nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
