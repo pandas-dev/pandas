@@ -640,19 +640,25 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_dict(self, outtype='dict'):
-        """
-        Convert DataFrame to dictionary.
+    @deprecate_kwarg(old_arg_name='outtype', new_arg_name='orient')
+    def to_dict(self, orient='dict'):
+        """Convert DataFrame to dictionary.
 
         Parameters
         ----------
-        outtype : str {'dict', 'list', 'series', 'records'}
-            Determines the type of the values of the dictionary. The
-            default `dict` is a nested dictionary {column -> {index -> value}}.
-            `list` returns {column -> list(values)}. `series` returns
-            {column -> Series(values)}. `records` returns [{columns -> value}].
-            Abbreviations are allowed.
+        orient : str {'dict', 'list', 'series', 'split', 'records'}
+            Determines the type of the values of the dictionary.
 
+            - dict (default) : dict like {column -> {index -> value}}
+            - list : dict like {column -> [values]}
+            - series : dict like {column -> Series(values)}
+            - split : dict like
+              {index -> [index], columns -> [columns], data -> [values]}
+            - records : list like
+              [{column -> value}, ... , {column -> value}]
+
+            Abbreviations are allowed. `s` indicates `series` and `sp`
+            indicates `split`.
 
         Returns
         -------
@@ -661,13 +667,17 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
-        if outtype.lower().startswith('d'):
+        if orient.lower().startswith('d'):
             return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('l'):
+        elif orient.lower().startswith('l'):
             return dict((k, v.tolist()) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('s'):
+        elif orient.lower().startswith('sp'):
+            return {'index': self.index.tolist(),
+                    'columns': self.columns.tolist(),
+                    'data': self.values.tolist()}
+        elif orient.lower().startswith('s'):
             return dict((k, v) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('r'):
+        elif orient.lower().startswith('r'):
             return [dict((k, v) for k, v in zip(self.columns, row))
                     for row in self.values]
         else:  # pragma: no cover

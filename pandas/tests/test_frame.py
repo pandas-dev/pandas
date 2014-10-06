@@ -4037,6 +4037,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             for k2, v2 in compat.iteritems(v):
                 self.assertEqual(v2, recons_data[k][k2])
 
+        recons_data = DataFrame(test_data).to_dict("sp")
+
+        expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
+                          'data': [[1.0, '1'], [2.0, '2'], [nan, '3']]}
+
+        tm.assert_almost_equal(recons_data, expected_split)
+
         recons_data = DataFrame(test_data).to_dict("r")
 
         expected_records = [{'A': 1.0, 'B': '1'},
