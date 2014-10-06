@@ -57,7 +57,8 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
-- :func:`describe` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments (:issue:`8164`).
+- :func:`describe` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments.
+  See the :ref:`docs <basics.describe>` (:issue:`8164`).
 
   .. ipython:: python
 
