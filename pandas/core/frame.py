@@ -60,6 +60,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option
+from math import isnan
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -640,7 +641,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_dict(self, outtype='dict'):
+    def to_dict(self, outtype='dict', dropna=False):
         """
         Convert DataFrame to dictionary.
 
@@ -653,6 +654,8 @@ class DataFrame(NDFrame):
             {column -> Series(values)}. `records` returns [{columns -> value}].
             Abbreviations are allowed.
 
+        dropna:  boolean, default False
+            drops all NaN elements from the dictionary.
 
         Returns
         -------
@@ -661,17 +664,31 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
-        if outtype.lower().startswith('d'):
-            return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('s'):
-            return dict((k, v) for k, v in compat.iteritems(self))
-        elif outtype.lower().startswith('r'):
-            return [dict((k, v) for k, v in zip(self.columns, row))
-                    for row in self.values]
-        else:  # pragma: no cover
-            raise ValueError("outtype %s not understood" % outtype)
+        if not dropna:
+            if outtype.lower().startswith('d'):
+                return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('l'):
+                return dict((k, v.tolist()) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('s'):
+                return dict((k, v) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('r'):
+                return [dict((k, v) for k, v in zip(self.columns, row))
+                        for row in self.values]
+            else:  # pragma: no cover
+                raise ValueError("outtype %s not understood" % outtype)
+
+        if dropna:
+            if outtype.lower().startswith('d'):
+                return dict((k, v.dropna().to_dict()) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('l'):
+                return dict((k, v.dropna().tolist()) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('s'):
+                return dict((k, v.dropna()) for k, v in compat.iteritems(self))
+            elif outtype.lower().startswith('r'):
+                return [dict((k, v) for k, v in zip(self.columns, row) if not isnan(v) )
+                        for row in self.values]
+            else:  # pragma: no cover
+                raise ValueError("outtype %s not understood" % outtype)
 
     def to_gbq(self, destination_table, project_id=None, chunksize=10000,
                verbose=True, reauth=False):
