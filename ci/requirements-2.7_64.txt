@@ -1,0 +1,11 @@
+dateutil
+pytz
+xlwt
+numpy
+cython
+numexpr
+pytables
+matplotlib
+openpyxl
+xlrd
+scipy
