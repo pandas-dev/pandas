@@ -33,7 +33,7 @@ def _skip_if_mpl_14_or_dev_boxplot():
     # Boxplot failures on 1.4 and 1.4.1
     # Don't need try / except since that's done at class level
     import matplotlib
-    if matplotlib.__version__ >= LooseVersion('1.4'):
+    if str(matplotlib.__version__) >= LooseVersion('1.4'):
         raise nose.SkipTest("Matplotlib Regression in 1.4 and current dev.")
 
 
@@ -72,7 +72,7 @@ class TestPlotBase(tm.TestCase):
                                       'weight': random.normal(161, 32, size=n),
                                       'category': random.randint(4, size=n)})
 
-        if mpl.__version__ >= LooseVersion('1.4'):
+        if str(mpl.__version__) >= LooseVersion('1.4'):
             self.bp_n_objects = 7
         else:
             self.bp_n_objects = 8
