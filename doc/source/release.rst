@@ -70,10 +70,6 @@ Highlights include:
 See the :ref:`v0.15.0 Whatsnew <whatsnew_0150>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.15.0.
 
-This is a major release from 0.14.1 and includes a small number of API changes, several new features,
-enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
-users upgrade to this version.
-
 Thanks
 ~~~~~~
 
