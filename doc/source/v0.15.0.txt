@@ -274,7 +274,7 @@ API changes
 
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
-- ``read_hdf`` now raises ``IOError`` when a file that doesn't exist is passed in. Previously, a new, empty file was created, and a ``KeyError`` raised (:issue `7715`).
+- ``read_hdf`` now raises ``IOError`` when a file that doesn't exist is passed in. Previously, a new, empty file was created, and a ``KeyError`` raised (:issue:`7715`).
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
