@@ -387,7 +387,7 @@ Timezone API changes
 
 - ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
   indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
-  'infer' for inferring DST/non-DST, and 'raise' (default) for an AmbiguousTimeError to be raised. See :ref:`the docs<timeseries.timezone_ambiguous>` for more details (:issue:`7943`)
+  'infer' for inferring DST/non-DST, and 'raise' (default) for an ``AmbiguousTimeError`` to be raised. See :ref:`the docs<timeseries.timezone_ambiguous>` for more details (:issue:`7943`)
 
 - ``DataFrame.tz_localize`` and ``DataFrame.tz_convert`` now accepts an optional ``level`` argument
   for localizing a specific level of a MultiIndex (:issue:`7846`)
@@ -696,7 +696,7 @@ Consruct a scalar
    # a NaT
    Timedelta('nan')
 
-Access fields for a Timedelta
+Access fields for a ``Timedelta``
 
 .. ipython:: python
 
@@ -920,10 +920,10 @@ Bug Fixes
 - Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
 - Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 - Bug in multiindexes dtypes getting mixed up when DataFrame is saved to SQL table (:issue:`8021`)
-- Bug in Series 0-division with a float and integer operand dtypes  (:issue:`7785`)
+- Bug in ``Series`` 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
 - Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)
-- Bug in ``HDFStore.select_column()`` not preserving UTC timezone info when selecting a DatetimeIndex (:issue:`7777`)
+- Bug in ``HDFStore.select_column()`` not preserving UTC timezone info when selecting a ``DatetimeIndex`` (:issue:`7777`)
 - Bug in ``to_datetime`` when ``format='%Y%m%d'`` and ``coerce=True`` are specified, where previously an object array was returned (rather than
   a coerced time-series with ``NaT``), (:issue:`7930`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
@@ -932,25 +932,25 @@ Bug Fixes
 - Bug in multi-index slicing with missing indexers (:issue:`7866`)
 - Bug in multi-index slicing with various edge cases (:issue:`8132`)
 - Regression in multi-index indexing with a non-scalar type object (:issue:`7914`)
-- Bug in Timestamp comparisons with ``==`` and dtype of int64 (:issue:`8058`)
+- Bug in ``Timestamp`` comparisons with ``==`` and ``int64`` dtype (:issue:`8058`)
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)
-- Bug in Panel when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
+- Bug in ``Panel`` when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
 - Bug in putting a ``PeriodIndex`` into a ``Series`` would convert to ``int64`` dtype, rather than ``object`` of ``Periods`` (:issue:`7932`)
-- Bug in HDFStore iteration when passing a where (:issue:`8014`)
-- Bug in DataFrameGroupby.transform when transforming with a passed non-sorted key (:issue:`8046`, :issue:`8430`)
+- Bug in ``HDFStore`` iteration when passing a where (:issue:`8014`)
+- Bug in ``DataFrameGroupby.transform`` when transforming with a passed non-sorted key (:issue:`8046`, :issue:`8430`)
 - Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
-- Bug in inference in a MultiIndex with ``datetime.date`` inputs (:issue:`7888`)
+- Bug in inference in a ``MultiIndex`` with ``datetime.date`` inputs (:issue:`7888`)
 - Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-- Bug in sorting a multi-index frame with a Float64Index (:issue:`8017`)
-- Bug in inconsistent panel setitem with a rhs of a DataFrame for alignment (:issue:`7763`)
+- Bug in sorting a multi-index frame with a ``Float64Index`` (:issue:`8017`)
+- Bug in inconsistent panel setitem with a rhs of a ``DataFrame`` for alignment (:issue:`7763`)
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 - Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
 - Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
-- Bug in groupby ``.apply`` with a non-affecting mutation in the function (:issue:`8467`)
+- Bug in ``groupby.apply`` with a non-affecting mutation in the function (:issue:`8467`)
 - Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
 
 
@@ -995,7 +995,7 @@ Bug Fixes
   return a non scalar value that appeared valid but wasn't (:issue:`7870`).
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
-- Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue`7949`)
+- Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue:`7949`)
 - Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
 - ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 - Bug in ``Holiday`` with no offset or observance (:issue:`7987`)
@@ -1021,7 +1021,7 @@ Bug Fixes
   ``_read`` (:issue:`7927`).
 
 - Bug in ``DataFrame.stack()`` when one of the column levels was a datelike (:issue:`8039`)
-- Bug in broadcasting numpy scalars with DataFrames (:issue:`8116`)
+- Bug in broadcasting numpy scalars with ``DataFrame`` (:issue:`8116`)
 
 
 - Bug in ``pivot_table`` performed with nameless ``index`` and ``columns`` raises ``KeyError`` (:issue:`8103`)
@@ -1059,15 +1059,15 @@ Bug Fixes
 - Bug in interpolation methods with the ``limit`` keyword when no values needed interpolating (:issue:`7173`).
 - Bug where ``col_space`` was ignored in ``DataFrame.to_string()`` when ``header=False`` (:issue:`8230`).
 - Bug in ``to_clipboard`` that would clip long column data (:issue:`8305`)
-- Bug in DataFrame terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).
+- Bug in ``DataFrame`` terminal display: Setting max_column/max_rows to zero did not trigger auto-resizing of dfs to fit terminal width/height (:issue:`7180`).
 - Bug in OLS where running with "cluster" and "nw_lags" parameters did not work correctly, but also did not throw an error
   (:issue:`5884`).
 - Bug in ``DataFrame.dropna`` that interpreted non-existent columns in the subset argument as the 'last column' (:issue:`8303`)
-- Bug in Index.intersection on non-monotonic non-unique indexes (:issue:`8362`).
+- Bug in ``Index.intersection`` on non-monotonic non-unique indexes (:issue:`8362`).
 - Bug in masked series assignment where mismatching types would break alignment (:issue:`8387`)
-- Bug in NDFrame.equals gives false negatives with dtype=object (:issue:`8437`)
+- Bug in ``NDFrame.equals`` gives false negatives with dtype=object (:issue:`8437`)
 - Bug in assignment with indexer where type diversity would break alignment (:issue:`8258`)
 - Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
 - Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
-- Bug in Series that allows it to be indexed by a DataFrame which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
-- Bug in item assignment of a DataFrame with multi-index columns where right-hand-side columns were not aligned (:issue:`7655`)
+- Bug in ``Series`` that allows it to be indexed by a ``DataFrame`` which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
+- Bug in item assignment of a ``DataFrame`` with multi-index columns where right-hand-side columns were not aligned (:issue:`7655`)
