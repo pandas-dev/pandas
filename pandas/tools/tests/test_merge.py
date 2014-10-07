@@ -2122,7 +2122,7 @@ class TestConcatenate(tm.TestCase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        self.assertRaises(Exception, concat, [None, None])
+        self.assertRaises(ValueError, concat, [None, None])
 
     def test_concat_datetime64_block(self):
         from pandas.tseries.index import date_range
