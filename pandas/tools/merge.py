@@ -41,7 +41,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
-class MergeError(Exception):
+class MergeError(ValueError):
     pass
 
 
@@ -679,7 +679,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
-        they are all None in which case an Exception will be raised
+        they are all None in which case a ValueError will be raised
     axis : {0, 1, ...}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
@@ -764,7 +764,7 @@ class _Concatenator(object):
             keys = clean_keys
 
         if len(objs) == 0:
-            raise Exception('All objects passed were None')
+            raise ValueError('All objects passed were None')
 
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()

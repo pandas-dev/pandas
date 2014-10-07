@@ -224,12 +224,12 @@ class TestMerge(tm.TestCase):
         self.assertTrue(np.isnan(joined['three']['c']))
 
         # merge column not p resent
-        self.assertRaises(Exception, target.join, source, on='E')
+        self.assertRaises(KeyError, target.join, source, on='E')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        self.assertRaises(Exception, target.join, source_copy, on='A')
+        self.assertRaises(ValueError, target.join, source_copy, on='A')
 
     def test_join_on_fails_with_different_right_index(self):
         with tm.assertRaises(ValueError):
@@ -551,15 +551,15 @@ class TestMerge(tm.TestCase):
         assert_frame_equal(result, expected.ix[:, result.columns])
 
     def test_merge_misspecified(self):
-        self.assertRaises(Exception, merge, self.left, self.right,
+        self.assertRaises(ValueError, merge, self.left, self.right,
                           left_index=True)
-        self.assertRaises(Exception, merge, self.left, self.right,
+        self.assertRaises(ValueError, merge, self.left, self.right,
                           right_index=True)
 
-        self.assertRaises(Exception, merge, self.left, self.left,
+        self.assertRaises(ValueError, merge, self.left, self.left,
                           left_on='key', on='key')
 
-        self.assertRaises(Exception, merge, self.df, self.df2,
+        self.assertRaises(ValueError, merge, self.df, self.df2,
                           left_on=['key1'], right_on=['key1', 'key2'])
 
     def test_merge_overlap(self):
@@ -854,7 +854,7 @@ class TestMerge(tm.TestCase):
         df.columns = ['key', 'foo', 'foo']
         df2.columns = ['key', 'bar', 'bar']
 
-        self.assertRaises(Exception, merge, df, df2)
+        self.assertRaises(ValueError, merge, df, df2)
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
@@ -2122,7 +2122,7 @@ class TestConcatenate(tm.TestCase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        self.assertRaises(Exception, concat, [None, None])
+        self.assertRaises(ValueError, concat, [None, None])
 
     def test_concat_datetime64_block(self):
         from pandas.tseries.index import date_range
