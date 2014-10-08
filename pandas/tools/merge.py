@@ -41,7 +41,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
-class MergeError(Exception):
+class MergeError(ValueError):
     pass
 
 
