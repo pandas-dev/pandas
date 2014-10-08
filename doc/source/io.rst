@@ -3421,7 +3421,7 @@ Specifying this will return an iterator through chunks of the query result:
 
 .. ipython:: python
 
-    for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize):
+    for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
 
 You can also run a plain query without creating a dataframe with
