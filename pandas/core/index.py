@@ -220,7 +220,7 @@ class Index(IndexOpsMixin, PandasObject):
         result._reset_identity()
         return result
 
-    def _update_inplace(self, result):
+    def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 

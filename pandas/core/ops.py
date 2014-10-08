@@ -161,20 +161,39 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
         if passed, will not set functions with names in exclude
     """
     radd_func = radd_func or operator.add
+
     # in frame, special methods have default_axis = None, comp methods use
     # 'columns'
+
     new_methods = _create_methods(arith_method, radd_func, comp_method,
                                   bool_method, use_numexpr, default_axis=None,
                                   special=True)
 
     # inplace operators (I feel like these should get passed an `inplace=True`
     # or just be removed
+
+    def _wrap_inplace_method(method):
+        """
+        return an inplace wrapper for this method
+        """
+
+        def f(self, other):
+            result = method(self, other)
+
+            # this makes sure that we are aligned like the input
+            # we are updating inplace so we want to ignore is_copy
+            self._update_inplace(result.reindex_like(self,copy=False)._data,
+                                 verify_is_copy=False)
+
+            return self
+        return f
+
     new_methods.update(dict(
-        __iadd__=new_methods["__add__"],
-        __isub__=new_methods["__sub__"],
-        __imul__=new_methods["__mul__"],
-        __itruediv__=new_methods["__truediv__"],
-        __ipow__=new_methods["__pow__"]
+        __iadd__=_wrap_inplace_method(new_methods["__add__"]),
+        __isub__=_wrap_inplace_method(new_methods["__sub__"]),
+        __imul__=_wrap_inplace_method(new_methods["__mul__"]),
+        __itruediv__=_wrap_inplace_method(new_methods["__truediv__"]),
+        __ipow__=_wrap_inplace_method(new_methods["__pow__"]),
     ))
     if not compat.PY3:
         new_methods["__idiv__"] = new_methods["__div__"]
