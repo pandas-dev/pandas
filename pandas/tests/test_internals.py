@@ -11,7 +11,7 @@ import pandas.core.internals as internals
 import pandas.util.testing as tm
 import pandas as pd
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, randn)
+    assert_almost_equal, assert_frame_equal, randn, assert_series_equal)
 from pandas.compat import zip, u
 
 
@@ -362,6 +362,15 @@ class TestBlockManager(tm.TestCase):
         mgr = create_mgr('a: f8; a: i8')
         mgr2 = self.round_trip_pickle(mgr)
         assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+
+    def test_categorical_block_pickle(self):
+        mgr = create_mgr('a: category')
+        mgr2 = self.round_trip_pickle(mgr)
+        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+
+        smgr = create_single_mgr('category')
+        smgr2 = self.round_trip_pickle(smgr)
+        assert_series_equal(Series(smgr), Series(smgr2))
 
     def test_get_scalar(self):
         for item in self.mgr.items:

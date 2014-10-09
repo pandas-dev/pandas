@@ -1070,15 +1070,18 @@ class NonConsolidatableMixIn(object):
     def __init__(self, values, placement,
                  ndim=None, fastpath=False,):
 
+        # Placement must be converted to BlockPlacement via property setter
+        # before ndim logic, because placement may be a slice which doesn't
+        # have a length.
+        self.mgr_locs = placement
+
         # kludgetastic
         if ndim is None:
-            if len(placement) != 1:
+            if len(self.mgr_locs) != 1:
                 ndim = 1
             else:
                 ndim = 2
         self.ndim = ndim
-
-        self.mgr_locs = placement
 
         if not isinstance(values, self._holder):
             raise TypeError("values must be {0}".format(self._holder.__name__))
@@ -1852,6 +1855,7 @@ class DatetimeBlock(Block):
                       .reshape(self.values.shape)
         return self.values
 
+
 class SparseBlock(NonConsolidatableMixIn, Block):
     """ implement as a list of sparse arrays of the same dtype """
     __slots__ = ()
@@ -1860,27 +1864,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _can_hold_na = True
     _ftype = 'sparse'
     _holder = SparseArray
-
-    def __init__(self, values, placement,
-                 ndim=None, fastpath=False,):
-
-        # Placement must be converted to BlockPlacement via property setter
-        # before ndim logic, because placement may be a slice which doesn't
-        # have a length.
-        self.mgr_locs = placement
-
-        # kludgetastic
-        if ndim is None:
-            if len(self.mgr_locs) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        self.ndim = ndim
-
-        if not isinstance(values, SparseArray):
-            raise TypeError("values must be SparseArray")
-
-        self.values = values
 
     @property
     def shape(self):

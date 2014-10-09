@@ -60,7 +60,7 @@ def create_data():
     from pandas import (Series,TimeSeries,DataFrame,Panel,
                         SparseSeries,SparseTimeSeries,SparseDataFrame,SparsePanel,
                         Index,MultiIndex,PeriodIndex,
-                        date_range,period_range,bdate_range,Timestamp)
+                        date_range,period_range,bdate_range,Timestamp,Categorical)
     nan = np.nan
 
     data = {
@@ -85,7 +85,8 @@ def create_data():
                   mi = Series(np.arange(5).astype(np.float64),index=MultiIndex.from_tuples(tuple(zip(*[[1,1,2,2,2],
                                                                                                     [3,4,3,4,5]])),
                                                                                            names=['one','two'])),
-                  dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']))
+                  dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])))
 
     frame = dict(float = DataFrame(dict(A = series['float'], B = series['float'] + 1)),
                  int = DataFrame(dict(A = series['int']  , B = series['int']   + 1)),
@@ -95,7 +96,11 @@ def create_data():
                                                                        ['one','two','one','two','three']])),
                                                              names=['first','second'])),
                  dup=DataFrame(np.arange(15).reshape(5, 3).astype(np.float64),
-                               columns=['A', 'B', 'A']))
+                               columns=['A', 'B', 'A']),
+                 cat_onecol=DataFrame(dict(A=Categorical(['foo', 'bar']))),
+                 cat_and_float=DataFrame(dict(A=Categorical(['foo', 'bar', 'baz']),
+                                              B=np.arange(3))),
+    )
     panel = dict(float = Panel(dict(ItemA = frame['float'], ItemB = frame['float']+1)),
                  dup = Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
                              items=['A', 'B', 'A']))
