@@ -317,6 +317,16 @@ locations treated as equal.
 
    (df+df).equals(df*2)
 
+Note that the Series or DataFrame index needs to be in the same order for
+equality to be True:
+
+.. ipython:: python
+
+   df = DataFrame({'col':['foo', 0, np.nan]})
+   df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+   df.equals(df2)
+   df.equals(df2.sort())
+
 
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

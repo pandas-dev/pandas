@@ -1047,7 +1047,7 @@ class Index(IndexOpsMixin, PandasObject):
         if type(other) != Index:
             return other.equals(self)
 
-        return array_equivalent(self, other)
+        return array_equivalent(_values_from_object(self), _values_from_object(other))
 
     def identical(self, other):
         """Similar to equals, but check that other comparable attributes are
@@ -2260,7 +2260,7 @@ class Int64Index(NumericIndex):
         #     return False
 
         try:
-            return array_equivalent(self, other)
+            return array_equivalent(_values_from_object(self), _values_from_object(other))
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False
@@ -4175,7 +4175,8 @@ class MultiIndex(Index):
             return True
 
         if not isinstance(other, MultiIndex):
-            return array_equivalent(self.values, _ensure_index(other))
+            return array_equivalent(self.values,
+                                    _values_from_object(_ensure_index(other)))
 
         if self.nlevels != other.nlevels:
             return False
