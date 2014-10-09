@@ -180,6 +180,7 @@ class TestPandasDelegate(tm.TestCase):
 
 class Ops(tm.TestCase):
     def setUp(self):
+        self.bool_index    = tm.makeBoolIndex(10)
         self.int_index     = tm.makeIntIndex(10)
         self.float_index   = tm.makeFloatIndex(10)
         self.dt_index      = tm.makeDateIndex(10)
@@ -189,14 +190,15 @@ class Ops(tm.TestCase):
 
         arr = np.random.randn(10)
         self.int_series    = Series(arr, index=self.int_index)
-        self.float_series  = Series(arr, index=self.int_index)
+        self.float_series  = Series(arr, index=self.float_index)
         self.dt_series     = Series(arr, index=self.dt_index)
         self.dt_tz_series  = self.dt_tz_index.to_series(keep_tz=True)
         self.period_series = Series(arr, index=self.period_index)
         self.string_series = Series(arr, index=self.string_index)
 
-        types = ['int','float','dt', 'dt_tz', 'period','string']
-        self.objs = [ getattr(self,"{0}_{1}".format(t,f)) for t in types for f in ['index','series'] ]
+        types = ['bool','int','float','dt', 'dt_tz', 'period','string']
+        fmts = [ "{0}_{1}".format(t,f) for t in types for f in ['index','series'] ]
+        self.objs = [ getattr(self,f) for f in fmts if getattr(self,f,None) is not None ]
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -340,6 +342,9 @@ class TestIndexOps(Ops):
                 # freq must be specified because repeat makes freq ambiguous
                 expected_index = o[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
+            # don't test boolean
+            elif isinstance(o,Index) and o.is_boolean():
+                continue
             elif isinstance(o, Index):
                 expected_index = values[::-1]
                 o = klass(np.repeat(values, range(1, len(o) + 1)))
@@ -365,6 +370,10 @@ class TestIndexOps(Ops):
             for o in self.objs:
                 klass = type(o)
                 values = o.values
+
+                if isinstance(o,Index) and o.is_boolean():
+                    # don't test boolean
+                    continue
 
                 if ((isinstance(o, Int64Index) and not isinstance(o,
                     (DatetimeIndex, PeriodIndex)))):
@@ -537,7 +546,14 @@ class TestIndexOps(Ops):
 
     def test_factorize(self):
         for o in self.objs:
-            exp_arr = np.array(range(len(o)))
+
+            if isinstance(o,Index) and o.is_boolean():
+                exp_arr = np.array([0,1] + [0] * 8)
+                exp_uniques = o
+                exp_uniques = Index([False,True])
+            else:
+                exp_arr = np.array(range(len(o)))
+                exp_uniques = o
             labels, uniques = o.factorize()
 
             self.assert_numpy_array_equal(labels, exp_arr)
@@ -545,16 +561,22 @@ class TestIndexOps(Ops):
                 expected = Index(o.values)
                 self.assert_numpy_array_equal(uniques, expected)
             else:
-                self.assertTrue(uniques.equals(o))
+                self.assertTrue(uniques.equals(exp_uniques))
 
         for o in self.objs:
+
+            # don't test boolean
+            if isinstance(o,Index) and o.is_boolean():
+                continue
+
             # sort by value, and create duplicates
             if isinstance(o, Series):
                 o.sort()
+                n = o.iloc[5:].append(o)
             else:
                 indexer = o.argsort()
                 o = o.take(indexer)
-            n = o[5:].append(o)
+                n = o[5:].append(o)
 
             exp_arr = np.array([5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
             labels, uniques = n.factorize(sort=True)
@@ -582,6 +604,14 @@ class TestIndexOps(Ops):
         for original in self.objs:
 
             if isinstance(original, Index):
+
+                # special case
+                if original.is_boolean():
+                    result = original.drop_duplicates()
+                    expected = Index([False,True])
+                    tm.assert_index_equal(result, expected)
+                    continue
+
                 # original doesn't have duplicates
                 expected = Index([False] * len(original))
                 tm.assert_index_equal(original.duplicated(), expected)

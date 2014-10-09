@@ -738,6 +738,13 @@ def makeStringIndex(k=10):
 def makeUnicodeIndex(k=10):
     return Index([randu(10) for _ in range(k)])
 
+def makeBoolIndex(k=10):
+    if k == 1:
+        return Index([True])
+    elif k == 2:
+        return Index([False,True])
+    return Index([False,True] + [False]*(k-2))
+
 def makeIntIndex(k=10):
     return Index(lrange(k))
 
