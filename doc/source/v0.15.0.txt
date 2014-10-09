@@ -272,6 +272,46 @@ API changes
      df
      df.dtypes
 
+- In prior versions, updating a pandas object inplace would not reflect in other python references to this object. (:issue:`8511`,:issue:`5104`)
+
+  .. ipython:: python
+
+     s = Series([1, 2, 3])
+     s2 = s
+     s += 1.5
+
+  Behavior prior to v0.15.0
+
+  .. code-block:: python
+
+
+     # the original object
+     In [5]: s
+     Out[5]:
+     0    2.5
+     1    3.5
+     2    4.5
+     dtype: float64
+
+
+     # a reference to the original object
+     In [7]: s2
+     Out[7]:
+     0    1
+     1    2
+     2    3
+     dtype: int64
+
+  This is now the correct behavior
+
+  .. ipython:: python
+
+     # the original object
+     s
+
+     # a reference to the original object
+     s2
+
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
 - ``read_hdf`` now raises ``IOError`` when a file that doesn't exist is passed in. Previously, a new, empty file was created, and a ``KeyError`` raised (:issue:`7715`).
@@ -952,7 +992,6 @@ Bug Fixes
 - Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
 - Bug in ``groupby.apply`` with a non-affecting mutation in the function (:issue:`8467`)
 - Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
-
 
 
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)

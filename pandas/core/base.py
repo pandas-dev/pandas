@@ -538,6 +538,6 @@ class IndexOpsMixin(object):
     #----------------------------------------------------------------------
     # abstracts
 
-    def _update_inplace(self, result):
+    def _update_inplace(self, result, **kwargs):
         raise NotImplementedError
 

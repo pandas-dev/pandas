@@ -1108,9 +1108,21 @@ class NDFrame(PandasObject):
         """ boolean : return if I am a view of another array """
         return self._data.is_view
 
-    def _maybe_update_cacher(self, clear=False):
-        """ see if we need to update our parent cacher
-            if clear, then clear our cache """
+    def _maybe_update_cacher(self, clear=False, verify_is_copy=True):
+        """
+
+        see if we need to update our parent cacher
+        if clear, then clear our cache
+
+        Parameters
+        ----------
+        clear : boolean, default False
+            clear the item cache
+        verify_is_copy : boolean, default True
+            provide is_copy checks
+
+        """
+
         cacher = getattr(self, '_cacher', None)
         if cacher is not None:
             ref = cacher[1]()
@@ -1125,8 +1137,8 @@ class NDFrame(PandasObject):
                 except:
                     pass
 
-        # check if we are a copy
-        self._check_setitem_copy(stacklevel=5, t='referant')
+        if verify_is_copy:
+            self._check_setitem_copy(stacklevel=5, t='referant')
 
         if clear:
             self._clear_item_cache()
@@ -1564,14 +1576,23 @@ class NDFrame(PandasObject):
         else:
             return result
 
-    def _update_inplace(self, result):
-        "replace self internals with result."
+    def _update_inplace(self, result, verify_is_copy=True):
+        """
+        replace self internals with result.
+
+        Parameters
+        ----------
+        verify_is_copy : boolean, default True
+            provide is_copy checks
+
+        """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
+
         self._reset_cache()
         self._clear_item_cache()
         self._data = getattr(result,'_data',result)
-        self._maybe_update_cacher()
+        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self, prefix):
         """

@@ -249,6 +249,109 @@ class CheckIndexing(object):
         df[('joe', 'last')] = df[('jolie', 'first')].loc[i, j]
         assert_frame_equal(df[('joe', 'last')], df[('jolie', 'first')])
 
+    def test_inplace_ops_alignment(self):
+
+        # inplace ops / ops alignment
+        # GH 8511
+
+        columns = list('abcdefg')
+        X_orig = DataFrame(np.arange(10*len(columns)).reshape(-1,len(columns)), columns=columns, index=range(10))
+        Z = 100*X_orig.iloc[:,1:-1].copy()
+        block1 = list('bedcf')
+        subs = list('bcdef')
+
+        # add
+        X = X_orig.copy()
+        result1 = (X[block1] + Z).reindex(columns=subs)
+
+        X[block1] += Z
+        result2 = X.reindex(columns=subs)
+
+        X = X_orig.copy()
+        result3 = (X[block1] + Z[block1]).reindex(columns=subs)
+
+        X[block1] += Z[block1]
+        result4 = X.reindex(columns=subs)
+
+        assert_frame_equal(result1, result2)
+        assert_frame_equal(result1, result3)
+        assert_frame_equal(result1, result4)
+
+        # sub
+        X = X_orig.copy()
+        result1 = (X[block1] - Z).reindex(columns=subs)
+
+        X[block1] -= Z
+        result2 = X.reindex(columns=subs)
+
+        X = X_orig.copy()
+        result3 = (X[block1] - Z[block1]).reindex(columns=subs)
+
+        X[block1] -= Z[block1]
+        result4 = X.reindex(columns=subs)
+
+        assert_frame_equal(result1, result2)
+        assert_frame_equal(result1, result3)
+        assert_frame_equal(result1, result4)
+
+    def test_inplace_ops_identity(self):
+
+        # GH 5104
+        # make sure that we are actually changing the object
+        s_orig = Series([1, 2, 3])
+        df_orig = DataFrame(np.random.randint(0,5,size=10).reshape(-1,5))
+
+        # no dtype change
+        s = s_orig.copy()
+        s2 = s
+        s += 1
+        assert_series_equal(s,s2)
+        assert_series_equal(s_orig+1,s)
+        self.assertIs(s,s2)
+        self.assertIs(s._data,s2._data)
+
+        df = df_orig.copy()
+        df2 = df
+        df += 1
+        assert_frame_equal(df,df2)
+        assert_frame_equal(df_orig+1,df)
+        self.assertIs(df,df2)
+        self.assertIs(df._data,df2._data)
+
+        # dtype change
+        s = s_orig.copy()
+        s2 = s
+        s += 1.5
+        assert_series_equal(s,s2)
+        assert_series_equal(s_orig+1.5,s)
+
+        df = df_orig.copy()
+        df2 = df
+        df += 1.5
+        assert_frame_equal(df,df2)
+        assert_frame_equal(df_orig+1.5,df)
+        self.assertIs(df,df2)
+        self.assertIs(df._data,df2._data)
+
+        # mixed dtype
+        arr = np.random.randint(0,10,size=5)
+        df_orig = DataFrame({'A' : arr.copy(), 'B' : 'foo'})
+        df = df_orig.copy()
+        df2 = df
+        df['A'] += 1
+        expected = DataFrame({'A' : arr.copy()+1, 'B' : 'foo'})
+        assert_frame_equal(df,expected)
+        assert_frame_equal(df2,expected)
+        self.assertIs(df._data,df2._data)
+
+        df = df_orig.copy()
+        df2 = df
+        df['A'] += 1.5
+        expected = DataFrame({'A' : arr.copy()+1.5, 'B' : 'foo'})
+        assert_frame_equal(df,expected)
+        assert_frame_equal(df2,expected)
+        self.assertIs(df._data,df2._data)
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
@@ -4979,7 +5082,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertFalse(np.array_equal(res.fillna(0), res2.fillna(0)))
 
     def test_logical_operators(self):
-        import operator
 
         def _check_bin_op(op):
             result = op(df1, df2)

@@ -267,8 +267,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             object.__setattr__(self, '_subtyp', 'series')
 
-    def _update_inplace(self, result):
-        return generic.NDFrame._update_inplace(self, result)
+    def _update_inplace(self, result, **kwargs):
+        # we want to call the generic version and not the IndexOpsMixin
+        return generic.NDFrame._update_inplace(self, result, **kwargs)
 
     # ndarray compatibility
     @property
