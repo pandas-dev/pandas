@@ -1171,17 +1171,22 @@ class FloatBlock(FloatOrComplexBlock):
         values = np.array(values, dtype=object)
         mask = isnull(values)
         values[mask] = na_rep
-        if not float_format and decimal != '.':
-            float_format = '%f'
-        if float_format:
-            imask = (~mask).ravel()
-            values.flat[imask] = np.array(
-                [float_format % val for val in values.ravel()[imask]])
-        if decimal != '.':
-            imask = (~mask).ravel()
-            values.flat[imask] = np.array(
-                [val.replace('.',',',1) for val in values.ravel()[imask]])
+        
+        
+        if float_format and decimal != '.':
+            formater = lambda v : (float_format % v).replace('.',decimal,1)
+        elif decimal != '.':
+            formater = lambda v : ('%g' % v).replace('.',decimal,1)
+        elif float_format:
+            formater = lambda v : float_format % v
+        else:
+            formater = None
             
+        if formater:
+            imask = (~mask).ravel()
+            values.flat[imask] = np.array(
+                [formater(val) for val in values.ravel()[imask]])
+        
         return values.tolist()
 
     def should_store(self, value):
