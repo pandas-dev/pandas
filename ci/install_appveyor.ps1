@@ -109,7 +109,7 @@ function InstallCondaPackages ($python_home, $spec) {
 }
 function InstallCondaPackagesFromFile ($python_home, $ver, $arch) {
     $conda_path = $python_home + "\Scripts\conda.exe"
-    $args = "install --yes --quiet --file C:\projects\pandas\ci\requirements-" + $ver + "_" + $arch + ".txt"
+    $args = "install --yes --quiet --file " + $env:APPVEYOR_BUILD_FOLDER + "\pandas\ci\requirements-" + $ver + "_" + $arch + ".txt"
     Write-Host ("conda " + $args)
     Start-Executable -FilePath "$conda_path" -ArgumentList $args
 }
