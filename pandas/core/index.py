@@ -148,16 +148,16 @@ class Index(IndexOpsMixin, PandasObject):
                     data = np.array(data, dtype=dtype, copy=copy)
                 except TypeError:
                     pass
-            elif isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
 
+            # maybe coerce to a sub-class
+            if isinstance(data, PeriodIndex):
+                return PeriodIndex(data, copy=copy, name=name, **kwargs)
             if issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
-            if issubclass(data.dtype.type, np.floating):
+            elif issubclass(data.dtype.type, np.floating):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
-
-            if com.is_bool_dtype(data):
-                subarr = data
+            elif issubclass(data.dtype.type, np.bool) or com.is_bool_dtype(data):
+                subarr = data.astype('object')
             else:
                 subarr = com._asarray_tuplesafe(data, dtype=object)
 
@@ -583,6 +583,9 @@ class Index(IndexOpsMixin, PandasObject):
         """ return if the index has unique values """
         return self._engine.is_unique
 
+    def is_boolean(self):
+        return self.inferred_type in ['boolean']
+
     def is_integer(self):
         return self.inferred_type in ['integer']
 
@@ -591,6 +594,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
+
+    def is_object(self):
+        return self.dtype == np.object_
 
     def is_mixed(self):
         return 'mixed' in self.inferred_type

@@ -94,6 +94,7 @@ class TestIndex(Base, tm.TestCase):
             dateIndex = tm.makeDateIndex(100),
             intIndex = tm.makeIntIndex(100),
             floatIndex = tm.makeFloatIndex(100),
+            boolIndex = Index([True,False]),
             empty = Index([]),
             tuples = MultiIndex.from_tuples(lzip(['foo', 'bar', 'baz'],
                                                  [1, 2, 3]))
@@ -731,6 +732,13 @@ class TestIndex(Base, tm.TestCase):
         self.assertFalse(self.strIndex.is_numeric())
         self.assertTrue(self.intIndex.is_numeric())
         self.assertTrue(self.floatIndex.is_numeric())
+
+    def test_is_object(self):
+        self.assertTrue(self.strIndex.is_object())
+        self.assertTrue(self.boolIndex.is_object())
+        self.assertFalse(self.intIndex.is_object())
+        self.assertFalse(self.dateIndex.is_object())
+        self.assertFalse(self.floatIndex.is_object())
 
     def test_is_all_dates(self):
         self.assertTrue(self.dateIndex.is_all_dates)

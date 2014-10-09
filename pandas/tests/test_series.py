@@ -1222,7 +1222,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([3,4],index=['C','C'],dtype=np.int64)
         result = s['C']
         assert_series_equal(result, expected)
-        
+
     def test_getitem_dataframe(self):
         rng = list(range(10))
         s   = pd.Series(10, index=rng)
@@ -1816,6 +1816,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # bad axis
         self.assertRaises(ValueError, s.drop, 'one', axis='columns')
+
+        # GH 8522
+        s = Series([2,3], index=[True, False])
+        self.assertTrue(s.index.is_object())
+        result = s.drop(True)
+        expected = Series([3],index=[False])
+        assert_series_equal(result,expected)
 
     def test_ix_setitem(self):
         inds = self.series.index[[3, 4, 7]]
