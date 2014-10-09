@@ -19,6 +19,26 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
+- Indexing in ``MultiIndex`` beyond lex-sort depth is now supported, though
+  a lexically sorted index will have a better performance. (:issue:`2646`)
+
+  .. ipython:: python
+
+    df = pd.DataFrame({'jim':[0, 0, 1, 1],
+                       'joe':['x', 'x', 'z', 'y'],
+                       'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
+    df
+    df.index.lexsort_depth
+
+    # in prior versions this would raise a KeyError
+    # will now show a PerformanceWarning
+    df.loc[(1, 'z')]
+
+    # lexically sorting
+    df2 = df.sortlevel()
+    df2
+    df2.index.lexsort_depth
+    df2.loc[(1,'z')]
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
 
@@ -129,3 +149,5 @@ Bug Fixes
 
 - Bugs when trying to stack multiple columns, when some (or all)
   of the level names are numbers (:issue:`8584`).
+- Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is
+  not lexically sorted or unique (:issue:`7724`)

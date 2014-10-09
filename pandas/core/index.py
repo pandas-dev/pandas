@@ -21,6 +21,7 @@ import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
                                 ABCSeries, _ensure_object, _ensure_int64)
 from pandas.core.config import get_option
+from pandas.io.common import PerformanceWarning
 
 # simplify
 default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
@@ -4027,7 +4028,9 @@ class MultiIndex(Index):
 
     def get_loc(self, key):
         """
-        Get integer location slice for requested label or tuple
+        Get integer location, slice or boolean mask for requested label or tuple
+        If the key is past the lexsort depth, the return may be a boolean mask
+        array, otherwise it is always a slice or int.
 
         Parameters
         ----------
@@ -4035,22 +4038,73 @@ class MultiIndex(Index):
 
         Returns
         -------
-        loc : int or slice object
+        loc : int, slice object or boolean mask
         """
-        if isinstance(key, tuple):
-            if len(key) == self.nlevels:
-                if self.is_unique:
-                    return self._engine.get_loc(_values_from_object(key))
-                else:
-                    return slice(*self.slice_locs(key, key))
-            else:
-                # partial selection
-                result = slice(*self.slice_locs(key, key))
-                if result.start == result.stop:
-                    raise KeyError(key)
-                return result
-        else:
-            return self._get_level_indexer(key, level=0)
+        def _maybe_to_slice(loc):
+            '''convert integer indexer to boolean mask or slice if possible'''
+            if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':
+                return loc
+
+            loc = lib.maybe_indices_to_slice(loc)
+            if isinstance(loc, slice):
+                return loc
+
+            mask = np.empty(len(self), dtype='bool')
+            mask.fill(False)
+            mask[loc] = True
+            return mask
+
+        if not isinstance(key, tuple):
+            loc = self._get_level_indexer(key, level=0)
+            return _maybe_to_slice(loc)
+
+        keylen = len(key)
+        if self.nlevels < keylen:
+            raise KeyError('Key length ({0}) exceeds index depth ({1})'
+                    ''.format(keylen, self.nlevels))
+
+        if keylen == self.nlevels and self.is_unique:
+            def _maybe_str_to_time_stamp(key, lev):
+                if lev.is_all_dates and not isinstance(key, Timestamp):
+                    try:
+                        return Timestamp(key, tz=getattr(lev, 'tz', None))
+                    except Exception:
+                        pass
+                return key
+            key = _values_from_object(key)
+            key = tuple(map(_maybe_str_to_time_stamp, key, self.levels))
+            return self._engine.get_loc(key)
+
+        # -- partial selection or non-unique index
+        # break the key into 2 parts based on the lexsort_depth of the index;
+        # the first part returns a continuous slice of the index; the 2nd part
+        # needs linear search within the slice
+        i = self.lexsort_depth
+        lead_key, follow_key = key[:i], key[i:]
+        start, stop = self.slice_locs(lead_key, lead_key) \
+                if lead_key else (0, len(self))
+
+        if start == stop:
+            raise KeyError(key)
+
+        if not follow_key:
+            return slice(start, stop)
+
+        warnings.warn('indexing past lexsort depth may impact performance.',
+                PerformanceWarning)
+
+        loc = np.arange(start, stop, dtype='int64')
+
+        for i, k in enumerate(follow_key, len(lead_key)):
+            mask = self.labels[i][loc] == self.levels[i].get_loc(k)
+            if not mask.all():
+                loc = loc[mask]
+            if not len(loc):
+                raise KeyError(key)
+
+        return _maybe_to_slice(loc) \
+                if len(loc) != stop - start \
+                else slice(start, stop)
 
     def get_loc_level(self, key, level=0, drop_level=True):
         """
@@ -4115,10 +4169,10 @@ class MultiIndex(Index):
             if not any(isinstance(k, slice) for k in key):
 
                 # partial selection
-                def partial_selection(key):
-                    indexer = slice(*self.slice_locs(key, key))
-                    if indexer.start == indexer.stop:
-                        raise KeyError(key)
+                # optionally get indexer to avoid re-calculation
+                def partial_selection(key, indexer=None):
+                    if indexer is None:
+                        indexer = self.get_loc(key)
                     ilevels = [i for i in range(len(key))
                                if key[i] != slice(None, None)]
                     return indexer, _maybe_drop_levels(indexer, ilevels,
@@ -4139,11 +4193,12 @@ class MultiIndex(Index):
                         if any([
                             l.is_all_dates for k, l in zip(key, self.levels)
                         ]) and not can_index_exactly:
-                            indexer = slice(*self.slice_locs(key, key))
+                            indexer = self.get_loc(key)
 
                             # we have a multiple selection here
-                            if not indexer.stop - indexer.start == 1:
-                                return partial_selection(key)
+                            if not isinstance(indexer, slice) \
+                                    or indexer.stop - indexer.start != 1:
+                                return partial_selection(key, indexer)
 
                             key = tuple(self[indexer].tolist()[0])
 
