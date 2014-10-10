@@ -2,6 +2,8 @@
 
 from datetime import datetime
 from pandas.compat import range, lrange, u
+import os
+import pickle
 import re
 from distutils.version import LooseVersion
 
@@ -20,16 +22,6 @@ class TestCategorical(tm.TestCase):
     def setUp(self):
         self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
                                               'a', 'c', 'c', 'c'])
-
-    def assert_categorical_equal(self, res, exp):
-        if not com.array_equivalent(res.categories, exp.categories):
-            raise AssertionError('categories not equivalent: {0} vs {1}.'.format(res.categories,
-                                                                                 exp.categories))
-        if not com.array_equivalent(res.codes, exp.codes):
-            raise AssertionError('codes not equivalent: {0} vs {1}.'.format(res.codes,
-                                                                            exp.codes))
-        self.assertEqual(res.ordered, exp.ordered, "ordered not the same")
-        self.assertEqual(res.name, exp.name, "name not the same")
 
     def test_getitem(self):
         self.assertEqual(self.factor[0], 'a')
@@ -2267,6 +2259,21 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = Series(list('aabbcde')).astype('category')
         results = get_dir(s)
         tm.assert_almost_equal(results,list(sorted(set(ok_for_cat))))
+
+    def test_pickle_v0_14_1(self):
+        cat = pd.Categorical(values=['a', 'b', 'c'],
+                             levels=['a', 'b', 'c', 'd'],
+                             name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_14_1.pickle')
+        # This code was executed once on v0.14.1 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
+
 
 if __name__ == '__main__':
     import nose

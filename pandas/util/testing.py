@@ -121,6 +121,16 @@ class TestCase(unittest.TestCase):
             return
         raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
 
+    def assert_categorical_equal(self, res, exp):
+        if not array_equivalent(res.categories, exp.categories):
+            raise AssertionError('categories not equivalent: {0} vs {1}.'.format(res.categories,
+                                                                                 exp.categories))
+        if not array_equivalent(res.codes, exp.codes):
+            raise AssertionError('codes not equivalent: {0} vs {1}.'.format(res.codes,
+                                                                            exp.codes))
+        self.assertEqual(res.ordered, exp.ordered, "ordered not the same")
+        self.assertEqual(res.name, exp.name, "name not the same")
+
     def assertIs(self, first, second, msg=''):
         """Checks that 'first' is 'second'"""
         a, b = first, second
