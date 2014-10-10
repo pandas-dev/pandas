@@ -121,9 +121,10 @@ API changes
 
   .. ipython:: python
 
-      df = DataFrame({'col':['foo', 0, np.nan]}).sort()
+      df = DataFrame({'col':['foo', 0, np.nan]})
       df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
-      df.equals(df)
+      df.equals(df2)
+      df.equals(df2.sort())
 
       import pandas.core.common as com
       com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))

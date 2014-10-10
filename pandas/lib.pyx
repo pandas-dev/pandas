@@ -332,6 +332,26 @@ def list_to_object_array(list obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def array_equivalent_object(ndarray left, ndarray right):
+    cdef Py_ssize_t i, n
+    cdef object lobj, robj
+
+    n = len(left)
+    for i from 0 <= i < n:
+        lobj = left[i]
+        robj = right[i]
+
+        # we are either not equal or both nan
+        # I think None == None will be true here
+        if lobj != robj:
+            if checknull(lobj) and checknull(robj):
+                continue
+            return False
+    return True
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def fast_unique(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)

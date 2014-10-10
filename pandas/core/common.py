@@ -406,6 +406,7 @@ def array_equivalent(left, right, strict_nan=False):
     >>> array_equivalent(np.array([1, nan, 2]), np.array([1, 2, nan]))
     False
     """
+
     left, right = np.asarray(left), np.asarray(right)
     if left.shape != right.shape: return False
 
@@ -414,8 +415,8 @@ def array_equivalent(left, right, strict_nan=False):
 
         if not strict_nan:
             # pd.isnull considers NaN and None to be equivalent.
-            return ((left == right) | (pd.isnull(left) & pd.isnull(right))).all()
-
+            return lib.array_equivalent_object(left.ravel(), right.ravel())
+        
         for left_value, right_value in zip(left, right):
             if left_value is tslib.NaT and right_value is not tslib.NaT:
                 return False
@@ -426,7 +427,6 @@ def array_equivalent(left, right, strict_nan=False):
             else:
                 if left_value != right_value:
                     return False
-
         return True
 
     # NaNs can occur in float and complex arrays.
