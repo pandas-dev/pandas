@@ -89,3 +89,11 @@ Domain Specific
 Geopandas extends pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
 you love pandas, you should take a close look at Geopandas.
+
+`xray <https://github.com/xray/xray>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+xray brings the labeled data power of pandas to the physical sciences by
+providing N-dimensional variants of the core pandas data structures. It aims to
+provide a pandas-like and pandas-compatible toolkit for analytics on multi-
+dimensional arrays, rather than the tabular data for which pandas excels.
