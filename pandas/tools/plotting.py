@@ -2456,7 +2456,7 @@ def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dat
 @Appender(_shared_docs['plot'] % _shared_doc_series_kwargs)
 def plot_series(data, kind='line', ax=None,                    # Series unique
                 figsize=None, use_index=True, title=None, grid=None,
-                legend=True, style=None, logx=False, logy=False, loglog=False,
+                legend=False, style=None, logx=False, logy=False, loglog=False,
                 xticks=None, yticks=None, xlim=None, ylim=None,
                 rot=None, fontsize=None, colormap=None, table=False,
                 yerr=None, xerr=None,

@@ -2478,6 +2478,16 @@ class TestDataFramePlots(TestPlotBase):
                 self.assertEqual(l.get_marker(), markers[i])
 
     @slow
+    def test_line_label_none(self):
+        s = Series([1, 2])
+        ax = s.plot()
+        self.assertEqual(ax.get_legend(), None)
+
+        ax = s.plot(legend=True)
+        self.assertEqual(ax.get_legend().get_texts()[0].get_text(),
+                         'None')
+
+    @slow
     def test_line_colors(self):
         import sys
         from matplotlib import cm
