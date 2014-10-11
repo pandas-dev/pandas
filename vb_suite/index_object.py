@@ -117,3 +117,16 @@ iterables = [tm.makeStringIndex(10000), xrange(20)]
 multiindex_from_product = Benchmark('MultiIndex.from_product(iterables)',
                                     setup, name='multiindex_from_product',
                                     start_date=datetime(2014, 6, 30))
+
+#----------------------------------------------------------------------
+# MultiIndex with DatetimeIndex level
+
+setup = common_setup + """
+level1 = range(1000)
+level2 = date_range(start='1/1/2012', periods=10)
+"""
+
+multiindex_with_datetime_level = \
+    Benchmark("MultiIndex.from_product([level1, level2]).values", setup,
+              name='multiindex_with_datetime_level',
+              start_date=datetime(2014, 10, 11))
