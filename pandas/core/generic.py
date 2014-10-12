@@ -2293,8 +2293,7 @@ class NDFrame(PandasObject):
                                                        limit=limit,
                                                        downcast=downcast),
                                     axis=axis)
-                result = result.convert_objects(convert_numeric=True)
-                new_data = result._data
+                new_data = result.convert_objects()._data
             else:
                 new_data = self._data.interpolate(method=method,
                                                   axis=axis,
