@@ -83,6 +83,7 @@ class TestStata(tm.TestCase):
 
 
     def read_dta(self, file):
+        # Legacy default reader configuration
         return read_stata(file, convert_dates=True)
 
     def read_csv(self, file):
@@ -693,6 +694,35 @@ class TestStata(tm.TestCase):
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   expected)
+
+    def test_dtype_conversion(self):
+        expected = self.read_csv(self.csv15)
+        expected['byte_'] = expected['byte_'].astype(np.int8)
+        expected['int_'] = expected['int_'].astype(np.int16)
+        expected['long_'] = expected['long_'].astype(np.int32)
+        expected['float_'] = expected['float_'].astype(np.float32)
+        expected['double_'] = expected['double_'].astype(np.float64)
+        expected['date_td'] = expected['date_td'].apply(datetime.strptime,
+                                                        args=('%Y-%m-%d',))
+
+        no_conversion = read_stata(self.dta15_117,
+                                   convert_dates=True)
+        tm.assert_frame_equal(expected, no_conversion)
+
+        conversion = read_stata(self.dta15_117,
+                                convert_dates=True,
+                                preserve_dtypes=False)
+
+        # read_csv types are the same
+        expected = self.read_csv(self.csv15)
+        expected['date_td'] = expected['date_td'].apply(datetime.strptime,
+                                                        args=('%Y-%m-%d',))
+
+        tm.assert_frame_equal(expected, conversion)
+
+
+
+
 
 
 

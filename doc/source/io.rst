@@ -3654,9 +3654,14 @@ missing values are represented as ``np.nan``.  If ``True``, missing values are
 represented using ``StataMissingValue`` objects, and columns containing missing
 values will have ``dtype`` set to ``object``.
 
-
 The StataReader supports .dta Formats 104, 105, 108, 113-115 and 117.
 Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
+
+.. note::
+
+   Setting ``preserve_dtypes=False`` will upcast all integer data types to
+   ``int64`` and all floating point data types to ``float64``.  By default,
+   the Stata data types are preserved when importing.
 
 .. ipython:: python
    :suppress:
