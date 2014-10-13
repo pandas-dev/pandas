@@ -127,7 +127,7 @@ chunksize : int, default None
     Return TextFileReader object for iteration
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
-converters : dict. optional
+converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
 verbose : boolean, default False
@@ -983,8 +983,13 @@ class ParserBase(object):
                                                            na_fvalues)
             coerce_type = True
             if conv_f is not None:
-                values = lib.map_infer(values, conv_f)
+                try:
+                    values = lib.map_infer(values, conv_f)
+                except ValueError:
+                    mask = lib.ismember(values, na_values).view(np.uin8)
+                    values = lib.map_infer_mask(values, conv_f, mask)
                 coerce_type = False
+
             cvals, na_count = self._convert_types(
                 values, set(col_na_values) | col_na_fvalues, coerce_type)
             result[c] = cvals

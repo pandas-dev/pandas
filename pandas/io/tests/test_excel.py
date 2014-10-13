@@ -399,6 +399,31 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
                            convert_float=False)
         tm.assert_frame_equal(actual, no_convert_float)
 
+    # GH8212 - support for converters and missing values
+    def test_reader_converters(self):
+        _skip_if_no_xlrd()
+
+        expected = DataFrame.from_items([
+            ("IntCol", [1, 2, -3, -1000, 0]),
+            ("FloatCol", [12.5, np.nan, 18.3, 19.2, 0.000000005]),
+            ("BoolCol", ['Found', 'Found', 'Found', 'Not found', 'Found']),
+            ("StrCol", ['1', np.nan, '3', '4', '5']),
+        ])
+
+        converters = {'IntCol': lambda x: int(x) if x != '' else -1000,
+                      'FloatCol': lambda x: 10 * x if x else np.nan,
+                      2: lambda x: 'Found' if x != '' else 'Not found',
+                      3: lambda x: str(x) if x else '',
+                      }
+
+        xlsx_path = os.path.join(self.dirpath, 'test_converters.xlsx')
+        xls_path = os.path.join(self.dirpath, 'test_converters.xls')
+
+        # should read in correctly and set types of single cells (not array dtypes)
+        for path in (xls_path, xlsx_path):
+            actual = read_excel(path, 'Sheet1', converters=converters)
+            tm.assert_frame_equal(actual, expected)
+
     def test_reader_seconds(self):
         # Test reading times with and without milliseconds. GH5945.
         _skip_if_no_xlrd()
