@@ -2937,10 +2937,11 @@ class MultiIndex(Index):
 
         values = []
         for lev, lab in zip(self.levels, self.labels):
-            taken = com.take_1d(lev.values, lab)
+            lev_values = lev.values
             # Need to box timestamps, etc.
             if hasattr(lev, '_box_values'):
-                taken = lev._box_values(taken)
+                lev_values = lev._box_values(lev_values)
+            taken = com.take_1d(lev_values, lab)
             values.append(taken)
 
         self._tuples = lib.fast_zip(values)
