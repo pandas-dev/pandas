@@ -60,7 +60,7 @@ if-then...
 **********
 
 An if-then on one column
-	
+     
 .. ipython:: python
 
    df.ix[df.AAA >= 5,'BBB'] = -1; df
@@ -167,7 +167,6 @@ One could hard code:
 .. ipython:: python
 
    AllCrit = Crit1 & Crit2 & Crit3
-   AllCrit;
 
 ...Or it can be done with a list of dynamically built criteria
 
@@ -467,129 +466,125 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-    df = pd.DataFrame({'animal': 'cat dog cat fish dog cat cat'.split(),
-                       'size': list('SSMMMLL'),
-                       'weight': [8, 10, 11, 1, 20, 12, 12],
-                       'adult' : [False] * 5 + [True] * 2}); df
+   df = pd.DataFrame({'animal': 'cat dog cat fish dog cat cat'.split(),
+                      'size': list('SSMMMLL'),
+                      'weight': [8, 10, 11, 1, 20, 12, 12],
+                      'adult' : [False] * 5 + [True] * 2}); df
 
-	#List the size of the animals with the highest weight.
-	df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()])
+   #List the size of the animals with the highest weight.
+   df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()])
 
 `Using get_group
 <http://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
 
 .. ipython:: python
 
-	gb = df.groupby(['animal'])
-	
-	gb.get_group('cat')
-	
+   gb = df.groupby(['animal'])
+     
+   gb.get_group('cat')
+     
 `Apply to different items in a group
 <http://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
 
 .. ipython:: python
 
-    def GrowUp(x):
-        avg_weight = sum(x[x.size == 'S'].weight * 1.5) 
-        avg_weight += sum(x[x.size == 'M'].weight * 1.25)
-        avg_weight += sum(x[x.size == 'L'].weight)
-        avg_weight = avg_weight / len(x)
-        return pd.Series(['L',avg_weight,True], index=['size', 'weight', 'adult'])
+   def GrowUp(x):
+      avg_weight = sum(x[x.size == 'S'].weight * 1.5) 
+      avg_weight += sum(x[x.size == 'M'].weight * 1.25)
+      avg_weight += sum(x[x.size == 'L'].weight)
+      avg_weight = avg_weight / len(x)
+      return pd.Series(['L',avg_weight,True], index=['size', 'weight', 'adult'])
 
-    expected_df = gb.apply(GrowUp) 
-	
-	expected_df 
+   expected_df = gb.apply(GrowUp) 
+     
+   expected_df 
 
 `Expanding Apply
 <http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
 
 .. ipython:: python
 
-    S = pd.Series([i / 100 for i in range(1,11)])
+   S = pd.Series([i / 100.0 for i in range(1,11)])
     
-    def CumRet(x,y):
-        return x * (1 + y)
+   def CumRet(x,y):
+      return x * (1 + y)
         
-    def Red(x):
-        return functools.reduce(CumRet,x,1.0)
-        
-    pd.expanding_apply(S, Red)
-	
+   def Red(x):
+      return functools.reduce(CumRet,x,1.0)
+
+   pd.expanding_apply(S, Red)
+
+     
 `Replacing some values with mean of the rest of a group
 <http://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
+   df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
     
-    gb = df.groupby('A')
+   gb = df.groupby('A')
 
-    def replace(g):
-        mask = g < 0
-        g.loc[mask] = g[~mask].mean()
-        return g
+   def replace(g):
+      mask = g < 0
+      g.loc[mask] = g[~mask].mean()
+      return g
     
-    gb.transform(replace)
-	
+   gb.transform(replace)
+     
 `Sort groups by aggregated data
 <http://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__
 
 .. ipython:: python
 
-    df = pd.DataFrame({'code': ['foo', 'bar', 'baz'] * 2,
-                       'data': [0.16, -0.21, 0.33, 0.45, -0.59, 0.62],
-                       'flag': [False, True] * 3})
+   df = pd.DataFrame({'code': ['foo', 'bar', 'baz'] * 2,
+                      'data': [0.16, -0.21, 0.33, 0.45, -0.59, 0.62],
+                      'flag': [False, True] * 3})
 
-    code_groups = df.groupby('code')
+   code_groups = df.groupby('code')
     
-    agg_n_sort_order = code_groups[['data']].transform(sum).sort('data')
+   agg_n_sort_order = code_groups[['data']].transform(sum).sort('data')
     
-    sorted_df = df.ix[agg_n_sort_order.index]
-	
-	sorted_df
-	
+   sorted_df = df.ix[agg_n_sort_order.index]
+     
+   sorted_df
+     
 `Create multiple aggregated columns
 <http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
 .. ipython:: python
 
-    rng = pd.date_range(start="2014-10-07",periods=10,freq='2min')
-    ts = pd.Series(data = list(range(10)), index = rng)
+   rng = pd.date_range(start="2014-10-07",periods=10,freq='2min')
+   ts = pd.Series(data = list(range(10)), index = rng)
     
-    def MyCust(x):
-        if len(x) > 2:
-            return x[1] * 1.234
-        else:
-            return pd.NaT
+   def MyCust(x):
+      if len(x) > 2:
+         return x[1] * 1.234
+      return pd.NaT
 
-	mhc = {'Mean' : np.mean, 'Max' : np.max, 'Custom' : MyCust}
-	
-    ts.resample("5min",how = mhc)
-	
-	ts
-	
+   mhc = {'Mean' : np.mean, 'Max' : np.max, 'Custom' : MyCust}
+   ts.resample("5min",how = mhc)
+   ts
+     
 `Create a value counts column and reassign back to the DataFrame
 <http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
 
 .. ipython:: python
 
-    df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(), 
-                       'Value': [100, 150, 50, 50]}); df
-
-    df['Counts'] = df.groupby(['Color']).transform(len)
-	df
-	
+   df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(), 
+                      'Value': [100, 150, 50, 50]}); df
+   df['Counts'] = df.groupby(['Color']).transform(len)
+   df
+     
 `Shift groups of the values in a column based on the index
 <http://stackoverflow.com/q/23198053/190597>`__
 
 .. ipython:: python
 
    df = pd.DataFrame(
-        {u'line_race': [10, 10, 8, 10, 10, 8],
-         u'beyer': [99, 102, 103, 103, 88, 100]},
-        index=[u'Last Gunfighter', u'Last Gunfighter', u'Last Gunfighter',
-               u'Paynter', u'Paynter', u'Paynter']); df
-
+      {u'line_race': [10, 10, 8, 10, 10, 8],
+       u'beyer': [99, 102, 103, 103, 88, 100]},
+       index=[u'Last Gunfighter', u'Last Gunfighter', u'Last Gunfighter',
+              u'Paynter', u'Paynter', u'Paynter']); df
    df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
    df
 
@@ -615,14 +610,14 @@ Create a list of dataframes, split using a delineation based on logic included i
 
 .. ipython:: python
 
-	df = pd.DataFrame(data={'Case' : ['A','A','A','B','A','A','B','A','A'],
-                            'Data' : np.random.randn(9)})
-							
-	dfs = list(zip(*df.groupby(pd.rolling_median((1*(df['Case']=='B')).cumsum(),3,True))))[-1]
+   df = pd.DataFrame(data={'Case' : ['A','A','A','B','A','A','B','A','A'],
+                           'Data' : np.random.randn(9)})
+                                   
+   dfs = list(zip(*df.groupby(pd.rolling_median((1*(df['Case']=='B')).cumsum(),3,True))))[-1]
 
-	dfs[0]
-	dfs[1]
-	dfs[2]
+   dfs[0]
+   dfs[1]
+   dfs[2]
 
 .. _cookbook.pivot:
 
@@ -635,32 +630,32 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 
 .. ipython:: python
 
-	df = pd.DataFrame(data={'Province' : ['ON','QC','BC','AL','AL','MN','ON'],
+   df = pd.DataFrame(data={'Province' : ['ON','QC','BC','AL','AL','MN','ON'],
                             'City' : ['Toronto','Montreal','Vancouver','Calgary','Edmonton','Winnipeg','Windsor'],
                             'Sales' : [13,6,16,8,4,3,1]})
-	table = pd.pivot_table(df,values=['Sales'],index=['Province'],columns=['City'],aggfunc=np.sum,margins=True)
-	table.stack('City')
+   table = pd.pivot_table(df,values=['Sales'],index=['Province'],columns=['City'],aggfunc=np.sum,margins=True)
+   table.stack('City')
 
 `Frequency table like plyr in R
 <http://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
 .. ipython:: python
 
-    grades = [48,99,75,80,42,80,72,68,36,78]
-	df = pd.DataFrame( {'ID': ["x%d" % r for r in range(10)],
-                        'Gender' : ['F', 'M', 'F', 'M', 'F', 'M', 'F', 'M', 'M', 'M'],
-                        'ExamYear': ['2007','2007','2007','2008','2008','2008','2008','2009','2009','2009'],
-                        'Class': ['algebra', 'stats', 'bio', 'algebra', 'algebra', 'stats', 'stats', 'algebra', 'bio', 'bio'],
-                        'Participated': ['yes','yes','yes','yes','no','yes','yes','yes','yes','yes'],
-                        'Passed': ['yes' if x > 50 else 'no' for x in grades],
-                        'Employed': [True,True,True,False,False,False,False,True,True,False],
-                        'Grade': grades})
+   grades = [48,99,75,80,42,80,72,68,36,78]
+   df = pd.DataFrame( {'ID': ["x%d" % r for r in range(10)],
+                       'Gender' : ['F', 'M', 'F', 'M', 'F', 'M', 'F', 'M', 'M', 'M'],
+                       'ExamYear': ['2007','2007','2007','2008','2008','2008','2008','2009','2009','2009'],
+                       'Class': ['algebra', 'stats', 'bio', 'algebra', 'algebra', 'stats', 'stats', 'algebra', 'bio', 'bio'],
+                       'Participated': ['yes','yes','yes','yes','no','yes','yes','yes','yes','yes'],
+                       'Passed': ['yes' if x > 50 else 'no' for x in grades],
+                       'Employed': [True,True,True,False,False,False,False,True,True,False],
+                       'Grade': grades})
 
-	df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
-								'Passed': lambda x: sum(x == 'yes'),
-								'Employed' : lambda x : sum(x),
-								'Grade' : lambda x : sum(x) / len(x)})                 
-                              
+   df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
+                       'Passed': lambda x: sum(x == 'yes'),
+                       'Employed' : lambda x : sum(x),
+                       'Grade' : lambda x : sum(x) / len(x)})                 
+
 Apply
 *****
 
@@ -669,12 +664,12 @@ Apply
 
 .. ipython:: python
 
-	df = pd.DataFrame(data={'A' : [[2,4,8,16],[100,200],[10,20,30]], 'B' : [['a','b','c'],['jj','kk'],['ccc']]},index=['I','II','III'])
+   df = pd.DataFrame(data={'A' : [[2,4,8,16],[100,200],[10,20,30]], 'B' : [['a','b','c'],['jj','kk'],['ccc']]},index=['I','II','III'])
 
-	def SeriesFromSubList(aList): 
-		return pd.Series(aList)
+   def SeriesFromSubList(aList): 
+      return pd.Series(aList)
 
-	df_orgz = pd.concat(dict([ (ind,row.apply(SeriesFromSubList)) for ind,row in df.iterrows() ]))
+   df_orgz = pd.concat(dict([ (ind,row.apply(SeriesFromSubList)) for ind,row in df.iterrows() ]))
 
 `Rolling Apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
@@ -683,15 +678,15 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
 .. ipython:: python
 
-	df = pd.DataFrame(data=np.random.randn(2000,2)/10000, 
-                      index=pd.date_range('2001-01-01',periods=2000),
-                      columns=['A','B']); df
+   df = pd.DataFrame(data=np.random.randn(2000,2)/10000, 
+                     index=pd.date_range('2001-01-01',periods=2000),
+                     columns=['A','B']); df
 
-	def gm(aDF,Const):
-		v = ((((aDF.A+aDF.B)+1).cumprod())-1)*Const
-		return (aDF.index[0],v.iloc[-1])
-				  
-	S = pd.Series(dict([ gm(df.iloc[i:min(i+51,len(df)-1)],5) for i in range(len(df)-50) ])); S
+   def gm(aDF,Const):
+      v = ((((aDF.A+aDF.B)+1).cumprod())-1)*Const
+      return (aDF.index[0],v.iloc[-1])
+                      
+   S = pd.Series(dict([ gm(df.iloc[i:min(i+51,len(df)-1)],5) for i in range(len(df)-50) ])); S
 
 `Rolling apply with a DataFrame returning a Scalar
 <http://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
@@ -700,14 +695,14 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 
 .. ipython:: python
 
-	rng = pd.date_range(start = '2014-01-01',periods = 100)
-	df = pd.DataFrame({'Open' : np.random.randn(len(rng)),
-                       'Close' : np.random.randn(len(rng)), 
-                       'Volume' : np.random.randint(100,2000,len(rng))}, index=rng); df
+   rng = pd.date_range(start = '2014-01-01',periods = 100)
+   df = pd.DataFrame({'Open' : np.random.randn(len(rng)),
+                      'Close' : np.random.randn(len(rng)), 
+                      'Volume' : np.random.randint(100,2000,len(rng))}, index=rng); df
 
-	def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum()).round(2)  
-	window = 5
-	s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]); s
+   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum()).round(2)  
+   window = 5
+   s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]); s
 
 Timeseries
 ----------
@@ -735,8 +730,8 @@ Calculate the first day of the month for each entry in a DatetimeIndex
 
 .. ipython:: python
 
-    dates = pd.date_range('2000-01-01', periods=5)
-    dates.to_period(freq='M').to_timestamp()
+   dates = pd.date_range('2000-01-01', periods=5)
+   dates.to_period(freq='M').to_timestamp()
 
 .. _cookbook.resample:
 
@@ -777,29 +772,29 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
 
 .. ipython:: python
 
-	rng = pd.date_range('2000-01-01', periods=6)
-	df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
-	df2 = df1.copy()
-	
+   rng = pd.date_range('2000-01-01', periods=6)
+   df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
+   df2 = df1.copy()
+   
 ignore_index is needed in pandas < v0.13, and depending on df construction
 
 .. ipython:: python
 
-	df = df1.append(df2,ignore_index=True); df
+   df = df1.append(df2,ignore_index=True); df
 
 `Self Join of a DataFrame
 <https://github.com/pydata/pandas/issues/2996>`__
 
 .. ipython:: python
 
-	df = pd.DataFrame(data={'Area' : ['A'] * 5 + ['C'] * 2,
-                        'Bins' : [110] * 2 + [160] * 3 + [40] * 2,
-                        'Test_0' : [0, 1, 0, 1, 2, 0, 1],
-                        'Data' : np.random.randn(7)});df
-							
-	df['Test_1'] = df['Test_0'] - 1
+   df = pd.DataFrame(data={'Area' : ['A'] * 5 + ['C'] * 2,
+                           'Bins' : [110] * 2 + [160] * 3 + [40] * 2,
+                           'Test_0' : [0, 1, 0, 1, 2, 0, 1],
+                           'Data' : np.random.randn(7)});df
+                     
+   df['Test_1'] = df['Test_0'] - 1
 
-	pd.merge(df, df, left_on=['Bins', 'Area','Test_0'], right_on=['Bins', 'Area','Test_1'],suffixes=('_L','_R'))
+   pd.merge(df, df, left_on=['Bins', 'Area','Test_0'], right_on=['Bins', 'Area','Test_1'],suffixes=('_L','_R'))
 
 `How to set the index and join
 <http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
@@ -846,19 +841,17 @@ The :ref:`Plotting <visualization>` docs.
 
 .. ipython:: python
 
-    df = pd.DataFrame(
+   df = pd.DataFrame(
         {u'stratifying_var': np.random.uniform(0, 100, 20),
-         u'price': np.random.normal(100, 5, 20)}
-    )
-    df[u'quartiles'] = pd.qcut(
-        df[u'stratifying_var'],
-        4,
-        labels=[u'0-25%', u'25-50%', u'50-75%', u'75-100%']
-    )
+         u'price': np.random.normal(100, 5, 20)})
+		 
+   df[u'quartiles'] = pd.qcut(
+       df[u'stratifying_var'],
+       4,
+       labels=[u'0-25%', u'25-50%', u'50-75%', u'75-100%'])
 
-    @savefig quartile_boxplot.png
-    df.boxplot(column=u'price', by=u'quartiles')
-
+   @savefig quartile_boxplot.png
+   df.boxplot(column=u'price', by=u'quartiles')
 
 Data In/Out
 -----------
@@ -1029,19 +1022,19 @@ Storing Attributes to a group node
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.random.randn(8,3))
-    store = pd.HDFStore('test.h5')
-    store.put('df',df)
-
-    # you can store an arbitrary python object via pickle
-    store.get_storer('df').attrs.my_attribute = dict(A = 10)
-    store.get_storer('df').attrs.my_attribute
+   df = pd.DataFrame(np.random.randn(8,3))
+   store = pd.HDFStore('test.h5')
+   store.put('df',df)
+   
+   # you can store an arbitrary python object via pickle
+   store.get_storer('df').attrs.my_attribute = dict(A = 10)
+   store.get_storer('df').attrs.my_attribute
 
 .. ipython:: python
    :suppress:
 
-    store.close()
-    os.remove('test.h5')
+   store.close()
+   os.remove('test.h5')
 
 
 .. _cookbook.binary:
@@ -1173,14 +1166,18 @@ To globally provide aliases for axis names, one can define these 2 functions:
 .. ipython:: python
 
    def set_axis_alias(cls, axis, alias):
-        if axis not in cls._AXIS_NUMBERS:
-            raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-        cls._AXIS_ALIASES[alias] = axis
+      if axis not in cls._AXIS_NUMBERS:
+         raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+      cls._AXIS_ALIASES[alias] = axis
+
+.. ipython:: python
 
    def clear_axis_alias(cls, axis, alias):
-        if axis not in cls._AXIS_NUMBERS:
-            raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-        cls._AXIS_ALIASES.pop(alias,None)
+      if axis not in cls._AXIS_NUMBERS:
+         raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+      cls._AXIS_ALIASES.pop(alias,None)
+      
+.. ipython:: python
 
    set_axis_alias(pd.DataFrame,'columns', 'myaxis2')
    df2 = pd.DataFrame(np.random.randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
@@ -1197,13 +1194,12 @@ of the data values:
 .. ipython:: python
 
 
-    def expand_grid(data_dict):
-        rows = itertools.product(*data_dict.values())
-        return pd.DataFrame.from_records(rows, columns=data_dict.keys())
+   def expand_grid(data_dict):
+      rows = itertools.product(*data_dict.values())
+      return pd.DataFrame.from_records(rows, columns=data_dict.keys())
 
-    df = expand_grid(
-        {'height': [60, 70],
-         'weight': [100, 140, 180],
-         'sex': ['Male', 'Female']}
-    )
-    df
+   df = expand_grid(
+      {'height': [60, 70],
+       'weight': [100, 140, 180],
+       'sex': ['Male', 'Female']})
+   df
