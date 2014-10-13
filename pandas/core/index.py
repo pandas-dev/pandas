@@ -14,7 +14,8 @@ import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs
-from pandas.util.decorators import Appender, cache_readonly, deprecate
+from pandas.util.decorators import (Appender, Substitution, cache_readonly,
+                                    deprecate)
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
@@ -2088,12 +2089,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable """
 
-        def _make_invalid_op(opstr):
+        def _make_invalid_op(name):
 
-            def _invalid_op(self, other=None):
-                raise TypeError("cannot perform {opstr} with this index type: {typ}".format(opstr=opstr,
-                                                                                            typ=type(self)))
-            return _invalid_op
+            def invalid_op(self, other=None):
+                raise TypeError("cannot perform {name} with this index type: {typ}".format(name=name,
+                                                                                           typ=type(self)))
+            invalid_op.__name__ = name
+            return invalid_op
 
         cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
         cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
@@ -2178,8 +2180,62 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__abs__ = _make_evaluate_unary(lambda x: np.abs(x),'__abs__')
         cls.__inv__ = _make_evaluate_unary(lambda x: -x,'__inv__')
 
+    @classmethod
+    def _add_logical_methods(cls):
+        """ add in logical methods """
+
+        _doc = """
+
+        %(desc)s
+
+        Parameters
+        ----------
+        All arguments to numpy.%(outname)s are accepted.
+
+        Returns
+        -------
+        %(outname)s : bool or array_like (if axis is specified)
+            A single element array_like may be converted to bool."""
+
+        def _make_logical_function(name, desc, f):
+
+            @Substitution(outname=name, desc=desc)
+            @Appender(_doc)
+            def logical_func(self, *args, **kwargs):
+                result = f(self.values)
+                if isinstance(result, (np.ndarray, com.ABCSeries, Index)) \
+                   and result.ndim == 0:
+                    # return NumPy type
+                    return result.dtype.type(result.item())
+                else:  # pragma: no cover
+                    return result
+            logical_func.__name__ = name
+            return logical_func
+
+        cls.all = _make_logical_function(
+            'all', 'Return whether all elements are True', np.all)
+        cls.any = _make_logical_function(
+            'any', 'Return whether any element is True', np.any)
+
+    @classmethod
+    def _add_logical_methods_disabled(cls):
+        """ add in logical methods to disable """
+
+        def _make_invalid_op(name):
+
+            def invalid_op(self, other=None):
+                raise TypeError("cannot perform {name} with this index type: {typ}".format(name=name,
+                                                                                           typ=type(self)))
+            invalid_op.__name__ = name
+            return invalid_op
+
+        cls.all = _make_invalid_op('all')
+        cls.any = _make_invalid_op('any')
+
 
 Index._add_numeric_methods_disabled()
+Index._add_logical_methods()
+
 
 class NumericIndex(Index):
     """
@@ -2291,7 +2347,11 @@ class Int64Index(NumericIndex):
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
+
+
 Int64Index._add_numeric_methods()
+Int64Index._add_logical_methods()
+
 
 class Float64Index(NumericIndex):
 
@@ -2483,7 +2543,10 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return lib.ismember_nans(self._array_values(), value_set,
                                  isnull(list(value_set)).any())
+
+
 Float64Index._add_numeric_methods()
+Float64Index._add_logical_methods_disabled()
 
 
 class MultiIndex(Index):
@@ -4436,7 +4499,11 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
+
+
 MultiIndex._add_numeric_methods_disabled()
+MultiIndex._add_logical_methods_disabled()
+
 
 # For utility purposes
 

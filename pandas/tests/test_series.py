@@ -2474,6 +2474,33 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertFalse(bool_series.all())
         self.assertTrue(bool_series.any())
 
+        # Alternative types, with implicit 'object' dtype.
+        s = Series(['abc', True])
+        self.assertEquals('abc', s.any())  # 'abc' || True => 'abc'
+
+    def test_all_any_params(self):
+        # Check skipna, with implicit 'object' dtype.
+        s1 = Series([np.nan, True])
+        s2 = Series([np.nan, False])
+        self.assertTrue(s1.all(skipna=False))  # nan && True => True
+        self.assertTrue(s1.all(skipna=True))
+        self.assertTrue(np.isnan(s2.any(skipna=False)))  # nan || False => nan
+        self.assertFalse(s2.any(skipna=True))
+
+        # Check level.
+        s = pd.Series([False, False, True, True, False, True],
+                      index=[0, 0, 1, 1, 2, 2])
+        assert_series_equal(s.all(level=0), Series([False, True, False]))
+        assert_series_equal(s.any(level=0), Series([False, True, True]))
+
+        # bool_only is not implemented with level option.
+        self.assertRaises(NotImplementedError, s.any, bool_only=True, level=0)
+        self.assertRaises(NotImplementedError, s.all, bool_only=True, level=0)
+
+        # bool_only is not implemented alone.
+        self.assertRaises(NotImplementedError, s.any, bool_only=True)
+        self.assertRaises(NotImplementedError, s.all, bool_only=True)
+
     def test_op_method(self):
         def check(series, other, check_reverse=False):
             simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']

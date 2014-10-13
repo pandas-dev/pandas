@@ -22,6 +22,20 @@ API changes
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
 
+- ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters. ``Series.all``, ``Series.any``, ``Index.all``, and ``Index.any`` no longer support the ``out`` and ``keepdims`` parameters, which existed for compatibility with ndarray. Various index types no longer support the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
+
+  .. ipython:: python
+
+     s = pd.Series([False, True, False], index=[0, 0, 1])
+     s.any(level=0)
+
+- ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
+
+  .. ipython:: python
+
+     p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
+     p.all()
+
 .. _whatsnew_0152.enhancements:
 
 Enhancements
