@@ -2303,7 +2303,7 @@ class NDFrame(PandasObject):
                                                            limit=limit,
                                                            downcast=downcast),
                                         axis=axis)
-                    new_data = result.convert_objects()._data
+                    new_data = result.convert_objects(copy=False)._data
             else:
                 new_data = interp_func(self)
         else:
