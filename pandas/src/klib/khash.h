@@ -180,8 +180,7 @@ static const double __ac_HASH_UPPER = 0.77;
 	extern void kh_clear_##name(kh_##name##_t *h);						\
 	extern khint_t kh_get_##name(const kh_##name##_t *h, khkey_t key); 	\
 	extern void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets); \
-	extern khint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret); \
-	extern void kh_del_##name(kh_##name##_t *h, khint_t x);
+	extern khint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret);
 
 #define KHASH_INIT2(name, SCOPE, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
 	typedef struct {													\
@@ -314,13 +313,6 @@ static const double __ac_HASH_UPPER = 0.77;
 			*ret = 2;													\
 		} else *ret = 0; /* Don't touch h->keys[x] if present and not deleted */ \
 		return x;														\
-	}																	\
-	SCOPE void kh_del_##name(kh_##name##_t *h, khint_t x)				\
-	{																	\
-		if (x != h->n_buckets && !__ac_iseither(h->flags, x)) {			\
-			__ac_set_isdel_true(h->flags, x);							\
-			--h->size;													\
-		}																\
 	}
 
 #define KHASH_INIT(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
@@ -442,14 +434,6 @@ static PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @return       Iterator to the found element, or kh_end(h) is the element is absent [khint_t]
  */
 #define kh_get(name, h, k) kh_get_##name(h, k)
-
-/*! @function
-  @abstract     Remove a key from the hash table.
-  @param  name  Name of the hash table [symbol]
-  @param  h     Pointer to the hash table [khash_t(name)*]
-  @param  k     Iterator to the element to be deleted [khint_t]
- */
-#define kh_del(name, h, k) kh_del_##name(h, k)
 
 /*! @function
   @abstract     Test whether a bucket contains data.
