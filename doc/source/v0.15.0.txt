@@ -321,7 +321,7 @@ API changes
 
 - Added support for numpy 1.8+ data types (``bool_``, ``int_``, ``float_``, ``string_``) for conversion to R dataframe  (:issue:`8400`)
 - Concatenating no objects will now raise a ``ValueError`` rather than a bare ``Exception``.
-- Concatenation errors will now be sub-classes of ``ValueError`` rather than raw ``Exception`` (:issue:`8501`)
+- Merge errors will now be sub-classes of ``ValueError`` rather than raw ``Exception`` (:issue:`8501`)
 - ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 
 .. _whatsnew_0150.memory:
