@@ -1,6 +1,18 @@
+#ifndef _KLIB_KHASH_PYTHON_H_
+#define _KLIB_KHASH_PYTHON_H_
+
 #include <Python.h>
 
 #include "khash.h"
+
+#define kh_exist_str(h, k) (kh_exist(h, k))
+#define kh_exist_float64(h, k) (kh_exist(h, k))
+#define kh_exist_int64(h, k) (kh_exist(h, k))
+#define kh_exist_int32(h, k) (kh_exist(h, k))
+
+KHASH_MAP_INIT_STR(str, size_t)
+KHASH_MAP_INIT_INT(int32, size_t)
+KHASH_MAP_INIT_INT64(int64, size_t)
 
 // kludge
 
@@ -13,7 +25,7 @@
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
 
 
-int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
+static int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 	int result = PyObject_RichCompareBool(a, b, Py_EQ);
 	if (result < 0) {
 		PyErr_Clear();
@@ -47,3 +59,5 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
+
+#endif /* _KLIB_KHASH_PYTHON_H_ */
