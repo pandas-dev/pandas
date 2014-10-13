@@ -2335,6 +2335,18 @@ class TestMultiIndex(Base, tm.TestCase):
                                               (2, pd.Timestamp('2000-01-02'))])
         assert_array_equal(mi.values, etalon)
 
+    def test_values_boxed(self):
+        tuples = [(1, pd.Timestamp('2000-01-01')),
+                  (2, pd.NaT),
+                  (3, pd.Timestamp('2000-01-03')),
+                  (1, pd.Timestamp('2000-01-04')),
+                  (2, pd.Timestamp('2000-01-02')),
+                  (3, pd.Timestamp('2000-01-03'))]
+        mi = pd.MultiIndex.from_tuples(tuples)
+        assert_array_equal(mi.values, pd.lib.list_to_object_array(tuples))
+        # Check that code branches for boxed values produce identical results
+        assert_array_equal(mi.values[:4], mi[:4].values)
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         self.assertTrue(result.equals(self.index))

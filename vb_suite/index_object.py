@@ -108,7 +108,7 @@ index_float64_div = Benchmark('idx / 2', setup, name='index_float64_div',
 
 
 # Constructing MultiIndex from cartesian product of iterables
-# 
+#
 
 setup = common_setup + """
 iterables = [tm.makeStringIndex(10000), xrange(20)]
@@ -123,10 +123,17 @@ multiindex_from_product = Benchmark('MultiIndex.from_product(iterables)',
 
 setup = common_setup + """
 level1 = range(1000)
-level2 = date_range(start='1/1/2012', periods=10)
+level2 = date_range(start='1/1/2012', periods=100)
+mi = MultiIndex.from_product([level1, level2])
 """
 
-multiindex_with_datetime_level = \
-    Benchmark("MultiIndex.from_product([level1, level2]).values", setup,
-              name='multiindex_with_datetime_level',
+multiindex_with_datetime_level_full = \
+    Benchmark("mi.copy().values", setup,
+              name='multiindex_with_datetime_level_full',
+              start_date=datetime(2014, 10, 11))
+
+
+multiindex_with_datetime_level_sliced = \
+    Benchmark("mi[:10].values", setup,
+              name='multiindex_with_datetime_level_sliced',
               start_date=datetime(2014, 10, 11))
