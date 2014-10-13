@@ -2288,18 +2288,24 @@ class NDFrame(PandasObject):
 
             method = com._clean_fill_method(method)
 
+            def interp_func(series):
+                return series._data.interpolate(method=method,
+                                                inplace=inplace,
+                                                limit=limit,
+                                                coerce=True,
+                                                downcast=downcast)
             if self.ndim > 1:
-                result = self.apply(lambda s: s.fillna(method=method,
-                                                       limit=limit,
-                                                       downcast=downcast),
-                                    axis=axis)
-                new_data = result.convert_objects()._data
+                if inplace:
+                    self.apply(interp_func, axis=axis)
+                    new_data = self._data
+                else:
+                    result = self.apply(lambda s: s.fillna(method=method,
+                                                           limit=limit,
+                                                           downcast=downcast),
+                                        axis=axis)
+                    new_data = result.convert_objects()._data
             else:
-                new_data = self._data.interpolate(method=method,
-                                                  axis=axis,
-                                                  limit=limit,
-                                                  coerce=True,
-                                                  downcast=downcast)
+                new_data = interp_func(self)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
