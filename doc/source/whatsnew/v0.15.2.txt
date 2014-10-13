@@ -66,6 +66,7 @@ Enhancements
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See :ref:`here<remote_data.ga>`.
 - Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
+- Added ability to read table footer to read_html (:issue:`8552`)
 
 .. _whatsnew_0152.performance:
 

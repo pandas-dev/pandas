@@ -577,7 +577,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 table.xpath(expr)]
 
     def _parse_raw_tfoot(self, table):
-        expr = './/tfoot//th'
+        expr = './/tfoot//th|//tfoot//td'
         return [_remove_whitespace(x.text_content()) for x in
                 table.xpath(expr)]
 
@@ -594,13 +594,16 @@ def _expand_elements(body):
 
 def _data_to_frame(data, header, index_col, skiprows, infer_types,
                    parse_dates, tupleize_cols, thousands):
-    head, body, _ = data  # _ is footer which is rarely used: ignore for now
+    head, body, foot = data
 
     if head:
         body = [head] + body
 
         if header is None:  # special case when a table has <th> elements
             header = 0
+
+    if foot:
+        body += [foot]
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)

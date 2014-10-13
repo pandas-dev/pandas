@@ -426,6 +426,38 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         res1 = self.read_html(StringIO(data1))
         res2 = self.read_html(StringIO(data2))
         assert_framelist_equal(res1, res2)
+    
+    def test_tfoot_read(self):
+        """
+        Make sure that read_html reads tfoot, containing td or th. 
+        Ignores empty tfoot
+        """
+        data_template = '''<table>
+            <thead>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>bodyA</td>
+                    <td>bodyB</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                {footer}
+            </tfoot>
+        </table>'''
+
+        data1 = data_template.format(footer = "")
+        data2 = data_template.format(footer ="<tr><td>footA</td><th>footB</th></tr>")
+    
+        d1 = {'A': ['bodyA'], 'B': ['bodyB']}
+        d2 = {'A': ['bodyA', 'footA'], 'B': ['bodyB', 'footB']}
+    
+        tm.assert_frame_equal(self.read_html(data1)[0], DataFrame(d1))
+        tm.assert_frame_equal(self.read_html(data2)[0], DataFrame(d2))
 
     def test_countries_municipalities(self):
         # GH5048
