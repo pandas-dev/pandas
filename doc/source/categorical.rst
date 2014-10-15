@@ -33,7 +33,7 @@ with R's ``factor``.
 
 `Categoricals` are a pandas data type, which correspond to categorical variables in
 statistics: a variable, which can take on only a limited, and usually fixed,
-number of possible values (`categories`; `categories` in R). Examples are gender, social class,
+number of possible values (`categories`; `levels` in R). Examples are gender, social class,
 blood types, country affiliations, observation time or ratings via Likert scales.
 
 In contrast to statistical categorical variables, categorical data might have an order (e.g.
