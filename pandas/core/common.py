@@ -3118,3 +3118,21 @@ def _maybe_match_name(a, b):
     if a_name == b_name:
         return a_name
     return None
+
+def _get_cats(f):
+    from pandas.core.common import CategoricalDtype
+    if f._stat_axis_number == 0:
+        return dict((pt, f[pt].cat) for pt in f if
+                    isinstance(f[pt].dtype, CategoricalDtype))
+    else:
+        return dict((pt, _get_cats(f[pt])) for pt in f)
+
+def _restore_cats(f, cats):
+    from pandas.core.categorical import Categorical
+    for pt, sub in cats.items():
+        if isinstance(sub, dict):
+            _restore_cats(f[pt], sub)
+        else:
+            f[pt] = Categorical(f[pt], 
+                                categories=sub.categories, 
+                                ordered=sub.ordered)

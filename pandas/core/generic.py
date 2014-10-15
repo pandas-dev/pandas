@@ -2299,11 +2299,18 @@ class NDFrame(PandasObject):
                     self.apply(interp_func, axis=axis)
                     new_data = self._data
                 else:
+                    cats = None
+                    if self._is_mixed_type:
+                        cats = com._get_cats(self)
+
                     result = self.apply(lambda s: s.fillna(method=method,
                                                            limit=limit,
                                                            downcast=downcast),
                                         axis=axis)
-                    new_data = result.convert_objects(copy=False)._data
+                    result = result.convert_objects(copy=False)
+                    if cats:
+                        com._restore_cats(result, cats)
+                    new_data = result._data
             else:
                 new_data = interp_func(self)
         else:
