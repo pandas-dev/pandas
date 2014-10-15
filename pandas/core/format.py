@@ -2027,14 +2027,19 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
 
 
 def _is_dates_only(values):
-    for d in values:
-        if isinstance(d, np.datetime64):
-            d = Timestamp(d)
+    # return a boolean if we are only dates (and don't have a timezone)
+    from pandas import DatetimeIndex
+    values = DatetimeIndex(values)
+    if values.tz is not None:
+        return False
 
-        if d is not None and not lib.checknull(d) and d._has_time_component():
-            return False
-    return True
-
+    values_int = values.asi8
+    consider_values = values_int != iNaT
+    one_day_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+    if even_days:
+        return True
+    return False
 
 def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 

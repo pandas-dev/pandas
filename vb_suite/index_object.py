@@ -108,7 +108,7 @@ index_float64_div = Benchmark('idx / 2', setup, name='index_float64_div',
 
 
 # Constructing MultiIndex from cartesian product of iterables
-# 
+#
 
 setup = common_setup + """
 iterables = [tm.makeStringIndex(10000), xrange(20)]
@@ -130,3 +130,14 @@ multiindex_with_datetime_level = \
     Benchmark("MultiIndex.from_product([level1, level2]).values", setup,
               name='multiindex_with_datetime_level',
               start_date=datetime(2014, 10, 11))
+
+#----------------------------------------------------------------------
+# repr
+
+setup = common_setup + """
+dr = pd.date_range('20000101', freq='D', periods=100000)
+"""
+
+datetime_index_repr = \
+    Benchmark("dr._is_dates_only", setup,
+              start_date=datetime(2012, 1, 11))
