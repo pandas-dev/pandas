@@ -822,7 +822,7 @@ Scatter Matrix Plot
 .. versionadded:: 0.7.3
 
 You can create a scatter plot matrix using the
- ``scatter_matrix`` method in ``pandas.tools.plotting``:
+``scatter_matrix`` method in ``pandas.tools.plotting``:
 
 .. ipython:: python
    :suppress:
