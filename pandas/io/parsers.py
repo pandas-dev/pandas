@@ -33,8 +33,9 @@ into chunks.
 
 Parameters
 ----------
-filepath_or_buffer : string or file handle / StringIO. The string could be
-    a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a
+filepath_or_buffer : string or file handle / StringIO
+    The string could be a URL. Valid URL schemes include
+    http, ftp, s3, and file. For file URLs, a
     host is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
@@ -59,7 +60,8 @@ compression : {'gzip', 'bz2', None}, default None
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int row number(s) to use as the column names, and the start of the
+header : int, list of ints
+    Row number(s) to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
     a list of integers that specify row locations for a multi-index on the
@@ -78,7 +80,7 @@ index_col : int or sequence or False, default None
 names : array-like
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None
-prefix : string or None (default)
+prefix : string, default None
     Prefix to add to column numbers when no header, e.g 'X' for X0, X1, ...
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
@@ -113,7 +115,7 @@ comment : str, default None
     must be a single character. Like empty lines (as long as ``skip_blank_lines=True``),
     fully commented lines are ignored by the parameter `header`
     but not by `skiprows`. For example, if comment='#', parsing
-    '#empty\n1,2,3\na,b,c' with `header=0` will result in '1,2,3' being
+    '#empty\\na,b,c\\n1,2,3' with `header=0` will result in 'a,b,c' being
     treated as the header.
 decimal : str, default '.'
     Character to recognize as decimal point. E.g. use ',' for European data
