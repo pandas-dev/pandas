@@ -48,6 +48,7 @@ Enhancements
     df.drop(['A', 'X'], axis=1, errors='ignore')
 
 - Allow conversion of values with dtype ``datetime64`` or ``timedelta64`` to strings using ``astype(str)`` (:issue:`9757`)
+- ``get_dummies`` function now accepts ``sparse`` keyword.  If set to ``True``, the return DataFrame is sparse. (:issue:`8823`)
 
 .. _whatsnew_0161.api:
 
