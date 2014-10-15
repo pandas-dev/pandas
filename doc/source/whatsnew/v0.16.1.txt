@@ -98,3 +98,6 @@ Bug Fixes
 - Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
 
 - Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
+
+- Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
+
