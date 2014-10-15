@@ -1663,6 +1663,12 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         self.assertEqual(list(df_blocks.keys()), ['float64'])
         assert_frame_equal(df_blocks['float64'], df)
 
+    def test_nan_columnname(self):
+        # GH 8822
+        nan_colname = DataFrame(Series(1.0,index=[0]),columns=[nan])
+        nan_colname_sparse = nan_colname.to_sparse()
+        self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
+
 
 def _dense_series_compare(s, f):
     result = f(s)
