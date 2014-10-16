@@ -1405,7 +1405,7 @@ class ScatterPlot(MPLPlot):
         cb = self.kwds.pop('colorbar', self.colormap or c in self.data.columns)
 
         # pandas uses colormap, matplotlib uses cmap.
-        cmap = self.colormap or 'RdBu'
+        cmap = self.colormap or 'Greys'
         cmap = plt.cm.get_cmap(cmap)
 
         if c is None:

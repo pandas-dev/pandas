@@ -1605,8 +1605,8 @@ class TestDataFramePlots(TestPlotBase):
         axes = [df.plot(kind='scatter', x='x', y='y', c='z'),
                 df.plot(kind='scatter', x=0, y=1, c=2)]
         for ax in axes:
-            # default to RdBu
-            self.assertEqual(ax.collections[0].cmap.name, 'RdBu')
+            # default to Greys
+            self.assertEqual(ax.collections[0].cmap.name, 'Greys')
 
             if self.mpl_ge_1_3_1:
 
