@@ -534,7 +534,7 @@ Rolling/Expanding Moments API changes
   ``ddof`` argument (with a default value of ``1``) was previously undocumented. (:issue:`8064`)
 
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now interpret ``min_periods`` in the same manner that the ``rolling_*`` and ``expanding_*`` functions do:
+  now interpret ``min_periods`` in the same manner that the :func:`rolling_*()` and :func:`expanding_*()` functions do:
   a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
   at least ``min_periods`` values. The previous behavior was to set to ``NaN`` the ``min_periods`` entries
   starting with the first non- ``NaN`` value. (:issue:`7977`)
@@ -582,11 +582,18 @@ Rolling/Expanding Moments API changes
      ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
      ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
 
+  .. warning::
+
+     By default (``ignore_na=False``) the :func:`ewm*()` functions' weights calculation
+     in the presence of missing values is different than in pre-0.15.0 versions.
+     To reproduce the pre-0.15.0 calculation of weights in the presence of missing values
+     one must specify explicitly ``ignore_na=True``.
+
 - Bug in :func:`expanding_cov`, :func:`expanding_corr`, :func:`rolling_cov`, :func:`rolling_cor`, :func:`ewmcov`, and :func:`ewmcorr`
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-- Bug in :func:`rolling_count` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
+- Bug in :func:`rolling_count` and :func:`expanding_*()` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
 - Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
 - Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
 - Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
@@ -609,16 +616,16 @@ Rolling/Expanding Moments API changes
 
   .. code-block:: python
 
-	 In [69]: ewmvar(s, com=2., bias=False)
-	 Out[69]:
+	 In [89]: ewmvar(s, com=2., bias=False)
+	 Out[89]:
 	 0   -2.775558e-16
 	 1    3.000000e-01
 	 2    9.556787e-01
 	 3    3.585799e+00
 	 dtype: float64
 
-	 In [70]: ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
-	 Out[70]:
+	 In [90]: ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
+	 Out[90]:
 	 0    1.25
 	 1    1.25
 	 2    1.25
