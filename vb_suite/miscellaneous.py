@@ -24,9 +24,7 @@ misc_cache_readonly = Benchmark("obj.prop", setup, name="misc_cache_readonly",
 # match
 
 setup = common_setup + """
-from pandas.util.testing import rands
-
-uniques = np.array([rands(10) for _ in xrange(1000)], dtype='O')
+uniques = tm.makeStringIndex(1000).values
 all = uniques.repeat(10)
 """
 

@@ -8,7 +8,6 @@ from numpy import nan
 
 from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index
-from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
@@ -2579,7 +2578,7 @@ class TestGroupBy(tm.TestCase):
         self.assertTrue(result.isnull().all())
 
     def test_series_grouper_noncontig_index(self):
-        index = Index([tm.rands(10) for _ in range(100)])
+        index = Index(tm.rands_array(10, 100))
 
         values = Series(np.random.randn(50), index=index[::2])
         labels = np.random.randint(0, 5, 50)
@@ -2869,8 +2868,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_rank_apply(self):
-        lev1 = np.array([rands(10) for _ in range(100)], dtype=object)
-        lev2 = np.array([rands(10) for _ in range(130)], dtype=object)
+        lev1 = tm.rands_array(10, 100)
+        lev2 = tm.rands_array(10, 130)
         lab1 = np.random.randint(0, 100, size=500)
         lab2 = np.random.randint(0, 130, size=500)
 

@@ -17,8 +17,8 @@ except:
 
 setup = common_setup + """
 N, K = 5000, 50
-index = [rands(10) for _ in xrange(N)]
-columns = [rands(10) for _ in xrange(K)]
+index = tm.makeStringIndex(N)
+columns = tm.makeStringIndex(K)
 frame = DataFrame(np.random.randn(N, K), index=index, columns=columns)
 
 try:

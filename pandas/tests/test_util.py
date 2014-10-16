@@ -59,6 +59,22 @@ class TestDecorators(tm.TestCase):
             def f4(new=None):
                 pass
 
+
+def test_rands():
+    r = tm.rands(10)
+    assert(len(r) == 10)
+
+
+def test_rands_array():
+    arr = tm.rands_array(5, size=10)
+    assert(arr.shape == (10,))
+    assert(len(arr[0]) == 5)
+
+    arr = tm.rands_array(7, size=(10, 10))
+    assert(arr.shape == (10, 10))
+    assert(len(arr[1, 1]) == 7)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

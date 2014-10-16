@@ -14,7 +14,7 @@ from pandas import compat
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 assert_almost_equal, rands,
+                                 assert_almost_equal,
                                  makeCustomDataframe as mkdf,
                                  assertRaisesRegexp)
 from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table, read_csv
@@ -913,7 +913,7 @@ class TestMergeMulti(tm.TestCase):
     def test_compress_group_combinations(self):
 
         # ~ 40000000 possible unique groups
-        key1 = np.array([rands(10) for _ in range(10000)], dtype='O')
+        key1 = tm.rands_array(10, 10000)
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 

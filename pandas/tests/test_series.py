@@ -327,8 +327,7 @@ class CheckNameIntegration(object):
         self.assertTrue((result == 5).all())
 
     def test_getitem_negative_out_of_bounds(self):
-        s = Series([tm.rands(5) for _ in range(10)],
-                   index=[tm.rands(10) for _ in range(10)])
+        s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
         self.assertRaises(IndexError, s.__getitem__, -11)
         self.assertRaises(IndexError, s.__setitem__, -11, 'foo')
@@ -3852,11 +3851,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         _check_op(arr, operator.floordiv)
 
     def test_series_frame_radd_bug(self):
-        from pandas.util.testing import rands
         import operator
 
         # GH 353
-        vals = Series([rands(5) for _ in range(10)])
+        vals = Series(tm.rands_array(5, 10))
         result = 'foo_' + vals
         expected = vals.map(lambda x: 'foo_' + x)
         assert_series_equal(result, expected)

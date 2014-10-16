@@ -20,7 +20,7 @@ bm_getitem = Benchmark(statement, setup, ncalls=100000,
                        name='series_getitem_scalar')
 
 setup = common_setup + """
-index = [tm.rands(10) for _ in xrange(1000)]
+index = tm.makeStringIndex(1000)
 s = Series(np.random.rand(1000), index=index)
 idx = index[100]
 """
@@ -51,8 +51,8 @@ series_getitem_label_slice = Benchmark("s[:lbl]", setup,
 # DataFrame __getitem__
 
 setup = common_setup + """
-index = [tm.rands(10) for _ in xrange(1000)]
-columns = [tm.rands(10) for _ in xrange(30)]
+index = tm.makeStringIndex(1000)
+columns = tm.makeStringIndex(30)
 df = DataFrame(np.random.rand(1000, 30), index=index,
                columns=columns)
 idx = index[100]
@@ -68,10 +68,9 @@ try:
 except:
     klass = DataFrame
 
-index = [tm.rands(10) for _ in xrange(1000)]
-columns = [tm.rands(10) for _ in xrange(30)]
-df = klass(np.random.rand(1000, 30), index=index,
-               columns=columns)
+index = tm.makeStringIndex(1000)
+columns = tm.makeStringIndex(30)
+df = klass(np.random.rand(1000, 30), index=index, columns=columns)
 idx = index[100]
 col = columns[10]
 """
@@ -84,10 +83,9 @@ bm_df_getitem2 = Benchmark(statement, setup,
 # ix get scalar
 
 setup = common_setup + """
-index = [tm.rands(10) for _ in xrange(1000)]
-columns = [tm.rands(10) for _ in xrange(30)]
-df = DataFrame(np.random.randn(1000, 30), index=index,
-               columns=columns)
+index = tm.makeStringIndex(1000)
+columns = tm.makeStringIndex(30)
+df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
 idx = index[100]
 col = columns[10]
 """

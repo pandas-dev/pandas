@@ -130,9 +130,9 @@ behavior:
 
 .. ipython:: python
 
-   from pandas.util.testing import rands
+   from pandas.util.testing import rands_array
    df = DataFrame(np.random.randn(10, 4), columns=['a', 'b', 'c', 'd'],
-                  index=[rands(5) for _ in range(10)])
+                  index=rands_array(5, 10))
    df
 
    concat([df.ix[:7, ['a', 'b']], df.ix[2:-2, ['c']],
