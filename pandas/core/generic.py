@@ -21,10 +21,12 @@ from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning)
+                                SettingWithCopyError, SettingWithCopyWarning,
+                                CategoricalDtype)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
+from pandas.core.categorical import Categorical
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2301,7 +2303,7 @@ class NDFrame(PandasObject):
                 else:
                     cats = None
                     if self._is_mixed_type:
-                        cats = com._get_cats(self)
+                        cats = self._get_cats()
 
                     result = self.apply(lambda s: s.fillna(method=method,
                                                            limit=limit,
@@ -2309,7 +2311,7 @@ class NDFrame(PandasObject):
                                         axis=axis)
                     result = result.convert_objects(copy=False)
                     if cats:
-                        com._restore_cats(result, cats)
+                        result._restore_cats(cats)
                     new_data = result._data
             else:
                 new_data = interp_func(self)
@@ -2366,6 +2368,22 @@ class NDFrame(PandasObject):
         else:
             result = self._constructor(new_data).__finalize__(self)
             return result
+
+    def _get_cats(self):
+        if self._stat_axis_number == 0:
+            return dict((pt, self[pt].cat) for pt in self if
+                        isinstance(self[pt].dtype, CategoricalDtype))
+        else:
+            return dict((pt, self[pt]._get_cats()) for pt in self)
+
+    def _restore_cats(self, cats):
+        for pt, sub in cats.items():
+            if isinstance(sub, dict):
+                self[pt]._restore_cats(sub)
+            else:
+                self[pt] = Categorical(self[pt],
+                                       categories=sub.categories,
+                                       ordered=sub.ordered)
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='ffill')"
