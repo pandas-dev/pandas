@@ -2366,8 +2366,7 @@ class NDFrame(PandasObject):
         if inplace:
             self._update_inplace(new_data)
         else:
-            result = self._constructor(new_data).__finalize__(self)
-            return result
+            return self._constructor(new_data).__finalize__(self)
 
     def _get_cats(self):
         if self._stat_axis_number == 0:
