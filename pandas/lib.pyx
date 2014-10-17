@@ -332,26 +332,6 @@ def list_to_object_array(list obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray left, ndarray right):
-    cdef Py_ssize_t i, n
-    cdef object lobj, robj
-
-    n = len(left)
-    for i from 0 <= i < n:
-        lobj = left[i]
-        robj = right[i]
-
-        # we are either not equal or both nan
-        # I think None == None will be true here
-        if lobj != robj:
-            if checknull(lobj) and checknull(robj):
-                continue
-            return False
-    return True
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -691,6 +671,31 @@ def scalar_compare(ndarray[object] values, object val, object op):
                 result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
 
     return result.view(bool)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equivalent_object(ndarray[object] left, ndarray[object] right):
+    """ perform an element by element comparion on 1-d object arrays
+        taking into account nan positions """
+    cdef Py_ssize_t i, n
+    cdef object x, y
+
+    n = len(left)
+    for i from 0 <= i < n:
+        x = left[i]
+        y = right[i]
+
+        # we are either not equal or both nan
+        # I think None == None will be true here
+        if cpython.PyObject_RichCompareBool(x, y, cpython.Py_EQ):
+            continue
+        elif _checknull(x) and _checknull(y):
+            continue
+        else:
+            return False
+
+    return True
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
