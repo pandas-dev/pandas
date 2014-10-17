@@ -411,12 +411,13 @@ def array_equivalent(left, right, strict_nan=False):
     if left.shape != right.shape: return False
 
     # Object arrays can contain None, NaN and NaT.
-    if issubclass(left.dtype.type, np.object_):
+    if issubclass(left.dtype.type, np.object_) or issubclass(right.dtype.type, np.object_):
 
         if not strict_nan:
             # pd.isnull considers NaN and None to be equivalent.
-            return lib.array_equivalent_object(left.ravel(), right.ravel())
-        
+            return lib.array_equivalent_object(_ensure_object(left.ravel()),
+                                               _ensure_object(right.ravel()))
+
         for left_value, right_value in zip(left, right):
             if left_value is tslib.NaT and right_value is not tslib.NaT:
                 return False
