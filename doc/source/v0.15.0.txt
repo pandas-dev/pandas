@@ -864,6 +864,7 @@ Enhancements
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
 
 - Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
+- Added conversion option when importing Stata files (:issue:`8527`)
 
 - Added ``layout`` keyword to ``DataFrame.plot``. You can pass a tuple of ``(rows, columns)``, one of which can be ``-1`` to automatically infer (:issue:`6667`, :issue:`8071`).
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)

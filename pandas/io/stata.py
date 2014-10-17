@@ -29,7 +29,7 @@ from pandas.tslib import NaT, Timestamp
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None,
-               convert_missing=False):
+               convert_missing=False, preserve_dtypes=True):
     """
     Read Stata file into DataFrame
 
@@ -52,13 +52,14 @@ def read_stata(filepath_or_buffer, convert_dates=True,
         If True, columns containing missing values are returned with
         object data types and missing values are represented by
         StataMissingValue objects.
+    preserve_dtypes : boolean, defaults to True
+        Preserve Stata datatypes. If False, numeric data are upcast to pandas
+        default types for foreign data (float64 or int64)
     """
     reader = StataReader(filepath_or_buffer, encoding)
 
-    return reader.data(convert_dates,
-                       convert_categoricals,
-                       index,
-                       convert_missing)
+    return reader.data(convert_dates, convert_categoricals, index,
+                       convert_missing, preserve_dtypes)
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -976,7 +977,7 @@ class StataReader(StataParser):
             self.path_or_buf.read(1)  # zero-termination
 
     def data(self, convert_dates=True, convert_categoricals=True, index=None,
-             convert_missing=False):
+             convert_missing=False, preserve_dtypes=True):
         """
         Reads observations from Stata file, converting them into a dataframe
 
@@ -995,7 +996,9 @@ class StataReader(StataParser):
             nans.  If True, columns containing missing values are returned with
             object data types and missing values are represented by
             StataMissingValue objects.
-
+        preserve_dtypes : boolean, defaults to True
+            Preserve Stata datatypes. If False, numeric data are upcast to
+            pandas default types for foreign data (float64 or int64)
         Returns
         -------
         y : DataFrame instance
@@ -1106,6 +1109,21 @@ class StataReader(StataParser):
                         self.value_label_dict[self.lbllist[i]]):
                     labeled_data[(data[col] == k).values] = v
                 data[col] = Categorical.from_array(labeled_data)
+
+        if not preserve_dtypes:
+            retyped_data = []
+            convert = False
+            for col in data:
+                dtype = data[col].dtype
+                if dtype in (np.float16, np.float32):
+                    dtype = np.float64
+                    convert = True
+                elif dtype in (np.int8, np.int16, np.int32):
+                    dtype = np.int64
+                    convert = True
+                retyped_data.append((col, data[col].astype(dtype)))
+            if convert:
+                data = DataFrame.from_items(retyped_data)
 
         return data
 
