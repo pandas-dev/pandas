@@ -1,10 +1,8 @@
 """Operator classes for eval.
 """
 
-import re
 import operator as op
 from functools import partial
-from itertools import product, islice, chain
 from datetime import datetime
 
 import numpy as np
@@ -69,7 +67,6 @@ class Term(StringMixin):
         return self
 
     def _resolve_name(self):
-        key = self.name
         res = self.env.resolve(self.local_name, is_local=self.is_local)
         self.update(res)
 
@@ -491,3 +488,13 @@ class UnaryOp(Op):
 
     def __unicode__(self):
         return com.pprint_thing('{0}({1})'.format(self.op, self.operand))
+
+    @property
+    def return_type(self):
+        operand = self.operand
+        if operand.return_type == np.dtype('bool'):
+            return np.dtype('bool')
+        if (isinstance(operand, Op) and
+            (operand.op in _cmp_ops_dict or operand.op in _bool_ops_dict)):
+            return np.dtype('bool')
+        return np.dtype('int')
