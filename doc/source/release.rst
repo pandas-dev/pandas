@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.15.0
 -------------
 
-**Release date:** (October ??, 2014)
+**Release date:** (October 18, 2014)
 
 This is a major release from 0.14.1 and includes a number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
@@ -72,6 +72,86 @@ of all API changes, enhancements and bugs that have been fixed in 0.15.0.
 
 Thanks
 ~~~~~~
+
+- Aaron Schumacher
+- Adam Greenhall
+- Andy Hayden
+- Anthony O'Brien
+- Artemy Kolchinsky
+- behzad nouri
+- Benedikt Sauer
+- benjamin
+- Benjamin Thyreau
+- Ben Schiller
+- bjonen
+- BorisVerk
+- Chris Reynolds
+- Chris Stoafer
+- Dav Clark
+- dlovell
+- DSM
+- dsm054
+- FragLegs
+- German Gomez-Herrero
+- Hsiaoming Yang
+- Huan Li
+- hunterowens
+- Hyungtae Kim
+- immerrr
+- Isaac Slavitt
+- ischwabacher
+- Jacob Schaer
+- Jacob Wasserman
+- Jan Schulz
+- Jeff Tratner
+- Jesse Farnham
+- jmorris0x0
+- jnmclarty
+- Joe Bradish
+- Joerg Rittinger
+- John W. O'Brien
+- Joris Van den Bossche
+- jreback
+- Kevin Sheppard
+- klonuo
+- Kyle Meyer
+- lexual
+- Max Chang
+- mcjcode
+- Michael Mueller
+- Michael W Schatzow
+- Mike Kelly
+- Mortada Mehyar
+- mtrbean
+- Nathan Sanders
+- Nathan Typanski
+- onesandzeroes
+- Paul Masurel
+- Phillip Cloud
+- Pietro Battiston
+- RenzoBertocchi
+- rockg
+- Ross Petchler
+- seth-p
+- Shahul Hameed
+- Shashank Agarwal
+- sinhrks
+- someben
+- stahlous
+- stas-sl
+- Stephan Hoyer
+- thatneat
+- tom-alcorn
+- TomAugspurger
+- Tom Augspurger
+- Tony Lorenzo
+- unknown
+- unutbu
+- Wes Turner
+- Wilfred Hughes
+- Yevgeniy Grechka
+- Yoshiki VÃ¡zquez Baeza
+- zachcp
 
 pandas 0.14.1
 -------------
