@@ -322,10 +322,10 @@ equality to be True:
 
 .. ipython:: python
 
-   df = DataFrame({'col':['foo', 0, np.nan]})
+   df1 = DataFrame({'col':['foo', 0, np.nan]})
    df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
-   df.equals(df2)
-   df.equals(df2.sort())
+   df1.equals(df2)
+   df1.equals(df2.sort())
 
 
 Combining overlapping data sets
