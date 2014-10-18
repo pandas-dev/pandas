@@ -26,6 +26,8 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+- Added option to select columns when importing Stata files (:issue:`7935`)
+
 
 .. _whatsnew_0151.performance:
 

@@ -720,12 +720,29 @@ class TestStata(tm.TestCase):
 
         tm.assert_frame_equal(expected, conversion)
 
+    def test_drop_column(self):
+        expected = self.read_csv(self.csv15)
+        expected['byte_'] = expected['byte_'].astype(np.int8)
+        expected['int_'] = expected['int_'].astype(np.int16)
+        expected['long_'] = expected['long_'].astype(np.int32)
+        expected['float_'] = expected['float_'].astype(np.float32)
+        expected['double_'] = expected['double_'].astype(np.float64)
+        expected['date_td'] = expected['date_td'].apply(datetime.strptime,
+                                                        args=('%Y-%m-%d',))
 
+        columns = ['byte_', 'int_', 'long_']
+        expected = expected[columns]
+        dropped = read_stata(self.dta15_117, convert_dates=True,
+                             columns=columns)
 
+        tm.assert_frame_equal(expected, dropped)
+        with tm.assertRaises(ValueError):
+            columns = ['byte_', 'byte_']
+            read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
-
-
-
+        with tm.assertRaises(ValueError):
+            columns = ['byte_', 'int_', 'long_', 'not_found']
+            read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
