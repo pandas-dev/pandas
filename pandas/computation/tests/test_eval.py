@@ -1627,6 +1627,13 @@ def test_inf():
         yield check_inf, engine, parser
 
 
+def test_negate_lt_eq_le():
+    df = pd.DataFrame([[0, 10], [1, 20]], columns=['cat', 'count'])
+    result = df.query('~(cat > 0)')
+    expected = df[~(df.cat > 0)]
+    tm.assert_frame_equal(result, expected)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
