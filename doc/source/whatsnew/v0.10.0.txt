@@ -48,6 +48,7 @@ want to broadcast, we are phasing out this special case (Zen of Python:
 talking about:
 
 .. ipython:: python
+   :okwarning:
 
    import pandas as pd
    df = pd.DataFrame(np.random.randn(6, 4),
