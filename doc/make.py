@@ -31,48 +31,48 @@ os.environ['PYTHONPATH'] = '..'
 SPHINX_BUILD = 'sphinxbuild'
 
 
-def upload_dev():
+def upload_dev(user='pandas'):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
-                 ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh'):
+    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+                 ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh'.format(user)):
         raise SystemExit('Upload to Pydata Dev failed')
 
 
-def upload_dev_pdf():
+def upload_dev_pdf(user='pandas'):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf pandas@pandas.pydata.org'
-                 ':/usr/share/nginx/pandas/pandas-docs/dev/'):
+    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+                 ':/usr/share/nginx/pandas/pandas-docs/dev/'.format(user)):
         raise SystemExit('PDF upload to Pydata Dev failed')
 
 
-def upload_stable():
+def upload_stable(user='pandas'):
     'push a copy to the pydata stable directory'
-    if os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
-                 ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'):
+    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+                 ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'.format(user)):
         raise SystemExit('Upload to stable failed')
 
 
-def upload_stable_pdf():
+def upload_stable_pdf(user='pandas'):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf pandas@pandas.pydata.org'
-                 ':/usr/share/nginx/pandas/pandas-docs/stable/'):
+    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+                 ':/usr/share/nginx/pandas/pandas-docs/stable/'.format(user)):
         raise SystemExit('PDF upload to stable failed')
 
 
-def upload_prev(ver, doc_root='./'):
+def upload_prev(ver, doc_root='./', user='pandas'):
     'push a copy of older release to appropriate version directory'
     local_dir = doc_root + 'build/html'
     remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
-    cmd = 'cd %s; rsync -avz . pandas@pandas.pydata.org:%s -essh'
-    cmd = cmd % (local_dir, remote_dir)
+    cmd = 'cd %s; rsync -avz . %s@pandas.pydata.org:%s -essh'
+    cmd = cmd % (local_dir, user, remote_dir)
     print(cmd)
     if os.system(cmd):
         raise SystemExit(
             'Upload to %s from %s failed' % (remote_dir, local_dir))
 
     local_dir = doc_root + 'build/latex'
-    pdf_cmd = 'cd %s; scp pandas.pdf pandas@pandas.pydata.org:%s'
-    pdf_cmd = pdf_cmd % (local_dir, remote_dir)
+    pdf_cmd = 'cd %s; scp pandas.pdf %s@pandas.pydata.org:%s'
+    pdf_cmd = pdf_cmd % (local_dir, user, remote_dir)
     if os.system(pdf_cmd):
         raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
 
@@ -337,6 +337,10 @@ argparser.add_argument('--single',
                    type=str,
                    default=False,
                    help='filename of section to compile, e.g. "indexing"')
+argparser.add_argument('--user',
+                   type=str,
+                   default=False,
+                   help='Username to connect to the pydata server')
 
 def main():
     args, unknown = argparser.parse_known_args()
@@ -354,16 +358,19 @@ def main():
         ver = sys.argv[2]
 
         if ftype == 'build_previous':
-            build_prev(ver)
+            build_prev(ver, user=args.user)
         if ftype == 'upload_previous':
-            upload_prev(ver)
+            upload_prev(ver, user=args.user)
     elif len(sys.argv) == 2:
         for arg in sys.argv[1:]:
             func = funcd.get(arg)
             if func is None:
                 raise SystemExit('Do not know how to handle %s; valid args are %s' % (
                     arg, list(funcd.keys())))
-            func()
+            if args.user:
+                func(user=args.user)
+            else:
+                func()
     else:
         small_docs = False
         all()
