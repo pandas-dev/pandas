@@ -19,7 +19,54 @@ users upgrade to this version.
 
 API changes
 ~~~~~~~~~~~
+- ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
+  result (:issue:`8582`):
 
+  .. code-block:: python
+
+     In [1]: np.random.seed(2718281)
+
+     In [2]: df = pd.DataFrame(np.random.randint(0, 100, (10, 2)),
+        ...:                   columns=['jim', 'joe'])
+
+     In [3]: ts = pd.Series(5 * np.random.randint(0, 3, 10))
+
+     In [4]: df.groupby(ts, as_index=False).max()
+     Out[4]:
+        NaN  jim  joe
+     0    0   72   83
+     1    5   77   84
+     2   10   96   65
+
+with the new release:
+
+  .. ipython:: python
+
+    np.random.seed(2718281)
+    df = pd.DataFrame(np.random.randint(0, 100, (10, 2)),
+                      columns=['jim', 'joe'])
+    df.head()
+
+    ts = pd.Series(5 * np.random.randint(0, 3, 10))
+    df.groupby(ts, as_index=False).max()
+
+- ``groupby`` will not erroneously exclude columns if the column name conflics
+  with the grouper name (:issue:`8112`):
+
+  .. code-block:: python
+
+     In [1]: df = pd.DataFrame({'jim': range(5), 'joe': range(5, 10)})
+
+     In [2]: gr = df.groupby(df['jim'] < 2)
+
+     In [3]: _ = gr.nth(0) # invokes the code path which excludes the 1st column
+
+     In [4]: gr.apply(sum) # excludes 1st column from output
+     Out[4]:
+            joe
+     jim
+     False   24
+     True    11
 
 .. _whatsnew_0151.enhancements:
 
@@ -51,3 +98,5 @@ Bug Fixes
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)
+- Bug in ``GroupBy`` where a name conflict between the grouper and columns
+  would break ``groupby`` operations (:issue:`7115`, :issue:`8112`)

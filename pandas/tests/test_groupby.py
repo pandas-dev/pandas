@@ -1499,6 +1499,24 @@ class TestGroupBy(tm.TestCase):
         result3 = grouped['C'].agg({'Q': np.sum})
         assert_frame_equal(result3, expected3)
 
+        # GH7115 & GH8112 & GH8582
+        df = DataFrame(np.random.randint(0, 100, (50, 3)),
+                       columns=['jim', 'joe', 'jolie'])
+        ts = Series(np.random.randint(5, 10, 50), name='jim')
+
+        gr = df.groupby(ts)
+        _ = gr.nth(0)  # invokes _set_selection_from_grouper internally
+        assert_frame_equal(gr.apply(sum), df.groupby(ts).apply(sum))
+
+        for attr in ['mean', 'max', 'count', 'idxmax', 'cumsum', 'all']:
+            gr = df.groupby(ts, as_index=False)
+            left = getattr(gr, attr)()
+
+            gr = df.groupby(ts.values, as_index=True)
+            right = getattr(gr, attr)().reset_index(drop=True)
+
+            assert_frame_equal(left, right)
+
     def test_mulitindex_passthru(self):
 
         # GH 7997
@@ -2565,7 +2583,6 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby(0)
         result = grouped.mean()
         expected = df.groupby(df[0]).mean()
-        del expected[0]
         assert_frame_equal(result, expected)
 
     def test_cython_grouper_series_bug_noncontig(self):

@@ -471,7 +471,9 @@ class GroupBy(PandasObject):
         grp = self.grouper
         if self.as_index and getattr(grp,'groupings',None) is not None and self.obj.ndim > 1:
             ax = self.obj._info_axis
-            groupers = [ g.name for g in grp.groupings if g.level is None and g.name is not None and g.name in ax ]
+            groupers = [g.name for g in grp.groupings
+                           if g.level is None and g.in_axis]
+
             if len(groupers):
                 self._group_selection = ax.difference(Index(groupers)).tolist()
 
@@ -1844,6 +1846,8 @@ class Grouping(object):
     obj :
     name :
     level :
+    in_axis : if the Grouping is a column in self.obj and hence among
+        Groupby.exclusions list
 
     Returns
     -------
@@ -1857,7 +1861,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True):
+                 sort=True, in_axis=False):
 
         self.name = name
         self.level = level
@@ -1865,6 +1869,7 @@ class Grouping(object):
         self.index = index
         self.sort = sort
         self.obj = obj
+        self.in_axis = in_axis
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -2096,23 +2101,43 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     groupings = []
     exclusions = []
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
-        name = None
-        try:
-            obj._data.items.get_loc(gpr)
-            in_axis = True
-        except Exception:
-            in_axis = False
 
-        if _is_label_like(gpr) or in_axis:
-            exclusions.append(gpr)
-            name = gpr
-            gpr = obj[gpr]
+    # if the actual grouper should be obj[key]
+    def is_in_axis(key):
+        if not _is_label_like(key):
+            try:
+                obj._data.items.get_loc(key)
+            except Exception:
+                return False
+
+        return True
+
+    # if the the grouper is obj[name]
+    def is_in_obj(gpr):
+        try:
+            return id(gpr) == id(obj[gpr.name])
+        except Exception:
+            return False
+
+    for i, (gpr, level) in enumerate(zip(keys, levels)):
+
+        if is_in_obj(gpr):  # df.groupby(df['name'])
+            in_axis, name = True, gpr.name
+            exclusions.append(name)
+
+        elif is_in_axis(gpr):  # df.groupby('name')
+            in_axis, name, gpr = True, gpr, obj[gpr]
+            exclusions.append(name)
+
+        else:
+            in_axis, name = False, None
 
         if isinstance(gpr, Categorical) and len(gpr) != len(obj):
             raise ValueError("Categorical grouper must have len(grouper) == len(data)")
 
-        ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
+        ping = Grouping(group_axis, gpr, obj=obj, name=name,
+                        level=level, sort=sort, in_axis=in_axis)
+
         groupings.append(ping)
 
     if len(groupings) == 0:
@@ -2647,18 +2672,7 @@ class NDFrameGroupBy(GroupBy):
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
         if not self.as_index:
-            if isinstance(result.index, MultiIndex):
-                zipped = zip(result.index.levels, result.index.labels,
-                             result.index.names)
-                for i, (lev, lab, name) in enumerate(zipped):
-                    result.insert(i, name,
-                                  com.take_nd(lev.values, lab,
-                                              allow_fill=False))
-                result = result.consolidate()
-            else:
-                values = result.index.values
-                name = self.grouper.groupings[0].name
-                result.insert(0, name, values)
+            self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
         return result.convert_objects()
@@ -3180,6 +3194,17 @@ class DataFrameGroupBy(NDFrameGroupBy):
         else:
             return obj._data, 1
 
+    def _insert_inaxis_grouper_inplace(self, result):
+        # zip in reverse so we can always insert at loc 0
+        izip = zip(* map(reversed, (
+            self.grouper.names,
+            self.grouper.get_group_levels(),
+            [grp.in_axis for grp in self.grouper.groupings])))
+
+        for name, lev, in_axis in izip:
+            if in_axis:
+                result.insert(0, name, lev)
+
     def _wrap_aggregated_output(self, output, names=None):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
@@ -3188,11 +3213,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         if not self.as_index:
             result = DataFrame(output, columns=output_keys)
-            group_levels = self.grouper.get_group_levels()
-            zipped = zip(self.grouper.names, group_levels)
-
-            for i, (name, labels) in enumerate(zipped):
-                result.insert(i, name, labels)
+            self._insert_inaxis_grouper_inplace(result)
             result = result.consolidate()
         else:
             index = self.grouper.result_index
@@ -3209,11 +3230,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             mgr = BlockManager(blocks, [items, index])
             result = DataFrame(mgr)
 
-            group_levels = self.grouper.get_group_levels()
-            zipped = zip(self.grouper.names, group_levels)
-
-            for i, (name, labels) in enumerate(zipped):
-                result.insert(i, name, labels)
+            self._insert_inaxis_grouper_inplace(result)
             result = result.consolidate()
         else:
             index = self.grouper.result_index
