@@ -139,11 +139,9 @@ typedef unsigned long khint32_t;
 #endif
 
 #if ULONG_MAX == ULLONG_MAX
-typedef unsigned long khuint64_t;
-typedef signed long khint64_t;
+typedef unsigned long khint64_t;
 #else
-typedef unsigned long long khuint64_t;
-typedef signed long long khint64_t;
+typedef unsigned long long khint64_t;
 #endif
 
 typedef double khfloat64_t;
@@ -581,9 +579,6 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
   @abstract     Instantiate a hash map containing 64-bit integer keys
   @param  name  Name of the hash table [symbol]
  */
-#define KHASH_SET_INIT_UINT64(name)										\
-	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
-
 #define KHASH_SET_INIT_INT64(name)										\
 	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
@@ -592,9 +587,6 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
   @param  khval_t  Type of values [type]
  */
-#define KHASH_MAP_INIT_UINT64(name, khval_t)								\
-	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
-
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
 	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
