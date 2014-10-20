@@ -5,8 +5,8 @@ common_setup = """from pandas_vb_common import *
 """
 
 setup = common_setup + """
-level1 = np.array([rands(10) for _ in xrange(10)], dtype='O')
-level2 = np.array([rands(10) for _ in xrange(1000)], dtype='O')
+level1 = tm.makeStringIndex(10).values
+level2 = tm.makeStringIndex(1000).values
 label1 = np.arange(10).repeat(1000)
 label2 = np.tile(np.arange(1000), 10)
 
@@ -91,8 +91,8 @@ join_dataframe_integer_2key = Benchmark("merge(df, df3)", setup,
 setup = common_setup + """
 N = 10000
 
-indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
-indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
+indices = tm.makeStringIndex(N).values
+indices2 = tm.makeStringIndex(N).values
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
@@ -141,7 +141,7 @@ append_frame_single_mixed = Benchmark(stmt, setup,
 # data alignment
 
 setup = common_setup + """n = 1000000
-# indices = Index([rands(10) for _ in xrange(n)])
+# indices = tm.makeStringIndex(n)
 def sample(values, k):
     sampler = np.random.permutation(len(values))
     return values.take(sampler[:k])
@@ -170,7 +170,7 @@ series_align_left_monotonic = \
 
 setup = common_setup + """
 n = 1000
-indices = Index([rands(10) for _ in xrange(1000)])
+indices = tm.makeStringIndex(1000)
 s = Series(n, index=indices)
 pieces = [s[i:-i] for i in range(1, 10)]
 pieces = pieces * 50
@@ -205,7 +205,7 @@ concat_empty_frames2 = Benchmark('concat([empty,df])', setup,
 # Ordered merge
 
 setup = common_setup + """
-groups = np.array([rands(10) for _ in xrange(10)], dtype='O')
+groups = tm.makeStringIndex(10).values
 
 left = DataFrame({'group': groups.repeat(5000),
                   'key' : np.tile(np.arange(0, 10000, 2), 10),

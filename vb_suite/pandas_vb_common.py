@@ -1,5 +1,4 @@
 from pandas import *
-from pandas.util.testing import rands
 from datetime import timedelta
 from numpy.random import randn
 from numpy.random import randint

@@ -198,8 +198,8 @@ class TestHDFStore(tm.TestCase):
         # GH6166
         # unconversion of long strings was being chopped in earlier
         # versions of numpy < 1.7.2
-        df = DataFrame({'a': [tm.rands(100) for _ in range(10)]},
-                       index=[tm.rands(100) for _ in range(10)])
+        df = DataFrame({'a': tm.rands_array(100, size=10)},
+                       index=tm.rands_array(100, size=10))
 
         with ensure_clean_store(self.path) as store:
             store.append('df', df, data_columns=['a'])

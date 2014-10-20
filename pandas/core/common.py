@@ -2110,11 +2110,6 @@ def _count_not_none(*args):
 # miscellaneous python tools
 
 
-def rands(n):
-    """Generates a random alphanumeric string of length *n*"""
-    from random import Random
-    import string
-    return ''.join(Random().sample(string.ascii_letters + string.digits, n))
 
 
 def adjoin(space, *lists):

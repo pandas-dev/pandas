@@ -34,9 +34,8 @@ setup = common_setup + """
 N = 1000
 K = 20
 
-level1 = np.array([tm.rands(10) for _ in xrange(N)], dtype='O').repeat(K)
-level2 = np.tile(np.array([tm.rands(10) for _ in xrange(K)], dtype='O'),
-                 N)
+level1 = tm.makeStringIndex(N).values.repeat(K)
+level2 = np.tile(tm.makeStringIndex(K).values, N)
 index = MultiIndex.from_arrays([level1, level2])
 
 s1 = Series(np.random.randn(N * K), index=index)
@@ -125,8 +124,8 @@ setup = common_setup + """
 N = 10000
 K = 10
 
-key1 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
-key2 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
+key1 = tm.makeStringIndex(N).values.repeat(K)
+key2 = tm.makeStringIndex(N).values.repeat(K)
 
 df = DataFrame({'key1' : key1, 'key2' : key2,
                 'value' : np.random.randn(N * K)})
@@ -166,7 +165,7 @@ frame_drop_dup_na_inplace = Benchmark(statement2, setup,
 
 setup = common_setup + """
 s = Series(np.random.randint(0, 1000, size=10000))
-s2 = Series(np.tile([rands(10) for i in xrange(1000)], 10))
+s2 = Series(np.tile(tm.makeStringIndex(1000).values, 10))
 """
 
 series_drop_duplicates_int = Benchmark('s.drop_duplicates()', setup,
@@ -195,7 +194,7 @@ frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
 
 setup = common_setup + """
 n = 50000
-indices = Index([rands(10) for _ in xrange(n)])
+indices = tm.makeStringIndex(n)
 
 def sample(values, k):
     from random import shuffle

@@ -193,15 +193,50 @@ def randbool(size=(), p=0.5):
     return rand(*size) <= p
 
 
-def rands(n):
-    choices = string.ascii_letters + string.digits
-    return ''.join(random.choice(choices) for _ in range(n))
+RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
+                       dtype=(np.str_, 1))
+RANDU_CHARS = np.array(list(u("").join(map(unichr, lrange(1488, 1488 + 26))) +
+                            string.digits), dtype=(np.unicode_, 1))
 
 
-def randu(n):
-    choices = u("").join(map(unichr, lrange(1488, 1488 + 26)))
-    choices += string.digits
-    return ''.join([random.choice(choices) for _ in range(n)])
+def rands_array(nchars, size, dtype='O'):
+    """Generate an array of byte strings."""
+    retval = (choice(RANDS_CHARS, size=nchars * np.prod(size))
+              .view((np.str_, nchars)).reshape(size))
+    if dtype is None:
+        return retval
+    else:
+        return retval.astype(dtype)
+
+
+def randu_array(nchars, size, dtype='O'):
+    """Generate an array of unicode strings."""
+    retval = (choice(RANDU_CHARS, size=nchars * np.prod(size))
+              .view((np.unicode_, nchars)).reshape(size))
+    if dtype is None:
+        return retval
+    else:
+        return retval.astype(dtype)
+
+
+def rands(nchars):
+    """
+    Generate one random byte string.
+
+    See `rands_array` if you want to create an array of random strings.
+
+    """
+    return ''.join(choice(RANDS_CHARS, nchars))
+
+
+def randu(nchars):
+    """
+    Generate one random unicode string.
+
+    See `randu_array` if you want to create an array of random unicode strings.
+
+    """
+    return ''.join(choice(RANDU_CHARS, nchars))
 
 
 def choice(x, size=10):
@@ -743,10 +778,11 @@ def getArangeMat():
 
 # make index
 def makeStringIndex(k=10):
-    return Index([rands(10) for _ in range(k)])
+    return Index(rands_array(nchars=10, size=k))
+
 
 def makeUnicodeIndex(k=10):
-    return Index([randu(10) for _ in range(k)])
+    return Index(randu_array(nchars=10, size=k))
 
 def makeBoolIndex(k=10):
     if k == 1:

@@ -17,7 +17,7 @@ sdate = datetime(2014, 6, 1)
 # to_sql
 
 setup = common_setup + """
-index = [rands(10) for _ in xrange(10000)]
+index = tm.makeStringIndex(10000)
 df = DataFrame({'float1' : randn(10000),
                 'float2' : randn(10000),
                 'string1' : ['foo'] * 10000,
@@ -37,7 +37,7 @@ sql_write_fallback = Benchmark("df.to_sql('test1', con, if_exists='replace')",
 # read_sql
 
 setup = common_setup + """
-index = [rands(10) for _ in xrange(10000)]
+index = tm.makeStringIndex(10000)
 df = DataFrame({'float1' : randn(10000),
                 'float2' : randn(10000),
                 'string1' : ['foo'] * 10000,

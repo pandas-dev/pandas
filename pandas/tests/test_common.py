@@ -274,11 +274,6 @@ def test_repr_binary_type():
     assert_equal(res, b)
 
 
-def test_rands():
-    r = com.rands(10)
-    assert(len(r) == 10)
-
-
 def test_adjoin():
     data = [['a', 'b', 'c'],
             ['dd', 'ee', 'ff'],

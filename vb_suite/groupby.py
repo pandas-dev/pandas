@@ -187,7 +187,7 @@ series_value_counts_int64 = Benchmark('s.value_counts()', setup,
 setup = common_setup + """
 K = 1000
 N = 100000
-uniques = np.array([rands(10) for x in xrange(K)], dtype='O')
+uniques = tm.makeStringIndex(K).values
 s = Series(np.tile(uniques, N // K))
 """
 

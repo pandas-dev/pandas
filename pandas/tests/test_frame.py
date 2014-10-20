@@ -4734,7 +4734,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
-                       columns=[tm.rands(10) for _ in range(20)])
+                       columns=tm.rands_array(10, 20))
         repr(df)
 
     def test_repr_column_name_unicode_truncation_bug(self):

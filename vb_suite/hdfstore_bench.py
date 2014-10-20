@@ -19,7 +19,7 @@ def remove(f):
 # get from a store
 
 setup1 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000)},
                index=index)
@@ -36,7 +36,7 @@ read_store = Benchmark("store.get('df1')", setup1, cleanup="store.close()",
 # write to a store
 
 setup2 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000)},
                index=index)
@@ -52,7 +52,7 @@ write_store = Benchmark(
 # get from a store (mixed)
 
 setup3 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000),
                 'string1' : ['foo'] * 25000,
@@ -73,7 +73,7 @@ read_store_mixed = Benchmark(
 # write to a store (mixed)
 
 setup4 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000),
                 'string1' : ['foo'] * 25000,
@@ -93,7 +93,7 @@ write_store_mixed = Benchmark(
 
 setup5 = common_setup + """
 N=10000
-index = [rands(10) for _ in xrange(N)]
+index = tm.makeStringIndex(N)
 df = DataFrame({'float1' : randn(N),
                 'float2' : randn(N),
                 'string1' : ['foo'] * N,
@@ -115,7 +115,7 @@ read_store_table_mixed = Benchmark(
 # write to a table (mixed)
 
 setup6 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000),
                 'string1' : ['foo'] * 25000,
@@ -134,7 +134,7 @@ write_store_table_mixed = Benchmark(
 # select from a table
 
 setup7 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000) },
                index=index)
@@ -153,7 +153,7 @@ read_store_table = Benchmark(
 # write to a table
 
 setup8 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
+index = tm.makeStringIndex(25000)
 df = DataFrame({'float1' : randn(25000),
                 'float2' : randn(25000) },
                index=index)
