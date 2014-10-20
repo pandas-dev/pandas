@@ -29,7 +29,7 @@ from pandas.tslib import NaT, Timestamp
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None,
-               convert_missing=False, preserve_dtypes=True):
+               convert_missing=False, preserve_dtypes=True, columns=None):
     """
     Read Stata file into DataFrame
 
@@ -55,11 +55,14 @@ def read_stata(filepath_or_buffer, convert_dates=True,
     preserve_dtypes : boolean, defaults to True
         Preserve Stata datatypes. If False, numeric data are upcast to pandas
         default types for foreign data (float64 or int64)
+    columns : list or None
+        Columns to retain.  Columns will be returned in the given order.  None
+        returns all columns
     """
     reader = StataReader(filepath_or_buffer, encoding)
 
     return reader.data(convert_dates, convert_categoricals, index,
-                       convert_missing, preserve_dtypes)
+                       convert_missing, preserve_dtypes, columns)
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -977,7 +980,7 @@ class StataReader(StataParser):
             self.path_or_buf.read(1)  # zero-termination
 
     def data(self, convert_dates=True, convert_categoricals=True, index=None,
-             convert_missing=False, preserve_dtypes=True):
+             convert_missing=False, preserve_dtypes=True, columns=None):
         """
         Reads observations from Stata file, converting them into a dataframe
 
@@ -999,6 +1002,10 @@ class StataReader(StataParser):
         preserve_dtypes : boolean, defaults to True
             Preserve Stata datatypes. If False, numeric data are upcast to
             pandas default types for foreign data (float64 or int64)
+        columns : list or None
+            Columns to retain.  Columns will be returned in the given order.
+            None returns all columns
+
         Returns
         -------
         y : DataFrame instance
@@ -1033,6 +1040,35 @@ class StataReader(StataParser):
         else:
             data = DataFrame.from_records(data, index=index)
             data.columns = self.varlist
+
+        if columns is not None:
+            column_set = set(columns)
+            if len(column_set) != len(columns):
+                raise ValueError('columns contains duplicate entries')
+            unmatched = column_set.difference(data.columns)
+            if unmatched:
+                raise ValueError('The following columns were not found in the '
+                                 'Stata data set: ' +
+                                 ', '.join(list(unmatched)))
+            # Copy information for retained columns for later processing
+            dtyplist = []
+            typlist = []
+            fmtlist = []
+            lbllist = []
+            matched = set()
+            for i, col in enumerate(data.columns):
+                if col in column_set:
+                    matched.update([col])
+                    dtyplist.append(self.dtyplist[i])
+                    typlist.append(self.typlist[i])
+                    fmtlist.append(self.fmtlist[i])
+                    lbllist.append(self.lbllist[i])
+
+            data = data[columns]
+            self.dtyplist = dtyplist
+            self.typlist = typlist
+            self.fmtlist = fmtlist
+            self.lbllist = lbllist
 
         for col, typ in zip(data, self.typlist):
             if type(typ) is int:
