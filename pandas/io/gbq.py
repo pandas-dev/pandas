@@ -56,7 +56,7 @@ if not compat.PY3:
 
             _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
 
-            if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0.0':
+            if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
                 _GOOGLE_FLAGS_VALID_VERSION = True
 
         except ImportError:
