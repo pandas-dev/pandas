@@ -140,14 +140,14 @@ class GbqConnector:
                                    scope='https://www.googleapis.com/auth/bigquery',
                                    redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
-        gcfp = self.gcloud_credentials		# a bit of mangling since this is dual-typed, str or bool
-        if self.gcloud_credentials == True:
-            gcfp = ''
 
         if self.gcloud_credentials is not None:
             import json
             import os
-            credfn = os.path.expanduser(gcfp or '~/.config/gcloud/credentials')
+            gcfp = self.gcloud_credentials		# a bit of mangling since this is dual-typed, str or bool
+            if self.gcloud_credentials == True:
+                gcfp = '~/.config/gcloud/credentials'
+            credfn = os.path.expanduser(gcfp)
             if not os.path.exists(credfn):
                 raise MissingOauthCredentials("Required google cloud authentication credentials file {0} missing.".format(credfn))
             gcloud_cred = json.loads(open(credfn).read())['data'][0]['credential']
