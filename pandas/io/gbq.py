@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import json
 import logging
 import sys
@@ -38,12 +39,13 @@ if not compat.PY3:
             from oauth2client.client import OAuth2WebServerFlow
             from oauth2client.client import AccessTokenRefreshError
             from oauth2client.client import flow_from_clientsecrets
+            from oauth2client.client import Credentials
             from oauth2client.file import Storage
             from oauth2client.tools import run
             _GOOGLE_API_CLIENT_INSTALLED=True
             _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2':
                 _GOOGLE_API_CLIENT_VALID_VERSION = True
 
         except ImportError:
@@ -71,6 +73,13 @@ if not compat.PY3:
 
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
+
+class MissingOauthCredentials(PandasError, IOError):
+    """
+    Raised when Google BigQuery authentication credentials 
+    file is missing, but was needed.
+    """
+    pass
 
 class InvalidPageToken(PandasError, IOError):
     """
@@ -119,11 +128,12 @@ class InvalidColumnOrder(PandasError, IOError):
     pass
 
 class GbqConnector:
-    def __init__(self, project_id, reauth=False):
-        self.project_id     = project_id
-        self.reauth         = reauth
-        self.credentials    = self.get_credentials()
-        self.service        = self.get_service(self.credentials)
+    def __init__(self, project_id, reauth=False, gcloud_credentials=None):
+        self.project_id         = project_id
+        self.reauth             = reauth
+        self.gcloud_credentials = gcloud_credentials
+        self.credentials        = self.get_credentials()
+        self.service            = self.get_service(self.credentials)
 
     def get_credentials(self):
         flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
@@ -131,8 +141,19 @@ class GbqConnector:
                                    scope='https://www.googleapis.com/auth/bigquery',
                                    redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
-        storage = Storage('bigquery_credentials.dat')
-        credentials = storage.get()
+        if self.gcloud_credentials is not None:
+            gcfp = self.gcloud_credentials		# a bit of mangling since this is dual-typed, str or bool
+            if self.gcloud_credentials == True:
+                gcfp = '~/.config/gcloud/credentials'
+            credfn = os.path.expanduser(gcfp)
+            if not os.path.exists(credfn):
+                raise MissingOauthCredentials("Required google cloud authentication credentials file {0} missing.".format(credfn))
+            gcloud_cred = json.loads(open(credfn).read())['data'][0]['credential']
+            credentials = Credentials.new_from_json(json.dumps(gcloud_cred))
+            return credentials
+        else:
+            storage = Storage('bigquery_credentials.dat')
+            credentials = storage.get()
 
         if credentials is None or credentials.invalid or self.reauth:
             credentials = run(flow, storage)
@@ -328,7 +349,8 @@ def _test_imports():
     if not _HTTPLIB2_INSTALLED:
         raise ImportError("pandas requires httplib2 for Google BigQuery support")
 
-def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=False):
+def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=False, 
+             gcloud_credentials=None):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -353,6 +375,12 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
+    gcloud_credentials : boolean or str (default None)
+        Use oauth2 credentials from gcloud auth login.  This is useful
+        if pandas is being run in an ipython notebook, and the user
+        has pre-existing authentication tokens.
+        Set to True to use the default path, ~/.config/gcloud/credentials.
+        Else provide an explicit path to file to use for credentials. 
 
     Returns
     -------
@@ -366,7 +394,7 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
-    connector = GbqConnector(project_id, reauth = reauth)
+    connector = GbqConnector(project_id, reauth = reauth, gcloud_credentials = gcloud_credentials)
     schema, pages = connector.run_query(query)
     dataframe_list = []
     while len(pages) > 0:
@@ -401,7 +429,7 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
     return final_df
 
 def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
-           verbose=True, reauth=False):
+           verbose=True, reauth=False, gcloud_credentials=None):
     """Write a DataFrame to a Google BigQuery table.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -430,6 +458,12 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
+    gcloud_credentials : boolean or str (default None)
+        Use oauth2 credentials from gcloud auth login.  This is useful
+        if pandas is being run in an ipython notebook, and the user
+        has pre-existing authentication tokens.
+        Set to True to use the default path, ~/.config/gcloud/credentials.
+        Else provide an explicit path to file to use for credentials. 
 
     """
     _test_imports()
@@ -440,7 +474,7 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
     if not '.' in destination_table:
         raise NotFoundException("Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
-    connector = GbqConnector(project_id, reauth = reauth)
+    connector = GbqConnector(project_id, reauth = reauth, gcloud_credentials = gcloud_credentials)
     dataset_id, table_id = destination_table.rsplit('.',1)
 
     connector.load_data(dataframe, dataset_id, table_id, chunksize, verbose)

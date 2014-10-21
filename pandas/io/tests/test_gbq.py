@@ -9,6 +9,7 @@ import subprocess
 import sys
 import platform
 from time import sleep
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 
@@ -36,6 +37,27 @@ def test_requirements():
         raise nose.SkipTest(import_exception)
 
 class TestGBQConnectorIntegration(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        with open(os.path.join(tm.get_data_path(), 'gcloud_credentials'), 'r') as fin:
+            creds_json = fin.read()
+    
+        creds_json_invalid = creds_json.replace('@INVALID@', '"true"')
+        creds_json_valid = creds_json.replace('@INVALID@', '"false"')
+
+        cls.creds_file_valid = NamedTemporaryFile()
+        cls.creds_file_valid.write(creds_json_valid.encode('UTF-8'))
+        cls.creds_file_valid.flush()
+
+        cls.creds_file_invalid = NamedTemporaryFile()
+        cls.creds_file_invalid.write(creds_json_invalid.encode('UTF-8'))
+        cls.creds_file_invalid.flush()
+
+        cls.non_creds_file = NamedTemporaryFile()
+        cls.non_creds_file.write('{"token": "50414e444153204556455259574845524521"}'.encode('UTF-8'))
+        cls.non_creds_file.flush()
+
     def setUp(self):
         test_requirements()
 
@@ -63,6 +85,28 @@ class TestGBQConnectorIntegration(tm.TestCase):
     def test_should_be_able_to_get_results_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
         self.assertTrue(pages is not None)
+
+    def test_should_raise_exception_with_invalid_gcloud_creds_path(self):
+        with tm.assertRaises(gbq.MissingOauthCredentials):
+            gbq.GbqConnector(PROJECT_ID, gcloud_credentials='missing_file')        
+
+    def test_should_fail_with_invalid_gcloud_credentials(self):
+        credentials = gbq.GbqConnector(PROJECT_ID, gcloud_credentials=self.creds_file_invalid.name).credentials
+        self.assertEqual(credentials.invalid, "true")
+
+    def test_should_be_able_to_get_valid_gcloud_credentials(self):
+        credentials = gbq.GbqConnector(PROJECT_ID, gcloud_credentials=self.creds_file_valid.name).credentials
+        self.assertEqual(credentials.invalid, "false")
+
+    def test_should_fail_if_gcloud_credentials_incorrectly_formatted(self):
+        with tm.assertRaises(KeyError):
+            gbq.GbqConnector(PROJECT_ID, gcloud_credentials=self.non_creds_file.name)
+    
+    @classmethod
+    def tearDownClass(cls):
+        cls.creds_file_valid.close()
+        cls.creds_file_invalid.close()
+        cls.non_creds_file.close()
 
 class TestReadGBQUnitTests(tm.TestCase):
     def setUp(self):
