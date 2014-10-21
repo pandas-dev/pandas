@@ -1,6 +1,7 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
+from inspect import getargspec
 import operator
 import nose
 
@@ -168,6 +169,11 @@ class SafeForLongAndSparse(object):
             assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         self.assertRaises(Exception, f, axis=obj.ndim)
+
+        # Unimplemented numeric_only parameter.
+        if 'numeric_only' in getargspec(f).args:
+            self.assertRaisesRegexp(NotImplementedError, name, f,
+                                    numeric_only=True)
 
 
 class SafeForSparse(object):

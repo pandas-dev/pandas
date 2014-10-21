@@ -1210,8 +1210,8 @@ class Categorical(PandasObject):
         self._codes[key] = lindexer
 
     #### reduction ops ####
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, name=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         """ perform the reduction type operation """
         func = getattr(self,name,None)
         if func is None:

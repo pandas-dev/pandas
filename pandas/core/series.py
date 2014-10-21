@@ -2056,8 +2056,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, name=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         """
         perform a reduction operation
 
@@ -2067,10 +2067,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         delegate = self.values
         if isinstance(delegate, np.ndarray):
+            # Validate that 'axis' is consistent with Series's single axis.
+            self._get_axis_number(axis)
+            if numeric_only:
+                raise NotImplementedError(
+                    'Series.{0} does not implement numeric_only.'.format(name))
             return op(delegate, skipna=skipna, **kwds)
 
-        return delegate._reduce(op=op, axis=axis, skipna=skipna, numeric_only=numeric_only,
-                                filter_type=filter_type, name=name, **kwds)
+        return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
+                                numeric_only=numeric_only,
+                                filter_type=filter_type, **kwds)
 
     def _maybe_box(self, func, dropna=False):
         """
