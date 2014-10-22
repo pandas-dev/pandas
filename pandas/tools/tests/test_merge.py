@@ -507,8 +507,8 @@ class TestMerge(tm.TestCase):
 
         result = result.reset_index()
 
-        result['a'] = result['a'].astype(np.float64)
-        result['b'] = result['b'].astype(np.float64)
+        # result['a'] = result['a'].astype(np.float64)
+        # result['b'] = result['b'].astype(np.float64)
 
         assert_frame_equal(result, expected.ix[:, result.columns])
 
@@ -1033,6 +1033,7 @@ class TestMerge(tm.TestCase):
         df2.columns = ['key1', 'foo', 'foo']
         self.assertRaises(ValueError, merge, df, df2)
 
+<<<<<<< HEAD
     def test_merge_on_datetime64tz(self):
 
         # GH11405
@@ -1426,6 +1427,27 @@ class TestMerge(tm.TestCase):
         test5 = df3.merge(df4, on=['col1', 'col2'],
                           how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
+=======
+    def test_merge_join_key_dtype_cast(self):
+        # #8596
+
+        df1 = DataFrame({'key': [1], 'v1': [10]})
+        df2 = DataFrame({'key': [2], 'v1': [20]})
+        df = merge(df1, df2, how='outer')
+        self.assertEqual(df['key'].dtype, 'int64')
+
+        df1 = DataFrame({'key': [True], 'v1': [1]})
+        df2 = DataFrame({'key': [False],'v1': [0]})
+        df = merge(df1, df2, how='outer')
+        self.assertEqual(df['key'].dtype, 'bool')
+
+        df1 = DataFrame({'val': [1]})
+        df2 = DataFrame({'val': [2]})
+        lkey = np.array([1])
+        rkey = np.array([2])
+        df = merge(df1, df2, left_on=lkey, right_on=rkey, how='outer')
+        self.assertEqual(df['key_0'].dtype, 'int64')
+>>>>>>> e79b978... Preserve dtype in merge keys when possible
 
 
 def _check_merge(x, y):
