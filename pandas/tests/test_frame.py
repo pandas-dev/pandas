@@ -6732,6 +6732,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         res = buf.getvalue().splitlines()
         self.assertTrue("memory usage: " not in res[-1])
 
+        df.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        # memory usage is a lower bound, so print it as XYZ+ MB
+        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
+
+        df.iloc[:, :5].info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        # excluded column with object dtype, so estimate is accurate
+        self.assertFalse(re.match(r"memory usage: [^+]+\+", res[-1]))
+
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        df_with_object_index.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
+
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
         data = {}
