@@ -18,46 +18,46 @@ What's New
 
 These are new features and improvements of note in each release.
 
-.. include:: v0.15.1.txt
+.. include:: whatsnew/v0.15.1.txt
 
-.. include:: v0.15.0.txt
+.. include:: whatsnew/v0.15.0.txt
 
-.. include:: v0.14.1.txt
+.. include:: whatsnew/v0.14.1.txt
 
-.. include:: v0.14.0.txt
+.. include:: whatsnew/v0.14.0.txt
 
-.. include:: v0.13.1.txt
+.. include:: whatsnew/v0.13.1.txt
 
-.. include:: v0.13.0.txt
+.. include:: whatsnew/v0.13.0.txt
 
-.. include:: v0.12.0.txt
+.. include:: whatsnew/v0.12.0.txt
 
-.. include:: v0.11.0.txt
+.. include:: whatsnew/v0.11.0.txt
 
-.. include:: v0.10.1.txt
+.. include:: whatsnew/v0.10.1.txt
 
-.. include:: v0.10.0.txt
+.. include:: whatsnew/v0.10.0.txt
 
-.. include:: v0.9.1.txt
+.. include:: whatsnew/v0.9.1.txt
 
-.. include:: v0.9.0.txt
+.. include:: whatsnew/v0.9.0.txt
 
-.. include:: v0.8.1.txt
+.. include:: whatsnew/v0.8.1.txt
 
-.. include:: v0.8.0.txt
+.. include:: whatsnew/v0.8.0.txt
 
-.. include:: v0.7.3.txt
+.. include:: whatsnew/v0.7.3.txt
 
-.. include:: v0.7.2.txt
+.. include:: whatsnew/v0.7.2.txt
 
-.. include:: v0.7.1.txt
+.. include:: whatsnew/v0.7.1.txt
 
-.. include:: v0.7.0.txt
+.. include:: whatsnew/v0.7.0.txt
 
-.. include:: v0.6.1.txt
+.. include:: whatsnew/v0.6.1.txt
 
-.. include:: v0.6.0.txt
+.. include:: whatsnew/v0.6.0.txt
 
-.. include:: v0.5.0.txt
+.. include:: whatsnew/v0.5.0.txt
 
-.. include:: v0.4.x.txt
+.. include:: whatsnew/v0.4.x.txt
