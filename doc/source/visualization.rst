@@ -1186,7 +1186,7 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 Suppressing Tick Resolution Adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pandas includes automatically tick resolution adjustment for regular frequency
+pandas includes automatic tick resolution adjustment for regular frequency
 time-series data. For limited cases where pandas cannot infer the frequency
 information (e.g., in an externally created ``twinx``), you can choose to
 suppress this behavior for alignment purposes.
