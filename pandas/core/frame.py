@@ -1478,13 +1478,13 @@ class DataFrame(NDFrame):
         def _non_verbose_repr():
             lines.append(self.columns.summary(name='Columns'))
 
-        def _sizeof_fmt(num):
+        def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if num < 1024.0:
-                    return "%3.1f %s" % (num, x)
+                    return "%3.1f%s %s" % (num, size_qualifier, x)
                 num /= 1024.0
-            return "%3.1f %s" % (num, 'PB')
+            return "%3.1f%s %s" % (num, size_qualifier, 'PB')
 
         if verbose:
             _verbose_repr()
@@ -1502,8 +1502,14 @@ class DataFrame(NDFrame):
         if memory_usage is None:
             memory_usage = get_option('display.memory_usage')
         if memory_usage:  # append memory usage of df to display
+            # size_qualifier is just a best effort; not guaranteed to catch all
+            # cases (e.g., it misses categorical data even with object
+            # categories)
+            size_qualifier = ('+' if 'object' in counts
+                              or self.index.dtype.kind == 'O' else '')
+            mem_usage = self.memory_usage(index=True).sum()
             lines.append("memory usage: %s\n" %
-                            _sizeof_fmt(self.memory_usage(index=True).sum()))
+                            _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
     def memory_usage(self, index=False):

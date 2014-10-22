@@ -50,6 +50,10 @@ when calling ``df.info()``:
 
     df.info()
 
+The ``+`` symbol indicates that the true memory usage could be higher, because
+pandas does not count the memory used by values in columns with
+``dtype=object``.
+
 By default the display option is set to ``True`` but can be explicitly
 overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
 
