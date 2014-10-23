@@ -297,7 +297,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self._data.shape
+        return self.values.shape
 
     @property
     def ndim(self):
