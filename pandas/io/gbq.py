@@ -376,7 +376,7 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    gcloud_credentials: boolean or str (default None)
+    gcloud_credentials : boolean or str (default None)
         Use oauth2 credentials from gcloud auth login.  This is useful
         if pandas is being run in an ipython notebook, and the user
         has pre-existing authentication tokens.
@@ -459,7 +459,7 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    gcloud_credentials: boolean or str (default None)
+    gcloud_credentials : boolean or str (default None)
         Use oauth2 credentials from gcloud auth login.  This is useful
         if pandas is being run in an ipython notebook, and the user
         has pre-existing authentication tokens.
