@@ -248,6 +248,16 @@ class TestCut(tm.TestCase):
                                             ordered=True))
         tm.assert_series_equal(res, exp)
 
+    def test_series_retbins(self):
+        # GH 8589
+        s = Series(np.arange(4))
+        result, bins = cut(s, 2, retbins=True)
+        assert_equal(result.cat.codes.values, [0, 0, 1, 1])
+        assert_almost_equal(bins, [-0.003, 1.5, 3])
+
+        result, bins = qcut(s, 2, retbins=True)
+        assert_equal(result.cat.codes.values, [0, 0, 1, 1])
+        assert_almost_equal(bins, [0, 1.5, 3])
 
 
 def curpath():

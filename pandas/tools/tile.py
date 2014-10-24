@@ -109,11 +109,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    res = _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
-                        include_lowest=include_lowest)
-    if isinstance(x, Series):
-        res = Series(res, index=x.index)
-    return res
+    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
+                         include_lowest=include_lowest)
 
 
 
@@ -168,18 +165,21 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    res = _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
-                        include_lowest=True)
-    if isinstance(x, Series):
-        res = Series(res, index=x.index)
-    return res
+    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
+                         include_lowest=True)
 
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
                   precision=3, name=None, include_lowest=False):
-    if name is None and isinstance(x, Series):
-        name = x.name
+    x_is_series = isinstance(x, Series)
+    series_index = None
+
+    if x_is_series:
+        series_index = x.index
+        if name is None:
+            name = x.name
+
     x = np.asarray(x)
 
     side = 'left' if right else 'right'
@@ -223,6 +223,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
         if has_nas:
             fac = fac.astype(np.float64)
             np.putmask(fac, na_mask, np.nan)
+
+    if x_is_series:
+        fac = Series(fac, index=series_index)
 
     if not retbins:
         return fac
