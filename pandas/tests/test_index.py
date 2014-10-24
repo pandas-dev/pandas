@@ -83,6 +83,17 @@ class Base(object):
                 pass
         tm.assertRaisesRegexp(ValueError,'The truth value of a',f)
 
+    def test_ndarray_compat_properties(self):
+
+        idx = self.create_index()
+        self.assertTrue(idx.T.equals(idx))
+        self.assertTrue(idx.transpose().equals(idx))
+
+        values = idx.values
+        for prop in ['shape', 'ndim', 'size', 'itemsize', 'nbytes']:
+            self.assertEqual(getattr(idx, prop), getattr(values, prop))
+
+
 class TestIndex(Base, tm.TestCase):
     _holder = Index
     _multiprocess_can_split_ = True

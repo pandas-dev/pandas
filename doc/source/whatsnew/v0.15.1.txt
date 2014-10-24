@@ -47,4 +47,7 @@ Experimental
 
 Bug Fixes
 ~~~~~~~~~
+
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
+
+- Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)
