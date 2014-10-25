@@ -169,6 +169,39 @@ API changes
 
 - added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
 
+.. note:: io.data.Options has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`)
+
+  As a result of a change in Yahoo's option page layout, when an expiry date is given,
+  ``Options`` methods now return data for a single expiry date.  Previously, methods returned all
+  data for the selected month.
+
+  The ``month`` and ``year`` parameters have been undeprecated and can be used to get all
+  options data for a given month.
+
+  If an expiry date that is not valid is given, data for the next expiry after the given
+  date is returned.
+
+  Option data frames are now saved on the instance as ``callsYYMMDD`` or ``putsYYMMDD``.  Previously
+  they were saved as ``callsMMYY`` and ``putsMMYY``.  The next expiry is saved as ``calls`` and ``puts``.
+
+  New features:
+
+  The expiry parameter can now be a single date or a list-like object containing dates.
+
+  A new property ``expiry_dates`` was added, which returns all available expiry dates.
+
+  current behavior:
+
+  .. ipython:: python
+
+     from pandas.io.data import Options
+     aapl = Options('aapl','yahoo')
+     aapl.get_call_data().iloc[0:5,0:1]
+     aapl.expiry_dates
+     aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+
+  See the Options documentation in :ref:`Remote Data  <remote_data.yahoo_options>`
+
 .. _whatsnew_0151.enhancements:
 
 Enhancements
