@@ -898,6 +898,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 TimedeltaIndex._add_numeric_methods()
+TimedeltaIndex._add_datetimelike_methods()
 
 def _is_convertible_to_index(other):
     """ return a boolean whether I can attempt conversion to a TimedeltaIndex """
@@ -978,5 +979,3 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name,
                           closed=closed)
-
-

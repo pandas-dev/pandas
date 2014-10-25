@@ -49,5 +49,5 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
-
+- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)

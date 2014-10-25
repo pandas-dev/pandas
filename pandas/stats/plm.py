@@ -240,7 +240,7 @@ class PanelOLS(OLS):
 
             self.log('-- Excluding dummy for entity: %s' % to_exclude)
 
-            dummies = dummies.filter(dummies.columns - [to_exclude])
+            dummies = dummies.filter(dummies.columns.difference([to_exclude]))
 
         dummies = dummies.add_prefix('FE_')
         panel = panel.join(dummies)
@@ -286,7 +286,7 @@ class PanelOLS(OLS):
                 self.log(
                     '-- Excluding dummy for %s: %s' % (effect, to_exclude))
 
-                dummies = dummies.filter(dummies.columns - [mapped_name])
+                dummies = dummies.filter(dummies.columns.difference([mapped_name]))
                 dropped_dummy = True
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))
