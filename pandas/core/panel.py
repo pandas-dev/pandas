@@ -9,6 +9,7 @@ from pandas import compat
 import sys
 import warnings
 import numpy as np
+import warnings
 from pandas.core.common import (PandasError, _try_sort, _default_index,
                                 _infer_dtype_from_scalar, notnull)
 from pandas.core.categorical import Categorical
@@ -38,6 +39,9 @@ _shared_doc_kwargs = dict(
 _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
                                         "of\n        %s" %
                                         _shared_doc_kwargs['axes_single_arg'])
+
+# added to allow repetition of warnings
+warnings.simplefilter('always', RuntimeWarning)
 
 
 def _ensure_like_indices(time, panels):
@@ -836,7 +840,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def to_frame(self, filter_observations=True):
+    def to_frame(self, filter_observations=False):
         """
         Transform wide format into long (stacked) format as DataFrame whose
         columns are the Panel's items and whose index is a MultiIndex formed
@@ -859,6 +863,8 @@ class Panel(NDFrame):
             mask = com.notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
+            if not np.all(selector):
+                warnings.warn("NaN values found, empty values will be dropped", RuntimeWarning)
         else:
             # size = N * K
             selector = slice(None, None)
