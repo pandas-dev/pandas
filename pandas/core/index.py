@@ -1147,20 +1147,20 @@ class Index(IndexOpsMixin, PandasObject):
                           "use '|' or .union()",FutureWarning)
             return self.union(other)
         return Index(np.array(self) + other)
-
     __iadd__ = __add__
-    __eq__ = _indexOp('__eq__')
-    __ne__ = _indexOp('__ne__')
-    __lt__ = _indexOp('__lt__')
-    __gt__ = _indexOp('__gt__')
-    __le__ = _indexOp('__le__')
-    __ge__ = _indexOp('__ge__')
 
     def __sub__(self, other):
         if isinstance(other, Index):
             warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
                           "use .difference()",FutureWarning)
         return self.difference(other)
+
+    __eq__ = _indexOp('__eq__')
+    __ne__ = _indexOp('__ne__')
+    __lt__ = _indexOp('__lt__')
+    __gt__ = _indexOp('__gt__')
+    __le__ = _indexOp('__le__')
+    __ge__ = _indexOp('__ge__')
 
     def __and__(self, other):
         return self.intersection(other)
@@ -2098,7 +2098,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _add_numeric_methods(cls):
         """ add in numeric methods """
 
-        def _make_evaluate_binop(op, opstr):
+        def _make_evaluate_binop(op, opstr, reversed=False):
 
             def _evaluate_numeric_binop(self, other):
                 import pandas.tseries.offsets as offsets
@@ -2128,7 +2128,13 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     if not (com.is_float(other) or com.is_integer(other)):
                         raise TypeError("can only perform ops with scalar values")
-                return self._shallow_copy(op(self.values, other))
+
+                # if we are a reversed non-communative op
+                values = self.values
+                if reversed:
+                    values, other = other, values
+
+                return self._shallow_copy(op(values, other))
 
             return _evaluate_numeric_binop
 
@@ -2145,15 +2151,22 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _evaluate_numeric_unary
 
+        cls.__add__ = cls.__radd__ = _make_evaluate_binop(operator.add,'__add__')
+        cls.__sub__ = _make_evaluate_binop(operator.sub,'__sub__')
+        cls.__rsub__ = _make_evaluate_binop(operator.sub,'__sub__',reversed=True)
         cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'__mul__')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__')
-        cls.__truediv__ = cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'__truediv__')
+        cls.__floordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__')
+        cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__',reversed=True)
+        cls.__truediv__ = _make_evaluate_binop(operator.truediv,'__truediv__')
+        cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'__truediv__',reversed=True)
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_evaluate_binop(operator.div,'__div__')
+            cls.__div__ = _make_evaluate_binop(operator.div,'__div__')
+            cls.__rdiv__ = _make_evaluate_binop(operator.div,'__div__',reversed=True)
         cls.__neg__ = _make_evaluate_unary(lambda x: -x,'__neg__')
         cls.__pos__ = _make_evaluate_unary(lambda x: x,'__pos__')
         cls.__abs__ = _make_evaluate_unary(lambda x: np.abs(x),'__abs__')
         cls.__inv__ = _make_evaluate_unary(lambda x: -x,'__inv__')
+
 
 Index._add_numeric_methods_disabled()
 
@@ -2165,7 +2178,6 @@ class NumericIndex(Index):
 
     """
     _is_numeric_dtype = True
-
 
 class Int64Index(NumericIndex):
 

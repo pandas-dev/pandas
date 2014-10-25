@@ -1665,6 +1665,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                              self.nanosecond/3600.0/1e+9
                             )/24.0)
 DatetimeIndex._add_numeric_methods_disabled()
+DatetimeIndex._add_datetimelike_methods()
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):

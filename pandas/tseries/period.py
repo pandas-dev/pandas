@@ -1263,6 +1263,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         raise NotImplementedError("Not yet implemented for PeriodIndex")
 
 PeriodIndex._add_numeric_methods_disabled()
+PeriodIndex._add_datetimelike_methods()
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
