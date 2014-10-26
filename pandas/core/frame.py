@@ -26,7 +26,8 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                is_list_like, _get_dtype, _maybe_box_datetimelike)
+                                is_list_like, _get_dtype, _maybe_box_datetimelike,
+                                is_categorical_dtype)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_droplevels,
@@ -332,6 +333,8 @@ class DataFrame(NDFrame):
 
     def _init_ndarray(self, values, index, columns, dtype=None,
                       copy=False):
+        # input must be a ndarray, list, Series, index
+
         if isinstance(values, Series):
             if columns is None:
                 if values.name is not None:
@@ -345,9 +348,41 @@ class DataFrame(NDFrame):
             if not len(values) and columns is not None and len(columns):
                 values = np.empty((0, 1), dtype=object)
 
+        # helper to create the axes as indexes
+        def _get_axes(N, K, index=index, columns=columns):
+            # return axes or defaults
+
+            if index is None:
+                index = _default_index(N)
+            else:
+                index = _ensure_index(index)
+
+            if columns is None:
+                columns = _default_index(K)
+            else:
+                columns = _ensure_index(columns)
+            return index, columns
+
+        # we could have a categorical type passed or coerced to 'category'
+        # recast this to an _arrays_to_mgr
+        if is_categorical_dtype(getattr(values,'dtype',None)) or is_categorical_dtype(dtype):
+
+            if not hasattr(values,'dtype'):
+                values = _prep_ndarray(values, copy=copy)
+                values = values.ravel()
+            elif copy:
+                values = values.copy()
+
+            index, columns = _get_axes(len(values),1)
+            return _arrays_to_mgr([ values ], columns, index, columns,
+                                  dtype=dtype)
+
+        # by definition an array here
+        # the dtypes will be coerced to a single dtype
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
+
             if values.dtype != dtype:
                 try:
                     values = values.astype(dtype)
@@ -356,18 +391,7 @@ class DataFrame(NDFrame):
                                    % (dtype, orig))
                     raise_with_traceback(e)
 
-        N, K = values.shape
-
-        if index is None:
-            index = _default_index(N)
-        else:
-            index = _ensure_index(index)
-
-        if columns is None:
-            columns = _default_index(K)
-        else:
-            columns = _ensure_index(columns)
-
+        index, columns = _get_axes(*values.shape)
         return create_block_manager_from_blocks([values.T], [columns, index])
 
     @property
@@ -877,7 +901,7 @@ class DataFrame(NDFrame):
                 else:
                     ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c].values for c in self.columns]
+            arrays = ix_vals + [self[c].get_values() for c in self.columns]
 
             count = 0
             index_names = list(self.index.names)
@@ -890,7 +914,7 @@ class DataFrame(NDFrame):
                 index_names = ['index']
             names = index_names + lmap(str, self.columns)
         else:
-            arrays = [self[c].values for c in self.columns]
+            arrays = [self[c].get_values() for c in self.columns]
             names = lmap(str, self.columns)
 
         dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
@@ -4729,6 +4753,7 @@ def _prep_ndarray(values, copy=True):
             values = convert(values)
 
     else:
+
         # drop subclass info, do not copy data
         values = np.asarray(values)
         if copy:

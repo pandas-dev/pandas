@@ -56,7 +56,10 @@ _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
 def create_pandas_abc_type(name, attr, comp):
     @classmethod
     def _check(cls, inst):
-        return getattr(inst, attr, None) in comp
+        result = getattr(inst, attr, None)
+        if result is None:
+            return False
+        return result in comp
     dct = dict(__instancecheck__=_check,
                __subclasscheck__=_check)
     meta = type("ABCBase", (type,), dct)
@@ -78,6 +81,7 @@ ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                           'sparse_time_series'))
 ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
                                         ('sparse_array', 'sparse_series'))
+ABCCategorical = create_pandas_abc_type("ABCCategorical","_typ",("categorical"))
 
 
 class _ABCGeneric(type):
