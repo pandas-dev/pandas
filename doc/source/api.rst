@@ -190,6 +190,8 @@ Standard moving window functions
    rolling_quantile
    rolling_window
 
+.. _api.functions_expanding:
+
 Standard expanding window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
