@@ -1000,7 +1000,10 @@ class CheckIndexing(object):
         tmp = df.copy()
         exp = df.copy()
         tmp.ix[:, 2] = 5
-        exp.values[:, 2] = 5
+
+        # tmp correctly sets the dtype
+        # so match the exp way
+        exp[2] = 5
         assert_frame_equal(tmp, exp)
 
     def test_fancy_getitem_int_labels(self):
