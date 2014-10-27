@@ -605,7 +605,8 @@ class TestIndexing(tm.TestCase):
         expected = Series([0,1,0],index=[4,5,6])
         assert_series_equal(s, expected)
 
-    def test_loc_setitem(self):
+    def test_ix_loc_setitem(self):
+
         # GH 5771
         # loc with slice and series
         s = Series(0,index=[4,5,6])
@@ -626,6 +627,31 @@ class TestIndexing(tm.TestCase):
         df['a'].ix[[0,1,2]] = -df['a'].ix[[0,1,2]].astype('float64') + 0.5
         expected = DataFrame({'a' : [0.5,-0.5,-1.5], 'b' : [0,1,2] })
         assert_frame_equal(df,expected)
+
+        # GH 8607
+        # ix setitem consistency
+        df = DataFrame(
+            {'timestamp':[1413840976, 1413842580, 1413760580],
+             'delta':[1174, 904, 161],
+             'elapsed':[7673, 9277, 1470]
+             })
+        expected = DataFrame(
+            {'timestamp':pd.to_datetime([1413840976, 1413842580, 1413760580], unit='s'),
+             'delta':[1174, 904, 161],
+             'elapsed':[7673, 9277, 1470]
+             })
+
+        df2 = df.copy()
+        df2['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+        assert_frame_equal(df2,expected)
+
+        df2 = df.copy()
+        df2.loc[:,'timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+        assert_frame_equal(df2,expected)
+
+        df2 = df.copy()
+        df2.ix[:,2] = pd.to_datetime(df['timestamp'], unit='s')
+        assert_frame_equal(df2,expected)
 
     def test_loc_setitem_multiindex(self):
 

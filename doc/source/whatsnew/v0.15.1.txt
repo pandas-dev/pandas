@@ -50,4 +50,5 @@ Bug Fixes
 
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
+- Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
 - Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)
