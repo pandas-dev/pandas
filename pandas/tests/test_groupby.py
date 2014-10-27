@@ -1961,6 +1961,9 @@ class TestGroupBy(tm.TestCase):
         # raise exception for non-MultiIndex
         self.assertRaises(ValueError, self.df.groupby, level=1)
 
+
+
+
     def test_groupby_level_index_names(self):
         ## GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp' : ['A']*3 + ['B']*3, 'var1' : lrange(6),}).set_index('exp')
@@ -1998,6 +2001,17 @@ class TestGroupBy(tm.TestCase):
 
         result = frame['A'].groupby(level=0).count()
         self.assertEqual(result.index.name, 'first')
+
+    def test_groupby_args(self):
+        #PR8618 and issue 8015
+        frame = self.mframe
+        def j():
+             frame.groupby()
+        self.assertRaisesRegexp(TypeError, "You have to supply one of 'by' and 'level'", j)
+
+        def k():
+            frame.groupby(by=None, level=None)
+        self.assertRaisesRegexp(TypeError,  "You have to supply one of 'by' and 'level'", k)
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -3689,8 +3703,8 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_empty(self):
-        ge = DataFrame().groupby()
-        se = Series().groupby()
+        ge = DataFrame().groupby(level=0)
+        se = Series().groupby(level=0)
 
         e = Series(dtype='int64')  # edge case, as this is usually considered float
 
