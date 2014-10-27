@@ -11,6 +11,14 @@ import numpy as np
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, Index, DatetimeIndex, isnull)
+
+from pandas.io.pytables import _tables
+try:
+    _tables()
+except ImportError as e:
+    raise nose.SkipTest(e)
+
+
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
                                 AttributeConflictWarning, DuplicateWarning,
@@ -290,7 +298,7 @@ class TestHDFStore(tm.TestCase):
 
         #File path doesn't exist
         path = ""
-        self.assertRaises(IOError, read_hdf, path, 'df') 
+        self.assertRaises(IOError, read_hdf, path, 'df')
 
     def test_api_default_format(self):
 
