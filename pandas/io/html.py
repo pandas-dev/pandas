@@ -786,10 +786,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         latest information on table attributes for the modern web.
 
     parse_dates : bool, optional
-        See :func:`~pandas.io.parsers.read_csv` for more details. In 0.13, this
-        parameter can sometimes interact strangely with ``infer_types``. If you
-        get a large number of ``NaT`` values in your results, consider passing
-        ``infer_types=False`` and manually converting types afterwards.
+        See :func:`~pandas.read_csv` for more details.
 
     tupleize_cols : bool, optional
         If ``False`` try to parse multiple header rows into a
@@ -837,7 +834,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     See Also
     --------
-    pandas.io.parsers.read_csv
+    pandas.read_csv
     """
     if infer_types is not None:
         warnings.warn("infer_types has no effect since 0.15", FutureWarning)
