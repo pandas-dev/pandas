@@ -1566,15 +1566,11 @@ customization is not (yet) supported by pandas. Series and DataFrame objects
 behave like arrays and can therefore be passed directly to matplotlib functions
 without explicit casts.
 
-pandas also automatically registers formatters and locators that recognize date
-indices, thereby extending date and time support to practically all plot types
-available in matplotlib. Although this formatting does not provide the same
-level of refinement you would get when plotting via pandas, it can be faster
-when plotting a large number of points.
-
 .. note::
 
-    The speed up for large data sets only applies to pandas 0.14.0 and later.
+    Starting from pandas 0.15, you will need to use a ``to_pydatetime()``
+    call on the index in order to have matplotlib plot a ``DatetimeIndex`` as
+    dates.
 
 .. ipython:: python
    :suppress:
@@ -1590,10 +1586,10 @@ when plotting a large number of points.
 
    plt.figure()
 
-   plt.plot(price.index, price, 'k')
-   plt.plot(ma.index, ma, 'b')
+   plt.plot(price.index.to_pydatetime(), price, 'k')
+   plt.plot(ma.index.to_pydatetime(), ma, 'b')
    @savefig bollinger.png
-   plt.fill_between(mstd.index, ma-2*mstd, ma+2*mstd, color='b', alpha=0.2)
+   plt.fill_between(mstd.index.to_pydatetime(), ma-2*mstd, ma+2*mstd, color='b', alpha=0.2)
 
 .. ipython:: python
    :suppress:
