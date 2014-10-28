@@ -92,6 +92,21 @@ class Block(PandasObject):
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
 
+    def is_categorical_astype(self, dtype):
+        """
+        validate that we have a astypeable to categorical,
+        returns a boolean if we are a categorical
+        """
+        if com.is_categorical_dtype(dtype):
+            if dtype == com.CategoricalDtype():
+                return True
+
+            # this is a pd.Categorical, but is not
+            # a valid type for astypeing
+            raise TypeError("invalid type {0} for astype".format(dtype))
+
+        return False
+
     def to_dense(self):
         return self.values.view()
 
@@ -345,7 +360,7 @@ class Block(PandasObject):
 
         # may need to convert to categorical
         # this is only called for non-categoricals
-        if com.is_categorical_dtype(dtype):
+        if self.is_categorical_astype(dtype):
             return make_block(Categorical(self.values),
                               ndim=self.ndim,
                               placement=self.mgr_locs)
@@ -1682,7 +1697,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         raise on an except if raise == True
         """
 
-        if dtype == com.CategoricalDtype():
+        if self.is_categorical_astype(dtype):
             values = self.values
         else:
             values = np.array(self.values).astype(dtype)

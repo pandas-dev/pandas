@@ -187,6 +187,7 @@ class Categorical(PandasObject):
 
     # For comparisons, so that numpy uses our implementation if the compare ops, which raise
     __array_priority__ = 1000
+    _typ = 'categorical'
     ordered = False
     name = None
 
@@ -1464,4 +1465,3 @@ def _convert_to_list_like(list_like):
     else:
         # is this reached?
         return [list_like]
-

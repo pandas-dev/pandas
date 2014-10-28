@@ -1072,6 +1072,41 @@ class TestCategoricalAsBlock(tm.TestCase):
         df = DataFrame({'x': Series(['a', 'b', 'c'],dtype='category')}, index=index)
         tm.assert_frame_equal(df, expected)
 
+    def test_construction_frame(self):
+
+        # GH8626
+
+        # dict creation
+        df = DataFrame({ 'A' : list('abc') },dtype='category')
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(df['A'],expected)
+
+        # to_frame
+        s = Series(list('abc'),dtype='category')
+        result = s.to_frame()
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(result[0],expected)
+        result = s.to_frame(name='foo')
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(result['foo'],expected)
+
+        # list-like creation
+        df = DataFrame(list('abc'),dtype='category')
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(df[0],expected)
+
+        # these coerces back to object as its spread across columns
+
+        # ndim != 1
+        df = DataFrame([pd.Categorical(list('abc'))])
+        expected = DataFrame([list('abc')])
+        tm.assert_frame_equal(df,expected)
+
+        # mixed
+        df = DataFrame([pd.Categorical(list('abc')),list('def')])
+        expected = DataFrame([list('abc'),list('def')])
+        tm.assert_frame_equal(df,expected)
+
     def test_reindex(self):
 
         index = pd.date_range('20000101', periods=3)
@@ -2223,6 +2258,42 @@ class TestCategoricalAsBlock(tm.TestCase):
         # array conversion
         tm.assert_almost_equal(np.array(s),np.array(s.values))
 
+        # valid conversion
+        for valid in [lambda x: x.astype('category'),
+                      lambda x: x.astype(com.CategoricalDtype()),
+                      lambda x: x.astype('object').astype('category'),
+                      lambda x: x.astype('object').astype(com.CategoricalDtype())]:
+
+            result = valid(s)
+            tm.assert_series_equal(result,s)
+
+        # invalid conversion (these are NOT a dtype)
+        for invalid in [lambda x: x.astype(pd.Categorical),
+                        lambda x: x.astype('object').astype(pd.Categorical)]:
+            self.assertRaises(TypeError, lambda : invalid(s))
+
+
+    def test_to_records(self):
+
+        # GH8626
+
+        # dict creation
+        df = DataFrame({ 'A' : list('abc') },dtype='category')
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(df['A'],expected)
+
+        # list-like creation
+        df = DataFrame(list('abc'),dtype='category')
+        expected = Series(list('abc'),dtype='category')
+        tm.assert_series_equal(df[0],expected)
+
+        # to record array
+        # this coerces
+        result = df.to_records()
+        expected = np.rec.array([(0, 'a'), (1, 'b'), (2, 'c')],
+                                dtype=[('index', '<i8'), ('0', 'O')])
+        tm.assert_almost_equal(result,expected)
+
     def test_numeric_like_ops(self):
 
         # numeric ops should not succeed
@@ -2262,7 +2333,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_pickle_v0_14_1(self):
         cat = pd.Categorical(values=['a', 'b', 'c'],
-                             levels=['a', 'b', 'c', 'd'],
+                             categories=['a', 'b', 'c', 'd'],
                              name='foobar', ordered=False)
         pickle_path = os.path.join(tm.get_data_path(),
                                    'categorical_0_14_1.pickle')
