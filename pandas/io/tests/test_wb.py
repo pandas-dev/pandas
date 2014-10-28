@@ -14,19 +14,15 @@ class TestWB(tm.TestCase):
     @slow
     @network
     def test_wdi_search(self):
-        raise nose.SkipTest
 
-        expected = {u('id'): {2634: u('GDPPCKD'),
-                              4649: u('NY.GDP.PCAP.KD'),
-                              4651: u('NY.GDP.PCAP.KN'),
-                              4653: u('NY.GDP.PCAP.PP.KD')},
-                    u('name'): {2634: u('GDP per Capita, constant US$, '
-                                        'millions'),
-                                4649: u('GDP per capita (constant 2000 US$)'),
-                                4651: u('GDP per capita (constant LCU)'),
-                                4653: u('GDP per capita, PPP (constant 2005 '
+        expected = {u('id'): {6716: u('NY.GDP.PCAP.KD'),
+                              6718: u('NY.GDP.PCAP.KN'),
+                              6720: u('NY.GDP.PCAP.PP.KD')},
+                    u('name'): {6716: u('GDP per capita (constant 2005 US$)'),
+                                6718: u('GDP per capita (constant LCU)'),
+                                6720: u('GDP per capita, PPP (constant 2011 '
                                         'international $)')}}
-        result = search('gdp.*capita.*constant').ix[:, :2]
+        result = search('gdp.*capita.*constant').loc[6716:,['id','name']]
         expected = pandas.DataFrame(expected)
         expected.index = result.index
         assert_frame_equal(result, expected)
@@ -34,21 +30,82 @@ class TestWB(tm.TestCase):
     @slow
     @network
     def test_wdi_download(self):
-        raise nose.SkipTest
 
-        expected = {'GDPPCKN': {(u('United States'), u('2003')): u('40800.0735367688'), (u('Canada'), u('2004')): u('37857.1261134552'), (u('United States'), u('2005')): u('42714.8594790102'), (u('Canada'), u('2003')): u('37081.4575704003'), (u('United States'), u('2004')): u('41826.1728310667'), (u('Mexico'), u('2003')): u('72720.0691255285'), (u('Mexico'), u('2004')): u('74751.6003347038'), (u('Mexico'), u('2005')): u('76200.2154469437'), (u('Canada'), u('2005')): u('38617.4563629611')}, 'GDPPCKD': {(u('United States'), u('2003')): u('40800.0735367688'), (u('Canada'), u('2004')): u('34397.055116118'), (u('United States'), u('2005')): u('42714.8594790102'), (u('Canada'), u('2003')): u('33692.2812368928'), (u('United States'), u('2004')): u('41826.1728310667'), (u('Mexico'), u('2003')): u('7608.43848670658'), (u('Mexico'), u('2004')): u('7820.99026814334'), (u('Mexico'), u('2005')): u('7972.55364129367'), (u('Canada'), u('2005')): u('35087.8925933298')}}
+        # Test a bad indicator with double (US), triple (USA),
+        # standard (CA, MX), non standard (KSV),
+        # duplicated (US, US, USA), and unknown (BLA) country codes
+
+        # ...but NOT a crash inducing country code (World bank strips pandas
+        #    users of the luxury of laziness, because they create their
+        #    own exceptions, and don't clean up legacy country codes.
+        # ...but NOT a retired indicator (User should want it to error.)
+
+        cntry_codes = ['CA', 'MX', 'USA', 'US', 'US', 'KSV', 'BLA']
+        inds = ['NY.GDP.PCAP.CD','BAD.INDICATOR']
+
+        expected = {'NY.GDP.PCAP.CD': {('Canada', '2003'): 28026.006013044702, ('Mexico', '2003'): 6601.0420648056606, ('Canada', '2004'): 31829.522562759001, ('Kosovo', '2003'): 1969.56271307405, ('Mexico', '2004'): 7042.0247834044303, ('United States', '2004'): 41928.886136479705, ('United States', '2003'): 39682.472247320402, ('Kosovo', '2004'): 2135.3328465238301}}
         expected = pandas.DataFrame(expected)
-        result = download(country=['CA', 'MX', 'US', 'junk'], indicator=['GDPPCKD',
-                                                                         'GDPPCKN', 'junk'], start=2003, end=2005)
+        expected.sort(inplace=True)
+        result = download(country=cntry_codes, indicator=inds,
+                          start=2003, end=2004, errors='ignore')
+        result.sort(inplace=True)
         expected.index = result.index
         assert_frame_equal(result, pandas.DataFrame(expected))
+
+    @slow
+    @network
+    def test_wdi_download_w_retired_indicator(self):
+
+        cntry_codes = ['CA', 'MX', 'US']
+        # Despite showing up in the search feature, and being listed online,
+        # the api calls to GDPPCKD don't work in their own query builder, nor
+        # pandas module.  GDPPCKD used to be a common symbol.
+        # This test is written to ensure that error messages to pandas users
+        # continue to make sense, rather than a user getting some missing
+        # key error, cause their JSON message format changed.  If
+        # World bank ever finishes the deprecation of this symbol,
+        # this nose test should still pass.
+
+        inds = ['GDPPCKD']
+
+        try:
+            result = download(country=cntry_codes, indicator=inds,
+                              start=2003, end=2004, errors='ignore')
+        # If for some reason result actually ever has data, it's cause WB
+        # fixed the issue with this ticker.  Find another bad one.
+        except ValueError as e:
+            raise nose.SkipTest("No indicators returned data: {0}".format(e))
+
+        # if it ever gets here, it means WB unretired the indicator.
+        # even if they dropped it completely, it would still get caught above
+        # or the WB API changed somehow in a really unexpected way.
+        if len(result) > 0:
+            raise nose.SkipTest("Invalid results")
+
+    @slow
+    @network
+    def test_wdi_download_w_crash_inducing_countrycode(self):
+
+        cntry_codes = ['CA', 'MX', 'US', 'XXX']
+        inds = ['NY.GDP.PCAP.CD']
+
+        try:
+            result = download(country=cntry_codes, indicator=inds,
+                              start=2003, end=2004, errors='ignore')
+        except ValueError as e:
+            raise nose.SkipTest("No indicators returned data: {0}".format(e))
+
+        # if it ever gets here, it means the country code XXX got used by WB
+        # or the WB API changed somehow in a really unexpected way.
+        if len(result) > 0:
+            raise nose.SkipTest("Invalid results")
 
     @slow
     @network
     def test_wdi_get_countries(self):
         result = get_countries()
         self.assertTrue('Zimbabwe' in list(result['name']))
-
+        self.assertTrue(len(result) > 100)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

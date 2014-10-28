@@ -143,6 +143,12 @@ World Bank
 `World Bank's World Development Indicators <http://data.worldbank.org>`__
 by using the ``wb`` I/O functions.
 
+Indicators
+~~~~~~~~~~
+
+Either from exploring the World Bank site, or using the search function included,
+every world bank indicator is accessible.  
+
 For example, if you wanted to compare the Gross Domestic Products per capita in
 constant dollars in North America, you would use the ``search`` function:
 
@@ -254,3 +260,56 @@ populations in rich countries tend to use cellphones at a higher rate:
     Skew:                          -2.314   Prob(JB):                     1.35e-26
     Kurtosis:                      11.077   Cond. No.                         45.8
     ==============================================================================
+
+Country Codes
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.15.1
+
+The ``country`` argument accepts a string or list of mixed 
+`two <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>`__ or `three <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`__ character
+ISO country codes, as well as dynamic `World Bank exceptions <http://data.worldbank.org/node/18>`__ to the ISO standards.
+
+For a list of the the hard-coded country codes (used solely for error handling logic) see ``pandas.io.wb.country_codes``.
+
+Problematic Country Codes & Indicators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+   The World Bank's country list and indicators are dynamic. As of 0.15.1, 
+   :func:`wb.download()` is more flexible.  To achieve this, the warning
+   and exception logic changed.
+   
+The world bank converts some country codes,
+in their response, which makes error checking by pandas difficult.
+Retired indicators still persist in the search.
+
+Given the new flexibility of 0.15.1, improved error handling by the user
+may be necessary for fringe cases.
+
+To help identify issues:
+
+There are at least 4 kinds of country codes:
+
+1. Standard (2/3 digit ISO) - returns data, will warn and error properly.
+2. Non-standard (WB Exceptions) - returns data, but will falsely warn.
+3. Blank - silently missing from the response.
+4. Bad - causes the entire response from WB to fail, always exception inducing.
+
+There are at least 3 kinds of indicators:
+
+1. Current - Returns data.
+2. Retired - Appears in search results, yet won't return data. 
+3. Bad - Will not return data.
+
+Use the ``errors`` argument to control warnings and exceptions.  Setting
+errors to ignore or warn, won't stop failed responses.  (ie, 100% bad
+indicators, or a single "bad" (#4 above) country code).  
+
+See docstrings for more info.
+
+
+
+
+
