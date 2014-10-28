@@ -30,6 +30,8 @@ Enhancements
 
 - Qualify memory usage in ``DataFrame.info()`` by adding ``+`` if it is a lower bound (:issue:`8578`)
 
+- Raise errors in certain aggregation cases where an argument such as ``numeric_only`` is not handled (:issue:`8592`).
+
 
 .. _whatsnew_0151.performance:
 

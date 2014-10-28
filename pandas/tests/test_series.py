@@ -5,6 +5,7 @@ import sys
 from datetime import datetime, timedelta
 import operator
 import string
+from inspect import getargspec
 from itertools import product, starmap
 from distutils.version import LooseVersion
 
@@ -2337,6 +2338,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 res = f(s)
                 exp = alternate(s)
                 self.assertEqual(res, exp)
+
+            # Invalid axis.
+            self.assertRaises(ValueError, f, self.series, axis=1)
+
+            # Unimplemented numeric_only parameter.
+            if 'numeric_only' in getargspec(f).args:
+                self.assertRaisesRegexp(NotImplementedError, name, f,
+                                        self.series, numeric_only=True)
 
         testit()
 

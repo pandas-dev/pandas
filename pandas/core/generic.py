@@ -3934,9 +3934,8 @@ Returns
                 if level is not None:
                     return self._agg_by_level(name, axis=axis, level=level,
                                               skipna=skipna)
-                return self._reduce(f, axis=axis,
-                                    skipna=skipna, numeric_only=numeric_only,
-                                    name=name)
+                return self._reduce(f, name, axis=axis,
+                                    skipna=skipna, numeric_only=numeric_only)
             stat_func.__name__ = name
             return stat_func
 
@@ -4005,7 +4004,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                 if level is not None:
                     return self._agg_by_level(name, axis=axis, level=level,
                                               skipna=skipna, ddof=ddof)
-                return self._reduce(f, axis=axis,
+                return self._reduce(f, name, axis=axis,
                                     skipna=skipna, ddof=ddof)
             stat_func.__name__ = name
             return stat_func

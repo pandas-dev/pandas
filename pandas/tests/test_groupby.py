@@ -1669,11 +1669,11 @@ class TestGroupBy(tm.TestCase):
                                 lambda x: x.month,
                                 lambda x: x.day], axis=1)
 
-        agged = grouped.agg(lambda x: x.sum(1))
+        agged = grouped.agg(lambda x: x.sum())
         self.assertTrue(agged.index.equals(df.columns))
         assert_almost_equal(df.T.values, agged.values)
 
-        agged = grouped.agg(lambda x: x.sum(1))
+        agged = grouped.agg(lambda x: x.sum())
         assert_almost_equal(df.T.values, agged.values)
 
     def test_groupby_multi_corner(self):
@@ -1708,7 +1708,7 @@ class TestGroupBy(tm.TestCase):
         # won't work with axis = 1
         grouped = df.groupby({'A': 0, 'C': 0, 'D': 1, 'E': 1}, axis=1)
         result = self.assertRaises(TypeError, grouped.agg,
-                                   lambda x: x.sum(1, numeric_only=False))
+                                   lambda x: x.sum(0, numeric_only=False))
 
     def test_omit_nuisance_python_multiple(self):
         grouped = self.three_group.groupby(['A', 'B'])

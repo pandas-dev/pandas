@@ -4153,7 +4153,7 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('any', axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(nanops.nanany, axis=axis, skipna=skipna,
+        return self._reduce(nanops.nanany, 'any', axis=axis, skipna=skipna,
                             numeric_only=bool_only, filter_type='bool')
 
     def all(self, axis=None, bool_only=None, skipna=True, level=None,
@@ -4184,11 +4184,11 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('all', axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(nanops.nanall, axis=axis, skipna=skipna,
+        return self._reduce(nanops.nanall, 'all', axis=axis, skipna=skipna,
                             numeric_only=bool_only, filter_type='bool')
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, name=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         axis = self._get_axis_number(axis)
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
