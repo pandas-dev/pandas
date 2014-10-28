@@ -675,7 +675,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Parameters
     ----------
-    objs : list or dict of Series, DataFrame, or Panel objects
+    objs : a sequence or mapping of Series, DataFrame, or Panel objects
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
@@ -731,8 +731,8 @@ class _Concatenator(object):
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False, copy=True):
-        if not isinstance(objs, (list,tuple,types.GeneratorType,dict,TextFileReader)):
-            raise TypeError('first argument must be a list-like of pandas '
+        if isinstance(objs, (NDFrame, compat.string_types)):
+            raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
                             '"{0}"'.format(type(objs).__name__))
 
