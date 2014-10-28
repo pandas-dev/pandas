@@ -1059,6 +1059,14 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.xaxis.get_label(), 'LABEL')
 
     @slow
+    def test_donot_overwrite_index_name(self):
+        # GH 8494
+        df = DataFrame(randn(2, 2), columns=['a', 'b'])
+        df.index.name = 'NAME'
+        df.plot(y='b', label='LABEL')
+        self.assertEqual(df.index.name, 'NAME')
+
+    @slow
     def test_plot_xy(self):
         # columns.inferred_type == 'string'
         df = self.tdf

@@ -2261,7 +2261,8 @@ def _plot(data, x=None, y=None, subplots=False,
             elif y is not None:
                 if com.is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
-                data = data[y]  # converted to series actually
+                # converted to series actually. copy to not modify
+                data = data[y].copy()
                 data.index.name = y
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
@@ -2276,7 +2277,7 @@ def _plot(data, x=None, y=None, subplots=False,
                     y = data.columns[y]
                 label = x if x is not None else data.index.name
                 label = kwds.pop('label', label)
-                series = data[y]
+                series = data[y].copy()  # Don't modify
                 series.index.name = label
 
                 for kw in ['xerr', 'yerr']:

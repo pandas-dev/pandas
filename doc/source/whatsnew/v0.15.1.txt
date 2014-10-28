@@ -138,3 +138,8 @@ Bug Fixes
 - Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)
 - Bug in ``GroupBy`` where a name conflict between the grouper and columns
   would break ``groupby`` operations (:issue:`7115`, :issue:`8112`)
+
+
+
+- Fixed a bug where plotting a column ``y`` and specifying a label
+would mutate the index name of the DataFrame ``y`` came from (:issue:`8494`)
