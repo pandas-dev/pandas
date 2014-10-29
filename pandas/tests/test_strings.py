@@ -873,6 +873,34 @@ class TestStringMethods(tm.TestCase):
         expected = Series({0: ['split', 'once'], 1: ['split', 'once too!']})
         tm.assert_series_equal(expected, result)
 
+    def test_split_to_dataframe(self):
+        s = Series(['nosplit', 'alsonosplit'])
+        result = s.str.split('_', return_type='frame')
+        exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_equal_splits', 'with_no_nans'])
+        result = s.str.split('_', return_type='frame')
+        exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
+                         2: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_unequal_splits', 'one_of_these_things_is_not'])
+        result = s.str.split('_', return_type='frame')
+        exp = DataFrame({0: ['some', 'one'], 1: ['unequal', 'of'],
+                         2: ['splits', 'these'], 3: [NA, 'things'],
+                         4: [NA, 'is'], 5: [NA, 'not']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
+        result = s.str.split('_', return_type='frame')
+        exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
+                        index=['preserve', 'me'])
+        tm.assert_frame_equal(result, exp)
+
+        with tm.assertRaisesRegexp(ValueError, "return_type must be"):
+            s.str.split('_', return_type="some_invalid_type")
+
     def test_pipe_failures(self):
         # #2119
         s = Series(['A|B|C'])

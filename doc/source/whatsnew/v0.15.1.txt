@@ -109,6 +109,7 @@ Enhancements
 
 - Added support for 3-character ISO and non-standard country codes in :func:``io.wb.download()`` (:issue:`8482`)
 - :ref:`World Bank data requests <remote_data.wb>` now will warn/raise based on an ``errors`` argument, as well as a list of hard-coded country codes and the World Bank's JSON response.  In prior versions, the error messages didn't look at the World Bank's JSON response.  Problem-inducing input were simply dropped prior to the request.  The issue was that many good countries were cropped in the hard-coded approach.  All countries will work now, but some bad countries will raise exceptions because some edge cases break the entire response. (:issue:`8482`)
+- Added option to ``Series.str.split()`` to return a ``DataFrame`` rather than a ``Series`` (:issue:`8428`)
 
 .. _whatsnew_0151.performance:
 
