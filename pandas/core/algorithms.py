@@ -166,8 +166,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     elif is_timedelta:
         uniques = uniques.astype('m8[ns]')
     if isinstance(values, Index):
-        uniques = values._simple_new(uniques, None, freq=getattr(values, 'freq', None),
-                                     tz=getattr(values, 'tz', None))
+        uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
         uniques = Index(uniques)
     return labels, uniques

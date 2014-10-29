@@ -49,7 +49,9 @@ _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
                                               'm8[ns]', '<m8[ns]', '>m8[ns]']])
-
+_int8_max = np.iinfo(np.int8).max
+_int16_max = np.iinfo(np.int16).max
+_int32_max = np.iinfo(np.int32).max
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
@@ -961,6 +963,17 @@ def diff(arr, n, axis=0):
 
     return out_arr
 
+def _coerce_indexer_dtype(indexer, categories):
+    """ coerce the indexer input array to the smallest dtype possible """
+    indexer = np.array(indexer,copy=False)
+    l = len(categories)
+    if l < _int8_max:
+        return indexer.astype('int8')
+    elif l < _int16_max:
+        return indexer.astype('int16')
+    elif l < _int32_max:
+        return indexer.astype('int32')
+    return indexer.astype('int64')
 
 def _coerce_to_dtypes(result, dtypes):
     """ given a dtypes and a result set, coerce the result elements to the
