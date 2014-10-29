@@ -30,6 +30,7 @@ def register():
     units.registry[pydt.datetime] = DatetimeConverter()
     units.registry[pydt.date] = DatetimeConverter()
     units.registry[pydt.time] = TimeConverter()
+    units.registry[np.datetime64] = DatetimeConverter()
 
 
 def _to_ordinalf(tm):
@@ -165,6 +166,8 @@ class DatetimeConverter(dates.DateConverter):
 
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
+        elif isinstance(values, np.datetime64):
+            return _dt_to_float_ordinal(lib.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):

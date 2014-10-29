@@ -801,21 +801,8 @@ a transparent change with only very limited API implications (:issue:`5080`, :is
 - MultiIndexes will now raise similary to other pandas objects w.r.t. truth testing, see :ref:`here <gotchas.truth>` (:issue:`7897`).
 - When plotting a DatetimeIndex directly with matplotlib's `plot` function,
   the axis labels will no longer be formatted as dates but as integers (the
-  internal representation of a ``datetime64``). To keep the old behaviour you
-  should add the :meth:`~DatetimeIndex.to_pydatetime()` method:
-
-  .. code-block:: python
-
-      import matplotlib.pyplot as plt
-      df = pd.DataFrame({'col': np.random.randint(1, 50, 60)},
-                        index=pd.date_range("2012-01-01", periods=60))
-
-      # this will now format the x axis labels as integers
-      plt.plot(df.index, df['col'])
-
-      # to keep the date formating, convert the index explicitely to python datetime values
-      plt.plot(df.index.to_pydatetime(), df['col'])
-
+  internal representation of a ``datetime64``). **UPDATE** This is fixed
+  in 0.15.1, see :ref:`here <whatsnew_0151.datetime64_plotting>`.
 
 .. _whatsnew_0150.deprecations:
 
