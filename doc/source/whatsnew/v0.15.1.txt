@@ -171,3 +171,5 @@ Bug Fixes
 
 
 - Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
+
+- Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
