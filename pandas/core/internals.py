@@ -551,29 +551,31 @@ class Block(PandasObject):
         try:
 
             def _is_scalar_indexer(indexer):
-                # treat a len 0 array like a scalar
                 # return True if we are all scalar indexers
 
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-
-                    def _is_ok(idx):
-
-                        if np.isscalar(idx):
-                            return True
-                        elif isinstance(idx, slice):
-                            return False
-                        return len(idx) == 0
-
-                    return all([ _is_ok(idx) for idx in indexer ])
+                    return all([ np.isscalar(idx) for idx in indexer ])
                 return False
 
+            def _is_empty_indexer(indexer):
+                # return a boolean if we have an empty indexer
+
+                if arr_value.ndim == 1:
+                    if not isinstance(indexer, tuple):
+                        indexer = tuple([indexer])
+                    return all([ isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer ])
+                return False
+
+            # empty indexers
+            # 8669 (empty)
+            if _is_empty_indexer(indexer):
+                pass
 
             # setting a single element for each dim and with a rhs that could be say a list
-            # or empty indexers (so no astyping)
-            # GH 6043, 8669 (empty)
-            if _is_scalar_indexer(indexer):
+            # GH 6043
+            elif _is_scalar_indexer(indexer):
                 values[indexer] = value
 
             # if we are an exact match (ex-broadcasting),
