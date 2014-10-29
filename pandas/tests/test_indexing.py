@@ -1043,6 +1043,13 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame(dict(A = Series(val1,index=keys1), B = Series(val2,index=keys2))).reindex(index=index)
         assert_frame_equal(df, expected)
 
+        # GH 8669
+        # invalid coercion of nan -> int
+        df = DataFrame({'A' : [1,2,3], 'B' : np.nan })
+        df.loc[df.B > df.A, 'B'] = df.A
+        expected = DataFrame({'A' : [1,2,3], 'B' : np.nan})
+        assert_frame_equal(df, expected)
+
         # GH 6546
         # setting with mixed labels
         df = DataFrame({1:[1,2],2:[3,4],'a':['a','b']})
@@ -1054,7 +1061,6 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame({1:[5,2],2:[6,4],'a':['a','b']})
         df.loc[0,[1,2]] = [5,6]
         assert_frame_equal(df, expected)
-
 
     def test_loc_setitem_frame_multiples(self):
         # multiple setting

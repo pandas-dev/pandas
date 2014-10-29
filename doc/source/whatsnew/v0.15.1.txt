@@ -140,7 +140,8 @@ Bug Fixes
 
 
 
-- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
+- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`
+- Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
 
 
 
