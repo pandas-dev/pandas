@@ -1564,7 +1564,7 @@ class DataFrame(NDFrame):
         result = Series([ c.values.nbytes for col, c in self.iteritems() ],
                         index=self.columns)
         if index:
-             result = Series(self.index.values.nbytes,
+             result = Series(self.index.nbytes,
                         index=['Index']).append(result)
         return result
 

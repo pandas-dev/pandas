@@ -232,7 +232,6 @@ class FrozenList(PandasObject, list):
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
 
-
 class FrozenNDArray(PandasObject, np.ndarray):
 
     # no __array_finalize__ for now because no metadata
@@ -540,4 +539,3 @@ class IndexOpsMixin(object):
 
     def _update_inplace(self, result, **kwargs):
         raise NotImplementedError
-

@@ -7,6 +7,7 @@ from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
 import numpy as np
 
+from sys import getsizeof
 import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
@@ -17,7 +18,7 @@ from pandas.util.decorators import Appender, cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
-                                ABCSeries, _ensure_object)
+                                ABCSeries, _ensure_object, _ensure_int64)
 from pandas.core.config import get_option
 
 # simplify
@@ -2680,13 +2681,13 @@ class MultiIndex(Index):
             raise ValueError('Length of labels must match length of levels.')
 
         if level is None:
-            new_labels = FrozenList(_ensure_frozen(v, copy=copy)._shallow_copy()
-                                    for v in labels)
+            new_labels = FrozenList(_ensure_frozen(lab, lev, copy=copy)._shallow_copy()
+                                    for lev, lab in zip(self.levels, labels))
         else:
             level = [self._get_level_number(l) for l in level]
             new_labels = list(self._labels)
-            for l, v in zip(level, labels):
-                new_labels[l] = _ensure_frozen(v, copy=copy)._shallow_copy()
+            for l, lev, lab in zip(level, self.levels, labels):
+                new_labels[l] = _ensure_frozen(lab, lev, copy=copy)._shallow_copy()
             new_labels = FrozenList(new_labels)
 
         self._labels = new_labels
@@ -2823,6 +2824,14 @@ class MultiIndex(Index):
     @cache_readonly
     def dtype(self):
         return np.dtype('O')
+
+    @cache_readonly
+    def nbytes(self):
+        """ return the number of bytes in the underlying data """
+        level_nbytes = sum(( i.nbytes for i in self.levels ))
+        label_nbytes = sum(( i.nbytes for i in self.labels ))
+        names_nbytes = sum(( getsizeof(i) for i in self.names ))
+        return level_nbytes + label_nbytes + names_nbytes
 
     def __repr__(self):
         encoding = get_option('display.encoding')
@@ -4361,7 +4370,7 @@ class MultiIndex(Index):
                 lev_loc = level.get_loc(k)
 
             new_levels.append(level)
-            new_labels.append(np.insert(labels, loc, lev_loc))
+            new_labels.append(np.insert(_ensure_int64(labels), loc, lev_loc))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=self.names, verify_integrity=False)
@@ -4474,8 +4483,8 @@ def _ensure_index(index_like, copy=False):
     return Index(index_like)
 
 
-def _ensure_frozen(array_like, copy=False):
-    array_like = np.asanyarray(array_like, dtype=np.int_)
+def _ensure_frozen(array_like, categories, copy=False):
+    array_like = com._coerce_indexer_dtype(array_like, categories)
     array_like = array_like.view(FrozenNDArray)
     if copy:
         array_like = array_like.copy()
