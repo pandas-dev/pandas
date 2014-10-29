@@ -2203,6 +2203,33 @@ class TestConcatenate(tm.TestCase):
         result = concat([s1, s2], axis=1, ignore_index=True)
         self.assertTrue(np.array_equal(result.columns, [0, 1]))
 
+    def test_concat_iterables(self):
+        from collections import deque, Iterable
+
+        # GH8645 check concat works with tuples, list, generators, and weird
+        # stuff like deque and custom iterables
+        df1 = DataFrame([1, 2, 3])
+        df2 = DataFrame([4, 5, 6])
+        expected = DataFrame([1, 2, 3, 4, 5, 6])
+        assert_frame_equal(pd.concat((df1, df2), ignore_index=True), expected)
+        assert_frame_equal(pd.concat([df1, df2], ignore_index=True), expected)
+        assert_frame_equal(pd.concat((df for df in (df1, df2)), ignore_index=True), expected)
+        assert_frame_equal(pd.concat(deque((df1, df2)), ignore_index=True), expected)
+        class CustomIterator1(object):
+            def __len__(self):
+                return 2
+            def __getitem__(self, index):
+                try:
+                    return {0: df1, 1: df2}[index]
+                except KeyError:
+                    raise IndexError
+        assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
+        class CustomIterator2(Iterable):
+            def __iter__(self):
+                yield df1
+                yield df2
+        assert_frame_equal(pd.concat(CustomIterator2(), ignore_index=True), expected)
+
     def test_concat_invalid(self):
 
         # trying to concat a ndframe with a non-ndframe

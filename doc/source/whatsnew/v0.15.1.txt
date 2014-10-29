@@ -75,6 +75,28 @@ API changes
 
      gr.apply(sum)
 
+- ``concat`` permits a wider variety of iterables of pandas objects to be
+  passed as the first parameter (:issue:`8645`):
+
+  .. ipython:: python
+
+     from collections import deque
+     df1 = pd.DataFrame([1, 2, 3])
+     df2 = pd.DataFrame([4, 5, 6])
+
+  previous behavior:
+
+  .. code-block:: python
+
+     In [7]: pd.concat(deque((df1, df2)))
+     TypeError: first argument must be a list-like of pandas objects, you passed an object of type "deque"
+
+  current behavior:
+
+  .. ipython:: python
+
+     pd.concat(deque((df1, df2)))
+
 .. _whatsnew_0151.enhancements:
 
 Enhancements
