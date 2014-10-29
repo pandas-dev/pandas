@@ -470,6 +470,12 @@ class TestDateRange(tm.TestCase):
             self.assertTrue(expected_left.equals(left))
             self.assertTrue(expected_right.equals(right))
 
+    def test_years_only(self):
+        # GH 6961
+        dr = date_range('2014', '2015', freq='M')
+        self.assertEqual(dr[0], datetime(2014, 1, 31))
+        self.assertEqual(dr[-1], datetime(2014, 12, 31))
+
 
 class TestCustomDateRange(tm.TestCase):
 
