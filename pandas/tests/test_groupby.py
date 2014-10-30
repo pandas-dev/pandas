@@ -2002,16 +2002,14 @@ class TestGroupBy(tm.TestCase):
         result = frame['A'].groupby(level=0).count()
         self.assertEqual(result.index.name, 'first')
 
-
+"""
     #PR8618 and issue 8015
     def test_groupby_args(self):
         frame = self.mframe
 
-        
-        
-        result = frame.groupby()
+        result = frame.groupby(by=None, level=None)
         self.assertRaisesRegexp(TypeError, result, "You have to supply one of 'by' or 'level'")
-
+"""
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
