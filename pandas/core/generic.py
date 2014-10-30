@@ -2874,17 +2874,16 @@ class NDFrame(PandasObject):
         """
 
         from pandas.core.groupby import groupby
-        if axis is not None:
-            axis = self._get_axis_number(axis)
-            return groupby(self, by, axis=axis, level=level, as_index=as_index,
-                        sort=sort, group_keys=group_keys, squeeze=squeeze)
+        if level is None and by is None:
+            raise TypeError('You have to specify one of "by" or "level"')
         elif level is not None:
             raise TypeError('You have to specify one of "by" or "level"')
         elif by is not None:
             raise TypeError('You have to specify one of "by" or "level"')
         else:
-            raise TypeError('You have to specify one of "by" or "level"')
-
+            axis = self._get_axis_number(axis)
+            return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
+                        sort=sort, group_keys=group_keys, squeeze=squeeze)
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """

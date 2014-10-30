@@ -2003,24 +2003,14 @@ class TestGroupBy(tm.TestCase):
         self.assertEqual(result.index.name, 'first')
 
 
-#PR8618 and issue 8015
+    #PR8618 and issue 8015
     def test_groupby_args(self):
         frame = self.mframe
-        def g():
-            frame.groupby(level=None).count()
-            self.assertRaisesRegexp(TypeError, g, "You have to supply one of 'by' or 'level'")
 
-        def k():
-            frame.groupby(by=None).count()
-            self.assertRaisesRegexp(TypeError, k, "You have to supply one of 'by' or 'level'")
-
-        def j():
-            frame.groupby()
-            self.assertRaisesRegexp(TypeError, j, "You have to supply one of 'by' or 'level'")
-
-        def i():
-            frame.groupby(axes=None)
-            self.assertRaisesRegexp(TypeError, i, "You have to supply one of 'by' or 'level'")
+        
+        
+        result = frame.groupby()
+        self.assertRaisesRegexp(TypeError, result, "You have to supply one of 'by' or 'level'")
 
 
     def test_groupby_level_mapper(self):
