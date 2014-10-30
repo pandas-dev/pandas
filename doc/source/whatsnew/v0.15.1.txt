@@ -20,6 +20,30 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
+- Represent ``MultiIndex`` labels with a dtype that utilizes memory based on the level size. In prior versions, the memory usage was a constant 8 bytes per element in each level. In addition, in prior versions, the *reported* memory usage was incorrect as it didn't show the usage for the memory occupied by the underling data array. (:issue:`8456`)
+
+  .. ipython:: python
+
+     dfi = DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A'])
+
+  previous behavior:
+
+  .. code-block:: python
+
+     # this was underreported and actually took (in < 0.15.1) about 24008 bytes
+     In [1]: dfi.memory_usage(index=True)
+     Out[1]:
+     Index    8000
+     A        8000
+     dtype: int64
+
+
+  current behavior:
+
+  .. ipython:: python
+
+     dfi.memory_usage(index=True)
+
 - ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
   result (:issue:`8582`):
 

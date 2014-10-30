@@ -37,6 +37,7 @@ from pandas.lib import Timestamp
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
+    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
 
     def verify_pickle(self,index):
         unpickled = self.round_trip_pickle(index)
@@ -90,9 +91,12 @@ class Base(object):
         self.assertTrue(idx.transpose().equals(idx))
 
         values = idx.values
-        for prop in ['shape', 'ndim', 'size', 'itemsize', 'nbytes']:
+        for prop in self._compat_props:
             self.assertEqual(getattr(idx, prop), getattr(values, prop))
 
+        # test for validity
+        idx.nbytes
+        idx.values.nbytes
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
@@ -1837,6 +1841,7 @@ class TestTimedeltaIndex(Base, tm.TestCase):
 class TestMultiIndex(Base, tm.TestCase):
     _holder = MultiIndex
     _multiprocess_can_split_ = True
+    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
     def setUp(self):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
@@ -1864,6 +1869,24 @@ class TestMultiIndex(Base, tm.TestCase):
             if common:
                 pass
         tm.assertRaisesRegexp(ValueError,'The truth value of a',f)
+
+    def test_labels_dtypes(self):
+
+        # GH 8456
+        i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+        self.assertTrue(i.labels[0].dtype == 'int8')
+        self.assertTrue(i.labels[1].dtype == 'int8')
+
+        i = MultiIndex.from_product([['a'],range(40)])
+        self.assertTrue(i.labels[1].dtype == 'int8')
+        i = MultiIndex.from_product([['a'],range(400)])
+        self.assertTrue(i.labels[1].dtype == 'int16')
+        i = MultiIndex.from_product([['a'],range(40000)])
+        self.assertTrue(i.labels[1].dtype == 'int32')
+
+        i = pd.MultiIndex.from_product([['a'],range(1000)])
+        self.assertTrue((i.labels[0]>=0).all())
+        self.assertTrue((i.labels[1]>=0).all())
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,

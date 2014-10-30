@@ -6766,6 +6766,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         size_df = np.size(df.columns.values)  # index=False; default
         self.assertEqual(size_df, np.size(df.memory_usage()))
 
+        # test for validity
+        DataFrame(1,index=['a'],columns=['A']).memory_usage(index=True)
+        DataFrame(1,index=['a'],columns=['A']).index.nbytes
+        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.nbytes
+        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.values.nbytes
+        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).memory_usage(index=True)
+        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.nbytes
+        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.values.nbytes
+
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
