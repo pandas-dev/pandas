@@ -543,27 +543,33 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
     '''
     Returns
     -------
-    is_monotonic, is_unique
+    is_monotonic_inc, is_monotonic_dec, is_unique
     '''
     cdef:
         Py_ssize_t i, n
         %(c_type)s prev, cur
         bint is_unique = 1
+        bint is_monotonic_inc = 1
+        bint is_monotonic_dec = 1
 
     n = len(arr)
 
     if n < 2:
-        return True, True
+        return True, True, True
 
     prev = arr[0]
     for i in range(1, n):
         cur = arr[i]
         if cur < prev:
-            return False, None
+            is_monotonic_inc = 0
+        elif cur > prev:
+            is_monotonic_dec = 0
         elif cur == prev:
             is_unique = 0
+        if not is_monotonic_inc and not is_monotonic_dec:
+            return False, False, None
         prev = cur
-    return True, is_unique
+    return is_monotonic_inc, is_monotonic_dec, is_unique
 """
 
 map_indices_template = """@cython.wraparound(False)

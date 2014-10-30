@@ -922,6 +922,7 @@ class TestIndex(Base, tm.TestCase):
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
         self.assertFalse(index.is_monotonic)
+        self.assertFalse(index.is_monotonic_decreasing)
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -1403,9 +1404,17 @@ class TestInt64Index(Numeric, tm.TestCase):
 
     def test_is_monotonic(self):
         self.assertTrue(self.index.is_monotonic)
+        self.assertTrue(self.index.is_monotonic_increasing)
+        self.assertFalse(self.index.is_monotonic_decreasing)
 
         index = Int64Index([4, 3, 2, 1])
         self.assertFalse(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_decreasing)
+
+        index = Int64Index([1])
+        self.assertTrue(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_increasing)
+        self.assertTrue(index.is_monotonic_decreasing)
 
     def test_equals(self):
         same_values = Index(self.index, dtype=object)

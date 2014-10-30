@@ -573,8 +573,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def is_monotonic(self):
-        """ return if the index has monotonic (only equaly or increasing) values """
-        return self._engine.is_monotonic
+        """ alias for is_monotonic_increasing (deprecated) """
+        return self._engine.is_monotonic_increasing
+
+    @property
+    def is_monotonic_increasing(self):
+        """ return if the index is monotonic increasing (only equal or
+        increasing) values
+        """
+        return self._engine.is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        """ return if the index is monotonic decreasing (only equal or
+        decreasing values
+        """
+        return self._engine.is_monotonic_decreasing
 
     def is_lexsorted_for_tuple(self, tup):
         return True
