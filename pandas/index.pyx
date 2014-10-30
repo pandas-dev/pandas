@@ -356,7 +356,7 @@ cdef class Int64Engine(IndexEngine):
         return _hash.Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_int64(self._get_index_values(), other,
@@ -446,7 +446,7 @@ cdef class Float64Engine(IndexEngine):
         return result
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_float64(values)
+        return algos.is_monotonic_float64(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_float64(self._get_index_values(), other,
@@ -500,7 +500,7 @@ cdef class ObjectEngine(IndexEngine):
         return _hash.PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_object(values)
+        return algos.is_monotonic_object(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_object(self._get_index_values(), other,
@@ -532,7 +532,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values, timelike=True)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):

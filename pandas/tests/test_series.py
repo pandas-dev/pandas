@@ -1544,7 +1544,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_ix_getitem_not_monotonic(self):
         d1, d2 = self.ts.index[[5, 15]]
 
-        ts2 = self.ts[::2][::-1]
+        ts2 = self.ts[::2][[1, 2, 0]]
 
         self.assertRaises(KeyError, ts2.ix.__getitem__, slice(d1, d2))
         self.assertRaises(KeyError, ts2.ix.__setitem__, slice(d1, d2), 0)
@@ -1570,7 +1570,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result2, expected)
 
         # non-monotonic, raise KeyError
-        s2 = s[::-1]
+        s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
         self.assertRaises(KeyError, s2.ix.__getitem__, slice(3, 11))
         self.assertRaises(KeyError, s2.ix.__setitem__, slice(3, 11), 0)
 

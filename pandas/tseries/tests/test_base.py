@@ -85,7 +85,7 @@ class TestDatetimeIndexOps(Ops):
     def test_minmax(self):
         for tz in self.tz:
             # monotonic
-            idx1 = pd.DatetimeIndex([pd.NaT, '2011-01-01', '2011-01-02',
+            idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
                                      '2011-01-03'], tz=tz)
             self.assertTrue(idx1.is_monotonic)
 
@@ -305,7 +305,7 @@ class TestTimedeltaIndexOps(Ops):
     def test_minmax(self):
 
         # monotonic
-        idx1 = TimedeltaIndex(['nat', '1 days', '2 days', '3 days'])
+        idx1 = TimedeltaIndex(['1 days', '2 days', '3 days'])
         self.assertTrue(idx1.is_monotonic)
 
         # non-monotonic

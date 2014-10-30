@@ -848,33 +848,56 @@ class TestIndex(Base, tm.TestCase):
         assert_almost_equal(r1, rbfill1)
 
     def test_slice_locs(self):
-        idx = Index([0, 1, 2, 5, 6, 7, 9, 10])
-        n = len(idx)
+        for dtype in [int, float]:
+            idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
+            n = len(idx)
 
-        self.assertEqual(idx.slice_locs(start=2), (2, n))
-        self.assertEqual(idx.slice_locs(start=3), (3, n))
-        self.assertEqual(idx.slice_locs(3, 8), (3, 6))
-        self.assertEqual(idx.slice_locs(5, 10), (3, n))
-        self.assertEqual(idx.slice_locs(end=8), (0, 6))
-        self.assertEqual(idx.slice_locs(end=9), (0, 7))
+            self.assertEqual(idx.slice_locs(start=2), (2, n))
+            self.assertEqual(idx.slice_locs(start=3), (3, n))
+            self.assertEqual(idx.slice_locs(3, 8), (3, 6))
+            self.assertEqual(idx.slice_locs(5, 10), (3, n))
+            self.assertEqual(idx.slice_locs(5.0, 10.0), (3, n))
+            self.assertEqual(idx.slice_locs(4.5, 10.5), (3, 8))
+            self.assertEqual(idx.slice_locs(end=8), (0, 6))
+            self.assertEqual(idx.slice_locs(end=9), (0, 7))
 
-        idx2 = idx[::-1]
-        self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
-        self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
+            idx2 = idx[::-1]
+            self.assertEqual(idx2.slice_locs(8, 2), (2, 6))
+            self.assertEqual(idx2.slice_locs(8.5, 1.5), (2, 6))
+            self.assertEqual(idx2.slice_locs(7, 3), (2, 5))
+            self.assertEqual(idx2.slice_locs(10.5, -1), (0, n))
 
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
-        rs = idx.slice_locs('a', 'd')
-        self.assertEqual(rs, (0, 6))
+        self.assertEqual(idx.slice_locs('a', 'd'), (0, 6))
+        self.assertEqual(idx.slice_locs(end='d'), (0, 6))
+        self.assertEqual(idx.slice_locs('a', 'c'), (0, 4))
+        self.assertEqual(idx.slice_locs('b', 'd'), (2, 6))
 
-        rs = idx.slice_locs(end='d')
-        self.assertEqual(rs, (0, 6))
+        idx2 = idx[::-1]
+        self.assertEqual(idx2.slice_locs('d', 'a'), (0, 6))
+        self.assertEqual(idx2.slice_locs(end='a'), (0, 6))
+        self.assertEqual(idx2.slice_locs('d', 'b'), (0, 4))
+        self.assertEqual(idx2.slice_locs('c', 'a'), (2, 6))
 
-        rs = idx.slice_locs('a', 'c')
-        self.assertEqual(rs, (0, 4))
+        for dtype in [int, float]:
+            idx = Index(np.array([10, 12, 12, 14], dtype=dtype))
+            self.assertEqual(idx.slice_locs(12, 12), (1, 3))
+            self.assertEqual(idx.slice_locs(11, 13), (1, 3))
 
-        rs = idx.slice_locs('b', 'd')
-        self.assertEqual(rs, (2, 6))
+            idx2 = idx[::-1]
+            self.assertEqual(idx2.slice_locs(12, 12), (1, 3))
+            self.assertEqual(idx2.slice_locs(13, 11), (1, 3))
+
+    def test_slice_locs_na(self):
+        idx = Index([np.nan, 1, 2])
+        self.assertRaises(KeyError, idx.slice_locs, start=1.5)
+        self.assertRaises(KeyError, idx.slice_locs, end=1.5)
+        self.assertEqual(idx.slice_locs(1), (1, 3))
+        self.assertEqual(idx.slice_locs(np.nan), (0, 3))
+
+        idx = Index([np.nan, np.nan, 1, 2])
+        self.assertRaises(KeyError, idx.slice_locs, np.nan)
 
     def test_drop(self):
         n = len(self.strIndex)
@@ -1287,6 +1310,15 @@ class TestFloat64Index(Numeric, tm.TestCase):
         i2 = Float64Index([1.0,np.nan])
         self.assertTrue(i.equals(i2))
 
+    def test_get_loc_na(self):
+        idx = Float64Index([np.nan, 1, 2])
+        self.assertEqual(idx.get_loc(1), 1)
+        self.assertEqual(idx.get_loc(np.nan), 0)
+
+        idx = Float64Index([np.nan, 1, np.nan])
+        self.assertEqual(idx.get_loc(1), 1)
+        self.assertRaises(KeyError, idx.slice_locs, np.nan)
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         self.assertTrue(np.nan in i)
@@ -1415,6 +1447,20 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.assertTrue(index.is_monotonic)
         self.assertTrue(index.is_monotonic_increasing)
         self.assertTrue(index.is_monotonic_decreasing)
+
+    def test_is_monotonic_na(self):
+        examples = [Index([np.nan]),
+                    Index([np.nan, 1]),
+                    Index([1, 2, np.nan]),
+                    Index(['a', 'b', np.nan]),
+                    pd.to_datetime(['NaT']),
+                    pd.to_datetime(['NaT', '2000-01-01']),
+                    pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
+                    pd.to_timedelta(['1 day', 'NaT']),
+                   ]
+        for index in examples:
+            self.assertFalse(index.is_monotonic_increasing)
+            self.assertFalse(index.is_monotonic_decreasing)
 
     def test_equals(self):
         same_values = Index(self.index, dtype=object)
