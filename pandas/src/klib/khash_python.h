@@ -168,4 +168,41 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 KHASH_INIT(strbox, kh_cstr_t, kh_pyobject_t, 1,
            str_xxhash_hash_func, kh_str_hash_equal)
 
+/* Plain old C buffer structure */
+typedef struct {
+    kh_cstr_t buf;
+    Py_ssize_t len;
+} cbuf_t;
+
+static khint_t PANDAS_INLINE cbuf_xxhash(cbuf_t val) {
+    switch (val.len) {
+    case 0:
+        return XXH32_EMPTY_HASH;
+    case 1:
+        return XXH32_ONECHAR_HASH[(uint8_t)val.buf[0]];
+    default:
+        return XXH32(val.buf, val.len, XXH32_SEED);
+    }
+}
+
+static int PANDAS_INLINE cbuf_equal(cbuf_t a, cbuf_t b) {
+    int i;
+    if (a.len != b.len) {
+        return 0;
+    }
+    if (a.buf == b.buf) {
+        return 1;
+    }
+    for (i = 0; i < a.len; ++i) {
+        if (a.buf[i] != b.buf[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* [cbuf_t -> size_t] hash map */
+KHASH_INIT(cbuf_map, cbuf_t, size_t, 1, cbuf_xxhash, cbuf_equal)
+#define kh_exist_cbuf_map(h, k) (kh_exist(h, k))
+
 #endif /* _KLIB_KHASH_PYTHON_H_ */

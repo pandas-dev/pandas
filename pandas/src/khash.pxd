@@ -115,3 +115,21 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_strbox(kh_strbox_t*, khiter_t)
 
+    ctypedef struct cbuf_t:
+        kh_cstr_t buf
+        Py_ssize_t len
+
+    ctypedef struct kh_cbuf_map_t:
+        khint_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        cbuf_t *keys
+        size_t *vals
+
+    inline kh_cbuf_map_t* kh_init_cbuf_map()
+    inline void kh_destroy_cbuf_map(kh_cbuf_map_t*)
+    inline void kh_clear_cbuf_map(kh_cbuf_map_t*)
+    inline khint_t kh_get_cbuf_map(kh_cbuf_map_t*, cbuf_t)
+    inline void kh_resize_cbuf_map(kh_cbuf_map_t*, khint_t)
+    inline khint_t kh_put_cbuf_map(kh_cbuf_map_t*, cbuf_t, int*)
+
+    bint kh_exist_cbuf_map(kh_cbuf_map_t*, khiter_t)
