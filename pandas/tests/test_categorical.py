@@ -912,6 +912,11 @@ class TestCategorical(tm.TestCase):
 
         self.assertFalse(LooseVersion(pd.__version__) >= '0.18')
 
+    def test_datetime_categorical_comparison(self):
+        dt_cat = pd.Categorical(pd.date_range('2014-01-01', periods=3))
+        self.assert_numpy_array_equal(dt_cat > dt_cat[0], [False, True, True])
+        self.assert_numpy_array_equal(dt_cat[0] < dt_cat, [False, True, True])
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True

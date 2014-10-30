@@ -4,7 +4,7 @@ import numpy as np
 from warnings import warn
 import types
 
-from pandas import compat
+from pandas import compat, lib
 from pandas.compat import u
 
 from pandas.core.algorithms import factorize
@@ -42,7 +42,7 @@ def _cat_compare_op(op):
                 # In other series, the leads to False, so do that here too
                 ret[na_mask] = False
             return ret
-        elif np.isscalar(other):
+        elif lib.isscalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
