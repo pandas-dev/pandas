@@ -3337,6 +3337,14 @@ With some databases, writing large DataFrames can result in errors due to packet
     flavors, columns with type ``timedelta64`` will be written as integer
     values as nanoseconds to the database and a warning will be raised.
 
+.. note::
+
+    Columns of ``category`` dtype will be converted to the dense representation
+    as you would get with ``np.asarray(categorical)`` (e.g. for string categories
+    this gives an array of strings).
+    Because of this, reading the database table back in does **not** generate
+    a categorical.
+
 
 Reading Tables
 ~~~~~~~~~~~~~~

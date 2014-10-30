@@ -573,6 +573,7 @@ relevant columns back to `category` and assign the right categories and categori
     df2.dtypes
     df2["cats"]
 
+The same holds for writing to a SQL database with ``to_sql``.
 
 Missing Data
 ------------
