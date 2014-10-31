@@ -157,6 +157,7 @@ Bug Fixes
 - Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in writing Categorical columns to an SQL database with ``to_sql`` (:issue:`8624`).
+- Bug in comparing ``Categorical`` of datetime raising when being compared to a scalar datetime (:issue:`8687`)
 
 
 
@@ -165,7 +166,8 @@ Bug Fixes
 
 
 
-- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`
+
+- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
 
 
