@@ -2625,7 +2625,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(2, 2\)"):
             DataFrame(np.random.rand(2,3), columns=['A', 'B'], index=[1, 2])
 
-        with assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index'):
+        with assertRaisesRegexp(ValueError, 'If using all scalar values, you must pass an index'):
             DataFrame({'a': False, 'b': True})
 
     def test_constructor_with_embedded_frames(self):
