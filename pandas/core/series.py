@@ -475,7 +475,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         value : scalar (int) or Series (slice, sequence)
         """
         try:
-            return _index.get_value_at(self.values, i)
+
+            # dispatch to the values if we need
+            values = self.values
+            if isinstance(values, np.ndarray):
+                return _index.get_value_at(values, i)
+            else:
+                return values[i]
         except IndexError:
             raise
         except:

@@ -183,7 +183,9 @@ Bug Fixes
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in writing Categorical columns to an SQL database with ``to_sql`` (:issue:`8624`).
 - Bug in comparing ``Categorical`` of datetime raising when being compared to a scalar datetime (:issue:`8687`)
-
+- Bug in selecting from a ``Categorical`` with ``.iloc`` (:issue:`8623`)
+- Bug in groupby-transform with a Categorical (:issue:`8623`)
+- Bug in duplicated/drop_duplicates with a Categorical (:issue:`8623`)
 
 
 

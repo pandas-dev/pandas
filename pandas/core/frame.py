@@ -2732,19 +2732,20 @@ class DataFrame(NDFrame):
                 return x.view(np.int64)
             return x
 
+        # if we are only duplicating on Categoricals this can be much faster
         if subset is None:
-            values = list(_m8_to_i8(self.values.T))
+            values = list(_m8_to_i8(self.get_values().T))
         else:
             if np.iterable(subset) and not isinstance(subset, compat.string_types):
                 if isinstance(subset, tuple):
                     if subset in self.columns:
-                        values = [self[subset].values]
+                        values = [self[subset].get_values()]
                     else:
-                        values = [_m8_to_i8(self[x].values) for x in subset]
+                        values = [_m8_to_i8(self[x].get_values()) for x in subset]
                 else:
-                    values = [_m8_to_i8(self[x].values) for x in subset]
+                    values = [_m8_to_i8(self[x].get_values()) for x in subset]
             else:
-                values = [self[subset].values]
+                values = [self[subset].get_values()]
 
         keys = lib.fast_zip_fillna(values)
         duplicated = lib.duplicated(keys, take_last=take_last)
