@@ -58,6 +58,7 @@ class Block(PandasObject):
     _verify_integrity = True
     _validate_ndim = True
     _ftype = 'dense'
+    _holder = None
 
     def __init__(self, values, placement, ndim=None, fastpath=False):
         if ndim is None:
@@ -476,6 +477,14 @@ class Block(PandasObject):
 
     def _concat_blocks(self, blocks, values):
         """ return the block concatenation """
+
+        # dispatch to a categorical to handle the concat
+        if self._holder is None:
+
+            for b in blocks:
+                if b.is_categorical:
+                    return b._concat_blocks(blocks,values)
+
         return self._holder(values[0])
 
     # block actions ####
@@ -1739,10 +1748,24 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return the block concatenation
         """
 
-        categories = self.values.categories
-        for b in blocks:
+        # we could have object blocks and categorical's here
+        # if we only have a single cateogoricals then combine everything
+        # else its a non-compat categorical
+
+        categoricals = [ b for b in blocks if b.is_categorical ]
+        objects = [ b for b in blocks if not b.is_categorical and b.is_object ]
+
+        # convert everything to object and call it a day
+        if len(objects) + len(categoricals) != len(blocks):
+            raise ValueError("try to combine non-object blocks and categoricals")
+
+        # validate the categories
+        categories = None
+        for b in categoricals:
+            if categories is None:
+                categories = b.values.categories
             if not categories.equals(b.values.categories):
-                raise ValueError("incompatible levels in categorical block merge")
+                raise ValueError("incompatible categories in categorical block merge")
 
         return self._holder(values[0], categories=categories)
 

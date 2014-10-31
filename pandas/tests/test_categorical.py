@@ -1030,6 +1030,21 @@ class TestCategoricalAsBlock(tm.TestCase):
         str(df.values)
         str(df)
 
+        # GH8623
+        x = pd.DataFrame([[1,'John P. Doe'],[2,'Jane Dove'],[1,'John P. Doe']],
+                         columns=['person_id','person_name'])
+        x['person_name'] = pd.Categorical(x.person_name) # doing this breaks transform
+
+        expected = x.iloc[0].person_name
+        result = x.person_name.iloc[0]
+        self.assertEqual(result,expected)
+
+        result = x.person_name[0]
+        self.assertEqual(result,expected)
+
+        result = x.person_name.loc[0]
+        self.assertEqual(result,expected)
+
     def test_creation_astype(self):
         l = ["a","b","c","a"]
         s = pd.Series(l)
@@ -1475,6 +1490,28 @@ class TestCategoricalAsBlock(tm.TestCase):
                                }).sortlevel()
         expected.iloc[[1,2,7,8],0] = [1,2,3,4]
         result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # GH 8623
+        x=pd.DataFrame([[1,'John P. Doe'],[2,'Jane Dove'],[1,'John P. Doe']],
+                       columns=['person_id','person_name'])
+        x['person_name'] = pd.Categorical(x.person_name)
+
+        g = x.groupby(['person_id'])
+        result = g.transform(lambda x:x)
+        tm.assert_frame_equal(result, x[['person_name']])
+
+        result = x.drop_duplicates('person_name')
+        expected = x.iloc[[0,1]]
+        tm.assert_frame_equal(result, expected)
+
+        def f(x):
+            return x.drop_duplicates('person_name').iloc[0]
+
+        result = g.apply(f)
+        expected = x.iloc[[0,1]].copy()
+        expected.index = Index([1,2],name='person_id')
+        expected['person_name'] = expected['person_name'].astype('object')
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table(self):
