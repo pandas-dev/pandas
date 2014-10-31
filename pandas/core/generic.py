@@ -28,6 +28,8 @@ from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
 from pandas.core.categorical import Categorical
 
+from itertools import product 
+
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = dict()
@@ -2290,31 +2292,25 @@ class NDFrame(PandasObject):
 
             method = com._clean_fill_method(method)
 
-            def interp_func(series):
-                return series._data.interpolate(method=method,
-                                                inplace=inplace,
-                                                limit=limit,
-                                                coerce=True,
-                                                downcast=downcast)
-            if self.ndim > 1:
-                if inplace:
-                    self.apply(interp_func, axis=axis)
-                    new_data = self._data
-                else:
-                    cats = None
-                    if self._is_mixed_type:
-                        cats = self._get_cats()
+            off_axes = list(range(self.ndim))
+            off_axes.remove(axis)
+            expanded = [list(range(self.shape[x])) for x in off_axes]
+            frame = self if inplace else self.copy()
+            for axes_prod in product(*expanded):
+                slicer = list(axes_prod)
+                slicer.insert(axis, slice(None))
+                sl = tuple(slicer)
+                piece = frame.iloc[sl]
+                new_data = piece._data.interpolate(method=method,
+                                                   limit=limit,
+                                                   inplace=True,
+                                                   coerce=True)
+                frame.iloc[sl] = piece._constructor(new_data)
 
-                    result = self.apply(lambda s: s.fillna(method=method,
-                                                           limit=limit,
-                                                           downcast=downcast),
-                                        axis=axis)
-                    result = result.convert_objects(copy=False)
-                    if cats:
-                        result._restore_cats(cats)
-                    new_data = result._data
-            else:
-                new_data = interp_func(self)
+            new_data = frame._data
+            if downcast:
+                new_data = new_data.downcast(dtypes=downcast)
+
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -2367,22 +2363,6 @@ class NDFrame(PandasObject):
             self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
-
-    def _get_cats(self):
-        if self._stat_axis_number == 0:
-            return dict((pt, self[pt].cat) for pt in self if
-                        isinstance(self[pt].dtype, CategoricalDtype))
-        else:
-            return dict((pt, self[pt]._get_cats()) for pt in self)
-
-    def _restore_cats(self, cats):
-        for pt, sub in cats.items():
-            if isinstance(sub, dict):
-                self[pt]._restore_cats(sub)
-            else:
-                self[pt] = Categorical(self[pt],
-                                       categories=sub.categories,
-                                       ordered=sub.ordered)
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='ffill')"
