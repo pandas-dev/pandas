@@ -178,7 +178,7 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 
-
+- Bug in unpickling  of a ``CustomBusinessDay`` object (:issue:`8591`)
 - Bug in coercing ``Categorical`` to a records array, e.g. ``df.to_records()`` (:issue:`8626`)
 - Bug in ``Categorical`` not created properly with ``Series.to_frame()`` (:issue:`8626`)
 - Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
