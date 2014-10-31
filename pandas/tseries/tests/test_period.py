@@ -500,11 +500,11 @@ class TestPeriodProperties(tm.TestCase):
         # confirm Period('NaT') work identical with Timestamp('NaT')
         for f in ['year', 'month', 'day', 'hour', 'minute', 'second',
                   'week', 'dayofyear', 'quarter']:
-            self.assertEqual(getattr(p_nat, f), -1)
-            self.assertEqual(getattr(t_nat, f), -1)
+            self.assertTrue(np.isnan(getattr(p_nat, f)))
+            self.assertTrue(np.isnan(getattr(t_nat, f)))
 
         for f in ['weekofyear', 'dayofweek', 'weekday', 'qyear']:
-            self.assertEqual(getattr(p_nat, f), -1)
+            self.assertTrue(np.isnan(getattr(p_nat, f)))
 
     def test_pnow(self):
         dt = datetime.now()

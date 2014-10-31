@@ -121,6 +121,33 @@ API changes
 
      pd.concat(deque((df1, df2)))
 
+- ``s.dt.hour`` and other ``.dt`` accessors will now return ``np.nan`` for missing values (rather than previously -1), (:issue:`8689`)
+
+  .. ipython:: python
+
+     s = Series(date_range('20130101',periods=5,freq='D'))
+     s.iloc[2] = np.nan
+     s
+
+  previous behavior:
+
+  .. code-block:: python
+
+     In [6]: s.dt.hour
+     Out[6]:
+     0    0
+     1    0
+     2   -1
+     3    0
+     4    0
+     dtype: int64
+
+  current behavior:
+
+  .. ipython:: python
+
+     s.dt.hour
+
 .. _whatsnew_0151.enhancements:
 
 Enhancements

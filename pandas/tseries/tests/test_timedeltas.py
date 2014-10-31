@@ -1,7 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from __future__ import division
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import nose
 
 import numpy as np
@@ -459,6 +459,9 @@ class TestTimedeltas(tm.TestCase):
         # these will error
         self.assertRaises(ValueError, lambda : to_timedelta([1,2],unit='foo'))
         self.assertRaises(ValueError, lambda : to_timedelta(1,unit='foo'))
+
+        # time not supported ATM
+        self.assertRaises(ValueError, lambda :to_timedelta(time(second=1)))
 
     def test_to_timedelta_via_apply(self):
         # GH 5458

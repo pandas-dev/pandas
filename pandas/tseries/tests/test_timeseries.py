@@ -10,7 +10,7 @@ randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
-                    Int64Index, to_datetime, bdate_range, Float64Index)
+                    Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex)
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
@@ -939,9 +939,9 @@ class TestTimeSeries(tm.TestCase):
                   'week', 'dayofyear']
         for field in fields:
             result = getattr(idx, field)
-            expected = [getattr(x, field) if x is not NaT else -1
+            expected = [getattr(x, field) if x is not NaT else np.nan
                         for x in idx]
-            self.assert_numpy_array_equal(result, expected)
+            self.assert_numpy_array_equivalent(result, np.array(expected))
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
@@ -949,9 +949,9 @@ class TestTimeSeries(tm.TestCase):
                   'week', 'dayofyear']
         for field in fields:
             result = getattr(NaT, field)
-            self.assertEqual(result, -1)
+            self.assertTrue(np.isnan(result))
 
-        self.assertEqual(NaT.weekday(), -1)
+        self.assertTrue(np.isnan(NaT.weekday()))
 
     def test_to_datetime_types(self):
 
@@ -3375,6 +3375,33 @@ class TestTimestamp(tm.TestCase):
 
         result = Timestamp(NaT)
         self.assertIs(result, NaT)
+
+    def test_roundtrip(self):
+
+        # test value to string and back conversions
+        # further test accessors
+        base = Timestamp('20140101 00:00:00')
+
+        result = Timestamp(base.value + pd.Timedelta('5ms').value)
+        self.assertEqual(result,Timestamp(str(base) + ".005000"))
+        self.assertEqual(result.microsecond,5000)
+
+        result = Timestamp(base.value + pd.Timedelta('5us').value)
+        self.assertEqual(result,Timestamp(str(base) + ".000005"))
+        self.assertEqual(result.microsecond,5)
+
+        result = Timestamp(base.value + pd.Timedelta('5ns').value)
+        self.assertEqual(result,Timestamp(str(base) + ".000000005"))
+        self.assertEqual(result.nanosecond,5)
+        self.assertEqual(result.microsecond,0)
+
+        result = Timestamp(base.value + pd.Timedelta('6ms 5us').value)
+        self.assertEqual(result,Timestamp(str(base) + ".006005"))
+        self.assertEqual(result.microsecond,5+6*1000)
+
+        result = Timestamp(base.value + pd.Timedelta('200ms 5us').value)
+        self.assertEqual(result,Timestamp(str(base) + ".200005"))
+        self.assertEqual(result.microsecond,5+200*1000)
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
