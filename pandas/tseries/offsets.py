@@ -614,6 +614,14 @@ class CustomBusinessDay(BusinessDay):
         """Return a pickleable state"""
         state = self.__dict__.copy()
         del state['calendar']
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        try:
+            state['kwds'].pop('calendar')
+        except:
+            pass
+
         return state
 
     def __setstate__(self, state):

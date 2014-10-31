@@ -2047,6 +2047,28 @@ class TestHDFStore(tm.TestCase):
             result = store.select('df')
             assert_frame_equal(result,df)
 
+    def test_calendar_roundtrip_issue(self):
+
+        # 8591
+        # doc example from tseries holiday section
+        weekmask_egypt = 'Sun Mon Tue Wed Thu'
+        holidays = ['2012-05-01', datetime.datetime(2013, 5, 1), np.datetime64('2014-05-01')]
+        bday_egypt = pandas.offsets.CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+        dt = datetime.datetime(2013, 4, 30)
+        dts = date_range(dt, periods=5, freq=bday_egypt)
+
+        s = (Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
+
+        with ensure_clean_store(self.path) as store:
+
+            store.put('fixed',s)
+            result = store.select('fixed')
+            assert_series_equal(result, s)
+
+            store.append('table',s)
+            result = store.select('table')
+            assert_series_equal(result, s)
+
     def test_append_with_timezones_dateutil(self):
 
         from datetime import timedelta

@@ -12,12 +12,13 @@ import numpy as np
 from pandas.core.datetools import (
     bday, BDay, CDay, BQuarterEnd, BMonthEnd,
     CBMonthEnd, CBMonthBegin,
-    BYearEnd, MonthEnd, MonthBegin, BYearBegin,
+    BYearEnd, MonthEnd, MonthBegin, BYearBegin, CustomBusinessDay,
     QuarterBegin, BQuarterBegin, BMonthBegin, DateOffset, Week,
     YearBegin, YearEnd, Hour, Minute, Second, Day, Micro, Milli, Nano, Easter,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, get_standard_freq)
 
+from pandas import Series
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
 from pandas.tseries.tools import parse_time_string
@@ -866,7 +867,6 @@ class TestCustomBusinessDay(Base):
         cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
         cday = CDay(holidays=hdays)
         self.assertEqual(cday, cday0_14_1)
-
 
 class CustomBusinessMonthBase(object):
     _multiprocess_can_split_ = True
