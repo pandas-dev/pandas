@@ -46,13 +46,17 @@ def _field_accessor(name, field, docstring=None):
             utc = _utc()
             if self.tz is not utc:
                 values = self._local_timestamps()
+
         if field in ['is_month_start', 'is_month_end',
                     'is_quarter_start', 'is_quarter_end',
                     'is_year_start', 'is_year_end']:
             month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12
-            return tslib.get_start_end_field(values, field, self.freqstr, month_kw)
+            result = tslib.get_start_end_field(values, field, self.freqstr, month_kw)
         else:
-            return tslib.get_date_field(values, field)
+            result = tslib.get_date_field(values, field)
+
+        return self._maybe_mask_results(result,convert='float64')
+
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
@@ -643,9 +647,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         other = Timestamp(other)
         i8 = self.asi8
         result = i8 - other.value
-        if self.hasnans:
-            mask = i8 == tslib.iNaT
-            result[mask] = tslib.iNaT
+        result = self._maybe_mask_results(result,fill_value=tslib.iNaT)
         return TimedeltaIndex(result,name=self.name,copy=False)
 
     def _add_delta(self, delta):
@@ -1329,15 +1331,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         # can't call self.map() which tries to treat func as ufunc
         # and causes recursion warnings on python 2.6
-        return _algos.arrmap_object(self.asobject.values, lambda x: x.time())
+        return self._maybe_mask_results(_algos.arrmap_object(self.asobject.values, lambda x: x.time()))
 
     @property
     def date(self):
         """
         Returns numpy array of datetime.date. The date part of the Timestamps.
         """
-        return _algos.arrmap_object(self.asobject.values, lambda x: x.date())
-
+        return self._maybe_mask_results(_algos.arrmap_object(self.asobject.values, lambda x: x.date()))
 
     def normalize(self):
         """

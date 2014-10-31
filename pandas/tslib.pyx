@@ -289,8 +289,7 @@ class Timestamp(_Timestamp):
         result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
-            nanos = self.nanosecond + 1000 * self.microsecond
-            result += '.%.9d' % nanos
+            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
         elif self.microsecond != 0:
             result += '.%.6d' % self.microsecond
 
@@ -344,6 +343,10 @@ class Timestamp(_Timestamp):
         return self._get_field('woy')
 
     weekofyear = week
+
+    @property
+    def microsecond(self):
+        return self._get_field('us')
 
     @property
     def quarter(self):
@@ -546,7 +549,7 @@ class NaTType(_NaT):
         return NPY_NAT
 
     def weekday(self):
-        return -1
+        return np.nan
 
     def toordinal(self):
         return -1
@@ -555,10 +558,10 @@ class NaTType(_NaT):
         return (__nat_unpickle, (None, ))
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
-          'minute', 'second', 'microsecond', 'nanosecond',
+          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
           'week', 'dayofyear']
 for field in fields:
-    prop = property(fget=lambda self: -1)
+    prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
 
 def __nat_unpickle(*args):
@@ -3002,6 +3005,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.us
         return out
+
     elif field == 'ns':
         for i in range(count):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
@@ -3855,7 +3859,7 @@ def get_period_field(int code, int64_t value, int freq):
     if f is NULL:
         raise ValueError('Unrecognized period code: %d' % code)
     if value == iNaT:
-        return -1
+        return np.nan
     return f(value, freq)
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
