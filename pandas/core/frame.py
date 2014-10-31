@@ -4707,7 +4707,7 @@ def extract_index(data):
                 raw_lengths.append(len(v))
 
         if not indexes and not raw_lengths:
-            raise ValueError('If using all scalar values, you must must pass'
+            raise ValueError('If using all scalar values, you must pass'
                              ' an index')
 
         if have_series or have_dicts:
