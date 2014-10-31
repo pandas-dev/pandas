@@ -670,7 +670,7 @@ class SQLTable(PandasObject):
                 # datetime.datetime
                 d = b.values.astype('M8[us]').astype(object)
             else:
-                d = np.array(b.values, dtype=object)
+                d = np.array(b.get_values(), dtype=object)
 
             # replace NaN with None
             if b._can_hold_na:

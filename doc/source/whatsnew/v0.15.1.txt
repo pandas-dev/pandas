@@ -156,7 +156,7 @@ Bug Fixes
 - Bug in ``Categorical`` not created properly with ``Series.to_frame()`` (:issue:`8626`)
 - Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
 - Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
-
+- Bug in writing Categorical columns to an SQL database with ``to_sql`` (:issue:`8624`).
 
 
 
