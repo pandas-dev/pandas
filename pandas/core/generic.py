@@ -2866,15 +2866,16 @@ class NDFrame(PandasObject):
         GroupBy object
 
         """
-
         from pandas.core.groupby import groupby
-        if level is not None and by is not None:
+
+        if axis is not 0:
             axis = self._get_axis_number(axis)
             return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
-                        sort=sort, group_keys=group_keys, squeeze=squeeze)
-        elif by is None:
-            raise ValueError('You have to specify one of "by" or "level"')
-
+                    sort=sort, group_keys=group_keys, squeeze=squeeze)
+        elif level is None and by is None:
+                raise TypeError('You have to specify one of "by" or "level"')
+        elif level is None:
+                raise TypeError('You have to specify one of "by" or "level"')
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """
