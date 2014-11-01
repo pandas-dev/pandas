@@ -355,7 +355,7 @@ class _NDFrameIndexer(object):
             # if we have a partial multiindex, then need to adjust the plane
             # indexer here
             if (len(labels) == 1 and
-                    isinstance(self.obj[labels[0]].index, MultiIndex)):
+                    isinstance(self.obj[labels[0]].axes[0], MultiIndex)):
                 item = labels[0]
                 obj = self.obj[item]
                 index = obj.index
@@ -421,7 +421,7 @@ class _NDFrameIndexer(object):
 
                 l = len(value)
                 item = labels[0]
-                index = self.obj[item].index
+                index = self.obj[item].axes[0]
 
                 # equal len list/ndarray
                 if len(index) == l:
