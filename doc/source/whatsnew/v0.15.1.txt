@@ -186,6 +186,7 @@ Bug Fixes
 - Bug in selecting from a ``Categorical`` with ``.iloc`` (:issue:`8623`)
 - Bug in groupby-transform with a Categorical (:issue:`8623`)
 - Bug in duplicated/drop_duplicates with a Categorical (:issue:`8623`)
+- Bug in ``Categorical`` reflected comparison operator raising if the first argument was a numpy array scalar (e.g. np.int64) (:issue:`8658`)
 
 
 

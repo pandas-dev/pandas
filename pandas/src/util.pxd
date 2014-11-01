@@ -22,6 +22,7 @@ cdef extern from "numpy_helper.h":
     inline void transfer_object_column(char *dst, char *src, size_t stride,
                                        size_t length)
     object sarr_from_data(cnp.dtype, int length, void* data)
+    inline object unbox_if_zerodim(object arr)
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
@@ -63,7 +64,6 @@ cdef inline int is_contiguous(ndarray arr):
 
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
-
 
 cdef inline bint _checknull(object val):
     try:

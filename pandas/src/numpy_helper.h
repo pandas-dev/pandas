@@ -167,6 +167,21 @@ void set_array_not_contiguous(PyArrayObject *ao) {
 }
 
 
+// If arr is zerodim array, return a proper array scalar (e.g. np.int64).
+// Otherwise, return arr as is.
+PANDAS_INLINE PyObject*
+unbox_if_zerodim(PyObject* arr) {
+    if (PyArray_IsZeroDim(arr)) {
+        PyObject *ret;
+        ret = PyArray_ToScalar(PyArray_DATA(arr), arr);
+        return ret;
+    } else {
+        Py_INCREF(arr);
+        return arr;
+    }
+}
+
+
 // PANDAS_INLINE PyObject*
 // get_base_ndarray(PyObject* ap) {
 //   // if (!ap || (NULL == ap)) {

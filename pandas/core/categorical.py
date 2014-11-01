@@ -42,7 +42,16 @@ def _cat_compare_op(op):
                 # In other series, the leads to False, so do that here too
                 ret[na_mask] = False
             return ret
-        elif lib.isscalar(other):
+
+        # Numpy-1.9 and earlier may convert a scalar to a zerodim array during
+        # comparison operation when second arg has higher priority, e.g.
+        #
+        #     cat[0] < cat
+        #
+        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
+        # into this function would become ``np.array(1)``.
+        other = lib.item_from_zerodim(other)
+        if lib.isscalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
