@@ -372,6 +372,53 @@ class CheckIndexing(object):
         self.panel4d['lP'] = self.panel4d['l1'] > 0
         self.assertEqual(self.panel4d['lP'].values.dtype, np.bool_)
 
+    def test_setitem_by_indexer(self):
+
+        # Panel
+        panel4dc = self.panel4d.copy()
+        p = panel4dc.iloc[0]
+        def func():
+            self.panel4d.iloc[0] = p
+        self.assertRaises(NotImplementedError, func)
+
+        # DataFrame
+        panel4dc = self.panel4d.copy()
+        df = panel4dc.iloc[0,0]
+        df.iloc[:] = 1
+        panel4dc.iloc[0,0] = df
+        self.assertTrue((panel4dc.iloc[0,0].values == 1).all())
+
+        # Series
+        panel4dc = self.panel4d.copy()
+        s = panel4dc.iloc[0,0,:,0]
+        s.iloc[:] = 1
+        panel4dc.iloc[0,0,:,0] = s
+        self.assertTrue((panel4dc.iloc[0,0,:,0].values == 1).all())
+
+        # scalar
+        panel4dc = self.panel4d.copy()
+        panel4dc.iloc[0] = 1
+        panel4dc.iloc[1] = True
+        panel4dc.iloc[2] = 'foo'
+        self.assertTrue((panel4dc.iloc[0].values == 1).all())
+        self.assertTrue(panel4dc.iloc[1].values.all())
+        self.assertTrue((panel4dc.iloc[2].values == 'foo').all())
+
+    def test_setitem_by_indexer_mixed_type(self):
+        # GH 8702
+        self.panel4d['foo'] = 'bar'
+
+        # scalar
+        panel4dc = self.panel4d.copy()
+        panel4dc.iloc[0] = 1
+        panel4dc.iloc[1] = True
+        panel4dc.iloc[2] = 'foo'
+        self.assertTrue((panel4dc.iloc[0].values == 1).all())
+        self.assertTrue(panel4dc.iloc[1].values.all())
+        self.assertTrue((panel4dc.iloc[2].values == 'foo').all())
+
+
+
     def test_comparisons(self):
         p1 = tm.makePanel4D()
         p2 = tm.makePanel4D()
