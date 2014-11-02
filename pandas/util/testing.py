@@ -43,9 +43,11 @@ from pandas.compat import (
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
+                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
+                    Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
+
 from pandas.util.decorators import deprecate
 from pandas.util import libtesting
 from pandas.io.common import urlopen
@@ -1686,6 +1688,11 @@ def makeCategoricalIndex(k=10, n=3, name=None):
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(np.random.choice(x, k), name=name)
 
+
+def makeIntervalIndex(k=10, name=None):
+    """ make a length k IntervalIndex """
+    x = np.linspace(0, 100, num=(k + 1))
+    return IntervalIndex.from_breaks(x, name=name)
 
 def makeBoolIndex(k=10, name=None):
     if k == 1:

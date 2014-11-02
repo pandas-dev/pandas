@@ -609,7 +609,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             cat, bins = cut(values, bins, retbins=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
-        values = cat.codes
 
     if is_categorical_dtype(values) or is_sparse(values):
 

@@ -3,12 +3,14 @@ import os
 import numpy as np
 from pandas.compat import zip
 
-from pandas import Series, Index, Categorical
+from pandas import DataFrame, Series, Index, unique, isnull, Categorical
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
 
 from pandas.core.algorithms import quantile
+from pandas.core.categorical import Categorical
+from pandas.core.interval import Interval, IntervalIndex
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
 from pandas import to_datetime, DatetimeIndex, Timestamp
@@ -27,34 +29,30 @@ class TestCut(tm.TestCase):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
         result, bins = cut(data, 3, retbins=True)
 
-        exp_codes = np.array([0, 0, 0, 1, 2, 0], dtype=np.int8)
-        tm.assert_numpy_array_equal(result.codes, exp_codes)
-        exp = np.array([0.1905, 3.36666667, 6.53333333, 9.7])
-        tm.assert_almost_equal(bins, exp)
+        intervals = IntervalIndex.from_breaks(bins.round(3))
+        tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 1, 2, 0]))
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
-        exp_codes = np.array([0, 0, 0, 2, 3, 0, 0], dtype=np.int8)
-        tm.assert_numpy_array_equal(result.codes, exp_codes)
-        exp = np.array([0.1905, 2.575, 4.95, 7.325, 9.7])
-        tm.assert_numpy_array_equal(bins, exp)
+        intervals = IntervalIndex.from_breaks(bins.round(3))
+        tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 2, 3, 0, 0]))
+        tm.assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
-        exp_codes = np.array([0, 0, 0, 2, 3, 0, 1], dtype=np.int8)
-        tm.assert_numpy_array_equal(result.codes, exp_codes)
-        exp = np.array([0.2, 2.575, 4.95, 7.325, 9.7095])
-        tm.assert_almost_equal(bins, exp)
+        intervals = IntervalIndex.from_breaks(bins.round(3), closed='left')
+        tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 2, 3, 0, 1]))
+        tm.assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
-        exp_codes = np.array([0, 0, 0, 1, 2, 0], dtype=np.int8)
-        tm.assert_numpy_array_equal(result.codes, exp_codes)
-        exp = np.array([0.1905, 3.36666667, 6.53333333, 9.7])
-        tm.assert_almost_equal(bins, exp)
+        intervals = IntervalIndex.from_breaks(bins.round(3))
+        tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 1, 2, 0]))
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
@@ -82,14 +80,13 @@ class TestCut(tm.TestCase):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
         result, bins = cut(arr, 4, retbins=True)
-        ex_levels = Index(['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
-                           '(0.75, 1]'])
-        self.assert_index_equal(result.categories, ex_levels)
+        ex_levels = IntervalIndex.from_breaks([-1e-3, 0.25, 0.5, 0.75, 1])
+        self.assert_numpy_array_equal(unique(result), ex_levels)
 
         result, bins = cut(arr, 4, retbins=True, right=False)
-        ex_levels = Index(['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
-                           '[0.75, 1.001)'])
-        self.assert_index_equal(result.categories, ex_levels)
+        ex_levels = IntervalIndex.from_breaks([0, 0.25, 0.5, 0.75, 1 + 1e-3],
+                                              closed='left')
+        self.assert_numpy_array_equal(unique(result), ex_levels)
 
     def test_cut_pass_series_name_to_factor(self):
         s = Series(np.random.randn(100), name='foo')
@@ -101,9 +98,8 @@ class TestCut(tm.TestCase):
         arr = np.arange(0, 0.73, 0.01)
 
         result = cut(arr, 4, precision=2)
-        ex_levels = Index(['(-0.00072, 0.18]', '(0.18, 0.36]',
-                           '(0.36, 0.54]', '(0.54, 0.72]'])
-        self.assert_index_equal(result.categories, ex_levels)
+        ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
+        self.assert_numpy_array_equal(unique(result), ex_levels)
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)
@@ -125,17 +121,16 @@ class TestCut(tm.TestCase):
         data = np.arange(6)
         data_ser = Series(data, dtype='int64')
 
-        result = cut(data, [-np.inf, 2, 4, np.inf])
-        result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
+        bins = [-np.inf, 2, 4, np.inf]
+        result = cut(data, bins)
+        result_ser = cut(data_ser, bins)
 
-        ex_categories = Index(['(-inf, 2]', '(2, 4]', '(4, inf]'])
-
-        tm.assert_index_equal(result.categories, ex_categories)
-        tm.assert_index_equal(result_ser.cat.categories, ex_categories)
-        self.assertEqual(result[5], '(4, inf]')
-        self.assertEqual(result[0], '(-inf, 2]')
-        self.assertEqual(result_ser[5], '(4, inf]')
-        self.assertEqual(result_ser[0], '(-inf, 2]')
+        ex_uniques = IntervalIndex.from_breaks(bins).values
+        tm.assert_numpy_array_equal(unique(result), ex_uniques)
+        self.assertEqual(result[5], Interval(4, np.inf))
+        self.assertEqual(result[0], Interval(-np.inf, 2))
+        self.assertEqual(result_ser[5], Interval(4, np.inf))
+        self.assertEqual(result_ser[0], Interval(-np.inf, 2))
 
     def test_qcut(self):
         arr = np.random.randn(1000)
@@ -158,7 +153,7 @@ class TestCut(tm.TestCase):
 
         factor = qcut(arr, [0, .25, .5, .75, 1.])
         expected = qcut(arr, 4)
-        tm.assert_categorical_equal(factor, expected)
+        self.assert_numpy_array_equal(factor, expected)
 
     def test_qcut_all_bins_same(self):
         assertRaisesRegexp(ValueError, "edges.*unique", qcut,
@@ -169,7 +164,7 @@ class TestCut(tm.TestCase):
 
         result = cut(arr, [-1, 0, 1])
 
-        mask = result.codes == -1
+        mask = isnull(result)
         ex_mask = (arr < -1) | (arr > 1)
         self.assert_numpy_array_equal(mask, ex_mask)
 
@@ -179,19 +174,21 @@ class TestCut(tm.TestCase):
         labels = ['Small', 'Medium', 'Large']
 
         result = cut(arr, bins, labels=labels)
+        exp = ['Medium'] + 4 * ['Small'] + ['Medium', 'Large']
+        self.assert_numpy_array_equal(result, exp)
 
-        exp = cut(arr, bins)
-        exp.categories = labels
-
-        tm.assert_categorical_equal(result, exp)
+        result = cut(arr, bins, labels=Categorical.from_codes([0, 1, 2], labels))
+        exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
+        self.assertTrue(result.equals(exp))
 
     def test_qcut_include_lowest(self):
         values = np.arange(10)
 
         cats = qcut(values, 4)
 
-        ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
-        self.assertTrue((cats.categories == ex_levels).all())
+        ex_levels = [Interval(0, 2.25, closed='both'), Interval(2.25, 4.5),
+                     Interval(4.5, 6.75), Interval(6.75, 9)]
+        self.assert_numpy_array_equal(unique(cats), ex_levels)
 
     def test_qcut_nas(self):
         arr = np.random.randn(100)
@@ -200,9 +197,15 @@ class TestCut(tm.TestCase):
         result = qcut(arr, 4)
         self.assertTrue(com.isnull(result[:20]).all())
 
-    def test_label_formatting(self):
-        self.assertEqual(tmod._trim_zeros('1.000'), '1')
+    def test_qcut_index(self):
+        # the result is closed on a different side for the first interval, but
+        # we should still be able to make an index
+        result = qcut([0, 2], 2)
+        index = Index(result)
+        expected = Index([Interval(0, 1, closed='both'), Interval(1, 2)])
+        self.assert_numpy_array_equal(index, expected)
 
+    def test_round_frac(self):
         # it works
         result = cut(np.arange(11.), 2)
 
@@ -210,10 +213,15 @@ class TestCut(tm.TestCase):
 
         # #1979, negative numbers
 
-        result = tmod._format_label(-117.9998, precision=3)
-        self.assertEqual(result, '-118')
-        result = tmod._format_label(117.9998, precision=3)
-        self.assertEqual(result, '118')
+        result = tmod._round_frac(-117.9998, precision=3)
+        self.assertEqual(result, -118)
+        result = tmod._round_frac(117.9998, precision=3)
+        self.assertEqual(result, 118)
+
+        result = tmod._round_frac(117.9998, precision=2)
+        self.assertEqual(result, 118)
+        result = tmod._round_frac(0.000123456, precision=2)
+        self.assertEqual(result, 0.00012)
 
     def test_qcut_binning_issues(self):
         # #1978, 1979
@@ -224,9 +232,9 @@ class TestCut(tm.TestCase):
 
         starts = []
         ends = []
-        for lev in result.categories:
-            s, e = lev[1:-1].split(',')
-
+        for lev in np.unique(result):
+            s = lev.left
+            e = lev.right
             self.assertTrue(s != e)
 
             starts.append(float(s))
@@ -238,22 +246,20 @@ class TestCut(tm.TestCase):
             self.assertTrue(ep < en)
             self.assertTrue(ep <= sn)
 
-    def test_cut_return_categorical(self):
-        s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
-        res = cut(s, 3)
-        exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
-                                            ["(-0.008, 2.667]",
-                                             "(2.667, 5.333]", "(5.333, 8]"],
-                                            ordered=True))
+    def test_cut_return_intervals(self):
+        s = Series([0,1,2,3,4,5,6,7,8])
+        res = cut(s,3)
+        exp_bins = np.linspace(0, 8, num=4).round(3)
+        exp_bins[0] -= 0.008
+        exp = Series(IntervalIndex.from_breaks(exp_bins).take([0,0,0,1,1,1,2,2,2]))
         tm.assert_series_equal(res, exp)
 
-    def test_qcut_return_categorical(self):
-        s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
-        res = qcut(s, [0, 0.333, 0.666, 1])
-        exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
-                                            ["[0, 2.664]",
-                                             "(2.664, 5.328]", "(5.328, 8]"],
-                                            ordered=True))
+    def test_qcut_return_intervals(self):
+        s = Series([0,1,2,3,4,5,6,7,8])
+        res = qcut(s,[0,0.333,0.666,1])
+        exp_levels = np.array([Interval(0, 2.664, closed='both'),
+                               Interval(2.664, 5.328), Interval(5.328, 8)])
+        exp = Series(exp_levels.take([0,0,0,1,1,1,2,2,2]))
         tm.assert_series_equal(res, exp)
 
     def test_series_retbins(self):
@@ -420,6 +426,14 @@ class TestCut(tm.TestCase):
         bins = to_datetime(bin_data)
         result = cut(data, bins=bin_pydatetime)
         tm.assert_series_equal(Series(result), expected)
+
+        result, bins = cut(s, 2, retbins=True, labels=[0, 1])
+        tm.assert_numpy_array_equal(result, [0, 0, 1, 1])
+        tm.assert_almost_equal(bins, [-0.003, 1.5, 3])
+
+        result, bins = qcut(s, 2, retbins=True, labels=[0, 1])
+        tm.assert_numpy_array_equal(result, [0, 0, 1, 1])
+        tm.assert_almost_equal(bins, [0, 1.5, 3])
 
 
 def curpath():
