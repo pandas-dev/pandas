@@ -2325,6 +2325,30 @@ class TestIndexing(tm.TestCase):
         test1 = panel.ix[:, "2002"]
         tm.assert_panel_equal(test1,test2)
 
+        # GH8710
+        # multi-element getting with a list
+        panel = tm.makePanel()
+
+        expected = panel.iloc[[0,1]]
+
+        result = panel.loc[['ItemA','ItemB']]
+        tm.assert_panel_equal(result,expected)
+
+        result = panel.loc[['ItemA','ItemB'],:,:]
+        tm.assert_panel_equal(result,expected)
+
+        result = panel[['ItemA','ItemB']]
+        tm.assert_panel_equal(result,expected)
+
+        result = panel.loc['ItemA':'ItemB']
+        tm.assert_panel_equal(result,expected)
+
+        result = panel.ix['ItemA':'ItemB']
+        tm.assert_panel_equal(result,expected)
+
+        result = panel.ix[['ItemA','ItemB']]
+        tm.assert_panel_equal(result,expected)
+
     def test_panel_setitem(self):
 
         # GH 7763

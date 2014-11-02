@@ -29,7 +29,7 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.nanops as nanops
 import pandas.computation.expressions as expressions
-
+from pandas import lib
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -253,7 +253,9 @@ class Panel(NDFrame):
     def __getitem__(self, key):
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
-        return super(Panel, self).__getitem__(key)
+        if lib.isscalar(key):
+            return super(Panel, self).__getitem__(key)
+        return self.ix[key]
 
     def _getitem_multilevel(self, key):
         info = self._info_axis
