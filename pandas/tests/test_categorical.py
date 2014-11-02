@@ -917,6 +917,12 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(dt_cat > dt_cat[0], [False, True, True])
         self.assert_numpy_array_equal(dt_cat[0] < dt_cat, [False, True, True])
 
+    def test_reflected_comparison_with_scalars(self):
+        # GH8658
+        cat = pd.Categorical([1, 2, 3])
+        self.assert_numpy_array_equal(cat > cat[0], [False, True, True])
+        self.assert_numpy_array_equal(cat[0] < cat, [False, True, True])
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True

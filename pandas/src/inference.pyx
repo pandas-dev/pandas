@@ -16,6 +16,10 @@ def is_bool(object obj):
 def is_complex(object obj):
     return util.is_complex_object(obj)
 
+def is_period(object val):
+    """ Return a boolean if this is a Period object """
+    return util.is_period_object(val)
+
 _TYPE_MAP = {
     'int8': 'integer',
     'int16': 'integer',

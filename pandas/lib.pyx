@@ -4,6 +4,7 @@ import numpy as np
 
 from numpy cimport *
 
+np.import_array()
 
 cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
@@ -235,7 +236,47 @@ cpdef checknull_old(object val):
         return util._checknull(val)
 
 def isscalar(object val):
-    return np.isscalar(val) or val is None or PyDateTime_Check(val) or PyDelta_Check(val)
+    """
+    Return True if given value is scalar.
+
+    This includes:
+    - numpy array scalar (e.g. np.int64)
+    - Python builtin numerics
+    - Python builtin byte arrays and strings
+    - None
+    - instances of datetime.datetime
+    - instances of datetime.timedelta
+    - Period
+
+    """
+
+    return (np.PyArray_IsAnyScalar(val)
+            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
+            or PyBytes_Check(val)
+            or val is None
+            or PyDate_Check(val)
+            or PyDelta_Check(val)
+            or PyTime_Check(val)
+            or util.is_period_object(val))
+
+
+def item_from_zerodim(object val):
+    """
+    If the value is a zerodim array, return the item it contains.
+
+    Examples
+    --------
+    >>> item_from_zerodim(1)
+    1
+    >>> item_from_zerodim('foobar')
+    'foobar'
+    >>> item_from_zerodim(np.array(1))
+    1
+    >>> item_from_zerodim(np.array([1]))
+    array([1])
+
+    """
+    return util.unbox_if_zerodim(val)
 
 
 @cython.wraparound(False)

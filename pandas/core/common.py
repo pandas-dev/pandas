@@ -58,10 +58,7 @@ _int32_max = np.iinfo(np.int32).max
 def create_pandas_abc_type(name, attr, comp):
     @classmethod
     def _check(cls, inst):
-        result = getattr(inst, attr, None)
-        if result is None:
-            return False
-        return result in comp
+        return getattr(inst, attr, '_typ') in comp
     dct = dict(__instancecheck__=_check,
                __subclasscheck__=_check)
     meta = type("ABCBase", (type,), dct)
@@ -84,7 +81,7 @@ ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
 ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
                                         ('sparse_array', 'sparse_series'))
 ABCCategorical = create_pandas_abc_type("ABCCategorical","_typ",("categorical"))
-
+ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period",))
 
 class _ABCGeneric(type):
 
