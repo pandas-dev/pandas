@@ -11,7 +11,7 @@ from pandas.core.base import PandasObject
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
-                                _is_null_datelike_scalar,
+                                _is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 _possibly_infer_to_datetimelike, array_equivalent)
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -176,6 +176,24 @@ class Block(PandasObject):
     def _slice(self, slicer):
         """ return a slice of my values """
         return self.values[slicer]
+
+    def reshape_nd(self, labels, shape, ref_items):
+        """
+        Parameters
+        ----------
+        labels : list of new axis labels
+        shape : new shape
+        ref_items : new ref_items
+
+        return a new block that is transformed to a nd block
+        """
+
+        return _block2d_to_blocknd(
+            values=self.get_values().T,
+            placement=self.mgr_locs,
+            shape=shape,
+            labels=labels,
+            ref_items=ref_items)
 
     def getitem_block(self, slicer, new_mgr_locs=None):
         """
@@ -2573,6 +2591,10 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
+    def reshape_nd(self, axes, **kwargs):
+        """ a 2d-nd reshape operation on a BlockManager """
+        return self.apply('reshape_nd', axes=axes, **kwargs)
+
     def is_consolidated(self):
         """
         Return True if more than one block with the same dtype
@@ -3894,6 +3916,43 @@ def _possibly_compare(a, b, op):
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
 
+
+def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
+    """ pivot to the labels shape """
+    from pandas.core.internals import make_block
+
+    panel_shape = (len(placement),) + shape
+
+    # TODO: lexsort depth needs to be 2!!
+
+    # Create observation selection vector using major and minor
+    # labels, for converting to panel format.
+    selector = _factor_indexer(shape[1:], labels)
+    mask = np.zeros(np.prod(shape), dtype=bool)
+    mask.put(selector, True)
+
+    if mask.all():
+        pvalues = np.empty(panel_shape, dtype=values.dtype)
+    else:
+        dtype, fill_value = _maybe_promote(values.dtype)
+        pvalues = np.empty(panel_shape, dtype=dtype)
+        pvalues.fill(fill_value)
+
+    values = values
+    for i in range(len(placement)):
+        pvalues[i].flat[mask] = values[:, i]
+
+    return make_block(pvalues, placement=placement)
+
+
+def _factor_indexer(shape, labels):
+    """
+    given a tuple of shape and a list of Categorical labels, return the
+    expanded label indexer
+    """
+    mult = np.array(shape)[::-1].cumprod()[::-1]
+    return com._ensure_platform_int(
+        np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
 
 def _get_blkno_placements(blknos, blk_count, group=True):
     """

@@ -1121,17 +1121,44 @@ class TestCategoricalAsBlock(tm.TestCase):
         expected = Series(list('abc'),dtype='category')
         tm.assert_series_equal(df[0],expected)
 
-        # these coerces back to object as its spread across columns
-
         # ndim != 1
         df = DataFrame([pd.Categorical(list('abc'))])
-        expected = DataFrame([list('abc')])
+        expected = DataFrame({ 0 : Series(list('abc'),dtype='category')})
+        tm.assert_frame_equal(df,expected)
+
+        df = DataFrame([pd.Categorical(list('abc')),pd.Categorical(list('abd'))])
+        expected = DataFrame({ 0 : Series(list('abc'),dtype='category'),
+                               1 : Series(list('abd'),dtype='category')},columns=[0,1])
         tm.assert_frame_equal(df,expected)
 
         # mixed
         df = DataFrame([pd.Categorical(list('abc')),list('def')])
-        expected = DataFrame([list('abc'),list('def')])
+        expected = DataFrame({ 0 : Series(list('abc'),dtype='category'),
+                               1 : list('def')},columns=[0,1])
         tm.assert_frame_equal(df,expected)
+
+        # invalid (shape)
+        self.assertRaises(ValueError, lambda : DataFrame([pd.Categorical(list('abc')),pd.Categorical(list('abdefg'))]))
+
+        # ndim > 1
+        self.assertRaises(NotImplementedError, lambda : pd.Categorical(np.array([list('abcd')])))
+
+    def test_reshaping(self):
+
+        p = tm.makePanel()
+        p['str'] = 'foo'
+        df = p.to_frame()
+        df['category'] = df['str'].astype('category')
+        result = df['category'].unstack()
+
+        c = Categorical(['foo']*len(p.major_axis))
+        expected = DataFrame({'A' : c.copy(),
+                              'B' : c.copy(),
+                              'C' : c.copy(),
+                              'D' : c.copy()},
+                             columns=Index(list('ABCD'),name='minor'),
+                             index=p.major_axis.set_names('major'))
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex(self):
 

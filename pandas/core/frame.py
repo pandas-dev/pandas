@@ -241,15 +241,19 @@ class DataFrame(NDFrame):
             if isinstance(data, types.GeneratorType):
                 data = list(data)
             if len(data) > 0:
-                if index is None and isinstance(data[0], Series):
-                    index = _get_names_from_index(data)
-
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
+                    # set the index
                     if index is None:
-                        index = _default_index(len(data))
+                        if isinstance(data[0], Series):
+                            index = _get_names_from_index(data)
+                        elif isinstance(data[0], Categorical):
+                            index = _default_index(len(data[0]))
+                        else:
+                            index = _default_index(len(data))
+
                     mgr = _arrays_to_mgr(arrays, columns, index, columns,
                                          dtype=dtype)
                 else:
@@ -1053,7 +1057,6 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         from pandas.core.panel import Panel
-        from pandas.core.reshape import block2d_to_blocknd
 
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
@@ -1073,19 +1076,8 @@ class DataFrame(NDFrame):
             selfsorted = self
 
         major_axis, minor_axis = selfsorted.index.levels
-
         major_labels, minor_labels = selfsorted.index.labels
-
         shape = len(major_axis), len(minor_axis)
-
-        new_blocks = []
-        for block in selfsorted._data.blocks:
-            newb = block2d_to_blocknd(
-                values=block.values.T,
-                placement=block.mgr_locs, shape=shape,
-                labels=[major_labels, minor_labels],
-                ref_items=selfsorted.columns)
-            new_blocks.append(newb)
 
         # preserve names, if any
         major_axis = major_axis.copy()
@@ -1094,8 +1086,14 @@ class DataFrame(NDFrame):
         minor_axis = minor_axis.copy()
         minor_axis.name = self.index.names[1]
 
+        # create new axes
         new_axes = [selfsorted.columns, major_axis, minor_axis]
-        new_mgr = create_block_manager_from_blocks(new_blocks, new_axes)
+
+        # create new manager
+        new_mgr = selfsorted._data.reshape_nd(axes=new_axes,
+                                              labels=[major_labels, minor_labels],
+                                              shape=shape,
+                                              ref_items=selfsorted.columns)
 
         return Panel(new_mgr)
 
@@ -4808,6 +4806,10 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
+    elif isinstance(data[0], Categorical):
+        if columns is None:
+            columns = _default_index(len(data))
+        return data, columns
     elif (isinstance(data, (np.ndarray, Series, Index))
           and data.dtype.names is not None):
 
