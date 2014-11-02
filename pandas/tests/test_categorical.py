@@ -2246,6 +2246,23 @@ class TestCategoricalAsBlock(tm.TestCase):
         dfx['grade'].cat.categories
         self.assert_numpy_array_equal(df['grade'].cat.categories, dfx['grade'].cat.categories)
 
+        # GH 8641
+        # series concat not preserving category dtype
+        s = Series(list('abc'),dtype='category')
+        s2 = Series(list('abd'),dtype='category')
+
+        def f():
+            pd.concat([s,s2])
+        self.assertRaises(ValueError, f)
+
+        result = pd.concat([s,s],ignore_index=True)
+        expected = Series(list('abcabc')).astype('category')
+        tm.assert_series_equal(result, expected)
+
+        result = pd.concat([s,s])
+        expected = Series(list('abcabc'),index=[0,1,2,0,1,2]).astype('category')
+        tm.assert_series_equal(result, expected)
+
     def test_append(self):
         cat = pd.Categorical(["a","b"], categories=["a","b"])
         vals = [1,2]

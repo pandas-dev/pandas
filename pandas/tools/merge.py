@@ -854,11 +854,17 @@ class _Concatenator(object):
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
+
+        # series only
         if self._is_series:
+
+            # stack blocks
             if self.axis == 0:
-                new_data = com._concat_compat([x.get_values() for x in self.objs])
+                new_data = com._concat_compat([x.values for x in self.objs])
                 name = com._consensus_name_attr(self.objs)
                 return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
+
+            # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
@@ -866,6 +872,8 @@ class _Concatenator(object):
                 if columns is not None:
                     tmpdf.columns = columns
                 return tmpdf.__finalize__(self, method='concat')
+
+        # combine block managers
         else:
             mgrs_indexers = []
             for obj in self.objs:

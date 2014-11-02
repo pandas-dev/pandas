@@ -15,7 +15,12 @@ from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
 from pandas.util.decorators import cache_readonly
 
-from pandas.core.common import isnull
+from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
+                                is_categorical_dtype, is_integer_dtype, is_object_dtype,
+                                _possibly_infer_to_datetimelike, get_dtype_kinds,
+                                is_list_like, _is_sequence,
+                                _ensure_platform_int, _ensure_object, _ensure_int64,
+                                _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 from pandas.core import format as fmt
@@ -69,11 +74,11 @@ def _cat_compare_op(op):
 
 def _is_categorical(array):
     """ return if we are a categorical possibility """
-    return isinstance(array, Categorical) or isinstance(array.dtype, com.CategoricalDtype)
+    return isinstance(array, Categorical) or isinstance(array.dtype, CategoricalDtype)
 
 def _maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
-    if isinstance(array, com.ABCSeries):
+    if isinstance(array, ABCSeries):
         return array.values
     return array
 
@@ -175,7 +180,7 @@ class Categorical(PandasObject):
     >>> a.min()
     'c'
     """
-    dtype = com.CategoricalDtype()
+    dtype = CategoricalDtype()
     """The dtype (always "category")"""
 
     ordered = None
@@ -203,7 +208,7 @@ class Categorical(PandasObject):
 
         if fastpath:
             # fast path
-            self._codes = com._coerce_indexer_dtype(values, categories)
+            self._codes = _coerce_indexer_dtype(values, categories)
             self.name = name
             self.categories = categories
             self.ordered = ordered
@@ -223,11 +228,11 @@ class Categorical(PandasObject):
                                  "use only 'categories'")
 
         # sanitize input
-        if com.is_categorical_dtype(values):
+        if is_categorical_dtype(values):
 
             # we are either a Series or a Categorical
             cat = values
-            if isinstance(values, com.ABCSeries):
+            if isinstance(values, ABCSeries):
                 cat = values.values
             if categories is None:
                 categories = cat.categories
@@ -244,7 +249,7 @@ class Categorical(PandasObject):
             # which is fine, but since factorize does this correctly no need here
             # this is an issue because _sanitize_array also coerces np.nan to a string
             # under certain versions of numpy as well
-            values = com._possibly_infer_to_datetimelike(values, convert_dates=True)
+            values = _possibly_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
@@ -286,11 +291,11 @@ class Categorical(PandasObject):
             codes = _get_codes_for_values(values, categories)
 
             # TODO: check for old style usage. These warnings should be removes after 0.18/ in 2016
-            if com.is_integer_dtype(values) and not com.is_integer_dtype(categories):
+            if is_integer_dtype(values) and not is_integer_dtype(categories):
                 warn("Values and categories have different dtypes. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            if com.is_integer_dtype(values) and (codes == -1).all():
+            if is_integer_dtype(values) and (codes == -1).all():
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
@@ -302,7 +307,7 @@ class Categorical(PandasObject):
         self.ordered = False if ordered is None else ordered
         self.categories = categories
         self.name = name
-        self._codes = com._coerce_indexer_dtype(codes, categories)
+        self._codes = _coerce_indexer_dtype(codes, categories)
 
     def copy(self):
         """ Copy constructor. """
@@ -409,7 +414,7 @@ class Categorical(PandasObject):
                 # on categories with NaNs, int values would be converted to float.
                 # Use "object" dtype to prevent this.
                 if isnull(categories).any():
-                    without_na = np.array([x for x in categories if com.notnull(x)])
+                    without_na = np.array([x for x in categories if notnull(x)])
                     with_na = np.array(categories)
                     if with_na.dtype != without_na.dtype:
                         dtype = "object"
@@ -617,7 +622,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
-        if not com.is_list_like(new_categories):
+        if not is_list_like(new_categories):
             new_categories = [new_categories]
         already_included = set(new_categories) & set(self._categories)
         if len(already_included) != 0:
@@ -627,7 +632,7 @@ class Categorical(PandasObject):
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = new_categories
-        cat._codes = com._coerce_indexer_dtype(cat._codes, new_categories)
+        cat._codes = _coerce_indexer_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
 
@@ -662,7 +667,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
-        if not com.is_list_like(removals):
+        if not is_list_like(removals):
             removals = [removals]
         removals = set(list(removals))
         not_included = removals - set(self._categories)
@@ -696,7 +701,7 @@ class Categorical(PandasObject):
         """
         cat = self if inplace else self.copy()
         _used = sorted(np.unique(cat._codes))
-        new_categories = cat.categories.take(com._ensure_platform_int(_used))
+        new_categories = cat.categories.take(_ensure_platform_int(_used))
         new_categories = _ensure_index(new_categories)
         cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
         cat._categories = new_categories
@@ -734,7 +739,7 @@ class Categorical(PandasObject):
             A numpy array of either the specified dtype or, if dtype==None (default), the same
             dtype as categorical.categories.dtype
         """
-        ret = com.take_1d(self.categories.values, self._codes)
+        ret = take_1d(self.categories.values, self._codes)
         if dtype and dtype != self.categories.dtype:
             return np.asarray(ret, dtype)
         return ret
@@ -822,8 +827,8 @@ class Categorical(PandasObject):
 
         # if we are a period index, return a string repr
         if isinstance(self.categories, PeriodIndex):
-            return com.take_1d(np.array(self.categories.to_native_types(), dtype=object),
-                               self._codes)
+            return take_1d(np.array(self.categories.to_native_types(), dtype=object),
+                           self._codes)
 
         return np.array(self)
 
@@ -1010,7 +1015,7 @@ class Categorical(PandasObject):
 
         else:
 
-            if not com.isnull(fill_value) and fill_value not in self.categories:
+            if not isnull(fill_value) and fill_value not in self.categories:
                 raise ValueError("fill value must be in categories")
 
             mask = values==-1
@@ -1031,7 +1036,7 @@ class Categorical(PandasObject):
         # but is passed thru internally
         assert isnull(fill_value)
 
-        codes = com.take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
+        codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
         result = Categorical(codes, categories=self.categories, ordered=self.ordered,
                              name=self.name, fastpath=True)
         return result
@@ -1178,7 +1183,7 @@ class Categorical(PandasObject):
                 raise ValueError("Cannot set a Categorical with another, without identical "
                                  "categories")
 
-        rvalue = value if com.is_list_like(value) else [value]
+        rvalue = value if is_list_like(value) else [value]
         to_add = Index(rvalue).difference(self.categories)
         # no assignments of values not in categories, but it's always ok to set something to np.nan
         if len(to_add) and not isnull(to_add).all():
@@ -1221,7 +1226,7 @@ class Categorical(PandasObject):
         # float categories do currently return -1 for np.nan, even if np.nan is included in the
         # index -> "repair" this here
         if isnull(rvalue).any() and isnull(self.categories).any():
-            nan_pos = np.where(com.isnull(self.categories))[0]
+            nan_pos = np.where(isnull(self.categories))[0]
             lindexer[lindexer == -1] = nan_pos
 
         key = self._maybe_coerce_indexer(key)
@@ -1304,7 +1309,7 @@ class Categorical(PandasObject):
 
         import pandas.hashtable as htable
         good = self._codes != -1
-        result = Categorical(sorted(htable.mode_int64(com._ensure_int64(self._codes[good]))),
+        result = Categorical(sorted(htable.mode_int64(_ensure_int64(self._codes[good]))),
                              categories=self.categories,ordered=self.ordered, name=self.name,
                              fastpath=True)
         return result
@@ -1373,9 +1378,9 @@ class Categorical(PandasObject):
             categories = np.arange(0,len(self.categories)+1 ,dtype=object)
             categories[:-1] = self.categories
             categories[-1] = np.nan
-            result.index = categories.take(com._ensure_platform_int(result.index))
+            result.index = categories.take(_ensure_platform_int(result.index))
         else:
-            result.index = self.categories.take(com._ensure_platform_int(result.index))
+            result.index = self.categories.take(_ensure_platform_int(result.index))
             result = result.reindex(self.categories)
         result.index.name = 'categories'
 
@@ -1447,23 +1452,72 @@ def _get_codes_for_values(values, categories):
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
     if values.dtype != categories.dtype:
-        values = com._ensure_object(values)
-        categories = com._ensure_object(categories)
+        values = _ensure_object(values)
+        categories = _ensure_object(categories)
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     t = hash_klass(len(categories))
-    t.map_locations(com._values_from_object(categories))
-    return com._coerce_indexer_dtype(t.lookup(values), categories)
+    t.map_locations(_values_from_object(categories))
+    return _coerce_indexer_dtype(t.lookup(values), categories)
 
 def _convert_to_list_like(list_like):
     if hasattr(list_like, "dtype"):
         return list_like
     if isinstance(list_like, list):
         return list_like
-    if (com._is_sequence(list_like) or isinstance(list_like, tuple)
-                                    or isinstance(list_like, types.GeneratorType)):
+    if (_is_sequence(list_like) or isinstance(list_like, tuple)
+        or isinstance(list_like, types.GeneratorType)):
         return list(list_like)
     elif np.isscalar(list_like):
         return [list_like]
     else:
         # is this reached?
         return [list_like]
+
+def _concat_compat(to_concat, axis=0):
+    """
+    provide concatenation of an object/categorical array of arrays each of which is a single dtype
+
+    Parameters
+    ----------
+    to_concat : array of arrays
+    axis : axis to provide concatenation
+
+    Returns
+    -------
+    a single array, preserving the combined dtypes
+    """
+
+    def convert_categorical(x):
+        # coerce to object dtype
+        if is_categorical_dtype(x.dtype):
+            return x.get_values()
+        return x.ravel()
+
+    typs = get_dtype_kinds(to_concat)
+    if not len(typs-set(['object','category'])):
+
+        # we only can deal with object & category types
+        pass
+
+    else:
+
+        # convert to object type and perform a regular concat
+        from pandas.core.common import _concat_compat
+        return _concat_compat([ np.array(x,copy=False).astype('object') for x in to_concat ],axis=axis)
+
+    # we could have object blocks and categorical's here
+    # if we only have a single cateogoricals then combine everything
+    # else its a non-compat categorical
+    categoricals = [ x for x in to_concat if is_categorical_dtype(x.dtype) ]
+    objects = [ x for x in to_concat if is_object_dtype(x.dtype) ]
+
+    # validate the categories
+    categories = None
+    for x in categoricals:
+        if categories is None:
+            categories = x.categories
+        if not categories.equals(x.categories):
+            raise ValueError("incompatible categories in categorical concat")
+
+    # concat them
+    return Categorical(np.concatenate([ convert_categorical(x) for x in to_concat ],axis=axis), categories=categories)
