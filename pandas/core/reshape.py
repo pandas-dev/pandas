@@ -59,7 +59,12 @@ class _Unstacker(object):
     """
 
     def __init__(self, values, index, level=-1, value_columns=None):
+
+        self.is_categorical = None
         if values.ndim == 1:
+            if isinstance(values, Categorical):
+                self.is_categorical = values
+                values = np.array(values)
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
@@ -174,6 +179,12 @@ class _Unstacker(object):
                     values[j] = orig_values[i]
             else:
                 index = index.take(self.unique_groups)
+
+        # may need to coerce categoricals here
+        if self.is_categorical is not None:
+            values = [ Categorical.from_array(values[:,i],
+                                              categories=self.is_categorical.categories)
+                       for i in range(values.shape[-1]) ]
 
         return DataFrame(values, index=index, columns=columns)
 
@@ -1188,40 +1199,3 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
-
-
-def block2d_to_blocknd(values, placement, shape, labels, ref_items):
-    """ pivot to the labels shape """
-    from pandas.core.internals import make_block
-
-    panel_shape = (len(placement),) + shape
-
-    # TODO: lexsort depth needs to be 2!!
-
-    # Create observation selection vector using major and minor
-    # labels, for converting to panel format.
-    selector = factor_indexer(shape[1:], labels)
-    mask = np.zeros(np.prod(shape), dtype=bool)
-    mask.put(selector, True)
-
-    if mask.all():
-        pvalues = np.empty(panel_shape, dtype=values.dtype)
-    else:
-        dtype, fill_value = _maybe_promote(values.dtype)
-        pvalues = np.empty(panel_shape, dtype=dtype)
-        pvalues.fill(fill_value)
-
-    values = values
-    for i in range(len(placement)):
-        pvalues[i].flat[mask] = values[:, i]
-
-    return make_block(pvalues, placement=placement)
-
-
-def factor_indexer(shape, labels):
-    """ given a tuple of shape and a list of Categorical labels, return the
-    expanded label indexer
-    """
-    mult = np.array(shape)[::-1].cumprod()[::-1]
-    return com._ensure_platform_int(
-        np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

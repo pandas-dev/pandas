@@ -13,6 +13,7 @@ from pandas.core.index import Index, _ensure_index
 from pandas.core.indexing import _is_null_slice
 from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
+from pandas.util.decorators import cache_readonly
 
 from pandas.core.common import isnull
 from pandas.util.terminal import get_terminal_size
@@ -174,9 +175,6 @@ class Categorical(PandasObject):
     >>> a.min()
     'c'
     """
-    ndim = 1
-    """Number of dimensions (always 1!)"""
-
     dtype = com.CategoricalDtype()
     """The dtype (always "category")"""
 
@@ -256,6 +254,7 @@ class Categorical(PandasObject):
                 dtype = 'object' if isnull(values).any() else None
                 values = _sanitize_array(values, None, dtype=dtype)
 
+
         if categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
@@ -270,6 +269,11 @@ class Categorical(PandasObject):
                     # give us one by specifying categories
                     raise TypeError("'values' is not ordered, please explicitly specify the "
                                     "categories order by passing in a categories argument.")
+            except ValueError:
+
+                ### FIXME ####
+                raise NotImplementedError("> 1 ndim Categorical are not supported at this time")
+
         else:
             # there were two ways if categories are present
             # - the old one, where each value is a int pointer to the levels array -> not anymore
@@ -305,8 +309,13 @@ class Categorical(PandasObject):
         return Categorical(values=self._codes.copy(),categories=self.categories,
                            name=self.name, ordered=self.ordered, fastpath=True)
 
+    @cache_readonly
+    def ndim(self):
+        """Number of dimensions of the Categorical """
+        return self._codes.ndim
+
     @classmethod
-    def from_array(cls, data):
+    def from_array(cls, data, **kwargs):
         """
         Make a Categorical type from a single array-like object.
 
@@ -318,7 +327,7 @@ class Categorical(PandasObject):
             Can be an Index or array-like. The categories are assumed to be
             the unique values of `data`.
         """
-        return Categorical(data)
+        return Categorical(data, **kwargs)
 
     @classmethod
     def from_codes(cls, codes, categories, ordered=False, name=None):

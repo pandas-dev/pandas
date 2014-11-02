@@ -23,8 +23,7 @@ from pandas.core.common import adjoin, pprint_thing
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe
-from pandas.core.internals import BlockManager, make_block
-from pandas.core.reshape import block2d_to_blocknd, factor_indexer
+from pandas.core.internals import BlockManager, make_block, _block2d_to_blocknd, _factor_indexer
 from pandas.core.index import _ensure_index
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
@@ -332,7 +331,7 @@ def read_hdf(path_or_buf, key, **kwargs):
         key, auto_close=auto_close, **kwargs)
 
     if isinstance(path_or_buf, string_types):
-        
+
         try:
             exists = os.path.exists(path_or_buf)
 
@@ -3537,7 +3536,7 @@ class LegacyTable(Table):
         labels = [f.codes for f in factors]
 
         # compute the key
-        key = factor_indexer(N[1:], labels)
+        key = _factor_indexer(N[1:], labels)
 
         objs = []
         if len(unique(key)) == len(key):
@@ -3556,7 +3555,7 @@ class LegacyTable(Table):
 
                 take_labels = [l.take(sorter) for l in labels]
                 items = Index(c.values)
-                block = block2d_to_blocknd(
+                block = _block2d_to_blocknd(
                     values=sorted_values, placement=np.arange(len(items)),
                     shape=tuple(N), labels=take_labels, ref_items=items)
 

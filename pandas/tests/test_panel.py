@@ -1501,6 +1501,18 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # Previously, this was mutating the underlying index and changing its name
         assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
 
+        # GH 8704
+        # with categorical
+        df = panel.to_frame()
+        df['category'] = df['str'].astype('category')
+
+        # to_panel
+        # TODO: this converts back to object
+        p = df.to_panel()
+        expected = panel.copy()
+        expected['category'] = 'foo'
+        assert_panel_equal(p,expected)
+
     def test_to_frame_multi_major(self):
         idx = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'),
                                       (2, 'two')])
