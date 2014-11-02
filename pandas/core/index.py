@@ -573,8 +573,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def is_monotonic(self):
-        """ return if the index has monotonic (only equaly or increasing) values """
-        return self._engine.is_monotonic
+        """ alias for is_monotonic_increasing (deprecated) """
+        return self._engine.is_monotonic_increasing
+
+    @property
+    def is_monotonic_increasing(self):
+        """ return if the index is monotonic increasing (only equal or
+        increasing) values
+        """
+        return self._engine.is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        """ return if the index is monotonic decreasing (only equal or
+        decreasing values
+        """
+        return self._engine.is_monotonic_decreasing
 
     def is_lexsorted_for_tuple(self, tup):
         return True
@@ -1988,16 +2002,12 @@ class Index(IndexOpsMixin, PandasObject):
                     slc += offset
 
             except KeyError:
-                if self.is_monotonic:
-
-                    # we are duplicated but non-unique
-                    # so if we have an indexer then we are done
-                    # else search for it (GH 7523)
-                    if not is_unique and is_integer(search_value):
-                        slc = search_value
-                    else:
-                        slc = self.searchsorted(search_value,
-                                                side=search_side)
+                if self.is_monotonic_increasing:
+                    slc = self.searchsorted(search_value, side=search_side)
+                elif self.is_monotonic_decreasing:
+                    search_side = 'right' if search_side == 'left' else 'left'
+                    slc = len(self) - self[::-1].searchsorted(search_value,
+                                                              side=search_side)
                 else:
                     raise
             return slc
@@ -2431,10 +2441,13 @@ class Float64Index(NumericIndex):
     def get_loc(self, key):
         try:
             if np.all(np.isnan(key)):
+                nan_idxs = self._nan_idxs
                 try:
-                    return self._nan_idxs.item()
-                except ValueError:
-                    return self._nan_idxs
+                    return nan_idxs.item()
+                except (ValueError, IndexError):
+                    # should only need to catch ValueError here but on numpy
+                    # 1.7 .item() can raise IndexError when NaNs are present
+                    return nan_idxs
         except (TypeError, NotImplementedError):
             pass
         return super(Float64Index, self).get_loc(key)

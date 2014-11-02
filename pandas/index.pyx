@@ -77,7 +77,7 @@ cdef class IndexEngine:
         bint over_size_threshold
 
     cdef:
-        bint unique, monotonic
+        bint unique, monotonic_inc, monotonic_dec
         bint initialized, monotonic_check, unique_check
 
     def __init__(self, vgetter, n):
@@ -89,7 +89,8 @@ cdef class IndexEngine:
         self.monotonic_check = 0
 
         self.unique = 0
-        self.monotonic = 0
+        self.monotonic_inc = 0
+        self.monotonic_dec = 0
 
     def __contains__(self, object val):
         self._ensure_mapping_populated()
@@ -134,7 +135,7 @@ cdef class IndexEngine:
         if is_definitely_invalid_key(val):
             raise TypeError
 
-        if self.over_size_threshold and self.is_monotonic:
+        if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
@@ -158,7 +159,7 @@ cdef class IndexEngine:
         cdef:
             Py_ssize_t diff
 
-        if self.is_monotonic:
+        if self.is_monotonic_increasing:
             values = self._get_index_values()
             left = values.searchsorted(val, side='left')
             right = values.searchsorted(val, side='right')
@@ -210,25 +211,35 @@ cdef class IndexEngine:
 
             return self.unique == 1
 
-    property is_monotonic:
+    property is_monotonic_increasing:
 
         def __get__(self):
             if not self.monotonic_check:
                 self._do_monotonic_check()
 
-            return self.monotonic == 1
+            return self.monotonic_inc == 1
+
+    property is_monotonic_decreasing:
+
+        def __get__(self):
+            if not self.monotonic_check:
+                self._do_monotonic_check()
+
+            return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
         try:
             values = self._get_index_values()
-            self.monotonic, unique = self._call_monotonic(values)
+            self.monotonic_inc, self.monotonic_dec, unique = \
+                self._call_monotonic(values)
 
             if unique is not None:
                 self.unique = unique
                 self.unique_check = 1
 
         except TypeError:
-            self.monotonic = 0
+            self.monotonic_inc = 0
+            self.monotonic_dec = 0
         self.monotonic_check = 1
 
     cdef _get_index_values(self):
@@ -345,7 +356,7 @@ cdef class Int64Engine(IndexEngine):
         return _hash.Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_int64(self._get_index_values(), other,
@@ -435,7 +446,7 @@ cdef class Float64Engine(IndexEngine):
         return result
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_float64(values)
+        return algos.is_monotonic_float64(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_float64(self._get_index_values(), other,
@@ -489,7 +500,7 @@ cdef class ObjectEngine(IndexEngine):
         return _hash.PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_object(values)
+        return algos.is_monotonic_object(values, timelike=False)
 
     def get_pad_indexer(self, other, limit=None):
         return algos.pad_object(self._get_index_values(), other,
@@ -506,7 +517,7 @@ cdef class DatetimeEngine(Int64Engine):
         return 'M8[ns]'
 
     def __contains__(self, object val):
-        if self.over_size_threshold and self.is_monotonic:
+        if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
@@ -521,7 +532,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values, timelike=True)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -529,7 +540,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         # Welcome to the spaghetti factory
 
-        if self.over_size_threshold and self.is_monotonic:
+        if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 val = _to_i8(val)
                 return self._get_loc_duplicates(val)

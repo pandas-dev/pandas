@@ -146,6 +146,29 @@ API changes
 
      s.dt.hour
 
+- support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
+  not found in the index (:issue:`7860`):
+
+  .. ipython:: python
+
+    s = pd.Series(['a', 'b', 'c', 'd'], [4, 3, 2, 1])
+    s
+
+  previous behavior:
+
+  .. code-block:: python
+
+    In [8]: s.loc[3.5:1.5]
+    KeyError: 3.5
+
+  current behavior:
+
+  .. ipython:: python
+
+    s.loc[3.5:1.5]
+
+- added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
+
 .. _whatsnew_0151.enhancements:
 
 Enhancements
@@ -208,8 +231,9 @@ Bug Fixes
 - Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
 
 
-
-
+- Bug when doing label based indexing with integers not found in the index for
+  non-unique but monotonic indexes (:issue:`8680`).
+- Bug when indexing a Float64Index with ``np.nan`` on numpy 1.7 (:issue:`8980`).
 
 
 

@@ -1461,7 +1461,7 @@ class NDFrame(PandasObject):
                             name=self.index[loc])
 
         else:
-            result = self[loc]
+            result = self.iloc[loc]
             result.index = new_index
 
         # this could be a view

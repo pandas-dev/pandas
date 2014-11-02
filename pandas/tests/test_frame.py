@@ -866,7 +866,7 @@ class CheckIndexing(object):
         assert_frame_equal(result2, expected)
 
         # non-monotonic, raise KeyError
-        df2 = df[::-1]
+        df2 = df.iloc[lrange(5) + lrange(5, 10)[::-1]]
         self.assertRaises(KeyError, df2.ix.__getitem__, slice(3, 11))
         self.assertRaises(KeyError, df2.ix.__setitem__, slice(3, 11), 0)
 
