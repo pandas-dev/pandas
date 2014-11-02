@@ -1896,4 +1896,6 @@ cdef class BlockPlacement:
 
 include "reduce.pyx"
 include "properties.pyx"
+include "interval.pyx"
+include "intervaltree.pyx"
 include "inference.pyx"

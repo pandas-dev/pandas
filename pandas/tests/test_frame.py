@@ -14465,6 +14465,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                    datetime(2013, 1, 2)])
         assert_frame_equal(result, expected)
 
+    def test_reset_index_with_intervals(self):
+        idx = pd.IntervalIndex.from_breaks(np.arange(11), name='x')
+        original = pd.DataFrame({'x': idx, 'y': np.arange(10)})[['x', 'y']]
+
+        result = original.set_index('x')
+        expected = pd.DataFrame({'y': np.arange(10)}, index=idx)
+        assert_frame_equal(result, expected)
+
+        result2 = result.reset_index()
+        assert_frame_equal(result2, original)
+
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals
     def test_as_matrix_numeric_cols(self):

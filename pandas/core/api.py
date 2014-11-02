@@ -9,6 +9,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
 from pandas.core.format import set_eng_float_format
 from pandas.core.index import Index, CategoricalIndex, Int64Index, Float64Index, MultiIndex
+from pandas.core.interval import Interval, IntervalIndex
 
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame

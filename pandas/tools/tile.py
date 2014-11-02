@@ -5,6 +5,7 @@ Quantilization functions and related stuff
 from pandas.core.api import DataFrame, Series
 from pandas.core.categorical import Categorical
 from pandas.core.index import _ensure_index
+from pandas.core.interval import IntervalIndex
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -12,8 +13,10 @@ from pandas.compat import zip
 
 import numpy as np
 
+import warnings
 
-def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
+
+def cut(x, bins, right=True, labels=None, retbins=False, precision=None,
         include_lowest=False):
     """
     Return indices of half-open bins to which each value of `x` belongs.
@@ -42,7 +45,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     precision : int
         The precision at which to store and display the bins labels
     include_lowest : bool
-        Whether the first interval should be left-inclusive or not.
+        Deprecated. Whether the first interval should be left-inclusive or not.
 
     Returns
     -------
@@ -75,6 +78,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     >>> pd.cut(np.ones(5), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
     """
+    if include_lowest:
+        warnings.warn("include_lowest is deprecated and will be removed in a "
+                      "future version", FutureWarning, stacklevel=2)
+
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     if not np.iterable(bins):
         if np.isscalar(bins) and bins < 1:
@@ -84,37 +91,45 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         except AttributeError:
             x = np.asarray(x)
             sz = x.size
+
         if sz == 0:
             raise ValueError('Cannot cut empty array')
-            # handle empty arrays. Can't determine range, so use 0-1.
-            # rng = (0, 1)
-        else:
-            rng = (nanops.nanmin(x), nanops.nanmax(x))
+
+        rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
         if mn == mx:  # adjust end points before binning
-            mn -= .001 * mn
-            mx += .001 * mx
+            if precision is None:
+                precision = 3
+            adj = 10 ** -precision
+
+            mn -= adj
+            mx += adj
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
         else:  # adjust end points after binning
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-            adj = (mx - mn) * 0.001  # 0.1% of the range
+
+            if precision is None:
+                precision = _infer_precision(bins)
+
+            adj = 10 ** -precision
             if right:
                 bins[0] -= adj
             else:
                 bins[-1] += adj
 
     else:
+        # if isinstance(bins, class_or_type_or_tuple)
+
         bins = np.asarray(bins)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
-                         include_lowest=include_lowest)
+    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins,
+                         precision=precision, include_lowest=include_lowest)
 
 
-
-def qcut(x, q, labels=None, retbins=False, precision=3):
+def qcut(x, q, labels=None, retbins=False, precision=None):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -163,15 +178,20 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     if com.is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
-        quantiles = q
+        quantiles = np.asarray(q)
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
-                         include_lowest=True)
-
+    zero_q = (quantiles == 0)
+    if np.any(zero_q):
+        if precision is None:
+            precision = _infer_precision(bins)
+        adj = 10 ** -precision
+        bins = np.asarray(bins, dtype=np.float64)
+        bins[zero_q] -= adj
+    return cut(x, bins, labels=labels, retbins=retbins, precision=precision)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None, include_lowest=False):
+                  precision=None, name=None, include_lowest=False):
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -196,42 +216,68 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     if labels is not False:
         if labels is None:
-            increases = 0
-            while True:
-                try:
-                    levels = _format_levels(bins, precision, right=right,
-                                            include_lowest=include_lowest)
-                except ValueError:
-                    increases += 1
-                    precision += 1
-                    if increases >= 20:
-                        raise
-                else:
-                    break
+            if not include_lowest:
+                closed = 'right' if right else 'left'
+
+                if precision is None:
+                    precision = _infer_precision(bins)
+
+                breaks = np.around(bins, precision)
+                labels = IntervalIndex.from_breaks(breaks, closed=closed)
+
+            else:
+                # this code path is deprecated
+                if precision is None:
+                    precision = 3
+
+                increases = 0
+                while True:
+                    try:
+                        levels = _format_levels(bins, precision, right=right,
+                                                include_lowest=include_lowest)
+                    except ValueError:
+                        increases += 1
+                        precision += 1
+                        if increases >= 20:
+                            raise
+                    else:
+                        break
 
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
-            levels = labels
 
-        levels = np.asarray(levels, dtype=object)
+        if not com.is_categorical(labels):
+            labels = np.asarray(labels)
+
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, ordered=True, fastpath=True)
+        result = com.take_nd(labels, ids - 1)
+
     else:
-        fac = ids - 1
+        result = ids - 1
         if has_nas:
-            fac = fac.astype(np.float64)
-            np.putmask(fac, na_mask, np.nan)
+            result = result.astype(np.float64)
+            np.putmask(result, na_mask, np.nan)
 
     if x_is_series:
-        fac = Series(fac, index=series_index, name=name)
+        result = Series(result, index=series_index, name=name)
 
     if not retbins:
-        return fac
+        return result
 
-    return fac, bins
+    return result, bins
 
+
+def _infer_precision(bins):
+    for precision in range(3, 20):
+        levels = np.around(bins, precision)
+        if algos.unique(levels).size == bins.size:
+            return precision
+    return 3  # default
+
+
+# these functions are only used with the deprecated argument include_lowest
 
 def _format_levels(bins, prec, right=True,
                    include_lowest=False):

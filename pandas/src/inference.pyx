@@ -194,6 +194,10 @@ def infer_dtype(object _values):
         if is_period_array(values):
             return 'period'
 
+    elif is_interval(val):
+        if is_interval_array(values):
+            return 'interval'
+
     for i in range(n):
         val = util.get_value_1d(values, i)
         if util.is_integer_object(val):
@@ -536,6 +540,19 @@ def is_period_array(ndarray[object] values):
         return False
     for i in range(n):
         if not isinstance(values[i], Period):
+            return False
+    return True
+
+cdef inline bint is_interval(object o):
+    return isinstance(o, Interval)
+
+def is_interval_array(ndarray[object] values):
+    cdef Py_ssize_t i, n = len(values)
+
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_interval(values[i]):
             return False
     return True
 

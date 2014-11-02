@@ -13,7 +13,8 @@ import numpy as np
 
 from pandas import (period_range, date_range, Categorical, Series,
                     Index, Float64Index, Int64Index, MultiIndex,
-                    CategoricalIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex)
+                    CategoricalIndex, IntervalIndex, DatetimeIndex,
+                    TimedeltaIndex, PeriodIndex)
 from pandas.core.index import InvalidIndexError, NumericIndex
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
@@ -108,9 +109,6 @@ class Base(object):
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
-
-        with tm.assertRaisesRegexp(ValueError, 'Invalid fill method'):
-            idx.get_indexer(idx, method='invalid')
 
     def test_ndarray_compat_properties(self):
 
@@ -222,7 +220,7 @@ class Base(object):
 
             if not len(ind):
                 continue
-            if isinstance(ind, MultiIndex):
+            if isinstance(ind, (MultiIndex, IntervalIndex)):
                 continue
             idx = self._holder([ind[0]]*5)
             self.assertFalse(idx.is_unique)
@@ -1409,6 +1407,9 @@ class TestIndex(Base, tm.TestCase):
 
         with tm.assertRaisesRegexp(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], limit=1)
+
+        with tm.assertRaisesRegexp(ValueError, 'Invalid fill method'):
+            idx.get_indexer(idx, method='invalid')
 
     def test_get_indexer_nearest(self):
         idx = Index(np.arange(10))
@@ -2613,6 +2614,18 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # fill by value not in categories raises ValueError
         with tm.assertRaisesRegexp(ValueError, 'fill value must be in categories'):
             idx.fillna(2.0)
+
+
+class TestIntervalIndex(Base, tm.TestCase):
+    # see test_interval for more extensive tests
+    _holder = IntervalIndex
+
+    def setUp(self):
+        self.indices = dict(intvIndex = tm.makeIntervalIndex(100))
+        self.setup_indices()
+
+    def create_index(self):
+        return IntervalIndex.from_breaks(np.arange(0, 100, 10))
 
 
 class Numeric(Base):

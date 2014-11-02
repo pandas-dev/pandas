@@ -36,7 +36,8 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+from pandas import (bdate_range, CategoricalIndex, IntervalIndex,
+                    DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Index, MultiIndex, Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
 from pandas import _testing
@@ -1120,6 +1121,11 @@ def makeCategoricalIndex(k=10, n=3, name=None):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(np.random.choice(x,k), name=name)
+
+def makeIntervalIndex(k=10, name=None):
+    """ make a length k IntervalIndex """
+    x = np.linspace(0, 100, num=(k + 1))
+    return IntervalIndex.from_breaks(x, name=name)
 
 def makeBoolIndex(k=10, name=None):
     if k == 1:

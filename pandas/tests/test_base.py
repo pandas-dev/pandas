@@ -11,7 +11,8 @@ import pandas.core.common as com
 from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assertIsInstance
 from pandas.tseries.common import is_datetimelike
-from pandas import Series, Index, Int64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex, Timedelta
+from pandas import (Series, Index, Int64Index, DatetimeIndex, TimedeltaIndex,
+                    PeriodIndex, IntervalIndex, Timedelta, Interval)
 import pandas.tslib as tslib
 from pandas import _np_version_under1p9
 import nose
@@ -553,20 +554,21 @@ class TestIndexOps(Ops):
 
             s1 = Series([1, 1, 2, 3])
             res1 = s1.value_counts(bins=1)
-            exp1 = Series({0.998: 4})
+            exp1 = Series({Interval(0.999, 3.0): 4})
             tm.assert_series_equal(res1, exp1)
             res1n = s1.value_counts(bins=1, normalize=True)
-            exp1n = Series({0.998: 1.0})
+            exp1n = Series({Interval(0.999, 3.0): 1.0})
             tm.assert_series_equal(res1n, exp1n)
 
             self.assert_numpy_array_equal(s1.unique(), np.array([1, 2, 3]))
             self.assertEqual(s1.nunique(), 3)
 
             res4 = s1.value_counts(bins=4)
-            exp4 = Series({0.998: 2, 1.5: 1, 2.0: 0, 2.5: 1}, index=[0.998, 2.5, 1.5, 2.0])
+            intervals = IntervalIndex.from_breaks([0.999, 1.5, 2.0, 2.5, 3.0])
+            exp4 = Series([2, 1, 1], index=intervals.take([0, 3, 1]))
             tm.assert_series_equal(res4, exp4)
             res4n = s1.value_counts(bins=4, normalize=True)
-            exp4n = Series({0.998: 0.5, 1.5: 0.25, 2.0: 0.0, 2.5: 0.25}, index=[0.998, 2.5, 1.5, 2.0])
+            exp4n = Series([0.5, 0.25, 0.25], index=intervals.take([0, 3, 1]))
             tm.assert_series_equal(res4n, exp4n)
 
             # handle NA's properly

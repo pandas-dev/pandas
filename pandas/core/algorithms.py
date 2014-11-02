@@ -262,10 +262,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if bins is not None:
         try:
-            cat, bins = cut(values, bins, retbins=True)
+            values, bins = cut(values, bins, retbins=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
-        values = cat.codes
 
     if com.is_categorical_dtype(values.dtype):
         result = values.value_counts(dropna)
@@ -319,11 +318,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if not isinstance(keys, Index):
             keys = Index(keys)
         result = Series(counts, index=keys, name=name)
-
-        if bins is not None:
-            # TODO: This next line should be more efficient
-            result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
-            result.index = bins[:-1]
 
     if sort:
         result = result.sort_values(ascending=ascending)
