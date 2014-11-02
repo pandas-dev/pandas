@@ -1424,7 +1424,7 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None):
+    def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None):
         """
         Concise summary of a DataFrame.
 
@@ -1444,6 +1444,12 @@ class DataFrame(NDFrame):
             the `display.memory_usage` setting. True or False overrides
             the `display.memory_usage` setting. Memory usage is shown in
             human-readable units (base-2 representation).
+        null_counts : boolean, default None
+            Whether to show the non-null counts
+            If None, then only show if the frame is smaller than max_info_rows and max_info_columns.
+            If True, always show counts.
+            If False, never show counts.
+
         """
         from pandas.core.format import _put_lines
 
@@ -1469,8 +1475,11 @@ class DataFrame(NDFrame):
 
         max_rows = get_option('display.max_info_rows', len(self) + 1)
 
-        show_counts = ((len(self.columns) <= max_cols) and
-                       (len(self) < max_rows))
+        if null_counts is None:
+            show_counts = ((len(self.columns) <= max_cols) and
+                           (len(self) < max_rows))
+        else:
+            show_counts = null_counts
         exceeds_info_cols = len(self.columns) > max_cols
 
         def _verbose_repr():

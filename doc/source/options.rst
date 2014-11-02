@@ -86,7 +86,7 @@ pandas namespace.  To change an option, call ``set_option('option regex', new_va
    pd.set_option('mode.sim_interactive', True)
    pd.get_option('mode.sim_interactive')
 
-**Note:** that the option 'mode.sim_interactive' is mostly used for debugging purposes.  
+**Note:** that the option 'mode.sim_interactive' is mostly used for debugging purposes.
 
 All options also have a default value, and you can use ``reset_option`` to do just that:
 
@@ -213,7 +213,8 @@ will be given.
 
 ``display.max_info_rows``: ``df.info()`` will usually show null-counts for each column.
 For large frames this can be quite slow. ``max_info_rows`` and ``max_info_cols``
-limit this null check only to frames with smaller dimensions then specified.
+limit this null check only to frames with smaller dimensions then specified. Note that you
+can specify the option ``df.info(null_counts=True)`` to override on showing a particular frame.
 
 .. ipython:: python
 
