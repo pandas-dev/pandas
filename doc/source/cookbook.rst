@@ -588,6 +588,19 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
    df
 
+`Select row with maximum value from each group
+<http://stackoverflow.com/q/26701849/190597>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame({'host':['other','other','that','this','this'],
+                      'service':['mail','web','mail','mail','web'],
+                      'no':[1, 2, 1, 2, 1]}).set_index(['host', 'service'])
+   mask = df.groupby(level=0).agg('idxmax')
+   df_count = df.loc[mask['no']].reset_index()
+   df_count
+
+
 Expanding Data
 **************
 
