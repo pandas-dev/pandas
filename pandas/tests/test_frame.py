@@ -5982,6 +5982,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         cols = ['b','a']
         _check_df(df,cols)
 
+    def test_read_csv_dialect(self):
+        df = pd.DataFrame({'fruit':['apple'], 'vegetable':['broccoli']})
+        csv.register_dialect("mydialect", delimiter="\t")
+        with ensure_clean() as path:
+            df.to_csv(path, sep='\t')
+            rc = pd.read_csv(path, dialect='mydialect', index_col=0)
+            assert_frame_equal(df, rc)
+        csv.unregister_dialect("mydialect")
+
     @slow
     def test_to_csv_moar(self):
         path = '__tmp_to_csv_moar__'

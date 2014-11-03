@@ -526,6 +526,8 @@ class TextFileReader(object):
 
         if kwds.get('dialect') is not None:
             dialect = kwds['dialect']
+            if dialect in csv.list_dialects():
+                dialect = csv.get_dialect(dialect)
             kwds['delimiter'] = dialect.delimiter
             kwds['doublequote'] = dialect.doublequote
             kwds['escapechar'] = dialect.escapechar
