@@ -6783,6 +6783,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           index=result.index)
         assert_series_equal(result, expected)
 
+        # compat, GH 8722
+        with option_context('use_inf_as_null',True):
+            df = DataFrame([[1]])
+            result = df.dtypes
+            assert_series_equal(result,Series({0:np.dtype('int64')}))
+
     def test_convert_objects(self):
 
         oops = self.mixed_frame.T.T
