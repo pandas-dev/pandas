@@ -191,6 +191,21 @@ index2,b,d,f
         exp.replace('a', '"a', inplace=True)
         tm.assert_frame_equal(df, exp)
 
+    def test_dialect_str(self):
+        data = """\
+fruit:vegetable
+apple:brocolli
+pear:tomato
+"""
+        exp = DataFrame({
+            'fruit': ['apple', 'pear'],
+            'vegetable': ['brocolli', 'tomato']
+        })
+        dia = csv.register_dialect('mydialect', delimiter=':')
+        df = self.read_csv(StringIO(data), dialect='mydialect')
+        tm.assert_frame_equal(df, exp)
+        csv.unregister_dialect('mydialect')
+
     def test_1000_sep(self):
         data = """A|B|C
 1|2,334|5
