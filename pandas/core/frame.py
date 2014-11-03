@@ -708,8 +708,8 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('r'):
             return [dict((k, v) for k, v in zip(self.columns, row))
                     for row in self.values]
-        else:  # pragma: no cover
-            raise ValueError("outtype %s not understood" % outtype)
+        else:
+            raise ValueError("orient '%s' not understood" % orient)
 
     def to_gbq(self, destination_table, project_id=None, chunksize=10000,
                verbose=True, reauth=False):
