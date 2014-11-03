@@ -589,15 +589,14 @@ class Options(object):
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
+        month : number, int, optional(default=None)
             The month the options expire. This should be either 1 or 2
             digits.
 
-        year: number, int, optional(default=None)
+        year : number, int, optional(default=None)
             The year the options expire. This should be a 4 digit int.
 
-        expiry: Option expiry, date-like or convertible or list-like object
-        that contains date-like or convertible objects, optional (default=None)
+        expiry : date-like or convertible or list-like object, optional (default=None)
             The date (or dates) when options expire (defaults to current month)
 
         Returns
@@ -723,15 +722,14 @@ class Options(object):
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
+        month : number, int, optional(default=None)
             The month the options expire. This should be either 1 or 2
             digits.
 
-        year: number, int, optional(default=None)
+        year : number, int, optional(default=None)
             The year the options expire. This should be a 4 digit int.
 
-        expiry: Option expiry, date-like or convertible or list-like object
-        that contains date-like or convertible objects, optional (default=None)
+        expiry : date-like or convertible or list-like object, optional (default=None)
             The date (or dates) when options expire (defaults to current month)
 
         Returns
@@ -785,15 +783,14 @@ class Options(object):
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
+        month : number, int, optional(default=None)
             The month the options expire. This should be either 1 or 2
             digits.
 
-        year: number, int, optional(default=None)
+        year : number, int, optional(default=None)
             The year the options expire. This should be a 4 digit int.
 
-        expiry: Option expiry, date-like or convertible or list-like object
-        that contains date-like or convertible objects, optional (default=None)
+        expiry : date-like or convertible or list-like object, optional (default=None)
             The date (or dates) when options expire (defaults to current month)
 
         Returns
@@ -849,25 +846,24 @@ class Options(object):
 
         Parameters
         ----------
-        above_below: number, int, optional (default=2)
+        above_below : number, int, optional (default=2)
             The number of strike prices above and below the stock price that
             should be taken
 
-        call: bool
+        call : bool
             Tells the function whether or not it should be using calls
 
-        put: bool
+        put : bool
             Tells the function weather or not it should be using puts
 
-        month: number, int, optional(default=None)
+        month : number, int, optional(default=None)
             The month the options expire. This should be either 1 or 2
             digits.
 
-        year: number, int, optional(default=None)
+        year : number, int, optional(default=None)
             The year the options expire. This should be a 4 digit int.
 
-        expiry: Option expiry, date-like or convertible or list-like object
-        that contains date-like or convertible objects, optional (default=None)
+        expiry : date-like or convertible or list-like object, optional (default=None)
             The date (or dates) when options expire (defaults to current month)
 
         Returns
@@ -912,11 +908,14 @@ class Options(object):
 
         Parameters
         ----------
-        year: Calendar year, int
+        year : int
+            Calendar year
 
-        month: Calendar month, int
+        month : int
+            Calendar month
 
-        expiry: Expiry date, date-like or convertible, (preferred)
+        expiry : date-like or convertible, (preferred)
+            Expiry date
 
         Returns
         -------
@@ -977,21 +976,21 @@ class Options(object):
 
         Parameters
         ----------
-        months: number, int
+        months : number, int
             How many months to go out in the collection of the data. This is
             inclusive.
 
-        call: bool, optional (default=True)
+        call : bool, optional (default=True)
             Whether or not to collect data for call options
 
-        put: bool, optional (default=False)
+        put : bool, optional (default=False)
             Whether or not to collect data for put options.
 
-        near: bool, optional (default=False)
+        near : bool, optional (default=False)
             Whether this function should get only the data near the
             current stock price. Uses Options.get_near_stock_price
 
-        above_below: number, int, optional (default=2)
+        above_below : number, int, optional (default=2)
             The number of strike prices above and below the stock price that
             should be taken if the near option is set to True
 
@@ -1036,10 +1035,10 @@ class Options(object):
 
         Parameters
         ----------
-        call: bool, optional (default=True)
+        call : bool, optional (default=True)
             Whether or not to collect data for call options
 
-        put: bool, optional (default=True)
+        put : bool, optional (default=True)
             Whether or not to collect data for put options.
 
         Returns

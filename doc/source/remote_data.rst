@@ -108,6 +108,8 @@ returning options data for all expiry dates in the list.
       data = aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3])
       data.iloc[0:5:, 0:5]
 
+The ``month`` and ``year`` parameters can be used to get all options data for a given month.
+
 .. _remote_data.google:
 
 Google Finance
