@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas.lib import isscalar, item_from_zerodim
 import pandas.util.testing as tm
-
+from pandas.compat import u
 
 class TestIsscalar(tm.TestCase):
     def test_isscalar_builtin_scalars(self):
@@ -16,7 +16,7 @@ class TestIsscalar(tm.TestCase):
         self.assertTrue(isscalar(np.nan))
         self.assertTrue(isscalar('foobar'))
         self.assertTrue(isscalar(b'foobar'))
-        self.assertTrue(isscalar(u'foobar'))
+        self.assertTrue(isscalar(u('efoobar')))
         self.assertTrue(isscalar(datetime(2014, 1, 1)))
         self.assertTrue(isscalar(date(2014, 1, 1)))
         self.assertTrue(isscalar(time(12, 0)))
@@ -38,7 +38,7 @@ class TestIsscalar(tm.TestCase):
         self.assertTrue(isscalar(np.int32(1)))
         self.assertTrue(isscalar(np.object_('foobar')))
         self.assertTrue(isscalar(np.str_('foobar')))
-        self.assertTrue(isscalar(np.unicode_(u'foobar')))
+        self.assertTrue(isscalar(np.unicode_(u('foobar'))))
         self.assertTrue(isscalar(np.bytes_(b'foobar')))
         self.assertTrue(isscalar(np.datetime64('2014-01-01')))
         self.assertTrue(isscalar(np.timedelta64(1, 'h')))

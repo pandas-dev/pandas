@@ -289,8 +289,8 @@ def isnullobj(ndarray[object] arr):
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
-        arobj = arr[i]
-        result[i] = arobj is NaT or _checknull(arobj)
+        val = arr[i]
+        result[i] = val is NaT or _checknull(val)
     return result.view(np.bool_)
 
 @cython.wraparound(False)
@@ -303,9 +303,9 @@ def isnullobj_old(ndarray[object] arr):
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
-        result[i] = util._checknull_old(arr[i])
+        val = arr[i]
+        result[i] = val is NaT or util._checknull_old(val)
     return result.view(np.bool_)
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -322,20 +322,6 @@ def isnullobj2d(ndarray[object, ndim=2] arr):
             if checknull(val):
                 result[i, j] = 1
     return result.view(np.bool_)
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnullobj_old(ndarray[object] arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        result[i] = util._checknull_old(arr[i])
-    return result.view(np.bool_)
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
