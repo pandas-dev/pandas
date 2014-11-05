@@ -197,3 +197,5 @@ Bug Fixes
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format wass applied. This prevented other row or column formatting being applied. (:issue:`9167`)
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
+
+- Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
