@@ -86,8 +86,29 @@ If you don't want to download all the data, more specific requests can be made.
       data = aapl.get_call_data(expiry=expiry)
       data.iloc[0:5:, 0:5]
 
-Note that if you call ``get_all_data`` first, this second call will happen much faster, as the data is cached.
+Note that if you call ``get_all_data`` first, this second call will happen much faster,
+as the data is cached.
 
+If a given expiry date is not available, data for the next available expiry will be
+returned (January 15, 2015 in the above example).
+
+Available expiry dates can be accessed from the ``expiry_dates`` property.
+
+.. ipython:: python
+
+      aapl.expiry_dates
+      data = aapl.get_call_data(expiry=aapl.expiry_dates[0])
+      data.iloc[0:5:, 0:5]
+
+A list-like object containing dates can also be passed to the expiry parameter,
+returning options data for all expiry dates in the list.
+
+.. ipython:: python
+
+      data = aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3])
+      data.iloc[0:5:, 0:5]
+
+The ``month`` and ``year`` parameters can be used to get all options data for a given month.
 
 .. _remote_data.google:
 

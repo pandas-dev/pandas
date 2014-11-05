@@ -13,16 +13,15 @@ from collections import defaultdict
 import numpy as np
 
 from pandas.compat import(
-    StringIO, bytes_to_str, range, lrange, lmap, zip
+    StringIO, bytes_to_str, range, lmap, zip
 )
 import pandas.compat as compat
-from pandas import Panel, DataFrame, Series, read_csv, concat, to_datetime
+from pandas import Panel, DataFrame, Series, read_csv, concat, to_datetime, DatetimeIndex, DateOffset
 from pandas.core.common import is_list_like, PandasError
-from pandas.io.parsers import TextParser
 from pandas.io.common import urlopen, ZipFile, urlencode
-from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import MonthEnd
 from pandas.util.testing import _network_error_classes
-
+from pandas.io.html import read_html
 
 class SymbolWarning(UserWarning):
     pass
@@ -521,30 +520,8 @@ CUR_MONTH = dt.datetime.now().month
 CUR_YEAR = dt.datetime.now().year
 CUR_DAY = dt.datetime.now().day
 
-def _unpack(row, kind):
-    def _parse_row_values(val):
-        ret = val.text_content()
-        if 'neg_arrow' in val.xpath('.//@class'):
-            try:
-                ret = float(ret.replace(',', ''))*(-1.0)
-            except ValueError:
-                ret = np.nan
 
-        return ret
-
-    els = row.xpath('.//%s' % kind)
-    return [_parse_row_values(val) for val in els]
-
-def _parse_options_data(table):
-    rows = table.xpath('.//tr')
-    header = _unpack(rows[0], kind='th')
-    data = [_unpack(row, kind='td') for row in rows[1:]]
-    # Use ',' as a thousands separator as we're pulling from the US site.
-    return TextParser(data, names=header, na_values=['N/A'],
-                      thousands=',').get_chunk()
-
-
-def _two_char_month(s):
+def _two_char(s):
     return '{0:0>2}'.format(s)
 
 
@@ -568,15 +545,14 @@ class Options(object):
     # Instantiate object with ticker
     >>> aapl = Options('aapl', 'yahoo')
 
-    # Fetch May 2014 call data
-    >>> expiry = datetime.date(2014, 5, 1)
-    >>> calls = aapl.get_call_data(expiry=expiry)
+    # Fetch next expiry call data
+    >>> calls = aapl.get_call_data()
 
     # Can now access aapl.calls instance variable
     >>> aapl.calls
 
-    # Fetch May 2014 put data
-    >>> puts = aapl.get_put_data(expiry=expiry)
+    # Fetch next expiry put data
+    >>> puts = aapl.get_put_data()
 
     # Can now access aapl.puts instance variable
     >>> aapl.puts
@@ -591,7 +567,9 @@ class Options(object):
     >>> all_data = aapl.get_all_data()
     """
 
-    _TABLE_LOC = {'calls': 9, 'puts': 13}
+    _TABLE_LOC = {'calls': 1, 'puts': 2}
+    _OPTIONS_BASE_URL = 'http://finance.yahoo.com/q/op?s={sym}'
+    _FINANCE_BASE_URL = 'http://finance.yahoo.com'
 
     def __init__(self, symbol, data_source=None):
         """ Instantiates options_data with a ticker saved as symbol """
@@ -611,8 +589,15 @@ class Options(object):
 
         Parameters
         ----------
-        expiry: datetime.date, optional(default=None)
-            The date when options expire (defaults to current month)
+        month : number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
+
+        year : number, int, optional(default=None)
+            The year the options expire. This should be a 4 digit int.
+
+        expiry : date-like or convertible or list-like object, optional (default=None)
+            The date (or dates) when options expire (defaults to current month)
 
         Returns
         -------
@@ -621,7 +606,7 @@ class Options(object):
 
             Index:
                 Strike: Option strike, int
-                Expiry: Option expiry, datetime.date
+                Expiry: Option expiry, Timestamp
                 Type: Call or Put, string
                 Symbol: Option symbol as reported on Yahoo, string
             Columns:
@@ -650,105 +635,84 @@ class Options(object):
 
         Also note that aapl.calls and appl.puts will always be the calls
         and puts for the next expiry. If the user calls this method with
-        a different month or year, the ivar will be named callsMMYY or
-        putsMMYY where MM and YY are, respectively, two digit
-        representations of the month and year for the expiry of the
-        options.
+        a different expiry, the ivar will be named callsYYMMDD or putsYYMMDD,
+        where YY, MM and DD are, respectively, two digit representations of
+        the year, month and day for the expiry of the options.
+
         """
         return concat([f(month, year, expiry)
                        for f in (self.get_put_data,
                                  self.get_call_data)]).sortlevel()
 
-    _OPTIONS_BASE_URL = 'http://finance.yahoo.com/q/op?s={sym}'
+    def _get_option_frames_from_yahoo(self, expiry):
+        url = self._yahoo_url_from_expiry(expiry)
+        option_frames = self._option_frames_from_url(url)
+        frame_name = '_frames' + self._expiry_to_string(expiry)
+        setattr(self, frame_name, option_frames)
+        return option_frames
 
-    def _get_option_tables(self, expiry):
-        root = self._get_option_page_from_yahoo(expiry)
-        tables = self._parse_option_page_from_yahoo(root)
-        m1 = _two_char_month(expiry.month)
-        table_name = '_tables' + m1 + str(expiry.year)[-2:]
-        setattr(self, table_name, tables)
-        return tables
+    @staticmethod
+    def _expiry_to_string(expiry):
+        m1 = _two_char(expiry.month)
+        d1 = _two_char(expiry.day)
+        return str(expiry.year)[-2:] + m1 + d1
 
-    def _get_option_page_from_yahoo(self, expiry):
-
-        url = self._OPTIONS_BASE_URL.format(sym=self.symbol)
-
-        m1 = _two_char_month(expiry.month)
-
-        # if this month use other url
-        if expiry.month == CUR_MONTH and expiry.year == CUR_YEAR:
-            url += '+Options'
-        else:
-            url += '&m={year}-{m1}'.format(year=expiry.year, m1=m1)
-
-        root = self._parse_url(url)
-        return root
-
-    def _parse_option_page_from_yahoo(self, root):
-
-        tables = root.xpath('.//table')
-        ntables = len(tables)
-        if ntables == 0:
-            raise RemoteDataError("No tables found")
-
+    def _yahoo_url_from_expiry(self, expiry):
         try:
-            self.underlying_price, self.quote_time = self._get_underlying_price(root)
-        except IndexError:
-            self.underlying_price, self.quote_time = np.nan, np.nan
+            expiry_links = self._expiry_links
 
-        return tables
+        except AttributeError:
+            _, expiry_links = self._get_expiry_dates_and_links()
 
-    def _get_underlying_price(self, root):
-        underlying_price = float(root.xpath('.//*[@class="time_rtq_ticker"]')[0]\
+        return self._FINANCE_BASE_URL + expiry_links[expiry]
+
+    def _option_frames_from_url(self, url):
+        frames = read_html(url)
+        nframes = len(frames)
+        frames_req = max(self._TABLE_LOC.values())
+        if nframes < frames_req:
+            raise RemoteDataError("%s options tables found (%s expected)" % (nframes, frames_req))
+
+        if not hasattr(self, 'underlying_price'):
+            try:
+                self.underlying_price, self.quote_time = self._get_underlying_price(url)
+            except IndexError:
+                self.underlying_price, self.quote_time = np.nan, np.nan
+
+        calls = self._process_data(frames[self._TABLE_LOC['calls']], 'call')
+        puts = self._process_data(frames[self._TABLE_LOC['puts']], 'put')
+
+        return {'calls': calls, 'puts': puts}
+
+    def _get_underlying_price(self, url):
+        root = self._parse_url(url)
+        underlying_price = float(root.xpath('.//*[@class="time_rtq_ticker Fz-30 Fw-b"]')[0]\
             .getchildren()[0].text)
 
         #Gets the time of the quote, note this is actually the time of the underlying price.
-        quote_time_text = root.xpath('.//*[@class="time_rtq"]')[0].getchildren()[0].text
-        if quote_time_text:
-            #weekend and prior to market open time format
-            split = quote_time_text.split(",")
-            timesplit = split[1].strip().split(":")
-            timestring = split[0] + ", " + timesplit[0].zfill(2) + ":" + timesplit[1]
-            quote_time = dt.datetime.strptime(timestring, "%b %d, %H:%M%p EDT")
-            quote_time = quote_time.replace(year=CUR_YEAR)
-        else:
-            quote_time_text = root.xpath('.//*[@class="time_rtq"]')[0].getchildren()[0].getchildren()[0].text
-            quote_time = dt.datetime.strptime(quote_time_text, "%H:%M%p EDT")
+        try:
+            quote_time_text = root.xpath('.//*[@class="time_rtq Fz-m"]')[0].getchildren()[1].getchildren()[0].text
+            quote_time = dt.datetime.strptime(quote_time_text, "%I:%M%p EDT")
             quote_time = quote_time.replace(year=CUR_YEAR, month=CUR_MONTH, day=CUR_DAY)
+        except ValueError:
+            raise RemoteDataError('Unable to determine time of quote for page %s' % url)
 
         return underlying_price, quote_time
 
-
-    def _get_option_data(self, month, year, expiry, name):
-        year, month, expiry = self._try_parse_dates(year, month, expiry)
-        m1 = _two_char_month(month)
-        table_name = '_tables' + m1 + str(year)[-2:]
+    def _get_option_data(self, expiry, name):
+        frame_name = '_frames' + self._expiry_to_string(expiry)
 
         try:
-            tables = getattr(self, table_name)
+            frames = getattr(self, frame_name)
         except AttributeError:
-            tables = self._get_option_tables(expiry)
+            frames = self._get_option_frames_from_yahoo(expiry)
 
-        ntables = len(tables)
-        table_loc = self._TABLE_LOC[name]
-        if table_loc - 1 > ntables:
-            raise RemoteDataError("Table location {0} invalid, {1} tables"
-                             " found".format(table_loc, ntables))
+        option_data = frames[name]
+        if expiry != self.expiry_dates[0]:
+            name += self._expiry_to_string(expiry)
 
-        try:
-            option_data = _parse_options_data(tables[table_loc])
-            option_data['Type'] = name[:-1]
-            option_data = self._process_data(option_data, name[:-1])
-
-            if month == CUR_MONTH and year == CUR_YEAR:
-                setattr(self, name, option_data)
-
-            name += m1 + str(year)[-2:]
-            setattr(self, name, option_data)
-            return option_data
-
-        except (Exception) as e:
-            raise RemoteDataError("Cannot retrieve Table data {0}".format(str(e)))
+        setattr(self, name, option_data)
+        return option_data
 
     def get_call_data(self, month=None, year=None, expiry=None):
         """
@@ -758,8 +722,15 @@ class Options(object):
 
         Parameters
         ----------
-        expiry: datetime.date, optional(default=None)
-            The date when options expire (defaults to current month)
+        month : number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
+
+        year : number, int, optional(default=None)
+            The year the options expire. This should be a 4 digit int.
+
+        expiry : date-like or convertible or list-like object, optional (default=None)
+            The date (or dates) when options expire (defaults to current month)
 
         Returns
         -------
@@ -768,7 +739,7 @@ class Options(object):
 
             Index:
                 Strike: Option strike, int
-                Expiry: Option expiry, datetime.date
+                Expiry: Option expiry, Timestamp
                 Type: Call or Put, string
                 Symbol: Option symbol as reported on Yahoo, string
             Columns:
@@ -797,11 +768,12 @@ class Options(object):
 
         Also note that aapl.calls will always be the calls for the next
         expiry. If the user calls this method with a different month
-        or year, the ivar will be named callsMMYY where MM and YY are,
-        respectively, two digit representations of the month and year
+        or year, the ivar will be named callsYYMMDD where YY, MM and DD are,
+        respectively, two digit representations of the year, month and day
         for the expiry of the options.
         """
-        return self._get_option_data(month, year, expiry, 'calls').sortlevel()
+        expiry = self._try_parse_dates(year, month, expiry)
+        return self._get_data_in_date_range(expiry, call=True, put=False)
 
     def get_put_data(self, month=None, year=None, expiry=None):
         """
@@ -811,8 +783,15 @@ class Options(object):
 
         Parameters
         ----------
-        expiry: datetime.date, optional(default=None)
-            The date when options expire (defaults to current month)
+        month : number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
+
+        year : number, int, optional(default=None)
+            The year the options expire. This should be a 4 digit int.
+
+        expiry : date-like or convertible or list-like object, optional (default=None)
+            The date (or dates) when options expire (defaults to current month)
 
         Returns
         -------
@@ -821,7 +800,7 @@ class Options(object):
 
             Index:
                 Strike: Option strike, int
-                Expiry: Option expiry, datetime.date
+                Expiry: Option expiry, Timestamp
                 Type: Call or Put, string
                 Symbol: Option symbol as reported on Yahoo, string
             Columns:
@@ -852,11 +831,12 @@ class Options(object):
 
         Also note that aapl.puts will always be the puts for the next
         expiry. If the user calls this method with a different month
-        or year, the ivar will be named putsMMYY where MM and YY are,
-        repsectively, two digit representations of the month and year
+        or year, the ivar will be named putsYYMMDD where YY, MM and DD are,
+        respectively, two digit representations of the year, month and day
         for the expiry of the options.
         """
-        return self._get_option_data(month, year, expiry, 'puts').sortlevel()
+        expiry = self._try_parse_dates(year, month, expiry)
+        return self._get_data_in_date_range(expiry, put=True, call=False)
 
     def get_near_stock_price(self, above_below=2, call=True, put=False,
                              month=None, year=None, expiry=None):
@@ -866,20 +846,25 @@ class Options(object):
 
         Parameters
         ----------
-        above_below: number, int, optional (default=2)
+        above_below : number, int, optional (default=2)
             The number of strike prices above and below the stock price that
             should be taken
 
-        call: bool
-            Tells the function whether or not it should be using
-            self.calls
+        call : bool
+            Tells the function whether or not it should be using calls
 
-        put: bool
-            Tells the function weather or not it should be using
-            self.puts
+        put : bool
+            Tells the function weather or not it should be using puts
 
-        expiry: datetime.date, optional(default=None)
-            The date when options expire (defaults to current month)
+        month : number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
+
+        year : number, int, optional(default=None)
+            The year the options expire. This should be a 4 digit int.
+
+        expiry : date-like or convertible or list-like object, optional (default=None)
+            The date (or dates) when options expire (defaults to current month)
 
         Returns
         -------
@@ -891,17 +876,9 @@ class Options(object):
          Note: Format of returned data frame is dependent on Yahoo and may change.
 
         """
-
-        to_ret = Series({'calls': call, 'puts': put})
-        to_ret = to_ret[to_ret].index
-
-        data = {}
-
-        for nam in to_ret:
-            df = self._get_option_data(month, year, expiry, nam)
-            data[nam] = self.chop_data(df, above_below, self.underlying_price)
-
-        return concat([data[nam] for nam in to_ret]).sortlevel()
+        expiry = self._try_parse_dates(year, month, expiry)
+        data = self._get_data_in_date_range(expiry, call=call, put=put)
+        return self.chop_data(data, above_below, self.underlying_price)
 
     def chop_data(self, df, above_below=2, underlying_price=None):
         """Returns a data frame only options that are near the current stock price."""
@@ -912,7 +889,10 @@ class Options(object):
             except AttributeError:
                 underlying_price = np.nan
 
-        if not np.isnan(underlying_price):
+        max_strike = max(df.index.get_level_values('Strike'))
+        min_strike = min(df.index.get_level_values('Strike'))
+
+        if not np.isnan(underlying_price) and min_strike < underlying_price < max_strike:
             start_index = np.where(df.index.get_level_values('Strike')
                                    > underlying_price)[0][0]
 
@@ -922,47 +902,70 @@ class Options(object):
 
         return df
 
-
-
-    @staticmethod
-    def _try_parse_dates(year, month, expiry):
+    def _try_parse_dates(self, year, month, expiry):
         """
         Validates dates provided by user.  Ensures the user either provided both a month and a year or an expiry.
 
         Parameters
         ----------
-        year: Calendar year, int (deprecated)
+        year : int
+            Calendar year
 
-        month: Calendar month, int (deprecated)
+        month : int
+            Calendar month
 
-        expiry: Expiry date (month and year), datetime.date, (preferred)
+        expiry : date-like or convertible, (preferred)
+            Expiry date
 
         Returns
         -------
-        Tuple of year (int), month (int), expiry (datetime.date)
+        list of expiry dates (datetime.date)
         """
 
         #Checks if the user gave one of the month or the year but not both and did not provide an expiry:
         if (month is not None and year is None) or (month is None and year is not None) and expiry is None:
             msg = "You must specify either (`year` and `month`) or `expiry` " \
-                  "or none of these options for the current month."
+                  "or none of these options for the next expiry."
             raise ValueError(msg)
 
-        if (year is not None or month is not None) and expiry is None:
-            warnings.warn("month, year arguments are deprecated, use expiry"
-                          " instead", FutureWarning)
-
         if expiry is not None:
-            year = expiry.year
-            month = expiry.month
+            if hasattr(expiry, '__iter__'):
+                expiry = [self._validate_expiry(exp) for exp in expiry]
+            else:
+                expiry = [self._validate_expiry(expiry)]
+
+            if len(expiry) == 0:
+                raise ValueError('No expiries available for given input.')
+
         elif year is None and month is None:
+            #No arguments passed, provide next expiry
             year = CUR_YEAR
             month = CUR_MONTH
             expiry = dt.date(year, month, 1)
-        else:
-            expiry = dt.date(year, month, 1)
+            expiry = [self._validate_expiry(expiry)]
 
-        return year, month, expiry
+        else:
+            #Year and month passed, provide all expiries in that month
+            expiry = [expiry for expiry in self.expiry_dates if expiry.year == year and expiry.month == month]
+            if len(expiry) == 0:
+                raise ValueError('No expiries available in %s-%s' % (year, month))
+
+        return expiry
+
+    def _validate_expiry(self, expiry):
+        """Ensures that an expiry date has data available on Yahoo
+        If the expiry date does not have options that expire on that day, return next expiry"""
+
+        expiry_dates = self.expiry_dates
+        expiry = to_datetime(expiry)
+        if hasattr(expiry, 'date'):
+            expiry = expiry.date()
+
+        if expiry in expiry_dates:
+            return expiry
+        else:
+            index = DatetimeIndex(expiry_dates).order()
+            return index[index.date >= expiry][0].date()
 
     def get_forward_data(self, months, call=True, put=False, near=False,
                          above_below=2):
@@ -973,21 +976,21 @@ class Options(object):
 
         Parameters
         ----------
-        months: number, int
+        months : number, int
             How many months to go out in the collection of the data. This is
             inclusive.
 
-        call: bool, optional (default=True)
+        call : bool, optional (default=True)
             Whether or not to collect data for call options
 
-        put: bool, optional (default=False)
+        put : bool, optional (default=False)
             Whether or not to collect data for put options.
 
-        near: bool, optional (default=False)
+        near : bool, optional (default=False)
             Whether this function should get only the data near the
             current stock price. Uses Options.get_near_stock_price
 
-        above_below: number, int, optional (default=2)
+        above_below : number, int, optional (default=2)
             The number of strike prices above and below the stock price that
             should be taken if the near option is set to True
 
@@ -998,7 +1001,7 @@ class Options(object):
 
             Index:
                 Strike: Option strike, int
-                Expiry: Option expiry, datetime.date
+                Expiry: Option expiry, Timestamp
                 Type: Call or Put, string
                 Symbol: Option symbol as reported on Yahoo, string
             Columns:
@@ -1017,48 +1020,12 @@ class Options(object):
 
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
-        in_months = lrange(CUR_MONTH, CUR_MONTH + months + 1)
-        in_years = [CUR_YEAR] * (months + 1)
-
-        # Figure out how many items in in_months go past 12
-        to_change = 0
-        for i in range(months):
-            if in_months[i] > 12:
-                in_months[i] -= 12
-                to_change += 1
-
-        # Change the corresponding items in the in_years list.
-        for i in range(1, to_change + 1):
-            in_years[-i] += 1
-
-        to_ret = Series({'calls': call, 'puts': put})
-        to_ret = to_ret[to_ret].index
-        all_data = []
-
-        for name in to_ret:
-
-            for mon in range(months):
-                m2 = in_months[mon]
-                y2 = in_years[mon]
-
-                if not near:
-                    m1 = _two_char_month(m2)
-                    nam = name + str(m1) + str(y2)[2:]
-
-                    try:  # Try to access on the instance
-                        frame = getattr(self, nam)
-                    except AttributeError:
-                        meth_name = 'get_{0}_data'.format(name[:-1])
-                        frame = getattr(self, meth_name)(m2, y2)
-                else:
-                    frame = self.get_near_stock_price(call=call, put=put,
-                                                      above_below=above_below,
-                                                      month=m2, year=y2)
-                frame = self._process_data(frame, name[:-1])
-
-                all_data.append(frame)
-
-        return concat(all_data).sortlevel()
+        end_date = dt.date.today() + MonthEnd(months)
+        dates = (date for date in self.expiry_dates if date <= end_date.date())
+        data = self._get_data_in_date_range(dates, call=call, put=put)
+        if near:
+            data = self.chop_data(data, above_below=above_below)
+        return data
 
     def get_all_data(self, call=True, put=True):
         """
@@ -1068,10 +1035,10 @@ class Options(object):
 
         Parameters
         ----------
-        call: bool, optional (default=True)
+        call : bool, optional (default=True)
             Whether or not to collect data for call options
 
-        put: bool, optional (default=True)
+        put : bool, optional (default=True)
             Whether or not to collect data for put options.
 
         Returns
@@ -1081,7 +1048,7 @@ class Options(object):
 
             Index:
                 Strike: Option strike, int
-                Expiry: Option expiry, datetime.date
+                Expiry: Option expiry, Timestamp
                 Type: Call or Put, string
                 Symbol: Option symbol as reported on Yahoo, string
             Columns:
@@ -1099,67 +1066,68 @@ class Options(object):
         Note: Format of returned data frame is dependent on Yahoo and may change.
 
         """
-        to_ret = Series({'calls': call, 'puts': put})
-        to_ret = to_ret[to_ret].index
 
         try:
-            months = self.months
+            expiry_dates = self.expiry_dates
         except AttributeError:
-            months = self._get_expiry_months()
+            expiry_dates, _ = self._get_expiry_dates_and_links()
 
-        all_data = []
+        return self._get_data_in_date_range(dates=expiry_dates, call=call, put=put)
+
+    def _get_data_in_date_range(self, dates, call=True, put=True):
+
+        to_ret = Series({'calls': call, 'puts': put})
+        to_ret = to_ret[to_ret].index
+        data = []
 
         for name in to_ret:
-
-            for month in months:
-                m2 = month.month
-                y2 = month.year
-
-                m1 = _two_char_month(m2)
-                nam = name + str(m1) + str(y2)[2:]
-
+            for expiry_date in dates:
+                nam = name + self._expiry_to_string(expiry_date)
                 try:  # Try to access on the instance
                     frame = getattr(self, nam)
                 except AttributeError:
-                    meth_name = 'get_{0}_data'.format(name[:-1])
-                    frame = getattr(self, meth_name)(expiry=month)
+                    frame = self._get_option_data(expiry=expiry_date, name=name)
+                data.append(frame)
 
-                all_data.append(frame)
+        return concat(data).sortlevel()
 
-        return concat(all_data).sortlevel()
-
-    def _get_expiry_months(self):
+    @property
+    def expiry_dates(self):
         """
-        Gets available expiry months.
+        Returns a list of available expiry dates
+        """
+        try:
+            expiry_dates = self._expiry_dates
+        except AttributeError:
+            expiry_dates, _ = self._get_expiry_dates_and_links()
+        return expiry_dates
+
+    def _get_expiry_dates_and_links(self):
+        """
+        Gets available expiry dates.
 
         Returns
         -------
-        months : List of datetime objects
+        Tuple of:
+        List of datetime.date objects
+        Dict of datetime.date objects as keys and corresponding links
         """
 
-        url = 'http://finance.yahoo.com/q/op?s={sym}'.format(sym=self.symbol)
+        url = self._OPTIONS_BASE_URL.format(sym=self.symbol)
         root = self._parse_url(url)
 
         try:
-            links = root.xpath('.//*[@id="yfncsumtab"]')[0].xpath('.//a')
+            links = root.xpath('//*[@id="options_menu"]/form/select/option')
         except IndexError:
-            raise RemoteDataError('Expiry months not available')
+            raise RemoteDataError('Expiry dates not available')
 
-        month_gen = (element.attrib['href'].split('=')[-1]
-                 for element in links
-                 if '/q/op?s=' in element.attrib['href']
-                 and '&m=' in element.attrib['href'])
+        expiry_dates = [dt.datetime.strptime(element.text, "%B %d, %Y").date() for element in links]
+        links = [element.attrib['data-selectbox-link'] for element in links]
+        expiry_links = dict(zip(expiry_dates, links))
+        self._expiry_links = expiry_links
+        self._expiry_dates = expiry_dates
 
-        months = [dt.date(int(month.split('-')[0]),
-                         int(month.split('-')[1]), 1)
-                 for month in month_gen]
-
-        current_month_text = root.xpath('.//*[@id="yfncsumtab"]')[0].xpath('.//strong')[0].text
-        current_month = dt.datetime.strptime(current_month_text, '%b %y')
-        months.insert(0, current_month)
-        self.months = months
-
-        return months
+        return expiry_dates, expiry_links
 
     def _parse_url(self, url):
         """
@@ -1183,23 +1151,27 @@ class Options(object):
                                       "element".format(url))
         return root
 
-
     def _process_data(self, frame, type):
         """
         Adds columns for Expiry, IsNonstandard (ie: deliverable is not 100 shares)
         and Tag (the tag indicating what is actually deliverable, None if standard).
 
         """
+        frame.columns = ['Strike', 'Symbol', 'Last', 'Bid', 'Ask', 'Chg', 'PctChg', 'Vol', 'Open_Int', 'IV']
         frame["Rootexp"] = frame.Symbol.str[0:-9]
         frame["Root"] = frame.Rootexp.str[0:-6]
         frame["Expiry"] = to_datetime(frame.Rootexp.str[-6:])
         #Removes dashes in equity ticker to map to option ticker.
         #Ex: BRK-B to BRKB140517C00100000
-        frame["IsNonstandard"] = frame['Root'] != self.symbol.replace('-','')
+        frame["IsNonstandard"] = frame['Root'] != self.symbol.replace('-', '')
         del frame["Rootexp"]
         frame["Underlying"] = self.symbol
-        frame['Underlying_Price'] = self.underlying_price
-        frame["Quote_Time"] = self.quote_time
+        try:
+            frame['Underlying_Price'] = self.underlying_price
+            frame["Quote_Time"] = self.quote_time
+        except AttributeError:
+            frame['Underlying_Price'] = np.nan
+            frame["Quote_Time"] = np.nan
         frame.rename(columns={'Open Int': 'Open_Int'}, inplace=True)
         frame['Type'] = type
         frame.set_index(['Strike', 'Expiry', 'Type', 'Symbol'], inplace=True)
