@@ -4147,8 +4147,10 @@ class MultiIndex(Index):
 
                         # ignore not founds
                         continue
-
-                ranges.append(reduce(np.logical_or,indexers))
+                if len(k):
+                    ranges.append(reduce(np.logical_or,indexers))
+                else:
+                    ranges.append(tuple([]))
 
             elif _is_null_slice(k):
                 # empty slice

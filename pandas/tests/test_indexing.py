@@ -2133,6 +2133,16 @@ class TestIndexing(tm.TestCase):
         result = s.loc[idx[:,['foo','bah']]]
         assert_series_equal(result,expected)
 
+        # GH 8737
+        # empty indexer
+        multi_index = pd.MultiIndex.from_product((['foo', 'bar', 'baz'], ['alpha', 'beta']))
+        df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
+        df = df.sortlevel(0, axis=1)
+
+        result = df.loc[:, ([], slice(None))]
+        expected = DataFrame(index=range(5),columns=multi_index.reindex([])[0])
+        assert_frame_equal(result, expected)
+
         # regression from < 0.14.0
         # GH 7914
         df = DataFrame([[np.mean, np.median],['mean','median']],
