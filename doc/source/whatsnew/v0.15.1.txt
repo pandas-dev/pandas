@@ -213,6 +213,7 @@ Bug Fixes
 - Bug in ``Categorical`` reflected comparison operator raising if the first argument was a numpy array scalar (e.g. np.int64) (:issue:`8658`)
 - Bug in Panel indexing with a list-like (:issue:`8710`)
 - Compat issue is ``DataFrame.dtypes`` when ``options.mode.use_inf_as_null`` is True (:issue:`8722`)
+- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue: `8703`)
 
 
 
