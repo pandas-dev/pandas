@@ -52,6 +52,17 @@ class TestDateTimeConverter(tm.TestCase):
         rs = self.dtc.convert(Timestamp('2012-1-1'), None, None)
         self.assertEqual(rs, xp)
 
+        # also testing datetime64 dtype (GH8614)
+        rs = self.dtc.convert(np.datetime64('2012-01-01'), None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(np.datetime64('2012-01-01 00:00:00+00:00'), None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(np.array([np.datetime64('2012-01-01 00:00:00+00:00'),
+                                        np.datetime64('2012-01-02 00:00:00+00:00')]), None, None)
+        self.assertEqual(rs[0], xp)
+
     def test_conversion_float(self):
         decimals = 9
 

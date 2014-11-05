@@ -169,6 +169,7 @@ API changes
 
 - added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
 
+
 .. note:: io.data.Options has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`)
 
   As a result of a change in Yahoo's option page layout, when an expiry date is given,
@@ -201,6 +202,15 @@ API changes
      aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
 
   See the Options documentation in :ref:`Remote Data  <remote_data.yahoo_options>`
+
+.. _whatsnew_0151.datetime64_plotting:
+
+- pandas now also registers the ``datetime64`` dtype in matplotlib's units registry
+  to plot such values as datetimes. This is activated once pandas is imported. In
+  previous versions, plotting an array of ``datetime64`` values will have resulted
+  in plotted integer values. To keep the previous behaviour, you can do
+  ``del matplotlib.units.registry[np.datetime64]`` (:issue:`8614`).
+
 
 .. _whatsnew_0151.enhancements:
 
@@ -283,8 +293,15 @@ Bug Fixes
 
 
 
+<<<<<<< HEAD
 - Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
 
 - Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
 
 - Bug in Setting by indexer to a scalar value with a mixed-dtype `Panel4d` was failing (:issue:`8702`)
+=======
+- Fixed a bug where plotting a column ``y`` and specifying a label
+would mutate the index name of the DataFrame ``y`` came from (:issue:`8494`)
+
+- Fix regression in plotting of a DatetimeIndex directly with matplotlib (:issue:`8614`).
+>>>>>>> VIS: register datetime64 in matplotlib units registry (GH8614)
