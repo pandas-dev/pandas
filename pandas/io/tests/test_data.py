@@ -354,7 +354,8 @@ class TestYahooOptions(tm.TestCase):
 
     @network
     def test_sample_page_price_quote_time2(self):
-        #Tests the weekday quote time format
+        #Tests the EDT page format
+        #regression test for #8741
         price, quote_time = self.aapl._get_underlying_price(self.html2)
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
