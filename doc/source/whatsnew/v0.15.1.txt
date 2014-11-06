@@ -300,3 +300,5 @@ Bug Fixes
 - Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
 
 - Bug in Setting by indexer to a scalar value with a mixed-dtype `Panel4d` was failing (:issue:`8702`)
+
+- Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
