@@ -88,7 +88,7 @@ Furthermore, it is recommended to have all `optional dependencies
 installed. This is not needed, but be aware that you will see some error
 messages. Because all the code in the documentation is executed during the doc
 build, the examples using this optional dependencies will generate errors.
-Run ``pd.show_version()`` to get an overview of the installed version of all
+Run ``pd.show_versions()`` to get an overview of the installed version of all
 dependencies.
 
 .. warning::
