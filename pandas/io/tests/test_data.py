@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, Timestamp
 from pandas.io import data as web
-from pandas.io.data import DataReader, SymbolWarning, RemoteDataError
+from pandas.io.data import DataReader, SymbolWarning, RemoteDataError, _yahoo_codes
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 import pandas.util.testing as tm
@@ -150,6 +150,12 @@ class TestYahoo(tm.TestCase):
     @network
     def test_get_quote_string(self):
         df = web.get_quote_yahoo('GOOG')
+
+    @network
+    def test_get_quote_string(self):
+        _yahoo_codes.update({'MarketCap': 'j1'})
+        df = web.get_quote_yahoo('GOOG')
+        self.assertFalse(pd.isnull(df['MarketCap'][0]))
 
     @network
     def test_get_quote_stringlist(self):
