@@ -198,7 +198,6 @@ class TestTimeSeriesDuplicates(tm.TestCase):
             _index._SIZE_CUTOFF = old_cutoff
 
     def test_indexing_unordered(self):
-
         # GH 2437
         rng = date_range(start='2011-01-01', end='2011-01-15')
         ts  = Series(randn(len(rng)), index=rng)
@@ -2767,6 +2766,41 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertTrue(idx.equals(idx3))
 
 
+    def test_slice_with_negative_step(self):
+        ts = Series(np.arange(20),
+                    date_range('2014-01-01', periods=20, freq='MS'))
+        SLC = pd.IndexSlice
+
+        def assert_slices_equivalent(l_slc, i_slc):
+            assert_series_equal(ts[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+
+        assert_slices_equivalent(SLC[Timestamp('2014-10-01')::-1], SLC[9::-1])
+        assert_slices_equivalent(SLC['2014-10-01'::-1], SLC[9::-1])
+
+        assert_slices_equivalent(SLC[:Timestamp('2014-10-01'):-1], SLC[:8:-1])
+        assert_slices_equivalent(SLC[:'2014-10-01':-1], SLC[:8:-1])
+
+        assert_slices_equivalent(SLC['2015-02-01':'2014-10-01':-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Timestamp('2015-02-01'):Timestamp('2014-10-01'):-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC['2015-02-01':Timestamp('2014-10-01'):-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Timestamp('2015-02-01'):'2014-10-01':-1], SLC[13:8:-1])
+
+        assert_slices_equivalent(SLC['2014-10-01':'2015-02-01':-1], SLC[:0])
+
+    def test_slice_with_zero_step_raises(self):
+        ts = Series(np.arange(20),
+                    date_range('2014-01-01', periods=20, freq='MS'))
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.loc[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.ix[::0])
+
+
+
 class TestDatetime64(tm.TestCase):
     """
     Also test support for datetime64[ns] in Series / DataFrame
@@ -3745,6 +3779,22 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.ix[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
 
+    def test_partial_slice_second_precision(self):
+        rng = DatetimeIndex(start=datetime(2005, 1, 1, 0, 0, 59,
+                                           microsecond=999990),
+                            periods=20, freq='US')
+        s = Series(np.arange(20), rng)
+
+        assert_series_equal(s['2005-1-1 00:00'], s.iloc[:10])
+        assert_series_equal(s['2005-1-1 00:00:59'], s.iloc[:10])
+
+        assert_series_equal(s['2005-1-1 00:01'], s.iloc[10:])
+        assert_series_equal(s['2005-1-1 00:01:00'], s.iloc[10:])
+
+        self.assertEqual(s[Timestamp('2005-1-1 00:00:59.999990')], s.iloc[0])
+        self.assertRaisesRegexp(KeyError, '2005-1-1 00:00:00',
+                                lambda: s['2005-1-1 00:00:00'])
+
     def test_partial_slicing_with_multiindex(self):
 
         # GH 4758
@@ -3954,6 +4004,24 @@ class TestSlicing(tm.TestCase):
                                                variation="nearest"))
         self.assertEqual(dr[0], Timestamp('2013-01-31'))
         self.assertEqual(dr[1], Timestamp('2014-01-30'))
+
+    def test_partial_slice_doesnt_require_monotonicity(self):
+        # For historical reasons.
+        s = pd.Series(np.arange(10),
+                      pd.date_range('2014-01-01', periods=10))
+
+        nonmonotonic = s[[3, 5, 4]]
+        expected = nonmonotonic.iloc[:0]
+        timestamp = pd.Timestamp('2014-01-10')
+
+        assert_series_equal(nonmonotonic['2014-01-10':], expected)
+        self.assertRaisesRegexp(KeyError, "Timestamp\('2014-01-10 00:00:00'\)",
+                                lambda: nonmonotonic[timestamp:])
+
+        assert_series_equal(nonmonotonic.ix['2014-01-10':], expected)
+        self.assertRaisesRegexp(KeyError, "Timestamp\('2014-01-10 00:00:00'\)",
+                                lambda: nonmonotonic.ix[timestamp:])
+
 
 class TimeConversionFormats(tm.TestCase):
     def test_to_datetime_format(self):

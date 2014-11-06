@@ -114,52 +114,6 @@ class DatetimeIndexOpsMixin(object):
             return self[maybe_slice]
         return super(DatetimeIndexOpsMixin, self).take(indices, axis)
 
-    def slice_locs(self, start=None, end=None):
-        """
-        Index.slice_locs, customized to handle partial ISO-8601 string slicing
-        """
-        if isinstance(start, compat.string_types) or isinstance(end, compat.string_types):
-
-            if self.is_monotonic:
-                try:
-                    if start:
-                        start_loc = self._get_string_slice(start).start
-                    else:
-                        start_loc = 0
-
-                    if end:
-                        end_loc = self._get_string_slice(end).stop
-                    else:
-                        end_loc = len(self)
-
-                    return start_loc, end_loc
-                except KeyError:
-                    pass
-
-            else:
-                # can't use a slice indexer because we are not sorted!
-                # so create an indexer directly
-                try:
-                    if start:
-                        start_loc = self._get_string_slice(start,
-                                                           use_rhs=False)
-                    else:
-                        start_loc = np.arange(len(self))
-
-                    if end:
-                        end_loc = self._get_string_slice(end, use_lhs=False)
-                    else:
-                        end_loc = np.arange(len(self))
-
-                    return start_loc, end_loc
-                except KeyError:
-                    pass
-
-        if isinstance(start, time) or isinstance(end, time):
-            raise KeyError('Cannot use slice_locs with time slice keys')
-
-        return Index.slice_locs(self, start, end)
-
     def get_duplicates(self):
         values = Index.get_duplicates(self)
         return self._simple_new(values)

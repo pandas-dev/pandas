@@ -1352,7 +1352,9 @@ class TestPeriodIndex(tm.TestCase):
         assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
-        self.assertRaises(ValueError, ts.__getitem__, slice('2008', '2009'))
+        self.assertRaisesRegexp(
+            KeyError, "left slice bound for non-unique label: '2008'",
+            ts.__getitem__, slice('2008', '2009'))
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
@@ -1363,6 +1365,39 @@ class TestPeriodIndex(tm.TestCase):
 
         rs = ts[dt1:dt4]
         assert_series_equal(rs, ts)
+
+    def test_slice_with_negative_step(self):
+        ts = Series(np.arange(20),
+                    period_range('2014-01', periods=20, freq='M'))
+        SLC = pd.IndexSlice
+
+        def assert_slices_equivalent(l_slc, i_slc):
+            assert_series_equal(ts[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+
+        assert_slices_equivalent(SLC[Period('2014-10')::-1], SLC[9::-1])
+        assert_slices_equivalent(SLC['2014-10'::-1], SLC[9::-1])
+
+        assert_slices_equivalent(SLC[:Period('2014-10'):-1], SLC[:8:-1])
+        assert_slices_equivalent(SLC[:'2014-10':-1], SLC[:8:-1])
+
+        assert_slices_equivalent(SLC['2015-02':'2014-10':-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Period('2015-02'):Period('2014-10'):-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC['2015-02':Period('2014-10'):-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Period('2015-02'):'2014-10':-1], SLC[13:8:-1])
+
+        assert_slices_equivalent(SLC['2014-10':'2015-02':-1], SLC[:0])
+
+    def test_slice_with_zero_step_raises(self):
+        ts = Series(np.arange(20),
+                    period_range('2014-01', periods=20, freq='M'))
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.loc[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.ix[::0])
 
     def test_sub(self):
         rng = period_range('2007-01', periods=50)
@@ -2464,6 +2499,13 @@ class TestPeriodIndex(tm.TestCase):
             expected = pd.Series([1, 9, 9, 4, 5, 9, 7], index=idx, dtype=np.float64)
             tm.assert_series_equal(result, expected)
 
+    def test_searchsorted(self):
+        pidx = pd.period_range('2014-01-01', periods=10, freq='D')
+        self.assertEqual(
+            pidx.searchsorted(pd.Period('2014-01-01', freq='D')), 0)
+        self.assertRaisesRegexp(
+            ValueError, 'Different period frequency: H',
+            lambda: pidx.searchsorted(pd.Period('2014-01-01', freq='H')))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

@@ -910,8 +910,34 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(idx.slice_locs(1), (1, 3))
         self.assertEqual(idx.slice_locs(np.nan), (0, 3))
 
-        idx = Index([np.nan, np.nan, 1, 2])
-        self.assertRaises(KeyError, idx.slice_locs, np.nan)
+        idx = Index([0, np.nan, np.nan, 1, 2])
+        self.assertEqual(idx.slice_locs(np.nan), (1, 5))
+
+    def test_slice_locs_negative_step(self):
+        idx = Index(list('bcdxy'))
+
+        SLC = pd.IndexSlice
+
+        def check_slice(in_slice, expected):
+            s_start, s_stop = idx.slice_locs(in_slice.start, in_slice.stop,
+                                             in_slice.step)
+            result = idx[s_start:s_stop:in_slice.step]
+            expected = pd.Index(list(expected))
+            self.assertTrue(result.equals(expected))
+
+        for in_slice, expected in [
+                (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
+                (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
+                (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
+                (SLC['y'::-4], 'yb'),
+                # absent labels
+                (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
+                (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
+                (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
+                (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
+                (SLC['m':'m':-1], '')
+        ]:
+            check_slice(in_slice, expected)
 
     def test_drop(self):
         n = len(self.strIndex)
