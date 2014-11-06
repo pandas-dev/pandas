@@ -95,6 +95,12 @@ class TestGoogle(tm.TestCase):
                 self.assertRaises(AttributeError, lambda: pan.Close)
 
     @network
+    def test_get_multi_invalid(self):
+        sl = ['AAPL', 'AMZN', 'INVALID']
+        pan = web.get_data_google(sl, '2012')
+        self.assertIn('INVALID', pan.minor_axis)
+
+    @network
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
             for locale in self.locales:

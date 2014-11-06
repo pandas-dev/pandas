@@ -317,6 +317,7 @@ def get_components_yahoo(idx_sym):
 def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
                      method):
     stocks = {}
+    failed = []
     for sym_group in _in_chunks(symbols, chunksize):
         for sym in sym_group:
             try:
@@ -324,9 +325,14 @@ def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
             except IOError:
                 warnings.warn('Failed to read symbol: {0!r}, replacing with '
                               'NaN.'.format(sym), SymbolWarning)
-                stocks[sym] = np.nan
+                failed.append(sym)
 
     try:
+        if len(stocks) > 0 and len(failed) > 0:
+            df_na = stocks.values()[0].copy()
+            df_na[:] = np.nan
+            for sym in failed:
+                stocks[sym] = df_na
         return Panel(stocks).swapaxes('items', 'minor')
     except AttributeError:
         # cannot construct a panel with just 1D nans indicating no data
