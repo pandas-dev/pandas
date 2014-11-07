@@ -127,6 +127,7 @@ typedef enum {
     EAT_COMMENT,
     EAT_LINE_COMMENT,
     WHITESPACE_LINE,
+    SKIP_LINE,
     FINISHED
 } ParserState;
 
@@ -203,6 +204,7 @@ typedef struct parser_t {
     int header_end;   // header row end
 
     void *skipset;
+    int64_t skip_first_N_rows;
     int skip_footer;
     double (*converter)(const char *, char **, char, char, char, int);
 
@@ -239,6 +241,8 @@ int parser_consume_rows(parser_t *self, size_t nrows);
 int parser_trim_buffers(parser_t *self);
 
 int parser_add_skiprow(parser_t *self, int64_t row);
+
+int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
 
 void parser_free(parser_t *self);
 
