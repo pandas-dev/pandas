@@ -143,7 +143,7 @@ def get_quote_yahoo(symbols):
                 try:
                     v = float(field)
                 except ValueError:
-                    v = np.nan
+                    v = field
             data[header[i]].append(v)
 
     idx = data.pop('symbol')
