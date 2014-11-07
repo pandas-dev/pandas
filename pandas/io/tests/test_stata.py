@@ -164,8 +164,9 @@ class TestStata(tm.TestCase):
             parsed_117 = self.read_dta(self.dta2_117)
             # 113 is buggy due ot limits date format support in Stata
             # parsed_113 = self.read_dta(self.dta2_113)
-            tm.assert_equal(
-                len(w), 1)  # should get a warning for that format.
+
+            # should get a warning for that format.
+            tm.assert_equal(len(w), 1)
 
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
@@ -214,7 +215,7 @@ class TestStata(tm.TestCase):
                      'labeled_with_missings', 'float_labelled'])
 
         # these are all categoricals
-        expected = pd.concat([ Series(pd.Categorical(value)) for col, value in compat.iteritems(expected)],axis=1)
+        expected = pd.concat([expected[col].astype('category') for col in expected], axis=1)
 
         tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
@@ -743,6 +744,78 @@ class TestStata(tm.TestCase):
         with tm.assertRaises(ValueError):
             columns = ['byte_', 'int_', 'long_', 'not_found']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
+
+    def test_categorical_writing(self):
+        original = DataFrame.from_records(
+            [
+                ["one", "ten", "one", "one", "one", 1],
+                ["two", "nine", "two", "two", "two", 2],
+                ["three", "eight", "three", "three", "three", 3],
+                ["four", "seven", 4, "four", "four", 4],
+                ["five", "six", 5, np.nan, "five", 5],
+                ["six", "five", 6, np.nan, "six", 6],
+                ["seven", "four", 7, np.nan, "seven", 7],
+                ["eight", "three", 8, np.nan, "eight", 8],
+                ["nine", "two", 9, np.nan, "nine", 9],
+                ["ten", "one", "ten", np.nan, "ten", 10]
+            ],
+            columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled',
+                     'labeled_with_missings', 'float_labelled', 'unlabeled'])
+        expected = original.copy()
+
+        # these are all categoricals
+        original = pd.concat([original[col].astype('category') for col in original], axis=1)
+
+        expected['incompletely_labeled'] = expected['incompletely_labeled'].apply(str)
+        expected['unlabeled'] = expected['unlabeled'].apply(str)
+        expected = pd.concat([expected[col].astype('category') for col in expected], axis=1)
+        expected.index.name = 'index'
+
+        with tm.ensure_clean() as path:
+            with warnings.catch_warnings(record=True) as w:
+                # Silence warnings
+                original.to_stata(path)
+                written_and_read_again = self.read_dta(path)
+                tm.assert_frame_equal(written_and_read_again.set_index('index'), expected)
+
+
+    def test_categorical_warnings_and_errors(self):
+        # Warning for non-string labels
+        # Error for labels too long
+        original = pd.DataFrame.from_records(
+            [['a' * 10000],
+             ['b' * 10000],
+             ['c' * 10000],
+             ['d' * 10000]],
+            columns=['Too_long'])
+
+        original = pd.concat([original[col].astype('category') for col in original], axis=1)
+        with tm.ensure_clean() as path:
+            tm.assertRaises(ValueError, original.to_stata, path)
+
+        original = pd.DataFrame.from_records(
+            [['a'],
+             ['b'],
+             ['c'],
+             ['d'],
+             [1]],
+            columns=['Too_long'])
+        original = pd.concat([original[col].astype('category') for col in original], axis=1)
+
+        with warnings.catch_warnings(record=True) as w:
+            original.to_stata(path)
+            tm.assert_equal(len(w), 1)  # should get a warning for mixed content
+
+    def test_categorical_with_stata_missing_values(self):
+        values = [['a' + str(i)] for i in range(120)]
+        values.append([np.nan])
+        original = pd.DataFrame.from_records(values, columns=['many_labels'])
+        original = pd.concat([original[col].astype('category') for col in original], axis=1)
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
