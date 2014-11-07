@@ -170,7 +170,7 @@ API changes
 - added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
 
 
-.. note:: io.data.Options has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`)
+.. note:: io.data.Options has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`), (:issue:`8741`)
 
   As a result of a change in Yahoo's option page layout, when an expiry date is given,
   ``Options`` methods now return data for a single expiry date.  Previously, methods returned all
