@@ -48,18 +48,39 @@ analysis / manipulation tool available in any language.
 pandas 0.15.1
 -------------
 
-**Release date:** (November ??, 2014)
+**Release date:** (November 9, 2014)
 
 This is a minor release from 0.15.0 and includes a small number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
 
-Highlights include:
-
-See the :ref:`v0.15.1 Whatsnew <whatsnew_0151>` overview or the issue tracker on GitHub for an extensive list
+See the :ref:`v0.15.1 Whatsnew <whatsnew_0151>` overview for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.15.1.
 
 Thanks
 ~~~~~~
+
+- Aaron Staple
+- Andrew Rosenfeld
+- Anton I. Sipos
+- Artemy Kolchinsky
+- Bill Letson
+- Dave Hughes
+- David Stephens
+- Guillaume Horel
+- Jeff Reback
+- Joris Van den Bossche
+- Kevin Sheppard
+- Nick Stahl
+- Sanghee Kim
+- Stephan Hoyer
+- TomAugspurger
+- WANG Aiyong
+- behzad nouri
+- immerrr
+- jnmclarty
+- jreback
+- pallav-fdsi
+- unutbu
 
 pandas 0.15.0
 -------------

@@ -1,6 +1,6 @@
 .. _whatsnew_0151:
 
-v0.15.1 (November 8, 2014)
+v0.15.1 (November 9, 2014)
 --------------------------
 
 This is a minor bug-fix release from 0.15.0 and includes a small number of API changes, several new features,
@@ -9,8 +9,6 @@ users upgrade to this version.
 
 - :ref:`Enhancements <whatsnew_0151.enhancements>`
 - :ref:`API Changes <whatsnew_0151.api>`
-- :ref:`Performance Improvements <whatsnew_0151.performance>`
-- :ref:`Experimental Changes <whatsnew_0151.experimental>`
 - :ref:`Bug Fixes <whatsnew_0151.bug_fixes>`
 
 .. _whatsnew_0151.api:
@@ -226,19 +224,6 @@ Enhancements
 - :ref:`World Bank data requests <remote_data.wb>` now will warn/raise based on an ``errors`` argument, as well as a list of hard-coded country codes and the World Bank's JSON response.  In prior versions, the error messages didn't look at the World Bank's JSON response.  Problem-inducing input were simply dropped prior to the request.  The issue was that many good countries were cropped in the hard-coded approach.  All countries will work now, but some bad countries will raise exceptions because some edge cases break the entire response. (:issue:`8482`)
 - Added option to ``Series.str.split()`` to return a ``DataFrame`` rather than a ``Series`` (:issue:`8428`)
 - Added option to ``df.info(null_counts=None|True|False)`` to override the default display options and force showing of the null-counts (:issue:`8701`)
-
-.. _whatsnew_0151.performance:
-
-Performance
-~~~~~~~~~~~
-
-
-.. _whatsnew_0151.experimental:
-
-Experimental
-~~~~~~~~~~~~
-
-.. _whatsnew_0151.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
