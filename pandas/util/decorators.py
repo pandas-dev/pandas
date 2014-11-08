@@ -282,5 +282,9 @@ def make_signature(func) :
     args = []
     for i, (var, default) in enumerate(zip(spec.args, defaults)) :
         args.append(var if default=='' else var+'='+repr(default))
+    if spec.varargs:
+        args.append('*' + spec.varargs)
+    if spec.keywords:
+        args.append('**' + spec.keywords)
     return args, spec.args
 
