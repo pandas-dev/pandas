@@ -44,12 +44,9 @@ extensions = ['sphinx.ext.autodoc',
               'ipython_sphinxext.ipython_directive',
               'ipython_sphinxext.ipython_console_highlighting',
               'sphinx.ext.intersphinx',
-              'sphinx.ext.todo',
               'sphinx.ext.coverage',
               'sphinx.ext.pngmath',
               'sphinx.ext.ifconfig',
-              'matplotlib.sphinxext.only_directives',
-              'matplotlib.sphinxext.plot_directive',
               ]
 
 
