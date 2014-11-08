@@ -42,3 +42,4 @@ Experimental
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``groupby`` signatures that didn't include *args or **kwargs (:issue:`8733`).

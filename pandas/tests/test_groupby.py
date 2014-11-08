@@ -4415,6 +4415,26 @@ class TestGroupBy(tm.TestCase):
                 expected = getattr(frame,op)(level=level,axis=axis)
                 assert_frame_equal(result, expected)
 
+    def test_regression_kwargs_whitelist_methods(self):
+        # GH8733
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        raw_frame = DataFrame(np.random.randn(10, 3), index=index,
+                               columns=Index(['A', 'B', 'C'], name='exp'))
+
+        grouped = raw_frame.groupby(level=0, axis=1)
+        grouped.all(test_kwargs='Test kwargs')
+        grouped.any(test_kwargs='Test kwargs')
+        grouped.cumcount(test_kwargs='Test kwargs')
+        grouped.mad(test_kwargs='Test kwargs')
+        grouped.cummin(test_kwargs='Test kwargs')
+        grouped.skew(test_kwargs='Test kwargs')
+        grouped.cumprod(test_kwargs='Test kwargs')
+
     def test_groupby_blacklist(self):
         from string import ascii_lowercase
         letters = np.array(list(ascii_lowercase))
@@ -4459,6 +4479,9 @@ class TestGroupBy(tm.TestCase):
         weight.groupby(gender).plot()
         tm.close()
         height.groupby(gender).hist()
+        tm.close()
+        #Regression test for GH8733
+        height.groupby(gender).plot(alpha=0.5)
         tm.close()
 
     def test_plotting_with_float_index_works(self):
