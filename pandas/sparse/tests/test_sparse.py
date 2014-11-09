@@ -168,6 +168,9 @@ class TestSparseSeries(tm.TestCase,
 
         assert_sp_series_equal(df['col'], self.bseries)
 
+        result = df.iloc[:,0]
+        assert_sp_series_equal(result, self.bseries)
+
         # blocking
         expected = Series({'col': 'float64:sparse'})
         result = df.ftypes
@@ -909,8 +912,8 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
     def test_str(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.ix[:9998] = np.nan
-        sdf = df.to_sparse()
 
+        sdf = df.to_sparse()
         str(sdf)
 
     def test_array_interface(self):

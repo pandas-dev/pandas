@@ -2056,6 +2056,7 @@ class TestConcatenate(tm.TestCase):
         tm.assert_panel4d_equal(result, expected)
 
     def test_concat_series(self):
+
         ts = tm.makeTimeSeries()
         ts.name = 'foo'
 

@@ -20,6 +20,7 @@ users upgrade to this version.
 API changes
 ~~~~~~~~~~~
 
+- Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
 
 .. _whatsnew_0152.enhancements:
 

@@ -6198,13 +6198,93 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # it works!
         result = np.unique(self.ts)
 
-    def test_concat_empty_series_dtypes(self):
-        self.assertEqual(pd.concat([Series(dtype=np.float64)]).dtype, np.float64)
-        self.assertEqual(pd.concat([Series(dtype=np.int8)]).dtype, np.int8)
-        self.assertEqual(pd.concat([Series(dtype=np.bool_)]).dtype, np.bool_)
+    def test_concat_empty_series_dtypes_roundtrips(self):
 
+        # round-tripping with self & like self
+        dtypes = map(np.dtype,['float64','int8','uint8','bool','m8[ns]','M8[ns]'])
+
+        for dtype in dtypes:
+            self.assertEqual(pd.concat([Series(dtype=dtype)]).dtype, dtype)
+            self.assertEqual(pd.concat([Series(dtype=dtype),
+                                        Series(dtype=dtype)]).dtype, dtype)
+
+        def int_result_type(dtype, dtype2):
+            typs = set([dtype.kind,dtype2.kind])
+            if not len(typs-set(['i','u','b'])) and (dtype.kind == 'i' or dtype2.kind == 'i'):
+                return 'i'
+            elif not len(typs-set(['u','b'])) and (dtype.kind == 'u' or dtype2.kind == 'u'):
+                 return 'u'
+            return None
+
+        def float_result_type(dtype, dtype2):
+            typs = set([dtype.kind,dtype2.kind])
+            if not len(typs-set(['f','i','u'])) and (dtype.kind == 'f' or dtype2.kind == 'f'):
+                return 'f'
+            return None
+
+        def get_result_type(dtype, dtype2):
+            result = float_result_type(dtype, dtype2)
+            if result is not None:
+                return result
+            result = int_result_type(dtype, dtype2)
+            if result is not None:
+                return result
+            return 'O'
+
+        for dtype in dtypes:
+            for dtype2 in dtypes:
+                if dtype == dtype2:
+                    continue
+
+                expected = get_result_type(dtype, dtype2)
+                result = pd.concat([Series(dtype=dtype),
+                                    Series(dtype=dtype2)]).dtype
+                self.assertEqual(result.kind, expected)
+
+    def test_concat_empty_series_dtypes(self):
+
+        # bools
         self.assertEqual(pd.concat([Series(dtype=np.bool_),
                                     Series(dtype=np.int32)]).dtype, np.int32)
+        self.assertEqual(pd.concat([Series(dtype=np.bool_),
+                                    Series(dtype=np.float32)]).dtype, np.object_)
+
+        # datetimelike
+        self.assertEqual(pd.concat([Series(dtype='m8[ns]'),
+                                    Series(dtype=np.bool)]).dtype, np.object_)
+        self.assertEqual(pd.concat([Series(dtype='m8[ns]'),
+                                    Series(dtype=np.int64)]).dtype, np.object_)
+        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
+                                    Series(dtype=np.bool)]).dtype, np.object_)
+        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
+                                    Series(dtype=np.int64)]).dtype, np.object_)
+        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
+                                    Series(dtype=np.bool_),
+                                    Series(dtype=np.int64)]).dtype, np.object_)
+
+        # categorical
+        self.assertEqual(pd.concat([Series(dtype='category'),
+                                    Series(dtype='category')]).dtype, 'category')
+        self.assertEqual(pd.concat([Series(dtype='category'),
+                                    Series(dtype='float64')]).dtype, np.object_)
+        self.assertEqual(pd.concat([Series(dtype='category'),
+                                    Series(dtype='object')]).dtype, 'category')
+
+        # sparse
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='float64').to_sparse()])
+        self.assertEqual(result.dtype,np.float64)
+        self.assertEqual(result.ftype,'float64:sparse')
+
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='float64')])
+        self.assertEqual(result.dtype,np.float64)
+        self.assertEqual(result.ftype,'float64:sparse')
+
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='object')])
+        self.assertEqual(result.dtype,np.object_)
+        self.assertEqual(result.ftype,'object:dense')
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])

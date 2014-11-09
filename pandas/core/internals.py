@@ -493,18 +493,6 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values.tolist()
 
-    def _concat_blocks(self, blocks, values):
-        """ return the block concatenation """
-
-        # dispatch to a categorical to handle the concat
-        if self._holder is None:
-
-            for b in blocks:
-                if b.is_categorical:
-                    return b._concat_blocks(blocks,values)
-
-        return self._holder(values[0])
-
     # block actions ####
     def copy(self, deep=True):
         values = self.values
@@ -1758,34 +1746,6 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return make_block(values,
                           ndim=self.ndim,
                           placement=self.mgr_locs)
-
-    def _concat_blocks(self, blocks, values):
-        """
-        validate that we can merge these blocks
-
-        return the block concatenation
-        """
-
-        # we could have object blocks and categorical's here
-        # if we only have a single cateogoricals then combine everything
-        # else its a non-compat categorical
-
-        categoricals = [ b for b in blocks if b.is_categorical ]
-        objects = [ b for b in blocks if not b.is_categorical and b.is_object ]
-
-        # convert everything to object and call it a day
-        if len(objects) + len(categoricals) != len(blocks):
-            raise ValueError("try to combine non-object blocks and categoricals")
-
-        # validate the categories
-        categories = None
-        for b in categoricals:
-            if categories is None:
-                categories = b.values.categories
-            if not categories.equals(b.values.categories):
-                raise ValueError("incompatible categories in categorical block merge")
-
-        return self._holder(values[0], categories=categories)
 
     def to_native_types(self, slicer=None, na_rep='', **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -4102,21 +4062,14 @@ def get_empty_dtype_and_na(join_units):
         blk = join_units[0].block
         if blk is None:
             return np.float64, np.nan
-        else:
-            return blk.dtype, None
 
     has_none_blocks = False
     dtypes = [None] * len(join_units)
-
     for i, unit in enumerate(join_units):
         if unit.block is None:
             has_none_blocks = True
         else:
             dtypes[i] = unit.dtype
-
-    if not has_none_blocks and len(set(dtypes)) == 1:
-        # Unanimous decision, nothing to upcast.
-        return dtypes[0], None
 
     # dtypes = set()
     upcast_classes = set()
@@ -4127,7 +4080,9 @@ def get_empty_dtype_and_na(join_units):
 
         if com.is_categorical_dtype(dtype):
             upcast_cls = 'category'
-        elif issubclass(dtype.type, (np.object_, np.bool_)):
+        elif issubclass(dtype.type, np.bool_):
+            upcast_cls = 'bool'
+        elif issubclass(dtype.type, np.object_):
             upcast_cls = 'object'
         elif is_datetime64_dtype(dtype):
             upcast_cls = 'datetime'
@@ -4150,6 +4105,11 @@ def get_empty_dtype_and_na(join_units):
     # create the result
     if 'object' in upcast_classes:
         return np.dtype(np.object_), np.nan
+    elif 'bool' in upcast_classes:
+        if has_none_blocks:
+            return np.dtype(np.object_), np.nan
+        else:
+            return np.dtype(np.bool_), None
     elif 'category' in upcast_classes:
         return com.CategoricalDtype(), np.nan
     elif 'float' in upcast_classes:
@@ -4184,14 +4144,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
     else:
         concat_values = com._concat_compat(to_concat, axis=concat_axis)
 
-    if any(unit.needs_block_conversion for unit in join_units):
-
-        # need to ask the join unit block to convert to the underlying repr for us
-        blocks = [ unit.block for unit in join_units if unit.block is not None ]
-        return blocks[0]._concat_blocks(blocks, concat_values)
-    else:
-        return concat_values
-
+    return concat_values
 
 def get_mgr_concatenation_plan(mgr, indexers):
     """
@@ -4231,6 +4184,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
     plan = []
     for blkno, placements in _get_blkno_placements(blknos, len(mgr.blocks),
                                                    group=False):
+
         assert placements.is_slice_like
 
         join_unit_indexers = indexers.copy()
@@ -4442,6 +4396,14 @@ class JoinUnit(object):
                     missing_arr.fill(fill_value)
                 return missing_arr
 
+            if not self.indexers:
+                if self.block.is_categorical:
+                    # preserve the categoricals for validation in _concat_compat
+                    return self.block.values
+                elif self.block.is_sparse:
+                    # preserve the sparse array for validation in _concat_compat
+                    return self.block.values
+
             if self.block.is_bool:
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
@@ -4455,13 +4417,14 @@ class JoinUnit(object):
             # If there's no indexing to be done, we want to signal outside
             # code that this array must be copied explicitly.  This is done
             # by returning a view and checking `retval.base`.
-            return values.view()
+            values = values.view()
+
         else:
             for ax, indexer in self.indexers.items():
                 values = com.take_nd(values, indexer, axis=ax,
                                      fill_value=fill_value)
 
-            return values
+        return values
 
 
 def _fast_count_smallints(arr):

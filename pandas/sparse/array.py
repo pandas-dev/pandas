@@ -529,3 +529,46 @@ def make_sparse(arr, kind='block', fill_value=nan):
 ops.add_special_arithmetic_methods(SparseArray,
                                    arith_method=_arith_method,
                                    use_numexpr=False)
+
+
+
+def _concat_compat(to_concat, axis=0):
+    """
+    provide concatenation of an sparse/dense array of arrays each of which is a single dtype
+
+    Parameters
+    ----------
+    to_concat : array of arrays
+    axis : axis to provide concatenation
+
+    Returns
+    -------
+    a single array, preserving the combined dtypes
+    """
+
+    def convert_sparse(x, axis):
+        # coerce to native type
+        if isinstance(x, SparseArray):
+            x = x.get_values()
+        x = x.ravel()
+        if axis > 0:
+            x = np.atleast_2d(x)
+        return x
+
+    typs = com.get_dtype_kinds(to_concat)
+
+    # we have more than one type here, so densify and regular concat
+    to_concat = [ convert_sparse(x, axis) for x in to_concat ]
+    result = np.concatenate(to_concat,axis=axis)
+
+    if not len(typs-set(['sparse','f','i'])):
+
+        # we can remain sparse
+        result = SparseArray(result.ravel())
+
+    else:
+
+        # coerce to object if needed
+        result = result.astype('object')
+
+    return result

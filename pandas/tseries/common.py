@@ -5,6 +5,9 @@ from pandas.core.base import PandasDelegate
 from pandas.core import common as com
 from pandas import Series, DatetimeIndex, PeriodIndex, TimedeltaIndex
 from pandas import lib, tslib
+from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
+                                is_datetime_arraylike, is_integer_dtype, is_list_like,
+                                get_dtype_kinds)
 
 def is_datetimelike(data):
     """ return a boolean if we can be successfully converted to a datetimelike """
@@ -42,9 +45,9 @@ def maybe_to_datetimelike(data, copy=False):
     elif issubclass(data.dtype.type, np.timedelta64):
         return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index)
     else:
-        if com.is_period_arraylike(data):
+        if is_period_arraylike(data):
             return PeriodProperties(PeriodIndex(data, copy=copy), index)
-        if com.is_datetime_arraylike(data):
+        if is_datetime_arraylike(data):
             return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index)
 
     raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
@@ -60,9 +63,9 @@ class Properties(PandasDelegate):
 
         # maybe need to upcast (ints)
         if isinstance(result, np.ndarray):
-            if com.is_integer_dtype(result):
+            if is_integer_dtype(result):
                 result = result.astype('int64')
-        elif not com.is_list_like(result):
+        elif not is_list_like(result):
             return result
 
         # return the result as a Series, which is by definition a copy
@@ -162,3 +165,50 @@ class PeriodProperties(Properties):
 PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
                                          accessors=PeriodIndex._datetimelike_ops,
                                          typ='property')
+
+def _concat_compat(to_concat, axis=0):
+    """
+    provide concatenation of an datetimelike array of arrays each of which is a single
+    M8[ns], or m8[ns] dtype
+
+    Parameters
+    ----------
+    to_concat : array of arrays
+    axis : axis to provide concatenation
+
+    Returns
+    -------
+    a single array, preserving the combined dtypes
+    """
+
+    def convert_to_pydatetime(x, axis):
+        # coerce to an object dtype
+        if x.dtype == _NS_DTYPE:
+            shape = x.shape
+            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
+            x = x.reshape(shape)
+        elif x.dtype == _TD_DTYPE:
+            shape = x.shape
+            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
+            x = x.reshape(shape)
+        return x
+
+    typs = get_dtype_kinds(to_concat)
+
+    # single dtype
+    if len(typs) == 1:
+
+        if not len(typs-set(['datetime'])):
+            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
+                                        axis=axis)
+            return new_values.view(_NS_DTYPE)
+
+        elif not len(typs-set(['timedelta'])):
+            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
+                                        axis=axis)
+            return new_values.view(_TD_DTYPE)
+
+    # need to coerce to object
+    to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
+
+    return np.concatenate(to_concat,axis=axis)
