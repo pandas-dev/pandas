@@ -1132,10 +1132,13 @@ class Options(object):
 
         expiry_dates = [dt.datetime.strptime(element.text, "%B %d, %Y").date() for element in links]
         links = [element.attrib['data-selectbox-link'] for element in links]
+
+        if len(expiry_dates) == 0:
+            raise RemoteDataError('Data not available')
+
         expiry_links = dict(zip(expiry_dates, links))
         self._expiry_links = expiry_links
         self._expiry_dates = expiry_dates
-
         return expiry_dates, expiry_links
 
     def _parse_url(self, url):
