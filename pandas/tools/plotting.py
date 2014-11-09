@@ -1022,7 +1022,10 @@ class MPLPlot(object):
     def _adorn_subplots(self):
         to_adorn = self.axes
 
-        # todo: sharex, sharey handling?
+        if len(self.axes) > 0:
+            all_axes = self._get_axes()
+            nrows, ncols = self._get_axes_layout()
+            _handle_shared_axes(all_axes, len(all_axes), len(all_axes), nrows, ncols, self.sharex, self.sharey)
 
         for ax in to_adorn:
             if self.yticks is not None:
@@ -1375,6 +1378,19 @@ class MPLPlot(object):
                     errors[kw] = err
         return errors
 
+    def _get_axes(self):
+        return self.axes[0].get_figure().get_axes()
+
+    def _get_axes_layout(self):
+        axes = self._get_axes()
+        x_set = set()
+        y_set = set()
+        for ax in axes:
+            # check axes coordinates to estimate layout
+            points = ax.get_position().get_points()
+            x_set.add(points[0][0])
+            y_set.add(points[0][1])
+        return (len(y_set), len(x_set))
 
 class ScatterPlot(MPLPlot):
     _layout_type = 'single'
@@ -3231,37 +3247,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         ax = fig.add_subplot(nrows, ncols, i + 1, **kwds)
         axarr[i] = ax
 
-    if nplots > 1:
-
-        if sharex and nrows > 1:
-            for ax in axarr[:naxes][:-ncols]:    # only bottom row
-                for label in ax.get_xticklabels():
-                    label.set_visible(False)
-                try:
-                    # set_visible will not be effective if
-                    # minor axis has NullLocator and NullFormattor (default)
-                    import matplotlib.ticker as ticker
-                    ax.xaxis.set_minor_locator(ticker.AutoLocator())
-                    ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-                    for label in ax.get_xticklabels(minor=True):
-                        label.set_visible(False)
-                except Exception:   # pragma no cover
-                    pass
-                ax.xaxis.get_label().set_visible(False)
-        if sharey and ncols > 1:
-            for i, ax in enumerate(axarr):
-                if (i % ncols) != 0:  # only first column
-                    for label in ax.get_yticklabels():
-                        label.set_visible(False)
-                    try:
-                        import matplotlib.ticker as ticker
-                        ax.yaxis.set_minor_locator(ticker.AutoLocator())
-                        ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-                        for label in ax.get_yticklabels(minor=True):
-                            label.set_visible(False)
-                    except Exception:   # pragma no cover
-                        pass
-                    ax.yaxis.get_label().set_visible(False)
+    _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
     if naxes != nplots:
         for ax in axarr[naxes:]:
@@ -3280,6 +3266,45 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         axes = axarr.reshape(nrows, ncols)
 
     return fig, axes
+
+
+def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
+    if nplots > 1:
+
+        if sharex and nrows > 1:
+            for ax in axarr[:naxes][:-ncols]:    # only bottom row
+                for label in ax.get_xticklabels():
+                    label.set_visible(False)
+                try:
+                    # set_visible will not be effective if
+                    # minor axis has NullLocator and NullFormattor (default)
+                    import matplotlib.ticker as ticker
+
+                    if isinstance(ax.xaxis.get_minor_locator(), ticker.NullLocator):
+                        ax.xaxis.set_minor_locator(ticker.AutoLocator())
+                    if isinstance(ax.xaxis.get_minor_formatter(), ticker.NullFormatter):
+                        ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+                    for label in ax.get_xticklabels(minor=True):
+                        label.set_visible(False)
+                except Exception:   # pragma no cover
+                    pass
+                ax.xaxis.get_label().set_visible(False)
+        if sharey and ncols > 1:
+            for i, ax in enumerate(axarr):
+                if (i % ncols) != 0:  # only first column
+                    for label in ax.get_yticklabels():
+                        label.set_visible(False)
+                    try:
+                        import matplotlib.ticker as ticker
+                        if isinstance(ax.yaxis.get_minor_locator(), ticker.NullLocator):
+                            ax.yaxis.set_minor_locator(ticker.AutoLocator())
+                        if isinstance(ax.yaxis.get_minor_formatter(), ticker.NullFormatter):
+                            ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+                        for label in ax.get_yticklabels(minor=True):
+                            label.set_visible(False)
+                    except Exception:   # pragma no cover
+                        pass
+                    ax.yaxis.get_label().set_visible(False)
 
 
 def _flatten(axes):
