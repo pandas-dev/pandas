@@ -2397,9 +2397,9 @@ _shared_docs['plot'] = """
     xlim : 2-tuple/list
     ylim : 2-tuple/list
     rot : int, default None
-        Rotation for ticks
+        Rotation for ticks (xticks for vertical, yticks for horizontal plots)
     fontsize : int, default None
-        Font size for ticks
+        Font size for xticks and yticks
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
