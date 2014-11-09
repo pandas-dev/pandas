@@ -54,7 +54,7 @@ matrix:
       - JOB_NAME: "34_nslow"
     - python: 3.2
       env:
-      - NOSE_ARGS="not slow and not disabled"
+      - NOSE_ARGS="not slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=qt4
       - BUILD_TYPE=pydata
