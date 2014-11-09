@@ -109,6 +109,21 @@ For more resources, please visit the main `repository <https://bitbucket.org/hro
   - Combining data from various sources
 
 
+Practical data analysis with Python
+-----------------------------------
+
+This `guide <http://wavedatalab.github.io/datawithpython>`_ is a comprehensive introduction to the data analysis process using the Python data ecosystem and an interesting open dataset.
+There are four sections covering selected topics as follows:
+
+-  `Munging Data <http://wavedatalab.github.io/datawithpython/munge.html>`_
+
+-  `Aggregating Data <http://wavedatalab.github.io/datawithpython/aggregate.html>`_
+
+-  `Visualizing Data <http://wavedatalab.github.io/datawithpython/visualize.html>`_
+
+-  `Time Series <http://wavedatalab.github.io/datawithpython/timeseries.html>`_
+
+
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------
 
