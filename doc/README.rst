@@ -93,8 +93,7 @@ dependencies.
 
 .. warning::
 
-   Building the docs with Sphinx version 1.2 is broken. Use the
-   latest stable version (1.2.1) or the older 1.1.3.
+   Sphinx version >= 1.2.2 or the older 1.1.3 is required.
 
 Building pandas
 ^^^^^^^^^^^^^^^
