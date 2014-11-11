@@ -698,6 +698,8 @@ class _FrequencyInferer(object):
         self.index = index
         self.values = np.asarray(index).view('i8')
 
+        # This moves the values, which are implicitly in UTC, to the
+        # the timezone so they are in local time
         if hasattr(index,'tz'):
             if index.tz is not None:
                 self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
@@ -712,10 +714,18 @@ class _FrequencyInferer(object):
     @cache_readonly
     def deltas(self):
         return tslib.unique_deltas(self.values)
+    
+    @cache_readonly
+    def deltas_asi8(self):
+        return tslib.unique_deltas(self.index.asi8)
 
     @cache_readonly
     def is_unique(self):
         return len(self.deltas) == 1
+    
+    @cache_readonly
+    def is_unique_asi8(self):
+        return len(self.deltas_asi8) == 1
 
     def get_freq(self):
         if not self.is_monotonic or not self.index.is_unique:
@@ -725,9 +735,12 @@ class _FrequencyInferer(object):
         if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
         else:
-            # Possibly intraday frequency
-            if not self.is_unique:
+            # Possibly intraday frequency.  Here we use the 
+            # original .asi8 values as the modified values
+            # will not work around DST transitions.  See #8772
+            if not self.is_unique_asi8:
                 return None
+            delta = self.deltas_asi8[0]
             if _is_multiple(delta, _ONE_HOUR):
                 # Hours
                 return _maybe_add_count('H', delta / _ONE_HOUR)

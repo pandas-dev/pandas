@@ -62,3 +62,5 @@ Bug Fixes
 - Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
+- Bug in `pd.infer_freq`/`DataFrame.inferred_freq` that prevented proper sub-daily frequency inference 
+  when the index contained DST days (:issue:`8772`).
