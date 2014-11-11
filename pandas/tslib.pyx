@@ -37,7 +37,7 @@ from datetime import time as datetime_time
 from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal, tzfile as _dateutil_tzfile,
                          tzutc as _dateutil_tzutc, gettz as _dateutil_gettz)
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
-from pandas.compat import parse_date, string_types, PY3
+from pandas.compat import parse_date, string_types, PY3, iteritems
 
 from sys import version_info
 import operator
@@ -1619,6 +1619,7 @@ class Timedelta(_Timedelta):
         Denote the unit of the input, if input is an integer. Default 'ns'.
     days, seconds, microseconds, milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
+        np ints and floats will be coereced to python ints and floats.
 
     Notes
     -----
@@ -1632,9 +1633,19 @@ class Timedelta(_Timedelta):
         if value is None:
             if not len(kwargs):
                 raise ValueError("cannot construct a TimeDelta without a value/unit or descriptive keywords (days,seconds....)")
+            
+            def _to_py_int_float(v):
+                if is_integer_object(v):
+                    return int(v)
+                elif is_float_object(v):
+                    return float(v)
+                raise TypeError("Invalid type {0}. Must be int or float.".format(type(v)))
+                    
+            kwargs = dict([ (k, _to_py_int_float(v)) for k, v in iteritems(kwargs) ])
+            
             try:
                 value = timedelta(**kwargs)
-            except (TypeError):
+            except TypeError as e:
                 raise ValueError("cannot construct a TimeDelta from the passed arguments, allowed keywords are "
                                  "[days, seconds, microseconds, milliseconds, minutes, hours, weeks]")
 
