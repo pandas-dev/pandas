@@ -147,7 +147,17 @@ class BinOp(ops.BinOp):
     @property
     def kind(self):
         """ the kind of my field """
-        return self.queryables.get(self.lhs)
+        return getattr(self.queryables.get(self.lhs),'kind',None)
+
+    @property
+    def meta(self):
+        """ the meta of my field """
+        return getattr(self.queryables.get(self.lhs),'meta',None)
+
+    @property
+    def metadata(self):
+        """ the metadata of my field """
+        return getattr(self.queryables.get(self.lhs),'metadata',None)
 
     def generate(self, v):
         """ create and return the op string for this TermValue """
@@ -167,6 +177,7 @@ class BinOp(ops.BinOp):
             return encoder(value)
 
         kind = _ensure_decoded(self.kind)
+        meta = _ensure_decoded(self.meta)
         if kind == u('datetime64') or kind == u('datetime'):
             if isinstance(v, (int, float)):
                 v = stringify(v)
@@ -182,6 +193,10 @@ class BinOp(ops.BinOp):
         elif kind == u('timedelta64') or kind == u('timedelta'):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
+        elif meta == u('category'):
+            metadata = com._values_from_object(self.metadata)
+            result = metadata.searchsorted(v,side='left')
+            return TermValue(result, result, u('integer'))
         elif kind == u('integer'):
             v = int(float(v))
             return TermValue(v, v, kind)

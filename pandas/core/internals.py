@@ -4381,7 +4381,7 @@ class JoinUnit(object):
         else:
             fill_value = upcasted_na
 
-            if self.is_null:
+            if self.is_null and not getattr(self.block,'is_categorical',None):
                 missing_arr = np.empty(self.shape, dtype=empty_dtype)
                 if np.prod(self.shape):
                     # NumPy 1.6 workaround: this statement gets strange if all

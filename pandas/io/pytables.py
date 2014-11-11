@@ -23,7 +23,8 @@ from pandas.core.common import adjoin, pprint_thing
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe
-from pandas.core.internals import BlockManager, make_block, _block2d_to_blocknd, _factor_indexer
+from pandas.core.internals import (BlockManager, make_block, _block2d_to_blocknd,
+                                   _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
@@ -42,7 +43,7 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 # versioning attribute
-_version = '0.10.1'
+_version = '0.15.2'
 
 # PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
@@ -467,7 +468,7 @@ class HDFStore(StringMixin):
     def __unicode__(self):
         output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
         if self.is_open:
-            lkeys = list(self.keys())
+            lkeys = sorted(list(self.keys()))
             if len(lkeys):
                 keys = []
                 values = []
@@ -1393,8 +1394,8 @@ class IndexCol(StringMixin):
     _info_fields = ['freq', 'tz', 'index_name']
 
     def __init__(self, values=None, kind=None, typ=None, cname=None,
-                 itemsize=None, name=None, axis=None, kind_attr=None, pos=None,
-                 freq=None, tz=None, index_name=None, **kwargs):
+                 itemsize=None, name=None, axis=None, kind_attr=None,
+                 pos=None, freq=None, tz=None, index_name=None, **kwargs):
         self.values = values
         self.kind = kind
         self.typ = typ
@@ -1408,6 +1409,8 @@ class IndexCol(StringMixin):
         self.tz = tz
         self.index_name = index_name
         self.table = None
+        self.meta = None
+        self.metadata = None
 
         if name is not None:
             self.set_name(name, kind_attr)
@@ -1470,11 +1473,13 @@ class IndexCol(StringMixin):
         new_self = copy.copy(self)
         return new_self
 
-    def infer(self, table):
+    def infer(self, handler):
         """infer this column from the table: create and return a new object"""
+        table = handler.table
         new_self = self.copy()
         new_self.set_table(table)
         new_self.get_attr()
+        new_self.read_metadata(handler)
         return new_self
 
     def convert(self, values, nan_rep, encoding):
@@ -1544,10 +1549,12 @@ class IndexCol(StringMixin):
                 self.typ = _tables(
                 ).StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate_and_set(self, table, append, **kwargs):
-        self.set_table(table)
+    def validate_and_set(self, handler, append, **kwargs):
+        self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
+        self.validate_metadata(handler)
+        self.write_metadata(handler)
         self.set_attr()
 
     def validate_col(self, itemsize=None):
@@ -1623,6 +1630,24 @@ class IndexCol(StringMixin):
         """ set the kind for this colummn """
         setattr(self.attrs, self.kind_attr, self.kind)
 
+    def read_metadata(self, handler):
+        """ retrieve the metadata for this columns """
+        self.metadata = handler.read_metadata(self.cname)
+
+    def validate_metadata(self, handler):
+        """ validate that kind=category does not change the categories """
+        if self.meta == 'category':
+            new_metadata = self.metadata
+            cur_metadata = handler.read_metadata(self.cname)
+            if new_metadata is not None and cur_metadata is not None \
+                   and not com.array_equivalent(new_metadata, cur_metadata):
+                raise ValueError("cannot append a categorical with different categories"
+                                 " to the existing")
+
+    def write_metadata(self, handler):
+        """ set the meta data """
+        if self.metadata is not None:
+            handler.write_metadata(self.cname,self.metadata)
 
 class GenericIndexCol(IndexCol):
 
@@ -1654,11 +1679,13 @@ class DataCol(IndexCol):
 
         data   : the actual data
         cname  : the column name in the table to hold the data (typically
-            values)
+                 values)
+        meta   : a string description of the metadata
+        metadata : the actual metadata
         """
     is_an_indexable = False
     is_data_indexable = False
-    _info_fields = ['tz']
+    _info_fields = ['tz','ordered']
 
     @classmethod
     def create_for_block(
@@ -1683,17 +1710,25 @@ class DataCol(IndexCol):
         return cls(name=name, cname=cname, **kwargs)
 
     def __init__(self, values=None, kind=None, typ=None,
-                 cname=None, data=None, block=None, **kwargs):
+                 cname=None, data=None, meta=None, metadata=None, block=None, **kwargs):
         super(DataCol, self).__init__(
             values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
         self.dtype_attr = u("%s_dtype" % self.name)
+        self.meta = meta
+        self.meta_attr = u("%s_meta" % self.name)
         self.set_data(data)
+        self.set_metadata(metadata)
 
     def __unicode__(self):
-        return "name->%s,cname->%s,dtype->%s,shape->%s" % (
-            self.name, self.cname, self.dtype, self.shape
-        )
+        temp = tuple(
+            map(pprint_thing,
+                    (self.name,
+                     self.cname,
+                     self.dtype,
+                     self.kind,
+                     self.shape)))
+        return "name->%s,cname->%s,dtype->%s,kind->%s,shape->%s" % temp
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -1715,10 +1750,18 @@ class DataCol(IndexCol):
         self.data, data = None, self.data
         return data
 
+    def set_metadata(self, metadata):
+        """ record the metadata """
+        if metadata is not None:
+            metadata = np.array(metadata,copy=False).ravel()
+        self.metadata = metadata
+
     def set_kind(self):
         # set my kind if we can
+
         if self.dtype is not None:
             dtype = _ensure_decoded(self.dtype)
+
             if dtype.startswith(u('string')) or dtype.startswith(u('bytes')):
                 self.kind = 'string'
             elif dtype.startswith(u('float')):
@@ -1744,15 +1787,20 @@ class DataCol(IndexCol):
         """ create and setup my atom from the block b """
 
         self.values = list(block_items)
+
+        # short-cut certain block types
+        if block.is_categorical:
+            return self.set_atom_categorical(block, items=block_items, info=info)
+        elif block.is_datetime:
+            return self.set_atom_datetime64(block)
+        elif block.is_timedelta:
+            return self.set_atom_timedelta64(block)
+
         dtype = block.dtype.name
         rvalues = block.values.ravel()
         inferred_type = lib.infer_dtype(rvalues)
 
-        if inferred_type == 'datetime64':
-            self.set_atom_datetime64(block)
-        elif dtype == 'timedelta64[ns]':
-            self.set_atom_timedelta64(block)
-        elif inferred_type == 'date':
+        if inferred_type == 'date':
             raise TypeError(
                 "[date] is not implemented as a table column")
         elif inferred_type == 'datetime':
@@ -1803,9 +1851,6 @@ class DataCol(IndexCol):
             raise TypeError(
                 "[unicode] is not implemented as a table column")
 
-        elif dtype == 'category':
-            raise NotImplementedError("cannot store a category dtype")
-
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
@@ -1815,10 +1860,10 @@ class DataCol(IndexCol):
                 min_itemsize,
                 nan_rep,
                 encoding)
+
+        # set as a data block
         else:
             self.set_atom_data(block)
-
-        return self
 
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
@@ -1870,22 +1915,49 @@ class DataCol(IndexCol):
     def convert_string_data(self, data, itemsize, encoding):
         return _convert_string_array(data, encoding, itemsize)
 
-    def get_atom_coltype(self):
+    def get_atom_coltype(self, kind=None):
         """ return the PyTables column class for this column """
+        if kind is None:
+            kind = self.kind
         if self.kind.startswith('uint'):
-            col_name = "UInt%sCol" % self.kind[4:]
+            col_name = "UInt%sCol" % kind[4:]
         else:
-            col_name = "%sCol" % self.kind.capitalize()
+            col_name = "%sCol" % kind.capitalize()
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block):
-        return self.get_atom_coltype()(shape=block.shape[0])
+    def get_atom_data(self, block, kind=None):
+        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
         self.set_data(block.values.astype(self.typ.type))
+
+    def set_atom_categorical(self, block, items, info=None, values=None):
+        # currently only supports a 1-D categorical
+        # in a 1-D block
+
+        values = block.values
+        codes = values.codes
+        self.kind = 'integer'
+        self.dtype = codes.dtype.name
+        if values.ndim > 1:
+            raise NotImplementedError("only support 1-d categoricals")
+        if len(items) > 1:
+            raise NotImplementedError("only support single block categoricals")
+
+        # write the codes; must be in a block shape
+        self.ordered = values.ordered
+        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
+        self.set_data(_block_shape(codes))
+
+        # write the categories
+        self.meta = 'category'
+        self.set_metadata(block.values.categories)
+
+        # update the info
+        self.update_info(info)
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -1935,11 +2007,15 @@ class DataCol(IndexCol):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
+
         try:
             values = values[self.cname]
         except:
             pass
         self.set_data(values)
+
+        # use the meta if needed
+        meta = _ensure_decoded(self.meta)
 
         # convert to the correct dtype
         if self.dtype is not None:
@@ -1975,6 +2051,15 @@ class DataCol(IndexCol):
                 self.data = np.array(
                     [datetime.fromtimestamp(v) for v in self.data],
                     dtype=object)
+
+            elif meta == u('category'):
+
+                # we have a categorical
+                categories = self.metadata
+                self.data = Categorical.from_codes(self.data.ravel(),
+                                                   categories=categories,
+                                                   ordered=self.ordered)
+
             else:
 
                 try:
@@ -1993,11 +2078,13 @@ class DataCol(IndexCol):
         """ get the data for this colummn """
         self.values = getattr(self.attrs, self.kind_attr, None)
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
+        self.meta = getattr(self.attrs, self.meta_attr, None)
         self.set_kind()
 
     def set_attr(self):
         """ set the data for this colummn """
         setattr(self.attrs, self.kind_attr, self.values)
+        setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
             setattr(self.attrs, self.dtype_attr, self.dtype)
 
@@ -2010,8 +2097,8 @@ class DataIndexableCol(DataCol):
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block):
-        return self.get_atom_coltype()()
+    def get_atom_data(self, block, kind=None):
+        return self.get_atom_coltype(kind=kind)()
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col()
@@ -2761,6 +2848,7 @@ class Table(Fixed):
         nan_rep       : the string to use for nan representations for string
             objects
         levels        : the names of levels
+        metadata      : the names of the metadata columns
 
         """
     pandas_kind = u('wide_table')
@@ -2775,6 +2863,7 @@ class Table(Fixed):
         self.non_index_axes = []
         self.values_axes = []
         self.data_columns = []
+        self.metadata = []
         self.info = dict()
         self.nan_rep = None
         self.selection = None
@@ -2841,6 +2930,10 @@ class Table(Fixed):
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
 
+    def validate_metadata(self, existing):
+        """ create / validate metadata """
+        self.metadata = [ c.name for c in self.values_axes if c.metadata is not None ]
+
     def validate_multiindex(self, obj):
         """validate that we can store the multi-index; reset and return the
         new object
@@ -2904,10 +2997,10 @@ class Table(Fixed):
 
         # compute the values_axes queryables
         return dict(
-            [(a.cname, a.kind) for a in self.index_axes] +
+            [(a.cname, a) for a in self.index_axes] +
             [(self.storage_obj_type._AXIS_NAMES[axis], None)
              for axis, values in self.non_index_axes] +
-            [(v.cname, v.kind) for v in self.values_axes
+            [(v.cname, v) for v in self.values_axes
              if v.name in set(self.data_columns)]
         )
 
@@ -2918,6 +3011,30 @@ class Table(Fixed):
     def values_cols(self):
         """ return a list of my values cols """
         return [i.cname for i in self.values_axes]
+
+    def _get_metadata_path(self, key):
+        """ return the metadata pathname for this key """
+        return "{group}/meta/{key}/meta".format(group=self.group._v_pathname,
+                                                key=key)
+
+    def write_metadata(self, key, values):
+        """
+        write out a meta data array to the key as a fixed-format Series
+
+        Parameters
+        ----------
+        key : string
+        values : ndarray
+
+        """
+        values = Series(values)
+        self.parent.put(self._get_metadata_path(key), values, format='table')
+
+    def read_metadata(self, key):
+        """ return the meta data array for this key """
+        if getattr(getattr(self.group,'meta',None),key,None) is not None:
+            return self.parent.select(self._get_metadata_path(key))
+        return None
 
     def set_info(self):
         """ update our table index info """
@@ -2933,6 +3050,7 @@ class Table(Fixed):
         self.attrs.nan_rep = self.nan_rep
         self.attrs.encoding = self.encoding
         self.attrs.levels = self.levels
+        self.attrs.metadata = self.metadata
         self.set_info()
 
     def get_attrs(self):
@@ -2948,13 +3066,14 @@ class Table(Fixed):
             getattr(self.attrs, 'encoding', None))
         self.levels = getattr(
             self.attrs, 'levels', None) or []
-        t = self.table
         self.index_axes = [
-            a.infer(t) for a in self.indexables if a.is_an_indexable
+            a.infer(self) for a in self.indexables if a.is_an_indexable
         ]
         self.values_axes = [
-            a.infer(t) for a in self.indexables if not a.is_an_indexable
+            a.infer(self) for a in self.indexables if not a.is_an_indexable
         ]
+        self.metadata = getattr(
+            self.attrs, 'metadata', None) or []
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
@@ -3338,6 +3457,9 @@ class Table(Fixed):
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
 
+        # validate our metadata
+        self.validate_metadata(existing_table)
+
         # validate the axes if we have an existing table
         if validate:
             self.validate(existing_table)
@@ -3551,7 +3673,7 @@ class LegacyTable(Table):
                 # the data need to be sorted
                 sorted_values = c.take_data().take(sorter, axis=0)
                 if sorted_values.ndim == 1:
-                    sorted_values = sorted_values.reshape(sorted_values.shape[0],1)
+                    sorted_values = sorted_values.reshape((sorted_values.shape[0],1))
 
                 take_labels = [l.take(sorter) for l in labels]
                 items = Index(c.values)
@@ -3665,7 +3787,7 @@ class AppendableTable(LegacyTable):
 
         # validate the axes and set the kinds
         for a in self.axes:
-            a.validate_and_set(table, append)
+            a.validate_and_set(self, append)
 
         # add the rows
         self.write_data(chunksize, dropna=dropna)
@@ -3888,7 +4010,7 @@ class AppendableFrameTable(AppendableTable):
 
             # if we have a DataIndexableCol, its shape will only be 1 dim
             if values.ndim == 1:
-                values = values.reshape(1, values.shape[0])
+                values = values.reshape((1, values.shape[0]))
 
             block = make_block(values, placement=np.arange(len(cols_)))
             mgr = BlockManager([block], [cols_, index_])
@@ -3983,10 +4105,10 @@ class GenericTable(AppendableFrameTable):
         self.non_index_axes = []
         self.nan_rep = None
         self.levels = []
-        t = self.table
-        self.index_axes = [a.infer(t)
+
+        self.index_axes = [a.infer(self)
                            for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [a.infer(t)
+        self.values_axes = [a.infer(self)
                             for a in self.indexables if not a.is_an_indexable]
         self.data_columns = [a.name for a in self.values_axes]
 

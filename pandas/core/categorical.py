@@ -319,6 +319,15 @@ class Categorical(PandasObject):
         """Number of dimensions of the Categorical """
         return self._codes.ndim
 
+    def reshape(self, new_shape, **kwargs):
+        """ compat with .reshape """
+        return self
+
+    @property
+    def base(self):
+        """ compat, we are always our own object """
+        return None
+
     @classmethod
     def from_array(cls, data, **kwargs):
         """
@@ -363,9 +372,8 @@ class Categorical(PandasObject):
 
         categories = cls._validate_categories(categories)
 
-        if codes.max() >= len(categories) or codes.min() < -1:
+        if len(codes) and (codes.max() >= len(categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and len(categories)-1")
-
 
         return Categorical(codes, categories=categories, ordered=ordered, name=name, fastpath=True)
 
