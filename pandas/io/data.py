@@ -685,8 +685,14 @@ class Options(object):
             except IndexError:
                 self.underlying_price, self.quote_time = np.nan, np.nan
 
-        calls = self._process_data(frames[self._TABLE_LOC['calls']], 'call')
-        puts = self._process_data(frames[self._TABLE_LOC['puts']], 'put')
+        calls = frames[self._TABLE_LOC['calls']]
+        puts = frames[self._TABLE_LOC['puts']]
+
+        if len(calls) == 0 or len(puts) == 0:
+            raise RemoteDataError('Received no data from Yahoo at url: %s' % url)
+
+        calls = self._process_data(calls, 'call')
+        puts = self._process_data(puts, 'put')
 
         return {'calls': calls, 'puts': puts}
 
