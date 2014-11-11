@@ -38,12 +38,24 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta(10.0,unit='d').value, expected)
         self.assertEqual(Timedelta('10 days').value, expected)
         self.assertEqual(Timedelta(days=10).value, expected)
+        self.assertEqual(Timedelta(days=10.0).value, expected)
 
         expected += np.timedelta64(10,'s').astype('m8[ns]').view('i8')
         self.assertEqual(Timedelta('10 days 00:00:10').value, expected)
         self.assertEqual(Timedelta(days=10,seconds=10).value, expected)
         self.assertEqual(Timedelta(days=10,milliseconds=10*1000).value, expected)
         self.assertEqual(Timedelta(days=10,microseconds=10*1000*1000).value, expected)
+        
+        # test construction with np dtypes
+        # GH 8757
+        timedelta_kwargs = {'days':'D', 'seconds':'s', 'microseconds':'us', 
+                            'milliseconds':'ms', 'minutes':'m', 'hours':'h', 'weeks':'W'}
+        npdtypes = [np.int64, np.int32, np.int16, 
+                    np.float64, np.float32, np.float16]
+        for npdtype in npdtypes:
+            for pykwarg, npkwarg in timedelta_kwargs.items():
+                expected = np.timedelta64(1, npkwarg).astype('m8[ns]').view('i8')
+                self.assertEqual(Timedelta(**{pykwarg:npdtype(1)}).value, expected)
 
         # rounding cases
         self.assertEqual(Timedelta(82739999850000).value, 82739999850000)
