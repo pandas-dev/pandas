@@ -13,6 +13,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import iterkeys
+from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
@@ -80,6 +81,8 @@ class TestStata(tm.TestCase):
 
         self.dta18_115 = os.path.join(self.dirpath, 'stata9_115.dta')
         self.dta18_117 = os.path.join(self.dirpath, 'stata9_117.dta')
+
+        self.dta19_117 = os.path.join(self.dirpath, 'stata10_117.dta')
 
 
     def read_dta(self, file):
@@ -743,6 +746,12 @@ class TestStata(tm.TestCase):
         with tm.assertRaises(ValueError):
             columns = ['byte_', 'int_', 'long_', 'not_found']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
+
+    def test_categorical_sorting(self):
+        dataset = read_stata(self.dta19_117)
+        dataset = dataset.sort("srh")
+        expected = Categorical.from_codes(codes=[-1, -1, 0, 1, 1, 1, 2, 2, 3, 4], categories=["Poor", "Fair", "Good", "Very good", "Excellent"])
+        tm.assert_equal(True, (np.asarray(expected)==np.asarray(dataset["srh"])).all())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

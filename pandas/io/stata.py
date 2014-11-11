@@ -1139,12 +1139,21 @@ class StataReader(StataParser):
             )[0]
             for i in cols:
                 col = data.columns[i]
-                labeled_data = np.copy(data[col])
-                labeled_data = labeled_data.astype(object)
-                for k, v in compat.iteritems(
-                        self.value_label_dict[self.lbllist[i]]):
-                    labeled_data[(data[col] == k).values] = v
-                data[col] = Categorical.from_array(labeled_data)
+                codes = np.copy(data[col])
+                labeldict = self.value_label_dict[self.lbllist[i]]
+                for j in range(len(codes)):
+                    if np.isnan(codes[j]):
+                        codes[j] = -1
+                    else:
+                        codes[j] = codes[j]-1
+                codes = codes.astype(int)
+                categories = []
+                for j in range(max(labeldict.keys())):
+                    try:
+                        categories.append(labeldict[j+1])
+                    except:
+                        categories.append(j+1)
+                data[col] = Categorical.from_codes(codes, categories, ordered=True)
 
         if not preserve_dtypes:
             retyped_data = []

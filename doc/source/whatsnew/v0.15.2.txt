@@ -27,6 +27,7 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+- StataReader: Properly support sorting categorical variables read from stata files.
 
 .. _whatsnew_0152.performance:
 
