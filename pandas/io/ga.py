@@ -430,7 +430,7 @@ def _clean_index(index_dims, parse_dates):
     to_remove = pd.Index(set(to_remove))
     to_add = pd.Index(set(to_add))
 
-    return index_dims - to_remove + to_add
+    return index_dims.difference(to_remove).union(to_add)
 
 
 def _get_col_names(header_info):
