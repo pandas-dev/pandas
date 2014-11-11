@@ -890,8 +890,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
+
 TimedeltaIndex._add_numeric_methods()
+TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
+
 
 def _is_convertible_to_index(other):
     """ return a boolean whether I can attempt conversion to a TimedeltaIndex """

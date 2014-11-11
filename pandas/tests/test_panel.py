@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
+from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
@@ -2101,6 +2102,24 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         np.testing.assert_raises(Exception, pan.update, *(pan,),
                                  **{'raise_conflict': True})
+
+    def test_all_any(self):
+        self.assertTrue((self.panel.all(axis=0).values ==
+                         nanall(self.panel, axis=0)).all())
+        self.assertTrue((self.panel.all(axis=1).values ==
+                         nanall(self.panel, axis=1).T).all())
+        self.assertTrue((self.panel.all(axis=2).values ==
+                         nanall(self.panel, axis=2).T).all())
+        self.assertTrue((self.panel.any(axis=0).values ==
+                         nanany(self.panel, axis=0)).all())
+        self.assertTrue((self.panel.any(axis=1).values ==
+                         nanany(self.panel, axis=1).T).all())
+        self.assertTrue((self.panel.any(axis=2).values ==
+                         nanany(self.panel, axis=2).T).all())
+
+    def test_all_any_unhandled(self):
+        self.assertRaises(NotImplementedError, self.panel.all, bool_only=True)
+        self.assertRaises(NotImplementedError, self.panel.any, bool_only=True)
 
 
 class TestLongPanel(tm.TestCase):

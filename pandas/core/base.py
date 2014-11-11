@@ -268,18 +268,6 @@ class FrozenNDArray(PandasObject, np.ndarray):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-def _unbox(func):
-    @Appender(func.__doc__)
-    def f(self, *args, **kwargs):
-        result = func(self.values, *args, **kwargs)
-        from pandas.core.index import Index
-        if isinstance(result, (np.ndarray, com.ABCSeries, Index)) and result.ndim == 0:
-            # return NumPy type
-            return result.dtype.type(result.item())
-        else:  # pragma: no cover
-            return result
-    f.__name__ = func.__name__
-    return f
 
 class IndexOpsMixin(object):
     """ common ops mixin to support a unified inteface / docs for Series / Index """
@@ -527,12 +515,6 @@ class IndexOpsMixin(object):
         except AttributeError:
             from pandas.core.index import Index
             return Index(duplicated)
-
-    #----------------------------------------------------------------------
-    # unbox reductions
-
-    all = _unbox(np.ndarray.all)
-    any = _unbox(np.ndarray.any)
 
     #----------------------------------------------------------------------
     # abstracts

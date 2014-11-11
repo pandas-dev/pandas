@@ -4133,68 +4133,6 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def any(self, axis=None, bool_only=None, skipna=True, level=None,
-            **kwargs):
-        """
-        Return whether any element is True over requested axis.
-        %(na_action)s
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : int or level name, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a DataFrame
-        bool_only : boolean, default None
-            Only include boolean data.
-
-        Returns
-        -------
-        any : Series (or DataFrame if level specified)
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            return self._agg_by_level('any', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanany, 'any', axis=axis, skipna=skipna,
-                            numeric_only=bool_only, filter_type='bool')
-
-    def all(self, axis=None, bool_only=None, skipna=True, level=None,
-            **kwargs):
-        """
-        Return whether all elements are True over requested axis.
-        %(na_action)s
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : int or level name, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a DataFrame
-        bool_only : boolean, default None
-            Only include boolean data.
-
-        Returns
-        -------
-        any : Series (or DataFrame if level specified)
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            return self._agg_by_level('all', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanall, 'all', axis=axis, skipna=skipna,
-                            numeric_only=bool_only, filter_type='bool')
-
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
         axis = self._get_axis_number(axis)

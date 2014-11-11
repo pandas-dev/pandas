@@ -75,6 +75,15 @@ class Base(object):
                               "cannot perform __floordiv__",
                               lambda : 1 // idx)
 
+    def test_logical_compat(self):
+        idx = self.create_index()
+        tm.assertRaisesRegexp(TypeError,
+                              'cannot perform all',
+                              lambda : idx.all())
+        tm.assertRaisesRegexp(TypeError,
+                              'cannot perform any',
+                              lambda : idx.any())
+
     def test_boolean_context_compat(self):
 
         # boolean context compat
@@ -820,6 +829,11 @@ class TestIndex(Base, tm.TestCase):
         expected = self.dateIndex[indexer]
         self.assertTrue(result.equals(expected))
 
+    def test_logical_compat(self):
+        idx = self.create_index()
+        self.assertEqual(idx.all(), idx.values.all())
+        self.assertEqual(idx.any(), idx.values.any())
+
     def _check_method_works(self, method):
         method(self.empty)
         method(self.dateIndex)
@@ -1466,6 +1480,11 @@ class TestInt64Index(Numeric, tm.TestCase):
         same_values = Index(self.index, dtype=object)
         self.assertTrue(self.index.equals(same_values))
         self.assertTrue(same_values.equals(self.index))
+
+    def test_logical_compat(self):
+        idx = self.create_index()
+        self.assertEqual(idx.all(), idx.values.all())
+        self.assertEqual(idx.any(), idx.values.any())
 
     def test_identical(self):
         i = Index(self.index.copy())
