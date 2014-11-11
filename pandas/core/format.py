@@ -614,7 +614,7 @@ class DataFrameFormatter(TableFormatter):
             fmt = self._get_formatter('__index__')
             fmt_index = self.frame.index.format(sparsify=self.sparsify,
                                                 adjoin=False,
-                                                names=False,
+                                                names=True,
                                                 formatter=fmt)
 
             for i, lev in enumerate(fmt_index):
