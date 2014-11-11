@@ -152,6 +152,7 @@ class GbqConnector:
                 raise MissingOauthCredentials("Required google cloud authentication credentials file {0} missing.".format(credfn))
             gcloud_cred = json.loads(open(credfn).read())['data'][0]['credential']
             credentials = Credentials.new_from_json(json.dumps(gcloud_cred))
+            return credentials
         else:
             storage = Storage('bigquery_credentials.dat')
             credentials = storage.get()
