@@ -2139,9 +2139,11 @@ class TestIndexing(tm.TestCase):
         df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
         df = df.sortlevel(0, axis=1)
 
-        result = df.loc[:, ([], slice(None))]
+        result1 = df.loc[:, ([], slice(None))]
+        result2 = df.loc[:, (['foo'], [])]
         expected = DataFrame(index=range(5),columns=multi_index.reindex([])[0])
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
 
         # regression from < 0.14.0
         # GH 7914
