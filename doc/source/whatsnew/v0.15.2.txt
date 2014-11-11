@@ -44,5 +44,5 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``groupby`` signatures that didn't include *args or **kwargs (:issue:`8733`).
-- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
 - Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
