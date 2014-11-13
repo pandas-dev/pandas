@@ -41,6 +41,7 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+- Added ability to export Categorical data to Stata (:issue:`8633`).
 
 .. _whatsnew_0152.performance:
 
