@@ -12110,6 +12110,70 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df_named.stack(level=1).stack(level=1)
         )
 
+    def test_stack_mixed_levels(self):
+        columns = MultiIndex.from_tuples(
+            [('A', 'cat', 'long'), ('B', 'cat', 'long'),
+             ('A', 'dog', 'short'), ('B', 'dog', 'short')],
+            names=['exp', 'animal', 'hair_length']
+        )
+        df = DataFrame(randn(4, 4), columns=columns)
+
+        animal_hair_stacked = df.stack(level=['animal', 'hair_length'])
+        exp_hair_stacked = df.stack(level=['exp', 'hair_length'])
+
+        # GH #8584: Need to check that stacking works when a number
+        # is passed that is both a level name and in the range of
+        # the level numbers
+        df2 = df.copy()
+        df2.columns.names = ['exp', 'animal', 1]
+        assert_frame_equal(df2.stack(level=['animal', 1]),
+                           animal_hair_stacked,  check_names=False)
+        assert_frame_equal(df2.stack(level=['exp', 1]),
+                           exp_hair_stacked,  check_names=False)
+
+        # When mixed types are passed and the ints are not level
+        # names, raise
+        self.assertRaises(ValueError, df2.stack, level=['animal', 0])
+
+        # GH #8584: Having 0 in the level names could raise a
+        # strange error about lexsort depth
+        df3 = df.copy()
+        df3.columns.names = ['exp', 'animal', 0]
+        assert_frame_equal(df3.stack(level=['animal', 0]),
+                           animal_hair_stacked, check_names=False)
+
+    def test_stack_int_level_names(self):
+        columns = MultiIndex.from_tuples(
+            [('A', 'cat', 'long'), ('B', 'cat', 'long'),
+             ('A', 'dog', 'short'), ('B', 'dog', 'short')],
+            names=['exp', 'animal', 'hair_length']
+        )
+        df = DataFrame(randn(4, 4), columns=columns)
+
+        exp_animal_stacked = df.stack(level=['exp', 'animal'])
+        animal_hair_stacked = df.stack(level=['animal', 'hair_length'])
+        exp_hair_stacked = df.stack(level=['exp', 'hair_length'])
+
+        df2 = df.copy()
+        df2.columns.names = [0, 1, 2]
+        assert_frame_equal(df2.stack(level=[1, 2]), animal_hair_stacked,
+                           check_names=False )
+        assert_frame_equal(df2.stack(level=[0, 1]), exp_animal_stacked,
+                           check_names=False)
+        assert_frame_equal(df2.stack(level=[0, 2]), exp_hair_stacked,
+                           check_names=False)
+
+        # Out-of-order int column names
+        df3 = df.copy()
+        df3.columns.names = [2, 0, 1]
+        assert_frame_equal(df3.stack(level=[0, 1]), animal_hair_stacked,
+                           check_names=False)
+        assert_frame_equal(df3.stack(level=[2, 0]), exp_animal_stacked,
+                           check_names=False)
+        assert_frame_equal(df3.stack(level=[2, 1]), exp_hair_stacked,
+                           check_names=False)
+
+
     def test_unstack_bool(self):
         df = DataFrame([False, False],
                        index=MultiIndex.from_arrays([['a', 'b'], ['c', 'l']]),

@@ -98,3 +98,6 @@ Bug Fixes
 - Bug in `pd.infer_freq`/`DataFrame.inferred_freq` that prevented proper sub-daily frequency inference
   when the index contained DST days (:issue:`8772`).
 - Bug where index name was still used when plotting a series with ``use_index=False`` (:issue:`8558`).
+
+- Bugs when trying to stack multiple columns, when some (or all)
+  of the level names are numbers (:issue:`8584`).

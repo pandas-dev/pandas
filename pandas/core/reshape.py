@@ -525,10 +525,10 @@ def stack(frame, level=-1, dropna=True):
             raise ValueError(msg)
 
     # Will also convert negative level numbers and check if out of bounds.
-    level = frame.columns._get_level_number(level)
+    level_num = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(frame, level=level, dropna=dropna)
+        return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_levels.append(frame.columns)
@@ -595,19 +595,43 @@ def stack_multiple(frame, level, dropna=True):
     return result
 
 
-def _stack_multi_columns(frame, level=-1, dropna=True):
+def _stack_multi_columns(frame, level_num=-1, dropna=True):
+    def _convert_level_number(level_num, columns):
+        """
+        Logic for converting the level number to something
+        we can safely pass to swaplevel:
+
+        We generally want to convert the level number into
+        a level name, except when columns do not have names,
+        in which case we must leave as a level number
+        """
+        if level_num in columns.names:
+            return columns.names[level_num]
+        else:
+            if columns.names[level_num] is None:
+                return level_num
+            else:
+                return columns.names[level_num]
+
     this = frame.copy()
 
     # this makes life much simpler
-    if level != frame.columns.nlevels - 1:
+    if level_num != frame.columns.nlevels - 1:
         # roll levels to put selected level at end
         roll_columns = this.columns
-        for i in range(level, frame.columns.nlevels - 1):
-            roll_columns = roll_columns.swaplevel(i, i + 1)
+        for i in range(level_num, frame.columns.nlevels - 1):
+            # Need to check if the ints conflict with level names
+            lev1 = _convert_level_number(i, roll_columns)
+            lev2 = _convert_level_number(i + 1, roll_columns)
+            roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = roll_columns
 
     if not this.columns.is_lexsorted():
-        this = this.sortlevel(0, axis=1)
+        # Workaround the edge case where 0 is one of the column names,
+        # which interferes with trying to sort based on the first
+        # level
+        level_to_sort = _convert_level_number(0, this.columns)
+        this = this.sortlevel(level_to_sort, axis=1)
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
@@ -660,9 +684,9 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(frame.columns.levels[level])
+    new_levels.append(frame.columns.levels[level_num])
     new_labels.append(np.tile(np.arange(levsize), N))
-    new_names.append(frame.columns.names[level])
+    new_names.append(frame.columns.names[level_num])
 
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
                            names=new_names, verify_integrity=False)
