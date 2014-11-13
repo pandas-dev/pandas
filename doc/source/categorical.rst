@@ -236,7 +236,7 @@ which are removed are replaced by ``np.nan``.:
     s = s.cat.remove_categories([4])
     s
 
-Renaming unused categories
+Removing unused categories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Removing unused categories can also be done:
