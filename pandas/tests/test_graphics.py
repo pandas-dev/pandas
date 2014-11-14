@@ -569,6 +569,16 @@ class TestSeriesPlots(TestPlotBase):
             ax = _check_plot_works(d.plot, kind='area', stacked=False)
             self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
+    def test_line_use_index_false(self):
+        s = Series([1, 2, 3], index=['a', 'b', 'c'])
+        s.index.name = 'The Index'
+        ax = s.plot(use_index=False)
+        label = ax.get_xlabel()
+        self.assertEqual(label, '')
+        ax2 = s.plot(kind='bar', use_index=False)
+        label2 = ax2.get_xlabel()
+        self.assertEqual(label2, '')
+
     @slow
     def test_bar_log(self):
         expected = np.array([1., 10., 100., 1000.])
