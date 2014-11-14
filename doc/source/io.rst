@@ -1995,10 +1995,7 @@ indices to be parsed.
 .. note::
 
    It is possible to transform the contents of Excel cells via the `converters`
-   option. It accepts a dictionary of functions: the keys are the names or
-   indices of columns to be transformed, the values are functions that take one
-   input argument, the Excel cell content, and return the transformed content.
-   For instance, to convert a column to boolean:
+   option. For instance, to convert a column to boolean:
    
    .. code-block:: python
    

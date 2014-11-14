@@ -85,7 +85,9 @@ def read_excel(io, sheetname=0, **kwds):
         Rows at the end to skip (0-indexed)
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
-        either be integers or column labels
+        either be integers or column labels, values are functions that take one
+        input argument, the Excel cell content, and return the transformed
+        content.
     index_col : int, default None
         Column to use as the row labels of the DataFrame. Pass None if
         there is no such column

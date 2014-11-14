@@ -1274,6 +1274,11 @@ def TextParser(*args, **kwds):
         Row numbers to skip
     skip_footer : int
         Number of line at bottom of file to skip
+    converters : dict, default None
+        Dict of functions for converting values in certain columns. Keys can
+        either be integers or column labels, values are functions that take one
+        input argument, the cell (not column) content, and return the
+        transformed content.
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     squeeze : boolean, default False
