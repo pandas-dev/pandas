@@ -64,3 +64,4 @@ Bug Fixes
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`).
+- Bug where ``get_data_google``returned object dtypes (:issue:`3995`)
