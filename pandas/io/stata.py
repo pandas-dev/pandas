@@ -1139,15 +1139,11 @@ class StataReader(StataParser):
             )[0]
             for i in cols:
                 col = data.columns[i]
-                codes = np.copy(data[col])
-                labeldict = self.value_label_dict[self.lbllist[i]]
-                for j in range(len(codes)):
-                    if np.isnan(codes[j]):
-                        codes[j] = -1
-                    else:
-                        codes[j] = codes[j]-1
+                codes = np.nan_to_num(data[col])
                 codes = codes.astype(int)
+                codes = codes-1
                 categories = []
+                labeldict = self.value_label_dict[self.lbllist[i]]
                 for j in range(max(labeldict.keys())):
                     try:
                         categories.append(labeldict[j+1])
