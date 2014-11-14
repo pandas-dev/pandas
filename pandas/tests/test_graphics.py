@@ -2041,6 +2041,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_hist_df(self):
+        if self.mpl_le_1_2_1:
+            raise nose.SkipTest("not supported in matplotlib <= 1.2.x")
+
         df = DataFrame(randn(100, 4))
         series = df[0]
 
