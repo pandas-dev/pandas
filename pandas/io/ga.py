@@ -20,6 +20,7 @@ from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
 from pandas.compat import zip, u
 
+
 TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
 
 NO_CALLBACK = auth.OOB_CALLBACK_URN
@@ -251,7 +252,7 @@ class GDataReader(OAuthDataReader):
                  converters=None, sort=True, dayfirst=False,
                  account_name=None, account_id=None, property_name=None,
                  property_id=None, profile_name=None, profile_id=None,
-                 chunksize=None):
+                 chunksize=None, raw_filters=False):
         if chunksize is None and max_results > 10000:
             raise ValueError('Google API returns maximum of 10,000 rows, '
                              'please set chunksize')
@@ -274,8 +275,7 @@ class GDataReader(OAuthDataReader):
                                       end_date=end_date, dimensions=dimensions,
                                       segment=segment, filters=filters,
                                       start_index=start,
-                                      max_results=result_size)
-
+                                      max_results=result_size, raw_filters=raw_filters)
             try:
                 rs = query.execute()
                 rows = rs.get('rows', [])
@@ -332,6 +332,7 @@ class GAnalytics(GDataReader):
                            dimensions=dimensions, segment=segment,
                            filters=filters, start_index=start_index,
                            max_results=max_results, **kwargs)
+        print("QUERY\n{}".format(qry))
         try:
             return self.service.data().ga().get(**qry)
         except TypeError as error:
@@ -376,8 +377,11 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
     if max_results is not None:
         qry['max_results'] = str(max_results)
 
-    return qry
+    if kwargs['raw_filters'] == True:
+        qry['filters'] = filters
+    del qry['raw_filters']
 
+    return qry
 
 def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
