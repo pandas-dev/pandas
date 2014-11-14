@@ -268,6 +268,24 @@ class TestFrequencyInference(tm.TestCase):
                 idx = DatetimeIndex(dates, tz=tz)
                 self.assertEqual(idx.inferred_freq, expected)
 
+    def test_infer_freq_tz_transition(self):
+        # Tests for #8772
+        date_pairs = [['2013-11-02', '2013-11-5'], #Fall DST
+                      ['2014-03-08', '2014-03-11'], #Spring DST
+                      ['2014-01-01', '2014-01-03']] #Regular Time
+        freqs = ['3H', '10T', '3601S', '3600001L', '3600000001U', '3600000000001N']
+
+        for tz in [None, 'Australia/Sydney', 'Asia/Tokyo', 'Europe/Paris',
+                   'US/Pacific', 'US/Eastern']:
+            for date_pair in date_pairs:
+                for freq in freqs:
+                    idx = date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
+                    print(idx)
+                    self.assertEqual(idx.inferred_freq, freq)
+                
+        index = date_range("2013-11-03", periods=5, freq="3H").tz_localize("America/Chicago")
+        self.assertIsNone(index.inferred_freq)
+
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
         rng = rng[::-1]
