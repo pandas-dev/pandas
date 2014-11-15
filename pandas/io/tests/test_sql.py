@@ -1155,6 +1155,19 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_transactions(self):
         self._transaction_test()
 
+    def test_get_schema_create_table(self):
+        self._load_test2_data()
+        tbl = 'test_get_schema_create_table'
+        create_sql = sql.get_schema(self.test_frame2, tbl, con=self.conn)
+        blank_test_df = self.test_frame2.iloc[:0]
+
+        self.drop_table(tbl)
+        self.conn.execute(create_sql)
+        returned_df = sql.read_sql_table(tbl, self.conn)
+        tm.assert_frame_equal(returned_df, blank_test_df)
+        self.drop_table(tbl)
+
+
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
     Test the sqlalchemy backend against an in-memory sqlite database.

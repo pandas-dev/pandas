@@ -621,7 +621,7 @@ class SQLTable(PandasObject):
 
     def sql_schema(self):
         from sqlalchemy.schema import CreateTable
-        return str(CreateTable(self.table))
+        return str(CreateTable(self.table).compile(self.pd_sql.engine))
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
