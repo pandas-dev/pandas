@@ -3541,16 +3541,20 @@ The following will fetch users and pageviews (metrics) data per day of the week,
         start_date  = "2014-01-01",
         end_date    = "2014-08-01",
         index_col   = 0,
+        filters     = "pagePath=~aboutus;ga:country==France",
     )
 
 The only mandatory arguments are ``metrics,`` ``dimensions`` and ``start_date``. We can only strongly recommend you to always specify the ``account_id``, ``profile_id`` and ``property_id`` to avoid accessing the wrong data bucket in Google Analytics.
 
 The ``index_col`` argument indicates which dimension(s) has to be taken as index.
 
-Detailed informations in the following blogposts:
+The ``filters`` argument indicates the filtering to apply to the query. In the above example, the page has URL has to contain ``aboutus`` AND the visitors country has to be France.
+
+Detailed informations in the followings:
 
 * `pandas & google analytics, by yhat <http://blog.yhathq.com/posts/pandas-google-analytics.html>`__
 * `Google Analytics integration in pandas, by Chang She <http://quantabee.wordpress.com/2012/12/17/google-analytics-pandas/>`__
+* `Google Analytics Dimensions and Metrics Reference <https://developers.google.com/analytics/devguides/reporting/core/dimsmets>`_
 
 .. _io.bigquery:
 
