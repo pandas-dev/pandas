@@ -6,7 +6,7 @@ from pandas import tslib
 import datetime
 
 from pandas.core.api import Timestamp, Series
-from pandas.tslib import period_asfreq, period_ordinal
+from pandas.tslib import period_asfreq, period_ordinal, get_timezone
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets
@@ -297,6 +297,11 @@ class TestTimestamp(tm.TestCase):
 
         # One us more than the maximum is an error
         self.assertRaises(ValueError, Timestamp, max_ts_us + one_us)
+
+    def test_utc_z_designator(self):
+        self.assertEqual(get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo), 'UTC')
+        self.assertEqual(get_timezone(Timestamp('2014-11-02 01:00Z00').tzinfo), 'UTC')
+        self.assertRaises(ValueError, Timestamp, '2014-11-02 01:00Z0')
 
 
 class TestDatetimeParsingWrappers(tm.TestCase):

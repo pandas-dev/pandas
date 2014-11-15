@@ -93,3 +93,4 @@ Bug Fixes
 
 - Bug in `pd.infer_freq`/`DataFrame.inferred_freq` that prevented proper sub-daily frequency inference
   when the index contained DST days (:issue:`8772`).
+- Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)
