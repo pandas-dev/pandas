@@ -132,7 +132,7 @@ If you want to do a full clean build, do::
     python make.py build
 
 
-Staring with 0.13.1 you can tell ``make.py`` to compile only a single section
+Starting with 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
 You will be prompted to delete `.rst` files that aren't required, since the
 last committed version can always be restored from git.
