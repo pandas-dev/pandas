@@ -1992,6 +1992,27 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
+.. note::
+
+   It is possible to transform the contents of Excel cells via the `converters`
+   option. For instance, to convert a column to boolean:
+   
+   .. code-block:: python
+   
+      read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   
+   This options handles missing values and treats exceptions in the converters
+   as missing data. Transformations are applied cell by cell rather than to the
+   column as a whole, so the array dtype is not guaranteed. For instance, a
+   column of integers with missing values cannot be transformed to an array
+   with integer dtype, because NaN is strictly a float. You can manually mask
+   missing data to recover integer dtype:
+   
+   .. code-block:: python
+   
+      cfun = lambda x: int(x) if x else -1
+      read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
 described above, the first argument being the name of the excel file, and the
