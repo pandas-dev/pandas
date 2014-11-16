@@ -1633,16 +1633,16 @@ class Timedelta(_Timedelta):
         if value is None:
             if not len(kwargs):
                 raise ValueError("cannot construct a TimeDelta without a value/unit or descriptive keywords (days,seconds....)")
-            
+
             def _to_py_int_float(v):
                 if is_integer_object(v):
                     return int(v)
                 elif is_float_object(v):
                     return float(v)
                 raise TypeError("Invalid type {0}. Must be int or float.".format(type(v)))
-                    
+
             kwargs = dict([ (k, _to_py_int_float(v)) for k, v in iteritems(kwargs) ])
-            
+
             try:
                 value = timedelta(**kwargs)
             except TypeError as e:
@@ -2753,8 +2753,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
     result_b.fill(NPY_NAT)
 
     # left side
-    idx_shifted = ensure_int64(
-        np.maximum(0, trans.searchsorted(vals - DAY_NS, side='right') - 1))
+    idx_shifted = (np.maximum(0, trans.searchsorted(vals - DAY_NS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         v = vals[i] - deltas[idx_shifted[i]]
@@ -2765,8 +2764,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
             result_a[i] = v
 
     # right side
-    idx_shifted = ensure_int64(
-        np.maximum(0, trans.searchsorted(vals + DAY_NS, side='right') - 1))
+    idx_shifted = (np.maximum(0, trans.searchsorted(vals + DAY_NS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         v = vals[i] - deltas[idx_shifted[i]]
@@ -2849,10 +2847,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
             raise pytz.NonExistentTimeError(stamp)
 
     return result
-
-import pandas.algos as algos
-ensure_int64 = algos.ensure_int64
-
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n
