@@ -1685,7 +1685,7 @@ class LinePlot(MPLPlot):
                     self.rot = 30
                 format_date_labels(ax, rot=self.rot)
 
-            if index_name is not None:
+            if index_name is not None and self.use_index:
                 ax.set_xlabel(index_name)
 
 
@@ -1874,7 +1874,7 @@ class BarPlot(MPLPlot):
                 ax.set_xticklabels(str_index)
                 if not self.log: # GH3254+
                     ax.axhline(0, color='k', linestyle='--')
-                if name is not None:
+                if name is not None and self.use_index:
                     ax.set_xlabel(name)
             elif self.kind == 'barh':
                 # horizontal bars
@@ -1882,7 +1882,7 @@ class BarPlot(MPLPlot):
                 ax.set_yticks(self.tick_pos)
                 ax.set_yticklabels(str_index)
                 ax.axvline(0, color='k', linestyle='--')
-                if name is not None:
+                if name is not None and self.use_index:
                     ax.set_ylabel(name)
             else:
                 raise NotImplementedError(self.kind)
