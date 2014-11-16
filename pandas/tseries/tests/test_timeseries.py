@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0612
+import calendar
 from datetime import datetime, time, timedelta
 import sys
 import operator
@@ -3291,6 +3292,16 @@ class TestTimestamp(tm.TestCase):
         compare(Timestamp.now('UTC'), datetime.now(timezone('UTC')))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
+        current_time = calendar.timegm(datetime.now().utctimetuple())
+        compare(Timestamp.utcfromtimestamp(current_time),
+                datetime.utcfromtimestamp(current_time))
+        compare(Timestamp.fromtimestamp(current_time),
+                datetime.fromtimestamp(current_time))
+
+        date_component = datetime.utcnow()
+        time_component = (date_component + timedelta(minutes=10)).time()
+        compare(Timestamp.combine(date_component, time_component),
+                datetime.combine(date_component, time_component))
 
     def test_class_ops_dateutil(self):
         tm._skip_if_no_dateutil()
@@ -3303,6 +3314,16 @@ class TestTimestamp(tm.TestCase):
         compare(Timestamp.now('UTC'), datetime.now(tzutc()))
         compare(Timestamp.utcnow(),datetime.utcnow())
         compare(Timestamp.today(),datetime.today())
+        current_time = calendar.timegm(datetime.now().utctimetuple())
+        compare(Timestamp.utcfromtimestamp(current_time),
+                datetime.utcfromtimestamp(current_time))
+        compare(Timestamp.fromtimestamp(current_time),
+                datetime.fromtimestamp(current_time))
+
+        date_component = datetime.utcnow()
+        time_component = (date_component + timedelta(minutes=10)).time()
+        compare(Timestamp.combine(date_component, time_component),
+                datetime.combine(date_component, time_component))
 
     def test_basics_nanos(self):
         val = np.int64(946684800000000000).view('M8[ns]')
