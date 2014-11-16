@@ -380,7 +380,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         try:
             inferred_tz = tools._infer_tzinfo(start, end)
-        except:
+        except AssertionError:
             raise ValueError('Start and end cannot both be tz-aware with '
                              'different timezones')
 
@@ -394,7 +394,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not inferred_tz == tz:
+            if not tslib.get_timezone(inferred_tz) == tslib.get_timezone(tz):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
