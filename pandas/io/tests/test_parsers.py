@@ -485,7 +485,6 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         h = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
         data = h + no_header
-        # import pdb; pdb.set_trace()
         rs = self.read_csv(StringIO(data), index_col='ID')
         xp = self.read_csv(StringIO(data), header=0).set_index('ID')
         tm.assert_frame_equal(rs, xp)
@@ -2864,8 +2863,8 @@ A,B,C
     def test_whitespace_lines(self):
         data = """
 
-\t  \t\t 
-  \t  
+\t  \t\t
+  \t
 A,B,C
   \t    1,2.,4.
 5.,NaN,10.0
@@ -3110,8 +3109,8 @@ A,B,C
     def test_whitespace_lines(self):
         data = """
 
-\t  \t\t 
-  \t  
+\t  \t\t
+  \t
 A,B,C
   \t    1,2.,4.
 5.,NaN,10.0
@@ -3153,6 +3152,39 @@ A,B,C
             # valid but we don't support it
             self.assertRaises(TypeError, self.read_csv, path, dtype={'A' : 'timedelta64', 'B' : 'float64' },
                               index_col=0)
+
+    def test_dtype_and_names_error(self):
+
+        # GH 8833
+        # passing both dtype and names resulting in an error reporting issue
+
+        data = """
+1.0 1
+2.0 2
+3.0 3
+"""
+        # base cases
+        result = self.read_csv(StringIO(data),sep='\s+',header=None)
+        expected = DataFrame([[1.0,1],[2.0,2],[3.0,3]])
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'])
+        expected = DataFrame([[1.0,1],[2.0,2],[3.0,3]],columns=['a','b'])
+        tm.assert_frame_equal(result, expected)
+
+        # fallback casting
+        result = self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : int})
+        expected = DataFrame([[1,1],[2,2],[3,3]],columns=['a','b'])
+        tm.assert_frame_equal(result, expected)
+
+        data = """
+1.0 1
+nan 2
+3.0 3
+"""
+        # fallback casting, but not castable
+        with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
+            self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : int})
 
     def test_fallback_to_python(self):
         # GH 6607
