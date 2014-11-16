@@ -6632,6 +6632,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
+    def test_to_csv_read_csv_unicode_sep(self):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        separators = [u(','), u('\u2202')]
+        with ensure_clean() as path:
+            for sep in separators:
+                df.to_csv(path, encoding='UTF-8', delimiter=sep)
+                df2 = read_csv(path, index_col=0, encoding='UTF-8', delimiter=sep)
+                assert_frame_equal(df, df2)
+
+                df.to_csv(path, encoding='UTF-8', index=False, delimiter=sep)
+                df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                            delimiter=sep)
+                assert_frame_equal(df, df2)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
