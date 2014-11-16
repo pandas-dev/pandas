@@ -363,7 +363,8 @@ convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
  *           to be cast to the 'unit' parameter.
  *
  * 'out' gets filled with the parsed date-time.
- * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
+ * 'out_local' gets set to 1 if the parsed time contains timezone, 
+ *      to 0 otherwise.
  * 'out_tzoffset' gets set to timezone offset by minutes
  *      if the parsed time was in local time,
  *      to 0 otherwise. The values 'now' and 'today' don't get counted
@@ -785,10 +786,14 @@ parse_timezone:
 
     /* UTC specifier */
     if (*substr == 'Z') {
-        /* "Z" means not local */
+        /* "Z" should be equivalent to tz offset "+00:00" */
         if (out_local != NULL) {
-            *out_local = 0;
+            *out_local = 1;
         }
+
+        if (out_tzoffset != NULL) {
+            *out_tzoffset = 0;
+         }
 
         if (sublen == 1) {
             goto finish;
