@@ -15225,6 +15225,16 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         result = df.query('sin > 5', engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
 
+    def test_assignment_not_allowed(self):
+        df = DataFrame({'a': [1, 2, 3], 'b': ['a', 'b', 'c']})
+        a_before = df['a'].copy()
+        self.assertRaisesRegexp(
+            ValueError, 'assignment statement', df.query, 'a=1',
+            engine=self.engine, parser=self.parser
+        )
+        a_after = df['a'].copy()
+        assert_series_equal(a_before, a_after)
+
 
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
