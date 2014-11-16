@@ -1176,6 +1176,13 @@ class CSVFormatter(object):
 
         if path_or_buf is None:
             path_or_buf = StringIO()
+        if not compat.PY3 and isinstance(sep, compat.text_type):
+            try:
+                sep = compat.binary_type(sep)
+            except UnicodeDecodeError:
+                raise ValueError('must specify single-character'
+                                 ' ascii-compatible separator')
+
 
         self.path_or_buf = path_or_buf
         self.sep = sep

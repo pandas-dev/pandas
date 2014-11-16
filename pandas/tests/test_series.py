@@ -4482,7 +4482,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
-
     def test_from_csv(self):
 
         with ensure_clean() as path:
@@ -4532,6 +4531,31 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
 
         assert_series_equal(s, s2)
+
+    def test_to_csv_ascii_unicode_delimiter(self):
+        sep = u("|")
+        buf = StringIO()
+        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
+
+        s.to_csv(buf, encoding='UTF-8', sep=sep)
+        buf.seek(0)
+
+        s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8',
+                             sep=sep)
+
+        assert_series_equal(s, s2)
+        buf = StringIO()
+        self.ts.to_csv(buf, sep=sep)
+        buf.seek(0)
+        recons = Series.from_csv(buf, index_col=0, sep=sep)
+        assert_series_equal(self.ts, recons)
+
+    def test_to_csv_from_csv_non_ascii_unicode_delimiter_raises(self):
+        sep = u('\u2202')
+        buf = StringIO()
+
+        with tm.assertRaises(ValueError):
+            self.ts.to_csv(buf, encoding='UTF-8', sep=sep)
 
     def test_tolist(self):
         rs = self.ts.tolist()

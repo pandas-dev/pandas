@@ -402,6 +402,13 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
+        if engine == 'c' and isinstance(delimiter, compat.text_type):
+            try:
+                delimiter = delimiter.encode('ascii')
+            except Exception:
+                raise ValueError('cannot specify non-ascii delimiter with C'
+                                 ' engine')
+
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,

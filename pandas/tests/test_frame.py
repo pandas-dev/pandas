@@ -6632,19 +6632,34 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_read_csv_unicode_sep(self):
+    def test_to_csv_read_csv_ascii_sep_as_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
-        separators = [u(','), u('\u2202')]
         with ensure_clean() as path:
-            for sep in separators:
-                df.to_csv(path, encoding='UTF-8', delimiter=sep)
-                df2 = read_csv(path, index_col=0, encoding='UTF-8', delimiter=sep)
-                assert_frame_equal(df, df2)
+            sep = u('|')
+            df.to_csv(path, encoding='UTF-8', sep=sep)
+            df2 = read_csv(path, index_col=0, encoding='UTF-8', sep=sep)
+            assert_frame_equal(df, df2)
 
-                df.to_csv(path, encoding='UTF-8', index=False, delimiter=sep)
+            df.to_csv(path, encoding='UTF-8', index=False, sep=sep)
+            df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                           sep=sep)
+            assert_frame_equal(df, df2)
+            self.frame.to_csv(path, sep=sep)
+            recons = read_csv(path, index_col=0, sep=sep)
+
+            assert_frame_equal(self.frame, recons)
+
+    def test_to_csv_read_csv_non_ascii_unicode_sep(self):
+        with ensure_clean() as path:
+            sep = u('\u2202')
+            with tm.assertRaisesRegexp(ValueError, 'delimiter'):
                 df2 = read_csv(path, index_col=None, encoding='UTF-8',
-                            delimiter=sep)
-                assert_frame_equal(df, df2)
+                               sep=sep, engine='c')
+            if compat.PY3:
+                # non-ascii separators won't work in Python 2
+                df.to_csv(path, encoding='UTF-8', index=False, sep=sep)
+                df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                               sep=sep, engine='python')
 
     def test_info(self):
         io = StringIO()

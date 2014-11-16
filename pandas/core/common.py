@@ -2695,12 +2695,14 @@ else:
         A CSV reader which will iterate over lines in the CSV file "f",
         which is encoded in the given encoding.
 
-        On Python 3, this is replaced (below) by csv.reader, which handles
+        On Python 3, this is replaced (above) by csv.reader, which handles
         unicode.
         """
 
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
             f = UTF8Recoder(f, encoding)
+            if 'delimiter' in kwds and isinstance(kwds['delimiter'], unicode):
+                kwds['delimiter'] = str(kwds['delimiter'])
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
         def next(self):
@@ -2723,9 +2725,19 @@ else:
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
             # Redirect output to a queue
             self.queue = StringIO()
+            self.encoder = codecs.getincrementalencoder(encoding)()
+
+            if 'delimiter' in kwds and isinstance(kwds['delimiter'], unicode):
+                # python built-in csv reader can't handle non-ascii delimiters
+                # no matter what.
+                try:
+                    kwds['delimiter'] = str(kwds['delimiter'])
+                except UnicodeEncodeError: # pragma: no cover
+                    raise ValueError('cannot coerce delimiter %r to str' %
+                                     kwds['delimiter'])
+
             self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
             self.stream = f
-            self.encoder = codecs.getincrementalencoder(encoding)()
             self.quoting = kwds.get("quoting", None)
 
         def writerow(self, row):
