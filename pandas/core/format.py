@@ -1190,9 +1190,10 @@ class CSVFormatter(object):
                     decoded_sep = sep.decode()
                 else:
                     decoded_sep = sep.decode(encoding)
-                sep = sep.encode('utf8')
-            except UnicodeEncodeError as e:
-                raise ValueError('must specify seprator encodable into utf8')
+                sep = decoded_sep.encode('utf8')
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                raise ValueError('must specify seprator encodable into utf8'
+                                 ' (%s)' % e)
 
             if len(sep) > 1:
                 raise NotImplementedError('separators that are multi-byte in'
