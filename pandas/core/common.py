@@ -2732,7 +2732,7 @@ else:
                 # no matter what.
                 try:
                     kwds['delimiter'] = str(kwds['delimiter'])
-                except UnicodeEncodeError: # pragma: no cover
+                except UnicodeEncodeError:  # pragma: no cover
                     raise ValueError('cannot coerce delimiter %r to str' %
                                      kwds['delimiter'])
 
