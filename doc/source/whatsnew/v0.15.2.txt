@@ -65,7 +65,7 @@ Bug Fixes
 - Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
-
+- ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
 
 
 
