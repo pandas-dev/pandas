@@ -626,12 +626,13 @@ class TextFileReader(object):
                 if len(sep_bytes) == 1:
                     sep = sep_bytes
                 else:
-                    # python 2 CSV reader always works with bytes
-                    if compat.PY2:
+                    # python 2 CSV reader always works with bytes, so we can't
+                    # do anything else here but fail.
+                    if not compat.PY3:
                         raise ValueError('Must specify single byte sep'
                                          ' character')
                     fallback_reason = "the 'c' engine does not support"\
-                                      " non-ASCII separators"
+                                      " multi-byte separators"
                     engine = 'python'
 
 
