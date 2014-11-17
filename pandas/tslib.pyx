@@ -228,6 +228,17 @@ class Timestamp(_Timestamp):
     def utcnow(cls):
         return cls.now('UTC')
 
+    @classmethod
+    def utcfromtimestamp(cls, ts):
+        return cls(datetime.utcfromtimestamp(ts))
+
+    @classmethod
+    def fromtimestamp(cls, ts):
+        return cls(datetime.fromtimestamp(ts))
+
+    @classmethod
+    def combine(cls, date, time):
+        return cls(datetime.combine(date, time))
 
     def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
         cdef _TSObject ts
