@@ -1996,20 +1996,20 @@ indices to be parsed.
 
    It is possible to transform the contents of Excel cells via the `converters`
    option. For instance, to convert a column to boolean:
-   
+
    .. code-block:: python
-   
+
       read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
-   
+
    This options handles missing values and treats exceptions in the converters
    as missing data. Transformations are applied cell by cell rather than to the
    column as a whole, so the array dtype is not guaranteed. For instance, a
    column of integers with missing values cannot be transformed to an array
    with integer dtype, because NaN is strictly a float. You can manually mask
    missing data to recover integer dtype:
-   
+
    .. code-block:: python
-   
+
       cfun = lambda x: int(x) if x else -1
       read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
@@ -3098,13 +3098,16 @@ Categorical Data
 
 .. versionadded:: 0.15.2
 
-Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype was implemented
-in 0.15.2. Queries work the same as if it was an object array (but the ``Categorical`` is stored in a more efficient manner)
+Writing data to a ``HDFStore`` that contains a ``category`` dtype was implemented
+in 0.15.2. Queries work the same as if it was an object array. However, the ``category`` dtyped data is
+stored in a more efficient manner.
 
 .. ipython:: python
 
    dfcat = DataFrame({ 'A' : Series(list('aabbcdba')).astype('category'),
                        'B' : np.random.randn(8) })
+   dfcat
+   dfcat.dtypes
    cstore = pd.HDFStore('cats.h5', mode='w')
    cstore.append('dfcat', dfcat, format='table', data_columns=['A'])
    result = cstore.select('dfcat', where="A in ['b','c']")
@@ -3113,7 +3116,7 @@ in 0.15.2. Queries work the same as if it was an object array (but the ``Categor
 
 .. warning::
 
-   The format of the ``Categoricals` is readable by prior versions of pandas (< 0.15.2), but will retrieve
+   The format of the ``Categorical`` is readable by prior versions of pandas (< 0.15.2), but will retrieve
    the data as an integer based column (e.g. the ``codes``). However, the ``categories`` *can* be retrieved
    but require the user to select them manually using the explicit meta path.
 
