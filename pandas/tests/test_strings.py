@@ -628,6 +628,7 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
         tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
+        tm.assert_series_equal(empty_str, empty.str.slice(step=1))
         tm.assert_series_equal(empty_str, empty.str.strip())
         tm.assert_series_equal(empty_str, empty.str.lstrip())
         tm.assert_series_equal(empty_str, empty.str.rstrip())
@@ -922,6 +923,17 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['foo', 'bar', NA, 'baz'])
         tm.assert_series_equal(result, exp)
 
+        for start, stop, step in [(0, 3, -1), (None, None, -1),
+                                  (3, 10, 2), (3, 0, -1)]:
+            try:
+                result = values.str.slice(start, stop, step)
+                expected = Series([s[start:stop:step] if not isnull(s) else NA for s in
+                                   values])
+                tm.assert_series_equal(result, expected)
+            except:
+                print('failed on %s:%s:%s' % (start, stop, step))
+                raise
+
         # mixed
         mixed = Series(['aafootwo', NA, 'aabartwo', True, datetime.today(),
                         None, 1, 2.])
@@ -933,12 +945,20 @@ class TestStringMethods(tm.TestCase):
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
+        rs = Series(mixed).str.slice(2, 5, -1)
+        xp = Series(['oof', NA, 'rab', NA, NA,
+                     NA, NA, NA])
+
         # unicode
         values = Series([u('aafootwo'), u('aabartwo'), NA,
                          u('aabazqux')])
 
         result = values.str.slice(2, 5)
         exp = Series([u('foo'), u('bar'), NA, u('baz')])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.slice(0, -1, 2)
+        exp = Series([u('afow'), u('abrw'), NA, u('abzu')])
         tm.assert_series_equal(result, exp)
 
     def test_slice_replace(self):

@@ -674,6 +674,7 @@ def str_slice(arr, start=None, stop=None, step=1):
     ----------
     start : int or None
     stop : int or None
+    step : int or None
 
     Returns
     -------
@@ -994,7 +995,7 @@ class StringMethods(object):
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=1):
-        result = str_slice(self.series, start, stop)
+        result = str_slice(self.series, start, stop, step)
         return self._wrap_result(result)
 
     @copy(str_slice)
