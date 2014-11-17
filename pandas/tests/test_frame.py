@@ -6652,7 +6652,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_to_csv_read_csv_non_ascii_unicode_sep(self):
         with ensure_clean() as path:
             sep = u('\u2202')
-            with tm.assertRaisesRegexp(ValueError, 'delimiter'):
+            with tm.assertRaisesRegexp(ValueError, 'separator'):
                 df2 = read_csv(path, index_col=None, encoding='UTF-8',
                                sep=sep, engine='c')
             if compat.PY3:
