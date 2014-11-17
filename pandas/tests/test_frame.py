@@ -11261,16 +11261,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                              index=[4, 16, 2, 30, 10])})
         expected = expected.reindex([10, 30, 16, 13, 8, 5, 4, 2, 0])
         assert_frame_equal(df.value_counts(), expected)
-        # levels = Index(['(-0.03, 3]', '(3, 6]', '(6, 9]', '(9, 12]',
-        #             '(12, 15]', '(15, 18]', '(18, 21]', '(21, 24]',
-        #             '(24, 27]', '(27, 30]'], dtype=object)
-        bins = [-0.03, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30]
-        actual = df.value_counts(bins=10)
-        expected = DataFrame({"A": pd.cut(df["A"],
-                                          bins=bins).describe()['counts'], "B":
-                              pd.cut(df["B"], bins=bins).describe()['counts']})
-        expected = expected.sort(expected.sum(1))
-        assert_frame_equal(actual, expected)
         df = DataFrame({"A": ['a', 'a', 'a', 'c', 'd', 'e'],
                         "B": ['e', 'c', 'd', 'x', 'y', 'a']})
         actual = df.value_counts()
@@ -11279,6 +11269,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                               "B": Series([1, 1, 1, 1, 1, 1],
                                           index=['e', 'c', 'd', 'x', 'y',
                                                  'a'])})
+        expected = expected.ix[expected.sum(1).order(ascending=False).index]
+        assert_frame_equal(actual, expected)
+
+        # finally, with bins
+
+        # levels = Index(['(-0.03, 3]', '(3, 6]', '(6, 9]', '(9, 12]',
+        #             '(12, 15]', '(15, 18]', '(18, 21]', '(21, 24]',
+        #             '(24, 27]', '(27, 30]'], dtype=object)
+        bins = [-0.03, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30]
+        actual = df.value_counts(bins=bins)
+        expected = DataFrame({
+            "A": pd.cut(df["A"], bins=bins).value_counts(),
+            "B": pd.cut(df["B"], bins=bins).value_counts()
+        })
+        expected = expected.ix[expected.sum(1).order(ascending=False).index]
         assert_frame_equal(actual, expected)
 
     def test_sum(self):
