@@ -4551,6 +4551,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(self.ts, recons)
 
     def test_to_csv_from_csv_non_ascii_unicode_delimiter_raises(self):
+        if compat.PY3:
+            raise nose.SkipTest('non-ascii delimiter does not matter on py3')
         sep = u('\u2202')
         buf = StringIO()
 
