@@ -1171,6 +1171,10 @@ class TestStringMethods(tm.TestCase):
         expected = s.str.slice(stop=3)
         assert_series_equal(result, expected)
 
+        result = s.str[2::-1]
+        expected = s.str.slice(start=2, step=-1)
+        assert_series_equal(result, expected)
+
     def test_string_slice_out_of_bounds(self):
         s = Series([(1, 2), (1,), (3,4,5)])
 
