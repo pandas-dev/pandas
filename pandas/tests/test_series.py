@@ -4611,7 +4611,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(s, s2)
 
     def test_to_csv_from_csv_unicode_delimiter_no_encoding(self):
-        with self.ensure_clean() as path:
+        with ensure_clean() as path:
             # works with ascii
             sep = u(',')
             self.ts.to_csv(path, sep=sep)
