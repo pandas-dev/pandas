@@ -25,6 +25,8 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 
+MAX_ORDINAL_FOR_CHAR = 128
+
 class ParserWarning(Warning):
     pass
 
@@ -402,13 +404,6 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
-        if engine == 'c' and isinstance(delimiter, compat.text_type):
-            try:
-                delimiter = delimiter.encode('ascii')
-            except Exception:
-                raise ValueError('cannot specify non-ascii delimiter with C'
-                                 ' engine')
-
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -609,15 +604,21 @@ class TextFileReader(object):
                 fallback_reason = "the 'c' engine does not support"\
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
-        elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+
+        if sep is not None and engine not in ('python', 'python-fwf'):
+            if len(sep) > 1 and sep == '\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
-            elif engine not in ('python', 'python-fwf'):
+            elif len(sep) > 1:
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators"
                 engine = 'python'
+            elif len(sep) == 1 and isinstance(sep, compat.text_type):
+                if ord(sep) >= MAX_ORDINAL_FOR_CHAR:
+                    fallback_reason = "the 'c' engine does not support"\
+                                      " non-ASCII separators"
+                    engine = 'python'
 
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
