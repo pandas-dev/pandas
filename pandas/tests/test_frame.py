@@ -6634,8 +6634,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_to_csv_read_csv_ascii_sep_as_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        sep = u('|')
         with ensure_clean() as path:
-            sep = u('|')
             df.to_csv(path, encoding='UTF-8', sep=sep)
             df2 = read_csv(path, index_col=0, encoding='UTF-8', sep=sep)
             assert_frame_equal(df, df2)
@@ -6650,13 +6650,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             assert_frame_equal(self.frame, recons)
 
     def test_to_csv_read_csv_non_ascii_unicode_sep(self):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        sep = u('\u2202')
         with ensure_clean() as path:
-            sep = u('\u2202')
             with tm.assertRaisesRegexp(ValueError, 'separator'):
                 df2 = read_csv(path, index_col=None, encoding='UTF-8',
                                sep=sep, engine='c')
             if compat.PY3:
-                # non-ascii separators won't work in Python 2
+                # non-ascii separators won't work in Python 2, so can't do this
+                # regardless
                 df.to_csv(path, encoding='UTF-8', index=False, sep=sep)
                 df2 = read_csv(path, index_col=None, encoding='UTF-8',
                                sep=sep, engine='python')
