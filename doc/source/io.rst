@@ -3091,6 +3091,50 @@ conversion may not be necessary in future versions of pandas)
        df
        df.dtypes
 
+.. _io.hdf5-categorical:
+
+Categorical Data
+~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.15.2
+
+Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype was implemented
+in 0.15.2. Queries work the same as if it was an object array (but the ``Categorical`` is stored in a more efficient manner)
+
+.. ipython:: python
+
+   dfcat = DataFrame({ 'A' : Series(list('aabbcdba')).astype('category'),
+                       'B' : np.random.randn(8) })
+   cstore = pd.HDFStore('cats.h5', mode='w')
+   cstore.append('dfcat', dfcat, format='table', data_columns=['A'])
+   result = cstore.select('dfcat', where="A in ['b','c']")
+   result
+   result.dtypes
+
+.. warning::
+
+   The format of the ``Categoricals` is readable by prior versions of pandas (< 0.15.2), but will retrieve
+   the data as an integer based column (e.g. the ``codes``). However, the ``categories`` *can* be retrieved
+   but require the user to select them manually using the explicit meta path.
+
+   The data is stored like so:
+
+   .. ipython:: python
+
+      cstore
+
+      # to get the categories
+      cstore.select('dfcat/meta/A/meta')
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   cstore.close()
+   import os
+   os.remove('cats.h5')
+
+
 String Columns
 ~~~~~~~~~~~~~~
 
@@ -3659,6 +3703,8 @@ outside of this range, the data is cast to ``int16``.
   *Stata* data files only support text labels for categorical data.  Exporting
   data frames containing categorical data will convert non-string categorical values
   to strings.
+
+Writing data to/from Stata format files with a ``category`` dtype was implemented in 0.15.2.
 
 .. _io.stata_reader:
 
