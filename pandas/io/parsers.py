@@ -615,10 +615,25 @@ class TextFileReader(object):
                                   " regex separators"
                 engine = 'python'
             elif len(sep) == 1 and isinstance(sep, compat.text_type):
-                if ord(sep) >= MAX_ORDINAL_FOR_CHAR:
+                try:
+                    if options.get('encoding'):
+                        sep_bytes = sep.encode(options['encoding'])
+                    else:
+                        sep_bytes = sep.encode()
+                except UnicodeEncodeError as e:
+                    raise ValueError('sep is not compatible with given'
+                                     ' encoding. (%s)' % e)
+                if len(sep_bytes) == 1:
+                    sep = sep_bytes
+                else:
+                    # python 2 CSV reader always works with bytes
+                    if compat.PY2:
+                        raise ValueError('Must specify single byte sep'
+                                         ' character')
                     fallback_reason = "the 'c' engine does not support"\
                                       " non-ASCII separators"
                     engine = 'python'
+
 
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)

@@ -1182,11 +1182,21 @@ class CSVFormatter(object):
                     sep = sep.encode()
                 else:
                     sep = sep.encode(encoding)
-            except UnicodeEncodeError:
+            except UnicodeEncodeError as e:
                 raise ValueError('must specify single-byte separator'
-                                 'compatible with encoding. Got %r.', sep)
+                                 ' compatible with encoding. (%s)' % e)
+            try:
+                if encoding is None:
+                    decoded_sep = sep.decode()
+                else:
+                    decoded_sep = sep.decode(encoding)
+                sep = sep.encode('utf8')
+            except UnicodeEncodeError as e:
+                raise ValueError('must specify seprator encodable into utf8')
+
             if len(sep) > 1:
-                raise ValueError('must specify single-byte separator.')
+                raise NotImplementedError('separators that are multi-byte in'
+                                          ' utf8 are not supported in Python 2.')
 
 
         self.path_or_buf = path_or_buf
