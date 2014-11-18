@@ -1137,6 +1137,11 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(reindexed.levels[0].dtype.type, np.int64)
         self.assertEqual(reindexed.levels[1].dtype.type, np.float64)
 
+    def test_groupby(self):
+        idx = Index(range(5))
+        groups = idx.groupby(np.array([1,1,2,2,2]))
+        exp = {1: [0, 1], 2: [2, 3, 4]}
+        tm.assert_dict_equal(groups, exp)
 
 
 class Numeric(Base):
@@ -3523,6 +3528,17 @@ class TestMultiIndex(Base, tm.TestCase):
                          np.int64)
         self.assertEqual(idx.reindex([], level=1)[0].levels[1].dtype.type,
                          np.object_)
+
+    def test_groupby(self):
+        groups = self.index.groupby(np.array([1, 1, 1, 2, 2, 2]))
+        labels = self.index.get_values().tolist()
+        exp = {1: labels[:3], 2: labels[3:]}
+        tm.assert_dict_equal(groups, exp)
+
+        # GH5620
+        groups = self.index.groupby(self.index)
+        exp = dict((key, [key]) for key in self.index)
+        tm.assert_dict_equal(groups, exp)
 
 
 def test_get_combined_index():
