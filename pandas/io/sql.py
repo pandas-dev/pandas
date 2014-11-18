@@ -1033,8 +1033,8 @@ class SQLDatabase(SQLBackend):
         column_names_and_types = \
             _get_column_names_and_types(frame, self._sqlalchemy_type, index)
 
-        columns = [Column(name, typ, index=is_index)
-                   for name, typ, is_index in column_names_and_types]
+        columns = [Column(colname, typ, index=is_index)
+                   for colname, typ, is_index in column_names_and_types]
 
         if keys is not None:
             pkc = PrimaryKeyConstraint(keys, name=self.name + '_pk')
@@ -1059,7 +1059,7 @@ class SQLDatabase(SQLBackend):
 
     def create_table(self, backend_table):
         # Inserting table into database, add to MetaData object
-        table = backend_table.tometadata(self.meta)
+        backend_table = backend_table.tometadata(self.meta)
         backend_table.create()
 
         # check for potentially case sensitivity issues (GH7815)
