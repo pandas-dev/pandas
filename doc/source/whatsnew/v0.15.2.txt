@@ -76,7 +76,7 @@ Bug Fixes
 
 
 
-
+- Defined ``.size`` attribute across ``NDFrame`` objects to provide compat with numpy >= 1.9.1; buggy with ``np.array_split`` (:issue:`8846`)
 
 
 - Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`).

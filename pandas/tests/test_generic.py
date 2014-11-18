@@ -352,6 +352,21 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+
+    def test_size_compat(self):
+        # GH8846
+        # size property should be defined
+
+        o = self._construct(shape=10)
+        self.assertTrue(o.size == np.prod(o.shape))
+        self.assertTrue(o.size == 10**len(o.axes))
+
+    def test_split_compat(self):
+        # xref GH8846
+        o = self._construct(shape=10)
+        self.assertTrue(len(np.array_split(o,5)) == 5)
+        self.assertTrue(len(np.array_split(o,2)) == 2)
+
 class TestSeries(tm.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
@@ -1422,8 +1437,8 @@ class TestNDFrame(tm.TestCase):
         self.assertTrue(a.equals(c))
         self.assertTrue(a.equals(d))
         self.assertFalse(a.equals(e))
-        self.assertTrue(e.equals(f)) 
-        
+        self.assertTrue(e.equals(f))
+
     def test_describe_raises(self):
         with tm.assertRaises(NotImplementedError):
             tm.makePanel().describe()
