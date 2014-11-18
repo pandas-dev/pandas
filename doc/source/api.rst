@@ -250,9 +250,9 @@ Attributes
    Series.dtype
    Series.ftype
    Series.shape
-   Series.size
    Series.nbytes
    Series.ndim
+   Series.size
    Series.strides
    Series.itemsize
    Series.base
@@ -654,6 +654,7 @@ Attributes and underlying data
    DataFrame.values
    DataFrame.axes
    DataFrame.ndim
+   DataFrame.size
    DataFrame.shape
 
 Conversion
@@ -921,6 +922,7 @@ Attributes and underlying data
    Panel.values
    Panel.axes
    Panel.ndim
+   Panel.size
    Panel.shape
    Panel.dtypes
    Panel.ftypes
@@ -1128,6 +1130,7 @@ Attributes and underlying data
    Panel4D.values
    Panel4D.axes
    Panel4D.ndim
+   Panel4D.size
    Panel4D.shape
    Panel4D.dtypes
    Panel4D.ftypes
@@ -1173,9 +1176,9 @@ Attributes
    Index.inferred_type
    Index.is_all_dates
    Index.shape
-   Index.size
    Index.nbytes
    Index.ndim
+   Index.size
    Index.strides
    Index.itemsize
    Index.base
