@@ -421,7 +421,7 @@ class _NDFrameIndexer(object):
 
                 l = len(value)
                 item = labels[0]
-                index = self.obj[item].index
+                index = self.obj[item]._stat_axis
 
                 # equal len list/ndarray
                 if len(index) == l:
