@@ -2702,7 +2702,10 @@ else:
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
             f = UTF8Recoder(f, encoding)
             if 'delimiter' in kwds and isinstance(kwds['delimiter'], unicode):
-                kwds['delimiter'] = str(kwds['delimiter'])
+                if encoding is None:
+                    kwds['delimiter'] = kwds['delimiter'].encode()
+                else:
+                    kwds['delimiter'] = kwds['delimiter'].encode(encoding)
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
         def next(self):
