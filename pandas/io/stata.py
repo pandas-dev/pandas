@@ -29,7 +29,8 @@ from pandas.tslib import NaT, Timestamp
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None,
-               convert_missing=False, preserve_dtypes=True, columns=None):
+               convert_missing=False, preserve_dtypes=True, columns=None,
+               order_categoricals=True):
     """
     Read Stata file into DataFrame
 
@@ -58,11 +59,14 @@ def read_stata(filepath_or_buffer, convert_dates=True,
     columns : list or None
         Columns to retain.  Columns will be returned in the given order.  None
         returns all columns
+    order_categoricals : boolean, defaults to True
+        Flag indicating whether converted categorical data are ordered.
     """
     reader = StataReader(filepath_or_buffer, encoding)
 
     return reader.data(convert_dates, convert_categoricals, index,
-                       convert_missing, preserve_dtypes, columns)
+                       convert_missing, preserve_dtypes, columns,
+                       order_categoricals)
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -1136,7 +1140,8 @@ class StataReader(StataParser):
             self.path_or_buf.read(1)  # zero-termination
 
     def data(self, convert_dates=True, convert_categoricals=True, index=None,
-             convert_missing=False, preserve_dtypes=True, columns=None):
+             convert_missing=False, preserve_dtypes=True, columns=None,
+             order_categoricals=True):
         """
         Reads observations from Stata file, converting them into a dataframe
 
@@ -1161,6 +1166,8 @@ class StataReader(StataParser):
         columns : list or None
             Columns to retain.  Columns will be returned in the given order.
             None returns all columns
+        order_categoricals : boolean, defaults to True
+            Flag indicating whether converted categorical data are ordered.
 
         Returns
         -------
@@ -1228,7 +1235,7 @@ class StataReader(StataParser):
 
         for col, typ in zip(data, self.typlist):
             if type(typ) is int:
-                data[col] = data[col].apply(self._null_terminate, convert_dtype=True,)
+                data[col] = data[col].apply(self._null_terminate, convert_dtype=True)
 
         cols_ = np.where(self.dtyplist)[0]
 
@@ -1288,19 +1295,25 @@ class StataReader(StataParser):
                 col = data.columns[i]
                 data[col] = _stata_elapsed_date_to_datetime_vec(data[col], self.fmtlist[i])
 
-        if convert_categoricals:
-            cols = np.where(
-                lmap(lambda x: x in compat.iterkeys(self.value_label_dict),
-                     self.lbllist)
-            )[0]
-            for i in cols:
-                col = data.columns[i]
-                labeled_data = np.copy(data[col])
-                labeled_data = labeled_data.astype(object)
-                for k, v in compat.iteritems(
-                        self.value_label_dict[self.lbllist[i]]):
-                    labeled_data[(data[col] == k).values] = v
-                data[col] = Categorical.from_array(labeled_data)
+        if convert_categoricals and self.value_label_dict:
+            value_labels = list(compat.iterkeys(self.value_label_dict))
+            cat_converted_data = []
+            for col, label in zip(data, self.lbllist):
+                if label in value_labels:
+                    # Explicit call with ordered=True
+                    cat_data = Categorical(data[col], ordered=order_categoricals)
+                    value_label_dict = self.value_label_dict[label]
+                    categories = []
+                    for category in cat_data.categories:
+                        if category in value_label_dict:
+                            categories.append(value_label_dict[category])
+                        else:
+                            categories.append(category)  # Partially labeled
+                    cat_data.categories = categories
+                    cat_converted_data.append((col, cat_data))
+                else:
+                    cat_converted_data.append((col, data[col]))
+            data = DataFrame.from_items(cat_converted_data)
 
         if not preserve_dtypes:
             retyped_data = []

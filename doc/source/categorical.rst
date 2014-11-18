@@ -546,7 +546,8 @@ Getting Data In/Out
 Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype was implemented
 in 0.15.2. See :ref:`here <io.hdf5-categorical>` for an example and caveats.
 
-Writing data to/from Stata format files was implemented in 0.15.2.
+Writing data to and reading data from *Stata* format files was implemented in
+0.15.2. See :ref:`here <io.stata-categorical>` for an example and caveats.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 categorical (categories and ordering). So if you read back the CSV file you have to convert the
