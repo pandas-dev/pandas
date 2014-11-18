@@ -69,6 +69,7 @@ Bug Fixes
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
+- ``slice`` string method now takes step into account (:issue:`8754`)
 
 
 
