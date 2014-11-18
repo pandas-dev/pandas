@@ -666,7 +666,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     return res
 
 
-def str_slice(arr, start=None, stop=None, step=1):
+def str_slice(arr, start=None, stop=None, step=None):
     """
     Slice substrings from each element in array
 
@@ -994,7 +994,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_slice)
-    def slice(self, start=None, stop=None, step=1):
+    def slice(self, start=None, stop=None, step=None):
         result = str_slice(self.series, start, stop, step)
         return self._wrap_result(result)
 
