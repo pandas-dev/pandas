@@ -381,6 +381,11 @@ class NDFrame(PandasObject):
         "Number of axes / array dimensions"
         return self._data.ndim
 
+    @property
+    def size(self):
+        "number of elements in the NDFrame"
+        return np.prod(self.shape)
+
     def _expand_axes(self, key):
         new_axes = []
         for k, ax in zip(key, self.axes):
