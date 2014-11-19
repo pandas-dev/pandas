@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import json
 import logging
 import sys
@@ -142,8 +143,6 @@ class GbqConnector:
 
 
         if self.gcloud_credentials is not None:
-            import json
-            import os
             gcfp = self.gcloud_credentials		# a bit of mangling since this is dual-typed, str or bool
             if self.gcloud_credentials == True:
                 gcfp = '~/.config/gcloud/credentials'
