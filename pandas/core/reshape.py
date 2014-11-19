@@ -648,7 +648,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
-    levsize = len(level_vals)
+    level_labels = sorted(set(this.columns.labels[-1]))
+    level_vals_used = level_vals[level_labels]
+    levsize = len(level_labels)
     drop_cols = []
     for key in unique_groups:
         loc = this.columns.get_loc(key)
@@ -661,7 +663,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         elif slice_len != levsize:
             chunk = this.ix[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
-            value_slice = chunk.reindex(columns=level_vals).values
+            value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_mixed_type:
                 value_slice = this.ix[:, this.columns[loc]].values
@@ -685,7 +687,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = [this.index.name]  # something better?
 
     new_levels.append(frame.columns.levels[level_num])
-    new_labels.append(np.tile(np.arange(levsize), N))
+    new_labels.append(np.tile(level_labels, N))
     new_names.append(frame.columns.names[level_num])
 
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
