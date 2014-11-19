@@ -3204,8 +3204,8 @@ format store like this:
      .. ipython:: python
 
         store_export = HDFStore('export.h5')
-	    store_export.append('df_dc', df_dc, data_columns=df_dc.columns)
-	    store_export
+        store_export.append('df_dc', df_dc, data_columns=df_dc.columns)
+        store_export
 
      .. ipython:: python
         :suppress:
@@ -3240,8 +3240,8 @@ number of options, please see the docstring.
         legacy_store
 
         # copy (and return the new handle)
-	    new_store = legacy_store.copy('store_new.h5')
-	    new_store
+        new_store = legacy_store.copy('store_new.h5')
+        new_store
         new_store.close()
 
      .. ipython:: python
@@ -3651,14 +3651,14 @@ You can access the management console to determine project id's by:
 
 .. _io.stata:
 
-STATA Format
+Stata Format
 ------------
 
 .. versionadded:: 0.12.0
 
 .. _io.stata_writer:
 
-Writing to STATA format
+Writing to Stata format
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
@@ -3752,6 +3752,53 @@ Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
    import os
    os.remove('stata.dta')
+
+.. _io.stata-categorical:
+
+Categorical Data
+~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.15.2
+
+``Categorical`` data can be exported to *Stata* data files as value labeled data.
+The exported data consists of the underlying category codes as integer data values
+and the categories as value labels.  *Stata* does not have an explicit equivalent
+to a ``Categorical`` and information about *whether* the variable is ordered
+is lost when exporting.
+
+.. warning::
+
+    *Stata* only supports string value labels, and so ``str`` is called on the
+    categories when exporting data.  Exporting ``Categorical`` variables with
+    non-string categories produces a warning, and can result a loss of 
+    information if the ``str`` representations of the categories are not unique.
+
+Labeled data can similarly be imported from *Stata* data files as ``Categorical``
+variables using the keyword argument ``convert_categoricals`` (``True`` by default).  
+By default, imported ``Categorical`` variables are ordered according to the 
+underlying numerical data. However, setting ``order_categoricals=False`` will 
+import labeled data as ``Categorical`` variables without an order.
+
+.. note::
+
+    When importing categorical data, the values of the variables in the *Stata*
+    data file are not generally preserved since ``Categorical`` variables always
+    use integer data types between ``-1`` and ``n-1`` where ``n`` is the number
+    of categories. If the original values in the *Stata* data file are required,
+    these can be imported by setting ``convert_categoricals=False``, which will
+    import original data (but not the variable labels). The original values can
+    be matched to the imported categorical data since there is a simple mapping
+    between the original *Stata* data values and the category codes of imported
+    Categorical variables: missing values are assigned code ``-1``, and the
+    smallest original value is assigned ``0``, the second smallest is assigned
+    ``1`` and so on until the largest original value is assigned the code ``n-1``.
+
+.. note::
+
+    *Stata* suppots partially labeled series.  These series have value labels for
+    some but not all data values. Importing a partially labeled series will produce
+    a ``Categorial`` with string categories for the values that are labeled and
+    numeric categories for values with no label.
 
 .. _io.perf:
 

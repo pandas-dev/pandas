@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
+from pandas.core.common import is_categorical_dtype
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
     PossiblePrecisionLoss, StataMissingValue)
@@ -81,6 +82,11 @@ class TestStata(tm.TestCase):
         self.dta18_115 = os.path.join(self.dirpath, 'stata9_115.dta')
         self.dta18_117 = os.path.join(self.dirpath, 'stata9_117.dta')
 
+        self.dta19_115 = os.path.join(self.dirpath, 'stata10_115.dta')
+        self.dta19_117 = os.path.join(self.dirpath, 'stata10_117.dta')
+
+        self.dta20_115 = os.path.join(self.dirpath, 'stata11_115.dta')
+        self.dta20_117 = os.path.join(self.dirpath, 'stata11_117.dta')
 
     def read_dta(self, file):
         # Legacy default reader configuration
@@ -816,6 +822,72 @@ class TestStata(tm.TestCase):
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
+
+    def test_categorical_order(self):
+        # Directly construct using expected codes
+        # Format is is_cat, col_name, labels (in order), underlying data
+        expected = [(True, 'ordered', ['a', 'b', 'c', 'd', 'e'], np.arange(5)),
+                    (True, 'reverse', ['a', 'b', 'c', 'd', 'e'], np.arange(5)[::-1]),
+                    (True, 'noorder', ['a', 'b', 'c', 'd', 'e'], np.array([2, 1, 4, 0, 3])),
+                    (True, 'floating', ['a', 'b', 'c', 'd', 'e'], np.arange(0, 5)),
+                    (True, 'float_missing', ['a', 'd', 'e'], np.array([0, 1, 2, -1, -1])),
+                    (False, 'nolabel', [1.0, 2.0, 3.0, 4.0, 5.0], np.arange(5)),
+                    (True, 'int32_mixed', ['d', 2, 'e', 'b', 'a'], np.arange(5))]
+        cols = []
+        for is_cat, col, labels, codes in expected:
+            if is_cat:
+                cols.append((col, pd.Categorical.from_codes(codes, labels)))
+            else:
+                cols.append((col, pd.Series(labels, dtype=np.float32)))
+        expected = DataFrame.from_items(cols)
+
+        # Read with and with out categoricals, ensure order is identical
+        parsed_115 = read_stata(self.dta19_115)
+        parsed_117 = read_stata(self.dta19_117)
+        tm.assert_frame_equal(expected, parsed_115)
+        tm.assert_frame_equal(expected, parsed_117)
+
+        # Check identity of codes
+        for col in expected:
+            if is_categorical_dtype(expected[col]):
+                print(col)
+                tm.assert_series_equal(expected[col].cat.codes,
+                                       parsed_115[col].cat.codes)
+                tm.assert_index_equal(expected[col].cat.categories,
+                                      parsed_115[col].cat.categories)
+
+    def test_categorical_sorting(self):
+        parsed_115 = read_stata(self.dta20_115)
+        parsed_117 = read_stata(self.dta20_117)
+        # Sort based on codes, not strings
+        parsed_115 = parsed_115.sort("srh")
+        parsed_117 = parsed_117.sort("srh")
+        # Don't sort index
+        parsed_115.index = np.arange(parsed_115.shape[0])
+        parsed_117.index = np.arange(parsed_117.shape[0])
+        codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
+        categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
+        expected = pd.Series(pd.Categorical.from_codes(codes=codes,
+                                                       categories=categories))
+        tm.assert_series_equal(expected, parsed_115["srh"])
+        tm.assert_series_equal(expected, parsed_117["srh"])
+
+    def test_categorical_ordering(self):
+        parsed_115 = read_stata(self.dta19_115)
+        parsed_117 = read_stata(self.dta19_117)
+
+        parsed_115_unordered = read_stata(self.dta19_115,
+                                          order_categoricals=False)
+        parsed_117_unordered = read_stata(self.dta19_117,
+                                          order_categoricals=False)
+        for col in parsed_115:
+            if not is_categorical_dtype(parsed_115[col]):
+                continue
+            tm.assert_equal(True, parsed_115[col].cat.ordered)
+            tm.assert_equal(True, parsed_117[col].cat.ordered)
+            tm.assert_equal(False, parsed_115_unordered[col].cat.ordered)
+            tm.assert_equal(False, parsed_117_unordered[col].cat.ordered)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
