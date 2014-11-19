@@ -44,7 +44,7 @@ if not compat.PY3:
             _GOOGLE_API_CLIENT_INSTALLED=True
             _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2':
                 _GOOGLE_API_CLIENT_VALID_VERSION = True
 
         except ImportError:
