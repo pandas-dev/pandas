@@ -71,7 +71,30 @@ Bug Fixes
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
 - ``slice`` string method now takes step into account (:issue:`8754`)
+- Fix negative step support for label-based slices (:issue:`8753`)
 
+  Old behavior:
+
+  .. code-block:: python
+
+     In [1]: s = pd.Series(np.arange(3), ['a', 'b', 'c'])
+     Out[1]:
+     a    0
+     b    1
+     c    2
+     dtype: int64
+
+     In [2]: s.loc['c':'a':-1]
+     Out[2]:
+     c    2
+     dtype: int64
+
+  New behavior:
+
+  .. ipython:: python
+
+     s = pd.Series(np.arange(3), ['a', 'b', 'c'])
+     s.loc['c':'a':-1]
 
 
 - Imported categorical variables from Stata files retain the ordinal information in the underlying data (:issue:`8836`).

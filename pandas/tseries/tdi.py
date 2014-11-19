@@ -76,6 +76,7 @@ def _td_index_cmp(opname, nat_result=False):
 
     return wrapper
 
+
 class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -704,6 +705,31 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 return self._engine.get_loc(stamp)
             except (KeyError, ValueError):
                 raise KeyError(key)
+
+    def _maybe_cast_slice_bound(self, label, side):
+        """
+        If label is a string, cast it to timedelta according to resolution.
+
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+
+        Returns
+        -------
+        bound : Timedelta or object
+
+        """
+        if isinstance(label, compat.string_types):
+            parsed = _coerce_scalar_to_timedelta_type(label, box=True)
+            lbound = parsed.round(parsed.resolution)
+            if side == 'left':
+                return lbound
+            else:
+                return (lbound + _resolution_map[parsed.resolution]() -
+                        Timedelta(1, 'ns'))
+        return label
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',

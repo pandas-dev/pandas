@@ -783,7 +783,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     def searchsorted(self, key, side='left'):
-        if isinstance(key, compat.string_types):
+        if isinstance(key, Period):
+            if key.freq != self.freq:
+                raise ValueError("Different period frequency: %s" % key.freq)
+            key = key.ordinal
+        elif isinstance(key, compat.string_types):
             key = Period(key, freq=self.freq).ordinal
 
         return self.values.searchsorted(key, side=side)
@@ -982,6 +986,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         try:
             return self._engine.get_loc(key)
         except KeyError:
+            if com.is_integer(key):
+                raise
+
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
                 key = asdt
@@ -994,36 +1001,62 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             except KeyError:
                 raise KeyError(key)
 
-    def slice_locs(self, start=None, end=None):
+    def _maybe_cast_slice_bound(self, label, side):
         """
-        Index.slice_locs, customized to handle partial ISO-8601 string slicing
+        If label is a string or a datetime, cast it to Period.ordinal according to
+        resolution.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+
+        Returns
+        -------
+        bound : Period or object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+
         """
-        if isinstance(start, compat.string_types) or isinstance(end, compat.string_types):
+        if isinstance(label, datetime):
+            return Period(label, freq=self.freq)
+        elif isinstance(label, compat.string_types):
             try:
-                if start:
-                    start_loc = self._get_string_slice(start).start
-                else:
-                    start_loc = 0
+                _, parsed, reso = parse_time_string(label, self.freq)
+                bounds = self._parsed_string_to_bounds(reso, parsed)
+                return bounds[0 if side == 'left' else 1]
+            except Exception:
+                raise KeyError(label)
 
-                if end:
-                    end_loc = self._get_string_slice(end).stop
-                else:
-                    end_loc = len(self)
+        return label
 
-                return start_loc, end_loc
-            except KeyError:
-                pass
-
-        if isinstance(start, datetime) and isinstance(end, datetime):
-            ordinals = self.values
-            t1 = Period(start, freq=self.freq)
-            t2 = Period(end, freq=self.freq)
-
-            left = ordinals.searchsorted(t1.ordinal, side='left')
-            right = ordinals.searchsorted(t2.ordinal, side='right')
-            return left, right
-
-        return Int64Index.slice_locs(self, start, end)
+    def _parsed_string_to_bounds(self, reso, parsed):
+        if reso == 'year':
+            t1 = Period(year=parsed.year, freq='A')
+        elif reso == 'month':
+            t1 = Period(year=parsed.year, month=parsed.month, freq='M')
+        elif reso == 'quarter':
+            q = (parsed.month - 1) // 3 + 1
+            t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
+        elif reso == 'day':
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        freq='D')
+        elif reso == 'hour':
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, freq='H')
+        elif reso == 'minute':
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, minute=parsed.minute, freq='T')
+        elif reso == 'second':
+            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
+                        hour=parsed.hour, minute=parsed.minute, second=parsed.second,
+                        freq='S')
+        else:
+            raise KeyError(key)
+        return (t1.asfreq(self.freq, how='start'),
+                t1.asfreq(self.freq, how='end'))
 
     def _get_string_slice(self, key):
         if not self.is_monotonic:
@@ -1034,38 +1067,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         grp = frequencies._infer_period_group(reso)
         freqn = frequencies._period_group(self.freq)
-
-        if reso == 'year':
-            t1 = Period(year=parsed.year, freq='A')
-        elif reso == 'month':
-            t1 = Period(year=parsed.year, month=parsed.month, freq='M')
-        elif reso == 'quarter':
-            q = (parsed.month - 1) // 3 + 1
-            t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
-        elif reso == 'day' and grp < freqn:
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
-                        freq='D')
-        elif reso == 'hour' and grp < freqn:
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
-                        hour=parsed.hour, freq='H')
-        elif reso == 'minute' and grp < freqn:
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
-                        hour=parsed.hour, minute=parsed.minute, freq='T')
-        elif reso == 'second' and grp < freqn:
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day,
-                        hour=parsed.hour, minute=parsed.minute, second=parsed.second,
-                        freq='S')
-        else:
+        if reso in ['day', 'hour', 'minute', 'second'] and not grp < freqn:
             raise KeyError(key)
 
-        ordinals = self.values
-
-        t2 = t1.asfreq(self.freq, how='end')
-        t1 = t1.asfreq(self.freq, how='start')
-
-        left = ordinals.searchsorted(t1.ordinal, side='left')
-        right = ordinals.searchsorted(t2.ordinal, side='right')
-        return slice(left, right)
+        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
+        return slice(self.searchsorted(t1.ordinal, side='left'),
+                     self.searchsorted(t2.ordinal, side='right'))
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """

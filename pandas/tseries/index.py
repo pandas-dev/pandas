@@ -1092,51 +1092,83 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             left_chunk = left.values[lslice]
             return self._shallow_copy(left_chunk)
 
-    def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
+    def _parsed_string_to_bounds(self, reso, parsed):
+        """
+        Calculate datetime bounds for parsed time string and its resolution.
 
+        Parameters
+        ----------
+        reso : Resolution
+            Resolution provided by parsed string.
+        parsed : datetime
+            Datetime from parsed string.
+
+        Returns
+        -------
+        lower, upper: pd.Timestamp
+
+        """
         is_monotonic = self.is_monotonic
-
         if reso == 'year':
-            t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, 12, 31, 23, 59, 59, 999999), tz=self.tz)
+            return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
+                    Timestamp(datetime(parsed.year, 12, 31, 23, 59, 59, 999999), tz=self.tz))
         elif reso == 'month':
             d = tslib.monthrange(parsed.year, parsed.month)[1]
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, parsed.month, d, 23, 59, 59, 999999), tz=self.tz)
+            return (Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz),
+                    Timestamp(datetime(parsed.year, parsed.month, d, 23, 59, 59, 999999), tz=self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, qe, d, 23, 59, 59, 999999), tz=self.tz)
-        elif (reso == 'day' and (self._resolution < Resolution.RESO_DAY or not is_monotonic)):
+            return (Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz),
+                    Timestamp(datetime(parsed.year, qe, d, 23, 59, 59, 999999), tz=self.tz))
+        elif reso == 'day':
             st = datetime(parsed.year, parsed.month, parsed.day)
-            t1 = Timestamp(st, tz=self.tz)
-            t2 = st + offsets.Day()
-            t2 = Timestamp(Timestamp(t2, tz=self.tz).value - 1)
-        elif (reso == 'hour' and (
-                self._resolution < Resolution.RESO_HR or not is_monotonic)):
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Day(), tz=self.tz).value - 1))
+        elif reso == 'hour':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
-            t1 = Timestamp(st, tz=self.tz)
-            t2 = Timestamp(Timestamp(st + offsets.Hour(),
-                                     tz=self.tz).value - 1)
-        elif (reso == 'minute' and (
-                self._resolution < Resolution.RESO_MIN or not is_monotonic)):
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Hour(),
+                                        tz=self.tz).value - 1))
+        elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
-            t1 = Timestamp(st, tz=self.tz)
-            t2 = Timestamp(Timestamp(st + offsets.Minute(),
-                                     tz=self.tz).value - 1)
-        elif (reso == 'second' and (
-                self._resolution == Resolution.RESO_SEC or not is_monotonic)):
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Minute(),
+                                        tz=self.tz).value - 1))
+        elif reso == 'second':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute, second=parsed.second)
-            t1 = Timestamp(st, tz=self.tz)
-            t2 = Timestamp(Timestamp(st + offsets.Second(),
-                                     tz=self.tz).value - 1)
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Second(),
+                                        tz=self.tz).value - 1))
+        elif reso == 'microsecond':
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          parsed.hour, parsed.minute, parsed.second,
+                          parsed.microsecond)
+            return (Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz))
         else:
             raise KeyError
 
+    def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
+        is_monotonic = self.is_monotonic
+        if ((reso in ['day', 'hour', 'minute'] and
+             not (self._resolution < Resolution.get_reso(reso) or
+                  not is_monotonic)) or
+            (reso == 'second' and
+             not (self._resolution <= Resolution.RESO_SEC or
+                  not is_monotonic))):
+            # These resolution/monotonicity validations came from GH3931,
+            # GH3452 and GH2369.
+            raise KeyError
+
+        if reso == 'microsecond':
+            # _partial_date_slice doesn't allow microsecond resolution, but
+            # _parsed_string_to_bounds allows it.
+            raise KeyError
+
+        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         stamps = self.asi8
 
         if is_monotonic:
@@ -1235,6 +1267,34 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             except (KeyError, ValueError):
                 raise KeyError(key)
 
+    def _maybe_cast_slice_bound(self, label, side):
+        """
+        If label is a string, cast it to datetime according to resolution.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+
+        """
+        if isinstance(label, float):
+            raise TypeError('Cannot index datetime64 with float keys')
+        if isinstance(label, time):
+            raise KeyError('Cannot index datetime64 with time keys')
+
+        if isinstance(label, compat.string_types):
+            freq = getattr(self, 'freqstr',
+                           getattr(self, 'inferred_freq', None))
+            _, parsed, reso = parse_time_string(label, freq)
+            bounds = self._parsed_string_to_bounds(reso, parsed)
+            return bounds[0 if side == 'left' else 1]
+        else:
+            return label
+
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
@@ -1245,8 +1305,21 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def slice_indexer(self, start=None, end=None, step=None):
         """
-        Index.slice_indexer, customized to handle time slicing
+        Return indexer for specified label slice.
+        Index.slice_indexer, customized to handle time slicing.
+
+        In addition to functionality provided by Index.slice_indexer, does the
+        following:
+
+        - if both `start` and `end` are instances of `datetime.time`, it
+          invokes `indexer_between_time`
+        - if `start` and `end` are both either string or None perform
+          value-based selection in non-monotonic cases.
+
         """
+        # For historical reasons DatetimeIndex supports slices between two
+        # instances of datetime.time as if it were applying a slice mask to
+        # an array of (self.hour, self.minute, self.seconds, self.microsecond).
         if isinstance(start, time) and isinstance(end, time):
             if step is not None and step != 1:
                 raise ValueError('Must have step size of 1 with time slices')
@@ -1255,10 +1328,30 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError('Cannot mix time and non-time slice keys')
 
-        if isinstance(start, float) or isinstance(end, float):
-            raise TypeError('Cannot index datetime64 with float keys')
+        try:
+            return Index.slice_indexer(self, start, end, step)
+        except KeyError:
+            # For historical reasons DatetimeIndex by default supports
+            # value-based partial (aka string) slices on non-monotonic arrays,
+            # let's try that.
+            if ((start is None or isinstance(start, compat.string_types)) and
+                (end is None or isinstance(end, compat.string_types))):
+                mask = True
+                if start is not None:
+                    start_casted = self._maybe_cast_slice_bound(start, 'left')
+                    mask = start_casted <= self
 
-        return Index.slice_indexer(self, start, end, step)
+                if end is not None:
+                    end_casted = self._maybe_cast_slice_bound(end, 'right')
+                    mask = (self <= end_casted) & mask
+
+                indexer = mask.nonzero()[0][::step]
+                if len(indexer) == len(self):
+                    return slice(None)
+                else:
+                    return indexer
+            else:
+                raise
 
     def __getitem__(self, key):
         getitem = self._data.__getitem__

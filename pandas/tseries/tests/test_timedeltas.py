@@ -1232,6 +1232,40 @@ class TestSlicing(tm.TestCase):
         result = s['1 days, 10:11:12.001001']
         self.assertEqual(result, s.irow(1001))
 
+    def test_slice_with_negative_step(self):
+        ts = Series(np.arange(20),
+                    timedelta_range('0', periods=20, freq='H'))
+        SLC = pd.IndexSlice
+
+        def assert_slices_equivalent(l_slc, i_slc):
+            assert_series_equal(ts[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+
+        assert_slices_equivalent(SLC[Timedelta(hours=7)::-1], SLC[7::-1])
+        assert_slices_equivalent(SLC['7 hours'::-1], SLC[7::-1])
+
+        assert_slices_equivalent(SLC[:Timedelta(hours=7):-1], SLC[:6:-1])
+        assert_slices_equivalent(SLC[:'7 hours':-1], SLC[:6:-1])
+
+        assert_slices_equivalent(SLC['15 hours':'7 hours':-1], SLC[15:6:-1])
+        assert_slices_equivalent(SLC[Timedelta(hours=15):Timedelta(hours=7):-1], SLC[15:6:-1])
+        assert_slices_equivalent(SLC['15 hours':Timedelta(hours=7):-1], SLC[15:6:-1])
+        assert_slices_equivalent(SLC[Timedelta(hours=15):'7 hours':-1], SLC[15:6:-1])
+
+        assert_slices_equivalent(SLC['7 hours':'15 hours':-1], SLC[:0])
+
+    def test_slice_with_zero_step_raises(self):
+        ts = Series(np.arange(20),
+                    timedelta_range('0', periods=20, freq='H'))
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.loc[::0])
+        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                lambda: ts.ix[::0])
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
