@@ -1137,8 +1137,8 @@ class DataFrame(NDFrame):
         mode : str
             Python write mode, default 'w'
         encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
             file
