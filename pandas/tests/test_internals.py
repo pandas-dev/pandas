@@ -430,6 +430,17 @@ class TestBlockManager(tm.TestCase):
         mgr2.set('quux', randn(N))
         self.assertEqual(mgr2.get('quux').dtype, np.float_)
 
+    def test_set_change_dtype_slice(self): # GH8850
+        cols = MultiIndex.from_tuples([('1st','a'), ('2nd','b'), ('3rd','c')])
+        df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
+        df['2nd'] = df['2nd'] * 2.0
+
+        self.assertEqual(sorted(df.blocks.keys()), ['float64', 'int64'])
+        assert_frame_equal(df.blocks['float64'],
+                DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2]))
+        assert_frame_equal(df.blocks['int64'],
+                DataFrame([[3], [6]], columns=cols[2:]))
+
     def test_copy(self):
         shallow = self.mgr.copy(deep=False)
 

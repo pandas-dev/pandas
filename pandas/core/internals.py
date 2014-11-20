@@ -2985,7 +2985,7 @@ class BlockManager(PandasObject):
             loc = [loc]
 
         blknos = self._blknos[loc]
-        blklocs = self._blklocs[loc]
+        blklocs = self._blklocs[loc].copy()
 
         unfit_mgr_locs = []
         unfit_val_locs = []

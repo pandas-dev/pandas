@@ -71,6 +71,7 @@ Bug Fixes
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
 - ``slice`` string method now takes step into account (:issue:`8754`)
+- Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)
 - Fix negative step support for label-based slices (:issue:`8753`)
 
   Old behavior:
