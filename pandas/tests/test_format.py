@@ -27,6 +27,8 @@ from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
 from datetime import datetime
 
+import nose
+
 _frame = DataFrame(tm.getSeriesData())
 
 
@@ -1190,7 +1192,6 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.max_rows', 200)
 
     def test_pprint_thing(self):
-        import nose
         from pandas.core.common import pprint_thing as pp_t
 
         if PY3:
@@ -3036,6 +3037,5 @@ class TestStringRepTimestamp(tm.TestCase):
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
