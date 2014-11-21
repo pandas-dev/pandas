@@ -1,4 +1,5 @@
 # pylint: disable-msg=W0612,E1101
+import sys
 import nose
 import itertools
 import warnings
@@ -19,6 +20,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal)
 from pandas import concat
+from pandas.io.common import PerformanceWarning
 
 import pandas.util.testing as tm
 from pandas import date_range
@@ -1489,8 +1491,6 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_multiindex_perf_warn(self):
-        import sys
-        from pandas.io.common import PerformanceWarning
 
         if sys.version_info < (2, 7):
             raise nose.SkipTest('python version < 2.7')
@@ -1499,7 +1499,7 @@ class TestIndexing(tm.TestCase):
                         'joe':['x', 'x', 'z', 'y'],
                         'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, clear=[pd.core.index]):
             _ = df.loc[(1, 'z')]
 
         df = df.iloc[[2,1,3,0]]
@@ -1507,6 +1507,10 @@ class TestIndexing(tm.TestCase):
             _ = df.loc[(0,)]
 
     def test_multiindex_get_loc(self):  # GH7724, GH2646
+
+        # ignore the warning here
+        warnings.simplefilter('ignore', PerformanceWarning)
+
         # test indexing into a multi-index before & past the lexsort depth
         from numpy.random import randint, choice, randn
         cols = ['jim', 'joe', 'jolie', 'joline', 'jolia']
@@ -1568,6 +1572,9 @@ class TestIndexing(tm.TestCase):
                 assert not mi.index.lexsort_depth < i
                 loop(mi, df, keys)
 
+        # restore
+        warnings.simplefilter('always', PerformanceWarning)
+
     def test_series_getitem_multiindex(self):
 
         # GH 6018
@@ -1621,6 +1628,8 @@ class TestIndexing(tm.TestCase):
                 'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
         df = DataFrame(data).set_index(keys=['col', 'year'])
         key = 4.0, 2012
+
+        # emits a PerformanceWarning, ok
         tm.assert_frame_equal(df.ix[key], df.iloc[2:])
 
         # this is ok

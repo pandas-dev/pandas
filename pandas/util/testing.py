@@ -24,7 +24,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 import pandas as pd
-from pandas.core.common import _is_sequence, array_equivalent
+from pandas.core.common import _is_sequence, array_equivalent, is_list_like
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -1619,7 +1619,7 @@ class _AssertRaisesContextmanager(object):
 
 
 @contextmanager
-def assert_produces_warning(expected_warning=Warning, filter_level="always"):
+def assert_produces_warning(expected_warning=Warning, filter_level="always", clear=None):
     """
     Context manager for running code that expects to raise (or not raise)
     warnings.  Checks that code raises the expected warning and only the
@@ -1646,6 +1646,19 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always"):
     ..warn:: This is *not* thread-safe.
     """
     with warnings.catch_warnings(record=True) as w:
+
+        if clear is not None:
+            # make sure that we are clearning these warnings
+            # if they have happened before
+            # to guarantee that we will catch them
+            if not is_list_like(clear):
+                clear = [ clear ]
+            for m in clear:
+                try:
+                    m.__warningregistry__.clear()
+                except:
+                    pass
+
         saw_warning = False
         warnings.simplefilter(filter_level)
         yield w
