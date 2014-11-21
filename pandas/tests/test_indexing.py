@@ -1488,6 +1488,86 @@ class TestIndexing(tm.TestCase):
         result = s.loc[2:4:2, 'a':'c']
         assert_series_equal(result, expected)
 
+    def test_multiindex_perf_warn(self):
+        import sys
+        from pandas.io.common import PerformanceWarning
+
+        if sys.version_info < (2, 7):
+            raise nose.SkipTest('python version < 2.7')
+
+        df = DataFrame({'jim':[0, 0, 1, 1],
+                        'joe':['x', 'x', 'z', 'y'],
+                        'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            _ = df.loc[(1, 'z')]
+
+        df = df.iloc[[2,1,3,0]]
+        with tm.assert_produces_warning(PerformanceWarning):
+            _ = df.loc[(0,)]
+
+    def test_multiindex_get_loc(self):  # GH7724, GH2646
+        # test indexing into a multi-index before & past the lexsort depth
+        from numpy.random import randint, choice, randn
+        cols = ['jim', 'joe', 'jolie', 'joline', 'jolia']
+
+        def validate(mi, df, key):
+            mask = np.ones(len(df)).astype('bool')
+
+            # test for all partials of this key
+            for i, k in enumerate(key):
+                mask &= df.iloc[:, i] == k
+
+                if not mask.any():
+                    self.assertNotIn(key[:i+1], mi.index)
+                    continue
+
+                self.assertIn(key[:i+1], mi.index)
+                right = df[mask].copy()
+
+                if i + 1 != len(key):  # partial key
+                    right.drop(cols[:i+1], axis=1, inplace=True)
+                    right.set_index(cols[i+1:-1], inplace=True)
+                    assert_frame_equal(mi.loc[key[:i+1]], right)
+
+                else:  # full key
+                    right.set_index(cols[:-1], inplace=True)
+                    if len(right) == 1:  # single hit
+                        right = Series(right['jolia'].values,
+                                name=right.index[0], index=['jolia'])
+                        assert_series_equal(mi.loc[key[:i+1]], right)
+                    else:  # multi hit
+                        assert_frame_equal(mi.loc[key[:i+1]], right)
+
+        def loop(mi, df, keys):
+            for key in keys:
+                validate(mi, df, key)
+
+        n, m = 1000, 50
+
+        vals = [randint(0, 10, n), choice(list('abcdefghij'), n),
+                choice(pd.date_range('20141009', periods=10).tolist(), n),
+                choice(list('ZYXWVUTSRQ'), n), randn(n)]
+        vals = list(map(tuple, zip(*vals)))
+
+        # bunch of keys for testing
+        keys = [randint(0, 11, m), choice(list('abcdefghijk'), m),
+                choice(pd.date_range('20141009', periods=11).tolist(), m),
+                choice(list('ZYXWVUTSRQP'), m)]
+        keys = list(map(tuple, zip(*keys)))
+        keys += list(map(lambda t: t[:-1], vals[::n//m]))
+
+        # covers both unique index and non-unique index
+        df = pd.DataFrame(vals, columns=cols)
+        a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
+
+        for frame in a, b:
+            for i in range(5):  # lexsort depth
+                df = frame.copy() if i == 0 else frame.sort(columns=cols[:i])
+                mi = df.set_index(cols[:-1])
+                assert not mi.index.lexsort_depth < i
+                loop(mi, df, keys)
+
     def test_series_getitem_multiindex(self):
 
         # GH 6018
@@ -1541,10 +1621,7 @@ class TestIndexing(tm.TestCase):
                 'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
         df = DataFrame(data).set_index(keys=['col', 'year'])
         key = 4.0, 2012
-
-        # this should raise correct error
-        with tm.assertRaises(KeyError):
-            df.ix[key]
+        tm.assert_frame_equal(df.ix[key], df.iloc[2:])
 
         # this is ok
         df.sortlevel(inplace=True)

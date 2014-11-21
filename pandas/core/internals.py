@@ -3257,7 +3257,9 @@ class BlockManager(PandasObject):
         Take items along any axis.
         """
         self._consolidate_inplace()
-        indexer = np.asanyarray(indexer, dtype=np.int_)
+        indexer = np.arange(indexer.start, indexer.stop, indexer.step,
+                            dtype='int64') if isinstance(indexer, slice) \
+                                    else np.asanyarray(indexer, dtype='int64')
 
         n = self.shape[axis]
         if convert:
