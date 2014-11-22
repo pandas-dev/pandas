@@ -487,7 +487,7 @@ frequency increment. Specific offset logic like "month", "business day", or
     Second, "one second"
     Milli, "one millisecond"
     Micro, "one microsecond"
-
+    Nano, "one nanosecond"
 
 The basic ``DateOffset`` takes the same arguments as
 ``dateutil.relativedelta``, which works like:
