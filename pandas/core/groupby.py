@@ -910,7 +910,7 @@ class GroupBy(PandasObject):
 
         return result
 
-    def cumcount(self, **kwargs):
+    def cumcount(self, ascending=True):
         """
         Number each item in each group from 0 to the length of that group - 1.
 
@@ -955,7 +955,6 @@ class GroupBy(PandasObject):
 
         """
         self._set_selection_from_grouper()
-        ascending = kwargs.pop('ascending', True)
 
         index = self._selected_obj.index
         cumcounts = self._cumcount_array(ascending=ascending)
@@ -1016,15 +1015,13 @@ class GroupBy(PandasObject):
         tail = obj[in_tail]
         return tail
 
-    def _cumcount_array(self, arr=None, **kwargs):
+    def _cumcount_array(self, arr=None, ascending=True):
         """
         arr is where cumcount gets its values from
 
         note: this is currently implementing sort=False (though the default is sort=True)
               for groupby in general
         """
-        ascending = kwargs.pop('ascending', True)
-
         if arr is None:
             arr = np.arange(self.grouper._max_groupsize, dtype='int64')
 
@@ -3094,7 +3091,7 @@ class NDFrameGroupBy(GroupBy):
         for name, group in gen:
             object.__setattr__(group, 'name', name)
 
-            res = func(group)
+            res = func(group, *args, **kwargs)
 
             try:
                 res = res.squeeze()

@@ -369,6 +369,26 @@ class Generic(object):
         self.assertTrue(len(np.array_split(o,5)) == 5)
         self.assertTrue(len(np.array_split(o,2)) == 2)
 
+    def test_unexpected_keyword(self):  # GH8597
+        from pandas.util.testing import assertRaisesRegexp
+
+        df = DataFrame(np.random.randn(5, 2), columns=['jim', 'joe'])
+        ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
+        ts = df['joe'].copy()
+        ts[2] = np.nan
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            df.drop('joe', axis=1, in_place=True)
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            df.reindex([1, 0], inplace=True)
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            ca.fillna(0, inplace=True)
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            ts.fillna(0, in_place=True)
+
 class TestSeries(tm.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
@@ -602,7 +622,7 @@ class TestSeries(tm.TestCase, Generic):
         result = s.interpolate(method='slinear')
         assert_series_equal(result, expected)
 
-        result = s.interpolate(method='slinear', donwcast='infer')
+        result = s.interpolate(method='slinear', downcast='infer')
         assert_series_equal(result, expected)
         # nearest
         expected = Series([1, 3, 3, 12, 12, 25])
