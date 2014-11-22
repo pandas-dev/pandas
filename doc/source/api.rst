@@ -394,6 +394,8 @@ Reindexing / Selection / Label manipulation
    Series.take
    Series.tail
    Series.truncate
+   Series.where
+   Series.mask
 
 Missing data handling
 ~~~~~~~~~~~~~~~~~~~~~
@@ -689,6 +691,8 @@ Indexing, iteration
    DataFrame.tail
    DataFrame.xs
    DataFrame.isin
+   DataFrame.where
+   DataFrame.mask
    DataFrame.query
 
 For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
