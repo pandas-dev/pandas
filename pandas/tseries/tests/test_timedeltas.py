@@ -4,6 +4,7 @@ from __future__ import division
 from datetime import datetime, timedelta, time
 import nose
 
+from distutils.version import LooseVersion
 import numpy as np
 import pandas as pd
 
@@ -45,12 +46,12 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta(days=10,seconds=10).value, expected)
         self.assertEqual(Timedelta(days=10,milliseconds=10*1000).value, expected)
         self.assertEqual(Timedelta(days=10,microseconds=10*1000*1000).value, expected)
-        
+
         # test construction with np dtypes
         # GH 8757
-        timedelta_kwargs = {'days':'D', 'seconds':'s', 'microseconds':'us', 
+        timedelta_kwargs = {'days':'D', 'seconds':'s', 'microseconds':'us',
                             'milliseconds':'ms', 'minutes':'m', 'hours':'h', 'weeks':'W'}
-        npdtypes = [np.int64, np.int32, np.int16, 
+        npdtypes = [np.int64, np.int32, np.int16,
                     np.float64, np.float32, np.float16]
         for npdtype in npdtypes:
             for pykwarg, npkwarg in timedelta_kwargs.items():
@@ -163,9 +164,17 @@ class TestTimedeltas(tm.TestCase):
     def test_conversion(self):
 
         for td in [ Timedelta(10,unit='d'), Timedelta('1 days, 10:11:12.012345') ]:
-            self.assertTrue(td == Timedelta(td.to_pytimedelta()))
-            self.assertEqual(td,td.to_pytimedelta())
-            self.assertEqual(td,np.timedelta64(td.value,'ns'))
+            pydt = td.to_pytimedelta()
+            self.assertTrue(td == Timedelta(pydt))
+            self.assertEqual(td, pydt)
+            self.assertTrue(isinstance(pydt, timedelta)
+                            and not isinstance(pydt, Timedelta))
+
+            self.assertEqual(td, np.timedelta64(td.value, 'ns'))
+            td64 = td.to_timedelta64()
+            self.assertEqual(td64, np.timedelta64(td.value, 'ns'))
+            self.assertEqual(td, td64)
+            self.assertTrue(isinstance(td64, np.timedelta64))
 
         # this is NOT equal and cannot be roundtriped (because of the nanos)
         td = Timedelta('1 days, 10:11:12.012345678')
@@ -204,6 +213,15 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(TypeError, lambda : td + 2)
         self.assertRaises(TypeError, lambda : td - 2)
 
+    def test_ops_offsets(self):
+        td = Timedelta(10, unit='d')
+        self.assertEqual(Timedelta(241, unit='h'), td + pd.offsets.Hour(1))
+        self.assertEqual(Timedelta(241, unit='h'), pd.offsets.Hour(1) + td)
+        self.assertEqual(240, td / pd.offsets.Hour(1))
+        self.assertEqual(1 / 240.0, pd.offsets.Hour(1) / td)
+        self.assertEqual(Timedelta(239, unit='h'), td - pd.offsets.Hour(1))
+        self.assertEqual(Timedelta(-239, unit='h'), pd.offsets.Hour(1) - td)
+
     def test_freq_conversion(self):
 
         td = Timedelta('1 days 2 hours 3 ns')
@@ -213,6 +231,74 @@ class TestTimedeltas(tm.TestCase):
         self.assertEquals(result, td.value/float(1e9))
         result = td / np.timedelta64(1,'ns')
         self.assertEquals(result, td.value)
+
+    def test_ops_ndarray(self):
+        td = Timedelta('1 day')
+
+        # timedelta, timedelta
+        other = pd.to_timedelta(['1 day']).values
+        expected = pd.to_timedelta(['2 days']).values
+        self.assert_numpy_array_equal(td + other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other + td, expected)
+        self.assertRaises(TypeError, lambda: td + np.array([1]))
+        self.assertRaises(TypeError, lambda: np.array([1]) + td)
+
+        expected = pd.to_timedelta(['0 days']).values
+        self.assert_numpy_array_equal(td - other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(-other + td, expected)
+        self.assertRaises(TypeError, lambda: td - np.array([1]))
+        self.assertRaises(TypeError, lambda: np.array([1]) - td)
+
+        expected = pd.to_timedelta(['2 days']).values
+        self.assert_numpy_array_equal(td * np.array([2]), expected)
+        self.assert_numpy_array_equal(np.array([2]) * td, expected)
+        self.assertRaises(TypeError, lambda: td * other)
+        self.assertRaises(TypeError, lambda: other * td)
+
+        self.assert_numpy_array_equal(td / other, np.array([1]))
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other / td, np.array([1]))
+
+        # timedelta, datetime
+        other = pd.to_datetime(['2000-01-01']).values
+        expected = pd.to_datetime(['2000-01-02']).values
+        self.assert_numpy_array_equal(td + other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other + td, expected)
+
+        expected = pd.to_datetime(['1999-12-31']).values
+        self.assert_numpy_array_equal(-td + other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other - td, expected)
+
+    def test_ops_series(self):
+        # regression test for GH8813
+        td = Timedelta('1 day')
+        other = pd.Series([1, 2])
+        expected = pd.Series(pd.to_timedelta(['1 day', '2 days']))
+        tm.assert_series_equal(expected, td * other)
+        tm.assert_series_equal(expected, other * td)
+
+    def test_compare_timedelta_series(self):
+        # regresssion test for GH5963
+        s = pd.Series([timedelta(days=1), timedelta(days=2)])
+        actual = s > timedelta(days=1)
+        expected = pd.Series([False, True])
+        tm.assert_series_equal(actual, expected)
+
+    def test_ops_notimplemented(self):
+        class Other:
+            pass
+        other = Other()
+
+        td = Timedelta('1 day')
+        self.assertTrue(td.__add__(other) is NotImplemented)
+        self.assertTrue(td.__sub__(other) is NotImplemented)
+        self.assertTrue(td.__truediv__(other) is NotImplemented)
+        self.assertTrue(td.__mul__(other) is NotImplemented)
+        self.assertTrue(td.__floordiv__(td) is NotImplemented)
 
     def test_fields(self):
         rng = to_timedelta('1 days, 10:11:12')

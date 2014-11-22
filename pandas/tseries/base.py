@@ -321,6 +321,7 @@ class DatetimeIndexOpsMixin(object):
             else:  # pragma: no cover
                 return NotImplemented
         cls.__add__ = __add__
+        cls.__radd__ = __add__
 
         def __sub__(self, other):
             from pandas.core.index import Index
@@ -343,6 +344,10 @@ class DatetimeIndexOpsMixin(object):
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__
+
+        def __rsub__(self, other):
+            return -self + other
+        cls.__rsub__ = __rsub__
 
         cls.__iadd__ = __add__
         cls.__isub__ = __sub__
