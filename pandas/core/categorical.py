@@ -913,7 +913,7 @@ class Categorical(PandasObject):
             result = result[::-1]
         return result
 
-    def order(self, inplace=False, ascending=True, na_position='last', **kwargs):
+    def order(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Category by category value returning a new Categorical by default.
 
         Only ordered Categoricals can be sorted!
@@ -972,7 +972,7 @@ class Categorical(PandasObject):
                                name=self.name, fastpath=True)
 
 
-    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
+    def sort(self, inplace=True, ascending=True, na_position='last'):
         """ Sorts the Category inplace by category value.
 
         Only ordered Categoricals can be sorted!
@@ -997,7 +997,8 @@ class Categorical(PandasObject):
         --------
         Category.order
         """
-        return self.order(inplace=inplace, ascending=ascending, **kwargs)
+        return self.order(inplace=inplace, ascending=ascending,
+                na_position=na_position)
 
     def ravel(self, order='C'):
         """ Return a flattened (numpy) array.
@@ -1033,7 +1034,7 @@ class Categorical(PandasObject):
         """
         return np.asarray(self)
 
-    def fillna(self, fill_value=None, method=None, limit=None, **kwargs):
+    def fillna(self, fill_value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
         Parameters

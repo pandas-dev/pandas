@@ -267,7 +267,7 @@ class NDFrame(PandasObject):
                         raise TypeError(
                             "not enough/duplicate arguments specified!")
 
-        axes = dict([(a, kwargs.get(a)) for a in self._AXIS_ORDERS])
+        axes = dict([(a, kwargs.pop(a, None)) for a in self._AXIS_ORDERS])
         return axes, kwargs
 
     @classmethod
@@ -444,8 +444,13 @@ class NDFrame(PandasObject):
         new_axes = self._construct_axes_dict_from(
             self, [self._get_axis(x) for x in axes_names])
         new_values = self.values.transpose(axes_numbers)
-        if kwargs.get('copy') or (len(args) and args[-1]):
+        if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
+
+        if kwargs:
+            raise TypeError('transpose() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
@@ -540,8 +545,12 @@ class NDFrame(PandasObject):
     def rename(self, *args, **kwargs):
 
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        copy = kwargs.get('copy', True)
-        inplace = kwargs.get('inplace', False)
+        copy = kwargs.pop('copy', True)
+        inplace = kwargs.pop('inplace', False)
+
+        if kwargs:
+            raise TypeError('rename() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         if (com._count_not_none(*axes.values()) == 0):
             raise TypeError('must pass an index to rename')
@@ -1531,10 +1540,12 @@ class NDFrame(PandasObject):
         -------
         reindexed : same as input
         """
-        d = other._construct_axes_dict(method=method, copy=copy, limit=limit)
+        d = other._construct_axes_dict(axes=self._AXIS_ORDERS,
+                method=method, copy=copy, limit=limit)
+
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
+    def drop(self, labels, axis=0, level=None, inplace=False):
         """
         Return new object with labels in requested axis removed
 
@@ -1708,11 +1719,15 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = com._clean_reindex_fill_method(kwargs.get('method'))
-        level = kwargs.get('level')
-        copy = kwargs.get('copy', True)
-        limit = kwargs.get('limit')
-        fill_value = kwargs.get('fill_value', np.nan)
+        method = com._clean_reindex_fill_method(kwargs.pop('method', None))
+        level = kwargs.pop('level', None)
+        copy = kwargs.pop('copy', True)
+        limit = kwargs.pop('limit', None)
+        fill_value = kwargs.pop('fill_value', np.nan)
+
+        if kwargs:
+            raise TypeError('reindex() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         self._consolidate_inplace()
 
@@ -1917,7 +1932,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Attribute access
 
-    def __finalize__(self, other, method=None, **kwargs):
+    def __finalize__(self, other, method=None):
         """
         propagate metadata from other to self
 
@@ -3422,7 +3437,7 @@ class NDFrame(PandasObject):
 
         return self._constructor(new_data).__finalize__(self)
 
-    def slice_shift(self, periods=1, axis=0, **kwds):
+    def slice_shift(self, periods=1, axis=0):
         """
         Equivalent to `shift` without copying data. The shifted data will
         not include the dropped periods and the shifted axis will be smaller
@@ -4053,7 +4068,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis")
         @Appender(_num_doc)
-        def mad(self,  axis=None, skipna=None, level=None, **kwargs):
+        def mad(self,  axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
             if axis is None:
@@ -4111,7 +4126,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                       desc="Return the compound percentage of the values for "
                            "the requested axis")
         @Appender(_num_doc)
-        def compound(self, axis=None, skipna=None, level=None, **kwargs):
+        def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
             return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1

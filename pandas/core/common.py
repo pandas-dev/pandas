@@ -1559,7 +1559,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     return values
 
 
-def _clean_interp_method(method, order=None, **kwargs):
+def _clean_interp_method(method, order=None):
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
@@ -1574,7 +1574,7 @@ def _clean_interp_method(method, order=None, **kwargs):
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   fill_value=None, bounds_error=False, **kwargs):
+                   fill_value=None, bounds_error=False, order=None):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -1657,14 +1657,14 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
         result[firstIndex:][invalid] = _interpolate_scipy_wrapper(
             valid_x, valid_y, new_x, method=method, fill_value=fill_value,
-            bounds_error=bounds_error, **kwargs)
+            bounds_error=bounds_error, order=order)
         if limit:
             result[violate_limit] = np.nan
         return result
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
-                               bounds_error=False, order=None, **kwargs):
+                               bounds_error=False, order=None):
     """
     passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to

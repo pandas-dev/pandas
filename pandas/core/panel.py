@@ -145,7 +145,12 @@ class Panel(NDFrame):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        passed_axes = [kwargs.get(a) for a in self._AXIS_ORDERS]
+        passed_axes = [kwargs.pop(a, None) for a in self._AXIS_ORDERS]
+
+        if kwargs:
+            raise TypeError('_init_data() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         axes = None
         if isinstance(data, BlockManager):
             if any(x is not None for x in passed_axes):
@@ -471,7 +476,11 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis, you gave'
                             ' {0} args, but {1} are required'.format(nargs,
                                                                      nreq))
-        takeable = kwargs.get('takeable')
+        takeable = kwargs.pop('takeable', None)
+
+        if kwargs:
+            raise TypeError('get_value() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         if takeable is True:
             lower = self._iget_item_cache(args[0])
@@ -506,7 +515,11 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis plus the '
                             'value provided, you gave {0} args, but {1} are '
                             'required'.format(nargs, nreq))
-        takeable = kwargs.get('takeable')
+        takeable = kwargs.pop('takeable', None)
+
+        if kwargs:
+            raise TypeError('set_value() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         try:
             if takeable is True:
@@ -607,7 +620,7 @@ class Panel(NDFrame):
         """ don't allow a multi reindex on Panel or above ndim """
         return False
 
-    def dropna(self, axis=0, how='any', inplace=False, **kwargs):
+    def dropna(self, axis=0, how='any', inplace=False):
         """
         Drop 2D from panel, holding passed axis constant
 
@@ -1065,7 +1078,7 @@ class Panel(NDFrame):
 
         return self._construct_return_type(result, axes)
 
-    def _construct_return_type(self, result, axes=None, **kwargs):
+    def _construct_return_type(self, result, axes=None):
         """ return the type for the ndim of the result """
         ndim = getattr(result,'ndim',None)
 

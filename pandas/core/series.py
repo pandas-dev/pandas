@@ -2374,6 +2374,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace : boolean, default False
             Do operation in place.
         """
+        kwargs.pop('how', None)
+        if kwargs:
+            raise TypeError('dropna() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         axis = self._get_axis_number(axis or 0)
         result = remove_na(self)
         if inplace:

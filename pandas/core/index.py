@@ -415,7 +415,7 @@ class Index(IndexOpsMixin, PandasObject):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-    def to_series(self, **kwargs):
+    def to_series(self):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
@@ -1604,7 +1604,7 @@ class Index(IndexOpsMixin, PandasObject):
                            left_indexer, right_indexer)
         return indexer
 
-    def get_indexer_non_unique(self, target, **kwargs):
+    def get_indexer_non_unique(self, target):
         """ return an indexer suitable for taking from a non unique index
             return the labels in the same order as the target, and
             return a missing indexer into the target (missing are marked as -1
@@ -3766,7 +3766,7 @@ class MultiIndex(Index):
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
-        return self.values.argsort()
+        return self.values.argsort(*args, **kwargs)
 
     def repeat(self, n):
         return MultiIndex(levels=self.levels,
