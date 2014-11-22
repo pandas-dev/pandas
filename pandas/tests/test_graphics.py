@@ -5,6 +5,7 @@ import nose
 import itertools
 import os
 import string
+import warnings
 from distutils.version import LooseVersion
 
 from datetime import datetime, date
@@ -1297,12 +1298,12 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
 
-        returned = df.plot(subplots=True, ax=axes[0])
+        returned = df.plot(subplots=True, ax=axes[0], sharex=False, sharey=False)
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assertEqual(returned.shape, (3, ))
         self.assertIs(returned[0].figure, fig)
         # draw on second row
-        returned = df.plot(subplots=True, ax=axes[1])
+        returned = df.plot(subplots=True, ax=axes[1], sharex=False, sharey=False)
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assertEqual(returned.shape, (3, ))
         self.assertIs(returned[0].figure, fig)
@@ -1319,18 +1320,23 @@ class TestDataFramePlots(TestPlotBase):
         # (show warning is tested in
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
         fig, axes = self.plt.subplots(2, 2)
-        df = DataFrame(np.random.rand(10, 4),
-                       index=list(string.ascii_letters[:10]))
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            df = DataFrame(np.random.rand(10, 4),
+                           index=list(string.ascii_letters[:10]))
 
-        returned = df.plot(subplots=True, ax=axes, layout=(2, 1))
-        self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
-        self.assertEqual(returned.shape, (4, ))
+            returned = df.plot(subplots=True, ax=axes, layout=(2, 1),
+                               sharex=False, sharey=False)
+            self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
+            self.assertEqual(returned.shape, (4, ))
 
-        returned = df.plot(subplots=True, ax=axes, layout=(2, -1))
-        self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
-        self.assertEqual(returned.shape, (4, ))
+            returned = df.plot(subplots=True, ax=axes, layout=(2, -1),
+                               sharex=False, sharey=False)
+            self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
+            self.assertEqual(returned.shape, (4, ))
 
-        returned = df.plot(subplots=True, ax=axes, layout=(-1, 2))
+            returned = df.plot(subplots=True, ax=axes, layout=(-1, 2),
+                               sharex=False, sharey=False)
         self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
         self.assertEqual(returned.shape, (4, ))
 
@@ -1338,7 +1344,8 @@ class TestDataFramePlots(TestPlotBase):
         fig, axes = self.plt.subplots(1, 1)
         df = DataFrame(np.random.rand(10, 1),
                        index=list(string.ascii_letters[:10]))
-        axes = df.plot(subplots=True, ax=[axes])
+
+        axes = df.plot(subplots=True, ax=[axes], sharex=False, sharey=False)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
         self.assertEqual(axes.shape, (1, ))
 
@@ -3122,13 +3129,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @slow
     def test_boxplot(self):
         grouped = self.hist_df.groupby(by='gender')
-        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            axes = _check_plot_works(grouped.boxplot, return_type='axes')
         self._check_axes_shape(list(axes.values()), axes_num=2, layout=(1, 2))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
-
         tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
@@ -3148,6 +3156,30 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+
+    @slow
+    def test_grouped_plot_fignums(self):
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        with tm.RNGContext(42):
+            gender = tm.choice(['male', 'female'], size=n)
+        df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
+        gb = df.groupby('gender')
+
+        res = gb.plot()
+        self.assertEqual(len(self.plt.get_fignums()), 2)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        res = gb.boxplot(return_type='axes')
+        self.assertEqual(len(self.plt.get_fignums()), 1)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        # now works with GH 5610 as gender is excluded
+        res = df.groupby('gender').hist()
+        tm.close()
 
     def test_series_plot_color_kwargs(self):
         # GH1890
@@ -3218,6 +3250,21 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         with tm.assert_produces_warning(FutureWarning):
             df.hist(by='C', figsize='default')
+
+    @slow
+    def test_grouped_hist2(self):
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        with tm.RNGContext(42):
+            gender_int = tm.choice([0, 1], size=n)
+        df_int = DataFrame({'height': height, 'weight': weight,
+                            'gender': gender_int})
+        gb = df_int.groupby('gender')
+        axes = gb.hist()
+        self.assertEqual(len(axes), 2)
+        self.assertEqual(len(self.plt.get_fignums()), 2)
+        tm.close()
 
     @slow
     def test_grouped_box_return_type(self):
@@ -3334,15 +3381,21 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
         fig, axes = self.plt.subplots(2, 3)
-        returned = df.boxplot(column=['height', 'weight', 'category'], by='gender',
-                              return_type='axes', ax=axes[0])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            returned = df.boxplot(column=['height', 'weight', 'category'],
+                                  by='gender', return_type='axes', ax=axes[0])
         returned = np.array(list(returned.values()))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
+
         # draw on second row
-        returned = df.groupby('classroom').boxplot(column=['height', 'weight', 'category'],
-                                                   return_type='axes', ax=axes[1])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            returned = df.groupby('classroom').boxplot(
+                column=['height', 'weight', 'category'],
+                return_type='axes', ax=axes[1])
         returned = np.array(list(returned.values()))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[1])
@@ -3468,6 +3521,32 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         with tm.assertRaises(ValueError):
             df.plot(colormap='invalid_colormap')
+
+    def test_series_groupby_plotting_nominally_works(self):
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        with tm.RNGContext(42):
+            gender = tm.choice(['male', 'female'], size=n)
+
+        weight.groupby(gender).plot()
+        tm.close()
+        height.groupby(gender).hist()
+        tm.close()
+        #Regression test for GH8733
+        height.groupby(gender).plot(alpha=0.5)
+        tm.close()
+
+    def test_plotting_with_float_index_works(self):
+        # GH 7025
+        df = DataFrame({'def': [1,1,1,2,2,2,3,3,3],
+                        'val': np.random.randn(9)},
+                       index=[1.0,2.0,3.0,1.0,2.0,3.0,1.0,2.0,3.0])
+
+        df.groupby('def')['val'].plot()
+        tm.close()
+        df.groupby('def')['val'].apply(lambda x: x.plot())
+        tm.close()
 
 
 def assert_is_valid_plot_return_object(objs):

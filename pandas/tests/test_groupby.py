@@ -35,11 +35,6 @@ import pandas.util.testing as tm
 import pandas as pd
 from numpy.testing import assert_equal
 
-def _skip_if_mpl_not_installed():
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        raise nose.SkipTest("matplotlib not installed")
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -4652,88 +4647,6 @@ class TestGroupBy(tm.TestCase):
                 msg = fmt.format(bl, type(gb).__name__)
                 with tm.assertRaisesRegexp(AttributeError, msg):
                     getattr(gb, bl)
-
-    def test_series_groupby_plotting_nominally_works(self):
-        _skip_if_mpl_not_installed()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
-
-        weight.groupby(gender).plot()
-        tm.close()
-        height.groupby(gender).hist()
-        tm.close()
-        #Regression test for GH8733
-        height.groupby(gender).plot(alpha=0.5)
-        tm.close()
-
-    def test_plotting_with_float_index_works(self):
-        _skip_if_mpl_not_installed()
-
-        # GH 7025
-        df = DataFrame({'def': [1,1,1,2,2,2,3,3,3],
-                        'val': np.random.randn(9)},
-                       index=[1.0,2.0,3.0,1.0,2.0,3.0,1.0,2.0,3.0])
-
-        df.groupby('def')['val'].plot()
-        tm.close()
-        df.groupby('def')['val'].apply(lambda x: x.plot())
-        tm.close()
-
-    @slow
-    def test_frame_groupby_plot_boxplot(self):
-        _skip_if_mpl_not_installed()
-
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        mpl.use('Agg')
-        tm.close()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
-        df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
-        gb = df.groupby('gender')
-
-        res = gb.plot()
-        self.assertEqual(len(plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
-        tm.close()
-
-        res = gb.boxplot()
-        self.assertEqual(len(plt.get_fignums()), 1)
-        self.assertEqual(len(res), 2)
-        tm.close()
-
-        # now works with GH 5610 as gender is excluded
-        res = df.groupby('gender').hist()
-        tm.close()
-
-    @slow
-    def test_frame_groupby_hist(self):
-        _skip_if_mpl_not_installed()
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        mpl.use('Agg')
-        tm.close()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender_int = tm.choice([0, 1], size=n)
-        df_int = DataFrame({'height': height, 'weight': weight,
-                            'gender': gender_int})
-        gb = df_int.groupby('gender')
-        axes = gb.hist()
-        self.assertEqual(len(axes), 2)
-        self.assertEqual(len(plt.get_fignums()), 2)
-        tm.close()
 
     def test_tab_completion(self):
         grp = self.mframe.groupby(level='second')
