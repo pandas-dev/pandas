@@ -423,7 +423,7 @@ class _NDFrameIndexer(object):
                     axis_number = next(i for i in range(len(plane_indexer)) 
                                        if _is_null_slice(plane_indexer[i]))
                 except StopIteration:
-                    return False
+                    axis_number = 0
                 l = len(value)
                 item = labels[0]
                 index = self.obj[item].axes[axis_number]
