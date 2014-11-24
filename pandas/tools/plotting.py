@@ -1374,7 +1374,8 @@ class MPLPlot(object):
 class ScatterPlot(MPLPlot):
     _layout_type = 'single'
 
-    def __init__(self, data, x, y, c=None, **kwargs):
+    def __init__(self, data, x, y, c=None, s=None,
+                 size_range=(50, 1000), **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError( 'scatter requires and x and y column')
@@ -1387,6 +1388,16 @@ class ScatterPlot(MPLPlot):
         self.x = x
         self.y = y
         self.c = c
+        self.size_range = size_range
+
+        # Set up size scaling if necessary, need to do this before plot
+        # generation starts and non-numeric data thrown away
+        if s is None:
+            self.s_values = self.plt.rcParams['lines.markersize']
+        elif isinstance(s, str) and s in self.data.columns:
+            self.s_values = self._convert_column_to_size(s)
+        else:
+            self.s_values = s
 
     @property
     def nseries(self):
@@ -1415,12 +1426,14 @@ class ScatterPlot(MPLPlot):
         else:
             c_values = c
 
+
         if self.legend and hasattr(self, 'label'):
             label = self.label
         else:
             label = None
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
-                             label=label, cmap=cmap, **self.kwds)
+                             s=self.s_values, label=label, cmap=cmap,
+                             **self.kwds)
         if cb:
             img = ax.collections[0]
             kws = dict(ax=ax)
@@ -1436,6 +1449,23 @@ class ScatterPlot(MPLPlot):
             err_kwds = dict(errors_x, **errors_y)
             err_kwds['ecolor'] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle='none', **err_kwds)
+
+    def _convert_column_to_size(self, col_name):
+        min_size, max_size = self.size_range
+        size_col = self.data[col_name]
+
+        if com.is_categorical_dtype(size_col):
+            n_categories = len(size_col.cat.categories)
+            cat_sizes = np.linspace(min_size, max_size, num=n_categories)
+            size_mapper = Series(cat_sizes, index=size_col.cat.categories)
+            point_sizes = size_col.map(size_mapper)
+        else:
+            vals = self.data[col_name].values
+            val_range = vals.max() - vals.min()
+            normalized_vals = (vals - vals.min()) / val_range
+            point_sizes = (min_size + (normalized_vals * (max_size - min_size)))
+
+        return point_sizes
 
     def _post_plot_logic(self):
         ax = self.axes[0]

@@ -8,7 +8,7 @@
    import pandas as pd
    from numpy.random import randn, rand, randint
    np.random.seed(123456)
-   from pandas import DataFrame, Series, date_range, options
+   from pandas import DataFrame, Series, date_range, options, Categorical
    import pandas.util.testing as tm
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
@@ -587,20 +587,43 @@ each point:
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib ``scatter``.
-Below example shows a bubble chart using a dataframe column values as bubble size.
+You can also pass a column name as the ``s`` (size) argument to have
+the point sizes scale according to that column's values. Currently
+this is only supported for string column names.
+
+The minimum and
+maximum sizes of the bubbles (in points) are controlled by the
+``size_range`` argument, with a default range of ``(50, 1000)``. The
+below example shows a bubble chart using a dataframe column values
+as bubble size.
 
 .. ipython:: python
 
-   @savefig scatter_plot_bubble.png
-   df.plot(kind='scatter', x='a', y='b', s=df['c']*200);
+   @savefig scatter_plot_sizes.png
+   df.plot(kind='scatter', x='a', y='b', s='c');
 
 .. ipython:: python
    :suppress:
 
    plt.close('all')
 
-See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
+Categorical columns can also be used to set point sizes, producing
+a set of equally spaced point sizes:
+
+.. ipython:: python
+
+    df['group'] = Categorical(randint(1, 4, 50))
+    @savefig scatter_plot_categorical_sizes.png
+    df.plot(kind='scatter', x='a', y='b', s='group')
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+You can pass other keywords supported by matplotlib ``scatter``, e.g. ``alpha``
+to control the transparency of points. See the
+:meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 `matplotlib scatter documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:

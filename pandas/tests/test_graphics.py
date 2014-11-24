@@ -9,7 +9,8 @@ from distutils.version import LooseVersion
 
 from datetime import datetime, date
 
-from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
+from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
+                    Categorical)
 from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
                            iteritems, OrderedDict)
 from pandas.util.decorators import cache_readonly
@@ -1644,6 +1645,32 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(x=0, y=1, c='red', kind='scatter')
         self.assertIs(ax.collections[0].colorbar, None)
         self._check_colors(ax.collections, facecolors=['r'])
+
+    @slow
+    def test_plot_scatter_with_size(self):
+        df = DataFrame(randn(6, 3),
+           index=list(string.ascii_letters[:6]),
+           columns=['x', 'y', 'z'])
+        df['group'] = Categorical(random.randint(1, 4, 6))
+
+        size_range = (100, 500)
+        ax1 = df.plot(kind='scatter', x='x', y='y', s='z',
+                      size_range=size_range)
+        point_sizes1 = ax1.collections[0]._sizes
+        self.assertGreaterEqual(min(point_sizes1), size_range[0])
+        self.assertLessEqual(max(point_sizes1), size_range[1])
+
+        # Categorical size column
+        ax2 = df.plot(kind='scatter', x='x', y='y', s='group',
+                      size_range=size_range)
+        point_sizes2 = ax2.collections[0]._sizes
+        self.assertGreaterEqual(min(point_sizes2), size_range[0])
+        self.assertLessEqual(max(point_sizes2), size_range[1])
+        unique_sizes = np.unique(point_sizes2)
+        self.assertEqual(
+            len(unique_sizes),
+            len(df['group'].cat.categories)
+        )
 
     @slow
     def test_plot_bar(self):
