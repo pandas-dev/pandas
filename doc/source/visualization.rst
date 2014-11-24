@@ -588,7 +588,10 @@ each point:
    plt.close('all')
 
 You can also pass a column name as the ``s`` (size) argument to have
-the point sizes scale according to that column's values. The minimum and
+the point sizes scale according to that column's values. Currently
+this is only supported for string column names.
+
+The minimum and
 maximum sizes of the bubbles (in points) are controlled by the
 ``size_range`` argument, with a default range of ``(50, 1000)``. The
 below example shows a bubble chart using a dataframe column values
