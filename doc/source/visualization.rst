@@ -622,9 +622,8 @@ a set of equally spaced point sizes:
    plt.close('all')
 
 You can pass other keywords supported by matplotlib ``scatter``, e.g. ``alpha``
-to control the transparency of points.
-
-See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
+to control the transparency of points. See the
+:meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 `matplotlib scatter documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:
