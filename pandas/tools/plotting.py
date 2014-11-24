@@ -1394,7 +1394,7 @@ class ScatterPlot(MPLPlot):
         # generation starts and non-numeric data thrown away
         if s is None:
             self.s_values = self.plt.rcParams['lines.markersize']
-        elif s in self.data.columns:
+        elif isinstance(s, str) and s in self.data.columns:
             self.s_values = self._convert_column_to_size(s)
         else:
             self.s_values = s
