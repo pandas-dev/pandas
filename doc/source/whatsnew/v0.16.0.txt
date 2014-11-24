@@ -62,6 +62,8 @@ Enhancements
 
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
 - Added time interval selection in get_data_yahoo (:issue:`9071`)
+- Added ``Series.str.slice_replace()``, which previously raised NotImplementedError (:issue:`8888`)
+
 
 Performance
 ~~~~~~~~~~~
