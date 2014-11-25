@@ -173,7 +173,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
-def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
+def to_datetime(arg, ignore_errors=False, dayfirst=False, utc=None, box=True,
                 format=None, coerce=False, unit='ns',
                 infer_datetime_format=False):
     """
@@ -182,8 +182,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     Parameters
     ----------
     arg : string, datetime, array of strings (with possible NAs)
-    errors : {'ignore', 'raise'}, default 'ignore'
-        Errors are ignored by default (values left untouched)
+    ignore_errors : boolean, default False
+        Catches errors raised by datetime conversions, and leaves those values untouched
     dayfirst : boolean, default False
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
@@ -273,7 +273,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                             arg, format, coerce=coerce
                         )
                     except (tslib.OutOfBoundsDatetime):
-                        if errors == 'raise':
+                        if not ignore_errors:
                             raise
                         result = arg
                     except ValueError:
@@ -283,7 +283,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                             raise
 
             if result is None and (format is None or infer_datetime_format):
-                result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
+                result = tslib.array_to_datetime(arg, raise_=ignore_errors==False,
                                                  utc=utc, dayfirst=dayfirst,
                                                  coerce=coerce, unit=unit)
 
