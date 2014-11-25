@@ -25,18 +25,32 @@ TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
 NO_CALLBACK = auth.OOB_CALLBACK_URN
 DOC_URL = auth.DOC_URL
 
-_QUERY_PARAMS = """metrics : list of str
+_QUERY_PARAMS = """
+metrics : list of str
     Un-prefixed metric names (e.g., 'visitors' and not 'ga:visitors')
+    
 dimensions : list of str
     Un-prefixed dimension variable names
+    
 start_date : str/date/datetime
+
 end_date : str/date/datetime, optional
     Defaults to today
+    
 segment : list of str, optional
+
 filters : list of str, optional
+
 start_index : int, default 1
+
 max_results : int, default 10000
-    If >10000, must specify chunksize or ValueError will be raised"""
+    If >10000, must specify chunksize or ValueError will be raised
+    
+sort : bool/list, default None
+    dimension / metric to sort on within the query to GA.  Note that reverse
+    sorts work as expected, such as sort = '-pageviews'. Note that behaviour
+    is passed on to the parser, so that the resulting DataFrame is sorted
+    to match. """
 
 _QUERY_DOC = """
 Construct a google analytics query using given parameters
@@ -54,8 +68,6 @@ data or an iterator that returns DataFrames containing chunks of the data
 Parameters
 ----------
 %s
-sort : bool/list, default True
-    Sort output by index or list of columns
 chunksize : int, optional
     If max_results >10000, specifies the number of rows per iteration
 index_col : str/list of str/dict, optional
@@ -99,12 +111,11 @@ def reset_token_store():
 
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
-def read_ga(metrics, dimensions, start_date, **kwargs):
+def read_ga(**kwargs):
     lst = ['secrets', 'scope', 'token_file_name', 'redirect']
-    reader_kwds = dict((p, kwargs.pop(p)) for p in lst if p in kwargs)
+    reader_kwds = {p : kwargs.pop(p) for p in lst if p in kwargs}
     reader = GAnalytics(**reader_kwds)
-    return reader.get_data(metrics=metrics, start_date=start_date,
-                           dimensions=dimensions, **kwargs)
+    return reader.get_data(**kwargs)
 
 
 class OAuthDataReader(object):
@@ -160,7 +171,7 @@ class OAuthDataReader(object):
         %s
         """ % DOC_URL
         return auth.get_flow(secrets, self.scope, self.redirect_url)
-
+        
 
 class GDataReader(OAuthDataReader):
     """
@@ -244,80 +255,141 @@ class GDataReader(OAuthDataReader):
 
     @Substitution(extras='')
     @Appender(_GA_READER_DOC)
-    def get_data(self, metrics, start_date, end_date=None,
-                 dimensions=None, segment=None, filters=None, start_index=1,
-                 max_results=10000, index_col=None, parse_dates=True,
-                 keep_date_col=False, date_parser=None, na_values=None,
-                 converters=None, sort=True, dayfirst=False,
-                 account_name=None, account_id=None, property_name=None,
-                 property_id=None, profile_name=None, profile_id=None,
-                 chunksize=None):
-        if chunksize is None and max_results > 10000:
+    def get_data(self, **kwargs):
+        params = {\
+            'metrics'       : None,
+            'start_date'    : None,
+            'end_date'      : None,
+            'dimensions'    : None,
+            'segment'       : None,
+            'filters'       : None,
+            'start_index'   : 1,
+            'max_results'   : 10000,
+            'index_col'     : None,
+            'parse_dates'   : True,
+            'keep_date_col' : False,
+            'date_parser'   : None,
+            'na_values'     : None,
+            'converters'    : None,
+            'sort'          : None,
+            'dayfirst'      : False,
+            'account_name'  : None, 
+            'account_id'    : None,
+            'property_name' : None,
+            'property_id'   : None,
+            'profile_name'  : None,
+            'profile_id'    : None,
+            'chunksize'     : None,}
+               
+        params.update(kwargs)
+        
+        if params['chunksize'] is None and params['max_results'] > 10000:
             raise ValueError('Google API returns maximum of 10,000 rows, '
                              'please set chunksize')
 
-        account = self.get_account(account_name, account_id)
-        web_property = self.get_web_property(account.get('id'), property_name,
-                                             property_id)
+        account = self.get_account(params['account_name'], 
+                                    params['account_id'])
+                                    
+        web_property = self.get_web_property(account.get('id'), 
+                                    params['property_name'],
+                                    params['property_id'])
+                                    
         profile = self.get_profile(account.get('id'), web_property.get('id'),
-                                   profile_name, profile_id)
+                                    params['profile_name'],
+                                    params['profile_id'])
 
         profile_id = profile.get('id')
 
-        if index_col is None and dimensions is not None:
-            if isinstance(dimensions, compat.string_types):
-                dimensions = [dimensions]
-            index_col = _clean_index(list(dimensions), parse_dates)
-
+        if params['index_col'] is None and params['dimensions'] is not None:
+            if isinstance(params['dimensions'], compat.string_types):
+                dimensions = [params.pop('dimensions')]
+            index_col = _clean_index(list(dimensions), parse_dates).tolist()
+            
+        else:
+            dimensions = params['dimensions']
+            
+        updated_params = {\
+            'profile_id'    : profile_id, 
+            'dimensions'    : dimensions, }
+        
+        params.update(updated_params)
+        
         def _read(start, result_size):
-            query = self.create_query(profile_id, metrics, start_date,
-                                      end_date=end_date, dimensions=dimensions,
-                                      segment=segment, filters=filters,
-                                      start_index=start,
-                                      max_results=result_size)
-
+            query = self.create_query(**params)
+            
             try:
                 rs = query.execute()
                 rows = rs.get('rows', [])
                 col_info = rs.get('columnHeaders', [])
-                return self._parse_data(rows, col_info, index_col,
-                                        parse_dates=parse_dates,
-                                        keep_date_col=keep_date_col,
-                                        date_parser=date_parser,
-                                        dayfirst=dayfirst,
-                                        na_values=na_values,
-                                        converters=converters, sort=sort)
+                
+                parse_items = ['index_col', 'parse_dates', 'keep_date_col', \
+                                'date_parser', 'dayfirst', 'na_values', \
+                                'converters', 'sort', 'ascending']
+                
+                # in case a reverse sort has been sent to GA...
+                def _maybe_fix_sort(item):
+                    if item[0] is '-':
+                        params['ascending'] = False
+                        return item[1:]
+                    
+                    else:
+                        params['ascending'] = True
+                        return item
+                        
+                if params['sort'] is not None:
+                    if params['sort'].__class__ is str:
+                        temp = _maybe_fix_sort(params['sort'])
+                        
+                    else:
+                        temp = [_maybe_fix_sort(item) \
+                                    for item in params['sort']]
+                        
+                    params['sort'] = temp
+                    
+                to_parse = {item : params[item] for item in parse_items}
+                
+                return self._parse_data(rows, col_info, **to_parse)
+            
             except HttpError as inst:
                 raise ValueError('Google API error %s: %s' % (inst.resp.status,
-                                 inst._get_reason()))
-
-        if chunksize is None:
-            return _read(start_index, max_results)
+                                    inst._get_reason()))
+                                    
+        if params['chunksize'] is None:
+            return _read(params['start_index'], params['max_results'])
 
         def iterator():
-            curr_start = start_index
+            curr_start = params['start_index']
 
-            while curr_start < max_results:
-                yield _read(curr_start, chunksize)
-                curr_start += chunksize
+            while curr_start < params['max_results']:
+                yield _read(curr_start, params['chunksize'])
+                curr_start += params['chunksize']
         return iterator()
 
-    def _parse_data(self, rows, col_info, index_col, parse_dates=True,
-                    keep_date_col=False, date_parser=None, dayfirst=False,
-                    na_values=None, converters=None, sort=True):
+    def _parse_data(self, rows, col_info, **kwargs):
         # TODO use returned column types
-        col_names = _get_col_names(col_info)
-        df = psr._read(rows, dict(index_col=index_col, parse_dates=parse_dates,
-                                  date_parser=date_parser, dayfirst=dayfirst,
-                                  na_values=na_values,
-                                  keep_date_col=keep_date_col,
-                                  converters=converters,
-                                  header=None, names=col_names))
+        parse_opts = {\
+                'index_col'     : None,
+                'parse_dates'   : True,
+                'keep_date_col' : False,
+                'date_parser'   : None,
+                'dayfirst'      : False,
+                'na_values'     : None,
+                'converters'    : None,
+                'sort'          : True, 
+                'header'        : None, }
+        
+        parse_opts.update(kwargs)
+        
+        parse_opts['names'] = _get_col_names(col_info)
+        df = psr._read(rows, parse_opts)
 
-        if isinstance(sort, bool) and sort:
-            return df.sort_index()
-        elif isinstance(sort, (compat.string_types, list, tuple, np.ndarray)):
-            return df.sort_index(by=sort)
+        if isinstance(parse_opts['sort'], bool) and sort:
+            return df.sort()
+        
+        elif isinstance(parse_opts['sort'], \
+                (compat.string_types, list, tuple, np.ndarray)):
+            return df.sort(columns=parse_opts['sort'], \
+                            ascending=parse_opts['ascending'])
 
         return df
 
@@ -325,68 +397,118 @@ class GDataReader(OAuthDataReader):
 class GAnalytics(GDataReader):
 
     @Appender(_QUERY_DOC)
-    def create_query(self, profile_id, metrics, start_date, end_date=None,
-                     dimensions=None, segment=None, filters=None,
-                     start_index=None, max_results=10000, **kwargs):
-        qry = format_query(profile_id, metrics, start_date, end_date=end_date,
-                           dimensions=dimensions, segment=segment,
-                           filters=filters, start_index=start_index,
-                           max_results=max_results, **kwargs)
+    def create_query(self, **kwargs):
+        qry = format_query(**kwargs)
+                           
         try:
             return self.service.data().ga().get(**qry)
         except TypeError as error:
             raise ValueError('Error making query: %s' % error)
 
 
-def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
-                 segment=None, filters=None, sort=None, start_index=None,
-                 max_results=10000, **kwargs):
-    if isinstance(metrics, compat.string_types):
-        metrics = [metrics]
-    met = ','.join(['ga:%s' % x for x in metrics])
-
-    start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
-    if end_date is None:
-        end_date = datetime.today()
-    end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
-
-    qry = dict(ids='ga:%s' % str(ids),
-               metrics=met,
-               start_date=start_date,
-               end_date=end_date)
+def format_query(**kwargs):
+    qry = {}
     qry.update(kwargs)
+    
+    start_date = pd.to_datetime(qry.pop('start_date')).strftime('%Y-%m-%d')
+    
+    if qry['end_date'] is None:
+        end_date = datetime.today()
+    end_date = pd.to_datetime(qry.pop('end_date')).strftime('%Y-%m-%d')
 
-    names = ['dimensions', 'filters', 'sort']
-    lst = [dimensions, filters, sort]
-    [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
+    qry_updates = {\
+        'ids'       : 'ga:{0}'.format(str(qry.pop('profile_id'))),
+        'start_date': start_date,
+        'end_date'  : end_date, }
+    qry.update(qry_updates)
+       
+    names = ['dimensions', 'metrics']
+    lst = [qry['dimensions'], qry['metrics']]
+    [_maybe_add_arg(qry, n, d) \
+                for n, d in zip(names, lst)]
+    
+    [_maybe_add_filter_arg(qry, n, d) \
+                for n, d in zip(['filters'], [qry['filters']])]
+    
+    [_maybe_add_sort_arg(qry, n, d) \
+                for n, d in zip(['sort'], [qry['sort']])]
 
-    if isinstance(segment, compat.string_types):
-        if re.match("^[a-zA-Z0-9\-\_]+$", segment):
-            _maybe_add_arg(qry, 'segment', segment, 'gaid:')
+    if isinstance(qry['segment'], compat.string_types):
+        if re.match("^[a-zA-Z0-9\-\_]+$", qry['segment']):
+            _maybe_add_arg(qry, 'segment', qry['segment'], 'gaid:')
         else:
-            _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
-    elif isinstance(segment, int):
-        _maybe_add_arg(qry, 'segment', segment, 'gaid:')
-    elif segment:
+            _maybe_add_arg(qry, 'segment', qry['segment'], 'dynamic::ga')
+            
+    elif isinstance(qry['segment'], int):
+        _maybe_add_arg(qry, 'segment', qry['segment'], 'gaid:')
+        
+    elif qry['segment']:
         raise ValueError("segment must be string for dynamic and int ID")
 
-    if start_index is not None:
-        qry['start_index'] = str(start_index)
+    if qry['start_index'] is not None:
+        qry['start_index'] = str(qry['start_index'])
 
-    if max_results is not None:
-        qry['max_results'] = str(max_results)
-
-    return qry
+    if qry['max_results'] is not None:
+        qry['max_results'] = str(qry['max_results'])
+        
+    items = ['ids', 'metrics', 'start_date', 'end_date', 'dimensions', \
+            'segment', 'filters', 'sort', 'start_index', 'max_results']
+    
+    return {item : qry.pop(item) for item in items if (item in qry \
+                and qry[item] is not None)}
 
 
 def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
         if isinstance(data, (compat.string_types, int)):
             data = [data]
-        data = ','.join(['%s:%s' % (prefix, x) for x in data])
+        data = ','.join(['{0}:{1}'.format(prefix, x) for x in data])
         query[field] = data
-
-
+        
+        
+def _maybe_add_sort_arg(query, field, data):
+    if data is not None:
+        if isinstance(data, (compat.string_types, int)):
+            data = [data]
+            
+        def _prefix(char):
+            if char is '-':
+                return '-ga'
+            else:
+                return 'ga'
+            
+        def _no_neg(item):
+            if item[0] is '-':
+                return item[1:]
+            else:
+                return item
+            
+        data = ','.join(['{0}:{1}'.format(_prefix(x[0]), _no_neg(x)) \
+                    for x in data])
+        
+        query[field] = data
+        
+        
+def _maybe_add_filter_arg(query, field, data, prefix='ga'):
+    if data is not None:
+        if isinstance(data, (compat.string_types, int)):
+            data = [data]
+        
+        if len(data) > 1:
+            lookup = {'AND' : ';', 'OR' : ','}
+            
+            args = data[0::2]
+            rules = [rule.upper() for rule in data[1::2]]
+            
+            res = ''.join(['{0}:{1}'.format(prefix, arg) + rule \
+                for (arg, rule) in zip(args, [lookup[x] \
+                    for x in rules])]) + '{0}:{1}'.format(prefix, data[-1])
+            query[field] = res
+            
+        else:
+            query[field] = prefix + ':' + data[0]
+            
+            
 def _get_match(obj_store, name, id, **kwargs):
     key, val = None, None
     if len(kwargs) > 0:
@@ -406,8 +528,8 @@ def _get_match(obj_store, name, id, **kwargs):
         for item in obj_store.get('items'):
             if name_ok(item) or id_ok(item) or key_ok(item):
                 return item
-
-
+            
+            
 def _clean_index(index_dims, parse_dates):
     _should_add = lambda lst: pd.Index(lst).isin(index_dims).all()
     to_remove = []
