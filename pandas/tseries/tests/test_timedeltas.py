@@ -3,6 +3,7 @@
 from __future__ import division
 from datetime import datetime, timedelta, time
 import nose
+import operator
 
 from distutils.version import LooseVersion
 import numpy as np
@@ -288,6 +289,30 @@ class TestTimedeltas(tm.TestCase):
         expected = pd.Series([False, True])
         tm.assert_series_equal(actual, expected)
 
+    def test_compare_timedelta_ndarray(self):
+        lhs = pd.to_timedelta(['1 day', '3 days']).values
+        rhs = Timedelta('2 day')
+
+        nat = Timedelta('nat')
+        expected_nat = np.array([False, False])
+
+        ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
+               'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+            expected = left_f(lhs, rhs)
+
+            result = right_f(rhs, lhs)
+            self.assert_numpy_array_equal(result, expected)
+
+            expected = ~expected_nat if left == 'ne' else expected_nat
+            result = left_f(lhs, nat)
+            self.assert_numpy_array_equal(result, expected)
+            result = right_f(nat, lhs)
+            self.assert_numpy_array_equal(result, expected)
+
     def test_ops_notimplemented(self):
         class Other:
             pass
@@ -299,6 +324,8 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(td.__truediv__(other) is NotImplemented)
         self.assertTrue(td.__mul__(other) is NotImplemented)
         self.assertTrue(td.__floordiv__(td) is NotImplemented)
+        self.assertTrue(td.__lt__(other) is NotImplemented)
+        self.assertTrue(td.__eq__(other) is NotImplemented)
 
     def test_fields(self):
         rng = to_timedelta('1 days, 10:11:12')

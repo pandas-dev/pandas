@@ -3680,6 +3680,30 @@ class TestTimestamp(tm.TestCase):
             result = right_f(Timestamp('nat'), s_nat)
             tm.assert_series_equal(result, expected)
 
+    def test_timestamp_compare_ndarray(self):
+        lhs = pd.to_datetime(['1999-12-31', '2000-01-02']).values
+        rhs = Timestamp('2000-01-01')
+
+        nat = Timestamp('nat')
+        expected_nat = np.array([False, False])
+
+        ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
+               'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+            expected = left_f(lhs, rhs)
+
+            result = right_f(rhs, lhs)
+            self.assert_numpy_array_equal(result, expected)
+
+            expected = ~expected_nat if left == 'ne' else expected_nat
+            result = left_f(lhs, nat)
+            self.assert_numpy_array_equal(result, expected)
+            result = right_f(nat, lhs)
+            self.assert_numpy_array_equal(result, expected)
+
 
 class TestSlicing(tm.TestCase):
 

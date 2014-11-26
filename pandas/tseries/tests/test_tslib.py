@@ -1,14 +1,14 @@
+from distutils.version import LooseVersion
+import datetime
 import nose
-
 import numpy as np
 
 from pandas import tslib
-import datetime
-
-from pandas.core.api import Timestamp, Series
+from pandas.core.api import Timestamp, Timedelta, Series
 from pandas.tslib import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
+import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
@@ -136,6 +136,20 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(repr(result), expected_repr)
         self.assertEqual(result, eval(repr(result)))
 
+    def test_conversion(self):
+        ts = Timestamp('2000-01-01')
+
+        result = ts.to_pydatetime()
+        expected = datetime.datetime(2000, 1, 1)
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+
+        result = ts.to_datetime64()
+        expected = np.datetime64(ts.value, 'ns')
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+        self.assertEqual(result.dtype, expected.dtype)
+
     def test_repr(self):
         dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
         timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
@@ -232,13 +246,13 @@ class TestTimestamp(tm.TestCase):
         conv = local.tz_convert('US/Eastern')
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
-        
+
     def test_tz_localize_ambiguous(self):
-        
+
         ts = Timestamp('2014-11-02 01:00')
         ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
         ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
-        
+
         rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
         self.assertEqual(rng[1], ts_dst)
         self.assertEqual(rng[2], ts_no_dst)
@@ -675,8 +689,8 @@ class TestTimestampOps(tm.TestCase):
         self.assertEqual(type(timestamp_instance + 1), Timestamp)
         self.assertEqual(type(timestamp_instance - 1), Timestamp)
 
-        # Timestamp + datetime not supported, though subtraction is supported and yields timedelta
-        self.assertEqual(type(timestamp_instance - datetime_instance), datetime.timedelta)
+        # Timestamp + datetime not supported, though subtraction is supported and yields Timedelta
+        self.assertEqual(type(timestamp_instance - datetime_instance), Timedelta)
 
         self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
         self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
@@ -685,6 +699,43 @@ class TestTimestampOps(tm.TestCase):
         timedelta64_instance = np.timedelta64(1, 'D')
         self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
         self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
+
+    def test_ops_ndarray(self):
+        ts = Timestamp('2000-01-01')
+
+        # timedelta operations
+        other = pd.to_timedelta(['1 day']).values
+        expected = pd.to_datetime(['2000-01-02']).values
+        self.assert_numpy_array_equal(ts + other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other + ts, expected)
+        self.assertRaises(TypeError, lambda: ts + np.array([1]))
+        self.assertRaises(TypeError, lambda: np.array([1]) + ts)
+
+        expected = pd.to_datetime(['1999-12-31']).values
+        self.assert_numpy_array_equal(ts - other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(-other + ts, expected)
+        self.assertRaises(TypeError, lambda: ts - np.array([1]))
+        self.assertRaises(TypeError, lambda: np.array([1]) - ts)
+
+        # datetime operations
+        other = pd.to_datetime(['1999-12-31']).values
+        expected = pd.to_timedelta(['1 days']).values
+        self.assert_numpy_array_equal(ts - other, expected)
+        if LooseVersion(np.__version__) >= '1.8':
+            self.assert_numpy_array_equal(other - ts, -expected)
+
+    def test_ops_notimplemented(self):
+        class Other:
+            pass
+        other = Other()
+
+        ts = Timestamp('2000-01-01')
+        self.assertTrue(ts.__add__(other) is NotImplemented)
+        self.assertTrue(ts.__sub__(other) is NotImplemented)
+        self.assertTrue(ts.__lt__(other) is NotImplemented)
+        self.assertTrue(ts.__eq__(other) is NotImplemented)
 
     def test_addition_subtraction_preserve_frequency(self):
         timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]

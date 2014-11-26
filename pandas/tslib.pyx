@@ -531,10 +531,13 @@ class Timestamp(_Timestamp):
                  self.nanosecond/3600.0/1e+9
                 )/24.0)
 
+    # cython extension types like _Timestamp don't use reversed operators like
+    # __radd__ or __rsub__, so define them here instead
     def __radd__(self, other):
-        # __radd__ on cython extension types like _Timestamp is not used, so
-        # define it here instead
         return self + other
+
+    def __rsub__(self, other):
+        return -(self - other)
 
 
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
@@ -756,30 +759,13 @@ cdef class _Timestamp(datetime):
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
         else:
-            ndim = getattr(other, _NDIM_STRING, -1)
-
-            if ndim != -1:
-                if ndim == 0:
-                    if isinstance(other, np.datetime64):
-                        other = Timestamp(other)
-                    else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type %r with type %r' %
-                                        (type(self).__name__,
-                                         type(other).__name__))
-                return PyObject_RichCompare(other, self, _reverse_ops[op])
-            else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+            if hasattr(other, 'dtype'):
+                self_arg = self
+                if self.tz is None and self.offset is None:
+                    # allow comparison to ndarrays with appropriate dtype
+                    self_arg = self.to_datetime64()
+                return PyObject_RichCompare(other, self_arg, _reverse_ops[op])
+            return NotImplemented
 
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
@@ -825,6 +811,13 @@ cdef class _Timestamp(datetime):
                         dts.hour, dts.min, dts.sec,
                         dts.us, ts.tzinfo)
 
+    cpdef to_datetime64(self):
+        """ Returns a numpy.datetime64 object with 'ns' precision """
+        return np.datetime64(self.value, 'ns')
+
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
     def __add__(self, other):
         cdef int64_t other_int
 
@@ -845,9 +838,14 @@ cdef class _Timestamp(datetime):
                 result = Timestamp(normalize_date(result))
             return result
 
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return other + self
+        elif hasattr(other, 'dtype'):
+            if self.tz is None and self.offset is None:
+                if other.dtype.kind not in ['m', 'M']:
+                    # raise rather than letting numpy return wrong answer
+                    raise TypeError('cannot add operand with type %r to '
+                                    'Timestamp' % other.dtype)
+                return self.to_datetime64() + other
+            return NotImplemented
 
         result = datetime.__add__(self, other)
         if isinstance(result, datetime):
@@ -861,17 +859,23 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
-        # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'datetimeindex':
-            return -other.__sub__(self)
-
-        # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'timedeltaindex':
-            return (-other).__add__(self)
+        if hasattr(other, 'dtype'):
+            if self.tz is None and self.offset is None:
+                if other.dtype.kind not in ['m', 'M']:
+                    # raise rather than letting numpy return wrong answer
+                    raise TypeError('cannot subtract operand with type %r '
+                                    'from Timestamp' % other.dtype)
+                return self.to_datetime64() - other
+            return NotImplemented
 
         elif other is NaT:
             return NaT
-        return datetime.__sub__(self, other)
+
+        result = datetime.__sub__(self, other)
+        if isinstance(result, timedelta):
+            result = Timedelta(result)
+            # TODO: handle ns precision?
+        return result
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
@@ -907,6 +911,8 @@ cdef class _NaT(_Timestamp):
         # py3k needs this defined here
         return hash(self.value)
 
+    __array_priority__ = 0
+
     def __richcmp__(_NaT self, object other, int op):
         cdef int ndim = getattr(other, 'ndim', -1)
 
@@ -917,8 +923,7 @@ cdef class _NaT(_Timestamp):
             if isinstance(other, np.datetime64):
                 other = Timestamp(other)
             else:
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                return NotImplemented
         return PyObject_RichCompare(other, self, _reverse_ops[op])
 
     def __add__(self, other):
@@ -1515,30 +1520,10 @@ cdef class _Timedelta(timedelta):
         elif isinstance(other, timedelta):
             ots = Timedelta(other)
         else:
-            ndim = getattr(other, _NDIM_STRING, -1)
-
-            if ndim != -1:
-                if ndim == 0:
-                    if isinstance(other, np.timedelta64):
-                        other = Timedelta(other)
-                    else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type %r with type %r' %
-                                        (type(self).__name__,
-                                         type(other).__name__))
-                return PyObject_RichCompare(other, self, _reverse_ops[op])
-            else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+            if hasattr(other, 'dtype'):
+                return PyObject_RichCompare(other, self.to_timedelta64(),
+                                            _reverse_ops[op])
+            return NotImplemented
 
         return _cmp_scalar(self.value, ots.value, op)
 
@@ -1925,7 +1910,9 @@ class Timedelta(_Timedelta):
             if hasattr(other, 'dtype'):
                 if other.dtype.kind not in ['m', 'M']:
                     # raise rathering than letting numpy return wrong answer
-                    return NotImplemented
+                    raise TypeError('cannot calculate %s between Timedelta '
+                                    'and array with dtype %r'
+                                    % (name, other.dtype))
                 return op(self.to_timedelta64(), other)
 
             if not self._validate_ops_compat(other):

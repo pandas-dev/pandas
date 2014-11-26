@@ -66,9 +66,9 @@ Enhancements
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See :ref:`here<remote_data.ga>`.
 - Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
-- ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
-- ``Timedelta`` now supports arithemtic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
-- Added ``Timedelta.to_timedelta64`` method to the public API (:issue:`8884`).
+- ``Timestamp`` and ``Timedelta`` arithmetic and comparisons return ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`, :issue:`TBD`).
+-  ``Timestamp`` and ``Timedelta`` now support arithmetic and comparisons with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`, :issue:`TBD`).
+- Added ``Timestamp.to_datetime64`` and ``Timedelta.to_timedelta64`` methods to the public API (:issue:`8884`, :issue:`TBD`).
 
 .. _whatsnew_0152.performance:
 
@@ -93,6 +93,7 @@ Bug Fixes
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`).
+- The difference of two ``Timestamp`` objects is now a ``pandas.Timedelta`` rather than only a ``datetime.timedelta`` (:issue:`8865`).
 - ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
 - ``slice`` string method now takes step into account (:issue:`8754`)
 - Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)

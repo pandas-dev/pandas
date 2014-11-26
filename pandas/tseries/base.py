@@ -316,7 +316,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(other)
             elif com.is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (tslib.Timestamp, datetime)):
+            elif isinstance(other, (tslib.Timestamp, datetime, np.datetime64)):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
@@ -339,14 +339,18 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif com.is_integer(other):
                 return self.shift(-other)
-            elif isinstance(other, (tslib.Timestamp, datetime)):
+            elif isinstance(other, (tslib.Timestamp, datetime, np.datetime64)):
                 return self._sub_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            return -self + other
+            from pandas.tseries.tdi import TimedeltaIndex
+            if isinstance(self, TimedeltaIndex):
+                return -self + other
+            else:
+                return -(self - other)
         cls.__rsub__ = __rsub__
 
         cls.__iadd__ = __add__
