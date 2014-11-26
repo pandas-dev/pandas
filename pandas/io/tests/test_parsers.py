@@ -3173,8 +3173,9 @@ A,B,C
         tm.assert_frame_equal(result, expected)
 
         # fallback casting
-        result = self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : int})
+        result = self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : np.int32})
         expected = DataFrame([[1,1],[2,2],[3,3]],columns=['a','b'])
+        expected['a'] = expected['a'].astype(np.int32)
         tm.assert_frame_equal(result, expected)
 
         data = """
@@ -3184,7 +3185,7 @@ nan 2
 """
         # fallback casting, but not castable
         with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
-            self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : int})
+            self.read_csv(StringIO(data),sep='\s+',header=None,names=['a','b'],dtype={'a' : np.int32})
 
     def test_fallback_to_python(self):
         # GH 6607
