@@ -1060,7 +1060,7 @@ cdef class TextReader:
                 if na_count > 0:
                     raise Exception('Integer column has NA values')
 
-            if dtype[1:] != 'i8':
+            if result is not None and dtype[1:] != 'i8':
                 result = result.astype(dtype)
 
             return result, na_count
@@ -1069,7 +1069,7 @@ cdef class TextReader:
             result, na_count = _try_double(self.parser, i, start, end,
                           na_filter, na_hashset, na_flist)
 
-            if dtype[1:] != 'f8':
+            if result is not None and dtype[1:] != 'f8':
                 result = result.astype(dtype)
             return result, na_count
 
