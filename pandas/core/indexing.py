@@ -419,9 +419,14 @@ class _NDFrameIndexer(object):
                 if not len(labels) == 1 or not np.iterable(value):
                     return False
 
+                try:
+                    axis_number = next(i for i in range(len(plane_indexer)) 
+                                       if _is_null_slice(plane_indexer[i]))
+                except StopIteration:
+                    axis_number = 0
                 l = len(value)
                 item = labels[0]
-                index = self.obj[item].index
+                index = self.obj[item].axes[axis_number]
 
                 # equal len list/ndarray
                 if len(index) == l:

@@ -408,6 +408,14 @@ class CheckIndexing(object):
         # GH 8702
         self.panel4d['foo'] = 'bar'
 
+        # Series
+        # GH 8854
+        panel4dc = self.panel4d.copy()
+        s = panel4dc.iloc[0,0,:,0]
+        s.iloc[:] = 1
+        panel4dc.iloc[0,0,:,0] = s
+        self.assertTrue((panel4dc.iloc[0,0,:,0].values == 1).all())
+
         # scalar
         panel4dc = self.panel4d.copy()
         panel4dc.iloc[0] = 1
@@ -416,8 +424,6 @@ class CheckIndexing(object):
         self.assertTrue((panel4dc.iloc[0].values == 1).all())
         self.assertTrue(panel4dc.iloc[1].values.all())
         self.assertTrue((panel4dc.iloc[2].values == 'foo').all())
-
-
 
     def test_comparisons(self):
         p1 = tm.makePanel4D()

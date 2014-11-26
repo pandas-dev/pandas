@@ -155,3 +155,4 @@ Bug Fixes
   of the level names are numbers (:issue:`8584`).
 - Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is
   not lexically sorted or unique (:issue:`7724`)
+- Bug for mixed-dtype Panel4D that prevented doing a setitem to a series using an indexer (:issue:`8854`)
