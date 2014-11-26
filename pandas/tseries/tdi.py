@@ -311,7 +311,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 result = self._maybe_mask_results(result,convert='float64')
                 return Index(result,name=self.name,copy=False)
 
-        raise TypeError("can only perform ops with timedelta like values")
+        return NotImplemented
 
     def _add_datelike(self, other):
 

@@ -531,6 +531,12 @@ class Timestamp(_Timestamp):
                  self.nanosecond/3600.0/1e+9
                 )/24.0)
 
+    def __radd__(self, other):
+        # __radd__ on cython extension types like _Timestamp is not used, so
+        # define it here instead
+        return self + other
+
+
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
@@ -1883,8 +1889,12 @@ class Timedelta(_Timedelta):
         """ array view compat """
         return np.timedelta64(self.value).view(dtype)
 
-    def _validate_ops_compat(self, other, op):
-        # return a boolean if we are compat with operating
+    def to_timedelta64(self):
+        """ Returns a numpy.timedelta64 object with 'ns' precision """
+        return np.timedelta64(self.value, 'ns')
+
+    def _validate_ops_compat(self, other):
+        # return True if we are compat with operating
         if _checknull_with_nat(other):
              return True
         elif isinstance(other, (Timedelta, timedelta, np.timedelta64)):
@@ -1893,55 +1903,58 @@ class Timedelta(_Timedelta):
              return True
         elif hasattr(other,'delta'):
              return True
-        raise TypeError("cannot operate add a Timedelta with op {op} for {typ}".format(op=op,typ=type(other)))
+        return False
 
-    def __add__(self, other):
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
 
-        # a Timedelta with Series/Index like
-        if hasattr(other,'_typ'):
-            return other + self
+    def _binary_op_method_timedeltalike(op, name):
+        # define a binary operation that only works if the other argument is
+        # timedelta like or an array of timedeltalike
+        def f(self, other):
+            # an offset
+            if hasattr(other, 'delta') and not isinstance(other, Timedelta):
+                return op(self, other.delta)
 
-        # an offset
-        elif hasattr(other,'delta') and not isinstance(other, Timedelta):
-            return self + other.delta
+            # a datetimelike
+            if (isinstance(other, (datetime, np.datetime64))
+                    and not isinstance(other, (Timestamp, NaTType))):
+                return op(self, Timestamp(other))
 
-        # a datetimelike
-        elif isinstance(other, (Timestamp, datetime, np.datetime64)):
-            return Timestamp(other) + self
+            # nd-array like
+            if hasattr(other, 'dtype'):
+                if other.dtype.kind not in ['m', 'M']:
+                    # raise rathering than letting numpy return wrong answer
+                    return NotImplemented
+                return op(self.to_timedelta64(), other)
 
-        self._validate_ops_compat(other,'__add__')
+            if not self._validate_ops_compat(other):
+                return NotImplemented
 
-        other = Timedelta(other)
-        if other is NaT:
-            return NaT
-        return Timedelta(self.value + other.value, unit='ns')
+            other = Timedelta(other)
+            if other is NaT:
+                return NaT
+            return Timedelta(op(self.value, other.value), unit='ns')
+        f.__name__ = name
+        return f
 
-    def __sub__(self, other):
-
-        # a Timedelta with Series/Index like
-        if hasattr(other,'_typ'):
-            neg_other = -other
-            return neg_other + self
-
-        # an offset
-        elif hasattr(other,'delta') and not isinstance(other, Timedelta):
-            return self - other.delta
-
-        self._validate_ops_compat(other,'__sub__')
-
-        other = Timedelta(other)
-        if other is NaT:
-            return NaT
-        return Timedelta(self.value - other.value, unit='ns')
+    __add__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__add__')
+    __radd__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__radd__')
+    __sub__ = _binary_op_method_timedeltalike(lambda x, y: x - y, '__sub__')
+    __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
 
     def __mul__(self, other):
+
+        # nd-array like
+        if hasattr(other, 'dtype'):
+            return other * self.to_timedelta64()
 
         if other is NaT:
             return NaT
 
         # only integers allowed
         if not is_integer_object(other):
-           raise TypeError("cannot multiply a Timedelta with {typ}".format(typ=type(other)))
+           return NotImplemented
 
         return Timedelta(other*self.value, unit='ns')
 
@@ -1949,35 +1962,42 @@ class Timedelta(_Timedelta):
 
     def __truediv__(self, other):
 
-        # a timedelta64 IS an integer object as well
-        if is_timedelta64_object(other):
-           return self.value/float(_delta_to_nanoseconds(other))
+        if hasattr(other, 'dtype'):
+            return self.to_timedelta64() / other
 
         # pure integers
-        elif is_integer_object(other):
+        if is_integer_object(other):
            return Timedelta(self.value/other, unit='ns')
 
-        self._validate_ops_compat(other,'__div__')
+        if not self._validate_ops_compat(other):
+            return NotImplemented
 
         other = Timedelta(other)
         if other is NaT:
             return NaT
-
         return self.value/float(other.value)
 
-    def _make_invalid(opstr):
+    def __rtruediv__(self, other):
+        if hasattr(other, 'dtype'):
+            return other / self.to_timedelta64()
 
-        def _invalid(other):
-             raise TypeError("cannot perform {opstr} with {typ}".format(opstr=opstr,typ=type(other)))
+        if not self._validate_ops_compat(other):
+            return NotImplemented
 
-    __rtruediv__ = _make_invalid('__rtruediv__')
+        other = Timedelta(other)
+        if other is NaT:
+            return NaT
+        return float(other.value) / self.value
 
     if not PY3:
        __div__ = __truediv__
-       __rdiv__ = _make_invalid('__rtruediv__')
+       __rdiv__ = __rtruediv__
 
-    __floordiv__  = _make_invalid('__floordiv__')
-    __rfloordiv__ = _make_invalid('__rfloordiv__')
+    def _not_implemented(self, *args, **kwargs):
+        return NotImplemented
+
+    __floordiv__  = _not_implemented
+    __rfloordiv__ = _not_implemented
 
     def _op_unary_method(func, name):
 
