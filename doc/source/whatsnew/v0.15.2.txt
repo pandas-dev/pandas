@@ -85,6 +85,8 @@ Performance
 ~~~~~~~~~~~
 - Reduce memory usage when skiprows is an integer in read_csv (:issue:`8681`)
 
+- Performance boost for ``to_datetime`` conversions with a passed ``format=`` kw, and the new ``exact=False`` for kw with non-exact matching (:issue:`8904`)
+
 .. _whatsnew_0152.experimental:
 
 Experimental

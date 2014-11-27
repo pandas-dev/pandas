@@ -2123,13 +2123,24 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
-def array_strptime(ndarray[object] values, object fmt, coerce=False):
+def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coerce=False):
+    """
+    Parameters
+    ----------
+    values : ndarray of string-like objects
+    fmt : string-like regex
+    exact : matches must be exact if True, search if False
+    coerce : if invalid values found, coerce to NaT
+    """
+
     cdef:
         Py_ssize_t i, n = len(values)
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
-        int year, month, day, minute, hour, second, fraction, weekday, julian
-        object val
+        int year, month, day, minute, hour, second, fraction, weekday, julian, tz
+        int week_of_year, week_of_year_start
+        object val, group_key, ampm, found
+        dict found_key
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -2198,19 +2209,32 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
             else:
                 val = str(val)
 
-        found = format_regex.match(val)
-        if not found:
-            if coerce:
-                iresult[i] = iNaT
-                continue
-            raise ValueError("time data %r does not match format %r" %
-                             (values[i], fmt))
-        if len(val) != found.end():
-            if coerce:
-                iresult[i] = iNaT
-                continue
-            raise ValueError("unconverted data remains: %s" %
-                              values[i][found.end():])
+        # exact matching
+        if exact:
+            found = format_regex.match(val)
+            if not found:
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("time data %r does not match format %r (match)" %
+                                 (values[i], fmt))
+            if len(val) != found.end():
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("unconverted data remains: %s" %
+                                  values[i][found.end():])
+
+        # search
+        else:
+            found = format_regex.search(val)
+            if not found:
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("time data %r does not match format %r (search)" %
+                                 (values[i], fmt))
+
         year = 1900
         month = day = 1
         hour = minute = second = fraction = 0
@@ -4368,10 +4392,14 @@ _TimeRE_cache = TimeRE()
 _CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
-def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
+cdef _calc_julian_from_U_or_W(int year, int week_of_year, int day_of_week, int week_starts_Mon):
     """Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
     assumes the week starts on Sunday or Monday (6 or 0)."""
+
+    cdef:
+        int first_weekday,  week_0_length, days_to_week
+
     first_weekday = datetime_date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's
     # easier to just shift the view to Sunday being the first day of the

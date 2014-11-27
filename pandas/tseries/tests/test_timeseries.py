@@ -4123,6 +4123,16 @@ class TimeConversionFormats(tm.TestCase):
         for s, format, dt in data:
             self.assertEqual(to_datetime(s, format=format), dt)
 
+    def test_to_datetime_with_non_exact(self):
+
+        if sys.version_info < (2, 7):
+            raise nose.SkipTest('on python version < 2.7')
+
+        s = Series(['19MAY11','foobar19MAY11','19MAY11:00:00:00','19MAY11 00:00:00Z']*10000)
+        result = to_datetime(s,format='%d%b%y',exact=False)
+        expected = to_datetime(s.str.extract('(\d+\w+\d+)'),format='%d%b%y')
+        assert_series_equal(result, expected)
+
     def test_to_datetime_format_weeks(self):
         data = [
                 ['2009324', '%Y%W%w', Timestamp('2009-08-13')],

@@ -174,7 +174,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
-                format=None, coerce=False, unit='ns',
+                format=None, exact=True, coerce=False, unit='ns',
                 infer_datetime_format=False):
     """
     Convert argument to datetime.
@@ -195,6 +195,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         If True returns a DatetimeIndex, if False returns ndarray of values
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y"
+    exact : boolean, True by default
+        if True, require an exact format match
+        if False, search for a matching format non-exclusive to the endpoints
     coerce : force errors to NaT (False by default)
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number
@@ -273,7 +276,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 if result is None:
                     try:
                         result = tslib.array_strptime(
-                            arg, format, coerce=coerce
+                            arg, format, exact=exact, coerce=coerce
                         )
                     except (tslib.OutOfBoundsDatetime):
                         if errors == 'raise':
