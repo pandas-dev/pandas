@@ -3279,7 +3279,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame, or object coercible into a DataFrame
-        join : {'left', 'right', 'outer', 'inner'}, default 'left'
+        join : {'left'}, default 'left'
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
