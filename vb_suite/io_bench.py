@@ -21,6 +21,22 @@ df.to_csv('__test__.csv')
 read_csv_standard = Benchmark("read_csv('__test__.csv')", setup1,
                               start_date=datetime(2011, 9, 15))
 
+#----------------------------------
+# skiprows
+
+setup1 = common_setup + """
+index = tm.makeStringIndex(20000)
+df = DataFrame({'float1' : randn(20000),
+                'float2' : randn(20000),
+                'string1' : ['foo'] * 20000,
+                'bool1' : [True] * 20000,
+                'int1' : np.random.randint(0, 200000, size=20000)},
+               index=index)
+df.to_csv('__test__.csv')
+"""
+
+read_csv_skiprows = Benchmark("read_csv('__test__.csv', skiprows=10000)", setup1,
+                              start_date=datetime(2011, 9, 15))
 
 #----------------------------------------------------------------------
 # write_csv

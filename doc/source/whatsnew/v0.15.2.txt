@@ -74,6 +74,7 @@ Enhancements
 
 Performance
 ~~~~~~~~~~~
+- Reduce memory usage when skiprows is an integer in read_csv (:issue:`8681`)
 
 .. _whatsnew_0152.experimental:
 
@@ -155,3 +156,4 @@ Bug Fixes
   of the level names are numbers (:issue:`8584`).
 - Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is
   not lexically sorted or unique (:issue:`7724`)
+- BUG CSV: fix problem with trailing whitespace in skipped rows, (:issue:`8679`), (:issue:`8661`)

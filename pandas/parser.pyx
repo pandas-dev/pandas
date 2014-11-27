@@ -86,6 +86,7 @@ cdef extern from "parser/tokenizer.h":
         EAT_COMMENT
         EAT_LINE_COMMENT
         WHITESPACE_LINE
+        SKIP_LINE
         FINISHED
 
     enum: ERROR_OVERFLOW
@@ -158,6 +159,7 @@ cdef extern from "parser/tokenizer.h":
         int header_end # header row end
 
         void *skipset
+        int64_t skip_first_N_rows
         int skip_footer
         double (*converter)(const char *, char **, char, char, char, int)
 
@@ -180,6 +182,8 @@ cdef extern from "parser/tokenizer.h":
     int parser_init(parser_t *self) nogil
     void parser_free(parser_t *self) nogil
     int parser_add_skiprow(parser_t *self, int64_t row)
+
+    int parser_set_skipfirstnrows(parser_t *self, int64_t nrows)
 
     void parser_set_default_options(parser_t *self)
 
@@ -524,10 +528,10 @@ cdef class TextReader:
 
     cdef _make_skiprow_set(self):
         if isinstance(self.skiprows, (int, np.integer)):
-            self.skiprows = range(self.skiprows)
-
-        for i in self.skiprows:
-            parser_add_skiprow(self.parser, i)
+            parser_set_skipfirstnrows(self.parser, self.skiprows)
+        else:
+            for i in self.skiprows:
+                parser_add_skiprow(self.parser, i)
 
     cdef _setup_parser_source(self, source):
         cdef:
