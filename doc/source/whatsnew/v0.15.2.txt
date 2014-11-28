@@ -66,9 +66,9 @@ Enhancements
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See :ref:`here<remote_data.ga>`.
 - Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
-- ``Timestamp`` and ``Timedelta`` arithmetic and comparisons return ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`, :issue:`TBD`).
--  ``Timestamp`` and ``Timedelta`` now support arithmetic and comparisons with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`, :issue:`TBD`).
-- Added ``Timestamp.to_datetime64`` and ``Timedelta.to_timedelta64`` methods to the public API (:issue:`8884`, :issue:`TBD`).
+- ``Timestamp`` and ``Timedelta`` arithmetic and comparisons return ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`, :issue:`8916`).
+-  ``Timestamp`` and ``Timedelta`` now support arithmetic and comparisons with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`, :issue:`8916`).
+- Added ``Timestamp.to_datetime64`` and ``Timedelta.to_timedelta64`` methods to the public API (:issue:`8884`, :issue:`8916`).
 
 .. _whatsnew_0152.performance:
 
