@@ -3,59 +3,70 @@ import logging
 
 import pandas as pd
 
-_GOOGLE_API_CLIENT_INSTALLED = True
-_GOOGLE_API_CLIENT_VALID_VERSION = True
-_GOOGLE_FLAGS_INSTALLED = True
-_GOOGLE_FLAGS_VALID_VERSION = True
-_HTTPLIB2_INSTALLED = True
-_SETUPTOOLS_INSTALLED = True
+from distutils.version import LooseVersion
+from pandas import compat
+from pandas.core.api import DataFrame
+from pandas.tools.merge import concat
+from pandas.core.common import PandasError
 
-try:
-    import pkg_resources
-    _SETUPTOOLS_INSTALLED = True
-except ImportError:
-    _SETUPTOOLS_INSTALLED = False
+_GOOGLE_API_CLIENT_INSTALLED = False
+_GOOGLE_API_CLIENT_VALID_VERSION = False
+_GOOGLE_FLAGS_INSTALLED = False
+_GOOGLE_FLAGS_VALID_VERSION = False
+_HTTPLIB2_INSTALLED = False
+_SETUPTOOLS_INSTALLED = False
 
-if _SETUPTOOLS_INSTALLED:
-    try:
-        from apiclient.discovery import build
-        from apiclient.errors import HttpError
-        from apiclient.http import MediaFileUpload, MediaIoBaseUpload
-
-        from oauth2client.client import AccessTokenRefreshError
-        from oauth2client.client import OAuth2WebServerFlow
-        from oauth2client.client import SignedJwtAssertionCredentials
-        from oauth2client.client import flow_from_clientsecrets
-        from oauth2client.file import Storage
-        from oauth2client.tools import run
-
-        _GOOGLE_API_CLIENT_INSTALLED=True
-        _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
-
-        #if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
-            #_GOOGLE_API_CLIENT_VALID_VERSION = True
-
-    except ImportError:
-        _GOOGLE_API_CLIENT_INSTALLED = False
-
+if not compat.PY3:
 
     try:
-        import gflags as flags
-        _GOOGLE_FLAGS_INSTALLED = True
-
-        _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
-
-        #if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
-            #_GOOGLE_FLAGS_VALID_VERSION = True
-
+        import pkg_resources
+        _SETUPTOOLS_INSTALLED = True
     except ImportError:
-        _GOOGLE_FLAGS_INSTALLED = False
+        _SETUPTOOLS_INSTALLED = False
 
-    try:
-        import httplib2
-        _HTTPLIB2_INSTALLED = True
-    except ImportError:
-        _HTTPLIB2_INSTALLED = False
+    if _SETUPTOOLS_INSTALLED:
+        try:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+            from apiclient.http import MediaFileUpload, MediaIoBaseUpload
+
+            from oauth2client.client import AccessTokenRefreshError
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.client import SignedJwtAssertionCredentials
+            from oauth2client.client import flow_from_clientsecrets
+            from oauth2client.file import Storage
+            from oauth2client.tools import run
+
+            _GOOGLE_API_CLIENT_INSTALLED=True
+            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+                _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+        except ImportError:
+            _GOOGLE_API_CLIENT_INSTALLED = False
+
+
+        try:
+            import gflags as flags
+            _GOOGLE_FLAGS_INSTALLED = True
+
+            _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
+
+            if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
+                _GOOGLE_FLAGS_VALID_VERSION = True
+
+        except ImportError:
+            _GOOGLE_FLAGS_INSTALLED = False
+
+        try:
+            import httplib2
+            _HTTPLIB2_INSTALLED = True
+        except ImportError:
+            _HTTPLIB2_INSTALLED = False
+
+logger = logging.getLogger('pandas.io.gcs')
+logger.setLevel(logging.DEBUG)
 
 def _test_imports():
     _GOOGLE_API_CLIENT_INSTALLED
@@ -65,8 +76,8 @@ def _test_imports():
     _HTTPLIB2_INSTALLED
     _SETUPTOOLS_INSTALLED
 
-    #if compat.PY3:
-        #raise NotImplementedError("Google's libraries do not support Python 3 yet")
+    if compat.PY3:
+        raise NotImplementedError("Google's libraries do not support Python 3 yet")
 
     if not _SETUPTOOLS_INSTALLED:
         raise ImportError('Could not import pkg_resources (setuptools).')
@@ -87,11 +98,6 @@ def _test_imports():
 
     if not _HTTPLIB2_INSTALLED:
         raise ImportError("pandas requires httplib2 for Google BigQuery support")
-
-CHUNK_SIZE = 2 * 1024 * 1024
-
-logger = logging.getLogger('pandas.io.gcs')
-logger.setLevel(logging.DEBUG)
 
 class GCSConnector(object):
 
