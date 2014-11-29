@@ -142,7 +142,7 @@ Bug Fixes
 
 
 
-
+- BUG: Option context applies on __enter__ (:issue:`8514`)
 
 
 

@@ -425,3 +425,24 @@ class TestConfig(unittest.TestCase):
         options.c = 1
         self.assertEqual(len(holder), 1)
 
+    def test_option_context_scope(self):
+        # Ensure that creating a context does not affect the existing
+        # environment as it is supposed to be used with the `with` statement.
+        # See https://github.com/pydata/pandas/issues/8514
+
+        original_value = 60
+        context_value = 10
+        option_name = 'a'
+
+        self.cf.register_option(option_name, original_value)
+
+        # Ensure creating contexts didn't affect the current context.
+        ctx = self.cf.option_context(option_name, context_value)
+        self.assertEqual(self.cf.get_option(option_name), original_value)
+
+        # Ensure the correct value is available inside the context.
+        with ctx:
+            self.assertEqual(self.cf.get_option(option_name), context_value)
+
+        # Ensure the current context is reset
+        self.assertEqual(self.cf.get_option(option_name), original_value)
