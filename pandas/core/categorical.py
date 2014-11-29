@@ -821,7 +821,7 @@ class Categorical(PandasObject):
         array([3, 4])	    # eggs before milk
         >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ])
         >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
-        array([3, 5])       # eggs before donuts, after switching milk and donuts 
+        array([3, 5])       # eggs after donuts, after switching milk and donuts 
         """
         # Fixes https://github.com/pydata/pandas/issues/8420
         # Uses searchsorted twice, first to map the value to one of the codes,
