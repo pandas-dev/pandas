@@ -758,13 +758,18 @@ cdef class _Timestamp(datetime):
                 ots = Timestamp(other)
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
+        elif isinstance(other, np.datetime64):
+            return PyObject_RichCompareBool(self, Timestamp(other), op)
+        elif hasattr(other, 'dtype'):
+            if self.tz is None and self.offset is None:
+                # allow comparison to ndarrays; use the reverse op because it's
+                # necessary when comparing to pd.Series
+                return PyObject_RichCompare(other, self.to_datetime64(),
+                                            _reverse_ops[op])
+            # TODO: somehow trigger normal numpy broadcasting rules even though
+            # we set __array_priority__ > ndarray.__array_priority__
+            return NotImplemented
         else:
-            if hasattr(other, 'dtype'):
-                self_arg = self
-                if self.tz is None and self.offset is None:
-                    # allow comparison to ndarrays with appropriate dtype
-                    self_arg = self.to_datetime64()
-                return PyObject_RichCompare(other, self_arg, _reverse_ops[op])
             return NotImplemented
 
         self._assert_tzawareness_compat(other)
@@ -911,7 +916,8 @@ cdef class _NaT(_Timestamp):
         # py3k needs this defined here
         return hash(self.value)
 
-    __array_priority__ = 0
+    # less than np.ndarray
+    __array_priority__ = -1
 
     def __richcmp__(_NaT self, object other, int op):
         cdef int ndim = getattr(other, 'ndim', -1)
@@ -1519,12 +1525,13 @@ cdef class _Timedelta(timedelta):
             ots = other
         elif isinstance(other, timedelta):
             ots = Timedelta(other)
-        else:
-            if hasattr(other, 'dtype'):
-                return PyObject_RichCompare(other, self.to_timedelta64(),
-                                            _reverse_ops[op])
-            return NotImplemented
-
+        elif isinstance(other, np.timedelta64):
+            return PyObject_RichCompareBool(self, Timedelta(other), op)
+        elif hasattr(other, 'dtype'):
+            # allow comparison to ndarrays; use the reverse op because it's
+            # necessary when comparing to pd.Series
+            return PyObject_RichCompare(other, self.to_datetime64(),
+                                        _reverse_ops[op])
         return _cmp_scalar(self.value, ots.value, op)
 
     def _ensure_components(_Timedelta self):
