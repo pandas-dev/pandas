@@ -2142,10 +2142,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                 index=['a', 'b', 'c'])
 
     def test_hasnulls(self):
+        # Github Issue 8732
         df = tm.makeMissingDataframe()
         self.assertEqual(df['A'].notnull().all(), False)
         casted = df.astype(np.float64)
         expected = DataFrame(df.values.astype(np.float64),
+                             index=df.index,
+                             columns=df.columns)
+        assert_frame_equal(casted, expected)
+
+        casted = df.astype(np.str)
+        expected = DataFrame(df.values.astype(np.str),
                              index=df.index,
                              columns=df.columns)
         assert_frame_equal(casted, expected)
