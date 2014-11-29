@@ -51,6 +51,7 @@ Implementation
 import re
 
 from collections import namedtuple
+from contextlib import contextmanager
 import warnings
 from pandas.compat import map, lmap, u
 import pandas.compat as compat
@@ -680,8 +681,6 @@ def pp_options_list(keys, width=80, _print=False):
 
 #
 # helpers
-
-from contextlib import contextmanager
 
 
 @contextmanager
