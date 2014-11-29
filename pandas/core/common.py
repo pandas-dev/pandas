@@ -404,9 +404,13 @@ def array_equivalent(left, right, strict_nan=False):
 
     Examples
     --------
-    >>> array_equivalent(np.array([1, 2, nan]), np.array([1, 2, nan]))
+    >>> array_equivalent(
+    ...     np.array([1, 2, np.nan]),
+    ...     np.array([1, 2, np.nan]))
     True
-    >>> array_equivalent(np.array([1, nan, 2]), np.array([1, 2, nan]))
+    >>> array_equivalent(
+    ...     np.array([1, np.nan, 2]),
+    ...     np.array([1, 2, np.nan]))
     False
     """
 
@@ -2171,8 +2175,8 @@ def iterpairs(seq):
 
     Examples
     --------
-    >>> iterpairs([1, 2, 3, 4])
-    [(1, 2), (2, 3), (3, 4)
+    >>> list(iterpairs([1, 2, 3, 4]))
+    [(1, 2), (2, 3), (3, 4)]
     """
     # input may not be sliceable
     seq_it = iter(seq)
