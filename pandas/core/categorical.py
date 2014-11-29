@@ -1326,13 +1326,18 @@ class Categorical(PandasObject):
         """
         Return the unique values.
 
-        This includes all categories, even if one or more is unused.
+        Unused categories are NOT returned.
 
         Returns
         -------
         unique values : array
         """
-        return np.asarray(self.categories)
+        unique_codes = np.unique(self.codes)
+        # for compatibility with normal unique, which has nan last
+        if unique_codes[0] == -1:
+            unique_codes[0:-1] = unique_codes[1:]
+            unique_codes[-1] = -1
+        return take_1d(self.categories.values, unique_codes)
 
     def equals(self, other):
         """
