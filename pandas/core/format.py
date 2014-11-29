@@ -1247,7 +1247,7 @@ class CSVFormatter(object):
         self.data = [None] * ncols
 
         if chunksize is None:
-            chunksize = (100000 / (len(self.cols) or 1)) or 1
+            chunksize = (100000 // (len(self.cols) or 1)) or 1
         self.chunksize = int(chunksize)
 
         self.data_index = obj.index
