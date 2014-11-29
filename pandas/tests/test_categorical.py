@@ -882,13 +882,24 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(cat.nbytes, exp)
 
     def test_searchsorted(self):
+        cats1 = ['apple', 'bread', 'bread', 'cheese', 'milk' ]
+        cats2 = ['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ]
 
-        # See https://github.com/pydata/pandas/issues/8420
-        # TODO: implement me...
-        cat = pd.Categorical([1,2,3])
-        def f():
-            cat.searchsorted(3)
-        self.assertRaises(NotImplementedError, f)
+        for values in ( 'bread', ['bread'], ['bread','eggs'] ):
+            for side in ( 'left', 'right' ):
+                for cats, sorter in [ (cats1, None), (cats2, [0,1,2,3,5,4] ) ]:
+                    s = pd.Series(cats)
+                    c = pd.Categorical(cats)
+                    # print("values=%r, side=%r, sorter=%r" % (values, side, sorter))
+                    catRes = c.searchsorted(values, side=side, sorter=sorter)
+                    seriesRes = s.searchsorted(values, side=side, sorter=sorter)
+                    #print("--> %r" % (catRes,))
+                    assert type(catRes) == type(seriesRes)
+                    if isinstance( catRes, np.ndarray  ):
+                        self.assertTrue( (catRes - seriesRes == 0).all() )
+                    else:
+                        self.assertEqual(catRes, seriesRes)
+
 
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017, whatever is earlier
