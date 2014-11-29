@@ -560,10 +560,26 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_astype(self):
         s = Series(np.random.randn(5),name='foo')
 
-        for dtype in ['float32','float64','int64','int32']:
+        for dtype in ['float32','float64','int64','int32', 'object']:
             astyped = s.astype(dtype)
             self.assertEqual(astyped.dtype, dtype)
             self.assertEqual(astyped.name, s.name)
+
+    def test_astype_to(self):
+        arr = np.random.randint(1, 10, size=100)
+        s = Series(arr)
+        for dtype in ['float32', 'float64', 'int64', 'int32', 'object']:
+            astyped = s.astype(dtype)
+            self.assertEqual(astyped.dtype, dtype)
+
+    def test_astype_int(self):
+        s = Series([1, 1.01, 1.02, 1.03])
+        astyped = s.astype(np.int64)
+        self.assertEqual(astyped.dtype, np.int64)
+        s = Series([1, 1.01, 1.02, 1.03, np.nan])
+        self.assertRaises(ValueError, s.astype, np.int64)
+        s = Series(['1', '1.01', 1.02, 1.03, np.nan])
+        self.assertRaises(ValueError, s.astype, np.int64)
 
     def test_constructor(self):
         # Recognize TimeSeries
