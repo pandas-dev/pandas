@@ -72,13 +72,15 @@ def reset_testing_mode():
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', DeprecationWarning)
 
+
 set_testing_mode()
+
 
 class TestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        pd.set_option('chained_assignment','raise')
+        pd.set_option('chained_assignment', 'raise')
 
     @classmethod
     def tearDownClass(cls):
@@ -86,19 +88,7 @@ class TestCase(unittest.TestCase):
 
     def reset_display_options(self):
         # reset the display options
-        pd.reset_option('^display.',silent=True)
-
-    def assert_numpy_array_equal(self, np_array, assert_equal):
-        """Checks that 'np_array' is equal to 'assert_equal'
-
-        Note that the expected array should not contain `np.nan`! Two numpy arrays are equal if all
-        elements are equal, which is not possible if `np.nan` is such an element!
-
-        If the expected array includes `np.nan` use `assert_numpy_array_equivalent(...)`.
-        """
-        if np.array_equal(np_array, assert_equal):
-            return
-        raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
+        pd.reset_option('^display.', silent=True)
 
     def round_trip_pickle(self, obj, path=None):
         if path is None:
@@ -106,82 +96,6 @@ class TestCase(unittest.TestCase):
         with ensure_clean(path) as path:
             pd.to_pickle(obj, path)
             return pd.read_pickle(path)
-
-    def assert_numpy_array_equivalent(self, np_array, assert_equal, strict_nan=False):
-        """Checks that 'np_array' is equivalent to 'assert_equal'
-
-        Two numpy arrays are equivalent if the arrays have equal non-NaN elements, and
-        `np.nan` in corresponding locations.
-
-        If the the expected array does not contain `np.nan` `assert_numpy_array_equivalent` is the
-        similar to `assert_numpy_array_equal()`. If the expected array includes `np.nan` use this
-        function.
-        """
-        if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
-            return
-        raise AssertionError('{0} is not equivalent to {1}.'.format(np_array, assert_equal))
-
-    def assert_categorical_equal(self, res, exp):
-        if not array_equivalent(res.categories, exp.categories):
-            raise AssertionError('categories not equivalent: {0} vs {1}.'.format(res.categories,
-                                                                                 exp.categories))
-        if not array_equivalent(res.codes, exp.codes):
-            raise AssertionError('codes not equivalent: {0} vs {1}.'.format(res.codes,
-                                                                            exp.codes))
-        self.assertEqual(res.ordered, exp.ordered, "ordered not the same")
-        self.assertEqual(res.name, exp.name, "name not the same")
-
-    def assertIs(self, first, second, msg=''):
-        """Checks that 'first' is 'second'"""
-        a, b = first, second
-        assert a is b, "%s: %r is not %r" % (msg.format(a,b), a, b)
-
-    def assertIsNot(self, first, second, msg=''):
-        """Checks that 'first' is not 'second'"""
-        a, b = first, second
-        assert a is not b, "%s: %r is %r" % (msg.format(a,b), a, b)
-
-    def assertIsNone(self, expr, msg=''):
-        """Checks that 'expr' is None"""
-        self.assertIs(expr, None, msg)
-
-    def assertIsNotNone(self, expr, msg=''):
-        """Checks that 'expr' is not None"""
-        self.assertIsNot(expr, None, msg)
-
-    def assertIn(self, first, second, msg=''):
-        """Checks that 'first' is in 'second'"""
-        a, b = first, second
-        assert a in b, "%s: %r is not in %r" % (msg.format(a,b), a, b)
-
-    def assertNotIn(self, first, second, msg=''):
-        """Checks that 'first' is not in 'second'"""
-        a, b = first, second
-        assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
-
-    def assertIsInstance(self, obj, cls, msg=''):
-        """Test that obj is an instance of cls
-        (which can be a class or a tuple of classes,
-        as supported by isinstance())."""
-        assert isinstance(obj, cls), (
-            "%sExpected object to be of type %r, found %r instead" % (
-                msg, cls, type(obj)))
-
-    def assertNotIsInstance(self, obj, cls, msg=''):
-        """Test that obj is not an instance of cls
-        (which can be a class or a tuple of classes,
-        as supported by isinstance())."""
-        assert not isinstance(obj, cls), (
-            "%sExpected object to be of type %r, found %r instead" % (
-                msg, cls, type(obj)))
-
-    def assertRaises(self, _exception, _callable=None, *args, **kwargs):
-        """ compat with 2.6; assert that an exception is raised """
-        assertRaises(_exception, _callable, *args, **kwargs)
-
-    def assertRaisesRegexp(self, _exception, _regexp, _callable=None, *args, **kwargs):
-        """ Port of assertRaisesRegexp from unittest in Python 2.7 - used in with statement """
-        assertRaisesRegexp(_exception, _regexp, _callable, *args, **kwargs)
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
@@ -632,6 +546,109 @@ def isiterable(obj):
 
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))
+
+
+def assertIs(first, second, msg=''):
+    """Checks that 'first' is 'second'"""
+    a, b = first, second
+    assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
+
+
+def assertIsNot(first, second, msg=''):
+    """Checks that 'first' is not 'second'"""
+    a, b = first, second
+    assert a is not b, "%s: %r is %r" % (msg.format(a, b), a, b)
+
+
+def assertIn(first, second, msg=''):
+    """Checks that 'first' is in 'second'"""
+    a, b = first, second
+    assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
+
+
+def assertNotIn(first, second, msg=''):
+    """Checks that 'first' is not in 'second'"""
+    a, b = first, second
+    assert a not in b, "%s: %r is in %r" % (msg.format(a, b), a, b)
+
+
+def assertIsNone(expr, msg=''):
+    """Checks that 'expr' is None"""
+    return assertIs(expr, None, msg)
+
+
+def assertIsNotNone(expr, msg=''):
+    """Checks that 'expr' is not None"""
+    return assertIsNot(expr, None, msg)
+
+
+def assertIsInstance(obj, cls, msg=''):
+    """Test that obj is an instance of cls
+    (which can be a class or a tuple of classes,
+    as supported by isinstance())."""
+    assert isinstance(obj, cls), (
+        "%sExpected object to be of type %r, found %r instead" % (
+            msg, cls, type(obj)))
+
+
+def assertNotIsInstance(obj, cls, msg=''):
+    """Test that obj is not an instance of cls
+    (which can be a class or a tuple of classes,
+    as supported by isinstance())."""
+    assert not isinstance(obj, cls), (
+        "%sExpected object to be of type %r, found %r instead" % (
+            msg, cls, type(obj)))
+
+
+def assert_categorical_equal(res, exp):
+    if not array_equivalent(res.categories, exp.categories):
+        raise AssertionError(
+            'categories not equivalent: {0} vs {1}.'.format(res.categories,
+                                                            exp.categories))
+    if not array_equivalent(res.codes, exp.codes):
+        raise AssertionError(
+            'codes not equivalent: {0} vs {1}.'.format(res.codes, exp.codes))
+
+    if res.ordered != exp.ordered:
+        raise AssertionError("ordered not the same")
+
+    if res.name != exp.name:
+        raise AssertionError("name not the same")
+
+
+def assert_numpy_array_equal(np_array, assert_equal):
+    """Checks that 'np_array' is equal to 'assert_equal'
+
+    Note that the expected array should not contain `np.nan`!
+    Two numpy arrays are equal if all
+    elements are equal, which is not possible if `np.nan` is such an element!
+
+    If the expected array includes `np.nan` use
+    `assert_numpy_array_equivalent(...)`.
+    """
+    if np.array_equal(np_array, assert_equal):
+        return
+    raise AssertionError(
+        '{0} is not equal to {1}.'.format(np_array, assert_equal))
+
+
+def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False):
+    """Checks that 'np_array' is equivalent to 'assert_equal'
+
+    Two numpy arrays are equivalent if the arrays have equal non-NaN elements,
+     and `np.nan` in corresponding locations.
+
+    If the the expected array does not contain `np.nan`
+    `assert_numpy_array_equivalent` is the similar to
+    `assert_numpy_array_equal()`. If the expected array includes
+    `np.nan` use this
+    function.
+    """
+    if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
+        return
+    raise AssertionError(
+        '{0} is not equivalent to {1}.'.format(np_array, assert_equal))
+
 
 # This could be refactored to use the NDFrame.equals method
 def assert_series_equal(left, right, check_dtype=True,
@@ -1738,3 +1755,10 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
     yield
     expr._MIN_ELEMENTS = oldmin
     expr.set_use_numexpr(olduse)
+
+
+# Also provide all assert_* functions in the TestCase class
+for name, obj in inspect.getmembers(sys.modules[__name__]):
+    if inspect.isfunction(obj) and name.startswith('assert'):
+        setattr(TestCase, name, staticmethod(obj))
+
