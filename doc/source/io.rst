@@ -3413,6 +3413,14 @@ With some databases, writing large DataFrames can result in errors due to packet
     Because of this, reading the database table back in does **not** generate
     a categorical.
 
+.. note::
+
+    You can specify the SQL type of any of the columns by using the dtypes
+    parameter (a dictionary mapping column names to SQLAlchemy types). This
+    can be useful in cases where columns with NULL values are inferred by
+    Pandas to an excessively general datatype (e.g. a boolean column is is
+    inferred to be object because it has NULLs).
+
 
 Reading Tables
 ~~~~~~~~~~~~~~
