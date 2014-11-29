@@ -398,7 +398,10 @@ class Block(PandasObject):
             # force the copy here
             if values is None:
                 # _astype_nansafe works fine with 1-d only
-                values = com._astype_nansafe(self.values.ravel(), dtype, copy=True)
+                if isnull(self.values).any():
+                    values = com._astype_nansafe(self.values.ravel(), dtype, copy=True)
+                else:
+                    values = self.values.ravel().astype(dtype)
                 values = values.reshape(self.values.shape)
             newb = make_block(values,
                               ndim=self.ndim, placement=self.mgr_locs,
