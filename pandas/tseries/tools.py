@@ -177,7 +177,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 format=None, coerce=False, unit='ns',
                 infer_datetime_format=False):
     """
-    Convert argument to datetime
+    Convert argument to datetime.
 
     Parameters
     ----------
@@ -198,13 +198,16 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     coerce : force errors to NaT (False by default)
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number
-    infer_datetime_format: boolean, default False
+    infer_datetime_format : boolean, default False
         If no `format` is given, try to infer the format based on the first
         datetime string. Provides a large speed-up in many cases.
 
     Returns
     -------
-    ret : datetime if parsing succeeded
+    ret : datetime if parsing succeeded. Return type depends on input:
+        - list-like: DatetimeIndex
+        - Series: Series of datetime64 dtype
+        - scalar: Timestamp
 
     Examples
     --------
