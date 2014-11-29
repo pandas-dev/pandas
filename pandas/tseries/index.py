@@ -1210,6 +1210,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
             return self.get_value_maybe_box(series, key)
 
+        if isinstance(key, time):
+            locs = self.indexer_at_time(key)
+            return series.take(locs)
+
         try:
             return _maybe_box(self, Index.get_value(self, series, key), series, key)
         except KeyError:
@@ -1218,10 +1222,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 return series[loc]
             except (TypeError, ValueError, KeyError):
                 pass
-
-            if isinstance(key, time):
-                locs = self.indexer_at_time(key)
-                return series.take(locs)
 
             try:
                 return self.get_value_maybe_box(series, key)
@@ -1250,6 +1250,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             stamp = Timestamp(key, tz=self.tz)
             return self._engine.get_loc(stamp)
 
+        if isinstance(key, time):
+            return self.indexer_at_time(key)
+
         try:
             return Index.get_loc(self, key)
         except (KeyError, ValueError):
@@ -1257,9 +1260,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 return self._get_string_slice(key)
             except (TypeError, KeyError, ValueError):
                 pass
-
-            if isinstance(key, time):
-                return self.indexer_at_time(key)
 
             try:
                 stamp = Timestamp(key, tz=self.tz)
