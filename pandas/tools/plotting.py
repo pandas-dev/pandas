@@ -1403,8 +1403,10 @@ class ScatterPlot(MPLPlot):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
+        c_is_column = com.is_hashable(c) and c in self.data.columns
+
         # plot a colorbar only if a colormap is provided or necessary
-        cb = self.kwds.pop('colorbar', self.colormap or c in self.data.columns)
+        cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
 
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
@@ -1412,7 +1414,7 @@ class ScatterPlot(MPLPlot):
 
         if c is None:
             c_values = self.plt.rcParams['patch.facecolor']
-        elif c in self.data.columns:
+        elif c_is_column:
             c_values = self.data[c].values
         else:
             c_values = c
@@ -1427,7 +1429,7 @@ class ScatterPlot(MPLPlot):
             img = ax.collections[0]
             kws = dict(ax=ax)
             if mpl_ge_1_3_1:
-                kws['label'] = c if c in self.data.columns else ''
+                kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
         self._add_legend_handle(scatter, label)
