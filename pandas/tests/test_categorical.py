@@ -769,11 +769,17 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(_max, 1)
 
     def test_unique(self):
-        cat = Categorical(["a","b","c","d"])
-        exp = np.asarray(["a","b","c","d"])
+        cat = Categorical(["a","b"])
+        exp = np.asarray(["a","b"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
-        self.assertEqual(type(res), type(exp))
+        cat = Categorical(["a","b","a","a"], categories=["a","b","c"])
+        res = cat.unique()
+        self.assert_numpy_array_equal(res, exp)
+        cat = Categorical(["a","b","a", np.nan], categories=["a","b","c"])
+        res = cat.unique()
+        exp = np.asarray(["a","b", np.nan], dtype=object)
+        self.assert_numpy_array_equal(res, exp)
 
     def test_mode(self):
         s = Categorical([1,1,2,4,5,5,5], categories=[5,4,3,2,1], ordered=True)
