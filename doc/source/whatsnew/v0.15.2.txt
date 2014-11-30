@@ -99,6 +99,7 @@ Bug Fixes
 - Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)
 - Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)
 - Fix negative step support for label-based slices (:issue:`8753`)
+- Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)
 
   Old behavior:
 
