@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta

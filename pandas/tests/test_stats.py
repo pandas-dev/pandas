@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pandas import compat
 import nose
 
