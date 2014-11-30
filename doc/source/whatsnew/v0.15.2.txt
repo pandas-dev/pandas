@@ -69,6 +69,30 @@ Enhancements
 - ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
 - ``Timedelta`` now supports arithemtic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
 - Added ``Timedelta.to_timedelta64`` method to the public API (:issue:`8884`).
+- ``Series`` now works with map objects the same way as generators (:issue:`8909`).
+
+  previous behaviour:
+
+  .. code-block:: python
+
+     In [1]: pd.Series(map(lambda x: x, range(3)), index=range(10, 13))
+     Out[1]: 
+     10    <map object at 0x7f817181d7f0>
+     11    <map object at 0x7f817181d7f0>
+     12    <map object at 0x7f817181d7f0>
+     dtype: object
+
+  current behavior:
+
+  .. ipython:: python
+
+     In [2]: pd.Series(map(lambda x: x, range(3)), index=range(10, 13))
+     Out[2]: 
+     10    0
+     11    1
+     12    2
+     dtype: int64
+
 
 .. _whatsnew_0152.performance:
 

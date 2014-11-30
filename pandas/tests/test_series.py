@@ -632,6 +632,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp.index = lrange(10, 20)
         assert_series_equal(result, exp)
 
+    def test_constructor_map(self):
+        # GH8909
+        m = map(lambda x: x, range(10))
+
+        result = Series(m)
+        exp = Series(lrange(10))
+        assert_series_equal(result, exp)
+
+        m = map(lambda x: x, range(10))
+        result = Series(m, index=lrange(10, 20))
+        exp.index = lrange(10, 20)
+        assert_series_equal(result, exp)
+
     def test_constructor_categorical(self):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'], fastpath=True)
         cat.name = 'foo'
