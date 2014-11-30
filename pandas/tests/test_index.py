@@ -1890,7 +1890,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         from datetime import time
         from pandas.index import _SIZE_CUTOFF
 
-        ns = _SIZE_CUTOFF + np.array([-100, 100])
+        ns = _SIZE_CUTOFF + np.array([-100, 100],dtype=np.int64)
         key = time(15, 11, 30)
         start = key.hour * 3600 + key.minute * 60 + key.second
         step = 24 * 3600
