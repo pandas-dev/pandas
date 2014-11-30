@@ -823,19 +823,11 @@ class Categorical(PandasObject):
         >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
         array([3, 5])       # eggs after donuts, after switching milk and donuts 
         """
-        # Fixes https://github.com/pydata/pandas/issues/8420
-        # Uses searchsorted twice, first to map the value to one of the codes,
-        # then to map the found code to the index into the Categorical.
-        # 'side' gets applied to the first one only, otherwise when side='right'
-        # any non-matching values jump too far to the right.
         if not self.ordered:
             raise ValueError("searchsorted requires an ordered Categorical.")
 
-        from pandas.core.series import Series	# Local import to avoid circular ref
-        values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
-        indices = self.codes.searchsorted(values_as_codes, sorter=sorter)
-        return indices
-
+        values_as_codes = self.categories.values.searchsorted(np.asarray(v), side)
+        return self.codes.searchsorted(values_as_codes, sorter=sorter)
 
     def isnull(self):
         """
