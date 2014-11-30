@@ -298,6 +298,21 @@ class TestDataFrameFormatting(tm.TestCase):
                 com.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
+    def test_str_max_colwidth(self):
+        # GH 7856
+        df = pd.DataFrame([{'a': 'foo', 'b': 'bar',
+                            'c': 'uncomfortably long line with lots of stuff',
+                            'd': 1},
+                           {'a': 'foo', 'b': 'bar', 'c': 'stuff', 'd': 1}])
+        df.set_index(['a', 'b', 'c'])
+        self.assertTrue(str(df) == '     a    b                                           c  d\n'
+                                   '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
+                                   '1  foo  bar                                       stuff  1')
+        with option_context('max_colwidth', 20):
+            self.assertTrue(str(df) == '     a    b                    c  d\n'
+                                       '0  foo  bar  uncomfortably lo...  1\n'
+                                       '1  foo  bar                stuff  1')
+
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
         fac = 1.05  # Arbitrary large factor to exceed term widht
