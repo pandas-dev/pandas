@@ -122,6 +122,7 @@ Bug Fixes
 - Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)
 
 - Fix negative step support for label-based slices (:issue:`8753`)
+- Fixed given label showing as None (:issue:`#8905`)
 
   Old behavior:
 
