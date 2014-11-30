@@ -2211,10 +2211,62 @@ class TestCategoricalAsBlock(tm.TestCase):
             tm.assert_series_equal(res, exp)
 
         # And test NaN handling...
-        cat = pd.Series(pd.Categorical(["a","b","c", np.nan]))
+        cat = Series(Categorical(["a","b","c", np.nan]))
         exp = Series([True, True, True, False])
         res = (cat == cat)
         tm.assert_series_equal(res, exp)
+
+    def test_cat_equality(self):
+
+        # GH 8938
+        # allow equality comparisons
+        a = Series(list('abc'),dtype="category")
+        b = Series(list('abc'),dtype="object")
+        c = Series(['a','b','cc'],dtype="object")
+        d = Series(list('acb'),dtype="object")
+        e = Categorical(list('abc'))
+        f = Categorical(list('acb'))
+
+        # vs scalar
+        self.assertFalse((a=='a').all())
+        self.assertTrue(((a!='a') == ~(a=='a')).all())
+
+        self.assertFalse(('a'==a).all())
+        self.assertTrue((a=='a')[0])
+        self.assertTrue(('a'==a)[0])
+        self.assertFalse(('a'!=a)[0])
+
+        # vs list-like
+        self.assertTrue((a==a).all())
+        self.assertFalse((a!=a).all())
+
+        self.assertTrue((a==list(a)).all())
+        self.assertTrue((a==b).all())
+        self.assertTrue((b==a).all())
+        self.assertTrue(((~(a==b))==(a!=b)).all())
+        self.assertTrue(((~(b==a))==(b!=a)).all())
+
+        self.assertFalse((a==c).all())
+        self.assertFalse((c==a).all())
+        self.assertFalse((a==d).all())
+        self.assertFalse((d==a).all())
+
+        # vs a cat-like
+        self.assertTrue((a==e).all())
+        self.assertTrue((e==a).all())
+        self.assertFalse((a==f).all())
+        self.assertFalse((f==a).all())
+
+        self.assertTrue(((~(a==e)==(a!=e)).all()))
+        self.assertTrue(((~(e==a)==(e!=a)).all()))
+        self.assertTrue(((~(a==f)==(a!=f)).all()))
+        self.assertTrue(((~(f==a)==(f!=a)).all()))
+
+        # non-equality is not comparable
+        self.assertRaises(TypeError, lambda: a < b)
+        self.assertRaises(TypeError, lambda: b < a)
+        self.assertRaises(TypeError, lambda: a > b)
+        self.assertRaises(TypeError, lambda: b > a)
 
     def test_concat(self):
         cat = pd.Categorical(["a","b"], categories=["a","b"])

@@ -64,6 +64,12 @@ def _cat_compare_op(op):
             else:
                 return np.repeat(False, len(self))
         else:
+
+            # allow categorical vs object dtype array comparisons for equality
+            # these are only positional comparisons
+            if op in ['__eq__','__ne__']:
+                return getattr(np.array(self),op)(np.array(other))
+
             msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
                   "compare values, use 'np.asarray(cat) <op> other'."
             raise TypeError(msg.format(op=op,typ=type(other)))
