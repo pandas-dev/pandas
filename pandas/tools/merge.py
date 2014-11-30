@@ -479,8 +479,10 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
         left_group_key, right_group_key, max_groups = \
             _factorize_keys(left_group_key, right_group_key, sort=sort)
 
+    # preserve left frame order if how == 'left' and sort == False
+    kwargs = {'sort':sort} if how == 'left' else {}
     join_func = _join_functions[how]
-    return join_func(left_group_key, right_group_key, max_groups)
+    return join_func(left_group_key, right_group_key, max_groups, **kwargs)
 
 
 class _OrderedMerge(_MergeOperation):
