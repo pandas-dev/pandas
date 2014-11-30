@@ -38,6 +38,13 @@ matrix:
       - BUILD_TYPE=conda
       - JOB_NAME: "27_nslow"
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+    - python: 2.7
+      env:
+      - NOSE_ARGS="slow and not network and not disabled"
+      - FULL_DEPS=true
+      - JOB_TAG=_SLOW
+      - BUILD_TYPE=conda
+      - JOB_NAME: "27_slow"
     - python: 3.3
       env:
       - NOSE_ARGS="not slow and not disabled"
@@ -76,6 +83,13 @@ matrix:
         - CLIPBOARD_GUI=qt4
         - BUILD_TYPE=pydata
         - JOB_NAME: "32_nslow"
+      - python: 2.7
+        env:
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - JOB_TAG=_SLOW
+        - BUILD_TYPE=conda
+        - JOB_NAME: "27_slow"
       - python: 2.7
         env:
         - EXPERIMENTAL=true
