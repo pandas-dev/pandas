@@ -814,6 +814,8 @@ class Categorical(PandasObject):
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
         >>> x.searchsorted('bread')
+        1
+        >>> x.searchsorted(['bread'])
         array([1])
         >>> x.searchsorted(['bread', 'eggs'])
         array([1, 4])
