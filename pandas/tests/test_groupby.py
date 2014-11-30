@@ -2005,10 +2005,9 @@ class TestGroupBy(tm.TestCase):
   #PR8618 and issue 8015
     def test_groupby_args(self):
         frame = self.mframe
-
-        def k():
-            frame.groupby(by=None, level=None)
-        self.assertRaisesRegexp(TypeError, k, "You have to supply one of 'by' and 'level'")
+        def j():
+             frame.groupby()
+        self.assertRaisesRegexp(TypeError, "You have to supply one of 'by' and 'level'", j)
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -3700,8 +3699,9 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_empty(self):
-        ge = DataFrame().groupby()
-        se = Series().groupby()
+        dfe = DataFrame()
+        ge = dfe.groupby(dfe.index)
+        se = Series().groupby(by=1, level=2)
 
         e = Series(dtype='int64')  # edge case, as this is usually considered float
 

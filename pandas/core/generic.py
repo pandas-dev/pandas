@@ -2875,7 +2875,7 @@ class NDFrame(PandasObject):
         from pandas.core.groupby import groupby
 
         if level is None and by is None:
-            raise TypeError('You have to specify at least one of "by" and "level"')
+            raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                     sort=sort, group_keys=group_keys, squeeze=squeeze)
