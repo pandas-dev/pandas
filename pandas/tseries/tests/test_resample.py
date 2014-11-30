@@ -705,6 +705,29 @@ class TestResample(tm.TestCase):
         for freq in freqs:
             result = ts.resample(freq, how='mean')
 
+    def test_resample_anchored_multiday(self):
+        # When resampling a range spanning multiple days, ensure that the
+        # start date gets used to determine the offset.  Fixes issue where
+        # a one day period is not a multiple of the frequency.
+        #
+        # See: https://github.com/pydata/pandas/issues/8683
+
+        s = pd.Series(np.random.randn(5),
+                      index=pd.date_range('2014-10-14 23:06:23.206',
+                                          periods=3, freq='400L')
+                      | pd.date_range('2014-10-15 23:00:00',
+                                      periods=2, freq='2200L'))
+
+        # Ensure left closing works
+        result = s.resample('2200L', 'mean')
+        self.assertEqual(result.index[-1],
+                         pd.Timestamp('2014-10-15 23:00:02.000'))
+
+        # Ensure right closing works
+        result = s.resample('2200L', 'mean', label='right')
+        self.assertEqual(result.index[-1],
+                         pd.Timestamp('2014-10-15 23:00:04.200'))
+
     def test_corner_cases(self):
         # miscellaneous test coverage
 

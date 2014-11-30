@@ -145,7 +145,8 @@ Bug Fixes
 
 
 
-
+- Bug in resample that causes a ValueError when resampling across multiple days
+  and the last offset is not calculated from the start of the range (:issue:`8683`)
 
 
 - Bug in `pd.infer_freq`/`DataFrame.inferred_freq` that prevented proper sub-daily frequency inference
