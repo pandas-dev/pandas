@@ -545,8 +545,14 @@ cdef class DatetimeEngine(Int64Engine):
                 val = _to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = _to_i8(val)
-            loc = values.searchsorted(conv, side='left')
+
+            try:
+                conv = _to_i8(val)
+                loc = values.searchsorted(conv, side='left')
+            except TypeError:
+                self._date_check_type(val)
+                raise KeyError(val)
+
             if loc == len(values) or util.get_value_at(values, loc) != conv:
                 raise KeyError(val)
             return loc

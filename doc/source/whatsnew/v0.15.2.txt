@@ -97,6 +97,7 @@ Bug Fixes
 - ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
 - ``slice`` string method now takes step into account (:issue:`8754`)
 - Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)
+- Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)
 - Fix negative step support for label-based slices (:issue:`8753`)
 
   Old behavior:
@@ -142,7 +143,7 @@ Bug Fixes
 
 
 
-
+- BUG: Option context applies on __enter__ (:issue:`8514`)
 
 
 
