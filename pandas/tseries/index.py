@@ -592,6 +592,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         from pandas.core.format import _is_dates_only
         return _is_dates_only(self.values)
 
+    def round(self, freq):
+        if isinstance(freq, compat.string_types):
+            freq = to_offset(freq).nanos
+        return DatetimeIndex(((self.asi8/freq).round()*freq).astype(np.int64))
+
     @property
     def _formatter_func(self):
         from pandas.core.format import _get_format_datetime64
