@@ -1886,6 +1886,28 @@ class TestDatetimeIndex(Base, tm.TestCase):
         self.assertEqual(str(index.reindex([])[0].tz), 'US/Eastern')
         self.assertEqual(str(index.reindex(np.array([]))[0].tz), 'US/Eastern')
 
+    def test_round(self):
+        index = pd.DatetimeIndex([ pd.Timestamp('20120827 12:05:00.002'),
+                                   pd.Timestamp('20130101 12:05:01'),
+                                   pd.Timestamp('20130712 15:10:00'),
+                                   pd.Timestamp('20130712 15:10:00.000004') ])
+
+        result = index.round('1s')
+
+        tm.assert_index_equal(result, pd.DatetimeIndex([
+                                   pd.Timestamp('20120827 12:05:00'),
+                                   pd.Timestamp('20130101 12:05:01'),
+                                   pd.Timestamp('20130712 15:10:00'),
+                                   pd.Timestamp('20130712 15:10:00') ]) )
+
+        result = index.round('1h')
+
+        tm.assert_index_equal(result, pd.DatetimeIndex([
+                                   pd.Timestamp('20120827 12:00:00'),
+                                   pd.Timestamp('20130101 12:00:00'),
+                                   pd.Timestamp('20130712 15:00:00'),
+                                   pd.Timestamp('20130712 15:00:00') ]) )
+
 
 class TestPeriodIndex(Base, tm.TestCase):
     _holder = PeriodIndex
