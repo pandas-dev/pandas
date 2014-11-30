@@ -77,6 +77,9 @@ class TestPlotBase(tm.TestCase):
         else:
             self.bp_n_objects = 8
 
+        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
+        self.mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
+
     def tearDown(self):
         tm.close()
 
@@ -443,7 +446,6 @@ class TestSeriesPlots(TestPlotBase):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
 
@@ -818,12 +820,13 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.yaxis.get_label(), 'Degree')
         tm.close()
 
-        ax = self.ts.plot(kind='hist', orientation='horizontal')
-        self._check_text_labels(ax.xaxis.get_label(), 'Degree')
-        tm.close()
+        if self.mpl_ge_1_3_1:
+            ax = self.ts.plot(kind='hist', orientation='horizontal')
+            self._check_text_labels(ax.xaxis.get_label(), 'Degree')
+            tm.close()
 
-        ax = self.ts.plot(kind='hist', align='left', stacked=True)
-        tm.close()
+            ax = self.ts.plot(kind='hist', align='left', stacked=True)
+            tm.close()
 
     @slow
     def test_hist_kde_color(self):
@@ -960,9 +963,6 @@ class TestDataFramePlots(TestPlotBase):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
         mpl.rcdefaults()
-
-        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
-        self.mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
 
         self.tdf = tm.makeTimeDataFrame()
         self.hexbin_df = DataFrame({"A": np.random.uniform(size=20),
@@ -2141,31 +2141,33 @@ class TestDataFramePlots(TestPlotBase):
             self._check_box_coord(axes[2].patches, expected_y=np.array([0, 0, 0, 0, 0]),
                                   expected_h=np.array([6, 7, 8, 9, 10]))
 
-            # horizontal
-            ax = df.plot(kind='hist', bins=5, orientation='horizontal')
-            self._check_box_coord(ax.patches[:5], expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([10, 9, 8, 7, 6]))
-            self._check_box_coord(ax.patches[5:10], expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([8, 8, 8, 8, 8]))
-            self._check_box_coord(ax.patches[10:], expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([6, 7, 8, 9, 10]))
+            if self.mpl_ge_1_3_1:
 
-            ax = df.plot(kind='hist', bins=5, stacked=True, orientation='horizontal')
-            self._check_box_coord(ax.patches[:5], expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([10, 9, 8, 7, 6]))
-            self._check_box_coord(ax.patches[5:10], expected_x=np.array([10, 9, 8, 7, 6]),
-                                  expected_w=np.array([8, 8, 8, 8, 8]))
-            self._check_box_coord(ax.patches[10:], expected_x=np.array([18, 17, 16, 15, 14]),
-                                  expected_w=np.array([6, 7, 8, 9, 10]))
+                # horizontal
+                ax = df.plot(kind='hist', bins=5, orientation='horizontal')
+                self._check_box_coord(ax.patches[:5], expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([10, 9, 8, 7, 6]))
+                self._check_box_coord(ax.patches[5:10], expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([8, 8, 8, 8, 8]))
+                self._check_box_coord(ax.patches[10:], expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([6, 7, 8, 9, 10]))
 
-            axes = df.plot(kind='hist', bins=5, stacked=True,
-                           subplots=True, orientation='horizontal')
-            self._check_box_coord(axes[0].patches, expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([10, 9, 8, 7, 6]))
-            self._check_box_coord(axes[1].patches, expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([8, 8, 8, 8, 8]))
-            self._check_box_coord(axes[2].patches, expected_x=np.array([0, 0, 0, 0, 0]),
-                                  expected_w=np.array([6, 7, 8, 9, 10]))
+                ax = df.plot(kind='hist', bins=5, stacked=True, orientation='horizontal')
+                self._check_box_coord(ax.patches[:5], expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([10, 9, 8, 7, 6]))
+                self._check_box_coord(ax.patches[5:10], expected_x=np.array([10, 9, 8, 7, 6]),
+                                      expected_w=np.array([8, 8, 8, 8, 8]))
+                self._check_box_coord(ax.patches[10:], expected_x=np.array([18, 17, 16, 15, 14]),
+                                      expected_w=np.array([6, 7, 8, 9, 10]))
+
+                axes = df.plot(kind='hist', bins=5, stacked=True,
+                               subplots=True, orientation='horizontal')
+                self._check_box_coord(axes[0].patches, expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([10, 9, 8, 7, 6]))
+                self._check_box_coord(axes[1].patches, expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([8, 8, 8, 8, 8]))
+                self._check_box_coord(axes[2].patches, expected_x=np.array([0, 0, 0, 0, 0]),
+                                      expected_w=np.array([6, 7, 8, 9, 10]))
 
     @slow
     def test_hist_df_legacy(self):
