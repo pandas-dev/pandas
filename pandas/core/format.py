@@ -776,6 +776,9 @@ class DataFrameFormatter(TableFormatter):
                                      formatter=fmt)
         else:
             fmt_index = [index.format(name=show_index_names, formatter=fmt)]
+        fmt_index = [tuple(_make_fixed_width(
+            list(x), justify='left', minimum=(self.col_space or 0)))
+            for x in fmt_index]
 
         adjoined = adjoin(1, *fmt_index).split('\n')
 
