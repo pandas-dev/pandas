@@ -16,7 +16,7 @@ import numpy as np
 @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
 @deprecate_kwarg(old_arg_name='rows', new_arg_name='index')
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
-                fill_value=None, margins=False, dropna=True):
+                fill_value=None, margins=False, display_value='normal', dropna=True):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -40,6 +40,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         Value to replace missing values with
     margins : boolean, default False
         Add all row / columns (e.g. for subtotal / grand totals)
+    display_value : string, default 'normal'
+        Type of display. Among 'normal', 'col_ratio', 'row_ratio' 
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
     rows : kwarg only alias of index [deprecated]
@@ -81,7 +83,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         for func in aggfunc:
             table = pivot_table(data, values=values, index=index, columns=columns,
                                 fill_value=fill_value, aggfunc=func,
-                                margins=margins)
+                                margins=margins, display_value=display_value)
             pieces.append(table)
             keys.append(func.__name__)
         return concat(pieces, keys=keys, axis=1)
