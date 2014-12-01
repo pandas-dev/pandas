@@ -18,7 +18,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, _is_sequence,
+                                is_list_like, is_sequence,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
@@ -1477,7 +1477,7 @@ def _convert_to_list_like(list_like):
         return list_like
     if isinstance(list_like, list):
         return list_like
-    if (_is_sequence(list_like) or isinstance(list_like, tuple)
+    if (is_sequence(list_like) or isinstance(list_like, tuple)
         or isinstance(list_like, types.GeneratorType)):
         return list(list_like)
     elif np.isscalar(list_like):
