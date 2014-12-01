@@ -198,7 +198,7 @@ class Grouper(object):
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=None, sort=False):
+    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key=key
         self.level=level
         self.freq=freq
