@@ -1022,6 +1022,13 @@ class TestMergeMulti(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+        # GH7331 - maintain left frame order in left merge
+        right.reset_index(inplace=True)
+        right.columns = left.columns[:3].tolist() + right.columns[-1:].tolist()
+        result = merge(left, right, how='left', on=left.columns[:-1].tolist())
+        expected.index = np.arange(len(expected))
+        tm.assert_frame_equal(result, expected)
+
     def test_left_join_index_multi_match(self):
         left = DataFrame([
             ['c', 0],
@@ -1057,6 +1064,11 @@ class TestMergeMulti(tm.TestCase):
             columns=['tag', 'val', 'char'],
             index=[2, 2, 2, 2, 0, 1, 1, 3])
 
+        tm.assert_frame_equal(result, expected)
+
+        # GH7331 - maintain left frame order in left merge
+        result = merge(left, right.reset_index(), how='left', on='tag')
+        expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_join_multi_dtypes(self):
