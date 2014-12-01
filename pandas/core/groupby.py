@@ -232,22 +232,41 @@ class Grouper(object):
 
     def _set_grouper(self, obj, sort=False):
         """
-        given an object and the specifcations, setup the internal grouper for this particular specification
+        given an object and the specifications, setup the internal grouper
+        for this particular specification
 
         Parameters
         ----------
         obj : the subject object
 
         """
+        if self.freq is not None:
+            self._set_timegrouper(obj)
+            return self.grouper
+        else:
+            self._set_basegrouper(obj)
+            return self.grouper
 
+    def _set_timegrouper(self, obj, sort=False):
+        """
+        given an object and the specifications, setup the internal grouper
+        as a Datetime Index
+
+        Parameters
+        ----------
+        obj : the subject object
+
+        """
         if self.key is not None and self.level is not None:
-            raise ValueError("The Grouper cannot specify both a key and a level!")
+            raise ValueError("The Grouper cannot specify both a key and \
+            a level!")
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             if key not in obj._info_axis:
-                raise KeyError("The grouper name {0} is not found".format(key))
+                raise KeyError("The grouper name {0} is not found"
+                               .format(key))
             ax = Index(obj[key], name=key)
 
         else:
@@ -259,21 +278,78 @@ class Grouper(object):
                 # equivalent to the axis name
                 if isinstance(ax, MultiIndex):
                     level = ax._get_level_number(level)
-                    ax = Index(ax.get_level_values(level), name=ax.names[level])
+                    ax = Index(ax.get_level_values(level),
+                               name=ax.names[level])
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError("The level {0} is not valid".format(level))
+                        raise ValueError("The level {0} is not valid"
+                                         .format(level))
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
             indexer = self.indexer = ax.argsort(kind='quicksort')
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis, convert=False,
+                           is_copy=False)
 
         self.obj = obj
         self.grouper = ax
-        return self.grouper
+
+    def _set_basegrouper(self, obj, sort=False):
+        """
+        given an object and the specifications, setup the internal grouper
+        as a BaseGrouper Class
+
+        Parameters
+        ----------
+        obj : the subject object
+
+        """
+        ax = obj._get_axis(self.axis)
+        gpr = self.key
+        if self.key is not None:
+            if self.key not in obj._info_axis:
+                raise KeyError("The grouper name {0} is not found"
+                               .format(self.key))
+        else:
+            if self.level is not None:
+                if not isinstance(ax, MultiIndex):
+                    if self.level not in (0, ax.name):
+                        raise ValueError("The level {0} is not valid"
+                                         .format(self.level))
+
+        def is_in_axis(key):
+            if not _is_label_like(key):
+                try:
+                    obj._data.items.get_loc(key)
+                except Exception:
+                    return False
+            return True
+
+        # if the the grouper is obj[name]
+        def is_in_obj(gpr):
+            try:
+                return id(gpr) == id(obj[gpr.name])
+            except Exception:
+                return False
+
+        if is_in_obj(gpr):  # df.groupby(df['name'])
+            in_axis, name = True, gpr.name
+        elif is_in_axis(gpr):  # df.groupby('name')
+            in_axis, name, gpr = True, gpr, obj[gpr]
+        else:
+            in_axis, name = False, None
+
+        if isinstance(self.key, Categorical) and len(gpr) != len(obj):
+            raise ValueError("Categorical grouper must have len(grouper) \
+                             == len(data)")
+
+        grouping = [Grouping(ax, gpr, obj=obj, name=name,
+                    level=self.level, sort=sort, in_axis=in_axis)]
+        grouper = BaseGrouper(ax, grouping)
+        self.obj = obj
+        self.grouper = grouper
 
     def _get_binner_for_grouping(self, obj):
         raise NotImplementedError
@@ -2137,7 +2213,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
         ping = Grouping(group_axis, gpr, obj=obj, name=name,
                         level=level, sort=sort, in_axis=in_axis)
-
         groupings.append(ping)
 
     if len(groupings) == 0:
