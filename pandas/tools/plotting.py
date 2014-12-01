@@ -1051,13 +1051,15 @@ class MPLPlot(object):
                     xticklabels = [labels.get(x, '') for x in ax.get_xticks()]
                     ax.set_xticklabels(xticklabels)
                 self._apply_axis_properties(ax.xaxis, rot=self.rot,
-                                           fontsize=self.fontsize)
+                                            fontsize=self.fontsize)
+                self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
             elif self.orientation == 'horizontal':
                 if self._need_to_set_index:
                     yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
                     ax.set_yticklabels(yticklabels)
                 self._apply_axis_properties(ax.yaxis, rot=self.rot,
-                                           fontsize=self.fontsize)
+                                            fontsize=self.fontsize)
+                self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
         labels = axis.get_majorticklabels() + axis.get_minorticklabels()
