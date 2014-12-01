@@ -328,13 +328,23 @@ old categories must be included in the new categories and no new categories are 
 Comparisons
 -----------
 
-Comparing `Categoricals` with other objects is possible in two cases:
+Comparing categorical data with other objects is possible in three cases:
 
- * comparing a categorical Series to another categorical Series, when `categories` and `ordered` is
-   the same or
- * comparing a categorical Series to a scalar.
+ * comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+   ...) of the same length as the categorical data or
+ * all comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+   another categorical Series, when ``ordered==True`` and the `categories` are the same or
+ * all comparisons of a categorical data to a scalar.
 
-All other comparisons will raise a TypeError.
+All other comparisons, especially "non-equality" comparisons of two categoricals with different
+categories or a categorical with any list-like object, will raise a TypeError.
+
+.. note::
+
+    Any "non-equality" comparisons of categorical data with a `Series`, `np.array`, `list` or
+    categorical data with different categories or ordering will raise an `TypeError` because custom
+    categories ordering could be interpreted in two ways: one with taking in account the
+    ordering and one without.
 
 .. ipython:: python
 
@@ -353,6 +363,13 @@ Comparing to a categorical with the same categories and ordering or to a scalar 
     cat > cat_base
     cat > 2
 
+Equality comparisons work with any list-like object of same length and scalars:
+
+.. ipython:: python
+
+    cat == cat_base2
+    cat == 2
+
 This doesn't work because the categories are not the same:
 
 .. ipython:: python
@@ -362,13 +379,9 @@ This doesn't work because the categories are not the same:
     except TypeError as e:
          print("TypeError: " + str(e))
 
-.. note::
-
-    Comparisons with `Series`, `np.array` or a `Categorical` with different categories or ordering
-    will raise an `TypeError` because custom categories ordering could be interpreted in two ways:
-    one with taking in account the ordering and one without. If you want to compare a categorical
-    series with such a type, you need to be explicit and convert the categorical data back to the
-    original values:
+If you want to do a "non-equality" comparison of a categorical series with a list-like object
+which is not categorical data, you need to be explicit and convert the categorical data back to
+the original values:
 
 .. ipython:: python
 
