@@ -42,6 +42,8 @@ API changes
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
 
+- Bug in pd.Grouper when specifying non-datetimelike grouping. (:issue:`8844`)
+
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters. ``Series.all``, ``Series.any``, ``Index.all``, and ``Index.any`` no longer support the ``out`` and ``keepdims`` parameters, which existed for compatibility with ndarray. Various index types no longer support the ``all`` and ``any`` aggregation functions and will now raise ``TypeError``. (:issue:`8302`):
 
   .. ipython:: python
