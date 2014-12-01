@@ -2348,7 +2348,7 @@ Closing a Store, Context Manager
 
    # Working with, and automatically closing the store with the context
    # manager
-   with get_store('store.h5') as store:
+   with HDFStore('store.h5') as store:
        store.keys()
 
 .. ipython:: python
