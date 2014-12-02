@@ -41,6 +41,8 @@ import pandas.util.testing as tm
 
 try:
     import sqlalchemy
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
@@ -339,7 +341,7 @@ class PandasSQLTest(unittest.TestCase):
         self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
 
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-        
+
         # Make sure when transaction is rolled back, no rows get inserted
         try:
             with self.pandasSQL.run_transaction() as trans:
@@ -350,7 +352,7 @@ class PandasSQLTest(unittest.TestCase):
             pass
         res = self.pandasSQL.read_query('SELECT * FROM test_trans')
         self.assertEqual(len(res), 0)
-        
+
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
@@ -1167,6 +1169,26 @@ class _TestSQLAlchemy(PandasSQLTest):
         tm.assert_frame_equal(returned_df, blank_test_df)
         self.drop_table(tbl)
 
+    def test_dtype(self):
+        cols = ['A', 'B']
+        data = [(0.8, True),
+                (0.9, None)]
+        df = DataFrame(data, columns=cols)
+        df.to_sql('dtype_test', self.conn)
+        df.to_sql('dtype_test2', self.conn, dtype={'B': sqlalchemy.Boolean})
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        self.assertTrue(isinstance(meta.tables['dtype_test'].columns['B'].type,
+                                   sqltypes.TEXT))
+        if self.flavor == 'mysql':
+            my_type = sqltypes.Integer
+        else:
+            my_type = sqltypes.Boolean
+        self.assertTrue(isinstance(meta.tables['dtype_test2'].columns['B'].type,
+                                   my_type))
+        self.assertRaises(ValueError, df.to_sql,
+                          'error', self.conn, dtype={'B': bool})
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -1467,7 +1489,7 @@ class TestSQLiteFallback(PandasSQLTest):
         if self.flavor == 'sqlite':
             self.assertRaises(sqlite3.InterfaceError, sql.to_sql, df,
                               'test_time', self.conn)
-                          
+
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' " +
@@ -1484,6 +1506,28 @@ class TestSQLiteFallback(PandasSQLTest):
 
     def test_transactions(self):
         self._transaction_test()
+
+    def test_dtype(self):
+        if self.flavor == 'mysql':
+            raise nose.SkipTest('Not applicable to MySQL legacy')
+        cols = ['A', 'B']
+        data = [(0.8, True),
+                (0.9, None)]
+        df = DataFrame(data, columns=cols)
+        df.to_sql('dtype_test', self.conn)
+        df.to_sql('dtype_test2', self.conn, dtype={'B': 'bool'})
+
+        def get_column_type(table, column):
+            recs = self.conn.execute('PRAGMA table_info(%s)' % table)
+            for cid, name, ctype, not_null, default, pk in recs:
+                if name == column:
+                    return ctype
+            raise ValueError('Table %s, column %s not found' % (table, column))
+
+        self.assertEqual(get_column_type('dtype_test', 'B'), 'TEXT')
+        self.assertEqual(get_column_type('dtype_test2', 'B'), 'bool')
+        self.assertRaises(ValueError, df.to_sql,
+                          'error', self.conn, dtype={'B': bool})
 
 class TestMySQLLegacy(TestSQLiteFallback):
     """

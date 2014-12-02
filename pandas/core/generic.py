@@ -922,7 +922,7 @@ class NDFrame(PandasObject):
         return packers.to_msgpack(path_or_buf, self, **kwargs)
 
     def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
-               index=True, index_label=None, chunksize=None):
+               index=True, index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -954,12 +954,15 @@ class NDFrame(PandasObject):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
+        dtype : Dictionary of column name to SQLAlchemy type, default None
+            Optional datatypes for SQL columns.
 
         """
         from pandas.io import sql
         sql.to_sql(
             self, name, con, flavor=flavor, schema=schema, if_exists=if_exists,
-            index=index, index_label=index_label, chunksize=chunksize)
+            index=index, index_label=index_label, chunksize=chunksize,
+            dtype=dtype)
 
     def to_pickle(self, path):
         """
