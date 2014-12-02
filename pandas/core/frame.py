@@ -24,7 +24,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _maybe_upcast, _is_sequence,
+                                _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _get_dtype, _maybe_box_datetimelike,
                                 is_categorical_dtype)
@@ -2255,7 +2255,7 @@ class DataFrame(NDFrame):
         elif isinstance(value, Categorical):
             value = value.copy()
 
-        elif (isinstance(value, Index) or _is_sequence(value)):
+        elif (isinstance(value, Index) or is_sequence(value)):
             from pandas.core.series import _sanitize_index
             value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
@@ -2844,7 +2844,7 @@ class DataFrame(NDFrame):
                                  '(rows)')
             if not isinstance(by, list):
                 by = [by]
-            if com._is_sequence(ascending) and len(by) != len(ascending):
+            if com.is_sequence(ascending) and len(by) != len(ascending):
                 raise ValueError('Length of ascending (%d) != length of by'
                                  ' (%d)' % (len(ascending), len(by)))
             if len(by) > 1:
@@ -3694,7 +3694,7 @@ class DataFrame(NDFrame):
                                            com.pprint_thing(k),)
                 raise
 
-        if len(results) > 0 and _is_sequence(results[0]):
+        if len(results) > 0 and is_sequence(results[0]):
             if not isinstance(results[0], Series):
                 index = res_columns
             else:

@@ -541,7 +541,7 @@ class _NDFrameIndexer(object):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if (sum_aligners == self.ndim and
-                    all([com._is_sequence(_) for _ in indexer])):
+                    all([com.is_sequence(_) for _ in indexer])):
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True).values
 
                 # single indexer
@@ -555,7 +555,7 @@ class _NDFrameIndexer(object):
                 ax = obj.axes[i]
 
                 # multiple aligners (or null slices)
-                if com._is_sequence(idx) or isinstance(idx, slice):
+                if com.is_sequence(idx) or isinstance(idx, slice):
                     if single_aligner and _is_null_slice(idx):
                         continue
                     new_ix = ax[idx]
@@ -625,7 +625,7 @@ class _NDFrameIndexer(object):
             sindexers = []
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
-                if com._is_sequence(ix) or isinstance(ix, slice):
+                if com.is_sequence(ix) or isinstance(ix, slice):
                     if idx is None:
                         idx = ax[ix].ravel()
                     elif cols is None:

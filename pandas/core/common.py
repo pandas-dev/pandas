@@ -2504,13 +2504,14 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
-def _is_sequence(x):
+def is_sequence(x):
     try:
         iter(x)
         len(x)  # it has a length
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
 
 def _get_callable_name(obj):
     # typical case has name
@@ -3093,7 +3094,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl, quote_strings=True)
-    elif _is_sequence(thing) and _nest_lvl < \
+    elif is_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings)

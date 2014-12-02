@@ -24,7 +24,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 import pandas as pd
-from pandas.core.common import _is_sequence, array_equivalent, is_list_like
+from pandas.core.common import is_sequence, array_equivalent, is_list_like
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -945,7 +945,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
-    assert (_is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
+    assert (is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
     assert (names is None or names is False
             or names is True or len(names) is nlevels)
     assert idx_type is None or \
