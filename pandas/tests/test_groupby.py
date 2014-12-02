@@ -3677,6 +3677,16 @@ class TestGroupBy(tm.TestCase):
                 dt = pd.Timestamp(t)
                 result = grouped.get_group(dt)
                 assert_frame_equal(result, expected)
+                
+    def test_grouper_with_nondatetime(self):
+        # GH 8866
+        s = Series(np.arange(8),index=pd.MultiIndex.from_product([list('ab'),
+                   range(2),pd.date_range('20130101',periods=2)],
+                   names=['one','two','three']))
+
+        expected = Series(data = [6,22], index=pd.Index(['a','b'], name='one'))
+        result = s.groupby(pd.Grouper(level='one')).sum()
+        assert_series_equal(result,expected)
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])

@@ -245,7 +245,6 @@ class Grouper(object):
             return self.grouper
         else:
             self._set_basegrouper(obj)
-            return self.grouper
 
     def _set_timegrouper(self, obj, sort=False):
         """
@@ -350,6 +349,7 @@ class Grouper(object):
         grouper = BaseGrouper(ax, grouping)
         self.obj = obj
         self.grouper = grouper
+        return self.grouper
 
     def _get_binner_for_grouping(self, obj):
         raise NotImplementedError
