@@ -145,7 +145,8 @@ Bug Fixes
 
 - Bug where ``get_data_google``returned object dtypes (:issue:`3995`)
 
-
+- Bug in ``DataFrame.stack(..., dropna=False)`` when the DataFrame's ``columns`` is a ``MultiIndex``
+  whose ``labels`` do not reference all its ``levels``. (:issue:`8844`)
 
 
 - BUG: Option context applies on __enter__ (:issue:`8514`)
