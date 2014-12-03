@@ -593,10 +593,12 @@ class TestStata(tm.TestCase):
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
             sr = StataReader(path)
+            typlist = sr.typlist
             variables = sr.varlist
             formats = sr.fmtlist
-            for variable, fmt in zip(variables, formats):
+            for variable, fmt, typ in zip(variables, formats, typlist):
                 self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
+                self.assertTrue(int(variable[1:]) == typ)
 
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
@@ -850,7 +852,6 @@ class TestStata(tm.TestCase):
         # Check identity of codes
         for col in expected:
             if is_categorical_dtype(expected[col]):
-                print(col)
                 tm.assert_series_equal(expected[col].cat.codes,
                                        parsed_115[col].cat.codes)
                 tm.assert_index_equal(expected[col].cat.categories,

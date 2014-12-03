@@ -166,3 +166,10 @@ Bug Fixes
   not lexically sorted or unique (:issue:`7724`)
 - BUG CSV: fix problem with trailing whitespace in skipped rows, (:issue:`8679`), (:issue:`8661`)
 - Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)
+
+
+
+
+
+- Bug in `StataWriter` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
+
