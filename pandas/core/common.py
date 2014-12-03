@@ -2504,6 +2504,38 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
+def is_hashable(arg):
+    """Return True if hash(arg) will succeed, False otherwise.
+
+    Some types will pass a test against collections.Hashable but fail when they
+    are actually hashed with hash().
+
+    Distinguish between these and other types by trying the call to hash() and
+    seeing if they raise TypeError.
+
+    Examples
+    --------
+    >>> a = ([],)
+    >>> isinstance(a, collections.Hashable)
+    True
+    >>> is_hashable(a)
+    False
+    """
+    # don't consider anything not collections.Hashable, so as not to broaden
+    # the definition of hashable beyond that. For example, old-style classes
+    # are not collections.Hashable but they won't fail hash().
+    if not isinstance(arg, collections.Hashable):
+        return False
+
+    # narrow the definition of hashable if hash(arg) fails in practice
+    try:
+        hash(arg)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
 def is_sequence(x):
     try:
         iter(x)

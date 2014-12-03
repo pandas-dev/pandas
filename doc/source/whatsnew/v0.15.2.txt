@@ -158,6 +158,11 @@ Bug Fixes
   and the last offset is not calculated from the start of the range (:issue:`8683`)
 
 
+
+- Bug where DataFrame.plot(kind='scatter') fails when checking if an np.array is in the DataFrame (:issue:`8852`)
+
+
+
 - Bug in `pd.infer_freq`/`DataFrame.inferred_freq` that prevented proper sub-daily frequency inference
   when the index contained DST days (:issue:`8772`).
 - Bug where index name was still used when plotting a series with ``use_index=False`` (:issue:`8558`).
