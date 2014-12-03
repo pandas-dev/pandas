@@ -4125,13 +4125,29 @@ class TimeConversionFormats(tm.TestCase):
 
     def test_to_datetime_with_non_exact(self):
 
+        # 8904
+        # exact kw
         if sys.version_info < (2, 7):
             raise nose.SkipTest('on python version < 2.7')
 
-        s = Series(['19MAY11','foobar19MAY11','19MAY11:00:00:00','19MAY11 00:00:00Z']*10000)
+        s = Series(['19MAY11','foobar19MAY11','19MAY11:00:00:00','19MAY11 00:00:00Z'])
         result = to_datetime(s,format='%d%b%y',exact=False)
         expected = to_datetime(s.str.extract('(\d+\w+\d+)'),format='%d%b%y')
         assert_series_equal(result, expected)
+
+    def test_parse_nanoseconds_with_formula(self):
+
+        # GH8989
+        # trunctaing the nanoseconds when a format was provided
+        for v in ["2012-01-01 09:00:00.000000001",
+                  "2012-01-01 09:00:00.000001",
+                  "2012-01-01 09:00:00.001",
+                  "2012-01-01 09:00:00.001000",
+                  "2012-01-01 09:00:00.001000000",
+                  ]:
+            expected = pd.to_datetime(v)
+            result =  pd.to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f")
+            self.assertEqual(result,expected)
 
     def test_to_datetime_format_weeks(self):
         data = [

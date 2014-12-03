@@ -2137,8 +2137,9 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         Py_ssize_t i, n = len(values)
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
-        int year, month, day, minute, hour, second, fraction, weekday, julian, tz
+        int year, month, day, minute, hour, second, weekday, julian, tz
         int week_of_year, week_of_year_start
+        int64_t us, ns
         object val, group_key, ampm, found
         dict found_key
 
@@ -2237,7 +2238,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
 
         year = 1900
         month = day = 1
-        hour = minute = second = fraction = 0
+        hour = minute = second = ns = us = 0
         tz = -1
         # Default to -1 to signify that values not known; not critical to have,
         # though
@@ -2302,9 +2303,11 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
                 second = int(found_dict['S'])
             elif parse_code == 10:
                 s = found_dict['f']
-                # Pad to always return microseconds.
-                s += "0" * (6 - len(s))
-                fraction = int(s)
+                # Pad to always return nanoseconds
+                s += "0" * (9 - len(s))
+                us = long(s)
+                ns = us % 1000
+                us = us / 1000
             elif parse_code == 11:
                 weekday = locale_time.f_weekday.index(found_dict['A'].lower())
             elif parse_code == 12:
@@ -2369,7 +2372,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         dts.hour = hour
         dts.min = minute
         dts.sec = second
-        dts.us = fraction
+        dts.us = us
+        dts.ps = ns * 1000
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
         try:
@@ -4311,7 +4315,7 @@ class TimeRE(dict):
         base.__init__({
             # The " \d" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",
-            'f': r"(?P<f>[0-9]{1,6})",
+            'f': r"(?P<f>[0-9]{1,9})",
             'H': r"(?P<H>2[0-3]|[0-1]\d|\d)",
             'I': r"(?P<I>1[0-2]|0[1-9]|[1-9])",
             'j': r"(?P<j>36[0-6]|3[0-5]\d|[1-2]\d\d|0[1-9]\d|00[1-9]|[1-9]\d|0[1-9]|[1-9])",

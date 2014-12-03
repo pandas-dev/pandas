@@ -78,6 +78,7 @@ Enhancements
 - Added ``gbq.generate_bq_schema`` function to the gbq module (:issue:`8325`).
 - ``Series`` now works with map objects the same way as generators (:issue:`8909`).
 - Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`).
+- ``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)
 
 .. _whatsnew_0152.performance:
 
@@ -85,7 +86,7 @@ Performance
 ~~~~~~~~~~~
 - Reduce memory usage when skiprows is an integer in read_csv (:issue:`8681`)
 
-- Performance boost for ``to_datetime`` conversions with a passed ``format=`` kw, and the new ``exact=False`` for kw with non-exact matching (:issue:`8904`)
+- Performance boost for ``to_datetime`` conversions with a passed ``format=``, and the ``exact=False`` (:issue:`8904`)
 
 .. _whatsnew_0152.experimental:
 
@@ -143,6 +144,7 @@ Bug Fixes
 
 - Report a ``TypeError`` when invalid/no paramaters are passed in a groupby (:issue:`8015`)
 - Regression in DatetimeIndex iteration with a Fixed/Local offset timezone (:issue:`8890`)
+- Bug in ``to_datetime`` when parsing a nanoseconds using the ``%f`` format (:issue:`8989`)
 - Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)
 - Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
