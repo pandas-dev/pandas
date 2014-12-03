@@ -560,6 +560,11 @@ class _TestSQLApi(PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_timedelta', self.conn)
         tm.assert_series_equal(result['foo'], df['foo'].astype('int64'))
 
+    def test_complex(self):
+        df = DataFrame({'a':[1+1j, 2j]})
+        # Complex data type should raise error
+        self.assertRaises(ValueError, df.to_sql, 'test_complex', self.conn)
+
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
 
@@ -1175,19 +1180,38 @@ class _TestSQLAlchemy(PandasSQLTest):
                 (0.9, None)]
         df = DataFrame(data, columns=cols)
         df.to_sql('dtype_test', self.conn)
-        df.to_sql('dtype_test2', self.conn, dtype={'B': sqlalchemy.Boolean})
+        df.to_sql('dtype_test2', self.conn, dtype={'B': sqlalchemy.TEXT})
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
         meta.reflect()
-        self.assertTrue(isinstance(meta.tables['dtype_test'].columns['B'].type,
-                                   sqltypes.TEXT))
+        sqltype = meta.tables['dtype_test2'].columns['B'].type
+        self.assertTrue(isinstance(sqltype, sqlalchemy.TEXT))
+        self.assertRaises(ValueError, df.to_sql,
+                          'error', self.conn, dtype={'B': str})
+
+    def test_notnull_dtype(self):
+        cols = {'Bool': Series([True,None]),
+                'Date': Series([datetime(2012, 5, 1), None]),
+                'Int' : Series([1, None], dtype='object'),
+                'Float': Series([1.1, None])
+               }
+        df = DataFrame(cols)
+
+        tbl = 'notnull_dtype_test'
+        df.to_sql(tbl, self.conn)
+        returned_df = sql.read_sql_table(tbl, self.conn)
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
         if self.flavor == 'mysql':
             my_type = sqltypes.Integer
         else:
             my_type = sqltypes.Boolean
-        self.assertTrue(isinstance(meta.tables['dtype_test2'].columns['B'].type,
-                                   my_type))
-        self.assertRaises(ValueError, df.to_sql,
-                          'error', self.conn, dtype={'B': bool})
+
+        col_dict = meta.tables[tbl].columns
+
+        self.assertTrue(isinstance(col_dict['Bool'].type, my_type))
+        self.assertTrue(isinstance(col_dict['Date'].type, sqltypes.DateTime))
+        self.assertTrue(isinstance(col_dict['Int'].type, sqltypes.Integer))
+        self.assertTrue(isinstance(col_dict['Float'].type, sqltypes.Float))
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
@@ -1507,6 +1531,13 @@ class TestSQLiteFallback(PandasSQLTest):
     def test_transactions(self):
         self._transaction_test()
 
+    def _get_sqlite_column_type(self, table, column):
+        recs = self.conn.execute('PRAGMA table_info(%s)' % table)
+        for cid, name, ctype, not_null, default, pk in recs:
+            if name == column:
+                return ctype
+        raise ValueError('Table %s, column %s not found' % (table, column))
+
     def test_dtype(self):
         if self.flavor == 'mysql':
             raise nose.SkipTest('Not applicable to MySQL legacy')
@@ -1515,19 +1546,34 @@ class TestSQLiteFallback(PandasSQLTest):
                 (0.9, None)]
         df = DataFrame(data, columns=cols)
         df.to_sql('dtype_test', self.conn)
-        df.to_sql('dtype_test2', self.conn, dtype={'B': 'bool'})
+        df.to_sql('dtype_test2', self.conn, dtype={'B': 'STRING'})
 
-        def get_column_type(table, column):
-            recs = self.conn.execute('PRAGMA table_info(%s)' % table)
-            for cid, name, ctype, not_null, default, pk in recs:
-                if name == column:
-                    return ctype
-            raise ValueError('Table %s, column %s not found' % (table, column))
-
-        self.assertEqual(get_column_type('dtype_test', 'B'), 'TEXT')
-        self.assertEqual(get_column_type('dtype_test2', 'B'), 'bool')
+        # sqlite stores Boolean values as INTEGER
+        self.assertEqual(self._get_sqlite_column_type('dtype_test', 'B'), 'INTEGER')
+        
+        self.assertEqual(self._get_sqlite_column_type('dtype_test2', 'B'), 'STRING')
         self.assertRaises(ValueError, df.to_sql,
                           'error', self.conn, dtype={'B': bool})
+
+    def test_notnull_dtype(self):
+        if self.flavor == 'mysql':
+            raise nose.SkipTest('Not applicable to MySQL legacy')
+            
+        cols = {'Bool': Series([True,None]),
+                'Date': Series([datetime(2012, 5, 1), None]),
+                'Int' : Series([1, None], dtype='object'),
+                'Float': Series([1.1, None])
+               }
+        df = DataFrame(cols)
+
+        tbl = 'notnull_dtype_test'
+        df.to_sql(tbl, self.conn)
+
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Bool'), 'INTEGER')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Date'), 'TIMESTAMP')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Int'), 'INTEGER')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Float'), 'REAL')
+
 
 class TestMySQLLegacy(TestSQLiteFallback):
     """
