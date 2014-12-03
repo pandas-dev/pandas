@@ -1,5 +1,5 @@
-from __future__ import print_function
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import re
 
 from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u

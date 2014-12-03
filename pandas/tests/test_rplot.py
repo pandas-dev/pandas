@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pandas.compat import range
 import pandas.tools.rplot as rplot
 import pandas.util.testing as tm
