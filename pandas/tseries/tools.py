@@ -173,7 +173,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
-def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
+def to_datetime(arg, errors='raise', dayfirst=False, utc=None, box=True,
                 format=None, coerce=False, unit='ns',
                 infer_datetime_format=False):
     """
@@ -182,8 +182,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     Parameters
     ----------
     arg : string, datetime, array of strings (with possible NAs)
-    errors : {'ignore', 'raise'}, default 'ignore'
-        Errors are ignored by default (values left untouched)
+    errors : {'ignore', 'raise'}, default 'raise'
+        Option to ignore errors and leave the values that raise them untouched.
     dayfirst : boolean, default False
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
