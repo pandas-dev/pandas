@@ -810,10 +810,10 @@ cdef class _Timestamp(datetime):
                                         object other) except -1:
         if self.tzinfo is None:
             if other.tzinfo is not None:
-                raise ValueError('Cannot compare tz-naive and tz-aware '
+                raise TypeError('Cannot compare tz-naive and tz-aware '
                                  'timestamps')
         elif other.tzinfo is None:
-            raise ValueError('Cannot compare tz-naive and tz-aware timestamps')
+            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
     cpdef datetime to_datetime(_Timestamp self):
         cdef:
@@ -863,6 +863,11 @@ cdef class _Timestamp(datetime):
 
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
         elif getattr(other,'_typ',None) == 'datetimeindex':
+
+            # we may be passed reverse ops
+            if get_timezone(getattr(self,'tzinfo',None)) != get_timezone(other.tz):
+                    raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
@@ -871,6 +876,23 @@ cdef class _Timestamp(datetime):
 
         elif other is NaT:
             return NaT
+
+        # coerce if necessary if we are a Timestamp-like
+        if isinstance(self, datetime) and (isinstance(other, datetime) or is_datetime64_object(other)):
+            self = Timestamp(self)
+            other = Timestamp(other)
+
+            # validate tz's
+            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo):
+                raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
+            # scalar Timestamp/datetime - Timestamp/datetime -> yields a Timedelta
+            try:
+                return Timedelta(self.value-other.value)
+            except (OverflowError, OutOfBoundsDatetime):
+                pass
+
+        # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with same timezone if specified)
         return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):

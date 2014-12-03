@@ -468,6 +468,74 @@ Length: 3, Freq: None"""
         expected = DatetimeIndex(['20121231',pd.NaT,'20121230'])
         tm.assert_index_equal(result,expected)
 
+    def test_subtraction_ops_with_tz(self):
+
+        # check that dt/dti subtraction ops with tz are validated
+        dti = date_range('20130101',periods=3)
+        ts = Timestamp('20130101')
+        dt = ts.to_datetime()
+        dti_tz = date_range('20130101',periods=3).tz_localize('US/Eastern')
+        ts_tz = Timestamp('20130101').tz_localize('US/Eastern')
+        ts_tz2 = Timestamp('20130101').tz_localize('CET')
+        dt_tz = ts_tz.to_datetime()
+        td = Timedelta('1 days')
+
+        def _check(result, expected):
+            self.assertEqual(result,expected)
+            self.assertIsInstance(result, Timedelta)
+
+        # scalars
+        result = ts - ts
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dt_tz - ts_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = ts_tz - dt_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        # tz mismatches
+        self.assertRaises(TypeError, lambda : dt_tz - ts)
+        self.assertRaises(TypeError, lambda : dt_tz - dt)
+        self.assertRaises(TypeError, lambda : dt_tz - ts_tz2)
+        self.assertRaises(TypeError, lambda : dt - dt_tz)
+        self.assertRaises(TypeError, lambda : ts - dt_tz)
+        self.assertRaises(TypeError, lambda : ts_tz2 - ts)
+        self.assertRaises(TypeError, lambda : ts_tz2 - dt)
+        self.assertRaises(TypeError, lambda : ts_tz - ts_tz2)
+
+        # with dti
+        self.assertRaises(TypeError, lambda : dti - ts_tz)
+        self.assertRaises(TypeError, lambda : dti_tz - ts)
+        self.assertRaises(TypeError, lambda : dti_tz - ts_tz2)
+
+        result = dti_tz-dt_tz
+        expected = TimedeltaIndex(['0 days','1 days','2 days'])
+        tm.assert_index_equal(result,expected)
+
+        result = dt_tz-dti_tz
+        expected = TimedeltaIndex(['0 days','-1 days','-2 days'])
+        tm.assert_index_equal(result,expected)
+
+        result = dti_tz-ts_tz
+        expected = TimedeltaIndex(['0 days','1 days','2 days'])
+        tm.assert_index_equal(result,expected)
+
+        result = ts_tz-dti_tz
+        expected = TimedeltaIndex(['0 days','-1 days','-2 days'])
+        tm.assert_index_equal(result,expected)
+
+        result = td - td
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dti_tz - td
+        expected = DatetimeIndex(['20121231','20130101','20130102'],tz='US/Eastern')
+        tm.assert_index_equal(result,expected)
+
     def test_dti_tdi_numeric_ops(self):
 
         # These are normally union/diff set-like ops

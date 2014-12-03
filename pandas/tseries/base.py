@@ -346,7 +346,7 @@ class DatetimeIndexOpsMixin(object):
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            return -self + other
+            return -(self - other)
         cls.__rsub__ = __rsub__
 
         cls.__iadd__ = __add__

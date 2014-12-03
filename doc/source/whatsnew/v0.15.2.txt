@@ -92,6 +92,24 @@ Experimental
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in Timestamp-Timestamp not returning a Timedelta type and datelike-datelike ops with timezones (:issue:`8865`)
+- Made consistent a timezone mismatch exception (either tz operated with None or incompatible timezone), will now return ``TypeError`` rather than ``ValueError`` (a couple of edge cases only), (:issue:`8865`)
+- Report a ``TypeError`` when invalid/no paramaters are passed in a groupby (:issue:`8015`)
+- Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)
+- Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
+- Unclear error message in csv parsing when passing dtype and names and the parsed data is a different data type (:issue:`8833`)
+- Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
+- ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
+- Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`).
+- ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
+- ``slice`` string method now takes step into account (:issue:`8754`)
+- Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)
+- Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)
+- Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)
+
 - Fix negative step support for label-based slices (:issue:`8753`)
 
   Old behavior:
