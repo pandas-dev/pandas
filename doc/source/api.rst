@@ -634,6 +634,14 @@ Serialization / IO / Conversion
    Series.to_string
    Series.to_clipboard
 
+Sparse methods
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseSeries.to_coo
+   SparseSeries.from_coo
+
 .. _api.dataframe:
 
 DataFrame
