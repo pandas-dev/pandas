@@ -902,20 +902,10 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(res, chk)
 
         # Scalar version of single item array
-        # Ambiguous what Categorical should return as np.array returns
-        # a scalar and pd.Series returns an array.
-        # We get different results depending on whether 
-        # Categorical.searchsorted(v) passes v through np.asarray()
-        # or pd.Series(v).values. The former returns scalar, the 
-        # latter an array. 
-        # Test code here follows np.array.searchsorted().
-        # Commented out lines below follow pd.Series.
+        # Categorical return np.array like pd.Series, but different from np.array.searchsorted()
         res = c1.searchsorted('bread')
-        chk = np.array(s1).searchsorted('bread')
-        exp = 1
-        #exp = np.array([1])
-        #chk = s1.searchsorted('bread')
-        #exp = np.array([1])
+        chk = s1.searchsorted('bread')
+        exp = np.array([1])
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
        

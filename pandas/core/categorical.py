@@ -814,7 +814,7 @@ class Categorical(PandasObject):
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
         >>> x.searchsorted('bread')
-        1
+        array([1])     # Note: an array, not a scalar
         >>> x.searchsorted(['bread'])
         array([1])
         >>> x.searchsorted(['bread', 'eggs'])
@@ -828,7 +828,8 @@ class Categorical(PandasObject):
         if not self.ordered:
             raise ValueError("searchsorted requires an ordered Categorical.")
 
-        values_as_codes = self.categories.values.searchsorted(np.asarray(v), side)
+        from pandas.core.series import Series
+        values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
         return self.codes.searchsorted(values_as_codes, sorter=sorter)
 
     def isnull(self):
