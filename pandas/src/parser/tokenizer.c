@@ -1324,6 +1324,7 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             if (c == '\n') {
                 END_LINE();
                 self->state = START_RECORD;
+                break;
             } else if (c == '\r') {
                 self->state = EAT_CRNL;
                 break;
