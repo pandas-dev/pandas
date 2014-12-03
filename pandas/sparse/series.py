@@ -29,12 +29,14 @@ import pandas._sparse as splib
 
 from pandas.util.decorators import Appender
 
+from pandas.sparse.scipy_sparse import _sparse_series_to_coo, _coo_to_sparse_series
+
 #------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
 
 def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                                 **eval_kwargs):
+                  **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -654,6 +656,48 @@ class SparseSeries(Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
+    def to_coo(self, ilevels=(0,), jlevels=(1,), sort_labels=False):
+        """
+        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
+
+        Use ilevels and jlevels to determine the row and column coordinates respectively.
+        ilevels and jlevels are the names (labels) or numbers of the levels.
+        {ilevels, jlevels} must be a partition of the MultiIndex level names (or numbers).
+
+        Parameters
+        ----------
+        ilevels : tuple/list
+        jlevels : tuple/list
+        sort_labels : bool, default False
+            Sort the row and column labels before forming the sparse matrix.
+
+        Returns
+        -------
+        y : scipy.sparse.coo_matrix
+        il : list (row labels)
+        jl : list (column labels)
+        """
+        A, il, jl = _sparse_series_to_coo(
+            self, ilevels, jlevels, sort_labels=sort_labels)
+        return(A, il, jl)
+
+    @classmethod
+    def from_coo(cls, A, dense_index=False):
+        """
+        Create a SparseSeries from a scipy.sparse.coo_matrix.
+
+        Parameters
+        ----------
+        A : scipy.sparse.coo_matrix
+        dense_index : bool, default False
+            If False (default), the SparseSeries index consists of only the coords of the non-null entries of the original coo_matrix.
+            If True, the SparseSeries index consists of the full sorted (row, col) coordinates of the coo_matrix.
+
+        Returns
+        -------
+        s : SparseSeries
+        """
+        return(_coo_to_sparse_series(A, dense_index=dense_index))
 # overwrite series methods with unaccelerated versions
 ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,
                                    **ops.series_special_funcs)
