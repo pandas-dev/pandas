@@ -106,6 +106,7 @@ Enhancements
 - ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
 
 - ``Timedelta`` will now accept nanoseconds keyword in constructor (:issue:`9273`)
+- SQL code now safely escapes table and column names (:issue:`8986`)
 
 Performance
 ~~~~~~~~~~~

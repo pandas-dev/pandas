@@ -865,7 +865,7 @@ class TestSQLiteFallbackApi(_TestSQLApi):
     def _get_sqlite_column_type(self, schema, column):
 
         for col in schema.split('\n'):
-            if col.split()[0].strip('[]') == column:
+            if col.split()[0].strip('""') == column:
                 return col.split()[1]
         raise ValueError('Column %s not found' % (column))
 
@@ -1630,6 +1630,24 @@ class TestSQLiteFallback(PandasSQLTest):
         self.assertEqual(self._get_sqlite_column_type(tbl, 'Int'), 'INTEGER')
         self.assertEqual(self._get_sqlite_column_type(tbl, 'Float'), 'REAL')
 
+    def test_illegal_names(self):
+        # For sqlite, these should work fine
+        df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+
+        # Raise error on blank
+        self.assertRaises(ValueError, df.to_sql, "", self.conn, 
+            flavor=self.flavor)
+
+        for ndx, weird_name in enumerate(['test_weird_name]','test_weird_name[',
+            'test_weird_name`','test_weird_name"', 'test_weird_name\'']):
+            df.to_sql(weird_name, self.conn, flavor=self.flavor)
+            sql.table_exists(weird_name, self.conn)
+
+            df2 = DataFrame([[1, 2], [3, 4]], columns=['a', weird_name])
+            c_tbl = 'test_weird_col_name%d'%ndx
+            df.to_sql(c_tbl, self.conn, flavor=self.flavor)
+            sql.table_exists(c_tbl, self.conn)
+
 
 class TestMySQLLegacy(TestSQLiteFallback):
     """
@@ -1720,6 +1738,19 @@ class TestMySQLLegacy(TestSQLiteFallback):
 
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
+
+    def test_illegal_names(self):
+        # For MySQL, these should raise ValueError
+        for ndx, illegal_name in enumerate(['test_illegal_name]','test_illegal_name[',
+            'test_illegal_name`','test_illegal_name"', 'test_illegal_name\'', '']):
+            df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+            self.assertRaises(ValueError, df.to_sql, illegal_name, self.conn, 
+                flavor=self.flavor, index=False)
+
+            df2 = DataFrame([[1, 2], [3, 4]], columns=['a', illegal_name])
+            c_tbl = 'test_illegal_col_name%d'%ndx
+            self.assertRaises(ValueError, df2.to_sql, 'test_illegal_col_name', 
+                self.conn, flavor=self.flavor, index=False)
 
 
 #------------------------------------------------------------------------------
@@ -1817,7 +1848,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY ([A],[B])' in create_sql)
+        self.assertTrue('PRIMARY KEY ("A","B")' in create_sql)
         cur = self.db.cursor()
         cur.execute(create_sql)
 
