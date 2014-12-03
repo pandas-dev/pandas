@@ -1409,7 +1409,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
     return new_dict
 
 
-def _dtype_to_stata_type(dtype):
+def _dtype_to_stata_type(dtype, column):
     """
     Converts dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in
@@ -1425,13 +1425,14 @@ def _dtype_to_stata_type(dtype):
     If there are dates to convert, then dtype will already have the correct
     type inserted.
     """
-    #TODO: expand to handle datetime to integer conversion
+    # TODO: expand to handle datetime to integer conversion
     if dtype.type == np.string_:
         return chr(dtype.itemsize)
     elif dtype.type == np.object_:  # try to coerce it to the biggest string
                                     # not memory efficient, what else could we
                                     # do?
-        return chr(244)
+        itemsize = max_len_string_array(column.values)
+        return chr(max(itemsize, 1))
     elif dtype == np.float64:
         return chr(255)
     elif dtype == np.float32:
@@ -1461,6 +1462,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
     int16   -> "%8.0g"
     int8    -> "%8.0g"
     """
+    # TODO: Refactor to combine type with format
     # TODO: expand this to handle a default datetime format?
     if dtype.type == np.object_:
         inferred_dtype = infer_dtype(column.dropna())
@@ -1470,8 +1472,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         itemsize = max_len_string_array(column.values)
         if itemsize > 244:
             raise ValueError(excessive_string_length_error % column.name)
-
-        return "%" + str(itemsize) + "s"
+        return "%" + str(max(itemsize, 1)) + "s"
     elif dtype == np.float64:
         return "%10.0g"
     elif dtype == np.float32:
@@ -1718,10 +1719,11 @@ class StataWriter(StataParser):
                     self._convert_dates[key]
                 )
                 dtypes[key] = np.dtype(new_type)
-        self.typlist = [_dtype_to_stata_type(dt) for dt in dtypes]
+        self.typlist = []
         self.fmtlist = []
         for col, dtype in dtypes.iteritems():
             self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, data[col]))
+            self.typlist.append(_dtype_to_stata_type(dtype, data[col]))
 
         # set the given format for the datetime cols
         if self._convert_dates is not None:
