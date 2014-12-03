@@ -183,7 +183,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise ValueError("cannot specify a dtype with a Categorical")
                 if name is None:
                     name = data.name
-            elif isinstance(data, types.GeneratorType):
+            elif (isinstance(data, types.GeneratorType) or
+                  (compat.PY3 and isinstance(data, map))):
                 data = list(data)
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
