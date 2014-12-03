@@ -3049,17 +3049,17 @@ A,B,C
         tm.assert_almost_equal(df.values, expected)
 
     def test_trailing_spaces(self):
-        data = """skip
+        data = """A B C  
 random line with trailing spaces    
 skip
 1,2,3
 1,2.,4.
 random line with trailing tabs\t\t\t
      
-5.,NaN,10.0
+5.1,NaN,10.0
 """
         expected = pd.DataFrame([[1., 2., 4.],
-                    [5., np.nan, 10.]])
+                    [5.1, np.nan, 10.]])
         # this should ignore six lines including lines with trailing 
         # whitespace and blank lines.  issues 8661, 8679
         df = self.read_csv(StringIO(data.replace(',', '  ')), 
@@ -3069,6 +3069,13 @@ random line with trailing tabs\t\t\t
         df = self.read_table(StringIO(data.replace(',', '  ')), 
                              header=None, delim_whitespace=True,
                              skiprows=[0,1,2,3,5,6], skip_blank_lines=True)
+        tm.assert_frame_equal(df, expected)
+        # test skipping set of rows after a row with trailing spaces, issue #8983
+        expected = pd.DataFrame({"A":[1., 5.1], "B":[2., np.nan], 
+                                "C":[4., 10]})
+        df = self.read_table(StringIO(data.replace(',', '  ')), 
+                             delim_whitespace=True,
+                             skiprows=[1,2,3,5,6], skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
 
     def test_comment_header(self):
