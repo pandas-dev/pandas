@@ -19,6 +19,7 @@ from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
+from pandas.util.decorators import Appender
 
 from contextlib import contextmanager
 
@@ -1533,6 +1534,7 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
 
 # legacy names, with depreciation warnings and copied docs
 
+@Appender(read_sql.__doc__, join='\n')
 def read_frame(*args, **kwargs):
     """DEPRECATED - use read_sql
     """
@@ -1540,6 +1542,7 @@ def read_frame(*args, **kwargs):
     return read_sql(*args, **kwargs)
 
 
+@Appender(read_sql.__doc__, join='\n')
 def frame_query(*args, **kwargs):
     """DEPRECATED - use read_sql
     """
@@ -1587,8 +1590,3 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     index = kwargs.pop('index', False)
     return to_sql(frame, name, con, flavor=flavor, if_exists=if_exists,
                   index=index, **kwargs)
-
-
-# Append wrapped function docstrings
-read_frame.__doc__ += read_sql.__doc__
-frame_query.__doc__ += read_sql.__doc__
