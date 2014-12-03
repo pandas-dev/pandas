@@ -2163,7 +2163,7 @@ def _convert_grouper(axis, grouper):
             return grouper.reindex(axis).values
     elif isinstance(grouper, (list, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
-            raise AssertionError('Grouper and axis must be same length')
+            raise ValueError('Grouper and axis must be same length')
         return grouper
     else:
         return grouper
