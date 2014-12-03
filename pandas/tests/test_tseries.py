@@ -660,6 +660,24 @@ class TestTypeInference(tm.TestCase):
         result = lib.infer_dtype(arr)
         self.assertEqual(result, 'mixed')
 
+    def test_categorical(self):
+
+        # GH 8974
+        from pandas import Categorical, Series
+        arr = Categorical(list('abc'))
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'categorical')
+
+        result = lib.infer_dtype(Series(arr))
+        self.assertEqual(result, 'categorical')
+
+        arr = Categorical(list('abc'),categories=['cegfab'],ordered=True)
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'categorical')
+
+        result = lib.infer_dtype(Series(arr))
+        self.assertEqual(result, 'categorical')
+
 class TestMoments(tm.TestCase):
     pass
 
