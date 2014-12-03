@@ -2309,6 +2309,62 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assert_numpy_array_equal(result, expected)
 
+    def test_cummin_datetime64(self):
+        s = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-3']))
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-1']))
+        result = s.cummin(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', '2000-1-2', '2000-1-1', '2000-1-1', '2000-1-1']))
+        result = s.cummin(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummax_datetime64(self):
+        s = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-3']))
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-2', 'NaT', '2000-1-3']))
+        result = s.cummax(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-3']))
+        result = s.cummax(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummin_timedelta64(self):
+        s = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '3 min', ]))
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '1 min', ]))
+        result = s.cummin(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', '2 min', '1 min', '1 min', '1 min', ]))
+        result = s.cummin(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummax_timedelta64(self):
+        s = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '3 min', ]))
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '2 min', 'NaT', '3 min', ]))
+        result = s.cummax(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', '2 min', '2 min', '2 min', '3 min', ]))
+        result = s.cummax(skipna=False)
+        self.assert_series_equal(expected, result)
+
     def test_npdiff(self):
         raise nose.SkipTest("skipping due to Series no longer being an "
                             "ndarray")

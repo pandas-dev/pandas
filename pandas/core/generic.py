@@ -4114,13 +4114,17 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                     axis = self._get_axis_number(axis)
 
                 y = _values_from_object(self).copy()
-                if not issubclass(y.dtype.type, (np.integer, np.bool_)):
-                    mask = isnull(self)
-                    if skipna:
-                        np.putmask(y, mask, mask_a)
+
+                if skipna and issubclass(y.dtype.type, 
+                                         (np.datetime64, np.timedelta64)):
                     result = accum_func(y, axis)
-                    if skipna:
-                        np.putmask(result, mask, mask_b)
+                    mask = isnull(self)
+                    np.putmask(result, mask, pd.tslib.iNaT)
+                elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
+                    mask = isnull(self)
+                    np.putmask(y, mask, mask_a)
+                    result = accum_func(y, axis)
+                    np.putmask(result, mask, mask_b)
                 else:
                     result = accum_func(y, axis)
 

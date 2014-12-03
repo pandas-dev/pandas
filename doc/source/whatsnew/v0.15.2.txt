@@ -172,5 +172,8 @@ Bug Fixes
 
 
 
+
 - Bug in `StataWriter` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
 
+
+- Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
