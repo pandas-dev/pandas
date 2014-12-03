@@ -3651,6 +3651,14 @@ data quickly, but it is not a direct replacement for a transactional database.
 You can access the management console to determine project id's by:
 <https://code.google.com/apis/console/b/0/?noredirect>
 
+As of 0.15.2, the gbq module has a function ``generate_bq_schema`` which
+will produce the dictionary representation of the schema.
+
+.. code-block:: python
+
+    df = pandas.DataFrame({'A': [1.0]})
+    gbq.generate_bq_schema(df, default_type='STRING')
+
 .. warning::
 
    To use this module, you will need a valid BigQuery account. See
