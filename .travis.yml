@@ -59,6 +59,14 @@ matrix:
       - CLIPBOARD=xsel
       - BUILD_TYPE=conda
       - JOB_NAME: "34_nslow"
+    - python: 3.4
+      env:
+      - NOSE_ARGS="slow and not network and not disabled"
+      - FULL_DEPS=true
+      - JOB_TAG=_SLOW
+      - CLIPBOARD=xsel
+      - BUILD_TYPE=conda
+      - JOB_NAME: "34_slow"
     - python: 3.2
       env:
       - NOSE_ARGS="not slow and not network and not disabled"
@@ -90,6 +98,14 @@ matrix:
         - JOB_TAG=_SLOW
         - BUILD_TYPE=conda
         - JOB_NAME: "27_slow"
+      - python: 3.4
+        env:
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - JOB_TAG=_SLOW
+        - CLIPBOARD=xsel
+        - BUILD_TYPE=conda
+        - JOB_NAME: "34_slow"
       - python: 2.7
         env:
         - EXPERIMENTAL=true
