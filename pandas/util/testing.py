@@ -171,6 +171,11 @@ def close(fignum=None):
         _close(fignum)
 
 
+def _skip_if_32bit():
+    import struct
+    if struct.calcsize("P") * 8 < 64:
+        raise nose.SkipTest("skipping for 32 bit")
+
 def mplskip(cls):
     """Skip a TestCase instance if matplotlib isn't installed"""
 
@@ -1761,4 +1766,3 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
 for name, obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isfunction(obj) and name.startswith('assert'):
         setattr(TestCase, name, staticmethod(obj))
-
