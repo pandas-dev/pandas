@@ -51,7 +51,7 @@ The categorical data type is useful in the following cases:
   variable to a categorical variable will save some memory, see :ref:`here <categorical.memory>`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
-  min/max will use the logical order instead of the lexical order.
+  min/max will use the logical order instead of the lexical order, see :ref:`here <catetgorical.sort>`.
 * As a signal to other python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
@@ -265,8 +265,10 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
     numpys S1 dtype and python strings). This can result in surprising behaviour!
 
-Ordered or not...
+Sorting and Order
 -----------------
+
+.. _categorical.sort:
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, a `TypeError` is
@@ -296,9 +298,14 @@ This is even true for strings and numeric data:
     s
     s.min(), s.max()
 
+
+Reordering
+~~~~~~~~~~
+
 Reordering the categories is possible via the :func:`Categorical.reorder_categories` and
 the :func:`Categorical.set_categories` methods. For :func:`Categorical.reorder_categories`, all
-old categories must be included in the new categories and no new categories are allowed.
+old categories must be included in the new categories and no new categories are allowed. This will
+necessarily make the sort order the same as the categories order.
 
 .. ipython:: python
 
@@ -324,6 +331,24 @@ old categories must be included in the new categories and no new categories are 
     (e.g.``Series.median()``, which would need to compute the mean between two values if the length
     of an array is even) do not work and raise a `TypeError`.
 
+Multi Column Sorting
+~~~~~~~~~~~~~~~~~~~~
+
+A categorical dtyped column will partcipate in a multi-column sort in a similar manner to other columns.
+The ordering of the categorical is determined by the ``categories`` of that columns.
+
+.. ipython:: python
+
+   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'),categories=['e','a','b']),
+                    'B' : [1,2,1,2,2,1,2,1] })
+   dfs.sort(['A','B'])
+
+Reordering the ``categories``, changes a future sort.
+
+.. ipython:: python
+
+   dfs['C'] = dfs['A'].cat.reorder_categories(['a','b','e'])
+   dfs.sort(['C','B'])
 
 Comparisons
 -----------
