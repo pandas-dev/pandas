@@ -381,7 +381,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         try:
             inferred_tz = tools._infer_tzinfo(start, end)
         except:
-            raise ValueError('Start and end cannot both be tz-aware with '
+            raise TypeError('Start and end cannot both be tz-aware with '
                              'different timezones')
 
         inferred_tz = tslib.maybe_get_tz(inferred_tz)
@@ -645,6 +645,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         from pandas import TimedeltaIndex
         other = Timestamp(other)
+
+        # require tz compat
+        if tslib.get_timezone(self.tz) != tslib.get_timezone(other.tzinfo):
+            raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
         i8 = self.asi8
         result = i8 - other.value
         result = self._maybe_mask_results(result,fill_value=tslib.iNaT)

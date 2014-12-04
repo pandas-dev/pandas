@@ -5,7 +5,7 @@ import numpy as np
 from pandas import tslib
 import datetime
 
-from pandas.core.api import Timestamp, Series
+from pandas.core.api import Timestamp, Series, Timedelta
 from pandas.tslib import period_asfreq, period_ordinal, get_timezone
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
@@ -232,13 +232,13 @@ class TestTimestamp(tm.TestCase):
         conv = local.tz_convert('US/Eastern')
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
-        
+
     def test_tz_localize_ambiguous(self):
-        
+
         ts = Timestamp('2014-11-02 01:00')
         ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
         ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
-        
+
         rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
         self.assertEqual(rng[1], ts_dst)
         self.assertEqual(rng[2], ts_no_dst)
@@ -679,8 +679,8 @@ class TestTimestampOps(tm.TestCase):
         self.assertEqual(type(timestamp_instance - 1), Timestamp)
 
         # Timestamp + datetime not supported, though subtraction is supported and yields timedelta
-        self.assertEqual(type(timestamp_instance - datetime_instance), datetime.timedelta)
-
+        # more tests in tseries/base/tests/test_base.py
+        self.assertEqual(type(timestamp_instance - datetime_instance), Timedelta)
         self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
         self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
 

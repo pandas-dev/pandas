@@ -285,8 +285,8 @@ class TestIndexOps(Ops):
                     expected = pd.Period(ordinal=getattr(o.values, op)(), freq=o.freq)
                 try:
                     self.assertEqual(result, expected)
-                except ValueError:
-                    # comparing tz-aware series with np.array results in ValueError
+                except TypeError:
+                    # comparing tz-aware series with np.array results in TypeError
                     expected = expected.astype('M8[ns]').astype('int64')
                     self.assertEqual(result.value, expected)
 
