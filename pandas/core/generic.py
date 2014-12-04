@@ -1929,11 +1929,12 @@ class NDFrame(PandasObject):
         return self
 
     def __getattr__(self, name):
-        """After regular attribute access, try looking up the name of a the
-        info.
-
+        """After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
         """
+        # Note: obj.x will always call obj.__getattribute__('x') prior to
+        # calling obj.__getattr__('x').
+
         if name in self._internal_names_set:
             return object.__getattribute__(self, name)
         elif name in self._metadata:
@@ -1945,12 +1946,24 @@ class NDFrame(PandasObject):
                                  (type(self).__name__, name))
 
     def __setattr__(self, name, value):
-        """After regular attribute access, try looking up the name of the info
+        """After regular attribute access, try setting the name
         This allows simpler access to columns for interactive use."""
+        # first try regular attribute access via __getattribute__, so that
+        # e.g. ``obj.x`` and ``obj.x = 4`` will always reference/modify
+        # the same attribute.
+
+        try:
+            object.__getattribute__(self, name)
+            return object.__setattr__(self, name, value)
+        except AttributeError:
+            pass
+
+        # if this fails, go on to more involved attribute setting
+        # (note that this matches __getattr__, above).
         if name in self._internal_names_set:
             object.__setattr__(self, name, value)
         elif name in self._metadata:
-            return object.__setattr__(self, name, value)
+            object.__setattr__(self, name, value)
         else:
             try:
                 existing = getattr(self, name)

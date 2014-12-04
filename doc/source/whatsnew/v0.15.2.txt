@@ -62,6 +62,35 @@ API changes
 
 - Allow equality comparisons of Series with a categorical dtype and object dtype; previously these would raise ``TypeError`` (:issue:`8938`)
 
+- Bug in ``NDFrame``: conflicting attribute/column names now behave consistently between getting and setting. Previously, when both a column and attribute named ``y`` existed, ``data.y`` would return the attribute, while ``data.y = z`` would update the column (:issue:`8994`)
+
+  .. ipython:: python
+
+     data = pd.DataFrame({'x':[1, 2, 3]})
+     data.y = 2
+     data['y'] = [2, 4, 6]
+     data
+
+     # this assignment was inconsistent
+     data.y = 5
+
+  Old behavior:
+
+  .. code-block:: python
+
+     In [6]: data.y
+     Out[6]: 2
+
+     In [7]: data['y'].values
+     Out[7]: array([5, 5, 5])
+
+  New behavior:
+
+  .. ipython:: python
+
+     data.y
+     data['y'].values
+
 .. _whatsnew_0152.enhancements:
 
 Enhancements
