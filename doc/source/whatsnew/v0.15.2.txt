@@ -59,6 +59,8 @@ API changes
      p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
      p.all()
 
+- Allow equality comparisons of Series with a categorical dtype and object dtype; previously these would raise ``TypeError`` (:issue:`8938`)
+
 .. _whatsnew_0152.enhancements:
 
 Enhancements
