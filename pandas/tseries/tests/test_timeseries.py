@@ -2313,6 +2313,27 @@ class TestDatetimeIndex(tm.TestCase):
         exp = [f(x) for x in rng]
         self.assert_numpy_array_equal(result, exp)
 
+
+    def test_iteration_preserves_tz(self):
+
+        tm._skip_if_no_dateutil()
+
+        # GH 8890
+        import dateutil
+        index = date_range("2012-01-01", periods=3, freq='H', tz='US/Eastern')
+
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result, expected)
+
+        index = date_range("2012-01-01", periods=3, freq='H', tz=dateutil.tz.tzoffset(None, -28800))
+
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result, expected)
+
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
