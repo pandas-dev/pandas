@@ -118,6 +118,7 @@ Bug Fixes
      s.loc['c':'a':-1]
 
 - Report a ``TypeError`` when invalid/no paramaters are passed in a groupby (:issue:`8015`)
+- Regression in DatetimeIndex iteration with a Fixed/Local offset timezone (:issue:`8890`)
 - Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)
 - Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).

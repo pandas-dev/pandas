@@ -122,7 +122,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
                 else:
                     pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
                     dt = func_create(value, dts, tz, offset)
-                    result[i] = dt + tz.utcoffset(dt)
+                    if not box:
+                        dt = dt + tz.utcoffset(dt)
+                    result[i] = dt
         else:
             trans = _get_transitions(tz)
             deltas = _get_deltas(tz)
