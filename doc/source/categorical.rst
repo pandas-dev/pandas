@@ -51,7 +51,7 @@ The categorical data type is useful in the following cases:
   variable to a categorical variable will save some memory, see :ref:`here <categorical.memory>`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
-  min/max will use the logical order instead of the lexical order, see :ref:`here <catetgorical.sort>`.
+  min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
 * As a signal to other python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
@@ -347,8 +347,8 @@ Reordering the ``categories``, changes a future sort.
 
 .. ipython:: python
 
-   dfs['C'] = dfs['A'].cat.reorder_categories(['a','b','e'])
-   dfs.sort(['C','B'])
+   dfs['A'] = dfs['A'].cat.reorder_categories(['a','b','e'])
+   dfs.sort(['A','B'])
 
 Comparisons
 -----------
