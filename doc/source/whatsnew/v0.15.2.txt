@@ -77,6 +77,7 @@ Enhancements
 - Added ``Timedelta.to_timedelta64`` method to the public API (:issue:`8884`).
 - Added ``gbq.generate_bq_schema`` function to the gbq module (:issue:`8325`).
 - ``Series`` now works with map objects the same way as generators (:issue:`8909`).
+- Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`).
 
 .. _whatsnew_0152.performance:
 
