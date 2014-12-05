@@ -11,7 +11,7 @@ from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
-                           iteritems, OrderedDict)
+                           iteritems, OrderedDict, PY3)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -1859,9 +1859,12 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(len(ax.lines),
                          self.bp_n_objects * len(numeric_cols))
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, kind='box',
-                                     subplots=True, logy=True)
+        # different warning on py3
+        if not PY3:
+            with tm.assert_produces_warning(UserWarning):
+                axes = _check_plot_works(df.plot, kind='box',
+                                         subplots=True, logy=True)
+
         self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
         self._check_ax_scales(axes, yaxis='log')
         for ax, label in zip(axes, labels):
