@@ -373,6 +373,39 @@ class TestGroupBy(tm.TestCase):
                              pd.Grouper(level=1, freq='W')]).sum()
         assert_frame_equal(result, expected)
 
+    def test_grouper_creation_bug(self):
+
+        # GH 8795
+        df = DataFrame({'A':[0,0,1,1,2,2], 'B':[1,2,3,4,5,6]})
+        g = df.groupby('A')
+        expected = g.sum()
+
+        g = df.groupby(pd.Grouper(key='A'))
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        result = g.apply(lambda x: x.sum())
+        assert_frame_equal(result, expected)
+
+        g = df.groupby(pd.Grouper(key='A',axis=0))
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # GH8866
+        s = Series(np.arange(8),
+                   index=pd.MultiIndex.from_product([list('ab'),
+                                                     range(2),
+                                                     date_range('20130101',periods=2)],
+                                                    names=['one','two','three']))
+        result = s.groupby(pd.Grouper(level='three',freq='M')).sum()
+        expected = Series([28],index=Index([Timestamp('2013-01-31')],freq='M',name='three'))
+        assert_series_equal(result, expected)
+
+        # just specifying a level breaks
+        result = s.groupby(pd.Grouper(level='one')).sum()
+        expected = s.groupby(level='one').sum()
+        assert_series_equal(result, expected)
+
     def test_grouper_iter(self):
         self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
 

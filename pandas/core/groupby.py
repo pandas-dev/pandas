@@ -168,7 +168,7 @@ class Grouper(object):
     freq : string / freqency object, defaults to None
         This will groupby the specified frequency if the target selection (via key or level) is
         a datetime-like object
-    axis : number/name of the axis, defaults to None
+    axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
 
@@ -198,7 +198,7 @@ class Grouper(object):
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=None, sort=False):
+    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key=key
         self.level=level
         self.freq=freq
@@ -228,6 +228,8 @@ class Grouper(object):
         """
 
         self._set_grouper(obj)
+        self.grouper, exclusions, self.obj = _get_grouper(self.obj, [self.key], axis=self.axis,
+                                                          level=self.level, sort=self.sort)
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(self, obj, sort=False):
