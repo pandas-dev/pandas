@@ -156,6 +156,14 @@ timeseries_to_datetime_YYYYMMDD = \
     Benchmark('to_datetime(strings,format="%Y%m%d")', setup,
               start_date=datetime(2012, 7, 1))
 
+setup = common_setup + """
+s = Series(['19MAY11','19MAY11:00:00:00']*100000)
+"""
+timeseries_with_format_no_exact = Benchmark("to_datetime(s,format='%d%b%y',exact=False)", \
+     setup, start_date=datetime(2014, 11, 26))
+timeseries_with_format_replace = Benchmark("to_datetime(s.str.replace(':\S+$',''),format='%d%b%y')", \
+     setup, start_date=datetime(2014, 11, 26))
+
 # ---- infer_freq
 # infer_freq
 
