@@ -81,6 +81,7 @@ Enhancements
 - ``Series`` now works with map objects the same way as generators (:issue:`8909`).
 - Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`).
 - ``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)
+- Added ``axvlines`` boolean option to parallel_coordinates plot function, determines whether vertical lines will be printed, default is True
 
 .. _whatsnew_0152.performance:
 

@@ -2354,7 +2354,9 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.iris
 
-        _check_plot_works(parallel_coordinates, df, 'Name')
+        ax = _check_plot_works(parallel_coordinates, df, 'Name')
+        nlines = len(ax.get_lines())
+        nxticks = len(ax.xaxis.get_ticklabels())
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
         ax = _check_plot_works(parallel_coordinates, df, 'Name', color=rgba)
@@ -2367,6 +2369,9 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(parallel_coordinates, df, 'Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
         self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
+
+        ax = _check_plot_works(parallel_coordinates, df, 'Name', axvlines=False)
+        assert len(ax.get_lines()) == (nlines - nxticks)
 
         colors = ['b', 'g', 'r']
         df = DataFrame({"A": [1, 2, 3],
