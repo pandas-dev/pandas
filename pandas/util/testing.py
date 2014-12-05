@@ -1295,6 +1295,7 @@ _network_error_messages = (
 # or this e.errno/e.reason.errno
 _network_errno_vals = (
     101, # Network is unreachable
+    111, # Connection refused
     110, # Connection timed out
     104, # Connection reset Error
     54,  # Connection reset by peer
