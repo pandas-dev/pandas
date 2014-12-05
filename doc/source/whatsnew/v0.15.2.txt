@@ -23,6 +23,7 @@ API changes
   a lexically sorted index will have a better performance. (:issue:`2646`)
 
   .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({'jim':[0, 0, 1, 1],
                        'joe':['x', 'x', 'z', 'y'],
@@ -182,7 +183,7 @@ Bug Fixes
 
 
 
-- Bug where ``get_data_google``returned object dtypes (:issue:`3995`)
+- Bug where ``get_data_google`` returned object dtypes (:issue:`3995`)
 
 - Bug in ``DataFrame.stack(..., dropna=False)`` when the DataFrame's ``columns`` is a ``MultiIndex``
   whose ``labels`` do not reference all its ``levels``. (:issue:`8844`)
