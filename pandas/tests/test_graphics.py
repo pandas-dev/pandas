@@ -1329,6 +1329,32 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
         self.assertEqual(axes.shape, (1, ))
 
+    def test_subplots_ts_share_axes(self):
+        # GH 3964
+        fig, axes = self.plt.subplots(3, 3, sharex=True, sharey=True)
+        self.plt.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
+        df = DataFrame(np.random.randn(10, 9), index=date_range(start='2014-07-01', freq='M', periods=10))
+        for i, ax in enumerate(axes.ravel()):
+            df[i].plot(ax=ax, fontsize=5)
+
+        #Rows other than bottom should not be visible
+        for ax in axes[0:-1].ravel():
+            self._check_visible(ax.get_xticklabels(), visible=False)
+
+        #Bottom row should be visible
+        for ax in axes[-1].ravel():
+            self._check_visible(ax.get_xticklabels(), visible=True)
+
+        #First column should be visible
+        for ax in axes[[0, 1, 2], [0]].ravel():
+            self._check_visible(ax.get_yticklabels(), visible=True)
+
+        #Other columns should not be visible
+        for ax in axes[[0, 1, 2], [1]].ravel():
+            self._check_visible(ax.get_yticklabels(), visible=False)
+        for ax in axes[[0, 1, 2], [2]].ravel():
+            self._check_visible(ax.get_yticklabels(), visible=False)
+
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
                        index=list(string.ascii_letters[:6]),
