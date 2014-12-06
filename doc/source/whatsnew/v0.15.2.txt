@@ -82,6 +82,7 @@ Enhancements
 - Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`).
 - ``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)
 - Added ``axvlines`` boolean option to parallel_coordinates plot function, determines whether vertical lines will be printed, default is True
+- Added ability to read table footers to read_html (:issue:`8552`)
 
 .. _whatsnew_0152.performance:
 
