@@ -5004,32 +5004,39 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         df = DataFrame(np.random.randint(10, size=(10, 2)), columns=['a', 'b'])
         df2 = DataFrame({'a': date_range('20010101', periods=len(df)), 'b': date_range('20100101', periods=len(df))})
-        check(df,df2)
+        check(df, df2)
+        # check(df, pd.Timestamp('2000-01-01'))
+        # check(df2, 123)
 
     def test_timestamp_compare(self):
         # make sure we can compare Timestamps on the right AND left hand side
         # GH4982
         df = DataFrame({'dates1': date_range('20010101', periods=10),
-                        'dates2': date_range('20010102', periods=10),
-                        'intcol': np.random.randint(1000000000, size=10),
-                        'floatcol': np.random.randn(10),
-                        'stringcol': list(tm.rands(10))})
-        df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
+                        'dates2': date_range('20010101', periods=10)})
+        df.loc[::2, 'dates2'] = pd.NaT
         ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
                'ne': 'ne'}
         for left, right in ops.items():
             left_f = getattr(operator, left)
             right_f = getattr(operator, right)
 
+            nat_cmp_value = True if left != 'ne' else False
+
             # no nats
-            expected = left_f(df, Timestamp('20010109'))
-            result = right_f(Timestamp('20010109'), df)
-            tm.assert_frame_equal(result, expected)
+            ts = Timestamp('20010109')
+            expected = DataFrame(left_f(df.values, ts), columns=df.columns)
+            left_result = left_f(df, ts)
+            right_result = right_f(ts, df)
+            tm.assert_frame_equal(left_result, expected)
+            tm.assert_frame_equal(right_result, expected)
 
             # nats
-            expected = left_f(df, Timestamp('nat'))
-            result = right_f(Timestamp('nat'), df)
-            tm.assert_frame_equal(result, expected)
+            values = (np.zeros if left != 'ne' else np.ones)((10, 2), bool)
+            expected = DataFrame(values, columns=df.columns)
+            left_result = left_f(df, Timestamp('nat'))
+            right_result = right_f(Timestamp('nat'), df)
+            tm.assert_frame_equal(left_result, expected)
+            tm.assert_frame_equal(right_result, expected)
 
     def test_modulo(self):
 

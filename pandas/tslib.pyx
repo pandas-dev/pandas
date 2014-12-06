@@ -724,8 +724,6 @@ _reverse_ops[Py_GT] = Py_LT
 _reverse_ops[Py_GE] = Py_LE
 
 
-cdef str _NDIM_STRING = "ndim"
-
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
 # (see Timestamp class above). This will serve as a C extension type that
@@ -746,10 +744,12 @@ cdef class _Timestamp(datetime):
             int ndim
 
         if isinstance(other, _Timestamp):
+            # print '_timestamp'
             if isinstance(other, _NaT):
                 return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, datetime):
+            # print 'datetime'
             if self.nanosecond == 0:
                 val = self.to_datetime()
                 return PyObject_RichCompareBool(val, other, op)
@@ -759,17 +759,33 @@ cdef class _Timestamp(datetime):
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
         elif isinstance(other, np.datetime64):
-            return PyObject_RichCompareBool(self, Timestamp(other), op)
+            # print 'convert dt64'
+            return PyObject_RichCompare(self, Timestamp(other), op)
         elif hasattr(other, 'dtype'):
+            # print 'dtype', type(other), other.dtype, other
             if self.tz is None and self.offset is None:
                 # allow comparison to ndarrays; use the reverse op because it's
                 # necessary when comparing to pd.Series
                 return PyObject_RichCompare(other, self.to_datetime64(),
                                             _reverse_ops[op])
-            # TODO: somehow trigger normal numpy broadcasting rules even though
-            # we set __array_priority__ > ndarray.__array_priority__
-            return NotImplemented
+            # This terrible hack lets us invoke normal numpy broadcasting rules
+            # even though we set __array_priority__ >
+            # ndarray.__array_priority__ (for the benefit of arithmetic)
+            # return NotImplemented
+            elif self.__array_priority__ == 0:
+                # print 'priority == 0'
+                return NotImplemented
+            else:
+                # print 'priority set to 0'
+                # print(self.__array_priority__)
+                new_obj = Timestamp(self.value, self.offset, self.tz)
+                new_obj.__array_priority__ = 0
+                new_obj._allow_cmp_int_dtype = True
+                return PyObject_RichCompare(other, new_obj, _reverse_ops[op])
+        elif hasattr(self, '_allow_cmp_int_dtype') and isinstance(other, long):
+            ots = other = Timestamp(other)
         else:
+            # print 'not implemented', type(other), other, self.__array_priority__
             return NotImplemented
 
         self._assert_tzawareness_compat(other)
@@ -917,7 +933,7 @@ cdef class _NaT(_Timestamp):
         return hash(self.value)
 
     # less than np.ndarray
-    __array_priority__ = -1
+    __array_priority__ = 0
 
     def __richcmp__(_NaT self, object other, int op):
         cdef int ndim = getattr(other, 'ndim', -1)
@@ -1519,19 +1535,19 @@ cdef class _Timedelta(timedelta):
             _Timedelta ots
             int ndim
 
-        if isinstance(other, _Timedelta):
-            if isinstance(other, _NaT):
-                return _cmp_nat_dt(other, self, _reverse_ops[op])
+        if isinstance(other, _NaT):
+            return NotImplemented
+        elif isinstance(other, _Timedelta):
             ots = other
-        elif isinstance(other, timedelta):
-            ots = Timedelta(other)
-        elif isinstance(other, np.timedelta64):
+        elif isinstance(other, (timedelta, np.timedelta64)):
             return PyObject_RichCompareBool(self, Timedelta(other), op)
         elif hasattr(other, 'dtype'):
             # allow comparison to ndarrays; use the reverse op because it's
             # necessary when comparing to pd.Series
-            return PyObject_RichCompare(other, self.to_datetime64(),
+            return PyObject_RichCompare(other, self.to_timedelta64(),
                                         _reverse_ops[op])
+        else:
+            return NotImplemented
         return _cmp_scalar(self.value, ots.value, op)
 
     def _ensure_components(_Timedelta self):

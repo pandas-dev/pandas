@@ -726,6 +726,11 @@ class TestTimestampOps(tm.TestCase):
         if LooseVersion(np.__version__) >= '1.8':
             self.assert_numpy_array_equal(other - ts, -expected)
 
+        tsz = Timestamp('2000-01-01', tz='EST')
+        self.assertRaises(ValueError, lambda: ts > tsz)
+        self.assertRaises(ValueError,
+            lambda: pd.to_datetime(['2000-01-02']).values > tsz)
+
     def test_ops_notimplemented(self):
         class Other:
             pass
