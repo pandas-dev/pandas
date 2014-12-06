@@ -2090,6 +2090,23 @@ A,B,C
 
         self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
 
+    def test_use_cols_minumum_fields_in_line(self):
+        # issue #8985
+        data = """
+19,29,39
+19,29,39
+10,20,30,40"""
+        df = pd.read_csv(StringIO(data), engine='python',
+                         header=None, usecols=list(range(3)))
+        self.assertEqual(len(df.columns), 3)
+
+        df = pd.read_csv(StringIO(data), engine='python',
+                         header=None, usecols=list(range(2)))
+        self.assertEqual(len(df.columns), 2)
+
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          engine='python', usecols=list(range(4)), header=None)
+
     def test_usecols_index_col_conflict(self):
         # Issue 4201  Test that index_col as integer reflects usecols
         data = """SecId,Time,Price,P2,P3

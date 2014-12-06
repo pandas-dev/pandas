@@ -164,6 +164,7 @@ Bug Fixes
 - Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)
 - Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)
 - Fixed division by 0 when reading big csv files in python 3 (:issue:`8621`)
+- When using usecols csv reader only requires the minimum amount of columns instead of all (:issue:`8985`)
 
 
 
