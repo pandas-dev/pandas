@@ -611,9 +611,10 @@ class StataMissingValue(StringMixin):
     MISSING_VALUES = {}
     bases = (101, 32741, 2147483621)
     for b in bases:
-        MISSING_VALUES[b] = '.'
+        # Conversion to long to avoid hash issues on 32 bit platforms #8968
+        MISSING_VALUES[compat.long(b)] = '.'
         for i in range(1, 27):
-            MISSING_VALUES[i + b] = '.' + chr(96 + i)
+            MISSING_VALUES[compat.long(i + b)] = '.' + chr(96 + i)
 
     float32_base = b'\x00\x00\x00\x7f'
     increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
@@ -643,6 +644,8 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, value):
         self._value = value
+        # Conversion to long to avoid hash issues on 32 bit platforms #8968
+        value = compat.long(value) if value < 2147483648 else float(value)
         self._str = self.MISSING_VALUES[value]
 
     string = property(lambda self: self._str,
@@ -1373,13 +1376,6 @@ def _pad_bytes(name, length):
     Takes a char string and pads it wih null bytes until it's length chars
     """
     return name + "\x00" * (length - len(name))
-
-
-def _default_names(nvar):
-    """
-    Returns default Stata names v1, v2, ... vnvar
-    """
-    return ["v%d" % i for i in range(1, nvar+1)]
 
 
 def _convert_datetime_to_stata_type(fmt):
