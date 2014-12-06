@@ -165,6 +165,10 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
+    if len(algos.unique(bins)) < len(bins):
+        bins_sorted = np.sort(bins, axis=None)
+        bins_dup = algos.unique(bins_sorted[bins_sorted[1:] == bins_sorted[:-1]])        
+        raise ValueError('One or more quantiles consists entirely of a repeated value: %s' % repr(bins_dup))       
     return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
                          include_lowest=True)
 
