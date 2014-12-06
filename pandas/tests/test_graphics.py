@@ -1865,11 +1865,11 @@ class TestDataFramePlots(TestPlotBase):
                 axes = _check_plot_works(df.plot, kind='box',
                                          subplots=True, logy=True)
 
-        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
-        self._check_ax_scales(axes, yaxis='log')
-        for ax, label in zip(axes, labels):
-            self._check_text_labels(ax.get_xticklabels(), [label])
-            self.assertEqual(len(ax.lines), self.bp_n_objects)
+                self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+                self._check_ax_scales(axes, yaxis='log')
+                for ax, label in zip(axes, labels):
+                    self._check_text_labels(ax.get_xticklabels(), [label])
+                    self.assertEqual(len(ax.lines), self.bp_n_objects)
 
         axes = series.plot(kind='box', rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)
