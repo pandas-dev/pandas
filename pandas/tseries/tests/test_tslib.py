@@ -301,6 +301,36 @@ class TestTimestamp(tm.TestCase):
     def test_utc_z_designator(self):
         self.assertEqual(get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo), 'UTC')
 
+    def test_now(self):
+        # #9000
+        ts_from_string = Timestamp('now')
+        ts_from_method = Timestamp.now()
+        ts_datetime = datetime.datetime.now()
+        
+        ts_from_string_tz = Timestamp('now', tz='US/Eastern')
+        ts_from_method_tz = Timestamp.now(tz='US/Eastern')
+        
+        # Check that the delta between the times is less than 1s (arbitrarily small)
+        delta = Timedelta(seconds=1)
+        self.assertTrue((ts_from_method - ts_from_string) < delta)
+        self.assertTrue((ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+
+    def test_today(self):
+
+        ts_from_string = Timestamp('today')
+        ts_from_method = Timestamp.today()
+        ts_datetime = datetime.datetime.today()
+        
+        ts_from_string_tz = Timestamp('today', tz='US/Eastern')
+        ts_from_method_tz = Timestamp.today(tz='US/Eastern')
+        
+        # Check that the delta between the times is less than 1s (arbitrarily small)
+        delta = Timedelta(seconds=1)
+        self.assertTrue((ts_from_method - ts_from_string) < delta)
+        self.assertTrue((ts_datetime - ts_from_method) < delta)
+        self.assertTrue((ts_datetime - ts_from_method) < delta)
+        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
