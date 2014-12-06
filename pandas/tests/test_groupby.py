@@ -392,7 +392,7 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
         # GH8866
-        s = Series(np.arange(8),
+        s = Series(np.arange(8,dtype='int64'),
                    index=pd.MultiIndex.from_product([list('ab'),
                                                      range(2),
                                                      date_range('20130101',periods=2)],

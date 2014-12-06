@@ -172,6 +172,7 @@ def close(fignum=None):
 
 
 def _skip_if_32bit():
+    import nose
     import struct
     if struct.calcsize("P") * 8 < 64:
         raise nose.SkipTest("skipping for 32 bit")
