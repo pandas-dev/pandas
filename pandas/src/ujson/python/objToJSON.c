@@ -41,11 +41,11 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/arrayscalars.h>
 #include <np_datetime.h>
 #include <np_datetime_strings.h>
+#include <datetime_helper.h>
 #include <numpy_helper.h>
 #include <numpy/npy_math.h>
 #include <math.h>
 #include <stdio.h>
-#include <datetime.h>
 #include <ultrajson.h>
 
 static PyObject* type_decimal;
@@ -154,6 +154,7 @@ enum PANDAS_FORMAT
 // import_array() compat
 #if (PY_VERSION_HEX >= 0x03000000)
 void *initObjToJSON(void)
+
 #else
 void initObjToJSON(void)
 #endif
@@ -1447,12 +1448,43 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     pc->PyTypeToJSON = NpyDateTimeToJSON;
     if (enc->datetimeIso)
     {
-      tc->type = JT_UTF8;
+  tc->type = JT_UTF8;
     }
     else
     {
       tc->type = JT_LONG;
     }
+    return;
+  }
+  else
+  if (PyDelta_Check(obj))
+  {
+    long value;
+
+    if (PyObject_HasAttrString(obj, "value"))
+        value = get_long_attr(obj, "value");
+    else
+        value = total_seconds(obj) * 1000000000; // nanoseconds per second
+
+    exc = PyErr_Occurred();
+
+    if (exc && PyErr_ExceptionMatches(PyExc_OverflowError))
+    {
+      PRINTMARK();
+      goto INVALID;
+    }
+
+    if (value == get_nat()) {
+      PRINTMARK();
+      tc->type = JT_NULL;
+      return;
+    }
+
+    GET_TC(tc)->longValue = value;
+
+    PRINTMARK();
+    pc->PyTypeToJSON = PyLongToINT64;
+    tc->type = JT_LONG;
     return;
   }
   else
