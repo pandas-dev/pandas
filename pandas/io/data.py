@@ -166,7 +166,7 @@ def _retry_read_url(url, retry_count, pause, name):
             pass
         else:
             rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)[::-1]
+                          parse_dates=True, na_values='-')[::-1]
             # Yahoo! Finance sometimes does this awesome thing where they
             # return 2 rows for the most recent business day
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover

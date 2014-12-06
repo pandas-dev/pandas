@@ -118,8 +118,8 @@ class TestGoogle(tm.TestCase):
                 assert_n_failed_equals_n_null_columns(w, result)
 
     def test_dtypes(self):
-        #GH3995
-        data = web.get_data_google('MSFT', 'JAN-01-12', 'JAN-31-12')
+        #GH3995, #GH8980
+        data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
         assert np.issubdtype(data.Open.dtype, np.number)
         assert np.issubdtype(data.Close.dtype, np.number)
         assert np.issubdtype(data.Low.dtype, np.number)
