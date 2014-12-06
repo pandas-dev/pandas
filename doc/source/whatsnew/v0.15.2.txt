@@ -239,3 +239,4 @@ Bug Fixes
 - Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
 - Bug in plotting of a period-like array (:issue:`9012`)
 
+
