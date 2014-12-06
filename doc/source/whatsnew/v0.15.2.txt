@@ -222,3 +222,5 @@ Bug Fixes
 
 
 - Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
+
+- Bug in ``Options`` where parsing the underlying price returns a ValueError when the price has a thousands separator in the HTML text. (:issue:`9010`)

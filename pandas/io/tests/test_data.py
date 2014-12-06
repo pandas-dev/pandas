@@ -321,6 +321,17 @@ class TestYahooOptions(tm.TestCase):
         self.assertTrue(len(dates) > 1)
 
     @network
+    def test_get_underlying_price(self):
+        try:
+             options_object = web.Options('^spxpm', 'yahoo')
+             expiry_dates, urls = options_object._get_expiry_dates_and_links()
+             url = options_object._FINANCE_BASE_URL +  urls.values()[0]
+             quote_price, quote_time = options_object._get_underlying_price( url )
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
+        self.assertIsInstance( quote_price, float )
+
+    @network
     def test_get_all_data(self):
         try:
             data = self.aapl.get_all_data(put=True)
