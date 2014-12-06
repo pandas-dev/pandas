@@ -1138,6 +1138,27 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
 
     return out
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_level_sorter(ndarray[int64_t, ndim=1] label,
+                     ndarray[int64_t, ndim=1] starts):
+    """
+    argsort for a single level of a multi-index, keeping the order of higher
+    levels unchanged. `starts` points to starts of same-key indices w.r.t
+    to leading levels; equivalent to:
+        np.hstack([label[starts[i]:starts[i+1]].argsort(kind='mergesort')
+            + starts[i] for i in range(len(starts) - 1)])
+    """
+    cdef:
+        int64_t l, r
+        Py_ssize_t i
+        ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
+
+    for i in range(len(starts) - 1):
+        l, r = starts[i], starts[i + 1]
+        out[l:r] = l + label[l:r].argsort(kind='mergesort')
+
+    return out
 
 def group_count(ndarray[int64_t] values, Py_ssize_t size):
     cdef:
