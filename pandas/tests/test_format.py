@@ -571,6 +571,47 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>"""
         self.assertEqual(xp, rs)
 
+    def test_to_html_multiindex_index_false(self):
+        # issue 8452
+        df = pd.DataFrame({
+            'a': range(2),
+            'b': range(3, 5),
+            'c': range(5, 7),
+            'd': range(3, 5)}
+        )
+        df.columns = pd.MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        result = df.to_html(index=False)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th colspan="2" halign="left">a</th>
+      <th colspan="2" halign="left">b</th>
+    </tr>
+    <tr>
+      <th>c</th>
+      <th>d</th>
+      <th>c</th>
+      <th>d</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 0</td>
+      <td> 3</td>
+      <td> 5</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td> 1</td>
+      <td> 4</td>
+      <td> 6</td>
+      <td> 4</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
     def test_to_html_multiindex_sparsify_false_multi_sparse(self):
         with option_context('display.multi_sparse', False):
             index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],

@@ -959,6 +959,10 @@ class HTMLFormatter(TableFormatter):
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
                                                  else com.pprint_thing(name)]
+
+                if row == [""] and self.fmt.index is False:
+                    row = []
+
                 tags = {}
                 j = len(row)
                 for i, v in enumerate(values):
