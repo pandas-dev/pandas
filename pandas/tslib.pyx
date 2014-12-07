@@ -176,9 +176,9 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
             result[i] = NaT
         else:
             if box:
-               result[i] = Timedelta(value)
+                result[i] = Timedelta(value)
             else:
-               result[i] = timedelta(microseconds=int(value)/1000)
+                result[i] = timedelta(microseconds=int(value)/1000)
 
     return result
 
@@ -219,15 +219,32 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def now(cls, tz=None):
-        """ compat now with datetime """
+        """ 
+        Return the current time in the local timezone.  Equivalent
+        to datetime.now([tz])
+        
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """
         if isinstance(tz, basestring):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
     @classmethod
-    def today(cls):
-        """ compat today with datetime """
-        return cls(datetime.today())
+    def today(cls, tz=None):
+        """
+        Return the current time in the local timezone.  This differs
+        from datetime.today() in that it can be localized to a
+        passed timezone.
+        
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """
+        return cls.now(tz)
 
     @classmethod
     def utcnow(cls):
@@ -1024,6 +1041,14 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if util.is_string_object(ts):
         if ts in _nat_strings:
             ts = NaT
+        elif ts == 'now': 
+            # Issue 9000, we short-circuit rather than going 
+            # into np_datetime_strings which returns utc
+            ts = Timestamp.now(tz)
+        elif ts == 'today': 
+            # Issue 9000, we short-circuit rather than going 
+            # into np_datetime_strings which returns a normalized datetime
+            ts = Timestamp.today(tz)
         else:
             try:
                 _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)

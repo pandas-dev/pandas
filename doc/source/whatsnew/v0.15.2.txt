@@ -91,6 +91,9 @@ API changes
      data.y
      data['y'].values
 
+- Timestamp('now') is now equivalent to Timestamp.now() in that it returns the local time rather than UTC. Also, Timestamp('today') is now
+  equivalent to Timestamp.today() and both have tz as a possible argument. (:issue:`9000`)
+
 .. _whatsnew_0152.enhancements:
 
 Enhancements
