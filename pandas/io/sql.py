@@ -518,8 +518,9 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     chunksize : int, default None
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
-    dtype : dictionary of column name to SQLAchemy type, default None
-        optional datatypes for SQL columns.
+    dtype : dict of column name to SQL type, default None
+        Optional specifying the datatype for columns. The SQL type should
+        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
     if if_exists not in ('fail', 'replace', 'append'):
@@ -1133,8 +1134,9 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
-        dtype : dictionary of column name to SQLAlchemy type, default None
-            Optional datatypes for SQL columns.
+        dtype : dict of column name to SQL type, default None
+            Optional specifying the datatype for columns. The SQL type should
+            be a SQLAlchemy type.
 
         """
         if dtype is not None:
@@ -1468,8 +1470,9 @@ class SQLiteDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this
             size at a time. If None, all rows will be written at once.
-        dtype : dictionary of column_name to SQLite string type, default None
-            optional datatypes for SQL columns.
+        dtype : dict of column name to SQL type, default None
+            Optional specifying the datatype for columns. The SQL type should
+            be a string.
 
         """
         if dtype is not None:

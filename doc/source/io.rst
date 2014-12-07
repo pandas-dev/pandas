@@ -3393,11 +3393,33 @@ the database using :func:`~pandas.DataFrame.to_sql`.
 
     data.to_sql('data', engine)
 
-With some databases, writing large DataFrames can result in errors due to packet size limitations being exceeded. This can be avoided by setting the ``chunksize`` parameter when calling ``to_sql``.  For example, the following writes ``data`` to the database in batches of 1000 rows at a time:
+With some databases, writing large DataFrames can result in errors due to
+packet size limitations being exceeded. This can be avoided by setting the
+``chunksize`` parameter when calling ``to_sql``.  For example, the following
+writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
     data.to_sql('data_chunked', engine, chunksize=1000)
+
+SQL data types
+""""""""""""""
+
+:func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
+SQL data type based on the dtype of the data. When you have columns of dtype
+``object``, pandas will try to infer the data type.
+
+You can always override the default type by specifying the desired SQL type of
+any of the columns by using the ``dtype`` argument. This argument needs a
+dictionary mapping column names to SQLAlchemy types (or strings for the sqlite3
+fallback mode).
+For example, specifying to use the sqlalchemy ``String`` type instead of the
+default ``Text`` type for string columns:
+
+.. ipython:: python
+
+    from sqlalchemy.types import String
+    data.to_sql('data_dtype', engine, dtype={'Col_1': String})
 
 .. note::
 
@@ -3412,15 +3434,6 @@ With some databases, writing large DataFrames can result in errors due to packet
     this gives an array of strings).
     Because of this, reading the database table back in does **not** generate
     a categorical.
-
-.. note::
-
-    You can specify the SQL type of any of the columns by using the dtypes
-    parameter (a dictionary mapping column names to SQLAlchemy types). This
-    can be useful in cases where columns with NULL values are inferred by
-    Pandas to an excessively general datatype (e.g. a boolean column is is
-    inferred to be object because it has NULLs).
-
 
 Reading Tables
 ~~~~~~~~~~~~~~
@@ -3782,11 +3795,11 @@ is lost when exporting.
 
     *Stata* only supports string value labels, and so ``str`` is called on the
     categories when exporting data.  Exporting ``Categorical`` variables with
-    non-string categories produces a warning, and can result a loss of 
+    non-string categories produces a warning, and can result a loss of
     information if the ``str`` representations of the categories are not unique.
 
 Labeled data can similarly be imported from *Stata* data files as ``Categorical``
-variables using the keyword argument ``convert_categoricals`` (``True`` by default).  
+variables using the keyword argument ``convert_categoricals`` (``True`` by default).
 The keyword argument ``order_categoricals`` (``True`` by default) determines
  whether imported ``Categorical`` variables are ordered.
 
