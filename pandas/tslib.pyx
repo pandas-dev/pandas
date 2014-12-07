@@ -37,8 +37,12 @@ cimport cython
 
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+
+# dateutil compat
 from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal, tzfile as _dateutil_tzfile,
-                         tzutc as _dateutil_tzutc, gettz as _dateutil_gettz)
+                         tzutc as _dateutil_tzutc)
+from dateutil.zoneinfo import gettz as _dateutil_gettz
+
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 from pandas.compat import parse_date, string_types, PY3, iteritems
 
@@ -1258,7 +1262,7 @@ cpdef inline object maybe_get_tz(object tz):
     if isinstance(tz, string_types):
         if tz.startswith('dateutil/'):
             zone = tz[9:]
-            tz = _dateutil_gettz(tz[9:])
+            tz = _dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
