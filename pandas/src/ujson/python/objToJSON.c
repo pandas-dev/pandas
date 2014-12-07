@@ -1446,14 +1446,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 
     PRINTMARK();
     pc->PyTypeToJSON = NpyDateTimeToJSON;
-    if (enc->datetimeIso)
-    {
-  tc->type = JT_UTF8;
-    }
-    else
-    {
-      tc->type = JT_LONG;
-    }
+    tc->type = enc->datetimeIso ? JT_UTF8 : JT_LONG;
     return;
   }
   else
