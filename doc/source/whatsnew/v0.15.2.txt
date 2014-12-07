@@ -222,3 +222,4 @@ Bug Fixes
 
 
 - Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
+- Bug in Datareader returns object dtype if there are missing values (:issue:`8980`)
