@@ -612,9 +612,10 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(
             frame, pd.read_json(frame.to_json()).apply(converter))
 
-        frame = DataFrame({'a': [timedelta(23), timedelta(seconds=5)],
+        frame = DataFrame({'a': [timedelta(days=23), timedelta(seconds=5)],
                            'b': [1, 2],
                            'c': pd.date_range(start='20130101', periods=2)})
+
         result = pd.read_json(frame.to_json(date_unit='ns'))
         result['a'] = pd.to_timedelta(result.a, unit='ns')
         result['c'] = pd.to_datetime(result.c)
@@ -623,11 +624,12 @@ class TestPandasContainer(tm.TestCase):
     def test_mixed_timedelta_datetime(self):
         frame = DataFrame({'a': [timedelta(23), pd.Timestamp('20130101')]},
                           dtype=object)
-        expected = pd.read_json(frame.to_json(date_unit='ns'),
-                                dtype={'a': 'int64'})
-        assert_frame_equal(DataFrame({'a': [pd.Timedelta(frame.a[0]).value,
-                                            pd.Timestamp(frame.a[1]).value]}),
-                           expected)
+
+        expected = DataFrame({'a': [pd.Timedelta(frame.a[0]).value,
+                                    pd.Timestamp(frame.a[1]).value]})
+        result = pd.read_json(frame.to_json(date_unit='ns'),
+                              dtype={'a': 'int64'})
+        assert_frame_equal(result, expected)
 
     def test_default_handler(self):
         value = object()

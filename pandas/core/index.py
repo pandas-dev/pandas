@@ -1861,7 +1861,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
             lab = com._ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, starts)
+            return lib.get_level_sorter(lab, com._ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
