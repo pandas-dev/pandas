@@ -6,7 +6,6 @@ Module contains tools for collecting data from various remote sources
 import warnings
 import tempfile
 import datetime as dt
-import locale
 import time
 
 from collections import defaultdict
@@ -673,20 +672,6 @@ class Options(object):
 
         return self._FINANCE_BASE_URL + expiry_links[expiry]
 
-    @staticmethod
-    def _string_to_float(string):
-        """
-        Take a string representation of a floating number that may have a
-        thousands separator in it and turn it into a float
-        """
-        old_loc = locale.getlocale()
-        # Yahoo seems to report its prices in English/US format,
-        # regardless of locale settings in the browser
-        locale.setlocale( locale.LC_NUMERIC, 'en_US' )
-        floatret = locale.atof( string )
-        locale.setlocale( locale.LC_NUMERIC, old_loc )
-        return floatret
-
     def _option_frames_from_url(self, url):
         frames = read_html(url)
         nframes = len(frames)
@@ -713,8 +698,19 @@ class Options(object):
 
     def _get_underlying_price(self, url):
         root = self._parse_url(url)
-        underlying_price = self._string_to_float(root.xpath('.//*[@class="time_rtq_ticker Fz-30 Fw-b"]')[0]\
-            .getchildren()[0].text)
+
+	underlying_price = root.xpath('.//*[@class="time_rtq_ticker Fz-30 Fw-b"]')[0]\
+            	.getchildren()[0].text
+	try:
+            underlying_price = float(underlying_price)
+	except ValueError:
+	    # see if there is a comma thousands separator in here that needs to be filtered out
+            # filtering via join works in both Python 2.7 and Python 3
+            underlying_price = ''.join(c for c in underlying_price if c != ',')
+	    try:
+               underlying_price = float(underlying_price)
+	    except ValueError:
+               underlying_price = np.nan
 
         #Gets the time of the quote, note this is actually the time of the underlying price.
         try:
@@ -1207,6 +1203,7 @@ class Options(object):
             frame["Quote_Time"] = np.nan
         frame.rename(columns={'Open Int': 'Open_Int'}, inplace=True)
         frame['Type'] = type
+
         frame.set_index(['Strike', 'Expiry', 'Type', 'Symbol'], inplace=True)
 
         return frame
