@@ -1918,9 +1918,17 @@ class PythonParser(ParserBase):
         # Loop through rows to verify lengths are correct.
         if col_len != zip_len and self.index_col is not False:
             i = 0
+            incorrect_row = False
+            if self.usecols:
+                col_len = max(self.usecols) + 1
+
             for (i, l) in enumerate(content):
                 if len(l) != col_len:
-                    break
+                    if self.usecols and len(l) > col_len:
+                        continue
+                    else:
+                        incorrect_row = True
+                        break
 
             footers = 0
             if self.skip_footer:
@@ -1930,7 +1938,8 @@ class PythonParser(ParserBase):
 
             msg = ('Expected %d fields in line %d, saw %d' %
                    (col_len, row_num + 1, zip_len))
-            raise ValueError(msg)
+            if incorrect_row:
+                raise ValueError(msg)
 
         if self.usecols:
             if self._implicit_index:
