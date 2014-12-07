@@ -20,6 +20,9 @@ cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
     int PySlice_Check(object)
 
+cdef extern from "datetime_helper.h":
+    double total_seconds(object)
+
 # this is our datetime.pxd
 from datetime cimport *
 from util cimport is_integer_object, is_float_object, is_datetime64_object, is_timedelta64_object
@@ -2752,10 +2755,6 @@ cdef object _get_deltas(object tz):
             utc_offset_cache[cache_key] = np.array([num], dtype=np.int64)
 
     return utc_offset_cache[cache_key]
-
-cdef double total_seconds(object td): # Python 2.6 compat
-    return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
-            10**6)
 
 def tot_seconds(td):
     return total_seconds(td)

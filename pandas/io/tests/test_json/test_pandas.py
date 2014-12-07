@@ -4,8 +4,8 @@ from pandas import compat
 import os
 
 import numpy as np
-import nose
 from pandas import Series, DataFrame, DatetimeIndex, Timestamp
+from datetime import timedelta
 import pandas as pd
 read_json = pd.read_json
 
@@ -601,7 +601,6 @@ class TestPandasContainer(tm.TestCase):
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
 
     def test_timedelta(self):
-        from datetime import timedelta
         converter = lambda x: pd.to_timedelta(x,unit='ms')
 
         s = Series([timedelta(23), timedelta(seconds=5)])
@@ -613,17 +612,32 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(
             frame, pd.read_json(frame.to_json()).apply(converter))
 
+        frame = DataFrame({'a': [timedelta(23), timedelta(seconds=5)],
+                           'b': [1, 2],
+                           'c': pd.date_range(start='20130101', periods=2)})
+        result = pd.read_json(frame.to_json(date_unit='ns'))
+        result['a'] = pd.to_timedelta(result.a, unit='ns')
+        result['c'] = pd.to_datetime(result.c)
+        assert_frame_equal(frame, result)
+
+    def test_mixed_timedelta_datetime(self):
+        frame = DataFrame({'a': [timedelta(23), pd.Timestamp('20130101')]},
+                          dtype=object)
+        expected = pd.read_json(frame.to_json(date_unit='ns'),
+                                dtype={'a': 'int64'})
+        assert_frame_equal(DataFrame({'a': [pd.Timedelta(frame.a[0]).value,
+                                            pd.Timestamp(frame.a[1]).value]}),
+                           expected)
+
     def test_default_handler(self):
-        from datetime import timedelta
+        value = object()
+        frame = DataFrame({'a': ['a', value]})
+        expected = frame.applymap(str)
+        result = pd.read_json(frame.to_json(default_handler=str))
+        assert_frame_equal(expected, result)
 
-        frame = DataFrame([timedelta(23), timedelta(seconds=5), 42])
-        self.assertRaises(OverflowError, frame.to_json)
-
-        expected = DataFrame([str(timedelta(23)), str(timedelta(seconds=5)), 42])
-        assert_frame_equal(
-            expected, pd.read_json(frame.to_json(default_handler=str)))
-
+    def test_default_handler_raises(self):
         def my_handler_raises(obj):
             raise TypeError("raisin")
-        self.assertRaises(TypeError, frame.to_json,
+        self.assertRaises(TypeError, DataFrame({'a': [1, 2, object()]}).to_json,
                           default_handler=my_handler_raises)
