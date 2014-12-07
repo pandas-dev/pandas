@@ -356,9 +356,9 @@ Comparisons
 Comparing categorical data with other objects is possible in three cases:
 
  * comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
-   ...) of the same length as the categorical data or
+   ...) of the same length as the categorical data.
  * all comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-   another categorical Series, when ``ordered==True`` and the `categories` are the same or
+   another categorical Series, when ``ordered==True`` and the `categories` are the same.
  * all comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
@@ -392,7 +392,8 @@ Equality comparisons work with any list-like object of same length and scalars:
 
 .. ipython:: python
 
-    cat == cat_base2
+    cat == cat_base
+    cat == np.array([1,2,3])
     cat == 2
 
 This doesn't work because the categories are not the same:
