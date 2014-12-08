@@ -1452,12 +1452,12 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
   else
   if (PyDelta_Check(obj))
   {
-    long value;
+    npy_int64 value;
 
-    if (PyObject_HasAttrString(obj, "value"))
+    if (PyObject_HasAttrString(obj, "value")) {
         value = get_long_attr(obj, "value");
-    else
-        value = total_seconds(obj) * 1000000000; // nanoseconds per second
+    } else
+        value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
 
     exc = PyErr_Occurred();
 
