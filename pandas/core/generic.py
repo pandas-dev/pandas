@@ -954,8 +954,9 @@ class NDFrame(PandasObject):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
-        dtype : Dictionary of column name to SQLAlchemy type, default None
-            Optional datatypes for SQL columns.
+        dtype : dict of column name to SQL type, default None
+            Optional specifying the datatype for columns. The SQL type should
+            be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
         """
         from pandas.io import sql
@@ -4128,7 +4129,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
                 y = _values_from_object(self).copy()
 
-                if skipna and issubclass(y.dtype.type, 
+                if skipna and issubclass(y.dtype.type,
                                          (np.datetime64, np.timedelta64)):
                     result = accum_func(y, axis)
                     mask = isnull(self)
