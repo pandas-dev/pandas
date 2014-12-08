@@ -133,8 +133,8 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
                         dt = dt + tz.utcoffset(dt)
                     result[i] = dt
         else:
-            trans = _get_transitions(tz)
-            deltas = _get_deltas(tz)
+            trans, deltas, typ = _get_dst_info(tz)
+
             for i in range(n):
 
                 value = arr[i]
@@ -223,10 +223,10 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def now(cls, tz=None):
-        """ 
+        """
         Return the current time in the local timezone.  Equivalent
         to datetime.now([tz])
-        
+
         Parameters
         ----------
         tz : string / timezone object, default None
@@ -242,7 +242,7 @@ class Timestamp(_Timestamp):
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.
-        
+
         Parameters
         ----------
         tz : string / timezone object, default None
@@ -1045,12 +1045,12 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if util.is_string_object(ts):
         if ts in _nat_strings:
             ts = NaT
-        elif ts == 'now': 
-            # Issue 9000, we short-circuit rather than going 
+        elif ts == 'now':
+            # Issue 9000, we short-circuit rather than going
             # into np_datetime_strings which returns utc
             ts = Timestamp.now(tz)
-        elif ts == 'today': 
-            # Issue 9000, we short-circuit rather than going 
+        elif ts == 'today':
+            # Issue 9000, we short-circuit rather than going
             # into np_datetime_strings which returns a normalized datetime
             ts = Timestamp.today(tz)
         else:
@@ -1174,8 +1174,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         obj.tzinfo = tz
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         pos = trans.searchsorted(obj.value, side='right') - 1
 
 
@@ -2566,8 +2566,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                          * 1000000000)
                 utc_dates[i] = v - delta
         else:
-            deltas = _get_deltas(tz1)
-            trans = _get_transitions(tz1)
+            trans, deltas, typ = _get_dst_info(tz1)
+
             trans_len = len(trans)
             pos = trans.searchsorted(vals[0]) - 1
             if pos < 0:
@@ -2598,9 +2598,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             return result
 
     # Convert UTC to other timezone
-    trans = _get_transitions(tz2)
+    trans, deltas, typ = _get_dst_info(tz2)
     trans_len = len(trans)
-    deltas = _get_deltas(tz2)
+
     pos = trans.searchsorted(utc_dates[0]) - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
@@ -2639,8 +2639,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         delta = int(total_seconds(_get_utcoffset(tz1, dt))) * 1000000000
         utc_date = val - delta
     elif _get_zone(tz1) != 'UTC':
-        deltas = _get_deltas(tz1)
-        trans = _get_transitions(tz1)
+        trans, deltas, typ = _get_dst_info(tz1)
         pos = trans.searchsorted(val, side='right') - 1
         if pos < 0:
             raise ValueError('First time before start of DST info')
@@ -2658,8 +2657,8 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
         return utc_date + delta
     # Convert UTC to other timezone
-    trans = _get_transitions(tz2)
-    deltas = _get_deltas(tz2)
+    trans, deltas, typ = _get_dst_info(tz2)
+
     pos = trans.searchsorted(utc_date, side='right') - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
@@ -2668,8 +2667,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     return utc_date + offset
 
 # Timezone data caches, key is the pytz string or dateutil file name.
-trans_cache = {}
-utc_offset_cache = {}
+dst_cache = {}
 
 cdef inline bint _treat_tz_as_pytz(object tz):
     return hasattr(tz, '_utc_transition_times') and hasattr(tz, '_transition_info')
@@ -2708,40 +2706,67 @@ cdef inline object _tz_cache_key(object tz):
         return None
 
 
-cdef object _get_transitions(object tz):
+cdef object _get_dst_info(object tz):
     """
-    Get UTC times of DST transitions
+    return a tuple of :
+      (UTC times of DST transitions,
+       UTC offsets in microseconds corresponding to DST transitions,
+       string of type of transitions)
+
     """
     cache_key = _tz_cache_key(tz)
     if cache_key is None:
-        return np.array([NPY_NAT + 1], dtype=np.int64)
+        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+        return (np.array([NPY_NAT + 1], dtype=np.int64),
+                np.array([num], dtype=np.int64),
+                None)
 
-    if cache_key not in trans_cache:
+    if cache_key not in dst_cache:
         if _treat_tz_as_pytz(tz):
-            arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
-            arr = arr.view('i8')
+            trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
+            trans = trans.view('i8')
             try:
                 if tz._utc_transition_times[0].year == 1:
-                    arr[0] = NPY_NAT + 1
+                    trans[0] = NPY_NAT + 1
             except Exception:
                 pass
+            deltas = _unbox_utcoffsets(tz._transition_info)
+            typ = 'pytz'
+
         elif _treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
                 # get utc trans times
                 trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
-                arr = np.hstack([np.array([0], dtype='M8[s]'), # place holder for first item
-                                 np.array(trans_list, dtype='M8[s]')]).astype('M8[ns]')  # all trans listed
-                arr = arr.view('i8')
-                arr[0] = NPY_NAT + 1
-            elif _is_fixed_offset(tz):
-                arr = np.array([NPY_NAT + 1], dtype=np.int64)
-            else:
-                arr = np.array([], dtype='M8[ns]')
-        else:
-            arr = np.array([NPY_NAT + 1], dtype=np.int64)
-        trans_cache[cache_key] = arr
-    return trans_cache[cache_key]
+                trans = np.hstack([np.array([0], dtype='M8[s]'), # place holder for first item
+                                  np.array(trans_list, dtype='M8[s]')]).astype('M8[ns]')  # all trans listed
+                trans = trans.view('i8')
+                trans[0] = NPY_NAT + 1
 
+                # deltas
+                deltas = np.array([v.offset for v in (tz._ttinfo_before,) + tz._trans_idx], dtype='i8')  # + (tz._ttinfo_std,)
+                deltas *= 1000000000
+                typ = 'dateutil'
+
+            elif _is_fixed_offset(tz):
+                trans = np.array([NPY_NAT + 1], dtype=np.int64)
+                deltas = np.array([tz._ttinfo_std.offset], dtype='i8') * 1000000000
+                typ = 'fixed'
+            else:
+                trans = np.array([], dtype='M8[ns]')
+                deltas = np.array([], dtype='i8')
+                typ = None
+
+
+        else:
+            # static tzinfo
+            trans = np.array([NPY_NAT + 1], dtype=np.int64)
+            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+            deltas = np.array([num], dtype=np.int64)
+            typ = 'static'
+
+        dst_cache[cache_key] = (trans, deltas, typ)
+
+    return dst_cache[cache_key]
 
 cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
     '''
@@ -2755,35 +2780,6 @@ cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset
     return new_trans
-
-
-cdef object _get_deltas(object tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    cache_key = _tz_cache_key(tz)
-    if cache_key is None:
-        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
-        return np.array([num], dtype=np.int64)
-
-    if cache_key not in utc_offset_cache:
-        if _treat_tz_as_pytz(tz):
-            utc_offset_cache[cache_key] = _unbox_utcoffsets(tz._transition_info)
-        elif _treat_tz_as_dateutil(tz):
-            if len(tz._trans_list):
-                arr = np.array([v.offset for v in (tz._ttinfo_before,) + tz._trans_idx], dtype='i8')  # + (tz._ttinfo_std,)
-                arr *= 1000000000
-                utc_offset_cache[cache_key] = arr
-            elif _is_fixed_offset(tz):
-                utc_offset_cache[cache_key] = np.array([tz._ttinfo_std.offset], dtype='i8') * 1000000000
-            else:
-                utc_offset_cache[cache_key] = np.array([], dtype='i8')
-        else:
-            # static tzinfo
-            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
-            utc_offset_cache[cache_key] = np.array([num], dtype=np.int64)
-
-    return utc_offset_cache[cache_key]
 
 def tot_seconds(td):
     return total_seconds(td)
@@ -2852,8 +2848,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be the same size as vals")
 
-    trans = _get_transitions(tz)  # transition dates
-    deltas = _get_deltas(tz)      # utc offsets
+    trans, deltas, typ = _get_dst_info(tz)
 
     tdata = <int64_t*> trans.data
     ntrans = len(trans)
@@ -3464,15 +3459,15 @@ cdef _normalize_local(ndarray[int64_t] stamps, object tz):
             result[i] = _normalized_stamp(&dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -3521,8 +3516,8 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
             if dt.hour > 0:
                 return False
     else:
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         for i in range(n):
             # Adjust datetime64 timestamp, recompute datetimestruct
             pos = trans.searchsorted(stamps[i]) - 1
@@ -3609,15 +3604,15 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                                            dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -4111,15 +4106,15 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
                 reso = curr_reso
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
