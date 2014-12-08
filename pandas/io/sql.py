@@ -885,37 +885,56 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
+    def _get_notnull_col_dtype(self, col):
+        """
+        Infer datatype of the Series col.  In case the dtype of col is 'object' 
+        and it contains NA values, this infers the datatype of the not-NA 
+        values.  Needed for inserting typed data containing NULLs, GH8778.
+        """
+        col_for_inference = col
+        if col.dtype == 'object':
+            notnulldata = col[~isnull(col)]
+            if len(notnulldata):
+                col_for_inference = notnulldata
+
+        return lib.infer_dtype(col_for_inference)
+
     def _sqlalchemy_type(self, col):
-        from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
-            DateTime, Date, Time)
 
         dtype = self.dtype or {}
         if col.name in dtype:
             return self.dtype[col.name]
 
-        if com.is_datetime64_dtype(col):
+        col_type = self._get_notnull_col_dtype(col)
+
+        from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
+            DateTime, Date, Time)
+
+        if col_type == 'datetime64': 
             try:
                 tz = col.tzinfo
                 return DateTime(timezone=True)
             except:
                 return DateTime
-        if com.is_timedelta64_dtype(col):
+        if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
                           "database.", UserWarning)
             return BigInteger
-        elif com.is_float_dtype(col):
+        elif col_type == 'floating':
             return Float
-        elif com.is_integer_dtype(col):
+        elif col_type == 'integer':
             # TODO: Refine integer size.
             return BigInteger
-        elif com.is_bool_dtype(col):
+        elif col_type == 'boolean':
             return Boolean
-        inferred = lib.infer_dtype(com._ensure_object(col))
-        if inferred == 'date':
+        elif col_type == 'date':
             return Date
-        if inferred == 'time':
+        elif col_type == 'time':
             return Time
+        elif col_type == 'complex':
+            raise ValueError('Complex datatypes not supported')
+
         return Text
 
     def _numpy_type(self, sqltype):
@@ -1187,15 +1206,15 @@ class SQLDatabase(PandasSQL):
 # SQLAlchemy installed
 # SQL type convertions for each DB
 _SQL_TYPES = {
-    'text': {
+    'string': {
         'mysql': 'VARCHAR (63)',
         'sqlite': 'TEXT',
     },
-    'float': {
+    'floating': {
         'mysql': 'FLOAT',
         'sqlite': 'REAL',
     },
-    'int': {
+    'integer': {
         'mysql': 'BIGINT',
         'sqlite': 'INTEGER',
     },
@@ -1211,11 +1230,12 @@ _SQL_TYPES = {
         'mysql': 'TIME',
         'sqlite': 'TIME',
     },
-    'bool': {
+    'boolean': {
         'mysql': 'BOOLEAN',
         'sqlite': 'INTEGER',
     }
 }
+
 
 # SQL enquote and wildcard symbols
 _SQL_SYMB = {
@@ -1291,8 +1311,8 @@ class SQLiteTable(SQLTable):
         br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
         br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
 
-        create_tbl_stmts = [(br_l + '%s' + br_r + ' %s') % (cname, ctype)
-                            for cname, ctype, _ in column_names_and_types]
+        create_tbl_stmts = [(br_l + '%s' + br_r + ' %s') % (cname, col_type)
+                            for cname, col_type, _ in column_names_and_types]
         if self.keys is not None and len(self.keys):
             cnames_br = ",".join([br_l + c + br_r for c in self.keys])
             create_tbl_stmts.append(
@@ -1317,30 +1337,27 @@ class SQLiteTable(SQLTable):
         dtype = self.dtype or {}
         if col.name in dtype:
             return dtype[col.name]
-        pytype = col.dtype.type
-        pytype_name = "text"
-        if issubclass(pytype, np.floating):
-            pytype_name = "float"
-        elif com.is_timedelta64_dtype(pytype):
+
+        col_type = self._get_notnull_col_dtype(col)
+        if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
                           "database.", UserWarning)
-            pytype_name = "int"
-        elif issubclass(pytype, np.integer):
-            pytype_name = "int"
-        elif issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            pytype_name = "datetime"
-        elif issubclass(pytype, np.bool_):
-            pytype_name = "bool"
-        elif issubclass(pytype, np.object):
-            pytype = lib.infer_dtype(com._ensure_object(col))
-            if pytype == "date":
-                pytype_name = "date"
-            elif pytype == "time":
-                pytype_name = "time"
+            col_type = "integer"
 
-        return _SQL_TYPES[pytype_name][self.pd_sql.flavor]
+        elif col_type == "datetime64":
+            col_type = "datetime"
+
+        elif col_type == "empty":
+            col_type = "string"
+
+        elif col_type == "complex":
+            raise ValueError('Complex datatypes not supported')
+            
+        if col_type not in _SQL_TYPES:
+            col_type = "string"
+
+        return _SQL_TYPES[col_type][self.pd_sql.flavor]
 
 
 class SQLiteDatabase(PandasSQL):
