@@ -525,6 +525,22 @@ class TestTimedeltas(tm.TestCase):
         expected = TimedeltaIndex([ np.timedelta64(1,'D') ]*5)
         tm.assert_index_equal(result, expected)
 
+        # Test with lists as input when box=false
+        expected = np.array(np.arange(3)*1000000000, dtype='timedelta64[ns]')
+        result = to_timedelta(range(3), unit='s', box=False)
+        tm.assert_numpy_array_equal(expected, result)
+
+        result = to_timedelta(np.arange(3), unit='s', box=False)
+        tm.assert_numpy_array_equal(expected, result)
+
+        result = to_timedelta([0, 1, 2], unit='s', box=False)
+        tm.assert_numpy_array_equal(expected, result)
+
+        # Tests with fractional seconds as input:
+        expected = np.array([0, 500000000, 800000000, 1200000000], dtype='timedelta64[ns]')
+        result = to_timedelta([0., 0.5, 0.8, 1.2], unit='s', box=False)
+        tm.assert_numpy_array_equal(expected, result)
+       
         def testit(unit, transform):
 
             # array
@@ -851,6 +867,13 @@ class TestTimedeltaIndex(tm.TestCase):
                                  timedelta(days=2,seconds=2),
                                  pd.offsets.Second(3)])
         tm.assert_index_equal(result,expected)
+
+        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02'])
+        tm.assert_index_equal(TimedeltaIndex(range(3), unit='s'), expected)
+        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:05', '0 days 00:00:09'])
+        tm.assert_index_equal(TimedeltaIndex([0, 5, 9], unit='s'), expected)
+        expected = TimedeltaIndex(['0 days 00:00:00.400', '0 days 00:00:00.450', '0 days 00:00:01.200'])
+        tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'), expected)
 
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)
