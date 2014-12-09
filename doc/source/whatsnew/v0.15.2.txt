@@ -268,3 +268,5 @@ Bug Fixes
 - Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
 - Bug in Datareader returns object dtype if there are missing values (:issue:`8980`)
 - Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).
+
+- Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
