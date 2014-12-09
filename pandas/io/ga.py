@@ -324,7 +324,7 @@ class GDataReader(OAuthDataReader):
                 
                 parse_items = ['index_col', 'parse_dates', 'keep_date_col', \
                                 'date_parser', 'dayfirst', 'na_values', \
-                                'converters', 'sort', 'ascending']
+                                'converters', 'sort']
                 
                 # in case a reverse sort has been sent to GA...
                 def _maybe_fix_sort(item):
@@ -375,10 +375,12 @@ class GDataReader(OAuthDataReader):
                 'dayfirst'      : False,
                 'na_values'     : None,
                 'converters'    : None,
-                'sort'          : True, 
+                'sort'          : True,
+                'ascending'     : True,
                 'header'        : None, }
         
         parse_opts.update(kwargs)
+        asc = parse_opts.pop('ascending')
         
         parse_opts['names'] = _get_col_names(col_info)
         df = psr._read(rows, parse_opts)
@@ -389,7 +391,7 @@ class GDataReader(OAuthDataReader):
         elif isinstance(parse_opts['sort'], \
                 (compat.string_types, list, tuple, np.ndarray)):
             return df.sort(columns=parse_opts['sort'], \
-                            ascending=parse_opts['ascending'])
+                            ascending=asc)
 
         return df
 
