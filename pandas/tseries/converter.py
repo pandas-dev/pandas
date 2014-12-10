@@ -117,8 +117,10 @@ class PeriodConverter(dates.DateConverter):
             return values.asfreq(axis.freq).values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if isinstance(values, (list, tuple, np.ndarray, Index)):
+        if com.is_period_arraylike(values):
             return PeriodIndex(values, freq=axis.freq).values
+        if isinstance(values, (list, tuple, np.ndarray, Index)):
+            return [get_datevalue(x, axis.freq) for x in values]
         return values
 
 
