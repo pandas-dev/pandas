@@ -371,31 +371,31 @@ class TestDateRange(tm.TestCase):
         self.assertEqual(dr.tz.zone, tz.zone)
         self.assertEqual(dr[0], start)
         self.assertEqual(dr[2], end)
-    
+
     def test_range_tz_dst_straddle_pytz(self):
-        
+
         tm._skip_if_no_pytz()
         from pytz import timezone
         tz = timezone('US/Eastern')
-        dates = [(tz.localize(datetime(2014, 3, 6)), 
+        dates = [(tz.localize(datetime(2014, 3, 6)),
                   tz.localize(datetime(2014, 3, 12))),
-                 (tz.localize(datetime(2013, 11, 1)), 
+                 (tz.localize(datetime(2013, 11, 1)),
                   tz.localize(datetime(2013, 11, 6)))]
         for (start, end) in dates:
             dr = date_range(start, end, freq='D')
             self.assertEqual(dr[0], start)
             self.assertEqual(dr[-1], end)
             self.assertEqual(np.all(dr.hour==0), True)
-            
+
             dr = date_range(start, end, freq='D', tz='US/Eastern')
             self.assertEqual(dr[0], start)
             self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour==0), True)        
-            
+            self.assertEqual(np.all(dr.hour==0), True)
+
             dr = date_range(start.replace(tzinfo=None), end.replace(tzinfo=None), freq='D', tz='US/Eastern')
             self.assertEqual(dr[0], start)
             self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour==0), True)        
+            self.assertEqual(np.all(dr.hour==0), True)
 
     def test_range_tz_dateutil(self):
         # GH 2906
@@ -441,7 +441,7 @@ class TestDateRange(tm.TestCase):
     def test_month_range_union_tz_dateutil(self):
         _skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        from dateutil.tz import gettz as timezone
+        from dateutil.zoneinfo import gettz as timezone
         tz = timezone('US/Eastern')
 
         early_start = datetime(2011, 1, 1)

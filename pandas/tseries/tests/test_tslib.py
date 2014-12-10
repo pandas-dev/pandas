@@ -1,5 +1,5 @@
 import nose
-
+from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import tslib
@@ -137,13 +137,24 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(result, eval(repr(result)))
 
     def test_repr(self):
+        tm._skip_if_no_pytz()
+        tm._skip_if_no_dateutil()
+
         dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
-        timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
+
+        # dateutil zone change (only matters for repr)
+        import dateutil
+        if dateutil.__version__ >= LooseVersion('2.3'):
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
+        else:
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
+
         freqs = ['D', 'M', 'S', 'N']
 
         for date in dates:
             for tz in timezones:
                 for freq in freqs:
+
                     # avoid to match with timezone name
                     freq_repr = "'{0}'".format(freq)
                     if tz.startswith('dateutil'):
@@ -306,10 +317,10 @@ class TestTimestamp(tm.TestCase):
         ts_from_string = Timestamp('now')
         ts_from_method = Timestamp.now()
         ts_datetime = datetime.datetime.now()
-        
+
         ts_from_string_tz = Timestamp('now', tz='US/Eastern')
         ts_from_method_tz = Timestamp.now(tz='US/Eastern')
-        
+
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
         self.assertTrue((ts_from_method - ts_from_string) < delta)
@@ -321,10 +332,10 @@ class TestTimestamp(tm.TestCase):
         ts_from_string = Timestamp('today')
         ts_from_method = Timestamp.today()
         ts_datetime = datetime.datetime.today()
-        
+
         ts_from_string_tz = Timestamp('today', tz='US/Eastern')
         ts_from_method_tz = Timestamp.today(tz='US/Eastern')
-        
+
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
         self.assertTrue((ts_from_method - ts_from_string) < delta)
@@ -737,7 +748,7 @@ class TestTimestampOps(tm.TestCase):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
                                   [tslib.D_RESO, tslib.D_RESO, tslib.D_RESO, tslib.D_RESO,
                                    tslib.H_RESO, tslib.T_RESO,tslib.S_RESO, tslib.MS_RESO, tslib.US_RESO]):
-            for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
                 result = tslib.resolution(idx.asi8, idx.tz)
                 self.assertEqual(result, expected)

@@ -163,6 +163,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)
 - Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)
 - Bug in ``MultiIndex.reindex`` where reindexing at level would not reorder labels (:issue:`4088`)
+- Bug in certain operations with dateutil timezones, manifesting with dateutil 2.3 (:issue:`8639`)
 
 - Fix negative step support for label-based slices (:issue:`8753`)
 
