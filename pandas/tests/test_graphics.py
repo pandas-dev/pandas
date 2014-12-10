@@ -1230,7 +1230,7 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_visible(ax.get_xticklabels(minor=True))
                 self._check_visible(ax.xaxis.get_label())
                 self._check_visible(ax.get_yticklabels())
-                self._check_ticks_props(ax, xlabelsize=7, xrot=45)
+                self._check_ticks_props(ax, xlabelsize=7, xrot=45, ylabelsize=7)
 
     def test_subplots_layout(self):
         # GH 6667
@@ -1717,13 +1717,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(ax, xrot=90)
 
         ax = df.plot(kind='bar', rot=35, fontsize=10)
-        self._check_ticks_props(ax, xrot=35, xlabelsize=10)
+        self._check_ticks_props(ax, xrot=35, xlabelsize=10, ylabelsize=10)
 
         ax = _check_plot_works(df.plot, kind='barh')
         self._check_ticks_props(ax, yrot=0)
 
         ax = df.plot(kind='barh', rot=55, fontsize=11)
-        self._check_ticks_props(ax, yrot=55, ylabelsize=11)
+        self._check_ticks_props(ax, yrot=55, ylabelsize=11, xlabelsize=11)
 
     def _check_bar_alignment(self, df, kind='bar', stacked=False,
                              subplots=False, align='center',
@@ -2087,7 +2087,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(ax, xrot=0)
 
         ax = df.plot(kind='kde', rot=20, fontsize=5)
-        self._check_ticks_props(ax, xrot=20, xlabelsize=5)
+        self._check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
         axes = _check_plot_works(df.plot, kind='kde', subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
