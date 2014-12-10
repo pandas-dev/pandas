@@ -82,18 +82,10 @@ class _Unstacker(object):
 
         self.level = self.index._get_level_number(level)
 
-        levels = index.levels
-        labels = index.labels
+        # when index includes `nan`, need to lift levels/strides by 1
+        self.lift = 1 if -1 in self.index.labels[self.level] else 0
 
-        def _make_index(lev, lab):
-            values = _make_index_array_level(lev.values, lab)
-            i = lev._simple_new(values, lev.name,
-                                freq=getattr(lev, 'freq', None),
-                                tz=getattr(lev, 'tz', None))
-            return i
-
-        self.new_index_levels = [_make_index(lev, lab)
-                                 for lev, lab in zip(levels, labels)]
+        self.new_index_levels = list(index.levels)
         self.new_index_names = list(index.names)
 
         self.removed_name = self.new_index_names.pop(self.level)
@@ -134,10 +126,10 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         comp_index = _ensure_platform_int(comp_index)
-        stride = self.index.levshape[self.level]
+        stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
-        selector = self.sorted_labels[-1] + stride * comp_index
+        selector = self.sorted_labels[-1] + stride * comp_index + self.lift
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
@@ -165,20 +157,6 @@ class _Unstacker(object):
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
                 values = com.take_nd(values, inds, axis=1)
                 columns = columns[inds]
-
-        # we might have a missing index
-        if len(index) != values.shape[0]:
-            mask = isnull(index)
-            if mask.any():
-                l = np.arange(len(index))
-                values, orig_values = (np.empty((len(index), values.shape[1])),
-                                       values)
-                values.fill(np.nan)
-                values_indexer = com._ensure_int64(l[~mask])
-                for i, j in enumerate(values_indexer):
-                    values[j] = orig_values[i]
-            else:
-                index = index.take(self.unique_groups)
 
         # may need to coerce categoricals here
         if self.is_categorical is not None:
@@ -220,9 +198,16 @@ class _Unstacker(object):
 
     def get_new_columns(self):
         if self.value_columns is None:
-            return self.removed_level
+            if self.lift == 0:
+                return self.removed_level
 
-        stride = len(self.removed_level)
+            lev = self.removed_level
+            vals = np.insert(lev.astype('object'), 0,
+                             _get_na_value(lev.dtype.type))
+
+            return lev._shallow_copy(vals)
+
+        stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
         propagator = np.repeat(np.arange(width), stride)
         if isinstance(self.value_columns, MultiIndex):
@@ -231,59 +216,34 @@ class _Unstacker(object):
 
             new_labels = [lab.take(propagator)
                           for lab in self.value_columns.labels]
-            new_labels.append(np.tile(np.arange(stride), width))
         else:
             new_levels = [self.value_columns, self.removed_level]
             new_names = [self.value_columns.name, self.removed_name]
+            new_labels = [propagator]
 
-            new_labels = []
-
-            new_labels.append(propagator)
-            new_labels.append(np.tile(np.arange(stride), width))
-
+        new_labels.append(np.tile(np.arange(stride) - self.lift, width))
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=new_names, verify_integrity=False)
 
     def get_new_index(self):
-        result_labels = []
-        for cur in self.sorted_labels[:-1]:
-            labels = cur.take(self.compressor)
-            labels = _make_index_array_level(labels, cur)
-            result_labels.append(labels)
+        result_labels = [lab.take(self.compressor)
+                         for lab in self.sorted_labels[:-1]]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
-            new_index = self.new_index_levels[0]
-            new_index.name = self.new_index_names[0]
-        else:
-            new_index = MultiIndex(levels=self.new_index_levels,
-                                   labels=result_labels,
-                                   names=self.new_index_names,
-                                   verify_integrity=False)
+            lev, lab = self.new_index_levels[0], result_labels[0]
+            if not (lab == -1).any():
+                return lev.take(lab)
 
-        return new_index
+            vals = np.insert(lev.astype('object'), len(lev),
+                             _get_na_value(lev.dtype.type)).take(lab)
 
+            return lev._shallow_copy(vals)
 
-def _make_index_array_level(lev, lab):
-    """ create the combined index array, preserving nans, return an array """
-    mask = lab == -1
-    if not mask.any():
-        return lev
-
-    l = np.arange(len(lab))
-    mask_labels = np.empty(len(mask[mask]), dtype=object)
-    mask_labels.fill(_get_na_value(lev.dtype.type))
-    mask_indexer = com._ensure_int64(l[mask])
-
-    labels = lev
-    labels_indexer = com._ensure_int64(l[~mask])
-
-    new_labels = np.empty(tuple([len(lab)]), dtype=object)
-    new_labels[labels_indexer] = labels
-    new_labels[mask_indexer] = mask_labels
-
-    return new_labels
-
+        return MultiIndex(levels=self.new_index_levels,
+                          labels=result_labels,
+                          names=self.new_index_names,
+                          verify_integrity=False)
 
 def _unstack_multiple(data, clocs):
     if len(clocs) == 0:
@@ -483,29 +443,10 @@ def _unstack_frame(obj, level):
 
 
 def get_compressed_ids(labels, sizes):
-    # no overflow
-    if com._long_prod(sizes) < 2 ** 63:
-        group_index = get_group_index(labels, sizes)
-        comp_index, obs_ids = _compress_group_index(group_index)
-    else:
-        n = len(labels[0])
-        mask = np.zeros(n, dtype=bool)
-        for v in labels:
-            mask |= v < 0
+    from pandas.core.groupby import get_flat_ids
 
-        while com._long_prod(sizes) >= 2 ** 63:
-            i = len(sizes)
-            while com._long_prod(sizes[:i]) >= 2 ** 63:
-                i -= 1
-
-            rem_index, rem_ids = get_compressed_ids(labels[:i],
-                                                    sizes[:i])
-            sizes = [len(rem_ids)] + sizes[i:]
-            labels = [rem_index] + labels[i:]
-
-        return get_compressed_ids(labels, sizes)
-
-    return comp_index, obs_ids
+    ids = get_flat_ids(labels, sizes, True)
+    return _compress_group_index(ids, sort=True)
 
 
 def stack(frame, level=-1, dropna=True):
