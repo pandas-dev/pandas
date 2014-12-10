@@ -271,3 +271,4 @@ Bug Fixes
 - Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).
 
 - Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
+- Bug in plotting of a period-like array (:issue:`9012`)
