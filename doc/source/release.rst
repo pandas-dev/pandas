@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.15.2
 -------------
 
-**Release date:** (December ??, 2014)
+**Release date:** (December 12, 2014)
 
 This is a minor release from 0.15.1 and includes a small number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
