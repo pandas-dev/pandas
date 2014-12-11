@@ -3403,7 +3403,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
     data.to_sql('data_chunked', engine, chunksize=1000)
 
 SQL data types
-""""""""""""""
+++++++++++++++
 
 :func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
 SQL data type based on the dtype of the data. When you have columns of dtype
@@ -3801,7 +3801,7 @@ is lost when exporting.
 Labeled data can similarly be imported from *Stata* data files as ``Categorical``
 variables using the keyword argument ``convert_categoricals`` (``True`` by default).
 The keyword argument ``order_categoricals`` (``True`` by default) determines
- whether imported ``Categorical`` variables are ordered.
+whether imported ``Categorical`` variables are ordered.
 
 .. note::
 
