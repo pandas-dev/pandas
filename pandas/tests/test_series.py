@@ -5020,7 +5020,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         tm._skip_if_no_dateutil();
-        from dateutil.tz import gettz, tzutc
+        from dateutil.tz import tzutc
+        from dateutil.zoneinfo import gettz
         tz = lambda x: tzutc() if x == 'UTC' else gettz(x)  # handle special case for utc in dateutil
 
         from pandas import date_range
