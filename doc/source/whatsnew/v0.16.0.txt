@@ -1,0 +1,50 @@
+.. _whatsnew_0160:
+
+v0.16.0 (February ??, 2015)
+---------------------------
+
+This is a major release from 0.15.2 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+- Highlights include:
+
+- Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating
+
+- :ref:`Other Enhancements <whatsnew_0160.enhancements>`
+
+- :ref:`Performance Improvements <whatsnew_0160.performance>`
+
+- :ref:`Bug Fixes <whatsnew_0160.bug_fixes>`
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0160.api:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_0160.deprecations:
+
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0160.enhancements:
+
+Performance
+~~~~~~~~~~~
+
+.. _whatsnew_0160.performance:
+
+
+Bug Fixes
+~~~~~~~~~
+
+.. _whatsnew_0160.bug_fixes:
