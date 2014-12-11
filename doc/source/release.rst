@@ -50,7 +50,9 @@ pandas 0.15.2
 
 **Release date:** (December 12, 2014)
 
-This is a minor release from 0.15.1 and includes a small number of API changes, several new features, enhancements, and performance improvements along with a large number of bug fixes.
+This is a minor release from 0.15.1 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+A small number of API changes were necessary to fix existing bugs.
 
 See the :ref:`v0.15.2 Whatsnew <whatsnew_0152>` overview for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.15.2.
