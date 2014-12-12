@@ -109,7 +109,7 @@ class PeriodConverter(dates.DateConverter):
     def convert(values, units, axis):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
-        valid_types = (str, datetime, Period, pydt.date, pydt.time)
+        valid_types = (compat.string_types, datetime, Period, pydt.date, pydt.time)
         if (isinstance(values, valid_types) or com.is_integer(values) or
                 com.is_float(values)):
             return get_datevalue(values, axis.freq)
@@ -127,7 +127,7 @@ class PeriodConverter(dates.DateConverter):
 def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
+    elif isinstance(date, (compat.string_types, datetime, pydt.date, pydt.time)):
         return Period(date, freq).ordinal
     elif (com.is_integer(date) or com.is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):

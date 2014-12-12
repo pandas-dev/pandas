@@ -115,8 +115,6 @@ class TestPeriodConverter(tm.TestCase):
         self.axis.freq = 'D'
 
     def test_convert_accepts_unicode(self):
-        # FIXME
-        raise nose.SkipTest("PeriodConverter does not yet handle unicode")
         r1 = self.pc.convert("2012-1-1", None, self.axis)
         r2 = self.pc.convert(u("2012-1-1"), None, self.axis)
         self.assert_equal(r1, r2, "PeriodConverter.convert should accept unicode")
