@@ -6,7 +6,7 @@ import nose
 
 import numpy as np
 from numpy.testing import assert_almost_equal as np_assert_almost_equal
-from pandas import Timestamp
+from pandas import Timestamp, Period
 from pandas.compat import u
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro
@@ -101,6 +101,60 @@ class TestDateTimeConverter(tm.TestCase):
         _assert_less(ts, ts + Second())
         _assert_less(ts, ts + Milli())
         _assert_less(ts, ts + Micro(50))
+
+
+class TestPeriodConverter(tm.TestCase):
+
+    def setUp(self):
+        self.pc = converter.PeriodConverter()
+
+        class Axis(object):
+            pass
+
+        self.axis = Axis()
+        self.axis.freq = 'D'
+
+    def test_convert_accepts_unicode(self):
+        r1 = self.pc.convert("2012-1-1", None, self.axis)
+        r2 = self.pc.convert(u("2012-1-1"), None, self.axis)
+        self.assert_equal(r1, r2, "PeriodConverter.convert should accept unicode")
+
+    def test_conversion(self):
+        rs = self.pc.convert(['2012-1-1'], None, self.axis)[0]
+        xp = Period('2012-1-1').ordinal
+        self.assertEqual(rs, xp)
+
+        rs = self.pc.convert('2012-1-1', None, self.axis)
+        self.assertEqual(rs, xp)
+
+        rs = self.pc.convert([date(2012, 1, 1)], None, self.axis)[0]
+        self.assertEqual(rs, xp)
+
+        rs = self.pc.convert(date(2012, 1, 1), None, self.axis)
+        self.assertEqual(rs, xp)
+
+        rs = self.pc.convert([Timestamp('2012-1-1')], None, self.axis)[0]
+        self.assertEqual(rs, xp)
+
+        rs = self.pc.convert(Timestamp('2012-1-1'), None, self.axis)
+        self.assertEqual(rs, xp)
+
+        # FIXME
+        # rs = self.pc.convert(np.datetime64('2012-01-01'), None, self.axis)
+        # self.assertEqual(rs, xp)
+        #
+        # rs = self.pc.convert(np.datetime64('2012-01-01 00:00:00+00:00'), None, self.axis)
+        # self.assertEqual(rs, xp)
+        #
+        # rs = self.pc.convert(np.array([np.datetime64('2012-01-01 00:00:00+00:00'),
+        #                                 np.datetime64('2012-01-02 00:00:00+00:00')]), None, self.axis)
+        # self.assertEqual(rs[0], xp)
+
+    def test_integer_passthrough(self):
+        # GH9012
+        rs = self.pc.convert([0, 1], None, self.axis)
+        xp = [0, 1]
+        self.assertEqual(rs, xp)
 
 
 if __name__ == '__main__':
