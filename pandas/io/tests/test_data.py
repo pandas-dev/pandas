@@ -214,6 +214,27 @@ class TestYahoo(tm.TestCase):
         web.get_data_yahoo('GOOG')
 
     @network
+    def test_get_data_interval(self):
+        # daily interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='d')
+        self.assertEqual(len(pan), 252)
+
+        # weekly interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='w')
+        self.assertEqual(len(pan), 53)
+
+        # montly interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='m')
+        self.assertEqual(len(pan), 12)
+
+        # dividend data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='v')
+        self.assertEqual(len(pan), 4)
+
+        # test fail on invalid interval
+        self.assertRaises(ValueError, web.get_data_yahoo, 'XOM', interval='NOT VALID')
+
+    @network
     def test_get_data_multiple_symbols(self):
         # just test that we succeed
         sl = ['AAPL', 'AMZN', 'GOOG']
