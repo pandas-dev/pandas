@@ -600,6 +600,10 @@ class Index(IndexOpsMixin, PandasObject):
         """ return if the index has unique values """
         return self._engine.is_unique
 
+    @property
+    def has_duplicates(self):
+        return not self.is_unique
+
     def is_boolean(self):
         return self.inferred_type in ['boolean']
 
@@ -3223,12 +3227,19 @@ class MultiIndex(Index):
         """
         Return True if there are no unique groups
         """
-        # has duplicates
+
+        from pandas.core.groupby import _int64_overflow_possible
+
+        # if we have a possible overflow, then fallback to safe method
         shape = [len(lev) for lev in self.levels]
+        if _int64_overflow_possible(shape):
+            return self.duplicated().any()
+
+        # int64 capable
         group_index = np.zeros(len(self), dtype='i8')
         for i in range(len(shape)):
             stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
-            group_index += self.labels[i] * stride
+            group_index += _ensure_int64(self.labels[i]) * stride
 
         if len(np.unique(group_index)) < len(group_index):
             return True

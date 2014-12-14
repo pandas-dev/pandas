@@ -3435,6 +3435,49 @@ class TestMultiIndex(Base, tm.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assertTrue(index.has_duplicates)
 
+        # GH 9075
+        t = [(u'x', u'out', u'z', 5, u'y', u'in', u'z', 169),
+             (u'x', u'out', u'z', 7, u'y', u'in', u'z', 119),
+             (u'x', u'out', u'z', 9, u'y', u'in', u'z', 135),
+             (u'x', u'out', u'z', 13, u'y', u'in', u'z', 145),
+             (u'x', u'out', u'z', 14, u'y', u'in', u'z', 158),
+             (u'x', u'out', u'z', 16, u'y', u'in', u'z', 122),
+             (u'x', u'out', u'z', 17, u'y', u'in', u'z', 160),
+             (u'x', u'out', u'z', 18, u'y', u'in', u'z', 180),
+             (u'x', u'out', u'z', 20, u'y', u'in', u'z', 143),
+             (u'x', u'out', u'z', 21, u'y', u'in', u'z', 128),
+             (u'x', u'out', u'z', 22, u'y', u'in', u'z', 129),
+             (u'x', u'out', u'z', 25, u'y', u'in', u'z', 111),
+             (u'x', u'out', u'z', 28, u'y', u'in', u'z', 114),
+             (u'x', u'out', u'z', 29, u'y', u'in', u'z', 121),
+             (u'x', u'out', u'z', 31, u'y', u'in', u'z', 126),
+             (u'x', u'out', u'z', 32, u'y', u'in', u'z', 155),
+             (u'x', u'out', u'z', 33, u'y', u'in', u'z', 123),
+             (u'x', u'out', u'z', 12, u'y', u'in', u'z', 144)]
+        index = pd.MultiIndex.from_tuples(t)
+        self.assertFalse(index.has_duplicates)
+
+        # handle int64 overflow if possible
+        def check(nlevels):
+            labels = np.tile(np.arange(500), 2)
+            level = np.arange(500)
+
+            # no dups
+            index = MultiIndex(levels=[level] * nlevels + [[0, 1]],
+                               labels=[labels] * nlevels + [np.arange(2).repeat(500)])
+            self.assertFalse(index.has_duplicates)
+
+            # with a dup
+            values = index.values.tolist()
+            index = MultiIndex.from_tuples(values + [values[0]])
+            self.assertTrue(index.has_duplicates)
+
+        # no overflow
+        check(4)
+
+        # overflow possible
+        check(8)
+
     def test_tolist(self):
         result = self.index.tolist()
         exp = list(self.index.values)
