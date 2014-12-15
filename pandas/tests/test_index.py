@@ -1909,6 +1909,22 @@ class TestDatetimeIndex(Base, tm.TestCase):
             right.iloc[i] *= -10
             tm.assert_series_equal(left, right)
 
+    def test_time_overflow_for_32bit_machines(self):
+        # GH8943.  On some machines NumPy defaults to np.int32 (for example,
+        # 32-bit Linux machines).  In the function _generate_regular_range
+        # found in tseries/index.py, `periods` gets multiplied by `strides`
+        # (which has value 1e9) and since the max value for np.int32 is ~2e9,
+        # and since those machines won't promote np.int32 to np.int64, we get
+        # overflow.
+        periods = np.int_(1000)
+
+        idx1 = pd.date_range(start='2000', periods=periods, freq='S')
+        self.assertEqual(len(idx1), periods)
+
+        idx2 = pd.date_range(end='2000', periods=periods, freq='S')
+        self.assertEqual(len(idx2), periods)
+
+
 class TestPeriodIndex(Base, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True

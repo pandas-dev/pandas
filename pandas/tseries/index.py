@@ -1781,11 +1781,11 @@ def _generate_regular_range(start, end, periods, offset):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + periods * stride
+            e = b + np.int64(periods) * stride
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - periods * stride
+            b = e - np.int64(periods) * stride
             tz = end.tz
         else:
             raise NotImplementedError
