@@ -140,3 +140,4 @@ Bug Fixes
 - DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - isnull now detects NaT in PeriodIndex (:issue:`9129`)
+- Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
