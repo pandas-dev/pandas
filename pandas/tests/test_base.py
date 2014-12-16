@@ -620,6 +620,9 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(result, original)
                 self.assertFalse(result is original)
 
+                # has_duplicates
+                self.assertFalse(original.has_duplicates)
+
                 # create repeated values, 3rd and 5th values are duplicated
                 idx = original[list(range(len(original))) + [5, 3]]
                 expected = Index([False] * len(original) + [True, True])
