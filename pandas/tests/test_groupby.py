@@ -337,6 +337,35 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame(1, columns=['a', 'b'], index=expected_dates)
         assert_frame_equal(result, expected)
 
+    def test_nth_multi_index(self):
+        # PR 9090, related to issue 8979
+        # test nth on MultiIndex, should match .first()
+        grouped = self.three_group.groupby(['A', 'B'])
+        result = grouped.nth(0)
+        expected = grouped.first()
+        assert_frame_equal(result, expected)
+
+
+    def test_nth_multi_index_as_expected(self):
+        # PR 9090, related to issue 8979
+        # test nth on MultiIndex
+        three_group = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
+                                       'bar', 'bar', 'bar', 'bar',
+                                       'foo', 'foo', 'foo'],
+                                 'B': ['one', 'one', 'one', 'two',
+                                       'one', 'one', 'one', 'two',
+                                       'two', 'two', 'one'],
+                                 'C': ['dull', 'dull', 'shiny', 'dull',
+                                       'dull', 'shiny', 'shiny', 'dull',
+                                       'shiny', 'shiny', 'shiny']})
+        grouped = three_group.groupby(['A', 'B'])
+        result = grouped.nth(0)
+        expected = DataFrame({'C': ['dull', 'dull', 'dull', 'dull']},
+                             index=MultiIndex.from_arrays([['bar', 'bar', 'foo', 'foo'], ['one', 'two', 'one', 'two']],
+                                                          names=['A', 'B']))
+        assert_frame_equal(result, expected)
+
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
