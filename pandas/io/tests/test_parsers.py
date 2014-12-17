@@ -3048,6 +3048,30 @@ A,B,C
         df = self.read_csv(StringIO(data), comment='#', skiprows=4)
         tm.assert_almost_equal(df.values, expected)
 
+    def test_skiprows_lineterminator(self):
+        #GH #9079
+        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
+                          '2007/01/01 01:00   0.2140 U M ',
+                          '2007/01/01 02:00   0.2141 M O ',
+                          '2007/01/01 04:00   0.2142 D M '])
+        expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
+                                 ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
+                                 ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
+                                columns=['date', 'time', 'var', 'flag', 
+                                         'oflag'])
+        # test with the three default lineterminators LF, CR and CRLF
+        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r')), 
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')), 
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+
     def test_trailing_spaces(self):
         data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"
         expected = pd.DataFrame([[1., 2., 4.],
