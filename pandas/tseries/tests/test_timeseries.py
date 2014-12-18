@@ -2332,7 +2332,17 @@ class TestDatetimeIndex(tm.TestCase):
         for i, ts in enumerate(index):
             result = ts
             expected = index[i]
+            self.assertEqual(result._repr_base, expected._repr_base)
             self.assertEqual(result, expected)
+
+        # 9100
+        index = pd.DatetimeIndex(['2014-12-01 03:32:39.987000-08:00','2014-12-01 04:12:34.987000-08:00'])
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result._repr_base, expected._repr_base)
+            self.assertEqual(result, expected)
+
 
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)

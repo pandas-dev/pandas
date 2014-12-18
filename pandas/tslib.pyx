@@ -128,9 +128,10 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
                     result[i] = NaT
                 else:
                     pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
-                    dt = func_create(value, dts, tz, offset)
-                    if not box:
-                        dt = dt + tz.utcoffset(dt)
+                    dt = create_datetime_from_ts(value, dts, tz, offset)
+                    dt = dt + tz.utcoffset(dt)
+                    if box:
+                        dt = Timestamp(dt)
                     result[i] = dt
         else:
             trans, deltas, typ = _get_dst_info(tz)
