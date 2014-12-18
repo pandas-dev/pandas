@@ -3451,6 +3451,69 @@ class TestMultiIndex(Base, tm.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assertTrue(index.has_duplicates)
 
+        # GH 9075
+        t = [(u'x', u'out', u'z', 5, u'y', u'in', u'z', 169),
+             (u'x', u'out', u'z', 7, u'y', u'in', u'z', 119),
+             (u'x', u'out', u'z', 9, u'y', u'in', u'z', 135),
+             (u'x', u'out', u'z', 13, u'y', u'in', u'z', 145),
+             (u'x', u'out', u'z', 14, u'y', u'in', u'z', 158),
+             (u'x', u'out', u'z', 16, u'y', u'in', u'z', 122),
+             (u'x', u'out', u'z', 17, u'y', u'in', u'z', 160),
+             (u'x', u'out', u'z', 18, u'y', u'in', u'z', 180),
+             (u'x', u'out', u'z', 20, u'y', u'in', u'z', 143),
+             (u'x', u'out', u'z', 21, u'y', u'in', u'z', 128),
+             (u'x', u'out', u'z', 22, u'y', u'in', u'z', 129),
+             (u'x', u'out', u'z', 25, u'y', u'in', u'z', 111),
+             (u'x', u'out', u'z', 28, u'y', u'in', u'z', 114),
+             (u'x', u'out', u'z', 29, u'y', u'in', u'z', 121),
+             (u'x', u'out', u'z', 31, u'y', u'in', u'z', 126),
+             (u'x', u'out', u'z', 32, u'y', u'in', u'z', 155),
+             (u'x', u'out', u'z', 33, u'y', u'in', u'z', 123),
+             (u'x', u'out', u'z', 12, u'y', u'in', u'z', 144)]
+
+        index = pd.MultiIndex.from_tuples(t)
+        self.assertFalse(index.has_duplicates)
+
+        # handle int64 overflow if possible
+        def check(nlevels, with_nulls):
+            labels = np.tile(np.arange(500), 2)
+            level = np.arange(500)
+
+            if with_nulls:  # inject some null values
+                labels[500] = -1  # common nan value
+                labels = list(labels.copy() for i in range(nlevels))
+                for i in range(nlevels):
+                    labels[i][500 + i - nlevels // 2 ] = -1
+
+                labels += [np.array([-1, 1]).repeat(500)]
+            else:
+                labels = [labels] * nlevels + [np.arange(2).repeat(500)]
+
+            levels = [level] * nlevels + [[0, 1]]
+
+            # no dups
+            index = MultiIndex(levels=levels, labels=labels)
+            self.assertFalse(index.has_duplicates)
+
+            # with a dup
+            if with_nulls:
+                f = lambda a: np.insert(a, 1000, a[0])
+                labels = list(map(f, labels))
+                index = MultiIndex(levels=levels, labels=labels)
+            else:
+                values = index.values.tolist()
+                index = MultiIndex.from_tuples(values + [values[0]])
+
+            self.assertTrue(index.has_duplicates)
+
+        # no overflow
+        check(4, False)
+        check(4, True)
+
+        # overflow possible
+        check(8, False)
+        check(8, True)
+
     def test_tolist(self):
         result = self.index.tolist()
         exp = list(self.index.values)
