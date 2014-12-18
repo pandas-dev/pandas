@@ -1176,6 +1176,7 @@ Attributes
    Index.is_monotonic_increasing
    Index.is_monotonic_decreasing
    Index.is_unique
+   Index.has_duplicates
    Index.dtype
    Index.inferred_type
    Index.is_all_dates

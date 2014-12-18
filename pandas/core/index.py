@@ -3,7 +3,7 @@ import datetime
 import warnings
 import operator
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip, u, reduce
+from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
 
@@ -599,6 +599,10 @@ class Index(IndexOpsMixin, PandasObject):
     def is_unique(self):
         """ return if the index has unique values """
         return self._engine.is_unique
+
+    @property
+    def has_duplicates(self):
+        return not self.is_unique
 
     def is_boolean(self):
         return self.inferred_type in ['boolean']
@@ -3218,22 +3222,47 @@ class MultiIndex(Index):
         # to disable groupby tricks
         return True
 
-    @property
-    def has_duplicates(self):
-        """
-        Return True if there are no unique groups
-        """
-        # has duplicates
-        shape = [len(lev) for lev in self.levels]
-        group_index = np.zeros(len(self), dtype='i8')
-        for i in range(len(shape)):
-            stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
-            group_index += self.labels[i] * stride
+    @cache_readonly
+    def is_unique(self):
+        from pandas.hashtable import Int64HashTable
 
-        if len(np.unique(group_index)) < len(group_index):
-            return True
+        def _get_group_index(labels, shape):
+            from pandas.core.groupby import _int64_overflow_possible, \
+                                            _compress_group_index
 
-        return False
+            # how many levels can be done without overflow
+            pred = lambda i: not _int64_overflow_possible(shape[:i])
+            nlev = next(filter(pred, range(len(shape), 0, -1)))
+
+            # compute group indicies for the first `nlev` levels
+            group_index = labels[0].astype('i8', subok=False, copy=True)
+            stride = shape[0]
+
+            for i in range(1, nlev):
+                group_index += labels[i] * stride
+                stride *= shape[i]
+
+            if nlev == len(shape):
+                return group_index
+
+            comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
+
+            labels = [comp_ids] + labels[nlev:]
+            shape = [len(obs_ids)] + shape[nlev:]
+
+            return _get_group_index(labels, shape)
+
+        def _maybe_lift(lab, size):  # pormote nan values
+            return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+
+        shape = map(len, self.levels)
+        labels = map(_ensure_int64, self.labels)
+
+        labels, shape = map(list, zip(*map(_maybe_lift, labels, shape)))
+        group_index = _get_group_index(labels, shape)
+
+        table = Int64HashTable(min(1 << 20, len(group_index)))
+        return len(table.unique(group_index)) == len(self)
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
