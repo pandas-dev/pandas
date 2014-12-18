@@ -121,11 +121,11 @@ class NDFrame(PandasObject):
                 mgr = mgr.reindex_axis(
                     axe, axis=self._get_block_manager_axis(a), copy=False)
 
-        # do not copy BlockManager unless explicitly done
-        if copy and dtype is None:
+        # make a copy if explicitly requested
+        if copy:
             mgr = mgr.copy()
-        elif dtype is not None:
-            # avoid copy if we can
+        if dtype is not None:
+            # avoid further copies if we can
             if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
