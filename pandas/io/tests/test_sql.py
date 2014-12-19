@@ -868,24 +868,38 @@ class _TestSQLAlchemy(PandasSQLTest):
     """
     flavor = None
 
+    @classmethod
+    def setUpClass(cls):
+        cls.setup_import()
+        cls.setup_driver()
+
+        # test connection
+        try:
+            conn = cls.connect()
+            conn.connect()
+        except sqlalchemy.exc.OperationalError:
+            msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
+            raise nose.SkipTest(msg)
+
     def setUp(self):
-        self.setup_import()
-        self.setup_driver()
         self.setup_connect()
 
         self._load_iris_data()
         self._load_raw_sql()
         self._load_test1_data()
 
-    def setup_import(self):
+    @classmethod
+    def setup_import(cls):
         # Skip this test if SQLAlchemy not available
         if not SQLALCHEMY_INSTALLED:
             raise nose.SkipTest('SQLAlchemy not installed')
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         raise NotImplementedError()
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         raise NotImplementedError()
 
     def setup_connect(self):
@@ -1221,12 +1235,14 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
     flavor = 'sqlite'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         return sqlalchemy.create_engine('sqlite:///:memory:')
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         # sqlite3 is built-in
-        self.driver = None
+        cls.driver = None
 
     def tearDown(self):
         # in memory so tables should not be removed explicitly
@@ -1275,14 +1291,16 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
     """
     flavor = 'mysql'
 
-    def connect(self):
-        return sqlalchemy.create_engine(
-            'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
+    @classmethod
+    def connect(cls):
+        url = 'mysql+{driver}://root@localhost/pandas_nosetest'
+        return sqlalchemy.create_engine(url.format(driver=cls.driver))
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         try:
             import pymysql
-            self.driver = 'pymysql'
+            cls.driver = 'pymysql'
         except ImportError:
             raise nose.SkipTest('pymysql not installed')
 
@@ -1347,14 +1365,16 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     """
     flavor = 'postgresql'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         url = 'postgresql+{driver}://postgres@localhost/pandas_nosetest'
-        return sqlalchemy.create_engine(url.format(driver=self.driver))
+        return sqlalchemy.create_engine(url.format(driver=cls.driver))
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         try:
             import psycopg2
-            self.driver = 'psycopg2'
+            cls.driver = 'psycopg2'
         except ImportError:
             raise nose.SkipTest('psycopg2 not installed')
 
@@ -1431,7 +1451,8 @@ class TestSQLiteFallback(PandasSQLTest):
     """
     flavor = 'sqlite'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         return sqlite3.connect(':memory:')
 
     def drop_table(self, table_name):
@@ -1582,6 +1603,28 @@ class TestMySQLLegacy(TestSQLiteFallback):
     """
     flavor = 'mysql'
 
+    @classmethod
+    def setUpClass(cls):
+        cls.setup_driver()
+
+        # test connection
+        try:
+            cls.connect()
+        except cls.driver.err.OperationalError:
+            raise nose.SkipTest("{0} - can't connect to MySQL server".format(cls))
+
+    @classmethod
+    def setup_driver(cls):
+        try:
+            import pymysql
+            cls.driver = pymysql
+        except ImportError:
+            raise nose.SkipTest('pymysql not installed')
+
+    @classmethod
+    def connect(cls):
+        return cls.driver.connect(host='127.0.0.1', user='root', passwd='', db='pandas_nosetest')
+
     def drop_table(self, table_name):
         cur = self.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS %s" % table_name)
@@ -1594,16 +1637,7 @@ class TestMySQLLegacy(TestSQLiteFallback):
         rows = cur.fetchall()
         return rows[0][0]
 
-    def connect(self):
-        return self.driver.connect(host='127.0.0.1', user='root', passwd='', db='pandas_nosetest')
-
     def setUp(self):
-        try:
-            import pymysql
-            self.driver = pymysql
-        except ImportError:
-            raise nose.SkipTest('pymysql not installed')
-
         try:
             self.conn = self.connect()
         except self.driver.err.OperationalError:
@@ -1940,6 +1974,35 @@ class TestXSQLite(tm.TestCase):
 
 
 class TestXMySQL(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        _skip_if_no_pymysql()
+
+        # test connection
+        import pymysql
+        try:
+            # Try Travis defaults.
+            # No real user should allow root access with a blank password.
+            pymysql.connect(host='localhost', user='root', passwd='',
+                            db='pandas_nosetest')
+        except:
+            pass
+        else:
+            return
+        try:
+            pymysql.connect(read_default_group='pandas')
+        except pymysql.ProgrammingError as e:
+            raise nose.SkipTest(
+                "Create a group of connection parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+        except pymysql.Error as e:
+            raise nose.SkipTest(
+                "Cannot connect to database. "
+                "Create a group of connection parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
     def setUp(self):
         _skip_if_no_pymysql()
