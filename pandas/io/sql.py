@@ -911,7 +911,7 @@ class SQLTable(PandasObject):
         from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
             DateTime, Date, Time)
 
-        if col_type == 'datetime64': 
+        if col_type == 'datetime64' or col_type == 'datetime':
             try:
                 tz = col.tzinfo
                 return DateTime(timezone=True)
