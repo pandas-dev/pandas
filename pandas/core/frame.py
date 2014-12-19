@@ -698,7 +698,7 @@ class DataFrame(NDFrame):
         if orient.lower().startswith('d'):
             return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
+            return dict((k, v.values.tolist()) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('sp'):
             return {'index': self.index.tolist(),
                     'columns': self.columns.tolist(),
