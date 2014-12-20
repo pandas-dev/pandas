@@ -29,6 +29,10 @@ Backwards incompatible API changes
 
 - ``Index.duplicated`` now returns `np.array(dtype=bool)` rather than `Index(dtype=object)` containing `bool` values. (:issue:`8875`)
 
+- ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex.summary`` now output the same format. (:issue:`9116`)
+- ``TimedeltaIndex.freqstr`` now output the same string format as ``DatetimeIndex``. (:issue:`9116`)
+
+
 Deprecations
 ~~~~~~~~~~~~
 

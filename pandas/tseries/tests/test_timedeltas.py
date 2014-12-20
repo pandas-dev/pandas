@@ -540,7 +540,7 @@ class TestTimedeltas(tm.TestCase):
         expected = np.array([0, 500000000, 800000000, 1200000000], dtype='timedelta64[ns]')
         result = to_timedelta([0., 0.5, 0.8, 1.2], unit='s', box=False)
         tm.assert_numpy_array_equal(expected, result)
-       
+
         def testit(unit, transform):
 
             # array
