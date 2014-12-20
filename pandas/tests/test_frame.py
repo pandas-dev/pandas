@@ -2489,6 +2489,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # this is ok
         df['foo2'] = np.ones((4,2)).tolist()
 
+    def test_constructor_dtype_copy(self):
+        orig_df = DataFrame({
+            'col1': [1.],
+            'col2': [2.],
+            'col3': [3.]})
+
+        new_df = pd.DataFrame(orig_df, dtype=float, copy=True)
+
+        new_df['col1'] = 200.
+        self.assertEqual(orig_df['col1'][0], 1.)
+
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
