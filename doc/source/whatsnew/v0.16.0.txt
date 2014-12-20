@@ -58,6 +58,8 @@ Bug Fixes
 
 
 
+- Fixed bug in ``to_sql`` when mapping a Timestamp object column (datetime
+  column with timezone info) to the according sqlalchemy type (:issue:`9085`).
 
 
 

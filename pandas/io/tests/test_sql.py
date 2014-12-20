@@ -792,6 +792,15 @@ class TestSQLApi(_TestSQLApi):
         ixs = [i['column_names'] for i in ixs]
         return ixs
 
+    def test_sqlalchemy_type_mapping(self):
+
+        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+        df = DataFrame({'time': to_datetime(['201412120154', '201412110254'],
+                                            utc=True)})
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
+        self.assertTrue(isinstance(table.table.c['time'].type, sqltypes.DateTime))
+
 
 class TestSQLiteFallbackApi(_TestSQLApi):
     """
@@ -852,6 +861,24 @@ class TestSQLiteFallbackApi(_TestSQLApi):
         with tm.assert_produces_warning(FutureWarning):
             rows = sql.uquery("SELECT * FROM iris LIMIT 1", con=self.conn)
         self.assertEqual(rows, -1)
+
+    def _get_sqlite_column_type(self, schema, column):
+
+        for col in schema.split('\n'):
+            if col.split()[0].strip('[]') == column:
+                return col.split()[1]
+        raise ValueError('Column %s not found' % (column))
+
+    def test_sqlite_type_mapping(self):
+
+        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+        df = DataFrame({'time': to_datetime(['201412120154', '201412110254'],
+                                            utc=True)})
+        db = sql.SQLiteDatabase(self.conn, self.flavor)
+        table = sql.SQLiteTable("test_type", db, frame=df)
+        schema = table.sql_schema()
+        self.assertEqual(self._get_sqlite_column_type(schema, 'time'),
+                         "TIMESTAMP")
 
 
 #------------------------------------------------------------------------------
@@ -1571,7 +1598,7 @@ class TestSQLiteFallback(PandasSQLTest):
 
         # sqlite stores Boolean values as INTEGER
         self.assertEqual(self._get_sqlite_column_type('dtype_test', 'B'), 'INTEGER')
-        
+
         self.assertEqual(self._get_sqlite_column_type('dtype_test2', 'B'), 'STRING')
         self.assertRaises(ValueError, df.to_sql,
                           'error', self.conn, dtype={'B': bool})
@@ -1579,7 +1606,7 @@ class TestSQLiteFallback(PandasSQLTest):
     def test_notnull_dtype(self):
         if self.flavor == 'mysql':
             raise nose.SkipTest('Not applicable to MySQL legacy')
-            
+
         cols = {'Bool': Series([True,None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
                 'Int' : Series([1, None], dtype='object'),
