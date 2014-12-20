@@ -2075,13 +2075,17 @@ Thur,Lunch,Yes,51.51,17"""
         # GH 4060
         idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2 ,3], [1, 1, 1, 1, 2, 2]))
 
-        expected = Index([False, False, False, True, False, False])
-        tm.assert_index_equal(idx.duplicated(), expected)
+        expected = np.array([False, False, False, True, False, False], dtype=bool)
+        duplicated = idx.duplicated()
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
         expected = MultiIndex.from_arrays(([1, 2, 3, 2 ,3], [1, 1, 1, 2, 2]))
         tm.assert_index_equal(idx.drop_duplicates(), expected)
 
-        expected = Index([True, False, False, False, False, False])
-        tm.assert_index_equal(idx.duplicated(take_last=True), expected)
+        expected = np.array([True, False, False, False, False, False])
+        duplicated = idx.duplicated(take_last=True)
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
         expected = MultiIndex.from_arrays(([2, 3, 1, 2 ,3], [1, 1, 1, 2, 2]))
         tm.assert_index_equal(idx.drop_duplicates(take_last=True), expected)
 

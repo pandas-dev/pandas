@@ -27,6 +27,8 @@ Backwards incompatible API changes
 
 .. _whatsnew_0160.api_breaking:
 
+- ``Index.duplicated`` now returns `np.array(dtype=bool)` rather than `Index(dtype=object)` containing `bool` values. (:issue:`8875`)
+
 Deprecations
 ~~~~~~~~~~~~
 

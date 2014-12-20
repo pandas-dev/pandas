@@ -33,7 +33,8 @@ __all__ = ['Index']
 
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
-_index_doc_kwargs = dict(klass='Index', inplace='')
+_index_doc_kwargs = dict(klass='Index', inplace='',
+                         duplicated='np.array')
 
 
 def _try_get_item(x):
