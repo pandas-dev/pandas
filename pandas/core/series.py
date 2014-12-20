@@ -59,7 +59,8 @@ _shared_doc_kwargs = dict(
     klass='Series',
     axes_single_arg="{0,'index'}",
     inplace="""inplace : boolean, default False
-            If True, performs operation inplace and returns None."""
+            If True, performs operation inplace and returns None.""",
+    duplicated='Series'
 )
 
 
