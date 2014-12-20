@@ -16,6 +16,7 @@ from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
 import pandas.algos as algos
+import pandas.lib as lib
 
 from pandas.core.index import MultiIndex
 
@@ -975,7 +976,7 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None):
+                columns=None, pos_value=None, neg_value=None):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -996,6 +997,10 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
+    pos_value : scalar value or dict
+        replacement value corresponding to positive variables (dummy variables)
+    neg_value : list-like, default None
+        replacement value corresponding to negative variables
 
     Returns
     -------
@@ -1088,6 +1093,19 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na)
+
+    if pos_value is not None:
+        if isinstance(pos_value, dict) or lib.isscalar(pos_value):
+            result = result.replace(to_replace=1, value=pos_value)
+        else:
+            raise ValueError('invalid pos_value, use scalar or dict: %s' % type(pos_value))
+
+    if neg_value is not None:
+        if isinstance(neg_value, dict) or lib.isscalar(neg_value):
+            result = result.replace(to_replace=0, value=neg_value)
+        else:
+            raise ValueError('invalid neg_value, use scalar or dict: %s' % type(neg_value))
+
     return result
 
 

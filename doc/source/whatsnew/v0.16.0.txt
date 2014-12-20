@@ -152,6 +152,14 @@ Enhancements
 - ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
 - SQL code now safely escapes table and column names (:issue:`8986`)
 
+- ``pd.get_dummies`` can accept ``pos_value`` and ``neg_value`` keywords for filling with positive and negative valriables (:issue:`8028`)
+
+  .. ipython:: python
+
+     s = pd.Series(['X', 'Y', 'X', 'Y'])
+     pd.get_dummies(s, pos_value='YES', neg_value='NO')
+
+
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
 - Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
   ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
