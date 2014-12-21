@@ -1895,8 +1895,6 @@ class BarPlot(MPLPlot):
                 ax.set_xlim((s_edge, e_edge))
                 ax.set_xticks(self.tick_pos)
                 ax.set_xticklabels(str_index)
-                if not self.log: # GH3254+
-                    ax.axhline(0, color='k', linestyle='--')
                 if name is not None and self.use_index:
                     ax.set_xlabel(name)
             elif self.kind == 'barh':
@@ -1904,7 +1902,6 @@ class BarPlot(MPLPlot):
                 ax.set_ylim((s_edge, e_edge))
                 ax.set_yticks(self.tick_pos)
                 ax.set_yticklabels(str_index)
-                ax.axvline(0, color='k', linestyle='--')
                 if name is not None and self.use_index:
                     ax.set_ylabel(name)
             else:
