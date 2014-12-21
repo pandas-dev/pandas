@@ -41,7 +41,11 @@ from datetime import time as datetime_time
 # dateutil compat
 from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal, tzfile as _dateutil_tzfile,
                          tzutc as _dateutil_tzutc)
-from dateutil.zoneinfo import gettz as _dateutil_gettz
+from pandas.compat import is_platform_windows
+if is_platform_windows():
+    from dateutil.zoneinfo import gettz as _dateutil_gettz
+else:
+    from dateutil.tz import gettz as _dateutil_gettz
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 from pandas.compat import parse_date, string_types, PY3, iteritems

@@ -26,6 +26,7 @@ Python 2.6 compatibility:
 
 Other items:
 * OrderedDefaultDict
+* platform checker
 """
 # pylint disable=W0611
 import functools
@@ -754,3 +755,16 @@ class OrderedDefaultdict(OrderedDict):
     def __reduce__(self):  # optional, for pickle support
         args = self.default_factory if self.default_factory else tuple()
         return type(self), args, None, None, list(self.items())
+
+
+# https://github.com/pydata/pandas/pull/9123
+def is_platform_windows():
+    return sys.platform == 'win32' or sys.platform == 'cygwin'
+
+
+def is_platform_linux():
+    return sys.platform == 'linux2'
+
+
+def is_platform_mac():
+    return sys.platform == 'darwin'

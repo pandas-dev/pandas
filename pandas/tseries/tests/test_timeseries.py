@@ -417,9 +417,9 @@ class TestTimeSeries(tm.TestCase):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        import dateutil
+        from pandas.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519',
-                         tz=dateutil.zoneinfo.gettz('US/Eastern'))
+                         tz=gettz('US/Eastern'))
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
@@ -1807,7 +1807,7 @@ class TestTimeSeries(tm.TestCase):
     def test_append_concat_tz_dateutil(self):
         # GH 2938
         tm._skip_if_no_dateutil()
-        from dateutil.zoneinfo import gettz as timezone
+        from pandas.tslib import _dateutil_gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')
