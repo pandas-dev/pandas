@@ -1,10 +1,11 @@
 """Common IO api utilities"""
 
 import sys
+import os
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.compat import StringIO
+from pandas.compat import StringIO, string_types
 from pandas import compat
 
 
@@ -99,6 +100,24 @@ def maybe_read_encoded_stream(reader, encoding=None):
     return reader, encoding
 
 
+def _expand_user(filepath_or_buffer):
+    """Return the argument with an initial component of ~ or ~user
+       replaced by that user's home directory.
+
+    Parameters
+    ----------
+    filepath_or_buffer : object to be converted if possible
+
+    Returns
+    -------
+    expanded_filepath_or_buffer : an expanded filepath or the
+                                  input if not expandable
+    """
+    if isinstance(filepath_or_buffer, string_types):
+        return os.path.expanduser(filepath_or_buffer)
+    return filepath_or_buffer
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer
@@ -138,7 +157,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         filepath_or_buffer = StringIO(k.get_contents_as_string())
         return filepath_or_buffer, None
 
-    return filepath_or_buffer, None
+
+    return _expand_user(filepath_or_buffer), None
 
 
 def file_path_to_url(path):
