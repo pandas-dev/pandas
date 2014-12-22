@@ -3452,24 +3452,24 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue(index.has_duplicates)
 
         # GH 9075
-        t = [(u'x', u'out', u'z', 5, u'y', u'in', u'z', 169),
-             (u'x', u'out', u'z', 7, u'y', u'in', u'z', 119),
-             (u'x', u'out', u'z', 9, u'y', u'in', u'z', 135),
-             (u'x', u'out', u'z', 13, u'y', u'in', u'z', 145),
-             (u'x', u'out', u'z', 14, u'y', u'in', u'z', 158),
-             (u'x', u'out', u'z', 16, u'y', u'in', u'z', 122),
-             (u'x', u'out', u'z', 17, u'y', u'in', u'z', 160),
-             (u'x', u'out', u'z', 18, u'y', u'in', u'z', 180),
-             (u'x', u'out', u'z', 20, u'y', u'in', u'z', 143),
-             (u'x', u'out', u'z', 21, u'y', u'in', u'z', 128),
-             (u'x', u'out', u'z', 22, u'y', u'in', u'z', 129),
-             (u'x', u'out', u'z', 25, u'y', u'in', u'z', 111),
-             (u'x', u'out', u'z', 28, u'y', u'in', u'z', 114),
-             (u'x', u'out', u'z', 29, u'y', u'in', u'z', 121),
-             (u'x', u'out', u'z', 31, u'y', u'in', u'z', 126),
-             (u'x', u'out', u'z', 32, u'y', u'in', u'z', 155),
-             (u'x', u'out', u'z', 33, u'y', u'in', u'z', 123),
-             (u'x', u'out', u'z', 12, u'y', u'in', u'z', 144)]
+        t = [(u('x'), u('out'), u('z'), 5, u('y'), u('in'), u('z'), 169),
+             (u('x'), u('out'), u('z'), 7, u('y'), u('in'), u('z'), 119),
+             (u('x'), u('out'), u('z'), 9, u('y'), u('in'), u('z'), 135),
+             (u('x'), u('out'), u('z'), 13, u('y'), u('in'), u('z'), 145),
+             (u('x'), u('out'), u('z'), 14, u('y'), u('in'), u('z'), 158),
+             (u('x'), u('out'), u('z'), 16, u('y'), u('in'), u('z'), 122),
+             (u('x'), u('out'), u('z'), 17, u('y'), u('in'), u('z'), 160),
+             (u('x'), u('out'), u('z'), 18, u('y'), u('in'), u('z'), 180),
+             (u('x'), u('out'), u('z'), 20, u('y'), u('in'), u('z'), 143),
+             (u('x'), u('out'), u('z'), 21, u('y'), u('in'), u('z'), 128),
+             (u('x'), u('out'), u('z'), 22, u('y'), u('in'), u('z'), 129),
+             (u('x'), u('out'), u('z'), 25, u('y'), u('in'), u('z'), 111),
+             (u('x'), u('out'), u('z'), 28, u('y'), u('in'), u('z'), 114),
+             (u('x'), u('out'), u('z'), 29, u('y'), u('in'), u('z'), 121),
+             (u('x'), u('out'), u('z'), 31, u('y'), u('in'), u('z'), 126),
+             (u('x'), u('out'), u('z'), 32, u('y'), u('in'), u('z'), 155),
+             (u('x'), u('out'), u('z'), 33, u('y'), u('in'), u('z'), 123),
+             (u('x'), u('out'), u('z'), 12, u('y'), u('in'), u('z'), 144)]
 
         index = pd.MultiIndex.from_tuples(t)
         self.assertFalse(index.has_duplicates)
