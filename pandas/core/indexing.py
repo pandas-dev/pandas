@@ -1275,9 +1275,8 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(key, tuple) and isinstance(ax, MultiIndex):
                 return True
 
-            # require at least 1 element in the index
-            idx = _ensure_index(key)
-            if len(idx) and not idx.isin(ax).any():
+            # TODO: don't check the entire key unless necessary
+            if len(key) and np.all(ax.get_indexer_for(key) < 0):
 
                 raise KeyError("None of [%s] are in the [%s]" %
                                (key, self.obj._get_axis_name(axis)))
