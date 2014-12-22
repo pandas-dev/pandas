@@ -11,7 +11,7 @@ import csv
 import nose
 import functools
 import itertools
-from itertools import product
+from itertools import product, permutations
 from distutils.version import LooseVersion
 
 from pandas.compat import(
@@ -12333,6 +12333,53 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         with tm.assertRaises(ValueError):
             df.T.stack('c1')
+
+    def test_unstack_nan_index(self):  # GH7466
+        cast = lambda val: '{0:1}'.format('' if val != val else val)
+        nan = np.nan
+
+        def verify(df):
+            mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+            rows, cols = df.notnull().values.nonzero()
+            for i, j in zip(rows, cols):
+                left = sorted(df.iloc[i, j].split('.'))
+                right = mk_list(df.index[i]) + mk_list(df.columns[j])
+                right = sorted(list(map(cast, right)))
+                self.assertEqual(left, right)
+
+        df = DataFrame({'jim':['a', 'b', nan, 'd'],
+                        'joe':['w', 'x', 'y', 'z'],
+                        'jolie':['a.w', 'b.x', ' .y', 'd.z']})
+
+        left  = df.set_index(['jim', 'joe']).unstack()['jolie']
+        right = df.set_index(['joe', 'jim']).unstack()['jolie'].T
+        assert_frame_equal(left, right)
+
+        for idx in permutations(df.columns[:2]):
+            mi = df.set_index(list(idx))
+            for lev in range(2):
+                udf = mi.unstack(level=lev)
+                self.assertEqual(udf.notnull().values.sum(), len(df))
+                verify(udf['jolie'])
+
+        df = DataFrame({'1st':['d'] * 3 + [nan] * 5 + ['a'] * 2 +
+                              ['c'] * 3 + ['e'] * 2 + ['b'] * 5,
+                        '2nd':['y'] * 2 + ['w'] * 3 + [nan] * 3 +
+                              ['z'] * 4 + [nan] * 3 + ['x'] * 3 + [nan] * 2,
+                        '3rd':[67,39,53,72,57,80,31,18,11,30,59,
+                               50,62,59,76,52,14,53,60,51]})
+
+        df['4th'], df['5th'] = \
+                df.apply(lambda r: '.'.join(map(cast, r)), axis=1), \
+                df.apply(lambda r: '.'.join(map(cast, r.iloc[::-1])), axis=1)
+
+        for idx in permutations(['1st', '2nd', '3rd']):
+            mi = df.set_index(list(idx))
+            for lev in range(3):
+                udf = mi.unstack(level=lev)
+                self.assertEqual(udf.notnull().values.sum(), 2 * len(df))
+                for col in ['4th', '5th']:
+                    verify(udf[col])
 
     def test_stack_datetime_column_multiIndex(self):
         # GH 8039

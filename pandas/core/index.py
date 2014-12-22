@@ -3226,44 +3226,13 @@ class MultiIndex(Index):
     @cache_readonly
     def is_unique(self):
         from pandas.hashtable import Int64HashTable
-
-        def _get_group_index(labels, shape):
-            from pandas.core.groupby import _int64_overflow_possible, \
-                                            _compress_group_index
-
-            # how many levels can be done without overflow
-            pred = lambda i: not _int64_overflow_possible(shape[:i])
-            nlev = next(filter(pred, range(len(shape), 0, -1)))
-
-            # compute group indicies for the first `nlev` levels
-            group_index = labels[0].astype('i8', subok=False, copy=True)
-            stride = shape[0]
-
-            for i in range(1, nlev):
-                group_index += labels[i] * stride
-                stride *= shape[i]
-
-            if nlev == len(shape):
-                return group_index
-
-            comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-
-            labels = [comp_ids] + labels[nlev:]
-            shape = [len(obs_ids)] + shape[nlev:]
-
-            return _get_group_index(labels, shape)
-
-        def _maybe_lift(lab, size):  # pormote nan values
-            return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+        from pandas.core.groupby import get_flat_ids
 
         shape = map(len, self.levels)
-        labels = map(_ensure_int64, self.labels)
+        ids = get_flat_ids(self.labels, shape, False)
+        table = Int64HashTable(min(1 << 20, len(ids)))
 
-        labels, shape = map(list, zip(*map(_maybe_lift, labels, shape)))
-        group_index = _get_group_index(labels, shape)
-
-        table = Int64HashTable(min(1 << 20, len(group_index)))
-        return len(table.unique(group_index)) == len(self)
+        return len(table.unique(ids)) == len(self)
 
     def get_value(self, series, key):
         # somewhat broken encapsulation

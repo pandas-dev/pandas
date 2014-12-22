@@ -173,13 +173,16 @@ class TestPivotTable(tm.TestCase):
     def test_pivot_index_with_nan(self):
         # GH 3588
         nan = np.nan
-        df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
+        df = DataFrame({'a':['R1', 'R2', nan, 'R4'],
+                        'b':['C1', 'C2', 'C3' , 'C4'],
+                        'c':[10, 15, 17, 20]})
         result = df.pivot('a','b','c')
-        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan],
-                              [nan,nan,nan,nan],[nan,nan,15,20]],
-                             index = Index(['R1','R2',nan,'R4'],name='a'),
+        expected = DataFrame([[nan,nan,17,nan],[10,nan,nan,nan],
+                              [nan,15,nan,nan],[nan,nan,nan,20]],
+                             index = Index([nan,'R1','R2','R4'],name='a'),
                              columns = Index(['C1','C2','C3','C4'],name='b'))
         tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df.pivot('b', 'a', 'c'), expected.T)
 
     def test_pivot_with_tz(self):
         # GH 5878
@@ -268,12 +271,12 @@ class TestPivotTable(tm.TestCase):
 
         # issue number #8349: pivot_table with margins and dictionary aggfunc
 
-        df=DataFrame([  {'JOB':'Worker','NAME':'Bob' ,'YEAR':2013,'MONTH':12,'DAYS': 3,'SALARY': 17}, 
-                        {'JOB':'Employ','NAME':'Mary','YEAR':2013,'MONTH':12,'DAYS': 5,'SALARY': 23}, 
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':10,'SALARY':100}, 
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':11,'SALARY':110}, 
-                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 1,'DAYS':15,'SALARY':200}, 
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 2,'DAYS': 8,'SALARY': 80}, 
+        df=DataFrame([  {'JOB':'Worker','NAME':'Bob' ,'YEAR':2013,'MONTH':12,'DAYS': 3,'SALARY': 17},
+                        {'JOB':'Employ','NAME':'Mary','YEAR':2013,'MONTH':12,'DAYS': 5,'SALARY': 23},
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':10,'SALARY':100},
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':11,'SALARY':110},
+                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 1,'DAYS':15,'SALARY':200},
+                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 2,'DAYS': 8,'SALARY': 80},
                         {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 2,'DAYS': 5,'SALARY':190} ])
 
         df=df.set_index(['JOB','NAME','YEAR','MONTH'],drop=False,append=False)
