@@ -4094,11 +4094,11 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if axis == 1:
-                counts = notnull(frame.values).sum(1)
-                result = Series(counts, index=frame._get_agg_axis(axis))
-            else:
+            if frame._is_mixed_type:
                 result = notnull(frame).sum(axis=axis)
+            else:
+                counts = notnull(frame.values).sum(axis=axis)
+                result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
 
