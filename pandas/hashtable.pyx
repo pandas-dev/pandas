@@ -1062,3 +1062,27 @@ def mode_int64(ndarray[int64_t] values):
     kh_destroy_int64(table)
 
     return modes[:j+1]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def duplicated_int64(ndarray[int64_t, ndim=1] values, int take_last):
+    cdef:
+        int ret = 0
+        Py_ssize_t i, n = len(values)
+        kh_int64_t * table = kh_init_int64()
+        ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
+
+    kh_resize_int64(table, min(1 << 20, n))
+
+    if take_last:
+        for i from n > i >=0:
+            kh_put_int64(table, values[i], &ret)
+            out[i] = ret == 0
+    else:
+        for i from 0 <= i < n:
+            kh_put_int64(table, values[i], &ret)
+            out[i] = ret == 0
+
+    kh_destroy_int64(table)
+    return out
