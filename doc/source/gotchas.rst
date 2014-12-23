@@ -343,12 +343,12 @@ Reindex potentially changes underlying Series dtype
 
 The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
 
-.. code-block:: python
+.. ipython:: python
 
-   series = pandas.Series([1, 2, 3])
-   x = pandas.Series([True])
+   series = Series([1, 2, 3])
+   x = Series([True])
    x.dtype
-   x = pandas.Series([True]).reindex_like(series)
+   x = Series([True]).reindex_like(series)
    x.dtype
 
 This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
