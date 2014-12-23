@@ -157,6 +157,15 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+    # GH 9129
+    pidx = idx.to_period(freq='M')
+    mask = isnull(pidx)
+    assert(mask[0])
+    assert(not mask[1:].any())
+
+    mask = isnull(pidx[1:])
+    assert(not mask.any())
+
 
 class TestIsNull(tm.TestCase):
     def test_0d_array(self):

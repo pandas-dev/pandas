@@ -302,7 +302,7 @@ def _isnull_ndarraylike(obj):
                 vec = lib.isnullobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
-    elif dtype in _DATELIKE_DTYPES:
+    elif is_datetimelike(obj):
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
     else:
@@ -2365,6 +2365,9 @@ def is_datetime_arraylike(arr):
     elif isinstance(arr, (np.ndarray, ABCSeries)):
         return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
     return getattr(arr, 'inferred_type', None) == 'datetime'
+
+def is_datetimelike(arr):
+    return arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex)
 
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """

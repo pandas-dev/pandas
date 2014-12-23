@@ -441,7 +441,12 @@ class IndexOpsMixin(object):
         -------
         nunique : int
         """
-        return len(self.value_counts(dropna=dropna))
+        uniqs = self.unique()
+        n = len(uniqs)
+        if dropna and com.isnull(uniqs).any():
+            n -= 1
+        return n
+
 
     def factorize(self, sort=False, na_sentinel=-1):
         """

@@ -45,7 +45,11 @@ Performance
 
 .. _whatsnew_0160.performance:
 
+
 - Fixed a severe performance regression for ``.loc`` indexing with an array or list (:issue:9126:).
+
+- Improved the speed of `nunique` by calling `unique` instead of `value_counts` (:issue:`9129`, :issue:`7771`)
+
 
 Bug Fixes
 ~~~~~~~~~
@@ -114,3 +118,4 @@ Bug Fixes
 
 - DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
+- isnull now detects NaT in PeriodIndex (:issue:`9129`)
