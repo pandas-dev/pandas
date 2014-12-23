@@ -3225,14 +3225,17 @@ class MultiIndex(Index):
 
     @cache_readonly
     def is_unique(self):
-        from pandas.hashtable import Int64HashTable
+        return not self.duplicated().any()
+
+    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    def duplicated(self, take_last=False):
         from pandas.core.groupby import get_flat_ids
+        from pandas.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
         ids = get_flat_ids(self.labels, shape, False)
-        table = Int64HashTable(min(1 << 20, len(ids)))
 
-        return len(table.unique(ids)) == len(self)
+        return duplicated_int64(ids, take_last)
 
     def get_value(self, series, key):
         # somewhat broken encapsulation

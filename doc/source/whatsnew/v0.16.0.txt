@@ -45,9 +45,8 @@ Performance
 
 .. _whatsnew_0160.performance:
 
-
-- Fixed a severe performance regression for ``.loc`` indexing with an array or list (:issue:9126:).
-
+- Fixed a performance regression for ``.loc`` indexing with an array or list-like (:issue:`9126`:).
+- Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values (:issue:`9125`)
 - Improved the speed of `nunique` by calling `unique` instead of `value_counts` (:issue:`9129`, :issue:`7771`)
 
 

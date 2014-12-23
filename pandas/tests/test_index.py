@@ -3514,6 +3514,17 @@ class TestMultiIndex(Base, tm.TestCase):
         check(8, False)
         check(8, True)
 
+        # GH 9125
+        n, k = 200, 5000
+        levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
+        labels = [np.random.choice(n, k * n) for lev in levels]
+        mi = MultiIndex(levels=levels, labels=labels)
+
+        for take_last in [False, True]:
+            left = mi.duplicated(take_last=take_last)
+            right = pd.lib.duplicated(mi.values, take_last=take_last)
+            tm.assert_array_equal(left, right)
+
     def test_tolist(self):
         result = self.index.tolist()
         exp = list(self.index.values)
