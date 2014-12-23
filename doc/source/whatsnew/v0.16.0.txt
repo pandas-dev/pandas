@@ -46,6 +46,7 @@ Performance
 .. _whatsnew_0160.performance:
 
 - Fixed a severe performance regression for ``.loc`` indexing with an array or list (:issue:9126:).
+- Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values.
 
 Bug Fixes
 ~~~~~~~~~

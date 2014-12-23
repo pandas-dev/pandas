@@ -138,6 +138,17 @@ multiindex_with_datetime_level_sliced = \
               name='multiindex_with_datetime_level_sliced',
               start_date=datetime(2014, 10, 11))
 
+# multi-index duplicated
+setup = common_setup + """
+n, k = 200, 5000
+levels = [np.arange(n), tm.makeStringIndex(n).values, 1000 + np.arange(n)]
+labels = [np.random.choice(n, k * n) for lev in levels]
+mi = MultiIndex(levels=levels, labels=labels)
+"""
+
+multiindex_duplicated = Benchmark('mi.duplicated()', setup,
+                                  name='multiindex_duplicated')
+
 #----------------------------------------------------------------------
 # repr
 
