@@ -1159,9 +1159,9 @@ class SQLDatabase(PandasSQL):
 
         """
         if dtype is not None:
-            import sqlalchemy.sql.type_api as type_api
+            from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
-                if not issubclass(my_type, type_api.TypeEngine):
+                if not isinstance(to_instance(my_type), TypeEngine):
                     raise ValueError('The type of %s is not a SQLAlchemy '
                                      'type ' % col)
 
