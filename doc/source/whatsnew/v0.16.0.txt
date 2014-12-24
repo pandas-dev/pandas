@@ -56,6 +56,8 @@ Enhancements
 
 .. _whatsnew_0160.enhancements:
 
+- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
+
 Performance
 ~~~~~~~~~~~
 
