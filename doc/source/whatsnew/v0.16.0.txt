@@ -68,6 +68,7 @@ Performance
 - Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values (:issue:`9125`)
 - Improved the speed of `nunique` by calling `unique` instead of `value_counts` (:issue:`9129`, :issue:`7771`)
 - Performance improvement of up to 10x in ``DataFrame.count`` and ``DataFrame.dropna`` by taking advantage of homogeneous/heterogeneous dtypes appropriately (:issue:`9136`)
+- Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
 
 Bug Fixes
 ~~~~~~~~~
