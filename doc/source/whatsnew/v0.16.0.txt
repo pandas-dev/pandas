@@ -65,6 +65,7 @@ Performance
 - ``DataFrame.to_json`` 30x performance improvement for mixed dtype frames. (:issue:`9037`)
 - Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values (:issue:`9125`)
 - Improved the speed of `nunique` by calling `unique` instead of `value_counts` (:issue:`9129`, :issue:`7771`)
+- Performance improvement of up to 10x in ``DataFrame.count`` and ``DataFrame.dropna`` by taking advantage of homogeneous/heterogeneous dtypes appropriately (:issue:`9136`)
 
 Bug Fixes
 ~~~~~~~~~
