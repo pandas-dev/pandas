@@ -651,6 +651,14 @@ class _TestSQLApi(PandasSQLTest):
                                     con=self.conn)
         self.assertTrue('CREATE' in create_sql)
 
+    def test_get_schema_dtypes(self):
+        float_frame = DataFrame({'a':[1.1,1.2], 'b':[2.1,2.2]})
+        dtype = sqlalchemy.Integer if self.mode == 'sqlalchemy' else 'INTEGER'
+        create_sql = sql.get_schema(float_frame, 'test', 'sqlite',
+                                    con=self.conn, dtype={'b':dtype})
+        self.assertTrue('CREATE' in create_sql)
+        self.assertTrue('INTEGER' in create_sql)
+
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list('abcde'))
         df.to_sql('test_chunksize', self.conn, index=False)
@@ -1233,7 +1241,6 @@ class _TestSQLAlchemy(PandasSQLTest):
         df.to_sql('dtype_test3', self.conn, dtype={'B': sqlalchemy.String(10)})
         meta.reflect()
         sqltype = meta.tables['dtype_test3'].columns['B'].type
-        print(sqltype)
         self.assertTrue(isinstance(sqltype, sqlalchemy.String))
         self.assertEqual(sqltype.length, 10)
 
@@ -1261,6 +1268,36 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(isinstance(col_dict['Date'].type, sqltypes.DateTime))
         self.assertTrue(isinstance(col_dict['Int'].type, sqltypes.Integer))
         self.assertTrue(isinstance(col_dict['Float'].type, sqltypes.Float))
+
+    def test_double_precision(self):
+        V = 1.23456789101112131415
+
+        df = DataFrame({'f32':Series([V,], dtype='float32'),
+                        'f64':Series([V,], dtype='float64'),
+                        'f64_as_f32':Series([V,], dtype='float64'),
+                        'i32':Series([5,], dtype='int32'),
+                        'i64':Series([5,], dtype='int64'),
+                        })
+
+        df.to_sql('test_dtypes', self.conn, index=False, if_exists='replace', 
+            dtype={'f64_as_f32':sqlalchemy.Float(precision=23)})
+        res = sql.read_sql_table('test_dtypes', self.conn)
+        
+        # check precision of float64
+        self.assertEqual(np.round(df['f64'].iloc[0],14), 
+                         np.round(res['f64'].iloc[0],14))
+
+        # check sql types
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        col_dict = meta.tables['test_dtypes'].columns
+        self.assertEqual(str(col_dict['f32'].type), 
+                         str(col_dict['f64_as_f32'].type))
+        self.assertTrue(isinstance(col_dict['f32'].type, sqltypes.Float))
+        self.assertTrue(isinstance(col_dict['f64'].type, sqltypes.Float))
+        self.assertTrue(isinstance(col_dict['i32'].type, sqltypes.Integer))
+        self.assertTrue(isinstance(col_dict['i64'].type, sqltypes.BigInteger))
+
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
