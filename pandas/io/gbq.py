@@ -185,7 +185,8 @@ class GbqConnector:
 
         job_reference = query_reply['jobReference']
 
-        while(not 'jobComplete' in query_reply) or (query_reply['jobComplete'] is False):
+        # Verify the job has finished running
+        while(not query_reply.get('jobComplete', False)):
             print('Job not yet complete...')
             query_reply = job_collection.getQueryResults(
                             projectId=job_reference['projectId'],
