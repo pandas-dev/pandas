@@ -140,8 +140,50 @@ packers_read_json = Benchmark("pd.read_json(f, orient='split')", setup, start_da
 setup = common_setup + """
 """
 packers_write_json_date_index = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
+
 setup = setup + setup_int_index
 packers_write_json = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
+packers_write_json_T = Benchmark("df.to_json(f,orient='columns')", setup, cleanup="remove(f)", start_date=start_date)
+
+setup = common_setup + """
+from numpy.random import randint
+from collections import OrderedDict
+
+cols = [
+  lambda i: ("{0}_timedelta".format(i), [pd.Timedelta('%d seconds' % randrange(1e6)) for _ in range(N)]),
+  lambda i: ("{0}_int".format(i), randint(1e8, size=N)),
+  lambda i: ("{0}_timestamp".format(i), [pd.Timestamp( 1418842918083256000 + randrange(1e9, 1e18, 200)) for _ in range(N)])
+  ]
+df_mixed = DataFrame(OrderedDict([cols[i % len(cols)](i) for i in range(C)]),
+                     index=index)
+"""
+packers_write_json_mixed_delta_int_tstamp = Benchmark("df_mixed.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
+
+setup = common_setup + """
+from numpy.random import randint
+from collections import OrderedDict
+cols = [
+  lambda i: ("{0}_float".format(i), randn(N)),
+  lambda i: ("{0}_int".format(i), randint(1e8, size=N))
+  ]
+df_mixed = DataFrame(OrderedDict([cols[i % len(cols)](i) for i in range(C)]),
+                     index=index)
+"""
+packers_write_json_mixed_float_int = Benchmark("df_mixed.to_json(f,orient='index')", setup, cleanup="remove(f)", start_date=start_date)
+packers_write_json_mixed_float_int_T = Benchmark("df_mixed.to_json(f,orient='columns')", setup, cleanup="remove(f)", start_date=start_date)
+
+setup = common_setup + """
+from numpy.random import randint
+from collections import OrderedDict
+cols = [
+  lambda i: ("{0}_float".format(i), randn(N)),
+  lambda i: ("{0}_int".format(i), randint(1e8, size=N)),
+  lambda i: ("{0}_str".format(i), ['%08x'%randrange(16**8) for _ in range(N)])
+  ]
+df_mixed = DataFrame(OrderedDict([cols[i % len(cols)](i) for i in range(C)]),
+                     index=index)
+"""
+packers_write_json_mixed_float_int_str = Benchmark("df_mixed.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
 
 #----------------------------------------------------------------------
 # stata

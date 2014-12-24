@@ -13,8 +13,11 @@ void mangle_nat(PyObject *val) {
 }
 
 npy_int64 get_long_attr(PyObject *o, const char *attr) {
+  npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
-  return PyLong_Check(value) ? PyLong_AsLongLong(value) : PyInt_AS_LONG(value);
+  long_val = (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyInt_AS_LONG(value));
+  Py_DECREF(value);
+  return long_val;
 }
 
 npy_float64 total_seconds(PyObject *td) {

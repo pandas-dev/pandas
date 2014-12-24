@@ -42,6 +42,7 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #define PyInt_Check             PyLong_Check
 #define PyInt_AS_LONG           PyLong_AsLong
 #define PyInt_FromLong          PyLong_FromLong
+#define PyInt_FromSsize_t       PyLong_FromSsize_t
 
 #define PyString_Check          PyBytes_Check
 #define PyString_GET_SIZE       PyBytes_GET_SIZE

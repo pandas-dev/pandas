@@ -2160,20 +2160,12 @@ class NDFrame(PandasObject):
         Convert the frame to a dict of dtype -> Constructor Types that each has
         a homogeneous dtype.
 
-        are presented in sorted order unless a specific list of columns is
-        provided.
-
         NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in
               as_matrix)
 
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-
         Returns
         -------
-        values : a list of Object
+        values : a dict of dtype -> Constructor Types
         """
         self._consolidate_inplace()
 
