@@ -4108,27 +4108,38 @@ class DataFrame(NDFrame):
         else:
             frame = self
 
-        if axis == 1:
-            frame = frame.T
+        count_axis = frame._get_axis(axis)
+        agg_axis = frame._get_agg_axis(axis)
 
-        if not isinstance(frame.index, MultiIndex):
+        if not isinstance(count_axis, MultiIndex):
             raise TypeError("Can only count levels on hierarchical %s." %
                             self._get_axis_name(axis))
 
-        # python 2.5
-        mask = notnull(frame.values).view(np.uint8)
+        if frame._is_mixed_type:
+            # Since we have mixed types, calling notnull(frame.values) might
+            # upcast everything to object
+            mask = notnull(frame).values
+        else:
+            # But use the speedup when we have homogeneous dtypes
+            mask = notnull(frame.values)
+
+        if axis == 1:
+            # We're transposing the mask rather than frame to avoid potential
+            # upcasts to object, which induces a ~20x slowdown
+            mask = mask.T
 
         if isinstance(level, compat.string_types):
-            level = self.index._get_level_number(level)
+            level = count_axis._get_level_number(level)
 
-        level_index = frame.index.levels[level]
-        labels = com._ensure_int64(frame.index.labels[level])
+        level_index = count_axis.levels[level]
+        labels = com._ensure_int64(count_axis.labels[level])
         counts = lib.count_level_2d(mask, labels, len(level_index))
 
         result = DataFrame(counts, index=level_index,
-                           columns=frame.columns)
+                           columns=agg_axis)
 
         if axis == 1:
+            # Undo our earlier transpose
             return result.T
         else:
             return result
