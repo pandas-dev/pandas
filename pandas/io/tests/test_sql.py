@@ -1229,6 +1229,14 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertRaises(ValueError, df.to_sql,
                           'error', self.conn, dtype={'B': str})
 
+        # GH9083
+        df.to_sql('dtype_test3', self.conn, dtype={'B': sqlalchemy.String(10)})
+        meta.reflect()
+        sqltype = meta.tables['dtype_test3'].columns['B'].type
+        print(sqltype)
+        self.assertTrue(isinstance(sqltype, sqlalchemy.String))
+        self.assertEqual(sqltype.length, 10)
+
     def test_notnull_dtype(self):
         cols = {'Bool': Series([True,None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
