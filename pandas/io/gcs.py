@@ -35,7 +35,7 @@ if not compat.PY3:
             from oauth2client.client import SignedJwtAssertionCredentials
             from oauth2client.client import flow_from_clientsecrets
             from oauth2client.file import Storage
-            from oauth2client.tools import run
+            from oauth2client.tools import run, run_flow
 
             _GOOGLE_API_CLIENT_INSTALLED=True
             _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
@@ -104,8 +104,8 @@ class GCSConnector(object):
     def __init__(self, project_id, service_account=None, private_key=None):
         self.project_id = project_id
 
-        self.service_account = service_account
-        self.private_key = private_key
+        #self.service_account = service_account
+        #self.private_key = private_key
 
         self.credentials = self.get_credentials(service_account, private_key)
         self.service = self.get_service(self.credentials)
@@ -119,22 +119,28 @@ class GCSConnector(object):
 
         return service
 
-    def get_credentials(self, service_account, private_key):
+    def get_credentials(self, service_account=None, private_key=None):
 
         scope = "https://www.googleapis.com/auth/devstorage.read_write"
 
-        if service_account and private_key:
-            flow = SignedJwtAssertionCredentials(service_account, private_key, scope)
-        else:
-            flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
-                                       client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
-                                       scope=scope,
-                                       redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+        #if service_account and private_key:
+            #flow = SignedJwtAssertionCredentials(service_account, private_key, scope)
+        #else:
+        flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
+                                   client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
+                                   scope=scope,
+                                   redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
         storage = Storage("gcs_credentials.dat")
         credentials = storage.get()
 
+        #import argparse
+
+        #parser = argparse.ArgumentParser()
+        #flags = parser.parse_args(None)
+
         if credentials is None or credentials.invalid:
+            #credentials = run_flow(flow, storage, flags)
             credentials = run(flow, storage)
 
         return credentials
@@ -161,19 +167,20 @@ class GCSConnector(object):
         else:
             request.execute()
 
-    def download(self, bucket, name, project_id):
+    def download(self, bucket, name, project_id, service_account, private_key, from_csv_kwargs):
 
-        request = (self.service.objects()
-                        .get_media(bucket="th-code", object="pandas.csv")
+        request = (self.service
+                        .objects()
+                        .get_media(bucket=bucket, object=name)
                         .execute())
 
         in_memory_df = StringIO(request)
 
-        df = pd.read_csv(in_memory_df)
+        df = pd.read_csv(in_memory_df, **from_csv_kwargs)
 
         return df
 
-def from_gcs(bucket, name, project_id, service_account, private_key):
+def from_gcs(bucket, name, project_id, service_account=None, private_key=None, from_csv_kwargs=None):
     """
     Read a DataFrame from Google Cloud Storage.
 
@@ -197,11 +204,14 @@ def from_gcs(bucket, name, project_id, service_account, private_key):
 
     _test_imports()
 
+    if from_csv_kwargs is None:
+        from_csv_kwargs = {}
+
     g = GCSConnector(project_id=project_id,
                      service_account=service_account,
                      private_key=private_key)
 
-    return g.download(bucket, name, project_id)
+    return g.download(bucket, name, project_id, service_account, private_key, from_csv_kwargs)
 
 
 def to_gcs(dataframe, bucket, name, project_id,
