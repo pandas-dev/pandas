@@ -249,4 +249,22 @@ right = DataFrame(np.random.randint(1, n/500, (n, 2)),
         columns=['jolie', 'jolia']).set_index('jolie')
 '''
 
-left_outer_join_index = Benchmark("left.join(right, on='jim')", setup)
+left_outer_join_index = Benchmark("left.join(right, on='jim')", setup,
+                                  name='left_outer_join_index')
+
+
+setup = common_setup + """
+low, high, n = -1 << 10, 1 << 10, 1 << 20
+left = DataFrame(np.random.randint(low, high, (n, 7)),
+                    columns=list('ABCDEFG'))
+left['left'] = left.sum(axis=1)
+
+i = np.random.permutation(len(left))
+right = left.iloc[i].copy()
+right.columns = right.columns[:-1].tolist() + ['right']
+right.index = np.arange(len(right))
+right['right'] *= -1
+"""
+
+i8merge = Benchmark("merge(left, right, how='outer')", setup,
+                    name='i8merge')
