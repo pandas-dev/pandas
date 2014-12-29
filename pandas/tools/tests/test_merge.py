@@ -1186,7 +1186,7 @@ class TestMergeMulti(tm.TestCase):
 
         # one-2-many/none match
         n = 1 << 11
-        left = DataFrame(np.random.randint(low, high, (n, 7)),
+        left = DataFrame(np.random.randint(low, high, (n, 7)).astype('int64'),
                          columns=list('ABCDEFG'))
 
         # confirm that this is checking what it is supposed to check
@@ -1196,7 +1196,7 @@ class TestMergeMulti(tm.TestCase):
         # add duplicates to left frame
         left = pd.concat([left, left], ignore_index=True)
 
-        right = DataFrame(np.random.randint(low, high, (n // 2, 7)),
+        right = DataFrame(np.random.randint(low, high, (n // 2, 7)).astype('int64'),
                           columns=list('ABCDEFG'))
 
         # add duplicates & overlap with left to the right frame
