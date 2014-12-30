@@ -5884,6 +5884,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         unstacked = s.unstack(0)
         assert_frame_equal(unstacked, expected)
 
+        # GH5873
+        idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
+        ts = pd.Series([1,2], index=idx)
+        left = ts.unstack()
+        left.columns = left.columns.astype('float64')
+        right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
+                          columns=[nan, 3.5])
+        assert_frame_equal(left, right)
+
+        idx = pd.MultiIndex.from_arrays([['cat', 'cat', 'cat', 'dog', 'dog'],
+                ['a', 'a', 'b', 'a', 'b'], [1, 2, 1, 1, np.nan]])
+        ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
+        right = DataFrame([[1.0, 1.3], [1.1, nan], [nan, 1.4], [1.2, nan]],
+                          columns=['cat', 'dog'])
+        tpls = [('a', 1), ('a', 2), ('b', nan), ('b', 1)]
+        right.index = pd.MultiIndex.from_tuples(tpls)
+        assert_frame_equal(ts.unstack(level=0), right)
+
     def test_sortlevel(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
