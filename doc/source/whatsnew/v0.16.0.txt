@@ -92,7 +92,7 @@ Bug Fixes
 
 
 
-- Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`)
+- Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and `unstack`` where ``nan`` values would break index alignment (:issue:`7466`)
 
 

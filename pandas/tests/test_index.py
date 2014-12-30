@@ -33,6 +33,7 @@ import pandas.tseries.offsets as offsets
 
 import pandas as pd
 from pandas.lib import Timestamp
+from itertools import product
 
 
 class Base(object):
@@ -3524,6 +3525,25 @@ class TestMultiIndex(Base, tm.TestCase):
             left = mi.duplicated(take_last=take_last)
             right = pd.lib.duplicated(mi.values, take_last=take_last)
             tm.assert_array_equal(left, right)
+
+        # GH5873
+        for a in [101, 102]:
+            mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
+            self.assertFalse(mi.has_duplicates)
+            self.assertEqual(mi.get_duplicates(), [])
+            self.assert_array_equal(mi.duplicated(), np.zeros(2, dtype='bool'))
+
+        for n in range(1, 6):  # 1st level shape
+            for m in range(1, 5):  # 2nd level shape
+                # all possible unique combinations, including nan
+                lab = product(range(-1, n), range(-1, m))
+                mi = MultiIndex(levels=[list('abcde')[:n], list('WXYZ')[:m]],
+                                labels=np.random.permutation(list(lab)).T)
+                self.assertEqual(len(mi), (n + 1) * (m + 1))
+                self.assertFalse(mi.has_duplicates)
+                self.assertEqual(mi.get_duplicates(), [])
+                self.assert_array_equal(mi.duplicated(),
+                                        np.zeros(len(mi), dtype='bool'))
 
     def test_tolist(self):
         result = self.index.tolist()
