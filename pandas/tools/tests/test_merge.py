@@ -2552,6 +2552,23 @@ class TestOrderedMerge(tm.TestCase):
 
         tm.assertIsInstance(result, NotADataFrame)
 
+    def test_empty_sequence_concat(self):
+        # GH 9157
+        empty_pat = "[Nn]o objects"
+        none_pat = "objects.*None"
+        test_cases = [
+            ((), empty_pat),
+            ([], empty_pat),
+            ({}, empty_pat),
+            ([None], none_pat),
+            ([None, None], none_pat)
+        ]
+        for df_seq, pattern in test_cases:
+            assertRaisesRegexp(ValueError, pattern, pd.concat, df_seq)
+
+        pd.concat([pd.DataFrame()])
+        pd.concat([None, pd.DataFrame()])
+        pd.concat([pd.DataFrame(), None])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
