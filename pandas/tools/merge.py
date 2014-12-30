@@ -775,9 +775,14 @@ class _Concatenator(object):
             if keys is None:
                 keys = sorted(objs)
             objs = [objs[k] for k in keys]
+        else:
+            objs = list(objs)
+
+        if len(objs) == 0:
+            raise ValueError('No objects to concatenate')
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None ]
+            objs = [obj for obj in objs if obj is not None]
         else:
             # #1649
             clean_keys = []
