@@ -1274,6 +1274,10 @@ class _XlsxWriter(ExcelWriter):
         num_format_str: optional number format string
         """
 
+        # If there is no formatting we don't create a format object.
+        if num_format_str is None and style_dict is None:
+            return None
+
         # Create a XlsxWriter format object.
         xl_format = self.book.add_format()
 
