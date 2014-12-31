@@ -16,6 +16,7 @@ from pandas import json
 from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
 from pandas.core import config
 from pandas.core.common import pprint_thing
+from pandas import Timestamp
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 import pandas.core.common as com
@@ -1118,6 +1119,10 @@ class _XlwtWriter(ExcelWriter):
             val = _conv_value(cell.val)
 
             num_format_str = None
+
+            if isinstance(val, Timestamp):
+                val = val.to_pydatetime()
+
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, datetime.date):
@@ -1239,6 +1244,10 @@ class _XlsxWriter(ExcelWriter):
 
         for cell in cells:
             num_format_str = None
+
+            if isinstance(cell.val, Timestamp):
+                cell.val = cell.val.to_pydatetime()
+
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, datetime.date):

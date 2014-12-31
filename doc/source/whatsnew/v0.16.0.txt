@@ -96,6 +96,8 @@ Bug Fixes
 - Bug in ``pivot`` and `unstack`` where ``nan`` values would break index alignment (:issue:`7466`)
 
 
+- Fixed bug where minutes and seconds components were zeroed when writing
+  Timestamp objects to Excel using xlwt and xlsxwriter (:issue:`9138`).
 
 
 
