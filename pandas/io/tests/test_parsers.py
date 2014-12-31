@@ -509,6 +509,17 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(xp, rs)
         self.assertEqual(xp.index.name, rs.index.name)
 
+    def test_usecols_index_col_False(self):
+        # Issue 9082
+        s = "a,b,c,d\n1,2,3,4\n5,6,7,8"
+        s_malformed = "a,b,c,d\n1,2,3,4,\n5,6,7,8,"
+        cols = ['a','c','d']
+        expected = DataFrame({'a':[1,5], 'c':[3,7], 'd':[4,8]})
+        df = self.read_csv(StringIO(s), usecols=cols, index_col=False)
+        tm.assert_frame_equal(expected, df)
+        df = self.read_csv(StringIO(s_malformed), usecols=cols, index_col=False)
+        tm.assert_frame_equal(expected, df)
+
     def test_converter_index_col_bug(self):
         # 1835
         data = "A;B\n1;2\n3;4"
