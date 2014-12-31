@@ -3484,6 +3484,31 @@ class TestGroupBy(tm.TestCase):
         # len(bins) != len(series) here
         self.assertRaises(ValueError,lambda : series.groupby(bins).mean())
 
+    def test_groupby_multiindex_missing_pair(self):
+        # GH9049
+        df = DataFrame({'group1': ['a','a','a','b'],
+                        'group2': ['c','c','d','c'],
+                        'value': [1,1,1,5]})
+        df = df.set_index(['group1', 'group2'])
+        df_grouped = df.groupby(level=['group1','group2'], sort=True)
+
+        res = df_grouped.agg('sum')
+        idx = MultiIndex.from_tuples([('a','c'), ('a','d'), ('b','c')], names=['group1', 'group2'])
+        exp = DataFrame([[2], [1], [5]], index=idx, columns=['value'])
+
+        tm.assert_frame_equal(res, exp)
+
+    def test_groupby_levels_and_columns(self):
+        # GH9344, GH9049
+        idx_names = ['x', 'y']
+        idx = pd.MultiIndex.from_tuples([(1, 1), (1, 2), (3, 4), (5, 6)], names=idx_names)
+        df = pd.DataFrame(np.arange(12).reshape(-1, 3), index=idx)
+
+        by_levels = df.groupby(level=idx_names).mean()
+        by_columns = df.reset_index().groupby(idx_names).mean()
+
+        tm.assert_frame_equal(by_levels, by_columns)
+
     def test_gb_apply_list_of_unequal_len_arrays(self):
 
         # GH1738

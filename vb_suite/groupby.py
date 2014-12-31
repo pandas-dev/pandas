@@ -390,6 +390,18 @@ df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
 
 groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)
 
+
+#----------------------------------------------------------------------
+# multi-indexed group sum #9049
+
+setup = common_setup + """
+N = 50
+df = DataFrame({'A': range(N) * 2, 'B': range(N*2), 'C': 1}).set_index(["A", "B"])
+"""
+
+groupby_sum_multiindex = Benchmark("df.groupby(level=[0, 1]).sum()", setup)
+
+
 #----------------------------------------------------------------------
 # Transform testing
 

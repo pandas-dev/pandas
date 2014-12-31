@@ -267,3 +267,4 @@ Bug Fixes
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
 
 - Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
+- Bug in groupby MultiIndex with missing pair (:issue:`9049`, :issue:`9344`)

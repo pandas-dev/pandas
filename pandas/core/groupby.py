@@ -1862,7 +1862,7 @@ class Grouping(object):
             self.grouper = grouper.values
 
         # pre-computed
-        self._was_factor = False
+        self._grouping_type = None
         self._should_compress = True
 
         # we have a single grouper which may be a myriad of things, some of which are
@@ -1887,7 +1887,7 @@ class Grouping(object):
                 level_values = index.levels[level].take(inds)
                 self.grouper = level_values.map(self.grouper)
             else:
-                self._was_factor = True
+                self._grouping_type = "level"
 
                 # all levels may not be observed
                 labels, uniques = algos.factorize(inds, sort=True)
@@ -1915,7 +1915,7 @@ class Grouping(object):
             elif isinstance(self.grouper, Categorical):
 
                 factor = self.grouper
-                self._was_factor = True
+                self._grouping_type = "categorical"
 
                 # Is there any way to avoid this?
                 self.grouper = np.asarray(factor)
@@ -1988,8 +1988,9 @@ class Grouping(object):
         return self._group_index
 
     def _make_labels(self):
-        if self._was_factor:  # pragma: no cover
-            raise Exception('Should not call this method grouping by level')
+        if self._grouping_type in ("level", "categorical"):  # pragma: no cover
+            raise Exception(
+                'Should not call this method grouping by level or categorical')
         else:
             labels, uniques = algos.factorize(self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
@@ -3238,10 +3239,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return result
         elif len(groupings) == 1:
             return result
-        elif not any([ping._was_factor for ping in groupings]):
+        elif not any([ping._grouping_type == "categorical"
+                      for ping in groupings]):
             return result
 
-        levels_list = [ ping._group_index for ping in groupings ]
+        levels_list = [ ping.group_index for ping in groupings ]
         index = MultiIndex.from_product(levels_list, names=self.grouper.names)
         d = { self.obj._get_axis_name(self.axis) : index, 'copy' : False }
         return result.reindex(**d).sortlevel(axis=self.axis)
