@@ -139,4 +139,6 @@ Bug Fixes
 
 - DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
+- BUG: "index_col=False" not working when "usecols" is specified in read_csv. (:issue:`9082`)
 - isnull now detects NaT in PeriodIndex (:issue:`9129`)
+
