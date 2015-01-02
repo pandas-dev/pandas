@@ -205,7 +205,7 @@ class TestCommon(unittest.TestCase):
             level = list(r['levels'](vector))
             factors = [level[index - 1] for index in factors]
             result = com.load_data(name)
-            assert np.equal(result, factors)
+            np.testing.assert_equal(result, factors)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
