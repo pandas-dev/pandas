@@ -200,6 +200,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         If True, require an exact format match.
         If False, allow the format to match anywhere in the target string.
     coerce : force errors to NaT (False by default)
+        Timestamps outside the interval between Timestamp.min and Timestamp.max
+        (approximately 1677-09-22 to 2262-04-11) will be also forced to NaT.
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number
     infer_datetime_format : boolean, default False
@@ -212,6 +214,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         - list-like: DatetimeIndex
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
+        In case when it is not possible to return designated types (e.g. when
+        any element of input is before Timestamp.min or after Timestamp.max)
+        return will have datetime.datetime type (or correspoding array/Series).
 
     Examples
     --------
@@ -226,6 +231,11 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     >>> df = df.astype(str)
     >>> pd.to_datetime(df.day + df.month + df.year, format="%d%m%Y")
+
+    Date that does not meet timestamp limitations:
+
+    >>> print pd.to_datetime('1300-01-01', format='%Y-%m-%d')
+    >>> print pd.to_datetime('1300-01-01', format='%Y-%m-%d', coerce=True)
     """
     from pandas import Timestamp
     from pandas.core.series import Series
