@@ -13,6 +13,7 @@ import pandas as pd
 
 from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp
 
+from pandas.core.config import option_context
 import pandas.core.common as com
 import pandas.compat as compat
 import pandas.util.testing as tm
@@ -1559,12 +1560,12 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         self.assertEqual(exp, a.__unicode__())
 
-        a = pd.Series(pd.Categorical(["a","b"] *25, name="a", ordered=True))
-        exp = u("".join(["%s    a\n%s    b\n"%(i,i+1) for i in range(0,10,2)]) + "...\n" +
-                "".join(["%s    a\n%s    b\n"%(i,i+1) for i in range(40,50,2)]) +
-                "Name: a, Length: 50, dtype: category\n" +
-                "Categories (2, object): [a < b]")
-        self.assertEqual(exp,a._tidy_repr())
+        a = pd.Series(pd.Categorical(["a","b"] *25, name="a"))
+        exp = u("0     a\n1     b\n" + "     ..\n" +
+                "48    a\n49    b\n" +
+                "Name: a, dtype: category\nCategories (2, object): [a, b]")
+        with option_context("display.max_rows", 5):
+            self.assertEqual(exp, repr(a))
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = pd.Series(pd.Categorical(["a","b"], name="a", categories=levs, ordered=True))
@@ -1572,7 +1573,6 @@ class TestCategoricalAsBlock(tm.TestCase):
                 "Name: a, dtype: category\n"
                 "Categories (26, object): [a < b < c < d ... w < x < y < z]")
         self.assertEqual(exp,a.__unicode__())
-
 
     def test_info(self):
 

@@ -567,3 +567,39 @@ Bug Fixes
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
 - Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
 - Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
+- ``Series`` text representation disconnected from `max_rows`/`max_columns` (:issue:`7508`).
+- ``Series`` number formatting inconsistent when truncated (:issue:`8532`).
+
+  Previous Behavior
+
+  .. code-block:: python
+
+    In [2]: pd.options.display.max_rows = 10
+    In [3]: s = pd.Series([1,1,1,1,1,1,1,1,1,1,0.9999,1,1]*10)
+    In [4]: s
+    Out[4]:
+    0    1
+    1    1
+    2    1
+    ...
+    127    0.9999
+    128    1.0000
+    129    1.0000
+    Length: 130, dtype: float64
+
+  New Behavior
+
+  .. code-block:: python
+
+    0      1.0000
+    1      1.0000
+    2      1.0000
+    3      1.0000
+    4      1.0000
+    ...
+    125    1.0000
+    126    1.0000
+    127    0.9999
+    128    1.0000
+    129    1.0000
+    dtype: float64
