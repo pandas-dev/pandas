@@ -336,6 +336,11 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
 
         if value_type == np.datetime64:
             value = convert_to_r_posixct(value)
+        elif value_type == com.CategoricalDtypeType:
+            levels = robj.StrVector(value.cat.categories)
+            value = robj.FactorVector(value,
+                                      levels=levels,
+                                      ordered=value.cat.ordered)
         else:
             value = [item if pd.notnull(item) else NA_TYPES[value_type]
                      for item in value]
