@@ -401,7 +401,8 @@ def _conv_value(val):
         val = bool(val)
     elif isinstance(val, Period):
         val = "%s" % val
-
+    elif com.is_list_like(val):
+        val = str(val)
     return val
 
 
