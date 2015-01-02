@@ -882,6 +882,7 @@ Serialization / IO / Conversion
    DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
+   DataFrame.view
    DataFrame.to_pickle
    DataFrame.to_csv
    DataFrame.to_hdf

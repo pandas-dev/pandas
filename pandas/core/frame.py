@@ -1543,6 +1543,11 @@ class DataFrame(NDFrame):
                             _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
+    def view(self):
+        """Visualize the contents of the DataFrame interatively"""
+        from tabview import tabview as t
+        t.view([self.columns.tolist()] + self.values.tolist())
+
     def memory_usage(self, index=False):
         """Memory usage of DataFrame columns.
 
