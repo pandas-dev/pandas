@@ -930,6 +930,17 @@ class ExcelWriterBase(SharedItems):
                             index=['A', 'B'], columns=['X', 'Y', 'Z'])
             tm.assert_frame_equal(rs, xp)
 
+    def test_to_excel_list_format(self):
+        _skip_if_no_xlrd()
+
+        df = DataFrame([0.0, ['0.0',0.0]], 
+                columns=['not_list','list'])
+
+        with ensure_clean(self.ext) as filename:
+            df.to_excel(filename, sheetname='TestList')
+            result = read_excel(filename,'TestList')
+            tm.assert_equal(result,df)
+
     def test_to_excel_output_encoding(self):
         _skip_if_no_xlrd()
         ext = self.ext
