@@ -859,7 +859,7 @@ class GroupBy(PandasObject):
                     # this is a pass-thru
                     pass
                 elif all([ n in ax for n in names ]):
-                    result.index = Index(self.obj[names][is_nth].values.ravel()).set_names(names)
+                    result.index = MultiIndex.from_arrays([self.obj[name][is_nth] for name in names]).set_names(names)
                 elif self._group_selection is not None:
                     result.index = self.obj._get_axis(self.axis)[is_nth]
 
