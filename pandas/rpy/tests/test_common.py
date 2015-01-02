@@ -213,7 +213,42 @@ class TestCommon(unittest.TestCase):
 
     def test_factor_as_factor(self):
         for name in ('state.division', 'state.region'):
-            pass
+            vector = r[name]
+            factors = np.asarray(r['factor'](vector)) - 1
+            level = list(r['levels'](vector))
+            ordered = r["is.ordered"](vector)[0]
+
+            result = com.load_data(name, factors_as_strings=False)
+            factor = pd.Categorical.from_codes(factors, categories=level,
+                                               ordered=ordered)
+            np.testing.assert_(result.equals(factor))
+
+            # test it as a data.frame
+            result = com.convert_robj(r("as.data.frame({0})".format(name)),
+                                      factors_as_strings=False)
+            np.testing.assert_(isinstance(result, pd.DataFrame))
+            np.testing.assert_(result[name].dtype.type ==
+                               pd.core.common.CategoricalDtypeType)
+
+            # no easy way to go from categorical Series to Cateogical?
+            np.testing.assert_equal(result[name].cat.codes, factor.codes)
+            cat_equals = result[name].cat.categories.equals(factor.categories)
+            np.testing.assert_(cat_equals)
+
+    def test_to_r_dataframe_with_categorical(self):
+        r("dta <- warpbreaks")
+        r("dta[\"tension\"] <- factor(warpbreaks$tension, ordered=TRUE)")
+        dta = com.load_data("dta", factors_as_strings=False)
+        # check this while we're here
+        np.testing.assert_(not dta.wool.cat.ordered)
+        np.testing.assert_(dta.tension.cat.ordered)
+        df = com.convert_to_r_dataframe(dta)
+        np.testing.assert_(isinstance(df[1], robj.FactorVector))
+        np.testing.assert_(isinstance(df[2], robj.FactorVector))
+
+        np.testing.assert_(not r["is.ordered"](df[1])[0])
+        np.testing.assert_(r["is.ordered"](df[2])[0])
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
