@@ -23,7 +23,7 @@ __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
            'convert_to_r_matrix']
 
 
-def load_data(name, package=None, convert=True):
+def load_data(name, package=None, convert=True, factors_as_strings=True):
     if package:
         importr(package)
 
@@ -32,7 +32,7 @@ def load_data(name, package=None, convert=True):
     robj = r[name]
 
     if convert:
-        return convert_robj(robj)
+        return convert_robj(robj, factors_as_strings=factors_as_strings)
     else:
         return robj
 
@@ -48,7 +48,7 @@ def _is_null(obj):
     return _rclass(obj) == 'NULL'
 
 
-def _convert_list(obj):
+def _convert_list(obj, **kwargs):
     """
     Convert named Vector to dict, factors to list
     """
@@ -64,7 +64,7 @@ def _convert_list(obj):
         return result
 
 
-def _convert_array(obj):
+def _convert_array(obj, **kwargs):
     """
     Convert Array to DataFrame
     """
@@ -90,8 +90,11 @@ def _convert_array(obj):
     return df
 
 
-def _convert_vector(obj):
-    if isinstance(obj, robj.IntVector):
+def _convert_vector(obj, **kwargs):
+    # FactorVector is sub-class, so check first
+    if isinstance(obj, robj.FactorVector):
+        return _convert_factor(obj, **kwargs)
+    elif isinstance(obj, robj.IntVector):
         return _convert_int_vector(obj)
     elif isinstance(obj, robj.StrVector):
         return _convert_str_vector(obj)
@@ -117,7 +120,7 @@ def _convert_vector(obj):
 NA_INTEGER = -2147483648
 
 
-def _convert_int_vector(obj):
+def _convert_int_vector(obj, **kwargs):
     arr = np.asarray(obj)
     mask = arr == NA_INTEGER
     if mask.any():
@@ -126,7 +129,7 @@ def _convert_int_vector(obj):
     return arr
 
 
-def _convert_str_vector(obj):
+def _convert_str_vector(obj, **kwargs):
     arr = np.asarray(obj, dtype=object)
     mask = arr == robj.NA_Character
     if mask.any():
@@ -134,35 +137,47 @@ def _convert_str_vector(obj):
     return arr
 
 
-def _convert_DataFrame(rdf):
+def _convert_factor(obj, **kwargs):
+    if kwargs.get("factors_as_strings", True):
+        levels = np.asarray(obj.levels)
+        values = np.asarray(obj)
+        if com.is_float_dtype(values):
+            mask = np.isnan(values)
+            notmask = -mask
+            result = np.empty(len(values), dtype=object)
+            result[mask] = np.nan
+
+            locs = (values[notmask] - 1).astype(np.int_)
+            result[notmask] = levels.take(locs)
+            values = result
+        else:
+            values = np.asarray(obj.levels).take(values - 1)
+
+    else:  # give a categorical object back
+        ordered = r["is.ordered"](obj)[0]
+        categories = list(obj.levels)
+        codes = np.asarray(obj) - 1  # zero-based indexing
+        values = pd.Categorical.from_codes(codes, categories=categories,
+                                           ordered=ordered)
+
+    return values
+
+
+def _convert_DataFrame(rdf, **kwargs):
     columns = list(rdf.colnames)
     rows = np.array(rdf.rownames)
 
     data = {}
     for i, col in enumerate(columns):
         vec = rdf.rx2(i + 1)
-        values = _convert_vector(vec)
-
-        if isinstance(vec, robj.FactorVector):
-            levels = np.asarray(vec.levels)
-            if com.is_float_dtype(values):
-                mask = np.isnan(values)
-                notmask = -mask
-                result = np.empty(len(values), dtype=object)
-                result[mask] = np.nan
-
-                locs = (values[notmask] - 1).astype(np.int_)
-                result[notmask] = levels.take(locs)
-                values = result
-            else:
-                values = np.asarray(vec.levels).take(values - 1)
+        values = _convert_vector(vec, **kwargs)
 
         data[col] = values
 
     return pd.DataFrame(data, index=_check_int(rows), columns=columns)
 
 
-def _convert_Matrix(mat):
+def _convert_Matrix(mat, **kwargs):
     columns = mat.colnames
     rows = mat.rownames
 
@@ -181,12 +196,14 @@ def _check_int(vec):
 
     return vec
 
+
 _pandas_converters = [
     (robj.DataFrame, _convert_DataFrame),
     (robj.Matrix, _convert_Matrix),
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
     (robj.Array, _convert_array),
+    (robj.FactorVector, _convert_factor),
     (robj.Vector, _convert_list),
 ]
 
@@ -197,11 +214,12 @@ _converters = [
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
     (robj.Array, _convert_array),
+    (robj.FactorVector, _convert_factor),
     (robj.Vector, _convert_list),
 ]
 
 
-def convert_robj(obj, use_pandas=True):
+def convert_robj(obj, use_pandas=True, factors_as_strings=True):
     """
     Convert rpy2 object to a pandas-friendly form
 
@@ -220,7 +238,7 @@ def convert_robj(obj, use_pandas=True):
 
     for rpy_type, converter in converters:
         if isinstance(obj, rpy_type):
-            return converter(obj)
+            return converter(obj, factors_as_strings=factors_as_strings)
 
     raise TypeError('Do not know what to do with %s object' % type(obj))
 
