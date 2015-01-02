@@ -207,6 +207,14 @@ class TestCommon(unittest.TestCase):
             result = com.load_data(name)
             np.testing.assert_equal(result, factors)
 
+            # test it as a data.frame
+            result = com.convert_robj(r("as.data.frame({0})".format(name)))
+            np.testing.assert_equal(result[name].values, factors)
+
+    def test_factor_as_factor(self):
+        for name in ('state.division', 'state.region'):
+            pass
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    # '--with-coverage', '--cover-package=pandas.core'],
