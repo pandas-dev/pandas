@@ -226,16 +226,30 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     >>> i = pd.date_range('20000101',periods=100)
     >>> df = pd.DataFrame(dict(year = i.year, month = i.month, day = i.day))
     >>> pd.to_datetime(df.year*10000 + df.month*100 + df.day, format='%Y%m%d')
+    0    2000-01-01
+    1    2000-01-02
+    ...
+    98   2000-04-08
+    99   2000-04-09
+    Length: 100, dtype: datetime64[ns]
 
     Or from strings
 
     >>> df = df.astype(str)
     >>> pd.to_datetime(df.day + df.month + df.year, format="%d%m%Y")
+    0    2000-01-01
+    1    2000-01-02
+    ...
+    98   2000-04-08
+    99   2000-04-09
+    Length: 100, dtype: datetime64[ns]
 
     Date that does not meet timestamp limitations:
 
-    >>> print pd.to_datetime('1300-01-01', format='%Y-%m-%d')
-    >>> print pd.to_datetime('1300-01-01', format='%Y-%m-%d', coerce=True)
+    >>> pd.to_datetime('13000101', format='%Y%m%d')
+    datetime.datetime(1300, 1, 1, 0, 0)
+    >>> pd.to_datetime('13000101', format='%Y%m%d', coerce=True)
+    NaT
     """
     from pandas import Timestamp
     from pandas.core.series import Series
