@@ -141,3 +141,7 @@ Bug Fixes
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - isnull now detects NaT in PeriodIndex (:issue:`9129`)
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
+
+- Fixed issue in the ``xlsxwriter`` engine where it added a default 'General'
+  format to cells if no other format wass applied. This prevented other row or
+  column formatting being applied. (:issue:`9167`)
