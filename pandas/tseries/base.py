@@ -69,6 +69,13 @@ class DatetimeIndexOpsMixin(object):
         except (KeyError, TypeError):
             return False
 
+    @property
+    def freqstr(self):
+        """ return the frequency object as a string if its set, otherwise None """
+        if self.freq is None:
+            return None
+        return self.freq.freqstr
+
     @cache_readonly
     def inferred_freq(self):
         try:
@@ -459,3 +466,23 @@ class DatetimeIndexOpsMixin(object):
         """
         return self._simple_new(self.values.repeat(repeats),
                                 name=self.name)
+
+    def summary(self, name=None):
+        """
+        return a summarized representation
+        """
+        formatter = self._formatter_func
+        if len(self) > 0:
+            index_summary = ', %s to %s' % (formatter(self[0]),
+                                            formatter(self[-1]))
+        else:
+            index_summary = ''
+
+        if name is None:
+            name = type(self).__name__
+        result = '%s: %s entries%s' % (com.pprint_thing(name),
+                                       len(self), index_summary)
+        if self.freq:
+            result += '\nFreq: %s' % self.freqstr
+
+        return result

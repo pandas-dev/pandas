@@ -45,6 +45,10 @@ Backwards incompatible API changes
     In [2]:  pd.DataFrame({'i': [1,2], 'f': [3.0, 4.2]}).to_json()
     Out[2]: '{"f":{"0":3.0,"1":4.2},"i":{"0":1,"1":2}}'
 
+- ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex.summary`` now output the same format. (:issue:`9116`)
+- ``TimedeltaIndex.freqstr`` now output the same string format as ``DatetimeIndex``. (:issue:`9116`)
+
+
 Deprecations
 ~~~~~~~~~~~~
 

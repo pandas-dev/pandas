@@ -410,23 +410,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             result = result.astype('int64')
         return result
 
-    def summary(self, name=None):
-        formatter = self._formatter_func
-        if len(self) > 0:
-            index_summary = ', %s to %s' % (formatter(self[0]),
-                                            formatter(self[-1]))
-        else:
-            index_summary = ''
-
-        if name is None:
-            name = type(self).__name__
-        result = '%s: %s entries%s' % (com.pprint_thing(name),
-                                       len(self), index_summary)
-        if self.freq:
-            result += '\nFreq: %s' % self.freqstr
-
-        return result
-
     def to_pytimedelta(self):
         """
         Return TimedeltaIndex as object ndarray of datetime.timedelta objects
@@ -795,13 +778,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 return result
 
             return self._simple_new(result, self.name)
-
-    @property
-    def freqstr(self):
-        """ return the frequency object as a string if its set, otherwise None """
-        if self.freq is None:
-            return None
-        return self.freq
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, (np.ndarray, Index)):

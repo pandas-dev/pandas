@@ -682,22 +682,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_datetime(self, dayfirst=False):
         return self.copy()
 
-    def summary(self, name=None):
-        if len(self) > 0:
-            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
-                                            com.pprint_thing(self[-1]))
-        else:
-            index_summary = ''
-
-        if name is None:
-            name = type(self).__name__
-        result = '%s: %s entries%s' % (com.pprint_thing(name),
-                                       len(self), index_summary)
-        if self.freq:
-            result += '\nFreq: %s' % self.freqstr
-
-        return result
-
     def _format_footer(self):
         tagline = 'Length: %d, Freq: %s, Timezone: %s'
         return tagline % (len(self), self.freqstr, self.tz)
@@ -1391,13 +1375,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def _set_freq(self, value):
         self.offset = value
     freq = property(fget=_get_freq, fset=_set_freq, doc="get/set the frequncy of the Index")
-
-    @property
-    def freqstr(self):
-        """ return the frequency object as a string if its set, otherwise None """
-        if self.freq is None:
-            return None
-        return self.offset.freqstr
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M', "The month as January=1, December=12")
