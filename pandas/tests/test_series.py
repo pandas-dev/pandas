@@ -2212,6 +2212,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         alt = lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
+        # test corner cases, skew() returns NaN unless there's at least 3 values
+        min_N = 3
+        for i in range(1, min_N + 1):
+            s = Series(np.ones(i))
+            df = DataFrame(np.ones((i, i)))
+            if i < min_N:
+                self.assertTrue(np.isnan(s.skew()))
+                self.assertTrue(np.isnan(df.skew()).all())
+            else:
+                self.assertEqual(0, s.skew())
+                self.assertTrue((df.skew() == 0).all())
+
     def test_kurt(self):
         tm._skip_if_no_scipy()
 
@@ -2225,6 +2237,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                    [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
+
+        # test corner cases, kurt() returns NaN unless there's at least 4 values
+        min_N = 4
+        for i in range(1, min_N + 1):
+            s = Series(np.ones(i))
+            df = DataFrame(np.ones((i, i)))
+            if i < min_N:
+                self.assertTrue(np.isnan(s.kurt()))
+                self.assertTrue(np.isnan(df.kurt()).all())
+            else:
+                self.assertEqual(0, s.kurt())
+                self.assertTrue((df.kurt() == 0).all())
 
     def test_argsort(self):
         self._check_accum_op('argsort')

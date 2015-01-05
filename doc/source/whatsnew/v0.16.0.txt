@@ -141,3 +141,4 @@ Bug Fixes
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - isnull now detects NaT in PeriodIndex (:issue:`9129`)
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
+- Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
