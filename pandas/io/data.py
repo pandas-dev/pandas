@@ -698,8 +698,18 @@ class Options(object):
 
     def _get_underlying_price(self, url):
         root = self._parse_url(url)
-        underlying_price = float(root.xpath('.//*[@class="time_rtq_ticker Fz-30 Fw-b"]')[0]\
-            .getchildren()[0].text)
+        underlying_price = root.xpath('.//*[@class="time_rtq_ticker Fz-30 Fw-b"]')[0]\
+            .getchildren()[0].text
+
+        try:
+            underlying_price = float(underlying_price)
+        except ValueError:
+            # see if there is a comma thousands separator that needs to be filtered out
+            underlying_price = ''.join(c for c in underlying_price if c != ',')
+            try:
+                underlying_price = float(underlying_price)
+            except ValueError:
+                underlying_price = np.nan
 
         #Gets the time of the quote, note this is actually the time of the underlying price.
         try:

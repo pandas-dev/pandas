@@ -141,3 +141,4 @@ Bug Fixes
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - isnull now detects NaT in PeriodIndex (:issue:`9129`)
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
+- Bug in ``Options`` where parsing the underlying price returns a ValueError when the price has a thousands separator in the HTML text. (:issue:`9010`)
