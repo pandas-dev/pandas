@@ -648,13 +648,12 @@ You can also disable this feature via the ``expand_frame_repr`` option.
 This will print the table in one block.
 
 You can visualize the contents of the DataFrame on an interactive grid using
-:meth:`~pandas.DataFrame.view`.
+:meth:`~pandas.DataFrame.interact`.
 
 .. ipython:: python
 
    df = DataFrame(randn(3, 12))
-   df.view()
-
+   df.interact()
 
 DataFrame column attribute access and IPython completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

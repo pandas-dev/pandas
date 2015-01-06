@@ -377,6 +377,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(self.values.view(dtype),
                                  index=self.index).__finalize__(self)
 
+    def interact(self, **kwargs):
+        """Visualize the contents of the Panel interatively
+
+        Parameters
+        ----------
+        See :func:`pandas.interact` for a list of keyword arguments to control
+        the display.
+
+        See Also
+        --------
+        pandas.interact
+        """
+        from pandas.tools.interact import interact
+        interact(self, **kwargs)
+
     def __array__(self, result=None):
         """
         the array interface, return my values
