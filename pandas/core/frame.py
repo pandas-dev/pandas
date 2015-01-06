@@ -2726,8 +2726,8 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
-             For a set of distinct duplicate rows, flag all but the last row as duplicated. 
-             Default is for all but the first row to be flagged
+            For a set of distinct duplicate rows, flag all but the last row as duplicated. 
+            Default is for all but the first row to be flagged
         cols : kwargs only argument of subset [deprecated]
 
         Returns
