@@ -486,3 +486,5 @@ Bug Fixes
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
+
+- Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)

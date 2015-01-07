@@ -332,7 +332,7 @@ def _get_counts_nanvar(mask, axis, ddof):
 def _nanvar(values, axis=None, skipna=True, ddof=1):
     # private nanvar calculator
     mask = isnull(values)
-    if not is_floating_dtype(values):
+    if is_any_int_dtype(values):
         values = values.astype('f8')
 
     count, d = _get_counts_nanvar(mask, axis, ddof)
