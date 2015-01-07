@@ -13,14 +13,14 @@ def interact(data, index=None, header=None, start=None,
 
     Parameters
     ----------
-    data : DataFrame, Panel, Series, or list
+    data : DataFrame, Panel, Series or list
         Object containing the data
     index : bool
         Show the index. When None, detect if an index exists.
     header : bool
         Show the column names or Series name. When None, detect if column names
         or a Series name has been set.
-    start : (Y,X) tuple
+    start : Y or (Y,X) tuple
         Start the viewer at the indicated location.
     fixed_index : bool
         Instruct the viewer to keep the index fixed
@@ -72,6 +72,8 @@ def interact(data, index=None, header=None, start=None,
         fixed_index = index
     if fixed_header is None:
         fixed_header = header
+    if type(start) is not tuple:
+        start = (start, 0)
 
     interact_list(data, **kwargs)
 
