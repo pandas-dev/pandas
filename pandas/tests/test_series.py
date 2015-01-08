@@ -632,6 +632,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp.index = lrange(10, 20)
         assert_series_equal(result, exp)
 
+    def test_constructor_map(self):
+        # GH8909
+        m = map(lambda x: x, range(10))
+
+        result = Series(m)
+        exp = Series(lrange(10))
+        assert_series_equal(result, exp)
+
+        m = map(lambda x: x, range(10))
+        result = Series(m, index=lrange(10, 20))
+        exp.index = lrange(10, 20)
+        assert_series_equal(result, exp)
+
     def test_constructor_categorical(self):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'], fastpath=True)
         cat.name = 'foo'
@@ -2199,6 +2212,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         alt = lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
+        # test corner cases, skew() returns NaN unless there's at least 3 values
+        min_N = 3
+        for i in range(1, min_N + 1):
+            s = Series(np.ones(i))
+            df = DataFrame(np.ones((i, i)))
+            if i < min_N:
+                self.assertTrue(np.isnan(s.skew()))
+                self.assertTrue(np.isnan(df.skew()).all())
+            else:
+                self.assertEqual(0, s.skew())
+                self.assertTrue((df.skew() == 0).all())
+
     def test_kurt(self):
         tm._skip_if_no_scipy()
 
@@ -2212,6 +2237,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                    [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
+
+        # test corner cases, kurt() returns NaN unless there's at least 4 values
+        min_N = 4
+        for i in range(1, min_N + 1):
+            s = Series(np.ones(i))
+            df = DataFrame(np.ones((i, i)))
+            if i < min_N:
+                self.assertTrue(np.isnan(s.kurt()))
+                self.assertTrue(np.isnan(df.kurt()).all())
+            else:
+                self.assertEqual(0, s.kurt())
+                self.assertTrue((df.kurt() == 0).all())
 
     def test_argsort(self):
         self._check_accum_op('argsort')
@@ -2308,6 +2345,62 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = np.maximum.accumulate(ts.valid())
 
         self.assert_numpy_array_equal(result, expected)
+
+    def test_cummin_datetime64(self):
+        s = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-3']))
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-1']))
+        result = s.cummin(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', '2000-1-2', '2000-1-1', '2000-1-1', '2000-1-1']))
+        result = s.cummin(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummax_datetime64(self):
+        s = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-1', 'NaT', '2000-1-3']))
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', 'NaT', '2000-1-2', 'NaT', '2000-1-3']))
+        result = s.cummax(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_datetime(
+            ['NaT', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-3']))
+        result = s.cummax(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummin_timedelta64(self):
+        s = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '3 min', ]))
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '1 min', ]))
+        result = s.cummin(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', '2 min', '1 min', '1 min', '1 min', ]))
+        result = s.cummin(skipna=False)
+        self.assert_series_equal(expected, result)
+
+    def test_cummax_timedelta64(self):
+        s = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '1 min', 'NaT', '3 min', ]))
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', 'NaT', '2 min', 'NaT', '3 min', ]))
+        result = s.cummax(skipna=True)
+        self.assert_series_equal(expected, result)
+
+        expected = pd.Series(pd.to_timedelta(
+            ['NaT', '2 min', '2 min', '2 min', '2 min', '3 min', ]))
+        result = s.cummax(skipna=False)
+        self.assert_series_equal(expected, result)
 
     def test_npdiff(self):
         raise nose.SkipTest("skipping due to Series no longer being an "
@@ -4951,7 +5044,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         tm._skip_if_no_dateutil();
-        from dateutil.tz import gettz, tzutc
+        from dateutil.tz import tzutc
+        from dateutil.zoneinfo import gettz
         tz = lambda x: tzutc() if x == 'UTC' else gettz(x)  # handle special case for utc in dateutil
 
         from pandas import date_range
@@ -5813,6 +5907,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = DataFrame({'bar': s.values}, index=exp_index).sortlevel(0)
         unstacked = s.unstack(0)
         assert_frame_equal(unstacked, expected)
+
+        # GH5873
+        idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
+        ts = pd.Series([1,2], index=idx)
+        left = ts.unstack()
+        left.columns = left.columns.astype('float64')
+        right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
+                          columns=[nan, 3.5])
+        assert_frame_equal(left, right)
+
+        idx = pd.MultiIndex.from_arrays([['cat', 'cat', 'cat', 'dog', 'dog'],
+                ['a', 'a', 'b', 'a', 'b'], [1, 2, 1, 1, np.nan]])
+        ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
+        right = DataFrame([[1.0, 1.3], [1.1, nan], [nan, 1.4], [1.2, nan]],
+                          columns=['cat', 'dog'])
+        tpls = [('a', 1), ('a', 2), ('b', nan), ('b', 1)]
+        right.index = pd.MultiIndex.from_tuples(tpls)
+        assert_frame_equal(ts.unstack(level=0), right)
 
     def test_sortlevel(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))

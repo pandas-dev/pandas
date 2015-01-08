@@ -6,7 +6,7 @@ import collections
 
 from pandas.compat import(
     zip, builtins, range, long, lzip,
-    OrderedDict, callable
+    OrderedDict, callable, filter, map
 )
 from pandas import compat
 
@@ -168,7 +168,7 @@ class Grouper(object):
     freq : string / freqency object, defaults to None
         This will groupby the specified frequency if the target selection (via key or level) is
         a datetime-like object
-    axis : number/name of the axis, defaults to None
+    axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
 
@@ -198,7 +198,7 @@ class Grouper(object):
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=None, sort=False):
+    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key=key
         self.level=level
         self.freq=freq
@@ -228,6 +228,8 @@ class Grouper(object):
         """
 
         self._set_grouper(obj)
+        self.grouper, exclusions, self.obj = _get_grouper(self.obj, [self.key], axis=self.axis,
+                                                          level=self.level, sort=self.sort)
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(self, obj, sort=False):
@@ -857,7 +859,7 @@ class GroupBy(PandasObject):
                     # this is a pass-thru
                     pass
                 elif all([ n in ax for n in names ]):
-                    result.index = Index(self.obj[names][is_nth].values.ravel()).set_names(names)
+                    result.index = MultiIndex.from_arrays([self.obj[name][is_nth] for name in names]).set_names(names)
                 elif self._group_selection is not None:
                     result.index = self.obj._get_axis(self.axis)[is_nth]
 
@@ -3507,6 +3509,61 @@ def get_group_index(label_list, shape):
 
     np.putmask(group_index, mask, -1)
     return group_index
+
+
+def get_flat_ids(labels, shape, retain_lex_rank):
+    """
+    Given a list of labels at each level, returns a flat array of int64 ids
+    corresponding to unique tuples across the labels. If `retain_lex_rank`,
+    rank of returned ids preserve lexical ranks of labels.
+
+    Parameters
+    ----------
+    labels: sequence of arrays
+        Integers identifying levels at each location
+    shape: sequence of ints same length as labels
+        Number of unique levels at each location
+    retain_lex_rank: boolean
+        If the ranks of returned ids should match lexical ranks of labels
+
+    Returns
+    -------
+    An array of type int64 where two elements are equal if their corresponding
+    labels are equal at all location.
+    """
+    def loop(labels, shape):
+        # how many levels can be done without overflow:
+        pred = lambda i: not _int64_overflow_possible(shape[:i])
+        nlev = next(filter(pred, range(len(shape), 0, -1)))
+
+        # compute flat ids for the first `nlev` levels
+        stride = np.prod(shape[1:nlev], dtype='i8')
+        out = stride * labels[0].astype('i8', subok=False, copy=False)
+
+        for i in range(1, nlev):
+            stride //= shape[i]
+            out += labels[i] * stride
+
+        if nlev == len(shape):  # all levels done!
+            return out
+
+        # compress what has been done so far in order to avoid overflow
+        # to retain lexical ranks, obs_ids should be sorted
+        comp_ids, obs_ids = _compress_group_index(out, sort=retain_lex_rank)
+
+        labels = [comp_ids] + labels[nlev:]
+        shape = [len(obs_ids)] + shape[nlev:]
+
+        return loop(labels, shape)
+
+    def maybe_lift(lab, size):  # pormote nan values
+        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+
+    labels = map(com._ensure_int64, labels)
+    labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+
+    return loop(labels, shape)
+
 
 _INT64_MAX = np.iinfo(np.int64).max
 

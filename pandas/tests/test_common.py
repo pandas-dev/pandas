@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+import collections
 from datetime import datetime
 import re
+import sys
 
 import nose
 from nose.tools import assert_equal
@@ -25,7 +28,7 @@ def test_mut_exclusive():
 
 
 def test_is_sequence():
-    is_seq = com._is_sequence
+    is_seq = com.is_sequence
     assert(is_seq((1, 2)))
     assert(is_seq([1, 2]))
     assert(not is_seq("abcd"))
@@ -42,7 +45,7 @@ def test_get_callable_name():
     from functools import partial
     getname = com._get_callable_name
 
-    def fn(x): 
+    def fn(x):
         return x
     lambda_ = lambda x: x
     part1 = partial(fn)
@@ -153,6 +156,15 @@ def test_isnull_datetime():
     mask = isnull(idx)
     assert(mask[0])
     assert(not mask[1:].any())
+
+    # GH 9129
+    pidx = idx.to_period(freq='M')
+    mask = isnull(pidx)
+    assert(mask[0])
+    assert(not mask[1:].any())
+
+    mask = isnull(pidx[1:])
+    assert(not mask.any())
 
 
 class TestIsNull(tm.TestCase):
@@ -396,6 +408,55 @@ def test_is_list_like():
 
     for f in fails:
         assert not com.is_list_like(f)
+
+
+def test_is_hashable():
+
+    # all new-style classes are hashable by default
+    class HashableClass(object):
+        pass
+
+    class UnhashableClass1(object):
+        __hash__ = None
+
+    class UnhashableClass2(object):
+        def __hash__(self):
+            raise TypeError("Not hashable")
+
+    hashable = (
+        1, 'a', tuple(), (1,), HashableClass(),
+    )
+    not_hashable = (
+        [], UnhashableClass1(),
+    )
+    abc_hashable_not_really_hashable = (
+        ([],), UnhashableClass2(),
+    )
+
+    for i in hashable:
+        assert isinstance(i, collections.Hashable)
+        assert com.is_hashable(i)
+    for i in not_hashable:
+        assert not isinstance(i, collections.Hashable)
+        assert not com.is_hashable(i)
+    for i in abc_hashable_not_really_hashable:
+        assert isinstance(i, collections.Hashable)
+        assert not com.is_hashable(i)
+
+    # numpy.array is no longer collections.Hashable as of
+    # https://github.com/numpy/numpy/pull/5326, just test
+    # pandas.common.is_hashable()
+    assert not com.is_hashable(np.array([]))
+
+    # old-style classes in Python 2 don't appear hashable to
+    # collections.Hashable but also seem to support hash() by default
+    if sys.version_info[0] == 2:
+        class OldStyleClass():
+            pass
+        c = OldStyleClass()
+        assert not isinstance(c, collections.Hashable)
+        assert not com.is_hashable(c)
+        hash(c)  # this will not raise
 
 
 def test_ensure_int32():

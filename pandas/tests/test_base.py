@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 import re
 from datetime import datetime, timedelta
@@ -284,8 +285,8 @@ class TestIndexOps(Ops):
                     expected = pd.Period(ordinal=getattr(o.values, op)(), freq=o.freq)
                 try:
                     self.assertEqual(result, expected)
-                except ValueError:
-                    # comparing tz-aware series with np.array results in ValueError
+                except TypeError:
+                    # comparing tz-aware series with np.array results in TypeError
                     expected = expected.astype('M8[ns]').astype('int64')
                     self.assertEqual(result.value, expected)
 
@@ -613,23 +614,32 @@ class TestIndexOps(Ops):
                     continue
 
                 # original doesn't have duplicates
-                expected = Index([False] * len(original))
-                tm.assert_index_equal(original.duplicated(), expected)
+                expected = np.array([False] * len(original), dtype=bool)
+                duplicated = original.duplicated()
+                tm.assert_numpy_array_equal(duplicated, expected)
+                self.assertTrue(duplicated.dtype == bool)
                 result = original.drop_duplicates()
                 tm.assert_index_equal(result, original)
                 self.assertFalse(result is original)
 
+                # has_duplicates
+                self.assertFalse(original.has_duplicates)
+
                 # create repeated values, 3rd and 5th values are duplicated
                 idx = original[list(range(len(original))) + [5, 3]]
-                expected = Index([False] * len(original) + [True, True])
-                tm.assert_index_equal(idx.duplicated(), expected)
+                expected = np.array([False] * len(original) + [True, True], dtype=bool)
+                duplicated = idx.duplicated()
+                tm.assert_numpy_array_equal(duplicated, expected)
+                self.assertTrue(duplicated.dtype == bool)
                 tm.assert_index_equal(idx.drop_duplicates(), original)
 
                 last_base = [False] * len(idx)
                 last_base[3] = True
                 last_base[5] = True
-                expected = Index(last_base)
-                tm.assert_index_equal(idx.duplicated(take_last=True), expected)
+                expected = np.array(last_base)
+                duplicated = idx.duplicated(take_last=True)
+                tm.assert_numpy_array_equal(duplicated, expected)
+                self.assertTrue(duplicated.dtype == bool)
                 tm.assert_index_equal(idx.drop_duplicates(take_last=True),
                                       idx[~np.array(last_base)])
 

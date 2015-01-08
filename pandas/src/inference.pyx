@@ -21,6 +21,8 @@ def is_period(object val):
     return util.is_period_object(val)
 
 _TYPE_MAP = {
+    'categorical' : 'categorical',
+    'category' : 'categorical',
     'int8': 'integer',
     'int16': 'integer',
     'int32': 'integer',
@@ -65,7 +67,23 @@ try:
 except AttributeError:
     pass
 
+cdef _try_infer_map(v):
+    """ if its in our map, just return the dtype """
+    cdef:
+        object val_name, val_kind
+    val_name = v.dtype.name
+    if val_name in _TYPE_MAP:
+        return _TYPE_MAP[val_name]
+    val_kind = v.dtype.kind
+    if val_kind in _TYPE_MAP:
+       return _TYPE_MAP[val_kind]
+    return None
+
 def infer_dtype(object _values):
+    """
+    we are coercing to an ndarray here
+    """
+
     cdef:
         Py_ssize_t i, n
         object val
@@ -73,21 +91,29 @@ def infer_dtype(object _values):
 
     if isinstance(_values, np.ndarray):
         values = _values
-    elif hasattr(_values,'values'):
-        values = _values.values
+    elif hasattr(_values,'dtype'):
+
+        # this will handle ndarray-like
+        # e.g. categoricals
+        try:
+            values = getattr(_values, 'values', _values)
+        except:
+            val = _try_infer_map(_values)
+            if val is not None:
+                return val
+
+            # its ndarray like but we can't handle
+            raise ValueError("cannot infer type for {0}".format(type(_values)))
+
     else:
         if not isinstance(_values, list):
             _values = list(_values)
         values = list_to_object_array(_values)
 
     values = getattr(values, 'values', values)
-
-    val_name = values.dtype.name
-    if val_name in _TYPE_MAP:
-        return _TYPE_MAP[val_name]
-    val_kind = values.dtype.kind
-    if val_kind in _TYPE_MAP:
-        return _TYPE_MAP[val_kind]
+    val = _try_infer_map(values)
+    if val is not None:
+        return val
 
     if values.dtype != np.object_:
         values = values.astype('O')

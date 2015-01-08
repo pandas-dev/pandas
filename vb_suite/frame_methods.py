@@ -290,31 +290,76 @@ frame_isnull  = Benchmark('isnull(df)', setup,
                            start_date=datetime(2012,1,1))
 
 ## dropna
-setup = common_setup + """
+dropna_setup = common_setup + """
 data = np.random.randn(10000, 1000)
 df = DataFrame(data)
 df.ix[50:1000,20:50] = np.nan
 df.ix[2000:3000] = np.nan
 df.ix[:,60:70] = np.nan
 """
-frame_dropna_axis0_any  = Benchmark('df.dropna(how="any",axis=0)', setup,
+frame_dropna_axis0_any  = Benchmark('df.dropna(how="any",axis=0)', dropna_setup,
                                      start_date=datetime(2012,1,1))
-frame_dropna_axis0_all  = Benchmark('df.dropna(how="all",axis=0)', setup,
+frame_dropna_axis0_all  = Benchmark('df.dropna(how="all",axis=0)', dropna_setup,
                                      start_date=datetime(2012,1,1))
 
-setup = common_setup + """
+frame_dropna_axis1_any  = Benchmark('df.dropna(how="any",axis=1)', dropna_setup,
+                                    start_date=datetime(2012,1,1))
+
+frame_dropna_axis1_all  = Benchmark('df.dropna(how="all",axis=1)', dropna_setup,
+                                    start_date=datetime(2012,1,1))
+
+# dropna on mixed dtypes
+dropna_mixed_setup = common_setup + """
 data = np.random.randn(10000, 1000)
 df = DataFrame(data)
 df.ix[50:1000,20:50] = np.nan
 df.ix[2000:3000] = np.nan
 df.ix[:,60:70] = np.nan
+df['foo'] = 'bar'
 """
-frame_dropna_axis1_any  = Benchmark('df.dropna(how="any",axis=1)', setup,
-                                    start_date=datetime(2012,1,1))
+frame_dropna_axis0_any_mixed_dtypes  = Benchmark('df.dropna(how="any",axis=0)', dropna_mixed_setup,
+                                                 start_date=datetime(2012,1,1))
+frame_dropna_axis0_all_mixed_dtypes  = Benchmark('df.dropna(how="all",axis=0)', dropna_mixed_setup,
+                                                 start_date=datetime(2012,1,1))
 
-frame_dropna_axis1_all  = Benchmark('df.dropna(how="all",axis=1)', setup,
-                                    start_date=datetime(2012,1,1))
+frame_dropna_axis1_any_mixed_dtypes  = Benchmark('df.dropna(how="any",axis=1)', dropna_mixed_setup,
+                                                 start_date=datetime(2012,1,1))
 
+frame_dropna_axis1_all_mixed_dtypes  = Benchmark('df.dropna(how="all",axis=1)', dropna_mixed_setup,
+                                                 start_date=datetime(2012,1,1))
+
+## dropna multi
+dropna_setup = common_setup + """
+data = np.random.randn(10000, 1000)
+df = DataFrame(data)
+df.ix[50:1000,20:50] = np.nan
+df.ix[2000:3000] = np.nan
+df.ix[:,60:70] = np.nan
+df.index = MultiIndex.from_tuples(df.index.map(lambda x: (x, x)))
+df.columns = MultiIndex.from_tuples(df.columns.map(lambda x: (x, x)))
+"""
+frame_count_level_axis0_multi = Benchmark('df.count(axis=0, level=1)', dropna_setup,
+                                          start_date=datetime(2012,1,1))
+
+frame_count_level_axis1_multi = Benchmark('df.count(axis=1, level=1)', dropna_setup,
+                                          start_date=datetime(2012,1,1))
+
+# dropna on mixed dtypes
+dropna_mixed_setup = common_setup + """
+data = np.random.randn(10000, 1000)
+df = DataFrame(data)
+df.ix[50:1000,20:50] = np.nan
+df.ix[2000:3000] = np.nan
+df.ix[:,60:70] = np.nan
+df['foo'] = 'bar'
+df.index = MultiIndex.from_tuples(df.index.map(lambda x: (x, x)))
+df.columns = MultiIndex.from_tuples(df.columns.map(lambda x: (x, x)))
+"""
+frame_count_level_axis0_mixed_dtypes_multi  = Benchmark('df.count(axis=0, level=1)', dropna_mixed_setup,
+                                                        start_date=datetime(2012,1,1))
+
+frame_count_level_axis1_mixed_dtypes_multi  = Benchmark('df.count(axis=1, level=1)', dropna_mixed_setup,
+                                                        start_date=datetime(2012,1,1))
 
 #----------------------------------------------------------------------
 # apply

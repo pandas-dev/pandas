@@ -40,10 +40,14 @@ class TestWB(tm.TestCase):
 
         expected = {'NY.GDP.PCAP.CD': {('Canada', '2003'): 28026.006013044702, ('Mexico', '2003'): 6601.0420648056606, ('Canada', '2004'): 31829.522562759001, ('Kosovo', '2003'): 1969.56271307405, ('Mexico', '2004'): 7042.0247834044303, ('United States', '2004'): 41928.886136479705, ('United States', '2003'): 39682.472247320402, ('Kosovo', '2004'): 2135.3328465238301}}
         expected = pandas.DataFrame(expected)
+        #Round, to ignore revisions to data.
+        expected = pandas.np.round(expected,decimals=-3)
         expected.sort(inplace=True)
         result = download(country=cntry_codes, indicator=inds,
                           start=2003, end=2004, errors='ignore')
         result.sort(inplace=True)
+        #Round, to ignore revisions to data.
+        result = pandas.np.round(result,decimals=-3)
         expected.index = result.index
         assert_frame_equal(result, pandas.DataFrame(expected))
 

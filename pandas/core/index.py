@@ -3,7 +3,7 @@ import datetime
 import warnings
 import operator
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip, u, reduce
+from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
 
@@ -33,7 +33,8 @@ __all__ = ['Index']
 
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
-_index_doc_kwargs = dict(klass='Index', inplace='')
+_index_doc_kwargs = dict(klass='Index', inplace='',
+                         duplicated='np.array')
 
 
 def _try_get_item(x):
@@ -599,6 +600,10 @@ class Index(IndexOpsMixin, PandasObject):
     def is_unique(self):
         """ return if the index has unique values """
         return self._engine.is_unique
+
+    @property
+    def has_duplicates(self):
+        return not self.is_unique
 
     def is_boolean(self):
         return self.inferred_type in ['boolean']
@@ -1828,13 +1833,41 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _join_level(self, other, level, how='left', return_indexers=False):
+    def _join_level(self, other, level, how='left',
+                    return_indexers=False,
+                    keep_order=True):
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
-        labels of the level in the MultiIndex. The order of the data indexed by
-        the MultiIndex will not be changed (currently)
+        labels of the level in the MultiIndex. If `keep_order` == True, the
+        order of the data indexed by the MultiIndex will not be changed;
+        otherwise, it will tie out with `other`.
         """
+        from pandas.algos import groupsort_indexer
+
+        def _get_leaf_sorter(labels):
+            '''
+            returns sorter for the inner most level while preserving the
+            order of higher levels
+            '''
+            if labels[0].size == 0:
+                return np.empty(0, dtype='int64')
+
+            if len(labels) == 1:
+                lab = com._ensure_int64(labels[0])
+                sorter, _ = groupsort_indexer(lab, 1 + lab.max())
+                return sorter
+
+            # find indexers of begining of each set of
+            # same-key labels w.r.t all but last level
+            tic = labels[0][:-1] != labels[0][1:]
+            for lab in labels[1:-1]:
+                tic |= lab[:-1] != lab[1:]
+
+            starts = np.hstack(([True], tic, [True])).nonzero()[0]
+            lab = com._ensure_int64(labels[-1])
+            return lib.get_level_sorter(lab, com._ensure_int64(starts))
+
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
                             'is ambiguous')
@@ -1849,33 +1882,69 @@ class Index(IndexOpsMixin, PandasObject):
         level = left._get_level_number(level)
         old_level = left.levels[level]
 
+        if not right.is_unique:
+            raise NotImplementedError('Index._join_level on non-unique index '
+                                      'is not implemented')
+
         new_level, left_lev_indexer, right_lev_indexer = \
             old_level.join(right, how=how, return_indexers=True)
 
-        if left_lev_indexer is not None:
+        if left_lev_indexer is None:
+            if keep_order or len(left) == 0:
+                left_indexer = None
+                join_index = left
+            else:  # sort the leaves
+                left_indexer = _get_leaf_sorter(left.labels[:level + 1])
+                join_index = left[left_indexer]
+
+        else:
             left_lev_indexer = com._ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
             new_lev_labels = com.take_nd(rev_indexer, left.labels[level],
                                          allow_fill=False)
-            omit_mask = new_lev_labels != -1
 
             new_labels = list(left.labels)
             new_labels[level] = new_lev_labels
 
-            if not omit_mask.all():
-                new_labels = [lab[omit_mask] for lab in new_labels]
-
             new_levels = list(left.levels)
             new_levels[level] = new_level
 
-            join_index = MultiIndex(levels=new_levels, labels=new_labels,
-                                    names=left.names, verify_integrity=False)
-            left_indexer = np.arange(len(left))[new_lev_labels != -1]
-        else:
-            join_index = left
-            left_indexer = None
+            if keep_order:  # just drop missing values. o.w. keep order
+                left_indexer = np.arange(len(left))
+                mask = new_lev_labels != -1
+                if not mask.all():
+                    new_labels = [lab[mask] for lab in new_labels]
+                    left_indexer = left_indexer[mask]
+
+            else:  # tie out the order with other
+                if level == 0:  # outer most level, take the fast route
+                    ngroups = 1 + new_lev_labels.max()
+                    left_indexer, counts = groupsort_indexer(new_lev_labels,
+                                                             ngroups)
+                    # missing values are placed first; drop them!
+                    left_indexer = left_indexer[counts[0]:]
+                    new_labels = [lab[left_indexer] for lab in new_labels]
+
+                else:  # sort the leaves
+                    mask = new_lev_labels != -1
+                    mask_all = mask.all()
+                    if not mask_all:
+                        new_labels = [lab[mask] for lab in new_labels]
+
+                    left_indexer = _get_leaf_sorter(new_labels[:level + 1])
+                    new_labels = [lab[left_indexer] for lab in new_labels]
+
+                    # left_indexers are w.r.t masked frame.
+                    # reverse to original frame!
+                    if not mask_all:
+                        left_indexer = mask.nonzero()[0][left_indexer]
+
+            join_index = MultiIndex(levels=new_levels,
+                                    labels=new_labels,
+                                    names=left.names,
+                                    verify_integrity=False)
 
         if right_lev_indexer is not None:
             right_indexer = com.take_nd(right_lev_indexer,
@@ -3154,22 +3223,19 @@ class MultiIndex(Index):
         # to disable groupby tricks
         return True
 
-    @property
-    def has_duplicates(self):
-        """
-        Return True if there are no unique groups
-        """
-        # has duplicates
-        shape = [len(lev) for lev in self.levels]
-        group_index = np.zeros(len(self), dtype='i8')
-        for i in range(len(shape)):
-            stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
-            group_index += self.labels[i] * stride
+    @cache_readonly
+    def is_unique(self):
+        return not self.duplicated().any()
 
-        if len(np.unique(group_index)) < len(group_index):
-            return True
+    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    def duplicated(self, take_last=False):
+        from pandas.core.groupby import get_flat_ids
+        from pandas.hashtable import duplicated_int64
 
-        return False
+        shape = map(len, self.levels)
+        ids = get_flat_ids(self.labels, shape, False)
+
+        return duplicated_int64(ids, take_last)
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
@@ -3925,7 +3991,8 @@ class MultiIndex(Index):
             else:
                 target = _ensure_index(target)
             target, indexer, _ = self._join_level(target, level, how='right',
-                                                  return_indexers=True)
+                                                  return_indexers=True,
+                                                  keep_order=False)
         else:
             if self.equals(target):
                 indexer = None

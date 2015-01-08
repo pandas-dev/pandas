@@ -1022,6 +1022,13 @@ class TestMergeMulti(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+        # GH7331 - maintain left frame order in left merge
+        right.reset_index(inplace=True)
+        right.columns = left.columns[:3].tolist() + right.columns[-1:].tolist()
+        result = merge(left, right, how='left', on=left.columns[:-1].tolist())
+        expected.index = np.arange(len(expected))
+        tm.assert_frame_equal(result, expected)
+
     def test_left_join_index_multi_match(self):
         left = DataFrame([
             ['c', 0],
@@ -1057,6 +1064,11 @@ class TestMergeMulti(tm.TestCase):
             columns=['tag', 'val', 'char'],
             index=[2, 2, 2, 2, 0, 1, 1, 3])
 
+        tm.assert_frame_equal(result, expected)
+
+        # GH7331 - maintain left frame order in left merge
+        result = merge(left, right.reset_index(), how='left', on='tag')
+        expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_join_multi_dtypes(self):
@@ -1129,6 +1141,10 @@ class TestMergeMulti(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_int64_overflow_issues(self):
+        from itertools import product
+        from collections import defaultdict
+        from pandas.core.groupby import _int64_overflow_possible
+
         # #2690, combinatorial explosion
         df1 = DataFrame(np.random.randn(1000, 7),
                         columns=list('ABCDEF') + ['G1'])
@@ -1138,6 +1154,119 @@ class TestMergeMulti(tm.TestCase):
         # it works!
         result = merge(df1, df2, how='outer')
         self.assertTrue(len(result) == 2000)
+
+        low, high, n = -1 << 10, 1 << 10, 1 << 20
+        left = DataFrame(np.random.randint(low, high, (n, 7)),
+                         columns=list('ABCDEFG'))
+        left['left'] = left.sum(axis=1)
+
+        # one-2-one match
+        i = np.random.permutation(len(left))
+        right = left.iloc[i].copy()
+        right.columns = right.columns[:-1].tolist() + ['right']
+        right.index = np.arange(len(right))
+        right['right'] *= -1
+
+        out = merge(left, right, how='outer')
+        self.assertEqual(len(out), len(left))
+        assert_series_equal(out['left'], - out['right'])
+        assert_series_equal(out['left'], out.iloc[:, :-2].sum(axis=1))
+
+        out.sort(out.columns.tolist(), inplace=True)
+        out.index = np.arange(len(out))
+        for how in ['left', 'right', 'outer', 'inner']:
+            assert_frame_equal(out, merge(left, right, how=how, sort=True))
+
+        # check that left merge w/ sort=False maintains left frame order
+        out = merge(left, right, how='left', sort=False)
+        assert_frame_equal(left, out[left.columns.tolist()])
+
+        out = merge(right, left, how='left', sort=False)
+        assert_frame_equal(right, out[right.columns.tolist()])
+
+        # one-2-many/none match
+        n = 1 << 11
+        left = DataFrame(np.random.randint(low, high, (n, 7)).astype('int64'),
+                         columns=list('ABCDEFG'))
+
+        # confirm that this is checking what it is supposed to check
+        shape = left.apply(pd.Series.nunique).values
+        self.assertTrue(_int64_overflow_possible(shape))
+
+        # add duplicates to left frame
+        left = pd.concat([left, left], ignore_index=True)
+
+        right = DataFrame(np.random.randint(low, high, (n // 2, 7)).astype('int64'),
+                          columns=list('ABCDEFG'))
+
+        # add duplicates & overlap with left to the right frame
+        i = np.random.choice(len(left), n)
+        right = pd.concat([right, right, left.iloc[i]], ignore_index=True)
+
+        left['left'] = np.random.randn(len(left))
+        right['right'] = np.random.randn(len(right))
+
+        # shuffle left & right frames
+        i = np.random.permutation(len(left))
+        left = left.iloc[i].copy()
+        left.index = np.arange(len(left))
+
+        i = np.random.permutation(len(right))
+        right = right.iloc[i].copy()
+        right.index = np.arange(len(right))
+
+        # manually compute outer merge
+        ldict, rdict = defaultdict(list), defaultdict(list)
+
+        for idx, row in left.set_index(list('ABCDEFG')).iterrows():
+            ldict[idx].append(row['left'])
+
+        for idx, row in right.set_index(list('ABCDEFG')).iterrows():
+            rdict[idx].append(row['right'])
+
+        vals = []
+        for k, lval in ldict.items():
+            rval = rdict.get(k, [np.nan])
+            for lv, rv in product(lval, rval):
+                vals.append(k + tuple([lv, rv]))
+
+        for k, rval in rdict.items():
+            if k not in ldict:
+                for rv in rval:
+                    vals.append(k + tuple([np.nan, rv]))
+
+        def align(df):
+            df = df.sort(df.columns.tolist())
+            df.index = np.arange(len(df))
+            return df
+
+        def verify_order(df):
+            kcols = list('ABCDEFG')
+            assert_frame_equal(df[kcols].copy(),
+                               df[kcols].sort(kcols, kind='mergesort'))
+
+        out = DataFrame(vals, columns=list('ABCDEFG') + ['left', 'right'])
+        out = align(out)
+
+        jmask = {'left': out['left'].notnull(),
+                 'right': out['right'].notnull(),
+                 'inner': out['left'].notnull() & out['right'].notnull(),
+                 'outer': np.ones(len(out), dtype='bool')}
+
+        for how in 'left', 'right', 'outer', 'inner':
+            mask = jmask[how]
+            frame = align(out[mask].copy())
+            self.assertTrue(mask.all() ^ mask.any() or how == 'outer')
+
+            for sort in [False, True]:
+                res = merge(left, right, how=how, sort=sort)
+                if sort:
+                    verify_order(res)
+
+                # as in GH9092 dtypes break with outer/right join
+                assert_frame_equal(frame, align(res),
+                                   check_dtype=how not in ('right', 'outer'))
+
 
     def test_join_multi_levels(self):
 

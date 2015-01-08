@@ -3048,27 +3048,50 @@ A,B,C
         df = self.read_csv(StringIO(data), comment='#', skiprows=4)
         tm.assert_almost_equal(df.values, expected)
 
+    def test_skiprows_lineterminator(self):
+        #GH #9079
+        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
+                          '2007/01/01 01:00   0.2140 U M ',
+                          '2007/01/01 02:00   0.2141 M O ',
+                          '2007/01/01 04:00   0.2142 D M '])
+        expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
+                                 ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
+                                 ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
+                                columns=['date', 'time', 'var', 'flag', 
+                                         'oflag'])
+        # test with the three default lineterminators LF, CR and CRLF
+        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r')), 
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')), 
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+
     def test_trailing_spaces(self):
-        data = """skip
-random line with trailing spaces    
-skip
-1,2,3
-1,2.,4.
-random line with trailing tabs\t\t\t
-     
-5.,NaN,10.0
-"""
+        data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"
         expected = pd.DataFrame([[1., 2., 4.],
-                    [5., np.nan, 10.]])
-        # this should ignore six lines including lines with trailing 
+                    [5.1, np.nan, 10.]])
+        # this should ignore six lines including lines with trailing
         # whitespace and blank lines.  issues 8661, 8679
-        df = self.read_csv(StringIO(data.replace(',', '  ')), 
+        df = self.read_csv(StringIO(data.replace(',', '  ')),
                            header=None, delim_whitespace=True,
                            skiprows=[0,1,2,3,5,6], skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
-        df = self.read_table(StringIO(data.replace(',', '  ')), 
+        df = self.read_table(StringIO(data.replace(',', '  ')),
                              header=None, delim_whitespace=True,
                              skiprows=[0,1,2,3,5,6], skip_blank_lines=True)
+        tm.assert_frame_equal(df, expected)
+        # test skipping set of rows after a row with trailing spaces, issue #8983
+        expected = pd.DataFrame({"A":[1., 5.1], "B":[2., np.nan],
+                                "C":[4., 10]})
+        df = self.read_table(StringIO(data.replace(',', '  ')),
+                             delim_whitespace=True,
+                             skiprows=[1,2,3,5,6], skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
 
     def test_comment_header(self):
@@ -3258,6 +3281,7 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
 
     def test_precise_conversion(self):
         # GH #8002
+        tm._skip_if_32bit()
         from decimal import Decimal
         normal_errors = []
         precise_errors = []

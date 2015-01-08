@@ -4,7 +4,7 @@ SQL-style merge routines
 import types
 
 import numpy as np
-from pandas.compat import range, long, lrange, lzip, zip
+from pandas.compat import range, long, lrange, lzip, zip, map, filter
 import pandas.compat as compat
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
@@ -450,37 +450,29 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     -------
 
     """
-    if len(left_keys) != len(right_keys):
-        raise AssertionError('left_key and right_keys must be the same length')
+    from functools import partial
 
-    left_labels = []
-    right_labels = []
-    group_sizes = []
+    assert len(left_keys) == len(right_keys), \
+            'left_key and right_keys must be the same length'
 
-    for lk, rk in zip(left_keys, right_keys):
-        llab, rlab, count = _factorize_keys(lk, rk, sort=sort)
+    # bind `sort` arg. of _factorize_keys
+    fkeys = partial(_factorize_keys, sort=sort)
 
-        left_labels.append(llab)
-        right_labels.append(rlab)
-        group_sizes.append(count)
+    # get left & right join labels and num. of levels at each location
+    llab, rlab, shape = map(list, zip( * map(fkeys, left_keys, right_keys)))
 
-    max_groups = long(1)
-    for x in group_sizes:
-        max_groups *= long(x)
+    # get flat i8 keys from label lists
+    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
 
-    if max_groups > 2 ** 63:  # pragma: no cover
-        left_group_key, right_group_key, max_groups = \
-            _factorize_keys(lib.fast_zip(left_labels),
-                            lib.fast_zip(right_labels))
-    else:
-        left_group_key = get_group_index(left_labels, group_sizes)
-        right_group_key = get_group_index(right_labels, group_sizes)
+    # factorize keys to a dense i8 space
+    # `count` is the num. of unique keys
+    # set(lkey) | set(rkey) == range(count)
+    lkey, rkey, count = fkeys(lkey, rkey)
 
-        left_group_key, right_group_key, max_groups = \
-            _factorize_keys(left_group_key, right_group_key, sort=sort)
-
+    # preserve left frame order if how == 'left' and sort == False
+    kwargs = {'sort':sort} if how == 'left' else {}
     join_func = _join_functions[how]
-    return join_func(left_group_key, right_group_key, max_groups)
+    return join_func(lkey, rkey, count, **kwargs)
 
 
 class _OrderedMerge(_MergeOperation):
@@ -588,9 +580,9 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
         # if asked to sort or there are 1-to-many matches
         join_index = left_ax.take(left_indexer)
         return join_index, left_indexer, right_indexer
-    else:
-        # left frame preserves order & length of its index
-        return left_ax, None, right_indexer
+
+    # left frame preserves order & length of its index
+    return left_ax, None, right_indexer
 
 
 def _right_outer_join(x, y, max_groups):
@@ -660,6 +652,35 @@ def _sort_labels(uniques, left, right):
 
     return new_left, new_right
 
+
+def _get_join_keys(llab, rlab, shape, sort):
+    from pandas.core.groupby import _int64_overflow_possible
+
+    # how many levels can be done without overflow
+    pred = lambda i: not _int64_overflow_possible(shape[:i])
+    nlev = next(filter(pred, range(len(shape), 0, -1)))
+
+    # get keys for the first `nlev` levels
+    stride = np.prod(shape[1:nlev], dtype='i8')
+    lkey = stride * llab[0].astype('i8', subok=False, copy=False)
+    rkey = stride * rlab[0].astype('i8', subok=False, copy=False)
+
+    for i in range(1, nlev):
+        stride //= shape[i]
+        lkey += llab[i] * stride
+        rkey += rlab[i] * stride
+
+    if nlev == len(shape):  # all done!
+        return lkey, rkey
+
+    # densify current keys to avoid overflow
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
+
+    llab = [lkey] + llab[nlev:]
+    rlab = [rkey] + rlab[nlev:]
+    shape = [count] + shape[nlev:]
+
+    return _get_join_keys(llab, rlab, shape, sort)
 
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects

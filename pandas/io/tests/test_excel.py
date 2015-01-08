@@ -1353,6 +1353,47 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
 
+    def test_column_format(self):
+        # Test that column formats are applied to cells. Test for issue #9167.
+        # Applicable to xlsxwriter only.
+        _skip_if_no_xlsxwriter()
+
+        import warnings
+        with warnings.catch_warnings():
+            # Ignore the openpyxl lxml warning.
+            warnings.simplefilter("ignore")
+            _skip_if_no_openpyxl()
+            import openpyxl
+
+        with ensure_clean(self.ext) as path:
+            frame = DataFrame({'A': [123456, 123456],
+                               'B': [123456, 123456]})
+
+            writer = ExcelWriter(path)
+            frame.to_excel(writer)
+
+            # Add a number format to col B and ensure it is applied to cells.
+            num_format = '#,##0'
+            write_workbook = writer.book
+            write_worksheet = write_workbook.worksheets()[0]
+            col_format = write_workbook.add_format({'num_format': num_format})
+            write_worksheet.set_column('B:B', None, col_format)
+            writer.save()
+
+            read_workbook = openpyxl.load_workbook(path)
+            read_worksheet = read_workbook.get_sheet_by_name(name='Sheet1')
+
+            # Get the number format from the cell. This method is backward
+            # compatible with older versions of openpyxl.
+            cell = read_worksheet.cell('B2')
+
+            try:
+                read_num_format = cell.style.number_format._format_code
+            except:
+                read_num_format = cell.style.number_format
+
+            self.assertEqual(read_num_format, num_format)
+
 
 class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'

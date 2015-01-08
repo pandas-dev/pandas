@@ -419,7 +419,7 @@ class TestTimeSeries(tm.TestCase):
         tm._skip_if_no_dateutil()
         import dateutil
         rng = date_range('20090415', '20090519',
-                         tz=dateutil.tz.gettz('US/Eastern'))
+                         tz=dateutil.zoneinfo.gettz('US/Eastern'))
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
@@ -1797,7 +1797,7 @@ class TestTimeSeries(tm.TestCase):
     def test_append_concat_tz_dateutil(self):
         # GH 2938
         tm._skip_if_no_dateutil()
-        from dateutil.tz import gettz as timezone
+        from dateutil.zoneinfo import gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')
@@ -2312,6 +2312,37 @@ class TestDatetimeIndex(tm.TestCase):
         result = rng.map(f)
         exp = [f(x) for x in rng]
         self.assert_numpy_array_equal(result, exp)
+
+
+    def test_iteration_preserves_tz(self):
+
+        tm._skip_if_no_dateutil()
+
+        # GH 8890
+        import dateutil
+        index = date_range("2012-01-01", periods=3, freq='H', tz='US/Eastern')
+
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result, expected)
+
+        index = date_range("2012-01-01", periods=3, freq='H', tz=dateutil.tz.tzoffset(None, -28800))
+
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result._repr_base, expected._repr_base)
+            self.assertEqual(result, expected)
+
+        # 9100
+        index = pd.DatetimeIndex(['2014-12-01 03:32:39.987000-08:00','2014-12-01 04:12:34.987000-08:00'])
+        for i, ts in enumerate(index):
+            result = ts
+            expected = index[i]
+            self.assertEqual(result._repr_base, expected._repr_base)
+            self.assertEqual(result, expected)
+
 
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
@@ -4101,6 +4132,32 @@ class TimeConversionFormats(tm.TestCase):
             ]
         for s, format, dt in data:
             self.assertEqual(to_datetime(s, format=format), dt)
+
+    def test_to_datetime_with_non_exact(self):
+
+        # 8904
+        # exact kw
+        if sys.version_info < (2, 7):
+            raise nose.SkipTest('on python version < 2.7')
+
+        s = Series(['19MAY11','foobar19MAY11','19MAY11:00:00:00','19MAY11 00:00:00Z'])
+        result = to_datetime(s,format='%d%b%y',exact=False)
+        expected = to_datetime(s.str.extract('(\d+\w+\d+)'),format='%d%b%y')
+        assert_series_equal(result, expected)
+
+    def test_parse_nanoseconds_with_formula(self):
+
+        # GH8989
+        # trunctaing the nanoseconds when a format was provided
+        for v in ["2012-01-01 09:00:00.000000001",
+                  "2012-01-01 09:00:00.000001",
+                  "2012-01-01 09:00:00.001",
+                  "2012-01-01 09:00:00.001000",
+                  "2012-01-01 09:00:00.001000000",
+                  ]:
+            expected = pd.to_datetime(v)
+            result =  pd.to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f")
+            self.assertEqual(result,expected)
 
     def test_to_datetime_format_weeks(self):
         data = [

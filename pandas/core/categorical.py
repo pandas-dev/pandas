@@ -18,7 +18,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, _is_sequence,
+                                is_list_like, is_sequence,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
@@ -64,6 +64,12 @@ def _cat_compare_op(op):
             else:
                 return np.repeat(False, len(self))
         else:
+
+            # allow categorical vs object dtype array comparisons for equality
+            # these are only positional comparisons
+            if op in ['__eq__','__ne__']:
+                return getattr(np.array(self),op)(np.array(other))
+
             msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
                   "compare values, use 'np.asarray(cat) <op> other'."
             raise TypeError(msg.format(op=op,typ=type(other)))
@@ -776,7 +782,61 @@ class Categorical(PandasObject):
         return self._codes.nbytes + self._categories.values.nbytes
 
     def searchsorted(self, v, side='left', sorter=None):
-        raise NotImplementedError("See https://github.com/pydata/pandas/issues/8420")
+        """Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted Categorical `self` such that, if the
+        corresponding elements in `v` were inserted before the indices, the
+        order of `self` would be preserved.
+
+        Parameters
+        ----------
+        v : array_like
+            Array-like values or a scalar value, to insert/search for in `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `a`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort `self` into ascending
+            order. They are typically the result of ``np.argsort``.
+
+        Returns
+        -------
+        indices : array of ints
+            Array of insertion points with the same shape as `v`.
+
+        See Also
+        --------
+        Series.searchsorted
+        numpy.searchsorted
+
+        Notes
+        -----
+        Binary search is used to find the required insertion points.
+
+        Examples
+        --------
+        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        [apple, bread, bread, cheese, milk]
+        Categories (4, object): [apple < bread < cheese < milk]
+        >>> x.searchsorted('bread')
+        array([1])     # Note: an array, not a scalar
+        >>> x.searchsorted(['bread'])
+        array([1])
+        >>> x.searchsorted(['bread', 'eggs'])
+        array([1, 4])
+        >>> x.searchsorted(['bread', 'eggs'], side='right')
+        array([3, 4])	    # eggs before milk
+        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ])
+        >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
+        array([3, 5])       # eggs after donuts, after switching milk and donuts 
+        """
+        if not self.ordered:
+            raise ValueError("searchsorted requires an ordered Categorical.")
+
+        from pandas.core.series import Series
+        values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
+        return self.codes.searchsorted(values_as_codes, sorter=sorter)
 
     def isnull(self):
         """
@@ -1326,13 +1386,18 @@ class Categorical(PandasObject):
         """
         Return the unique values.
 
-        This includes all categories, even if one or more is unused.
+        Unused categories are NOT returned.
 
         Returns
         -------
         unique values : array
         """
-        return np.asarray(self.categories)
+        unique_codes = np.unique(self.codes)
+        # for compatibility with normal unique, which has nan last
+        if unique_codes[0] == -1:
+            unique_codes[0:-1] = unique_codes[1:]
+            unique_codes[-1] = -1
+        return take_1d(self.categories.values, unique_codes)
 
     def equals(self, other):
         """
@@ -1472,7 +1537,7 @@ def _convert_to_list_like(list_like):
         return list_like
     if isinstance(list_like, list):
         return list_like
-    if (_is_sequence(list_like) or isinstance(list_like, tuple)
+    if (is_sequence(list_like) or isinstance(list_like, tuple)
         or isinstance(list_like, types.GeneratorType)):
         return list(list_like)
     elif np.isscalar(list_like):

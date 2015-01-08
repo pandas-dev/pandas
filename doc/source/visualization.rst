@@ -727,7 +727,7 @@ You can use the ``labels`` and ``colors`` keywords to specify the labels and col
 
 .. warning::
 
-   Most pandas plots use the the ``label`` and ``color`` arguments (not the lack of "s" on those).
+   Most pandas plots use the the ``label`` and ``color`` arguments (note the lack of "s" on those).
    To be consistent with :func:`matplotlib.pyplot.pie` you must use ``labels`` and ``colors``.
 
 If you want to hide wedge labels, specify ``labels=None``.

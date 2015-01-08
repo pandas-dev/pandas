@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 import nose
 from numpy import nan
 import numpy as np
@@ -659,6 +659,24 @@ class TestTypeInference(tm.TestCase):
         arr = np.array([None],dtype='O')
         result = lib.infer_dtype(arr)
         self.assertEqual(result, 'mixed')
+
+    def test_categorical(self):
+
+        # GH 8974
+        from pandas import Categorical, Series
+        arr = Categorical(list('abc'))
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'categorical')
+
+        result = lib.infer_dtype(Series(arr))
+        self.assertEqual(result, 'categorical')
+
+        arr = Categorical(list('abc'),categories=['cegfab'],ordered=True)
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'categorical')
+
+        result = lib.infer_dtype(Series(arr))
+        self.assertEqual(result, 'categorical')
 
 class TestMoments(tm.TestCase):
     pass

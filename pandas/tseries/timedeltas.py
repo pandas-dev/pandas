@@ -52,6 +52,7 @@ def to_timedelta(arg, unit='ns', box=True, coerce=False):
                     value = np.array([ _get_string_converter(r, unit=unit)() for r in arg ],dtype='m8[ns]')
                 except:
                     value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit, coerce=coerce) for r in arg ])
+            value = value.astype('timedelta64[ns]', copy=False)
 
         if box:
             from pandas import TimedeltaIndex

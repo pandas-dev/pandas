@@ -381,7 +381,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         try:
             inferred_tz = tools._infer_tzinfo(start, end)
         except:
-            raise ValueError('Start and end cannot both be tz-aware with '
+            raise TypeError('Start and end cannot both be tz-aware with '
                              'different timezones')
 
         inferred_tz = tslib.maybe_get_tz(inferred_tz)
@@ -645,6 +645,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         from pandas import TimedeltaIndex
         other = Timestamp(other)
+
+        # require tz compat
+        if tslib.get_timezone(self.tz) != tslib.get_timezone(other.tzinfo):
+            raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
         i8 = self.asi8
         result = i8 - other.value
         result = self._maybe_mask_results(result,fill_value=tslib.iNaT)
@@ -676,22 +681,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def to_datetime(self, dayfirst=False):
         return self.copy()
-
-    def summary(self, name=None):
-        if len(self) > 0:
-            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
-                                            com.pprint_thing(self[-1]))
-        else:
-            index_summary = ''
-
-        if name is None:
-            name = type(self).__name__
-        result = '%s: %s entries%s' % (com.pprint_thing(name),
-                                       len(self), index_summary)
-        if self.freq:
-            result += '\nFreq: %s' % self.freqstr
-
-        return result
 
     def _format_footer(self):
         tagline = 'Length: %d, Freq: %s, Timezone: %s'
@@ -1387,13 +1376,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         self.offset = value
     freq = property(fget=_get_freq, fset=_set_freq, doc="get/set the frequncy of the Index")
 
-    @property
-    def freqstr(self):
-        """ return the frequency object as a string if its set, otherwise None """
-        if self.freq is None:
-            return None
-        return self.offset.freqstr
-
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M', "The month as January=1, December=12")
     day = _field_accessor('day', 'D', "The days of the datetime")
@@ -1776,11 +1758,11 @@ def _generate_regular_range(start, end, periods, offset):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + periods * stride
+            e = b + np.int64(periods) * stride
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - periods * stride
+            b = e - np.int64(periods) * stride
             tz = end.tz
         else:
             raise NotImplementedError

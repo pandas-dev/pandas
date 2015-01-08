@@ -11,7 +11,7 @@ import csv
 import nose
 import functools
 import itertools
-from itertools import product
+from itertools import product, permutations
 from distutils.version import LooseVersion
 
 from pandas.compat import(
@@ -1897,6 +1897,66 @@ class CheckIndexing(object):
         self.assertRaises(ValueError, df.reindex, dr[::-1], method='ffill')
         self.assertRaises(ValueError, df.reindex, dr[::-1], method='bfill')
 
+    def test_reindex_level(self):
+        from itertools import permutations
+        icol = ['jim', 'joe', 'jolie']
+
+        def verify_first_level(df, level, idx):
+            f = lambda val: np.nonzero(df[level] == val)[0]
+            i = np.concatenate(list(map(f, idx)))
+            left = df.set_index(icol).reindex(idx, level=level)
+            right = df.iloc[i].set_index(icol)
+            assert_frame_equal(left, right)
+
+        def verify(df, level, idx, indexer):
+            left = df.set_index(icol).reindex(idx, level=level)
+            right = df.iloc[indexer].set_index(icol)
+            assert_frame_equal(left, right)
+
+        df = pd.DataFrame({'jim':list('B' * 4 + 'A' * 2 + 'C' * 3),
+                           'joe':list('abcdeabcd')[::-1],
+                           'jolie':[10, 20, 30] * 3,
+                           'joline': np.random.randint(0, 1000, 9)})
+
+        target = [['C', 'B', 'A'], ['F', 'C', 'A', 'D'], ['A'], ['D', 'F'],
+                  ['A', 'B', 'C'], ['C', 'A', 'B'], ['C', 'B'], ['C', 'A'],
+                  ['A', 'B'], ['B', 'A', 'C'], ['A', 'C', 'B']]
+
+        for idx in target:
+            verify_first_level(df, 'jim', idx)
+
+        verify(df, 'joe', list('abcde'), [3, 2, 1, 0, 5, 4, 8, 7, 6])
+        verify(df, 'joe', list('abcd'),  [3, 2, 1, 0, 5, 8, 7, 6])
+        verify(df, 'joe', list('abc'),   [3, 2, 1, 8, 7, 6])
+        verify(df, 'joe', list('eca'),   [1, 3, 4, 6, 8])
+        verify(df, 'joe', list('edc'),   [0, 1, 4, 5, 6])
+        verify(df, 'joe', list('eadbc'), [3, 0, 2, 1, 4, 5, 8, 7, 6])
+        verify(df, 'joe', list('edwq'),  [0, 4, 5])
+        verify(df, 'joe', list('wq'),    [])
+
+        df = DataFrame({'jim':['mid'] * 5 + ['btm'] * 8 + ['top'] * 7,
+                        'joe':['3rd'] * 2 + ['1st'] * 3 + ['2nd'] * 3 +
+                              ['1st'] * 2 + ['3rd'] * 3 + ['1st'] * 2 +
+                              ['3rd'] * 3 + ['2nd'] * 2,
+                        'jolie':np.random.randint(0, 1000, 20),
+                        'joline': np.random.randn(20).round(3) * 10})
+
+        for idx in permutations(df['jim'].unique()):
+            for i in range(3):
+                verify_first_level(df, 'jim', idx[:i+1])
+
+        i = [2,3,4,0,1,8,9,5,6,7,10,11,12,13,14,18,19,15,16,17]
+        verify(df, 'joe', ['1st', '2nd', '3rd'], i)
+
+        i = [0,1,2,3,4,10,11,12,5,6,7,8,9,15,16,17,18,19,13,14]
+        verify(df, 'joe', ['3rd', '2nd', '1st'], i)
+
+        i = [0,1,5,6,7,10,11,12,18,19,15,16,17]
+        verify(df, 'joe', ['2nd', '3rd'], i)
+
+        i = [0,1,2,3,4,10,11,12,8,9,15,16,17,13,14]
+        verify(df, 'joe', ['3rd', '1st'], i)
+
     def test_getitem_ix_float_duplicates(self):
         df = pd.DataFrame(np.random.randn(3, 3),
                           index=[0.1, 0.2, 0.2], columns=list('abc'))
@@ -2428,6 +2488,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # this is ok
         df['foo2'] = np.ones((4,2)).tolist()
+
+    def test_constructor_dtype_copy(self):
+        orig_df = DataFrame({
+            'col1': [1.],
+            'col2': [2.],
+            'col3': [3.]})
+
+        new_df = pd.DataFrame(orig_df, dtype=float, copy=True)
+
+        new_df['col1'] = 200.
+        self.assertEqual(orig_df['col1'][0], 1.)
 
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
@@ -6477,6 +6548,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 aa.to_csv(filename,chunksize=chunksize)
                 rs = read_csv(filename,index_col=0)
                 assert_frame_equal(rs, aa)
+
+    def test_to_csv_wide_frame_formatting(self):
+        # Issue #8621
+        df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
+        with ensure_clean() as filename:
+            df.to_csv(filename, header=False, index=False)
+            rs = read_csv(filename, header=None)
+            assert_frame_equal(rs, df)
 
     def test_to_csv_bug(self):
         f1 = StringIO('a,1.0\nb,2.0')
@@ -12271,6 +12350,53 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaises(ValueError):
             df.T.stack('c1')
 
+    def test_unstack_nan_index(self):  # GH7466
+        cast = lambda val: '{0:1}'.format('' if val != val else val)
+        nan = np.nan
+
+        def verify(df):
+            mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+            rows, cols = df.notnull().values.nonzero()
+            for i, j in zip(rows, cols):
+                left = sorted(df.iloc[i, j].split('.'))
+                right = mk_list(df.index[i]) + mk_list(df.columns[j])
+                right = sorted(list(map(cast, right)))
+                self.assertEqual(left, right)
+
+        df = DataFrame({'jim':['a', 'b', nan, 'd'],
+                        'joe':['w', 'x', 'y', 'z'],
+                        'jolie':['a.w', 'b.x', ' .y', 'd.z']})
+
+        left  = df.set_index(['jim', 'joe']).unstack()['jolie']
+        right = df.set_index(['joe', 'jim']).unstack()['jolie'].T
+        assert_frame_equal(left, right)
+
+        for idx in permutations(df.columns[:2]):
+            mi = df.set_index(list(idx))
+            for lev in range(2):
+                udf = mi.unstack(level=lev)
+                self.assertEqual(udf.notnull().values.sum(), len(df))
+                verify(udf['jolie'])
+
+        df = DataFrame({'1st':['d'] * 3 + [nan] * 5 + ['a'] * 2 +
+                              ['c'] * 3 + ['e'] * 2 + ['b'] * 5,
+                        '2nd':['y'] * 2 + ['w'] * 3 + [nan] * 3 +
+                              ['z'] * 4 + [nan] * 3 + ['x'] * 3 + [nan] * 2,
+                        '3rd':[67,39,53,72,57,80,31,18,11,30,59,
+                               50,62,59,76,52,14,53,60,51]})
+
+        df['4th'], df['5th'] = \
+                df.apply(lambda r: '.'.join(map(cast, r)), axis=1), \
+                df.apply(lambda r: '.'.join(map(cast, r.iloc[::-1])), axis=1)
+
+        for idx in permutations(['1st', '2nd', '3rd']):
+            mi = df.set_index(list(idx))
+            for lev in range(3):
+                udf = mi.unstack(level=lev)
+                self.assertEqual(udf.notnull().values.sum(), 2 * len(df))
+                for col in ['4th', '5th']:
+                    verify(udf[col])
+
     def test_stack_datetime_column_multiIndex(self):
         # GH 8039
         t = datetime(2014, 1, 1)
@@ -12280,6 +12406,56 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         eidx = MultiIndex.from_product([(0, 1, 2, 3), ('B',)])
         ecols = MultiIndex.from_tuples([(t, 'A')])
         expected = DataFrame([1, 2, 3, 4], index=eidx, columns=ecols)
+        assert_frame_equal(result, expected)
+
+    def test_stack_partial_multiIndex(self):
+        # GH 8844
+        def _test_stack_with_multiindex(multiindex):
+            df = DataFrame(np.arange(3 * len(multiindex)).reshape(3, len(multiindex)),
+                           columns=multiindex)
+            for level in (-1, 0, 1, [0, 1], [1, 0]):
+                result = df.stack(level=level, dropna=False)
+
+                if isinstance(level, int):
+                    # Stacking a single level should not make any all-NaN rows,
+                    # so df.stack(level=level, dropna=False) should be the same
+                    # as df.stack(level=level, dropna=True).
+                    expected = df.stack(level=level, dropna=True)
+                    if isinstance(expected, Series):
+                        assert_series_equal(result, expected)
+                    else:
+                        assert_frame_equal(result, expected)
+
+                df.columns = MultiIndex.from_tuples(df.columns.get_values(),
+                                                    names=df.columns.names)
+                expected = df.stack(level=level, dropna=False)
+                if isinstance(expected, Series):
+                    assert_series_equal(result, expected)
+                else:
+                    assert_frame_equal(result, expected)
+
+        full_multiindex = MultiIndex.from_tuples([('B', 'x'), ('B', 'z'),
+                                                  ('A', 'y'),
+                                                  ('C', 'x'), ('C', 'u')],
+                                                 names=['Upper', 'Lower'])
+        for multiindex_columns in ([0, 1, 2, 3, 4],
+                                   [0, 1, 2, 3], [0, 1, 2, 4],
+                                   [0, 1, 2], [1, 2, 3], [2, 3, 4],
+                                   [0, 1], [0, 2], [0, 3],
+                                   [0], [2], [4]):
+            _test_stack_with_multiindex(full_multiindex[multiindex_columns])
+            if len(multiindex_columns) > 1:
+                multiindex_columns.reverse()
+                _test_stack_with_multiindex(full_multiindex[multiindex_columns])
+
+        df = DataFrame(np.arange(6).reshape(2, 3), columns=full_multiindex[[0, 1, 3]])
+        result = df.stack(dropna=False)
+        expected = DataFrame([[0, 2], [1, nan], [3, 5], [4, nan]],
+                             index=MultiIndex(levels=[[0, 1], ['u', 'x', 'y', 'z']],
+                                              labels=[[0, 0, 1, 1], [1, 3, 1, 3]],
+                                              names=[None, 'Lower']),
+                             columns=Index(['B', 'C'], name='Upper'),
+                             dtype=df.dtypes[0])
         assert_frame_equal(result, expected)
 
     def test_repr_with_mi_nat(self):

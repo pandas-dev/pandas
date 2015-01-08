@@ -1,11 +1,11 @@
 # pylint: disable-msg=W0612,E1101
-from pandas.compat import range, lrange, StringIO
+from pandas.compat import range, lrange, StringIO, OrderedDict
 from pandas import compat
 import os
 
 import numpy as np
-import nose
 from pandas import Series, DataFrame, DatetimeIndex, Timestamp
+from datetime import timedelta
 import pandas as pd
 read_json = pd.read_json
 
@@ -337,13 +337,43 @@ class TestPandasContainer(tm.TestCase):
 
         v12_json = os.path.join(self.dirpath, 'tsframe_v012.json')
         df_unser = pd.read_json(v12_json)
-        df_unser = pd.read_json(v12_json)
         assert_frame_equal(df, df_unser)
 
         df_iso = df.drop(['modified'], axis=1)
         v12_iso_json = os.path.join(self.dirpath, 'tsframe_iso_v012.json')
         df_unser_iso = pd.read_json(v12_iso_json)
         assert_frame_equal(df_iso, df_unser_iso)
+
+    def test_blocks_compat_GH9037(self):
+        index = pd.date_range('20000101', periods=10, freq='H')
+        df_mixed = DataFrame(OrderedDict(
+            float_1=[-0.92077639, 0.77434435, 1.25234727, 0.61485564,
+                     -0.60316077, 0.24653374, 0.28668979, -2.51969012,
+                     0.95748401, -1.02970536],
+            int_1=[19680418, 75337055, 99973684, 65103179, 79373900,
+                   40314334, 21290235,  4991321, 41903419, 16008365],
+            str_1=['78c608f1', '64a99743', '13d2ff52', 'ca7f4af2', '97236474',
+                   'bde7e214', '1a6bde47', 'b1190be5', '7a669144', '8d64d068'],
+            float_2=[-0.0428278, -1.80872357,  3.36042349, -0.7573685,
+                     -0.48217572, 0.86229683, 1.08935819, 0.93898739,
+                     -0.03030452, 1.43366348],
+            str_2=['14f04af9', 'd085da90', '4bcfac83', '81504caf', '2ffef4a9',
+                   '08e2f5c4', '07e1af03', 'addbd4a7', '1f6a09ba', '4bfc4d87'],
+            int_2=[86967717, 98098830, 51927505, 20372254, 12601730, 20884027,
+                   34193846, 10561746, 24867120, 76131025]
+        ), index=index)
+
+        # JSON deserialisation always creates unicode strings
+        df_mixed.columns = df_mixed.columns.astype('unicode')
+
+        df_roundtrip = pd.read_json(df_mixed.to_json(orient='split'),
+                                    orient='split')
+        assert_frame_equal(df_mixed, df_roundtrip,
+                           check_index_type=True,
+                           check_column_type=True,
+                           check_frame_type=True,
+                           by_blocks=True,
+                           check_exact=True)
 
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
@@ -601,7 +631,6 @@ class TestPandasContainer(tm.TestCase):
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
 
     def test_timedelta(self):
-        from datetime import timedelta
         converter = lambda x: pd.to_timedelta(x,unit='ms')
 
         s = Series([timedelta(23), timedelta(seconds=5)])
@@ -613,17 +642,34 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(
             frame, pd.read_json(frame.to_json()).apply(converter))
 
+        frame = DataFrame({'a': [timedelta(days=23), timedelta(seconds=5)],
+                           'b': [1, 2],
+                           'c': pd.date_range(start='20130101', periods=2)})
+
+        result = pd.read_json(frame.to_json(date_unit='ns'))
+        result['a'] = pd.to_timedelta(result.a, unit='ns')
+        result['c'] = pd.to_datetime(result.c)
+        assert_frame_equal(frame, result)
+
+    def test_mixed_timedelta_datetime(self):
+        frame = DataFrame({'a': [timedelta(23), pd.Timestamp('20130101')]},
+                          dtype=object)
+
+        expected = DataFrame({'a': [pd.Timedelta(frame.a[0]).value,
+                                    pd.Timestamp(frame.a[1]).value]})
+        result = pd.read_json(frame.to_json(date_unit='ns'),
+                              dtype={'a': 'int64'})
+        assert_frame_equal(result, expected)
+
     def test_default_handler(self):
-        from datetime import timedelta
+        value = object()
+        frame = DataFrame({'a': ['a', value]})
+        expected = frame.applymap(str)
+        result = pd.read_json(frame.to_json(default_handler=str))
+        assert_frame_equal(expected, result)
 
-        frame = DataFrame([timedelta(23), timedelta(seconds=5), 42])
-        self.assertRaises(OverflowError, frame.to_json)
-
-        expected = DataFrame([str(timedelta(23)), str(timedelta(seconds=5)), 42])
-        assert_frame_equal(
-            expected, pd.read_json(frame.to_json(default_handler=str)))
-
+    def test_default_handler_raises(self):
         def my_handler_raises(obj):
             raise TypeError("raisin")
-        self.assertRaises(TypeError, frame.to_json,
+        self.assertRaises(TypeError, DataFrame({'a': [1, 2, object()]}).to_json,
                           default_handler=my_handler_raises)

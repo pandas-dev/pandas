@@ -48,6 +48,14 @@ class TestTSPlot(tm.TestCase):
         ts = Series([188.5, 328.25], index=index)
         _check_plot_works(ts.plot)
 
+    def test_fontsize_set_correctly(self):
+        # For issue #8765
+        import matplotlib.pyplot as plt
+        df = DataFrame(np.random.randn(10, 9), index=range(10))
+        ax = df.plot(fontsize=2)
+        for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+            self.assertEqual(label.get_fontsize(), 2)
+
     @slow
     def test_frame_inferred(self):
         # inferred freq

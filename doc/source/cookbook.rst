@@ -489,10 +489,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    def GrowUp(x):
-      avg_weight = sum(x[x.size == 'S'].weight * 1.5) 
-      avg_weight += sum(x[x.size == 'M'].weight * 1.25)
-      avg_weight += sum(x[x.size == 'L'].weight)
-      avg_weight = avg_weight / len(x)
+      avg_weight =  sum(x[x['size'] == 'S'].weight * 1.5) 
+      avg_weight += sum(x[x['size'] == 'M'].weight * 1.25)
+      avg_weight += sum(x[x['size'] == 'L'].weight)
+      avg_weight /= len(x)
       return pd.Series(['L',avg_weight,True], index=['size', 'weight', 'adult'])
 
    expected_df = gb.apply(GrowUp) 

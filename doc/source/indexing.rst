@@ -84,14 +84,17 @@ of multi-axis indexing.
 
   See more at :ref:`Selection by Label <indexing.label>`
 
-- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of
-  the axis), will raise ``IndexError`` if an indexer is requested and it
-  is out-of-bounds, except *slice* indexers which allow out-of-bounds indexing.
-  (this conforms with python/numpy *slice* semantics). Allowed inputs are:
+- ``.iloc`` is primarily integer position based (from ``0`` to
+  ``length-1`` of the axis), but may also be used with a boolean
+  array.  ``.iloc`` will raise ``IndexError`` if a requested 
+  indexer is out-of-bounds, except *slice* indexers which allow
+  out-of-bounds indexing.  (this conforms with python/numpy *slice*
+  semantics).  Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
   - A slice object with ints ``1:7``
+  - A boolean array
 
   See more at :ref:`Selection by Position <indexing.integer>`
 
@@ -368,6 +371,7 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 - An integer e.g. ``5``
 - A list or array of integers ``[4, 3, 0]``
 - A slice object with ints ``1:7``
+- A boolean array
 
 .. ipython:: python
 

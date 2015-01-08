@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 

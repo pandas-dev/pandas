@@ -514,17 +514,21 @@ def nankurt(values, axis=None, skipna=True):
     C = _zero_out_fperr(C)
     D = _zero_out_fperr(D)
 
+    if not isinstance(B, np.ndarray):
+        # if B is a scalar, check these corner cases first before doing division
+        if count < 4:
+            return np.nan
+        if B == 0:
+            return 0
+
     result = (((count * count - 1.) * D / (B * B) - 3 * ((count - 1.) ** 2)) /
               ((count - 2.) * (count - 3.)))
+
     if isinstance(result, np.ndarray):
         result = np.where(B == 0, 0, result)
         result[count < 4] = np.nan
-        return result
-    else:
-        result = 0 if B == 0 else result
-        if count < 4:
-            return np.nan
-        return result
+
+    return result
 
 
 @disallow('M8','m8')

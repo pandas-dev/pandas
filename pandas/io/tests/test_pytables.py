@@ -172,6 +172,25 @@ class TestHDFStore(tm.TestCase):
         finally:
             safe_remove(self.path)
 
+    def test_context(self):
+        try:
+            with HDFStore(self.path) as tbl:
+                raise ValueError('blah')
+        except ValueError:
+            pass
+        finally:
+            safe_remove(self.path)
+
+        try:
+            with HDFStore(self.path) as tbl:
+                tbl['a'] = tm.makeDataFrame()
+
+            with HDFStore(self.path) as tbl:
+                self.assertEqual(len(tbl), 1)
+                self.assertEqual(type(tbl['a']), DataFrame)
+        finally:
+            safe_remove(self.path)
+
     def test_conv_read_write(self):
 
         try:
@@ -334,10 +353,10 @@ class TestHDFStore(tm.TestCase):
 
             pandas.set_option('io.hdf.default_format','table')
             df.to_hdf(path,'df3')
-            with get_store(path) as store:
+            with HDFStore(path) as store:
                 self.assertTrue(store.get_storer('df3').is_table)
             df.to_hdf(path,'df4',append=True)
-            with get_store(path) as store:
+            with HDFStore(path) as store:
                 self.assertTrue(store.get_storer('df4').is_table)
 
             pandas.set_option('io.hdf.default_format',None)
@@ -463,11 +482,11 @@ class TestHDFStore(tm.TestCase):
                 # context
                 if mode in ['r','r+']:
                     def f():
-                        with get_store(path,mode=mode) as store:
+                        with HDFStore(path,mode=mode) as store:
                             pass
                     self.assertRaises(IOError, f)
                 else:
-                    with get_store(path,mode=mode) as store:
+                    with HDFStore(path,mode=mode) as store:
                         self.assertEqual(store._handle.mode, mode)
 
             with ensure_clean_path(self.path) as path:

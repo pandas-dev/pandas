@@ -26,7 +26,7 @@ repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in th
 clone the GitHub repository and get IPython Notebook running.
 See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-use-this-cookbook>`_.
 
--  `A quick tour of the IPython Notebook: <http://nbviewer.ipython.org/github/jvns/pandas-c|%2055ookbook/blob/v0.1/cookbook/A%20quick%20tour%20of%20IPython%20Notebook.ipynb>`_
+-  `A quick tour of the IPython Notebook: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/A%20quick%20tour%20of%20IPython%20Notebook.ipynb>`_
    Shows off IPython's awesome tab completion and magic functions.
 -  `Chapter 1: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%201%20-%20Reading%20from%20a%20CSV.ipynb>`_
    Reading your data into pandas is pretty much the easiest thing. Even

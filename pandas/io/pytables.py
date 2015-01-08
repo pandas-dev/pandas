@@ -251,33 +251,6 @@ def _tables():
 
     return _table_mod
 
-@contextmanager
-def get_store(path, **kwargs):
-    """
-    Creates an HDFStore instance. This function can be used in a with statement
-
-    Parameters
-    ----------
-    same as HDFStore
-
-    Examples
-    --------
-    >>> from pandas import DataFrame
-    >>> from numpy.random import randn
-    >>> bar = DataFrame(randn(10, 4))
-    >>> with get_store('test.h5') as store:
-    ...     store['foo'] = bar   # write to HDF5
-    ...     bar = store['foo']   # retrieve
-    """
-    store = None
-    try:
-        store = HDFStore(path, **kwargs)
-        yield store
-    finally:
-        if store is not None:
-            store.close()
-
-
 # interface to/from ###
 
 def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
@@ -289,7 +262,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f = lambda store: store.put(key, value, **kwargs)
 
     if isinstance(path_or_buf, string_types):
-        with get_store(path_or_buf, mode=mode, complevel=complevel,
+        with HDFStore(path_or_buf, mode=mode, complevel=complevel,
                        complib=complib) as store:
             f(store)
     else:
@@ -492,6 +465,12 @@ class HDFStore(StringMixin):
             output += "File is CLOSED"
 
         return output
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def keys(self):
         """
@@ -1286,6 +1265,12 @@ class HDFStore(StringMixin):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read(**kwargs)
+
+
+def get_store(path, **kwargs):
+    """ Backwards compatible alias for ``HDFStore``
+    """
+    return HDFStore(path, **kwargs)
 
 
 class TableIterator(object):

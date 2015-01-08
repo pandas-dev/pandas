@@ -24,7 +24,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _maybe_upcast, _is_sequence,
+                                _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _get_dtype, _maybe_box_datetimelike,
                                 is_categorical_dtype)
@@ -2255,7 +2255,7 @@ class DataFrame(NDFrame):
         elif isinstance(value, Categorical):
             value = value.copy()
 
-        elif (isinstance(value, Index) or _is_sequence(value)):
+        elif (isinstance(value, Index) or is_sequence(value)):
             from pandas.core.series import _sanitize_index
             value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
@@ -2726,7 +2726,8 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
-            Take the last observed row in a row. Defaults to the first row
+            For a set of distinct duplicate rows, flag all but the last row as 
+            duplicated. Default is for all but the first row to be flagged            
         cols : kwargs only argument of subset [deprecated]
 
         Returns
@@ -2844,7 +2845,7 @@ class DataFrame(NDFrame):
                                  '(rows)')
             if not isinstance(by, list):
                 by = [by]
-            if com._is_sequence(ascending) and len(by) != len(ascending):
+            if com.is_sequence(ascending) and len(by) != len(ascending):
                 raise ValueError('Length of ascending (%d) != length of by'
                                  ' (%d)' % (len(ascending), len(by)))
             if len(by) > 1:
@@ -3694,7 +3695,7 @@ class DataFrame(NDFrame):
                                            com.pprint_thing(k),)
                 raise
 
-        if len(results) > 0 and _is_sequence(results[0]):
+        if len(results) > 0 and is_sequence(results[0]):
             if not isinstance(results[0], Series):
                 index = res_columns
             else:
@@ -4094,11 +4095,11 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if axis == 1:
-                counts = notnull(frame.values).sum(1)
-                result = Series(counts, index=frame._get_agg_axis(axis))
-            else:
+            if frame._is_mixed_type:
                 result = notnull(frame).sum(axis=axis)
+            else:
+                counts = notnull(frame.values).sum(axis=axis)
+                result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
 
@@ -4108,27 +4109,38 @@ class DataFrame(NDFrame):
         else:
             frame = self
 
-        if axis == 1:
-            frame = frame.T
+        count_axis = frame._get_axis(axis)
+        agg_axis = frame._get_agg_axis(axis)
 
-        if not isinstance(frame.index, MultiIndex):
+        if not isinstance(count_axis, MultiIndex):
             raise TypeError("Can only count levels on hierarchical %s." %
                             self._get_axis_name(axis))
 
-        # python 2.5
-        mask = notnull(frame.values).view(np.uint8)
+        if frame._is_mixed_type:
+            # Since we have mixed types, calling notnull(frame.values) might
+            # upcast everything to object
+            mask = notnull(frame).values
+        else:
+            # But use the speedup when we have homogeneous dtypes
+            mask = notnull(frame.values)
+
+        if axis == 1:
+            # We're transposing the mask rather than frame to avoid potential
+            # upcasts to object, which induces a ~20x slowdown
+            mask = mask.T
 
         if isinstance(level, compat.string_types):
-            level = self.index._get_level_number(level)
+            level = count_axis._get_level_number(level)
 
-        level_index = frame.index.levels[level]
-        labels = com._ensure_int64(frame.index.labels[level])
+        level_index = count_axis.levels[level]
+        labels = com._ensure_int64(count_axis.labels[level])
         counts = lib.count_level_2d(mask, labels, len(level_index))
 
         result = DataFrame(counts, index=level_index,
-                           columns=frame.columns)
+                           columns=agg_axis)
 
         if axis == 1:
+            # Undo our earlier transpose
             return result.T
         else:
             return result

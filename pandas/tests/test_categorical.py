@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime
@@ -769,11 +770,17 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(_max, 1)
 
     def test_unique(self):
-        cat = Categorical(["a","b","c","d"])
-        exp = np.asarray(["a","b","c","d"])
+        cat = Categorical(["a","b"])
+        exp = np.asarray(["a","b"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
-        self.assertEqual(type(res), type(exp))
+        cat = Categorical(["a","b","a","a"], categories=["a","b","c"])
+        res = cat.unique()
+        self.assert_numpy_array_equal(res, exp)
+        cat = Categorical(["a","b","a", np.nan], categories=["a","b","c"])
+        res = cat.unique()
+        exp = np.asarray(["a","b", np.nan], dtype=object)
+        self.assert_numpy_array_equal(res, exp)
 
     def test_mode(self):
         s = Categorical([1,1,2,4,5,5,5], categories=[5,4,3,2,1], ordered=True)
@@ -882,13 +889,47 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(cat.nbytes, exp)
 
     def test_searchsorted(self):
+        # https://github.com/pydata/pandas/issues/8420
+        s1 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        s2 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ])
+        c1 = pd.Categorical(s1)
+        c2 = pd.Categorical(s2)
 
-        # See https://github.com/pydata/pandas/issues/8420
-        # TODO: implement me...
-        cat = pd.Categorical([1,2,3])
-        def f():
-            cat.searchsorted(3)
-        self.assertRaises(NotImplementedError, f)
+        # Single item array
+        res = c1.searchsorted(['bread'])
+        chk = s1.searchsorted(['bread'])
+        exp = np.array([1])
+        self.assert_numpy_array_equal(res, exp)
+        self.assert_numpy_array_equal(res, chk)
+
+        # Scalar version of single item array
+        # Categorical return np.array like pd.Series, but different from np.array.searchsorted()
+        res = c1.searchsorted('bread')
+        chk = s1.searchsorted('bread')
+        exp = np.array([1])
+        self.assert_numpy_array_equal(res, exp)
+        self.assert_numpy_array_equal(res, chk)
+       
+        # Searching for a value that is not present in the Categorical 
+        res = c1.searchsorted(['bread', 'eggs'])
+        chk = s1.searchsorted(['bread', 'eggs'])
+        exp = np.array([1, 4])
+        self.assert_numpy_array_equal(res, exp)
+        self.assert_numpy_array_equal(res, chk)
+
+        # Searching for a value that is not present, to the right
+        res = c1.searchsorted(['bread', 'eggs'], side='right')
+        chk = s1.searchsorted(['bread', 'eggs'], side='right')
+        exp = np.array([3, 4])	    # eggs before milk
+        self.assert_numpy_array_equal(res, exp)
+        self.assert_numpy_array_equal(res, chk)
+
+        # As above, but with a sorter array to reorder an unsorted array
+        res = c2.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
+        chk = s2.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
+        exp = np.array([3, 5])       # eggs after donuts, after switching milk and donuts 
+        self.assert_numpy_array_equal(res, exp)
+        self.assert_numpy_array_equal(res, chk)
 
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017, whatever is earlier
@@ -2205,10 +2246,62 @@ class TestCategoricalAsBlock(tm.TestCase):
             tm.assert_series_equal(res, exp)
 
         # And test NaN handling...
-        cat = pd.Series(pd.Categorical(["a","b","c", np.nan]))
+        cat = Series(Categorical(["a","b","c", np.nan]))
         exp = Series([True, True, True, False])
         res = (cat == cat)
         tm.assert_series_equal(res, exp)
+
+    def test_cat_equality(self):
+
+        # GH 8938
+        # allow equality comparisons
+        a = Series(list('abc'),dtype="category")
+        b = Series(list('abc'),dtype="object")
+        c = Series(['a','b','cc'],dtype="object")
+        d = Series(list('acb'),dtype="object")
+        e = Categorical(list('abc'))
+        f = Categorical(list('acb'))
+
+        # vs scalar
+        self.assertFalse((a=='a').all())
+        self.assertTrue(((a!='a') == ~(a=='a')).all())
+
+        self.assertFalse(('a'==a).all())
+        self.assertTrue((a=='a')[0])
+        self.assertTrue(('a'==a)[0])
+        self.assertFalse(('a'!=a)[0])
+
+        # vs list-like
+        self.assertTrue((a==a).all())
+        self.assertFalse((a!=a).all())
+
+        self.assertTrue((a==list(a)).all())
+        self.assertTrue((a==b).all())
+        self.assertTrue((b==a).all())
+        self.assertTrue(((~(a==b))==(a!=b)).all())
+        self.assertTrue(((~(b==a))==(b!=a)).all())
+
+        self.assertFalse((a==c).all())
+        self.assertFalse((c==a).all())
+        self.assertFalse((a==d).all())
+        self.assertFalse((d==a).all())
+
+        # vs a cat-like
+        self.assertTrue((a==e).all())
+        self.assertTrue((e==a).all())
+        self.assertFalse((a==f).all())
+        self.assertFalse((f==a).all())
+
+        self.assertTrue(((~(a==e)==(a!=e)).all()))
+        self.assertTrue(((~(e==a)==(e!=a)).all()))
+        self.assertTrue(((~(a==f)==(a!=f)).all()))
+        self.assertTrue(((~(f==a)==(f!=a)).all()))
+
+        # non-equality is not comparable
+        self.assertRaises(TypeError, lambda: a < b)
+        self.assertRaises(TypeError, lambda: b < a)
+        self.assertRaises(TypeError, lambda: a > b)
+        self.assertRaises(TypeError, lambda: b > a)
 
     def test_concat(self):
         cat = pd.Categorical(["a","b"], categories=["a","b"])

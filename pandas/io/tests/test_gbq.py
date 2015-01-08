@@ -277,6 +277,17 @@ class TestToGBQIntegration(tm.TestCase):
         with tm.assertRaises(gbq.UnknownGBQException):
             gbq.to_gbq(bad_df, 'pydata_pandas_bq_testing.new_test', project_id = PROJECT_ID)
 
+    def test_generate_bq_schema(self):
+
+        df = tm.makeMixedDataFrame()
+        schema = gbq.generate_bq_schema(df)
+
+        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                  {'name': 'B', 'type': 'FLOAT'},
+                                  {'name': 'C', 'type': 'STRING'},
+                                  {'name': 'D', 'type': 'TIMESTAMP'}]}
+
+        self.assertEqual(schema, test_schema)
 
     @classmethod
     def tearDownClass(cls):

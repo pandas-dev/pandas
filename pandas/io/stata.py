@@ -611,9 +611,10 @@ class StataMissingValue(StringMixin):
     MISSING_VALUES = {}
     bases = (101, 32741, 2147483621)
     for b in bases:
-        MISSING_VALUES[b] = '.'
+        # Conversion to long to avoid hash issues on 32 bit platforms #8968
+        MISSING_VALUES[compat.long(b)] = '.'
         for i in range(1, 27):
-            MISSING_VALUES[i + b] = '.' + chr(96 + i)
+            MISSING_VALUES[compat.long(i + b)] = '.' + chr(96 + i)
 
     float32_base = b'\x00\x00\x00\x7f'
     increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
@@ -643,6 +644,8 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, value):
         self._value = value
+        # Conversion to long to avoid hash issues on 32 bit platforms #8968
+        value = compat.long(value) if value < 2147483648 else float(value)
         self._str = self.MISSING_VALUES[value]
 
     string = property(lambda self: self._str,
@@ -1375,13 +1378,6 @@ def _pad_bytes(name, length):
     return name + "\x00" * (length - len(name))
 
 
-def _default_names(nvar):
-    """
-    Returns default Stata names v1, v2, ... vnvar
-    """
-    return ["v%d" % i for i in range(1, nvar+1)]
-
-
 def _convert_datetime_to_stata_type(fmt):
     """
     Converts from one of the stata date formats to a type in TYPE_MAP
@@ -1409,7 +1405,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
     return new_dict
 
 
-def _dtype_to_stata_type(dtype):
+def _dtype_to_stata_type(dtype, column):
     """
     Converts dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in
@@ -1425,13 +1421,14 @@ def _dtype_to_stata_type(dtype):
     If there are dates to convert, then dtype will already have the correct
     type inserted.
     """
-    #TODO: expand to handle datetime to integer conversion
+    # TODO: expand to handle datetime to integer conversion
     if dtype.type == np.string_:
         return chr(dtype.itemsize)
     elif dtype.type == np.object_:  # try to coerce it to the biggest string
                                     # not memory efficient, what else could we
                                     # do?
-        return chr(244)
+        itemsize = max_len_string_array(column.values)
+        return chr(max(itemsize, 1))
     elif dtype == np.float64:
         return chr(255)
     elif dtype == np.float32:
@@ -1461,6 +1458,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
     int16   -> "%8.0g"
     int8    -> "%8.0g"
     """
+    # TODO: Refactor to combine type with format
     # TODO: expand this to handle a default datetime format?
     if dtype.type == np.object_:
         inferred_dtype = infer_dtype(column.dropna())
@@ -1470,8 +1468,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         itemsize = max_len_string_array(column.values)
         if itemsize > 244:
             raise ValueError(excessive_string_length_error % column.name)
-
-        return "%" + str(itemsize) + "s"
+        return "%" + str(max(itemsize, 1)) + "s"
     elif dtype == np.float64:
         return "%10.0g"
     elif dtype == np.float32:
@@ -1718,10 +1715,11 @@ class StataWriter(StataParser):
                     self._convert_dates[key]
                 )
                 dtypes[key] = np.dtype(new_type)
-        self.typlist = [_dtype_to_stata_type(dt) for dt in dtypes]
+        self.typlist = []
         self.fmtlist = []
         for col, dtype in dtypes.iteritems():
             self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, data[col]))
+            self.typlist.append(_dtype_to_stata_type(dtype, data[col]))
 
         # set the given format for the datetime cols
         if self._convert_dates is not None:

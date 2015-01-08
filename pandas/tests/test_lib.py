@@ -1,11 +1,23 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date, time
 
 import numpy as np
 
 import pandas as pd
-from pandas.lib import isscalar, item_from_zerodim
+from pandas.lib import isscalar, item_from_zerodim, max_len_string_array
 import pandas.util.testing as tm
 from pandas.compat import u
+
+class TestMisc(tm.TestCase):
+
+    def test_max_len_string_array(self):
+
+        arr = np.array(['foo','b',np.nan],dtype='object')
+        self.assertTrue(max_len_string_array(arr),3)
+
+        # unicode
+        arr = arr.astype('U')
+        self.assertTrue(max_len_string_array(arr),3)
 
 class TestIsscalar(tm.TestCase):
     def test_isscalar_builtin_scalars(self):

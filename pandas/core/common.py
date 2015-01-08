@@ -302,7 +302,7 @@ def _isnull_ndarraylike(obj):
                 vec = lib.isnullobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
-    elif dtype in _DATELIKE_DTYPES:
+    elif is_datetimelike(obj):
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
     else:
@@ -2366,6 +2366,9 @@ def is_datetime_arraylike(arr):
         return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
+def is_datetimelike(arr):
+    return arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex)
+
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
     if is_categorical_dtype(dtype):
@@ -2504,13 +2507,46 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
-def _is_sequence(x):
+def is_hashable(arg):
+    """Return True if hash(arg) will succeed, False otherwise.
+
+    Some types will pass a test against collections.Hashable but fail when they
+    are actually hashed with hash().
+
+    Distinguish between these and other types by trying the call to hash() and
+    seeing if they raise TypeError.
+
+    Examples
+    --------
+    >>> a = ([],)
+    >>> isinstance(a, collections.Hashable)
+    True
+    >>> is_hashable(a)
+    False
+    """
+    # don't consider anything not collections.Hashable, so as not to broaden
+    # the definition of hashable beyond that. For example, old-style classes
+    # are not collections.Hashable but they won't fail hash().
+    if not isinstance(arg, collections.Hashable):
+        return False
+
+    # narrow the definition of hashable if hash(arg) fails in practice
+    try:
+        hash(arg)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
+def is_sequence(x):
     try:
         iter(x)
         len(x)  # it has a length
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
 
 def _get_callable_name(obj):
     # typical case has name
@@ -3093,7 +3129,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl, quote_strings=True)
-    elif _is_sequence(thing) and _nest_lvl < \
+    elif is_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings)

@@ -541,10 +541,13 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
     """
     def na_op(x, y):
 
-        if com.is_categorical_dtype(x) != (not np.isscalar(y) and com.is_categorical_dtype(y)):
-            msg = "Cannot compare a Categorical for op {op} with type {typ}. If you want to \n" \
-                  "compare values, use 'series <op> np.asarray(cat)'."
-            raise TypeError(msg.format(op=op,typ=type(y)))
+        # dispatch to the categorical if we have a categorical
+        # in either operand
+        if com.is_categorical_dtype(x):
+            return op(x,y)
+        elif com.is_categorical_dtype(y) and not lib.isscalar(y):
+            return op(y,x)
+
         if x.dtype == np.object_:
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
@@ -586,33 +589,33 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 msg = "Cannot compare a Categorical for op {op} with Series of dtype {typ}.\n"\
                       "If you want to compare values, use 'series <op> np.asarray(other)'."
                 raise TypeError(msg.format(op=op,typ=self.dtype))
-        else:
 
-            mask = isnull(self)
 
-            values = self.get_values()
-            other = _index.convert_scalar(values,_values_from_object(other))
+        mask = isnull(self)
 
-            if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
-                values = values.view('i8')
+        values = self.get_values()
+        other = _index.convert_scalar(values,_values_from_object(other))
 
-            # scalars
-            res = na_op(values, other)
-            if np.isscalar(res):
-                raise TypeError('Could not compare %s type with Series'
-                                % type(other))
+        if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+            values = values.view('i8')
 
-            # always return a full value series here
-            res = _values_from_object(res)
+        # scalars
+        res = na_op(values, other)
+        if np.isscalar(res):
+            raise TypeError('Could not compare %s type with Series'
+                            % type(other))
 
-            res = pd.Series(res, index=self.index, name=self.name,
-                            dtype='bool')
+        # always return a full value series here
+        res = _values_from_object(res)
 
-            # mask out the invalids
-            if mask.any():
-                res[mask] = masker
+        res = pd.Series(res, index=self.index, name=self.name,
+                        dtype='bool')
 
-            return res
+        # mask out the invalids
+        if mask.any():
+            res[mask] = masker
+
+        return res
     return wrapper
 
 

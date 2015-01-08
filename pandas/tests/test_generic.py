@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
@@ -18,6 +19,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_panel_equal,
                                  assert_almost_equal,
+                                 assert_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
 
@@ -1314,6 +1316,18 @@ class TestDataFrame(tm.TestCase, Generic):
             with tm.assertRaisesRegexp(ValueError, 'not valid'):
                 df = DataFrame(index=l0)
                 df = getattr(df, fn)('US/Pacific', level=1)
+
+    def test_set_attribute(self):
+        # Test for consistent setattr behavior when an attribute and a column
+        # have the same name (Issue #8994)
+        df = DataFrame({'x':[1, 2, 3]})
+
+        df.y = 2
+        df['y'] = [2, 4, 6]
+        df.y = 5
+
+        assert_equal(df.y, 5)
+        assert_series_equal(df['y'], Series([2, 4, 6]))
 
 
 class TestPanel(tm.TestCase, Generic):

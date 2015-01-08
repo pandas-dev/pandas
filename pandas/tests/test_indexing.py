@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 import sys
 import nose
@@ -2446,6 +2447,22 @@ class TestIndexing(tm.TestCase):
 
         result = panel.ix[['ItemA','ItemB']]
         tm.assert_panel_equal(result,expected)
+
+        # with an object-like
+        # GH 9140
+        class TestObject:
+            def __str__(self):
+                return "TestObject"
+
+        obj = TestObject()
+
+        p = Panel(np.random.randn(1,5,4), items=[obj],
+                  major_axis = date_range('1/1/2000', periods=5),
+                  minor_axis=['A', 'B', 'C', 'D'])
+
+        expected = p.iloc[0]
+        result = p[obj]
+        tm.assert_frame_equal(result, expected)
 
     def test_panel_setitem(self):
 

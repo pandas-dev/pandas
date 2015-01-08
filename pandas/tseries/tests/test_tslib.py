@@ -1,11 +1,11 @@
 import nose
-
+from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import tslib
 import datetime
 
-from pandas.core.api import Timestamp, Series
+from pandas.core.api import Timestamp, Series, Timedelta
 from pandas.tslib import period_asfreq, period_ordinal, get_timezone
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
@@ -137,13 +137,24 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(result, eval(repr(result)))
 
     def test_repr(self):
+        tm._skip_if_no_pytz()
+        tm._skip_if_no_dateutil()
+
         dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
-        timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
+
+        # dateutil zone change (only matters for repr)
+        import dateutil
+        if dateutil.__version__ >= LooseVersion('2.3'):
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
+        else:
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
+
         freqs = ['D', 'M', 'S', 'N']
 
         for date in dates:
             for tz in timezones:
                 for freq in freqs:
+
                     # avoid to match with timezone name
                     freq_repr = "'{0}'".format(freq)
                     if tz.startswith('dateutil'):
@@ -232,13 +243,13 @@ class TestTimestamp(tm.TestCase):
         conv = local.tz_convert('US/Eastern')
         self.assertEqual(conv.nanosecond, 5)
         self.assertEqual(conv.hour, 19)
-        
+
     def test_tz_localize_ambiguous(self):
-        
+
         ts = Timestamp('2014-11-02 01:00')
         ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
         ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
-        
+
         rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
         self.assertEqual(rng[1], ts_dst)
         self.assertEqual(rng[2], ts_no_dst)
@@ -301,6 +312,36 @@ class TestTimestamp(tm.TestCase):
     def test_utc_z_designator(self):
         self.assertEqual(get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo), 'UTC')
 
+    def test_now(self):
+        # #9000
+        ts_from_string = Timestamp('now')
+        ts_from_method = Timestamp.now()
+        ts_datetime = datetime.datetime.now()
+
+        ts_from_string_tz = Timestamp('now', tz='US/Eastern')
+        ts_from_method_tz = Timestamp.now(tz='US/Eastern')
+
+        # Check that the delta between the times is less than 1s (arbitrarily small)
+        delta = Timedelta(seconds=1)
+        self.assertTrue((ts_from_method - ts_from_string) < delta)
+        self.assertTrue((ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+
+    def test_today(self):
+
+        ts_from_string = Timestamp('today')
+        ts_from_method = Timestamp.today()
+        ts_datetime = datetime.datetime.today()
+
+        ts_from_string_tz = Timestamp('today', tz='US/Eastern')
+        ts_from_method_tz = Timestamp.today(tz='US/Eastern')
+
+        # Check that the delta between the times is less than 1s (arbitrarily small)
+        delta = Timedelta(seconds=1)
+        self.assertTrue((ts_from_method - ts_from_string) < delta)
+        self.assertTrue((ts_datetime - ts_from_method) < delta)
+        self.assertTrue((ts_datetime - ts_from_method) < delta)
+        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
@@ -679,8 +720,8 @@ class TestTimestampOps(tm.TestCase):
         self.assertEqual(type(timestamp_instance - 1), Timestamp)
 
         # Timestamp + datetime not supported, though subtraction is supported and yields timedelta
-        self.assertEqual(type(timestamp_instance - datetime_instance), datetime.timedelta)
-
+        # more tests in tseries/base/tests/test_base.py
+        self.assertEqual(type(timestamp_instance - datetime_instance), Timedelta)
         self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
         self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
 
@@ -707,7 +748,7 @@ class TestTimestampOps(tm.TestCase):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
                                   [tslib.D_RESO, tslib.D_RESO, tslib.D_RESO, tslib.D_RESO,
                                    tslib.H_RESO, tslib.T_RESO,tslib.S_RESO, tslib.MS_RESO, tslib.US_RESO]):
-            for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
                 result = tslib.resolution(idx.asi8, idx.tz)
                 self.assertEqual(result, expected)

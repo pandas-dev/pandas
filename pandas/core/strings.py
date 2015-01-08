@@ -687,15 +687,34 @@ def str_slice(arr, start=None, stop=None, step=None):
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
     """
+    Replace a slice of each string with another string.
 
     Parameters
     ----------
+    start : int or None
+    stop : int or None
+    repl : str or None
 
     Returns
     -------
     replaced : array
     """
-    raise NotImplementedError
+    if repl is None:
+        repl = ''
+
+    def f(x):
+        if x[start:stop] == '':
+            local_stop = start
+        else:
+            local_stop = stop
+        y = ''
+        if start is not None:
+            y += x[:start]
+        y += repl
+        if stop is not None:
+            y += x[local_stop:]
+        return y
+    return _na_map(f, arr)
 
 
 def str_strip(arr, to_strip=None):
@@ -998,9 +1017,10 @@ class StringMethods(object):
         result = str_slice(self.series, start, stop, step)
         return self._wrap_result(result)
 
-    @copy(str_slice)
-    def slice_replace(self, i=None, j=None):
-        raise NotImplementedError
+    @copy(str_slice_replace)
+    def slice_replace(self, start=None, stop=None, repl=None):
+        result = str_slice_replace(self.series, start, stop, repl)
+        return self._wrap_result(result)
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):

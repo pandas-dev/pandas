@@ -707,6 +707,9 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
 //            TRACE(("tokenize_delimited SKIP_LINE %c, state %d\n", c, self->state));
             if (c == '\n') {
                 END_LINE();
+            } else if (c == '\r') {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
             }
             break;
 
@@ -1304,6 +1307,9 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
 //            TRACE(("tokenize_whitespace SKIP_LINE %c, state %d\n", c, self->state));
             if (c == '\n') {
                 END_LINE();
+            } else if (c == '\r') {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
             }
             break;
 
@@ -1324,6 +1330,7 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             if (c == '\n') {
                 END_LINE();
                 self->state = START_RECORD;
+                break;
             } else if (c == '\r') {
                 self->state = EAT_CRNL;
                 break;

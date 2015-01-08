@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta, date
@@ -962,7 +963,39 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(result, exp)
 
     def test_slice_replace(self):
-        pass
+        values = Series(['short', 'a bit longer', 'evenlongerthanthat', '', NA])
+
+        exp = Series(['shrt', 'a it longer', 'evnlongerthanthat', '', NA])
+        result = values.str.slice_replace(2, 3)
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['shzrt', 'a zit longer', 'evznlongerthanthat', 'z', NA])
+        result = values.str.slice_replace(2, 3, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['shzort', 'a zbit longer', 'evzenlongerthanthat', 'z', NA])
+        result = values.str.slice_replace(2, 2, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['shzort', 'a zbit longer', 'evzenlongerthanthat', 'z', NA])
+        result = values.str.slice_replace(2, 1, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['shorz', 'a bit longez', 'evenlongerthanthaz', 'z', NA])
+        result = values.str.slice_replace(-1, None, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['zrt', 'zer', 'zat', 'z', NA])
+        result = values.str.slice_replace(None, -2, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['shortz', 'a bit znger', 'evenlozerthanthat', 'z', NA])
+        result = values.str.slice_replace(6, 8, 'z')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['zrt', 'a zit longer', 'evenlongzerthanthat', 'z', NA])
+        result = values.str.slice_replace(-10, 3, 'z')
+        tm.assert_series_equal(result, exp)
 
     def test_strip_lstrip_rstrip(self):
         values = Series(['  aa   ', ' bb \n', NA, 'cc  '])

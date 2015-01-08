@@ -51,7 +51,7 @@ The categorical data type is useful in the following cases:
   variable to a categorical variable will save some memory, see :ref:`here <categorical.memory>`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
-  min/max will use the logical order instead of the lexical order.
+  min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
 * As a signal to other python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
@@ -265,8 +265,10 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
     numpys S1 dtype and python strings). This can result in surprising behaviour!
 
-Ordered or not...
+Sorting and Order
 -----------------
+
+.. _categorical.sort:
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, a `TypeError` is
@@ -296,9 +298,14 @@ This is even true for strings and numeric data:
     s
     s.min(), s.max()
 
+
+Reordering
+~~~~~~~~~~
+
 Reordering the categories is possible via the :func:`Categorical.reorder_categories` and
 the :func:`Categorical.set_categories` methods. For :func:`Categorical.reorder_categories`, all
-old categories must be included in the new categories and no new categories are allowed.
+old categories must be included in the new categories and no new categories are allowed. This will
+necessarily make the sort order the same as the categories order.
 
 .. ipython:: python
 
@@ -324,17 +331,45 @@ old categories must be included in the new categories and no new categories are 
     (e.g.``Series.median()``, which would need to compute the mean between two values if the length
     of an array is even) do not work and raise a `TypeError`.
 
+Multi Column Sorting
+~~~~~~~~~~~~~~~~~~~~
+
+A categorical dtyped column will partcipate in a multi-column sort in a similar manner to other columns.
+The ordering of the categorical is determined by the ``categories`` of that columns.
+
+.. ipython:: python
+
+   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'),categories=['e','a','b']),
+                    'B' : [1,2,1,2,2,1,2,1] })
+   dfs.sort(['A','B'])
+
+Reordering the ``categories``, changes a future sort.
+
+.. ipython:: python
+
+   dfs['A'] = dfs['A'].cat.reorder_categories(['a','b','e'])
+   dfs.sort(['A','B'])
 
 Comparisons
 -----------
 
-Comparing `Categoricals` with other objects is possible in two cases:
+Comparing categorical data with other objects is possible in three cases:
 
- * comparing a categorical Series to another categorical Series, when `categories` and `ordered` is
-   the same or
- * comparing a categorical Series to a scalar.
+ * comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+   ...) of the same length as the categorical data.
+ * all comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+   another categorical Series, when ``ordered==True`` and the `categories` are the same.
+ * all comparisons of a categorical data to a scalar.
 
-All other comparisons will raise a TypeError.
+All other comparisons, especially "non-equality" comparisons of two categoricals with different
+categories or a categorical with any list-like object, will raise a TypeError.
+
+.. note::
+
+    Any "non-equality" comparisons of categorical data with a `Series`, `np.array`, `list` or
+    categorical data with different categories or ordering will raise an `TypeError` because custom
+    categories ordering could be interpreted in two ways: one with taking in account the
+    ordering and one without.
 
 .. ipython:: python
 
@@ -353,6 +388,14 @@ Comparing to a categorical with the same categories and ordering or to a scalar 
     cat > cat_base
     cat > 2
 
+Equality comparisons work with any list-like object of same length and scalars:
+
+.. ipython:: python
+
+    cat == cat_base
+    cat == np.array([1,2,3])
+    cat == 2
+
 This doesn't work because the categories are not the same:
 
 .. ipython:: python
@@ -362,13 +405,9 @@ This doesn't work because the categories are not the same:
     except TypeError as e:
          print("TypeError: " + str(e))
 
-.. note::
-
-    Comparisons with `Series`, `np.array` or a `Categorical` with different categories or ordering
-    will raise an `TypeError` because custom categories ordering could be interpreted in two ways:
-    one with taking in account the ordering and one without. If you want to compare a categorical
-    series with such a type, you need to be explicit and convert the categorical data back to the
-    original values:
+If you want to do a "non-equality" comparison of a categorical series with a list-like object
+which is not categorical data, you need to be explicit and convert the categorical data back to
+the original values:
 
 .. ipython:: python
 

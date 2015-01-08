@@ -166,7 +166,7 @@ def _retry_read_url(url, retry_count, pause, name):
             pass
         else:
             rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)[::-1]
+                          parse_dates=True, na_values='-')[::-1]
             # Yahoo! Finance sometimes does this awesome thing where they
             # return 2 rows for the most recent business day
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
@@ -180,7 +180,7 @@ def _retry_read_url(url, retry_count, pause, name):
 _HISTORICAL_YAHOO_URL = 'http://ichart.finance.yahoo.com/table.csv?'
 
 
-def _get_hist_yahoo(sym, start, end, retry_count, pause):
+def _get_hist_yahoo(sym, start, end, interval, retry_count, pause):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -195,7 +195,7 @@ def _get_hist_yahoo(sym, start, end, retry_count, pause):
            '&d=%s' % (end.month - 1) +
            '&e=%s' % end.day +
            '&f=%s' % end.year +
-           '&g=d' +
+           '&g=%s' % interval +
            '&ignore=.csv')
     return _retry_read_url(url, retry_count, pause, 'Yahoo!')
 
@@ -203,7 +203,7 @@ def _get_hist_yahoo(sym, start, end, retry_count, pause):
 _HISTORICAL_GOOGLE_URL = 'http://www.google.com/finance/historical?'
 
 
-def _get_hist_google(sym, start, end, retry_count, pause):
+def _get_hist_google(sym, start, end, interval, retry_count, pause):
     """
     Get historical data for the given name from google.
     Date format is datetime
@@ -314,14 +314,14 @@ def get_components_yahoo(idx_sym):
     return idx_df
 
 
-def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
+def _dl_mult_symbols(symbols, start, end, interval, chunksize, retry_count, pause,
                      method):
     stocks = {}
     failed = []
     for sym_group in _in_chunks(symbols, chunksize):
         for sym in sym_group:
             try:
-                stocks[sym] = method(sym, start, end, retry_count, pause)
+                stocks[sym] = method(sym, start, end, interval, retry_count, pause)
             except IOError:
                 warnings.warn('Failed to read symbol: {0!r}, replacing with '
                               'NaN.'.format(sym), SymbolWarning)
@@ -343,20 +343,20 @@ def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
 _source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
 
 
-def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
+def _get_data_from(symbols, start, end, interval, retry_count, pause, adjust_price,
                    ret_index, chunksize, source):
 
     src_fn = _source_functions[source]
 
     # If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (compat.string_types, int)):
-        hist_data = src_fn(symbols, start, end, retry_count, pause)
+        hist_data = src_fn(symbols, start, end, interval, retry_count, pause)
     # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
-        hist_data = _dl_mult_symbols(symbols.index, start, end, chunksize,
+        hist_data = _dl_mult_symbols(symbols.index, start, end, interval, chunksize,
                                      retry_count, pause, src_fn)
     else:
-        hist_data = _dl_mult_symbols(symbols, start, end, chunksize,
+        hist_data = _dl_mult_symbols(symbols, start, end, interval, chunksize,
                                      retry_count, pause, src_fn)
     if source.lower() == 'yahoo':
         if ret_index:
@@ -369,7 +369,7 @@ def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
 
 def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
                    pause=0.001, adjust_price=False, ret_index=False,
-                   chunksize=25):
+                   chunksize=25, interval='d'):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Yahoo! Finance servers,
@@ -398,12 +398,17 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
         If True, includes a simple return index 'Ret_Index' in hist_data.
     chunksize : int, default 25
         Number of symbols to download consecutively before intiating pause.
+    interval : string, default 'd'
+        Time interval code, valid values are 'd' for daily, 'w' for weekly,
+        'm' for monthly and 'v' for dividend.
 
     Returns
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
     """
-    return _get_data_from(symbols, start, end, retry_count, pause,
+    if interval not in ['d', 'w', 'm', 'v']:
+        raise ValueError("Invalid interval: valid values are 'd', 'w', 'm' and 'v'")
+    return _get_data_from(symbols, start, end, interval, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'yahoo')
 
 
@@ -437,7 +442,7 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
     """
-    return _get_data_from(symbols, start, end, retry_count, pause,
+    return _get_data_from(symbols, start, end, None, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'google')
 
 

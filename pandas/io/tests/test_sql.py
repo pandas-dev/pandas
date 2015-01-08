@@ -41,6 +41,8 @@ import pandas.util.testing as tm
 
 try:
     import sqlalchemy
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
@@ -339,7 +341,7 @@ class PandasSQLTest(unittest.TestCase):
         self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
 
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-        
+
         # Make sure when transaction is rolled back, no rows get inserted
         try:
             with self.pandasSQL.run_transaction() as trans:
@@ -350,7 +352,7 @@ class PandasSQLTest(unittest.TestCase):
             pass
         res = self.pandasSQL.read_query('SELECT * FROM test_trans')
         self.assertEqual(len(res), 0)
-        
+
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
@@ -557,6 +559,11 @@ class _TestSQLApi(PandasSQLTest):
             df.to_sql('test_timedelta', self.conn)
         result = sql.read_sql_query('SELECT * FROM test_timedelta', self.conn)
         tm.assert_series_equal(result['foo'], df['foo'].astype('int64'))
+
+    def test_complex(self):
+        df = DataFrame({'a':[1+1j, 2j]})
+        # Complex data type should raise error
+        self.assertRaises(ValueError, df.to_sql, 'test_complex', self.conn)
 
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
@@ -785,6 +792,15 @@ class TestSQLApi(_TestSQLApi):
         ixs = [i['column_names'] for i in ixs]
         return ixs
 
+    def test_sqlalchemy_type_mapping(self):
+
+        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+        df = DataFrame({'time': to_datetime(['201412120154', '201412110254'],
+                                            utc=True)})
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
+        self.assertTrue(isinstance(table.table.c['time'].type, sqltypes.DateTime))
+
 
 class TestSQLiteFallbackApi(_TestSQLApi):
     """
@@ -846,6 +862,24 @@ class TestSQLiteFallbackApi(_TestSQLApi):
             rows = sql.uquery("SELECT * FROM iris LIMIT 1", con=self.conn)
         self.assertEqual(rows, -1)
 
+    def _get_sqlite_column_type(self, schema, column):
+
+        for col in schema.split('\n'):
+            if col.split()[0].strip('[]') == column:
+                return col.split()[1]
+        raise ValueError('Column %s not found' % (column))
+
+    def test_sqlite_type_mapping(self):
+
+        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+        df = DataFrame({'time': to_datetime(['201412120154', '201412110254'],
+                                            utc=True)})
+        db = sql.SQLiteDatabase(self.conn, self.flavor)
+        table = sql.SQLiteTable("test_type", db, frame=df)
+        schema = table.sql_schema()
+        self.assertEqual(self._get_sqlite_column_type(schema, 'time'),
+                         "TIMESTAMP")
+
 
 #------------------------------------------------------------------------------
 #--- Database flavor specific tests
@@ -861,24 +895,38 @@ class _TestSQLAlchemy(PandasSQLTest):
     """
     flavor = None
 
+    @classmethod
+    def setUpClass(cls):
+        cls.setup_import()
+        cls.setup_driver()
+
+        # test connection
+        try:
+            conn = cls.connect()
+            conn.connect()
+        except sqlalchemy.exc.OperationalError:
+            msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
+            raise nose.SkipTest(msg)
+
     def setUp(self):
-        self.setup_import()
-        self.setup_driver()
         self.setup_connect()
 
         self._load_iris_data()
         self._load_raw_sql()
         self._load_test1_data()
 
-    def setup_import(self):
+    @classmethod
+    def setup_import(cls):
         # Skip this test if SQLAlchemy not available
         if not SQLALCHEMY_INSTALLED:
             raise nose.SkipTest('SQLAlchemy not installed')
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         raise NotImplementedError()
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         raise NotImplementedError()
 
     def setup_connect(self):
@@ -1167,6 +1215,53 @@ class _TestSQLAlchemy(PandasSQLTest):
         tm.assert_frame_equal(returned_df, blank_test_df)
         self.drop_table(tbl)
 
+    def test_dtype(self):
+        cols = ['A', 'B']
+        data = [(0.8, True),
+                (0.9, None)]
+        df = DataFrame(data, columns=cols)
+        df.to_sql('dtype_test', self.conn)
+        df.to_sql('dtype_test2', self.conn, dtype={'B': sqlalchemy.TEXT})
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        sqltype = meta.tables['dtype_test2'].columns['B'].type
+        self.assertTrue(isinstance(sqltype, sqlalchemy.TEXT))
+        self.assertRaises(ValueError, df.to_sql,
+                          'error', self.conn, dtype={'B': str})
+
+        # GH9083
+        df.to_sql('dtype_test3', self.conn, dtype={'B': sqlalchemy.String(10)})
+        meta.reflect()
+        sqltype = meta.tables['dtype_test3'].columns['B'].type
+        print(sqltype)
+        self.assertTrue(isinstance(sqltype, sqlalchemy.String))
+        self.assertEqual(sqltype.length, 10)
+
+    def test_notnull_dtype(self):
+        cols = {'Bool': Series([True,None]),
+                'Date': Series([datetime(2012, 5, 1), None]),
+                'Int' : Series([1, None], dtype='object'),
+                'Float': Series([1.1, None])
+               }
+        df = DataFrame(cols)
+
+        tbl = 'notnull_dtype_test'
+        df.to_sql(tbl, self.conn)
+        returned_df = sql.read_sql_table(tbl, self.conn)
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        if self.flavor == 'mysql':
+            my_type = sqltypes.Integer
+        else:
+            my_type = sqltypes.Boolean
+
+        col_dict = meta.tables[tbl].columns
+
+        self.assertTrue(isinstance(col_dict['Bool'].type, my_type))
+        self.assertTrue(isinstance(col_dict['Date'].type, sqltypes.DateTime))
+        self.assertTrue(isinstance(col_dict['Int'].type, sqltypes.Integer))
+        self.assertTrue(isinstance(col_dict['Float'].type, sqltypes.Float))
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -1175,12 +1270,14 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
     flavor = 'sqlite'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         return sqlalchemy.create_engine('sqlite:///:memory:')
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         # sqlite3 is built-in
-        self.driver = None
+        cls.driver = None
 
     def tearDown(self):
         # in memory so tables should not be removed explicitly
@@ -1229,14 +1326,16 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
     """
     flavor = 'mysql'
 
-    def connect(self):
-        return sqlalchemy.create_engine(
-            'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
+    @classmethod
+    def connect(cls):
+        url = 'mysql+{driver}://root@localhost/pandas_nosetest'
+        return sqlalchemy.create_engine(url.format(driver=cls.driver))
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         try:
             import pymysql
-            self.driver = 'pymysql'
+            cls.driver = 'pymysql'
         except ImportError:
             raise nose.SkipTest('pymysql not installed')
 
@@ -1301,14 +1400,16 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     """
     flavor = 'postgresql'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         url = 'postgresql+{driver}://postgres@localhost/pandas_nosetest'
-        return sqlalchemy.create_engine(url.format(driver=self.driver))
+        return sqlalchemy.create_engine(url.format(driver=cls.driver))
 
-    def setup_driver(self):
+    @classmethod
+    def setup_driver(cls):
         try:
             import psycopg2
-            self.driver = 'psycopg2'
+            cls.driver = 'psycopg2'
         except ImportError:
             raise nose.SkipTest('psycopg2 not installed')
 
@@ -1385,7 +1486,8 @@ class TestSQLiteFallback(PandasSQLTest):
     """
     flavor = 'sqlite'
 
-    def connect(self):
+    @classmethod
+    def connect(cls):
         return sqlite3.connect(':memory:')
 
     def drop_table(self, table_name):
@@ -1467,7 +1569,7 @@ class TestSQLiteFallback(PandasSQLTest):
         if self.flavor == 'sqlite':
             self.assertRaises(sqlite3.InterfaceError, sql.to_sql, df,
                               'test_time', self.conn)
-                          
+
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' " +
@@ -1485,12 +1587,78 @@ class TestSQLiteFallback(PandasSQLTest):
     def test_transactions(self):
         self._transaction_test()
 
+    def _get_sqlite_column_type(self, table, column):
+        recs = self.conn.execute('PRAGMA table_info(%s)' % table)
+        for cid, name, ctype, not_null, default, pk in recs:
+            if name == column:
+                return ctype
+        raise ValueError('Table %s, column %s not found' % (table, column))
+
+    def test_dtype(self):
+        if self.flavor == 'mysql':
+            raise nose.SkipTest('Not applicable to MySQL legacy')
+        cols = ['A', 'B']
+        data = [(0.8, True),
+                (0.9, None)]
+        df = DataFrame(data, columns=cols)
+        df.to_sql('dtype_test', self.conn)
+        df.to_sql('dtype_test2', self.conn, dtype={'B': 'STRING'})
+
+        # sqlite stores Boolean values as INTEGER
+        self.assertEqual(self._get_sqlite_column_type('dtype_test', 'B'), 'INTEGER')
+
+        self.assertEqual(self._get_sqlite_column_type('dtype_test2', 'B'), 'STRING')
+        self.assertRaises(ValueError, df.to_sql,
+                          'error', self.conn, dtype={'B': bool})
+
+    def test_notnull_dtype(self):
+        if self.flavor == 'mysql':
+            raise nose.SkipTest('Not applicable to MySQL legacy')
+
+        cols = {'Bool': Series([True,None]),
+                'Date': Series([datetime(2012, 5, 1), None]),
+                'Int' : Series([1, None], dtype='object'),
+                'Float': Series([1.1, None])
+               }
+        df = DataFrame(cols)
+
+        tbl = 'notnull_dtype_test'
+        df.to_sql(tbl, self.conn)
+
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Bool'), 'INTEGER')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Date'), 'TIMESTAMP')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Int'), 'INTEGER')
+        self.assertEqual(self._get_sqlite_column_type(tbl, 'Float'), 'REAL')
+
+
 class TestMySQLLegacy(TestSQLiteFallback):
     """
     Test the legacy mode against a MySQL database.
 
     """
     flavor = 'mysql'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setup_driver()
+
+        # test connection
+        try:
+            cls.connect()
+        except cls.driver.err.OperationalError:
+            raise nose.SkipTest("{0} - can't connect to MySQL server".format(cls))
+
+    @classmethod
+    def setup_driver(cls):
+        try:
+            import pymysql
+            cls.driver = pymysql
+        except ImportError:
+            raise nose.SkipTest('pymysql not installed')
+
+    @classmethod
+    def connect(cls):
+        return cls.driver.connect(host='127.0.0.1', user='root', passwd='', db='pandas_nosetest')
 
     def drop_table(self, table_name):
         cur = self.conn.cursor()
@@ -1504,16 +1672,7 @@ class TestMySQLLegacy(TestSQLiteFallback):
         rows = cur.fetchall()
         return rows[0][0]
 
-    def connect(self):
-        return self.driver.connect(host='127.0.0.1', user='root', passwd='', db='pandas_nosetest')
-
     def setUp(self):
-        try:
-            import pymysql
-            self.driver = pymysql
-        except ImportError:
-            raise nose.SkipTest('pymysql not installed')
-
         try:
             self.conn = self.connect()
         except self.driver.err.OperationalError:
@@ -1850,6 +2009,35 @@ class TestXSQLite(tm.TestCase):
 
 
 class TestXMySQL(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        _skip_if_no_pymysql()
+
+        # test connection
+        import pymysql
+        try:
+            # Try Travis defaults.
+            # No real user should allow root access with a blank password.
+            pymysql.connect(host='localhost', user='root', passwd='',
+                            db='pandas_nosetest')
+        except:
+            pass
+        else:
+            return
+        try:
+            pymysql.connect(read_default_group='pandas')
+        except pymysql.ProgrammingError as e:
+            raise nose.SkipTest(
+                "Create a group of connection parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+        except pymysql.Error as e:
+            raise nose.SkipTest(
+                "Cannot connect to database. "
+                "Create a group of connection parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
     def setUp(self):
         _skip_if_no_pymysql()

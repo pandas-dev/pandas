@@ -20,6 +20,9 @@ cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
     int PySlice_Check(object)
 
+cdef extern from "datetime_helper.h":
+    double total_seconds(object)
+
 # this is our datetime.pxd
 from datetime cimport *
 from util cimport is_integer_object, is_float_object, is_datetime64_object, is_timedelta64_object
@@ -34,8 +37,12 @@ cimport cython
 
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+
+# dateutil compat
 from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal, tzfile as _dateutil_tzfile,
-                         tzutc as _dateutil_tzutc, gettz as _dateutil_gettz)
+                         tzutc as _dateutil_tzutc)
+from dateutil.zoneinfo import gettz as _dateutil_gettz
+
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 from pandas.compat import parse_date, string_types, PY3, iteritems
 
@@ -121,11 +128,14 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
                     result[i] = NaT
                 else:
                     pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
-                    dt = func_create(value, dts, tz, offset)
-                    result[i] = dt + tz.utcoffset(dt)
+                    dt = create_datetime_from_ts(value, dts, tz, offset)
+                    dt = dt + tz.utcoffset(dt)
+                    if box:
+                        dt = Timestamp(dt)
+                    result[i] = dt
         else:
-            trans = _get_transitions(tz)
-            deltas = _get_deltas(tz)
+            trans, deltas, typ = _get_dst_info(tz)
+
             for i in range(n):
 
                 value = arr[i]
@@ -171,9 +181,9 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
             result[i] = NaT
         else:
             if box:
-               result[i] = Timedelta(value)
+                result[i] = Timedelta(value)
             else:
-               result[i] = timedelta(microseconds=int(value)/1000)
+                result[i] = timedelta(microseconds=int(value)/1000)
 
     return result
 
@@ -214,15 +224,32 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def now(cls, tz=None):
-        """ compat now with datetime """
+        """
+        Return the current time in the local timezone.  Equivalent
+        to datetime.now([tz])
+
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """
         if isinstance(tz, basestring):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
     @classmethod
-    def today(cls):
-        """ compat today with datetime """
-        return cls(datetime.today())
+    def today(cls, tz=None):
+        """
+        Return the current time in the local timezone.  This differs
+        from datetime.today() in that it can be localized to a
+        passed timezone.
+
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """
+        return cls.now(tz)
 
     @classmethod
     def utcnow(cls):
@@ -810,10 +837,10 @@ cdef class _Timestamp(datetime):
                                         object other) except -1:
         if self.tzinfo is None:
             if other.tzinfo is not None:
-                raise ValueError('Cannot compare tz-naive and tz-aware '
+                raise TypeError('Cannot compare tz-naive and tz-aware '
                                  'timestamps')
         elif other.tzinfo is None:
-            raise ValueError('Cannot compare tz-naive and tz-aware timestamps')
+            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
     cpdef datetime to_datetime(_Timestamp self):
         cdef:
@@ -863,6 +890,11 @@ cdef class _Timestamp(datetime):
 
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
         elif getattr(other,'_typ',None) == 'datetimeindex':
+
+            # we may be passed reverse ops
+            if get_timezone(getattr(self,'tzinfo',None)) != get_timezone(other.tz):
+                    raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
@@ -871,6 +903,23 @@ cdef class _Timestamp(datetime):
 
         elif other is NaT:
             return NaT
+
+        # coerce if necessary if we are a Timestamp-like
+        if isinstance(self, datetime) and (isinstance(other, datetime) or is_datetime64_object(other)):
+            self = Timestamp(self)
+            other = Timestamp(other)
+
+            # validate tz's
+            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo):
+                raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+
+            # scalar Timestamp/datetime - Timestamp/datetime -> yields a Timedelta
+            try:
+                return Timedelta(self.value-other.value)
+            except (OverflowError, OutOfBoundsDatetime):
+                pass
+
+        # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with same timezone if specified)
         return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
@@ -997,6 +1046,14 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if util.is_string_object(ts):
         if ts in _nat_strings:
             ts = NaT
+        elif ts == 'now':
+            # Issue 9000, we short-circuit rather than going
+            # into np_datetime_strings which returns utc
+            ts = Timestamp.now(tz)
+        elif ts == 'today':
+            # Issue 9000, we short-circuit rather than going
+            # into np_datetime_strings which returns a normalized datetime
+            ts = Timestamp.today(tz)
         else:
             try:
                 _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
@@ -1118,8 +1175,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         obj.tzinfo = tz
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         pos = trans.searchsorted(obj.value, side='right') - 1
 
 
@@ -1206,7 +1263,7 @@ cpdef inline object maybe_get_tz(object tz):
     if isinstance(tz, string_types):
         if tz.startswith('dateutil/'):
             zone = tz[9:]
-            tz = _dateutil_gettz(tz[9:])
+            tz = _dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
@@ -2099,13 +2156,25 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
-def array_strptime(ndarray[object] values, object fmt, coerce=False):
+def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coerce=False):
+    """
+    Parameters
+    ----------
+    values : ndarray of string-like objects
+    fmt : string-like regex
+    exact : matches must be exact if True, search if False
+    coerce : if invalid values found, coerce to NaT
+    """
+
     cdef:
         Py_ssize_t i, n = len(values)
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
-        int year, month, day, minute, hour, second, fraction, weekday, julian
-        object val
+        int year, month, day, minute, hour, second, weekday, julian, tz
+        int week_of_year, week_of_year_start
+        int64_t us, ns
+        object val, group_key, ampm, found
+        dict found_key
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -2174,22 +2243,35 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
             else:
                 val = str(val)
 
-        found = format_regex.match(val)
-        if not found:
-            if coerce:
-                iresult[i] = iNaT
-                continue
-            raise ValueError("time data %r does not match format %r" %
-                             (values[i], fmt))
-        if len(val) != found.end():
-            if coerce:
-                iresult[i] = iNaT
-                continue
-            raise ValueError("unconverted data remains: %s" %
-                              values[i][found.end():])
+        # exact matching
+        if exact:
+            found = format_regex.match(val)
+            if not found:
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("time data %r does not match format %r (match)" %
+                                 (values[i], fmt))
+            if len(val) != found.end():
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("unconverted data remains: %s" %
+                                  values[i][found.end():])
+
+        # search
+        else:
+            found = format_regex.search(val)
+            if not found:
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise ValueError("time data %r does not match format %r (search)" %
+                                 (values[i], fmt))
+
         year = 1900
         month = day = 1
-        hour = minute = second = fraction = 0
+        hour = minute = second = ns = us = 0
         tz = -1
         # Default to -1 to signify that values not known; not critical to have,
         # though
@@ -2254,9 +2336,11 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
                 second = int(found_dict['S'])
             elif parse_code == 10:
                 s = found_dict['f']
-                # Pad to always return microseconds.
-                s += "0" * (6 - len(s))
-                fraction = int(s)
+                # Pad to always return nanoseconds
+                s += "0" * (9 - len(s))
+                us = long(s)
+                ns = us % 1000
+                us = us / 1000
             elif parse_code == 11:
                 weekday = locale_time.f_weekday.index(found_dict['A'].lower())
             elif parse_code == 12:
@@ -2321,7 +2405,8 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
         dts.hour = hour
         dts.min = minute
         dts.sec = second
-        dts.us = fraction
+        dts.us = us
+        dts.ps = ns * 1000
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
         try:
@@ -2482,8 +2567,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                          * 1000000000)
                 utc_dates[i] = v - delta
         else:
-            deltas = _get_deltas(tz1)
-            trans = _get_transitions(tz1)
+            trans, deltas, typ = _get_dst_info(tz1)
+
             trans_len = len(trans)
             pos = trans.searchsorted(vals[0]) - 1
             if pos < 0:
@@ -2514,9 +2599,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             return result
 
     # Convert UTC to other timezone
-    trans = _get_transitions(tz2)
+    trans, deltas, typ = _get_dst_info(tz2)
     trans_len = len(trans)
-    deltas = _get_deltas(tz2)
+
     pos = trans.searchsorted(utc_dates[0]) - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
@@ -2555,8 +2640,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         delta = int(total_seconds(_get_utcoffset(tz1, dt))) * 1000000000
         utc_date = val - delta
     elif _get_zone(tz1) != 'UTC':
-        deltas = _get_deltas(tz1)
-        trans = _get_transitions(tz1)
+        trans, deltas, typ = _get_dst_info(tz1)
         pos = trans.searchsorted(val, side='right') - 1
         if pos < 0:
             raise ValueError('First time before start of DST info')
@@ -2574,8 +2658,8 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
         return utc_date + delta
     # Convert UTC to other timezone
-    trans = _get_transitions(tz2)
-    deltas = _get_deltas(tz2)
+    trans, deltas, typ = _get_dst_info(tz2)
+
     pos = trans.searchsorted(utc_date, side='right') - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
@@ -2584,8 +2668,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     return utc_date + offset
 
 # Timezone data caches, key is the pytz string or dateutil file name.
-trans_cache = {}
-utc_offset_cache = {}
+dst_cache = {}
 
 cdef inline bint _treat_tz_as_pytz(object tz):
     return hasattr(tz, '_utc_transition_times') and hasattr(tz, '_transition_info')
@@ -2624,40 +2707,67 @@ cdef inline object _tz_cache_key(object tz):
         return None
 
 
-cdef object _get_transitions(object tz):
+cdef object _get_dst_info(object tz):
     """
-    Get UTC times of DST transitions
+    return a tuple of :
+      (UTC times of DST transitions,
+       UTC offsets in microseconds corresponding to DST transitions,
+       string of type of transitions)
+
     """
     cache_key = _tz_cache_key(tz)
     if cache_key is None:
-        return np.array([NPY_NAT + 1], dtype=np.int64)
+        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+        return (np.array([NPY_NAT + 1], dtype=np.int64),
+                np.array([num], dtype=np.int64),
+                None)
 
-    if cache_key not in trans_cache:
+    if cache_key not in dst_cache:
         if _treat_tz_as_pytz(tz):
-            arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
-            arr = arr.view('i8')
+            trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
+            trans = trans.view('i8')
             try:
                 if tz._utc_transition_times[0].year == 1:
-                    arr[0] = NPY_NAT + 1
+                    trans[0] = NPY_NAT + 1
             except Exception:
                 pass
+            deltas = _unbox_utcoffsets(tz._transition_info)
+            typ = 'pytz'
+
         elif _treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
                 # get utc trans times
                 trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
-                arr = np.hstack([np.array([0], dtype='M8[s]'), # place holder for first item
-                                 np.array(trans_list, dtype='M8[s]')]).astype('M8[ns]')  # all trans listed
-                arr = arr.view('i8')
-                arr[0] = NPY_NAT + 1
-            elif _is_fixed_offset(tz):
-                arr = np.array([NPY_NAT + 1], dtype=np.int64)
-            else:
-                arr = np.array([], dtype='M8[ns]')
-        else:
-            arr = np.array([NPY_NAT + 1], dtype=np.int64)
-        trans_cache[cache_key] = arr
-    return trans_cache[cache_key]
+                trans = np.hstack([np.array([0], dtype='M8[s]'), # place holder for first item
+                                  np.array(trans_list, dtype='M8[s]')]).astype('M8[ns]')  # all trans listed
+                trans = trans.view('i8')
+                trans[0] = NPY_NAT + 1
 
+                # deltas
+                deltas = np.array([v.offset for v in (tz._ttinfo_before,) + tz._trans_idx], dtype='i8')  # + (tz._ttinfo_std,)
+                deltas *= 1000000000
+                typ = 'dateutil'
+
+            elif _is_fixed_offset(tz):
+                trans = np.array([NPY_NAT + 1], dtype=np.int64)
+                deltas = np.array([tz._ttinfo_std.offset], dtype='i8') * 1000000000
+                typ = 'fixed'
+            else:
+                trans = np.array([], dtype='M8[ns]')
+                deltas = np.array([], dtype='i8')
+                typ = None
+
+
+        else:
+            # static tzinfo
+            trans = np.array([NPY_NAT + 1], dtype=np.int64)
+            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+            deltas = np.array([num], dtype=np.int64)
+            typ = 'static'
+
+        dst_cache[cache_key] = (trans, deltas, typ)
+
+    return dst_cache[cache_key]
 
 cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
     '''
@@ -2671,39 +2781,6 @@ cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset
     return new_trans
-
-
-cdef object _get_deltas(object tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    cache_key = _tz_cache_key(tz)
-    if cache_key is None:
-        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
-        return np.array([num], dtype=np.int64)
-
-    if cache_key not in utc_offset_cache:
-        if _treat_tz_as_pytz(tz):
-            utc_offset_cache[cache_key] = _unbox_utcoffsets(tz._transition_info)
-        elif _treat_tz_as_dateutil(tz):
-            if len(tz._trans_list):
-                arr = np.array([v.offset for v in (tz._ttinfo_before,) + tz._trans_idx], dtype='i8')  # + (tz._ttinfo_std,)
-                arr *= 1000000000
-                utc_offset_cache[cache_key] = arr
-            elif _is_fixed_offset(tz):
-                utc_offset_cache[cache_key] = np.array([tz._ttinfo_std.offset], dtype='i8') * 1000000000
-            else:
-                utc_offset_cache[cache_key] = np.array([], dtype='i8')
-        else:
-            # static tzinfo
-            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
-            utc_offset_cache[cache_key] = np.array([num], dtype=np.int64)
-
-    return utc_offset_cache[cache_key]
-
-cdef double total_seconds(object td): # Python 2.6 compat
-    return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
-            10**6)
 
 def tot_seconds(td):
     return total_seconds(td)
@@ -2772,8 +2849,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be the same size as vals")
 
-    trans = _get_transitions(tz)  # transition dates
-    deltas = _get_deltas(tz)      # utc offsets
+    trans, deltas, typ = _get_dst_info(tz)
 
     tdata = <int64_t*> trans.data
     ntrans = len(trans)
@@ -3384,15 +3460,15 @@ cdef _normalize_local(ndarray[int64_t] stamps, object tz):
             result[i] = _normalized_stamp(&dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -3441,8 +3517,8 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
             if dt.hour > 0:
                 return False
     else:
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         for i in range(n):
             # Adjust datetime64 timestamp, recompute datetimestruct
             pos = trans.searchsorted(stamps[i]) - 1
@@ -3529,15 +3605,15 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                                            dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -4031,15 +4107,15 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
                 reso = curr_reso
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans = _get_transitions(tz)
-        deltas = _get_deltas(tz)
+        trans, deltas, typ = _get_dst_info(tz)
+
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
             _pos = _pos.astype(np.int64)
         pos = _pos
 
         # statictzinfo
-        if not hasattr(tz, '_transition_info'):
+        if typ not in ['pytz','dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
@@ -4263,7 +4339,7 @@ class TimeRE(dict):
         base.__init__({
             # The " \d" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",
-            'f': r"(?P<f>[0-9]{1,6})",
+            'f': r"(?P<f>[0-9]{1,9})",
             'H': r"(?P<H>2[0-3]|[0-1]\d|\d)",
             'I': r"(?P<I>1[0-2]|0[1-9]|[1-9])",
             'j': r"(?P<j>36[0-6]|3[0-5]\d|[1-2]\d\d|0[1-9]\d|00[1-9]|[1-9]\d|0[1-9]|[1-9])",
@@ -4344,10 +4420,14 @@ _TimeRE_cache = TimeRE()
 _CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
-def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
+cdef _calc_julian_from_U_or_W(int year, int week_of_year, int day_of_week, int week_starts_Mon):
     """Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
     assumes the week starts on Sunday or Monday (6 or 0)."""
+
+    cdef:
+        int first_weekday,  week_0_length, days_to_week
+
     first_weekday = datetime_date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's
     # easier to just shift the view to Sunday being the first day of the

@@ -118,8 +118,8 @@ class TestGoogle(tm.TestCase):
                 assert_n_failed_equals_n_null_columns(w, result)
 
     def test_dtypes(self):
-        #GH3995
-        data = web.get_data_google('MSFT', 'JAN-01-12', 'JAN-31-12')
+        #GH3995, #GH8980
+        data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
         assert np.issubdtype(data.Open.dtype, np.number)
         assert np.issubdtype(data.Close.dtype, np.number)
         assert np.issubdtype(data.Low.dtype, np.number)
@@ -212,6 +212,27 @@ class TestYahoo(tm.TestCase):
         #http://finance.yahoo.com/q/hp?s=GOOG&a=09&b=08&c=2010&d=09&e=10&f=2010&g=d
         # just test that we succeed
         web.get_data_yahoo('GOOG')
+
+    @network
+    def test_get_data_interval(self):
+        # daily interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='d')
+        self.assertEqual(len(pan), 252)
+
+        # weekly interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='w')
+        self.assertEqual(len(pan), 53)
+
+        # montly interval data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='m')
+        self.assertEqual(len(pan), 12)
+
+        # dividend data
+        pan = web.get_data_yahoo('XOM', '2013-01-01', '2013-12-31', interval='v')
+        self.assertEqual(len(pan), 4)
+
+        # test fail on invalid interval
+        self.assertRaises(ValueError, web.get_data_yahoo, 'XOM', interval='NOT VALID')
 
     @network
     def test_get_data_multiple_symbols(self):

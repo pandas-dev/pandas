@@ -28,7 +28,7 @@ Frequently Asked Questions (FAQ)
 .. _df-memory-usage:
 
 DataFrame memory usage
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 As of pandas version 0.15.0, the memory usage of a dataframe (including
 the index) is shown when accessing the ``info`` method of a dataframe. A
 configuration option, ``display.memory_usage`` (see :ref:`options`),
