@@ -930,10 +930,9 @@ def wide_to_long(df, stubnames, i, j):
     if i not in id_vars:
         id_vars += [i]
 
-    stub = stubnames.pop(0)
-    newdf = melt_stub(df, stub, id_vars, j)
+    newdf = melt_stub(df, stubnames[0], id_vars, j)
 
-    for stub in stubnames:
+    for stub in stubnames[1:]:
         new = melt_stub(df, stub, id_vars, j)
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
