@@ -142,7 +142,7 @@ Bug Fixes
 
 
 
-
+- Bug in using grouper functions that need passed thru arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
 
 - DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)

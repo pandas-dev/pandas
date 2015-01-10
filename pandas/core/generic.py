@@ -2252,7 +2252,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method=None, axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         """
         Fill NA/NaN values using the specified method
@@ -2295,6 +2295,10 @@ class NDFrame(PandasObject):
                             'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
+        # set the default here, so functions examining the signaure
+        # can detect if something was set (e.g. in groupby) (GH9221)
+        if axis is None:
+            axis = 0
         axis = self._get_axis_number(axis)
         method = com._clean_fill_method(method)
 
@@ -2383,12 +2387,12 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
+    def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='ffill')"
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
-    def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
+    def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         "Synonym for NDFrame.fillna(method='bfill')"
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
