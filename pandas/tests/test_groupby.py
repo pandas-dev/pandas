@@ -4322,6 +4322,21 @@ class TestGroupBy(tm.TestCase):
         with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
             df.groupby('a').filter(lambda g: g.c.mean())
 
+    def test_fill_constistency(self):
+
+        # GH9221
+        # pass thru keyword arguments to the generated wrapper
+        # are set if the passed kw is None (only)
+        df = DataFrame(index=pd.MultiIndex.from_product([['value1','value2'],
+                                                         date_range('2014-01-01','2014-01-06')]),
+                       columns=Index(['1','2'], name='id'))
+        df['1'] = [np.nan, 1, np.nan, np.nan, 11, np.nan, np.nan, 2, np.nan, np.nan, 22, np.nan]
+        df['2'] = [np.nan, 3, np.nan, np.nan, 33, np.nan, np.nan, 4, np.nan, np.nan, 44, np.nan]
+
+        expected = df.groupby(level=0, axis=0).fillna(method='ffill')
+        result = df.T.groupby(level=0, axis=1).fillna(method='ffill').T
+        assert_frame_equal(result, expected)
+
     def test_index_label_overlaps_location(self):
         # checking we don't have any label/location confusion in the
         # the wake of GH5375
