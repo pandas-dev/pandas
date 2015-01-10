@@ -901,14 +901,78 @@ class TestMergeMulti(tm.TestCase):
         # TODO: columns aren't in the same order yet
         assert_frame_equal(joined, expected.ix[:, joined.columns])
 
+        left = self.data.join(self.to_join, on=['key1', 'key2'], sort=True)
+        right = expected.ix[:, joined.columns].sort(['key1', 'key2'],
+                                                    kind='mergesort')
+        assert_frame_equal(left, right)
+
+    def test_left_join_multi_index(self):
+        icols = ['1st', '2nd', '3rd']
+
+        def bind_cols(df):
+            iord = lambda a: 0 if a != a else ord(a)
+            f = lambda ts: ts.map(iord) - ord('a')
+            return f(df['1st']) + f(df['3rd'])* 1e2 + df['2nd'].fillna(0) * 1e4
+
+        def run_asserts(left, right):
+            for sort in [False, True]:
+                res = left.join(right, on=icols, how='left', sort=sort)
+
+                self.assertTrue(len(left) < len(res) + 1)
+                self.assertFalse(res['4th'].isnull().any())
+                self.assertFalse(res['5th'].isnull().any())
+
+                tm.assert_series_equal(res['4th'], - res['5th'])
+                tm.assert_series_equal(res['4th'], bind_cols(res.iloc[:, :-2]))
+
+                if sort:
+                    tm.assert_frame_equal(res,
+                                          res.sort(icols, kind='mergesort'))
+
+                out = merge(left, right.reset_index(), on=icols,
+                            sort=sort, how='left')
+
+                res.index = np.arange(len(res))
+                tm.assert_frame_equal(out, res)
+
+        lc = list(map(chr, np.arange(ord('a'), ord('z') + 1)))
+        left = DataFrame(np.random.choice(lc, (5000, 2)),
+                         columns=['1st', '3rd'])
+        left.insert(1, '2nd', np.random.randint(0, 1000, len(left)))
+
+        i = np.random.permutation(len(left))
+        right = left.iloc[i].copy()
+
+        left['4th'] = bind_cols(left)
+        right['5th'] = - bind_cols(right)
+        right.set_index(icols, inplace=True)
+
+        run_asserts(left, right)
+
+        # inject some nulls
+        left.loc[1::23, '1st'] = np.nan
+        left.loc[2::37, '2nd'] = np.nan
+        left.loc[3::43, '3rd'] = np.nan
+        left['4th'] = bind_cols(left)
+
+        i = np.random.permutation(len(left))
+        right = left.iloc[i, :-1]
+        right['5th'] = - bind_cols(right)
+        right.set_index(icols, inplace=True)
+
+        run_asserts(left, right)
+
     def test_merge_right_vs_left(self):
         # compare left vs right merge with multikey
-        merged1 = self.data.merge(self.to_join, left_on=['key1', 'key2'],
-                                  right_index=True, how='left')
-        merged2 = self.to_join.merge(self.data, right_on=['key1', 'key2'],
-                                     left_index=True, how='right')
-        merged2 = merged2.ix[:, merged1.columns]
-        assert_frame_equal(merged1, merged2)
+        for sort in [False, True]:
+            merged1 = self.data.merge(self.to_join, left_on=['key1', 'key2'],
+                    right_index=True, how='left', sort=sort)
+
+            merged2 = self.to_join.merge(self.data, right_on=['key1', 'key2'],
+                    left_index=True, how='right', sort=sort)
+
+            merged2 = merged2.ix[:, merged1.columns]
+            assert_frame_equal(merged1, merged2)
 
     def test_compress_group_combinations(self):
 
@@ -943,6 +1007,8 @@ class TestMergeMulti(tm.TestCase):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result.sort(['k1', 'k2'], kind='mergesort'),
+                              left.join(right, on=['k1', 'k2'], sort=True))
 
         # test join with multi dtypes blocks
         left = DataFrame({'k1': [0, 1, 2] * 8,
@@ -961,6 +1027,8 @@ class TestMergeMulti(tm.TestCase):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result.sort(['k1', 'k2'], kind='mergesort'),
+                              left.join(right, on=['k1', 'k2'], sort=True))
 
         # do a right join for an extra test
         joined = merge(right, left, left_index=True,
@@ -1022,6 +1090,12 @@ class TestMergeMulti(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+        result = left.join(right, on=['cola', 'colb', 'colc'],
+                           how='left', sort=True)
+
+        tm.assert_frame_equal(result,
+                expected.sort(['cola', 'colb', 'colc'], kind='mergesort'))
+
         # GH7331 - maintain left frame order in left merge
         right.reset_index(inplace=True)
         right.columns = left.columns[:3].tolist() + right.columns[-1:].tolist()
@@ -1066,6 +1140,9 @@ class TestMergeMulti(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+        result = left.join(right, on='tag', how='left', sort=True)
+        tm.assert_frame_equal(result, expected.sort('tag', kind='mergesort'))
+
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how='left', on='tag')
         expected.index = np.arange(len(expected))
@@ -1092,6 +1169,10 @@ class TestMergeMulti(tm.TestCase):
             expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'),'v2'] = 5
             expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
 
+            tm.assert_frame_equal(result, expected)
+
+            result = left.join(right, on=['k1', 'k2'], sort=True)
+            expected.sort(['k1', 'k2'], kind='mergesort', inplace=True)
             tm.assert_frame_equal(result, expected)
 
         for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
