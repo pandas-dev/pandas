@@ -101,6 +101,7 @@ Bug Fixes
 
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and `unstack`` where ``nan`` values would break index alignment (:issue:`7466`)
+- Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
 
 
 
@@ -142,7 +143,7 @@ Bug Fixes
 
 
 
-
+- Bug in using grouper functions that need passed thru arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
 
 - DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
@@ -155,3 +156,4 @@ Bug Fixes
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format wass applied. This prevented other row or column formatting being applied. (:issue:`9167`)
 
 - Bug in ``wide_to_long``, modifies stubnames list (:issue:`9204`) 
+- Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)

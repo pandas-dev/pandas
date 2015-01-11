@@ -728,7 +728,7 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if self.has_usecols:
+            if self.has_usecols and self.allow_leading_cols:
                 nuse = len(self.usecols)
                 if nuse == passed_count:
                     self.leading_cols = 0
