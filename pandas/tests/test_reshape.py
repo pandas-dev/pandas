@@ -443,6 +443,7 @@ class TestWideToLong(tm.TestCase):
         long_frame = wide_to_long(df, ["A", "B"], i="id", j="year")
         tm.assert_frame_equal(long_frame, exp_frame)
 
+    # Issue GH9204
     def test_stubs(self):
         df = pd.DataFrame([[0,1,2,3,8],[4,5,6,7,9]])
         df.columns = ['id', 'inc1', 'inc2', 'edu1', 'edu2']
