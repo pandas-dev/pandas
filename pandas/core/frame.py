@@ -2726,8 +2726,8 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
-            For a set of distinct duplicate rows, flag all but the last row as 
-            duplicated. Default is for all but the first row to be flagged            
+            For a set of distinct duplicate rows, flag all but the last row as
+            duplicated. Default is for all but the first row to be flagged
         cols : kwargs only argument of subset [deprecated]
 
         Returns
@@ -3770,35 +3770,65 @@ class DataFrame(NDFrame):
 
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
-        Append columns of other to end of this frame's columns and index,
-        returning a new object.  Columns not in this frame are added as new
-        columns.
+        Append rows of `other` to the end of this frame, returning a new
+        object. Columns not in this frame are added as new columns.
 
         Parameters
         ----------
-        other : DataFrame or list of Series/dict-like objects
+        other : DataFrame or Series/dict-like object, or list of these
+            The data to append.
         ignore_index : boolean, default False
-            If True do not use the index labels. Useful for gluing together
-            record arrays
+            If True, do not use the index labels.
         verify_integrity : boolean, default False
-            If True, raise ValueError on creating index with duplicates
-
-        Notes
-        -----
-        If a list of dict is passed and the keys are all contained in the
-        DataFrame's index, the order of the columns in the resulting DataFrame
-        will be unchanged
+            If True, raise ValueError on creating index with duplicates.
 
         Returns
         -------
         appended : DataFrame
+
+        Notes
+        -----
+        If a list of dict/series is passed and the keys are all contained in the
+        DataFrame's index, the order of the columns in the resulting DataFrame
+        will be unchanged.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+        >>> df
+           A  B
+        0  1  2
+        1  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+        >>> df.append(df2)
+           A  B
+        0  1  2
+        1  3  4
+        0  5  6
+        1  7  8
+
+        With `ignore_index` set to True:
+
+        >>> df.append(df2, ignore_index=True)
+           A  B
+        0  1  2
+        1  3  4
+        2  5  6
+        3  7  8
+
         """
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
                 other = Series(other)
             if other.name is None and not ignore_index:
-                raise TypeError('Can only append a Series if '
-                                'ignore_index=True')
+                raise TypeError('Can only append a Series if ignore_index=True'
+                                ' or if the Series has a name')
 
             index = None if other.name is None else [other.name]
             combined_columns = self.columns.tolist() + self.columns.union(other.index).difference(self.columns).tolist()
