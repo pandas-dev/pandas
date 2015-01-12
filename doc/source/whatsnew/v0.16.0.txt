@@ -83,6 +83,7 @@ Bug Fixes
 
 .. _whatsnew_0160.bug_fixes:
 
+- Fixed issue using `read_csv` on s3 with Python 3.
 - Fixed compatibility issue in ``DatetimeIndex`` affecting architectures where ``numpy.int_`` defaults to ``numpy.int32`` (:issue:`8943`)
 - Bug in Panel indexing with an object-like (:issue:`9140`)
 
