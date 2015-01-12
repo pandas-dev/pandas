@@ -105,6 +105,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dict.
     dtype : numpy.dtype or None
         If None, dtype will be inferred
+    name: must be hashable, defaults to None.
     copy : boolean, default False
         Copy input data
     """
@@ -271,6 +272,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
         return generic.NDFrame._update_inplace(self, result, **kwargs)
+
+    # Validate that name is hashable
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        try:
+            hash(value)
+        except TypeError:
+            raise TypeError('Series.name must be hashable.')
+        self._name = value
+
 
     # ndarray compatibility
     @property

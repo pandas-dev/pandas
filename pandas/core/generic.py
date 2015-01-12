@@ -1949,14 +1949,10 @@ class NDFrame(PandasObject):
     def __setattr__(self, name, value):
         """After regular attribute access, try setting the name
         This allows simpler access to columns for interactive use."""
-        # If attribute name is 'name', validate that value is hashable.  
-        # This prevents broken DataFrames if an unhashable Series.name
-        # is propagated to a column index.    
-        # Then try regular attribute access via __getattribute__, so that
+        # first try regular attribute access via __getattribute__, so that
         # e.g. ``obj.x`` and ``obj.x = 4`` will always reference/modify
         # the same attribute.
-          
-        if name == 'name': hash(value) 
+
         try:
             object.__getattribute__(self, name)
             return object.__setattr__(self, name, value)
