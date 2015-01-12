@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,timedelta
 from pandas.compat import range, long, zip
 from pandas import compat
 import re
@@ -12,6 +12,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
+from pandas.tslib import Timedelta
 
 class FreqGroup(object):
     FR_ANN = 1000
@@ -276,9 +277,18 @@ for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
 _legacy_reverse_map = dict((v, k) for k, v in
                            reversed(sorted(compat.iteritems(_rule_aliases))))
 
+_name_to_offset_map = {'days': Day(1),
+                       'hours': Hour(1),
+                       'minutes': Minute(1),
+                       'seconds': Second(1),
+                       'milliseconds': Milli(1),
+                       'microseconds': Micro(1),
+                       'nanoseconds': Nano(1)}
+
 def to_offset(freqstr):
     """
-    Return DateOffset object from string representation
+    Return DateOffset object from string representation or
+    Timedelta object
 
     Examples
     --------
@@ -298,6 +308,23 @@ def to_offset(freqstr):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
         delta = get_offset(name) * stride
+
+    elif isinstance(freqstr, timedelta):
+        delta = None
+        freqstr = Timedelta(freqstr)
+        try:
+            for name in freqstr.components._fields:
+                offset = _name_to_offset_map[name]
+                stride = getattr(freqstr.components, name)
+                if stride != 0:
+                    offset = stride * offset
+                    if delta is None:
+                        delta = offset
+                    else:
+                        delta = delta + offset
+        except Exception:
+            raise ValueError("Could not evaluate %s" % freqstr)
+
     else:
         delta = None
         stride_sign = None
