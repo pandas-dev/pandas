@@ -29,6 +29,47 @@ New features
 
   This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
+- DataFrame assign method
+
+Inspired by `dplyr's
+<http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__ ``mutate`` verb, DataFrame has a new
+:meth:`~pandas.DataFrame.assign` method.
+The function signature for ``assign`` is simply ``**kwargs``. The keys
+are the column names for the new fields, and the values are either a value
+to be inserted (for example, a ``Series`` or NumPy array), or a function
+of one argument to be called on the ``DataFrame``. The new values are inserted,
+and the entire DataFrame (with all original and new columns) is returned.
+
+.. ipython :: python
+
+   iris = read_csv('data/iris.data')
+   iris.head()
+
+   iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength']).head()
+
+Above was an example of inserting a precomputed value. We can also pass in
+a function to be evalutated.
+
+.. ipython :: python
+
+    iris.assign(sepal_ratio = lambda x: (x['SepalWidth'] /
+                                         x['SepalLength'])).head()
+
+The power of ``assign`` comes when used in chains of operations. For example,
+we can limit the DataFrame to just those with a Sepal Length greater than 5,
+calculate the ratio, and plot
+
+.. ipython:: python
+
+   (iris.query('SepalLength > 5')
+        .assign(SepalRatio = lambda x: x.SepalWidth / x.SepalLength,
+                PetalRatio = lambda x: x.PetalWidth / x.PetalLength)
+        .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
+
+.. image:: _static/whatsnew_assign.png
+    
+See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`9229`)
+
 .. _whatsnew_0160.api:
 
 .. _whatsnew_0160.api_breaking:

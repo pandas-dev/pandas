@@ -450,6 +450,82 @@ available to insert at a particular location in the columns:
    df.insert(1, 'bar', df['one'])
    df
 
+.. _dsintro.chained_assignment:
+
+Assigning New Columns in Method Chains
+--------------------------------------
+
+.. versionadded:: 0.16.0
+
+Inspired by `dplyr's
+<http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
+``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
+method that allows you to easily create new columns that are potentially
+derived from existing columns. 
+
+.. ipython:: python
+
+   iris = read_csv('data/iris.data')
+   iris.head()
+
+   (iris.assign(sepal_ratio = iris['SepalWidth'] / iris['SepalLength'])
+        .head())
+
+Above was an example of inserting a precomputed value. We can also pass in
+a function of one argument to be evalutated on the DataFrame being assigned to.
+
+.. ipython:: python
+
+   iris.assign(sepal_ratio = lambda x: (x['SepalWidth'] /
+                                        x['SepalLength'])).head()
+
+``assign`` **always** returns a copy of the data, leaving the original
+DataFrame untouched.
+
+Passing a callable, as opposed to an actual value to be inserted, is
+useful when you don't have a reference to the DataFrame at hand. This is
+common when using ``assign`` in chains of operations. For example,
+we can limit the DataFrame to just those observations with a Sepal Length
+greater than 5, calculate the ratio, and plot:
+
+.. ipython:: python
+
+   @savefig basics_assign.png
+   (iris.query('SepalLength > 5')
+        .assign(SepalRatio = lambda x: x.SepalWidth / x.SepalLength,
+                PetalRatio = lambda x: x.PetalWidth / x.PetalLength)
+        .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
+
+Since a function is passed in, the function is computed on the DataFrame
+being assigned to. Importantly, this is the DataFrame that's been filtered
+to those rows with sepal length greater than 5. The filtering happens first,
+and then the ratio calculations. This is an example where we didn't
+have a reference to the *filtered* DataFrame available.
+
+The function signature for ``assign`` is simply ``**kwargs``. The keys
+are the column names for the new fields, and the values are either a value
+to be inserted (for example, a ``Series`` or NumPy array), or a function
+of one argument to be called on the ``DataFrame``. A *copy* of the original
+DataFrame is returned, with the new values inserted.
+
+.. warning::
+
+  Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
+  the order of the new columns in the resulting DataFrame cannot be guaranteed.
+
+  All expressions are computed first, and then assigned. So you can't refer
+  to another column being assigned in the same call to ``assign``. For example:
+
+   .. ipython::
+       :verbatim:
+
+       In [1]: # Don't do this, bad reference to `C`
+               df.assign(C = lambda x: x['A'] + x['B'],
+                         D = lambda x: x['A'] + x['C'])
+       In [2]: # Instead, break it into two assigns
+               (df.assign(C = lambda x: x['A'] + x['B'])
+                  .assign(D = lambda x: x['A'] + x['C']))
+
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 The basics of indexing are as follows:

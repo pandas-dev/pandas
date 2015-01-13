@@ -11,6 +11,7 @@
    from pandas.compat import lrange
    options.display.max_rows=15
 
+
 ==============================
  Essential Basic Functionality
 ==============================
@@ -792,6 +793,7 @@ This is equivalent to the following
                            for ax in panel.minor_axis ]))
    result
    result.loc[:,:,'ItemA']
+
 
 .. _basics.reindexing:
 

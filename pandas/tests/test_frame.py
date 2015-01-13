@@ -13965,6 +13965,60 @@ starting,ending,measure
         with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
             df.select_dtypes(['blargy, blarg, blarg'])
 
+    def test_assign(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        original = df.copy()
+        result = df.assign(C=df.B / df.A)
+        expected = df.copy()
+        expected['C'] = [4, 2.5, 2]
+        assert_frame_equal(result, expected)
+
+        # lambda syntax
+        result = df.assign(C=lambda x: x.B / x.A)
+        assert_frame_equal(result, expected)
+
+        # original is unmodified
+        assert_frame_equal(df, original)
+
+        # Non-Series array-like
+        result = df.assign(C=[4, 2.5, 2])
+        assert_frame_equal(result, expected)
+        # original is unmodified
+        assert_frame_equal(df, original)
+
+        result = df.assign(B=df.B / df.A)
+        expected = expected.drop('B', axis=1).rename(columns={'C': 'B'})
+        assert_frame_equal(result, expected)
+
+        # overwrite
+        result = df.assign(A=df.A + df.B)
+        expected = df.copy()
+        expected['A'] = [5, 7, 9]
+        assert_frame_equal(result, expected)
+
+        # lambda
+        result = df.assign(A=lambda x: x.A + x.B)
+        assert_frame_equal(result, expected)
+
+    def test_assign_multiple(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
+        expected = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9],
+                              'D': [1, 2, 3], 'E': [4, 5, 6]})
+        # column order isn't preserved
+        assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_assign_bad(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        # non-keyword argument
+        with tm.assertRaises(TypeError):
+            df.assign(lambda x: x.A)
+        with tm.assertRaises(AttributeError):
+            df.assign(C=df.A, D=df.A + df.C)
+        with tm.assertRaises(KeyError):
+            df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
+        with tm.assertRaises(KeyError):
+            df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
