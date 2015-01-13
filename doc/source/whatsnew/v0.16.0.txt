@@ -367,6 +367,13 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      In [4]: df.loc[2:3]
      TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
 
+DataFrame Construction Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking.construction:
+
+
+
 
 .. _whatsnew_0160.deprecations:
 
@@ -535,3 +542,7 @@ Bug Fixes
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
 
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
+
+
+- Fixed bug with DataFrame constructor when passed a Series with a
+name and the `columns` keyword argument.
