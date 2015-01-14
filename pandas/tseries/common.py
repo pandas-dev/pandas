@@ -139,7 +139,7 @@ class TimedeltaProperties(Properties):
 
     @property
     def components(self):
-        return self.values.components
+        return self.values.components.set_index(self.index)
 
 TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
                                             accessors=TimedeltaIndex._datetimelike_ops,

@@ -142,7 +142,7 @@ class CheckNameIntegration(object):
             tm.assert_series_equal(result, expected)
 
         # timedeltaindex
-        for s in [Series(timedelta_range('1 day',periods=5)),
+        for s in [Series(timedelta_range('1 day',periods=5),index=list('abcde')),
                   Series(timedelta_range('1 day 01:23:45',periods=5,freq='s')),
                   Series(timedelta_range('2 days 01:23:45.012345',periods=5,freq='ms'))]:
             for prop in ok_for_td:
