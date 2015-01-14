@@ -44,7 +44,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
         Read value labels and convert columns to Categorical/Factor variables
     encoding : string, None or encoding
         Encoding used to parse the files. Note that Stata doesn't
-        support unicode. None defaults to cp1252.
+        support unicode. None defaults to iso-8859-1.
     index : identifier of index column
         identifier of column that should be used as index of the DataFrame
     convert_missing : boolean, defaults to False
@@ -683,7 +683,7 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    _default_encoding = 'cp1252'
+    _default_encoding = 'iso-8859-1'
 
     def __init__(self, encoding):
         self._encoding = encoding
@@ -823,10 +823,10 @@ class StataReader(StataParser):
         Path to .dta file or object implementing a binary read() functions
     encoding : string, None or encoding
         Encoding used to parse the files. Note that Stata doesn't
-        support unicode. None defaults to cp1252.
+        support unicode. None defaults to iso-8859-1.
     """
 
-    def __init__(self, path_or_buf, encoding='cp1252'):
+    def __init__(self, path_or_buf, encoding='iso-8859-1'):
         super(StataReader, self).__init__(encoding)
         self.col_sizes = ()
         self._has_string_data = False
@@ -841,7 +841,13 @@ class StataReader(StataParser):
         if isinstance(path_or_buf, (str, compat.text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
-            self.path_or_buf = path_or_buf
+            # Copy to BytesIO, and ensure no encoding
+            contents = path_or_buf.read()
+            try:
+                contents = contents.encode(self._default_encoding)
+            except:
+                pass
+            self.path_or_buf = BytesIO(contents)
 
         self._read_header()
 
