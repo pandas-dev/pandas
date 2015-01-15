@@ -84,7 +84,7 @@ class CheckNameIntegration(object):
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
         ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert']
-        ok_for_td = ['days','hours','minutes','seconds','milliseconds','microseconds','nanoseconds']
+        ok_for_td = ['days','seconds','microseconds','nanoseconds']
         ok_for_td_methods = ['components','to_pytimedelta']
 
         def get_expected(s, name):

@@ -301,14 +301,17 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(td.__floordiv__(td) is NotImplemented)
 
     def test_fields(self):
+
+        # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
         self.assertEqual(rng.days,1)
-        self.assertEqual(rng.hours,10)
-        self.assertEqual(rng.minutes,11)
-        self.assertEqual(rng.seconds,12)
-        self.assertEqual(rng.milliseconds,0)
+        self.assertEqual(rng.seconds,10*3600+11*60+12)
         self.assertEqual(rng.microseconds,0)
         self.assertEqual(rng.nanoseconds,0)
+
+        self.assertRaises(AttributeError, lambda : rng.hours)
+        self.assertRaises(AttributeError, lambda : rng.minutes)
+        self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
         td = Timedelta('-1 days, 10:11:12')
         self.assertEqual(abs(td),Timedelta('13:48:48'))
@@ -317,14 +320,14 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(-Timedelta('-1 days, 10:11:12').value,49728000000000)
         self.assertEqual(Timedelta('-1 days, 10:11:12').value,-49728000000000)
 
-        rng = to_timedelta('-1 days, 10:11:12')
+        rng = to_timedelta('-1 days, 10:11:12.100123456')
         self.assertEqual(rng.days,-1)
-        self.assertEqual(rng.hours,10)
-        self.assertEqual(rng.minutes,11)
-        self.assertEqual(rng.seconds,12)
-        self.assertEqual(rng.milliseconds,0)
-        self.assertEqual(rng.microseconds,0)
-        self.assertEqual(rng.nanoseconds,0)
+        self.assertEqual(rng.seconds,10*3600+11*60+12)
+        self.assertEqual(rng.microseconds,100*1000+123)
+        self.assertEqual(rng.nanoseconds,456)
+        self.assertRaises(AttributeError, lambda : rng.hours)
+        self.assertRaises(AttributeError, lambda : rng.minutes)
+        self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
         # components
         tup = pd.to_timedelta(-1, 'us').components
@@ -830,22 +833,22 @@ class TestTimedeltaIndex(tm.TestCase):
         self.assert_numpy_array_equal(result, rng.asi8)
 
     def test_fields(self):
-        rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')
+        rng = timedelta_range('1 days, 10:11:12.100123456', periods=2, freq='s')
         self.assert_numpy_array_equal(rng.days, np.array([1,1],dtype='int64'))
-        self.assert_numpy_array_equal(rng.hours, np.array([10,10],dtype='int64'))
-        self.assert_numpy_array_equal(rng.minutes, np.array([11,11],dtype='int64'))
-        self.assert_numpy_array_equal(rng.seconds, np.array([12,13],dtype='int64'))
-        self.assert_numpy_array_equal(rng.milliseconds, np.array([0,0],dtype='int64'))
-        self.assert_numpy_array_equal(rng.microseconds, np.array([0,0],dtype='int64'))
-        self.assert_numpy_array_equal(rng.nanoseconds, np.array([0,0],dtype='int64'))
+        self.assert_numpy_array_equal(rng.seconds, np.array([10*3600+11*60+12,10*3600+11*60+13],dtype='int64'))
+        self.assert_numpy_array_equal(rng.microseconds, np.array([100*1000+123,100*1000+123],dtype='int64'))
+        self.assert_numpy_array_equal(rng.nanoseconds, np.array([456,456],dtype='int64'))
+
+        self.assertRaises(AttributeError, lambda : rng.hours)
+        self.assertRaises(AttributeError, lambda : rng.minutes)
+        self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
         # with nat
         s = Series(rng)
         s[1] = np.nan
 
         tm.assert_series_equal(s.dt.days,Series([1,np.nan],index=[0,1]))
-        tm.assert_series_equal(s.dt.hours,Series([10,np.nan],index=[0,1]))
-        tm.assert_series_equal(s.dt.milliseconds,Series([0,np.nan],index=[0,1]))
+        tm.assert_series_equal(s.dt.seconds,Series([10*3600+11*60+12,np.nan],index=[0,1]))
 
     def test_components(self):
         rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')

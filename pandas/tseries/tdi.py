@@ -118,8 +118,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
     _left_indexer_unique = _join_i8_wrapper(
         _algos.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
-    _datetimelike_ops = ['days','hours','minutes','seconds','milliseconds','microseconds',
-                         'nanoseconds','freq','components']
+    _datetimelike_ops = ['days','seconds','microseconds','nanoseconds',
+                         'freq','components']
 
     __eq__ = _td_index_cmp('__eq__')
     __ne__ = _td_index_cmp('__ne__', nat_result=True)
@@ -349,37 +349,22 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def days(self):
-        """ The number of integer days for each element """
+        """ Number of days for each element. """
         return self._get_field('days')
 
     @property
-    def hours(self):
-        """ The number of integer hours for each element """
-        return self._get_field('hours')
-
-    @property
-    def minutes(self):
-        """ The number of integer minutes for each element """
-        return self._get_field('minutes')
-
-    @property
     def seconds(self):
-        """ The number of integer seconds for each element """
+        """ Number of seconds (>= 0 and less than 1 day) for each element. """
         return self._get_field('seconds')
 
     @property
-    def milliseconds(self):
-        """ The number of integer milliseconds for each element """
-        return self._get_field('milliseconds')
-
-    @property
     def microseconds(self):
-        """ The number of integer microseconds for each element """
+        """ Number of microseconds (>= 0 and less than 1 second) for each element. """
         return self._get_field('microseconds')
 
     @property
     def nanoseconds(self):
-        """ The number of integer nanoseconds for each element """
+        """ Number of nanoseconds (>= 0 and less than 1 microsecond) for each element. """
         return self._get_field('nanoseconds')
 
     @property
