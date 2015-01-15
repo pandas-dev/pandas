@@ -105,6 +105,8 @@ Bug Fixes
 - Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
 
 
+- Fixed bug where minutes and seconds components were zeroed when writing
+  Timestamp objects to Excel using xlwt and xlsxwriter (:issue:`9138`).
 
 
 
