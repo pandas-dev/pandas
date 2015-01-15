@@ -1351,8 +1351,8 @@ class CheckIndexing(object):
         ix = self.frame.ix
         with assertRaisesRegexp(IndexingError, 'Too many indexers'):
             ix[:, :, :]
-        with assertRaisesRegexp(IndexingError, 'only tuples of length <= 2 '
-                                'supported'):
+
+        with assertRaises(IndexingError):
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self):

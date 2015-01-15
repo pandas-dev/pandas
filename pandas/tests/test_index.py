@@ -3354,6 +3354,56 @@ class TestMultiIndex(Base, tm.TestCase):
         assertRaisesRegexp(ValueError, "Item must have length equal to number"
                            " of levels", self.index.insert, 0, ('foo2',))
 
+        left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],
+                            columns=['1st', '2nd', '3rd'])
+        left.set_index(['1st', '2nd'], inplace=True)
+        ts = left['3rd'].copy(deep=True)
+
+        left.loc[('b', 'x'), '3rd'] = 2
+        left.loc[('b', 'a'), '3rd'] = -1
+        left.loc[('b', 'b'), '3rd'] = 3
+        left.loc[('a', 'x'), '3rd'] = 4
+        left.loc[('a', 'w'), '3rd'] = 5
+        left.loc[('a', 'a'), '3rd'] = 6
+
+        ts.loc[('b', 'x')] = 2
+        ts.loc['b', 'a'] = -1
+        ts.loc[('b', 'b')] = 3
+        ts.loc['a', 'x'] = 4
+        ts.loc[('a', 'w')] = 5
+        ts.loc['a', 'a'] = 6
+
+        right = pd.DataFrame([['a', 'b',  0],
+                              ['b', 'd',  1],
+                              ['b', 'x',  2],
+                              ['b', 'a', -1],
+                              ['b', 'b',  3],
+                              ['a', 'x',  4],
+                              ['a', 'w',  5],
+                              ['a', 'a',  6]],
+                              columns=['1st', '2nd', '3rd'])
+        right.set_index(['1st', '2nd'], inplace=True)
+        # FIXME data types changes to float because
+        # of intermediate nan insertion;
+        tm.assert_frame_equal(left, right, check_dtype=False)
+        tm.assert_series_equal(ts, right['3rd'])
+
+        # GH9250
+        idx = [('test1', i) for i in range(5)] + \
+                [('test2', i) for i in range(6)] + \
+                [('test', 17), ('test', 18)]
+
+        left = pd.Series(np.linspace(0, 10, 11),
+                         pd.MultiIndex.from_tuples(idx[:-2]))
+
+        left.loc[('test', 17)] = 11
+        left.ix[('test', 18)] = 12
+
+        right = pd.Series(np.linspace(0, 12, 13),
+                          pd.MultiIndex.from_tuples(idx))
+
+        tm.assert_series_equal(left, right)
+
     def test_take_preserve_name(self):
         taken = self.index.take([3, 0, 1])
         self.assertEqual(taken.names, self.index.names)
