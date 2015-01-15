@@ -17,6 +17,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe, _infer_dtype_from_scalar,
                                 is_list_like, _values_from_object,
+                                is_hashable,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name, _coerce_to_dtype,
@@ -105,7 +106,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dict.
     dtype : numpy.dtype or None
         If None, dtype will be inferred
-    name: must be hashable, defaults to None.
+    name :  used to attach metadata to a Series, e.g., as str or namedtuple. 
+            Must be hashable, defaults to None.
     copy : boolean, default False
         Copy input data
     """
@@ -280,11 +282,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @name.setter
     def name(self, value):
-        try:
-            hash(value)
-        except TypeError:
-            raise TypeError('Series.name must be hashable.')
-        self._name = value
+        if is_hashable(value):
+            object.__setattr__(self, '_name', value)
+        else: 
+            raise TypeError('Series.name must be hashable, got %s.' 
+                              % value.__class__.__name__)
 
 
     # ndarray compatibility
