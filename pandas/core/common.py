@@ -2537,13 +2537,13 @@ def is_hashable(arg):
     >>> is_hashable(a)
     False
     """
-    # don't consider anything not collections.Hashable, so as not to broaden
-    # the definition of hashable beyond that. For example, old-style classes
-    # are not collections.Hashable but they won't fail hash().
-    if not isinstance(arg, collections.Hashable):
-        return False
+    # unfortunately, we can't use isinstance(arg, collections.Hashable), which
+    # can be faster than calling hash, because numpy scalars on Python 3 fail
+    # this test
 
-    # narrow the definition of hashable if hash(arg) fails in practice
+    # reconsider this decision once this numpy bug is fixed:
+    # https://github.com/numpy/numpy/issues/5562
+
     try:
         hash(arg)
     except TypeError:
