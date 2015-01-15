@@ -136,6 +136,21 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(repr(result), expected_repr)
         self.assertEqual(result, eval(repr(result)))
 
+    def test_conversion(self):
+        # GH 9255
+        ts = Timestamp('2000-01-01')
+
+        result = ts.to_pydatetime()
+        expected = datetime.datetime(2000, 1, 1)
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+
+        result = ts.to_datetime64()
+        expected = np.datetime64(ts.value, 'ns')
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+        self.assertEqual(result.dtype, expected.dtype)
+
     def test_repr(self):
         tm._skip_if_no_pytz()
         tm._skip_if_no_dateutil()

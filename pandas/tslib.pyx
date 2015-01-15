@@ -852,6 +852,10 @@ cdef class _Timestamp(datetime):
                         dts.hour, dts.min, dts.sec,
                         dts.us, ts.tzinfo)
 
+    cpdef to_datetime64(self):
+        """ Returns a numpy.datetime64 object with 'ns' precision """
+        return np.datetime64(self.value, 'ns')
+
     def __add__(self, other):
         cdef int64_t other_int
 
