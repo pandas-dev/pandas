@@ -833,6 +833,7 @@ class StataReader(StataParser):
         self._missing_values = False
         self._data_read = False
         self._value_labels_read = False
+        self._native_byteorder =  _set_endianness(sys.byteorder)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
@@ -1195,13 +1196,16 @@ class StataReader(StataParser):
         dtype = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                dtype.append(('s' + str(i), self.NUMPY_TYPE_MAP[typ]))
+                dtype.append(('s' + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtype.append(('s' + str(i), 'S' + str(typ)))
         dtype = np.dtype(dtype)
         read_len = count * dtype.itemsize
         self.path_or_buf.seek(self.data_location)
         data = np.frombuffer(self.path_or_buf.read(read_len),dtype=dtype,count=count)
+        # if necessary, swap the byte order to native here
+        if self.byteorder != self._native_byteorder:
+            data = data.byteswap().newbyteorder()
         self._data_read = True
 
         if convert_categoricals:
