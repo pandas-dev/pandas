@@ -20,14 +20,11 @@ from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
     PossiblePrecisionLoss, StataMissingValue)
 import pandas.util.testing as tm
 from pandas.tslib import NaT
-from pandas.util.misc import is_little_endian
 from pandas import compat
 
 class TestStata(tm.TestCase):
 
     def setUp(self):
-        # Unit test datasets for dta7 - dta9 (old stata formats 104, 105 and 107) can be downloaded from:
-        # http://stata-press.com/data/glmext.html
         self.dirpath = tm.get_data_path()
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
@@ -47,16 +44,6 @@ class TestStata(tm.TestCase):
         self.dta4_114 = os.path.join(self.dirpath, 'stata4_114.dta')
         self.dta4_115 = os.path.join(self.dirpath, 'stata4_115.dta')
         self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
-
-        self.dta7 = os.path.join(self.dirpath, 'cancer.dta')
-        self.csv7 = os.path.join(self.dirpath, 'cancer.csv')
-
-        self.dta8 = os.path.join(self.dirpath, 'tbl19-3.dta')
-
-        self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
-
-        self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
-        self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
 
@@ -252,24 +239,6 @@ class TestStata(tm.TestCase):
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
-
-    @nose.tools.nottest
-    def test_read_dta7(self):
-        expected = read_csv(self.csv7, parse_dates=True, sep='\t')
-        parsed = self.read_dta(self.dta7)
-        tm.assert_frame_equal(parsed, expected)
-
-    @nose.tools.nottest
-    def test_read_dta8(self):
-        expected = read_csv(self.csv8, parse_dates=True, sep='\t')
-        parsed = self.read_dta(self.dta8)
-        tm.assert_frame_equal(parsed, expected)
-
-    @nose.tools.nottest
-    def test_read_dta9(self):
-        expected = read_csv(self.csv9, parse_dates=True, sep='\t')
-        parsed = self.read_dta(self.dta9)
-        tm.assert_frame_equal(parsed, expected)
 
     def test_read_write_dta10(self):
         original = DataFrame(data=[["string", "object", 1, 1.1,
