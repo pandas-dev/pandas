@@ -106,7 +106,7 @@ Bug Fixes
 - Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
 
 
-
+- Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
 
 
 

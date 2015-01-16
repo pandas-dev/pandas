@@ -889,7 +889,6 @@ class TestStata(tm.TestCase):
             tm.assert_equal(False, parsed_115_unordered[col].cat.ordered)
             tm.assert_equal(False, parsed_117_unordered[col].cat.ordered)
 
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
