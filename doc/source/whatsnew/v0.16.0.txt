@@ -217,3 +217,6 @@ Bug Fixes
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
 - Bug in to_sql not storing float64 values using double precision. (:issue:`9009`)
+
+
+- ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).

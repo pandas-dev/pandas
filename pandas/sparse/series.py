@@ -103,7 +103,7 @@ class SparseSeries(Series):
     """
     _subtyp = 'sparse_series'
 
-    def __init__(self, data, index=None, sparse_index=None, kind='block',
+    def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
 
@@ -115,6 +115,9 @@ class SparseSeries(Series):
             if copy:
                 data = data.copy()
         else:
+            
+            if data is None:
+                data = []
 
             is_sparse_array = isinstance(data, SparseArray)
             if fill_value is None:
