@@ -93,31 +93,27 @@ class _NDFrameIndexer(object):
     def _slice(self, obj, axis=0, typ=None):
         return self.obj._slice(obj, axis=axis, typ=typ)
 
-    def __setitem__(self, key, value):
-
+    def _get_setitem_indexer(self, key):
         if self.axis is not None:
-            indexer = self._convert_tuple(key, is_setter=True)
+            return self._convert_tuple(key, is_setter=True)
 
-        else:
+        axis = self.obj._get_axis(0)
+        if isinstance(axis, MultiIndex):
+            try:
+                return axis.get_loc(key)
+            except Exception:
+                pass
 
-            # kludgetastic
-            ax = self.obj._get_axis(0)
-            if isinstance(ax, MultiIndex):
-                try:
-                    indexer = ax.get_loc(key)
-                    self._setitem_with_indexer(indexer, value)
-                    return
-                except Exception:
-                    pass
+        if isinstance(key, tuple) and not self.ndim < len(key):
+            return self._convert_tuple(key, is_setter=True)
 
-            if isinstance(key, tuple):
-                if len(key) > self.ndim:
-                    raise IndexingError('only tuples of length <= %d supported' %
-                                        self.ndim)
-                indexer = self._convert_tuple(key, is_setter=True)
-            else:
-                indexer = self._convert_to_indexer(key, is_setter=True)
+        try:
+            return self._convert_to_indexer(key, is_setter=True)
+        except TypeError:
+            raise IndexingError(key)
 
+    def __setitem__(self, key, value):
+        indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
     def _has_valid_type(self, k, axis):
@@ -258,10 +254,6 @@ class _NDFrameIndexer(object):
                     self.obj._data = self.obj.reindex_axis(labels, i)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj.is_copy=None
-
-                    if isinstance(labels, MultiIndex):
-                        self.obj.sortlevel(inplace=True)
-                        labels = self.obj._get_axis(i)
 
                     nindexer.append(labels.get_loc(key))
 
@@ -1064,7 +1056,12 @@ class _NDFrameIndexer(object):
         # if we are a label return me
         try:
             return labels.get_loc(obj)
-        except (KeyError, TypeError):
+        except KeyError:
+            if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
+                if is_setter and len(obj) == labels.nlevels:
+                    return {'key': obj}
+                raise
+        except TypeError:
             pass
         except (ValueError):
             if not is_int_positional:
@@ -1136,10 +1133,6 @@ class _NDFrameIndexer(object):
 
                 mask = check == -1
                 if mask.any():
-
-                    # mi here
-                    if isinstance(obj, tuple) and is_setter:
-                        return {'key': obj}
                     raise KeyError('%s not in index' % objarr[mask])
 
                 return _values_from_object(indexer)
