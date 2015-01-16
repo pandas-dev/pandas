@@ -1896,45 +1896,43 @@ class Timedelta(_Timedelta):
 
     @property
     def days(self):
-        """ The days for the Timedelta """
+        """
+        Number of Days
+
+        .components will return the shown components
+        """
         self._ensure_components()
         if self._sign < 0:
             return -1*self._d
         return self._d
 
     @property
-    def hours(self):
-        """ The hours for the Timedelta """
-        self._ensure_components()
-        return self._h
-
-    @property
-    def minutes(self):
-        """ The minutes for the Timedelta """
-        self._ensure_components()
-        return self._m
-
-    @property
     def seconds(self):
-        """ The seconds for the Timedelta """
-        self._ensure_components()
-        return self._s
+        """
+        Number of seconds (>= 0 and less than 1 day).
 
-    @property
-    def milliseconds(self):
-        """ The milliseconds for the Timedelta """
+        .components will return the shown components
+        """
         self._ensure_components()
-        return self._ms
+        return self._h*3600 + self._m*60 + self._s
 
     @property
     def microseconds(self):
-        """ The microseconds for the Timedelta """
+        """
+        Number of microseconds (>= 0 and less than 1 second).
+
+        .components will return the shown components
+        """
         self._ensure_components()
-        return self._us
+        return self._ms*1000 + self._us
 
     @property
     def nanoseconds(self):
-        """ The nanoseconds for the Timedelta """
+        """
+        Number of nanoseconds (>= 0 and less than 1 microsecond).
+
+        .components will return the shown components
+        """
         self._ensure_components()
         return self._ns
 
