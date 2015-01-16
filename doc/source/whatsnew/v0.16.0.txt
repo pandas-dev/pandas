@@ -29,38 +29,38 @@ Backwards incompatible API changes
 
 - In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a sub-class of ``datetime.timedelta``. Mentioned :ref:`here <whatsnew_0150.timedeltaindex>` was a notice of an API change w.r.t. the ``.seconds`` accessor. The intent was to provide a user-friendly set of accessors that give the 'natural' value for that unit, e.g. if you had a ``Timedelta('1 day, 10:11:12')``, then ``.seconds`` would return 12. However, this is at odds with the definition of ``datetime.timedelta``, which defines ``.seconds`` as ``10 * 3600 + 11 * 60 + 12 == 36672``.
 
-So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. However, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
+  So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. Further, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
 
-Previous Behavior
+  Previous Behavior
 
-.. code-block:: python
+  .. code-block:: python
 
-   In [2]: t = pd.Timedelta('1 day, 10:11:12.100123')
+     In [2]: t = pd.Timedelta('1 day, 10:11:12.100123')
 
-   In [3]: t.days
-   Out[3]: 1
+     In [3]: t.days
+     Out[3]: 1
 
-   In [4]: t.seconds
-   Out[4]: 12
+     In [4]: t.seconds
+     Out[4]: 12
 
-   In [5]: t.microseconds
-   Out[5]: 123
+     In [5]: t.microseconds
+     Out[5]: 123
 
-New Behavior
+  New Behavior
 
-.. ipython:: python
+  .. ipython:: python
 
-   t = pd.Timedelta('1 day, 10:11:12.100123')
-   t.days
-   t.seconds
-   t.microseconds
+     t = pd.Timedelta('1 day, 10:11:12.100123')
+     t.days
+     t.seconds
+     t.microseconds
 
-Using ``.components`` allows the full component access
+  Using ``.components`` allows the full component access
 
-.. ipython:: python
+  .. ipython:: python
 
-   t.components
-   t.components.seconds
+     t.components
+     t.components.seconds
 
 - ``Index.duplicated`` now returns `np.array(dtype=bool)` rather than `Index(dtype=object)` containing `bool` values. (:issue:`8875`)
 - ``DataFrame.to_json`` now returns accurate type serialisation for each column for frames of mixed dtype (:issue:`9037`)

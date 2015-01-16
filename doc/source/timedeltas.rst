@@ -266,7 +266,7 @@ For a ``Series``
    td.dt.days
    td.dt.seconds
 
-You can access the component field for a scalar ``Timedelta`` directly.
+You can access the value of the fields for a scalar ``Timedelta`` directly.
 
 .. ipython:: python
 
