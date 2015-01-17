@@ -2,8 +2,6 @@
 
 ![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.svg)
 
-[![Scatter-CI Status page](http://scatterci.github.io/scatterci48.jpg)](http://scatterci.github.io/pydata/pandas)
-
 ## What is it
 
 **pandas** is a Python package providing fast, flexible, and expressive data
