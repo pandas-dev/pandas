@@ -19,7 +19,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types
 
 from pandas.core.config import get_option
 
@@ -1320,6 +1320,19 @@ def _possibly_downcast_to_dtype(result, dtype):
         pass
 
     return result
+
+
+def _maybe_convert_string_to_object(values):
+    """
+    Convert string-like and string-like array to convert object dtype.
+    This is to avoid numpy to handle the array as str dtype.
+    """
+    if isinstance(values, string_types):
+        values = np.array([values], dtype=object)
+    elif (isinstance(values, np.ndarray) and
+        issubclass(values.dtype.type, (np.string_, np.unicode_))):
+        values = values.astype(object)
+    return values
 
 
 def _lcd_dtypes(a_dtype, b_dtype):

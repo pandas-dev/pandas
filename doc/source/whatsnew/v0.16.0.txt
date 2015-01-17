@@ -187,6 +187,8 @@ Bug Fixes
 - Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - isnull now detects ``NaT`` in PeriodIndex (:issue:`9129`)
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
+- Bug in ``DataFrame.where`` and ``Series.where`` coerce numerics to string incorrectly (:issue:`9280`)
+- Bug in ``DataFrame.where`` and ``Series.where`` raise ``ValueError`` when string list-like is passed. (:issue:`9280`)
 
 - Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
 

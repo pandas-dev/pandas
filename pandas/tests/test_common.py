@@ -947,6 +947,34 @@ class TestTake(tm.TestCase):
         tm.assert_almost_equal(result, expected)
 
 
+class TestMaybe(tm.TestCase):
+
+    def test_maybe_convert_string_to_array(self):
+        result = com._maybe_convert_string_to_object('x')
+        tm.assert_numpy_array_equal(result, np.array(['x'], dtype=object))
+        self.assertTrue(result.dtype == object)
+
+        result = com._maybe_convert_string_to_object(1)
+        self.assertEquals(result, 1)
+
+        arr = np.array(['x', 'y'], dtype=str)
+        result = com._maybe_convert_string_to_object(arr)
+        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
+        self.assertTrue(result.dtype == object)
+
+        # unicode
+        arr = np.array(['x', 'y']).astype('U')
+        result = com._maybe_convert_string_to_object(arr)
+        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
+        self.assertTrue(result.dtype == object)
+
+        # object
+        arr = np.array(['x', 2], dtype=object)
+        result = com._maybe_convert_string_to_object(arr)
+        tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
+        self.assertTrue(result.dtype == object)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
