@@ -9,6 +9,9 @@ import warnings
 import textwrap
 
 
+_shared_docs = dict()
+
+
 def _get_array_list(arr, others):
     from pandas.core.series import Series
 
@@ -124,17 +127,6 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         return lib.map_infer(arr, f)
 
 
-def str_title(arr):
-    """
-    Convert strings to titlecased version
-
-    Returns
-    -------
-    titled : array
-    """
-    return _na_map(lambda x: x.title(), arr)
-
-
 def str_count(arr, pat, flags=0):
     """
     Count occurrences of pattern in each string
@@ -197,7 +189,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
         else:
             upper_pat = pat.upper()
             f = lambda x: upper_pat in x
-            return _na_map(f, str_upper(arr), na, dtype=bool)
+            uppered = _na_map(lambda x: x.upper(), arr)
+            return _na_map(f, uppered, na, dtype=bool)
     return _na_map(f, arr, na, dtype=bool)
 
 
@@ -237,28 +230,6 @@ def str_endswith(arr, pat, na=np.nan):
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na, dtype=bool)
-
-
-def str_lower(arr):
-    """
-    Convert strings in array to lowercase
-
-    Returns
-    -------
-    lowercase : array
-    """
-    return _na_map(lambda x: x.lower(), arr)
-
-
-def str_upper(arr):
-    """
-    Convert strings in array to uppercase
-
-    Returns
-    -------
-    uppercase : array
-    """
-    return _na_map(lambda x: x.upper(), arr)
 
 
 def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
@@ -551,17 +522,6 @@ def str_join(arr, sep):
     joined : array
     """
     return _na_map(sep.join, arr)
-
-
-def str_len(arr):
-    """
-    Compute length of each string in array.
-
-    Returns
-    -------
-    lengths : array
-    """
-    return _na_map(len, arr, dtype=int)
 
 
 def str_findall(arr, pat, flags=0):
@@ -884,14 +844,16 @@ def str_encode(arr, encoding, errors="strict"):
     return _na_map(f, arr)
 
 
-def _noarg_wrapper(f):
+def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
-        result = f(self.series)
+        result = _na_map(f, self.series, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
-    if f.__doc__:
-        wrapper.__doc__ = f.__doc__
+    if docstring is not None:
+        wrapper.__doc__ = docstring
+    else:
+        raise ValueError('Provide docstring')
 
     return wrapper
 
@@ -1076,7 +1038,47 @@ class StringMethods(object):
     findall = _pat_wrapper(str_findall, flags=True)
     extract = _pat_wrapper(str_extract, flags=True)
 
-    len = _noarg_wrapper(str_len)
-    lower = _noarg_wrapper(str_lower)
-    upper = _noarg_wrapper(str_upper)
-    title = _noarg_wrapper(str_title)
+    _shared_docs['len'] = ("""
+    Compute length of each string in array.
+
+    Returns
+    -------
+    lengths : array
+    """)
+    len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
+
+    _shared_docs['casemethods'] = ("""
+    Convert strings in array to %s
+
+    Returns
+    -------
+    uppercase : array
+    """)
+    lower = _noarg_wrapper(lambda x: x.lower(),
+                           docstring=_shared_docs['casemethods'] % 'lowercase')
+    upper = _noarg_wrapper(lambda x: x.upper(),
+                           docstring=_shared_docs['casemethods'] % 'uppercase')
+    title = _noarg_wrapper(lambda x: x.title(),
+                           docstring=_shared_docs['casemethods'] % 'titlecase')
+
+    _shared_docs['ismethods'] = ("""
+    Check whether all characters in each string in the array are %s
+
+    Returns
+    -------
+    Series of boolean values
+    """)
+    isalnum = _noarg_wrapper(lambda x: x.isalnum(),
+                             docstring=_shared_docs['ismethods'] % 'alphanumeric')
+    isalpha = _noarg_wrapper(lambda x: x.isalpha(),
+                             docstring=_shared_docs['ismethods'] % 'alphabetic')
+    isdigit = _noarg_wrapper(lambda x: x.isdigit(),
+                             docstring=_shared_docs['ismethods'] % 'digits')
+    isspace = _noarg_wrapper(lambda x: x.isspace(),
+                             docstring=_shared_docs['ismethods'] % 'whitespace')
+    islower = _noarg_wrapper(lambda x: x.islower(),
+                             docstring=_shared_docs['ismethods'] % 'lowercase')
+    isupper = _noarg_wrapper(lambda x: x.isupper(),
+                             docstring=_shared_docs['ismethods'] % 'uppercase')
+    istitle = _noarg_wrapper(lambda x: x.istitle(),
+                             docstring=_shared_docs['ismethods'] % 'titlecase')
