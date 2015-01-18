@@ -195,4 +195,6 @@ Bug Fixes
 
 
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format wass applied. This prevented other row or column formatting being applied. (:issue:`9167`)
+
+- Bug in ``wide_to_long``, modifies stubnames list (:issue:`9204`) 
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
