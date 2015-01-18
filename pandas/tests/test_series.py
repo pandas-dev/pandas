@@ -1886,6 +1886,28 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(self.series[d1], 4)
         self.assertEqual(self.series[d2], 6)
 
+    def test_where_numeric_with_string(self):
+        # GH 9280
+        s = pd.Series([1, 2, 3])
+        w = s.where(s>1, 'X')
+
+        self.assertTrue(isinstance(w[0], str))
+        self.assertTrue(isinstance(w[1], int))
+        self.assertTrue(isinstance(w[2], int))
+        self.assertTrue(w.dtype == 'object')
+
+        w = s.where(s>1, ['X', 'Y', 'Z'])
+        self.assertTrue(isinstance(w[0], str))
+        self.assertTrue(isinstance(w[1], int))
+        self.assertTrue(isinstance(w[2], int))
+        self.assertTrue(w.dtype == 'object')
+
+        w = s.where(s>1, np.array(['X', 'Y', 'Z']))
+        self.assertTrue(isinstance(w[0], str))
+        self.assertTrue(isinstance(w[1], int))
+        self.assertTrue(isinstance(w[2], int))
+        self.assertTrue(w.dtype == 'object')
+
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 

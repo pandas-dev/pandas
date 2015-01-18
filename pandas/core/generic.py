@@ -3292,7 +3292,11 @@ class NDFrame(PandasObject):
             if self.ndim == 1:
 
                 # try to set the same dtype as ourselves
-                new_other = np.array(other, dtype=self.dtype)
+                try:
+                    new_other = np.array(other, dtype=self.dtype)
+                except ValueError:
+                    new_other = np.array(other)
+
                 if not (new_other == np.array(other)).all():
                     other = np.array(other)
 
