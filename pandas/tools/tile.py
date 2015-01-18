@@ -12,6 +12,60 @@ from pandas.compat import zip
 
 import numpy as np
 
+def _generate_bins(x=None, bins=None, min_val=None, max_val=None, right=True):
+    """
+    Generate bins for cut, must either pass x (an array-like) or a min and max
+    value. If min or max are passed, ignores x.
+
+    Adds .1% space around bins if integer.
+    """
+    if bins is None:
+        raise ValueError("bins cannot be None.")
+    # ignore x if min and max are passed
+    if min_val is not None or max_val is not None:
+        assert min_val is not None and max_val is not None, (
+            "Must pass *both* min_val and max_val")
+    else:
+        assert x is not None, "Must pass either min/max vals or array-like"
+
+    # NOTE: this binning code is changed a bit from histogram for var(x) == 0
+    if not np.iterable(bins):
+        if np.isscalar(bins) and bins < 1:
+            raise ValueError("`bins` should be a positive integer.")
+        if min_val is not None:
+            mn, mx = min_val, max_val
+        else:
+            try:  # for array-like
+                sz = x.size
+            except AttributeError:
+                x = np.asarray(x)
+                sz = x.size
+            if sz == 0:
+                raise ValueError('Cannot cut empty array')
+                # handle empty arrays. Can't determine range, so use 0-1.
+                # rng = (0, 1)
+            else:
+                rng = (nanops.nanmin(x), nanops.nanmax(x))
+            mn, mx = [mi + 0.0 for mi in rng]
+
+        if mn == mx:  # adjust end points before binning
+            mn -= .001 * mn
+            mx += .001 * mx
+            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
+        else:  # adjust end points after binning
+            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
+            adj = (mx - mn) * 0.001  # 0.1% of the range
+            if right:
+                bins[0] -= adj
+            else:
+                bins[-1] += adj
+
+    else:
+        bins = np.asarray(bins)
+        if (np.diff(bins) < 0).any():
+            raise ValueError('bins must increase monotonically.')
+    return bins
+
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         include_lowest=False):
@@ -75,39 +129,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     >>> pd.cut(np.ones(5), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
     """
-    # NOTE: this binning code is changed a bit from histogram for var(x) == 0
-    if not np.iterable(bins):
-        if np.isscalar(bins) and bins < 1:
-            raise ValueError("`bins` should be a positive integer.")
-        try:  # for array-like
-            sz = x.size
-        except AttributeError:
-            x = np.asarray(x)
-            sz = x.size
-        if sz == 0:
-            raise ValueError('Cannot cut empty array')
-            # handle empty arrays. Can't determine range, so use 0-1.
-            # rng = (0, 1)
-        else:
-            rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = [mi + 0.0 for mi in rng]
+    if x is None:
+        raise TypeError("Must pass array-like as first argument, not None")
 
-        if mn == mx:  # adjust end points before binning
-            mn -= .001 * mn
-            mx += .001 * mx
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-        else:  # adjust end points after binning
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-            adj = (mx - mn) * 0.001  # 0.1% of the range
-            if right:
-                bins[0] -= adj
-            else:
-                bins[-1] += adj
-
-    else:
-        bins = np.asarray(bins)
-        if (np.diff(bins) < 0).any():
-            raise ValueError('bins must increase monotonically.')
+    bins = _generate_bins(x, bins, right=right)
 
     return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
                          include_lowest=include_lowest)

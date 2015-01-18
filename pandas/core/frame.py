@@ -4309,6 +4309,55 @@ class DataFrame(NDFrame):
         f = lambda s: s.mode()
         return data.apply(f, axis=axis)
 
+    def value_counts(self, axis=0, normalize=False, sort=True,
+                     ascending=False, bins=None, numeric_only=False):
+        """
+        Returns DataFrame containing counts of unique values. The resulting
+        DataFrame will be in descending order so that the first element is the
+        most frequently-occurring element among *all* columns. Excludes NA
+        values. Maintains order along axis (i.e., column/row)
+
+        Parameters
+        ----------
+        axis : {0, 1, 'index', 'columns'} (default 0)
+            0/'index' : get value_counts by column
+            1/'columns' : get value_counts by row
+        normalize: boolean, default False
+            If True then the Series returned will contain the relative
+            frequencies of the unique values.
+        sort : boolean, default True
+            Sort by sum of counts across columns (if False, DataFrame will be
+            sorted by union of all the unique values found)
+        ascending : boolean, default False
+            Sort in ascending order
+        bins : integer or sequence of scalars, optional
+            Rather than count values, group them into half-open bins, a
+            convenience for pd.cut, only works with numeric data. If integer,
+            then creates bins based upon overall max and overall min. If
+            passed, assumes numeric_only.
+        numeric_only : bool, default False
+            only apply to numeric columns.
+
+        Returns
+        -------
+        counts : DataFrame
+        """
+        data = self if not numeric_only else self._get_numeric_data()
+        from pandas.tools.tile import _generate_bins
+        if bins is not None and not com._is_sequence(bins):
+                max_val = self.max().max()
+                min_val = self.min().min()
+                bins = _generate_bins(bins=bins, min_val=min_val, max_val=max_val)
+
+        f = lambda s: s.value_counts(normalize=normalize, bins=bins)
+        res = data.apply(f, axis=axis)
+
+        if sort:
+            order = res.sum(1).order(ascending=ascending).index
+            res = res.reindex(order)
+
+        return res
+
     def quantile(self, q=0.5, axis=0, numeric_only=True):
         """
         Return values at the given quantile over requested axis, a la
