@@ -172,7 +172,7 @@ Bug Fixes
 
 
 
-
+- Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
 
 
 

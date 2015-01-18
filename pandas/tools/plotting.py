@@ -1451,7 +1451,10 @@ class ScatterPlot(MPLPlot):
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
-        self._add_legend_handle(scatter, label)
+        if label is not None:
+            self._add_legend_handle(scatter, label)
+        else:
+            self.legend = False
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
         errors_y = self._get_errorbars(label=y, index=0, xerr=False)
@@ -1511,6 +1514,9 @@ class HexBinPlot(MPLPlot):
         if cb:
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
+
+    def _make_legend(self):
+        pass
 
     def _post_plot_logic(self):
         ax = self.axes[0]
@@ -2227,6 +2233,9 @@ class BoxPlot(LinePlot):
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
+
+    def _make_legend(self):
+        pass
 
     def _post_plot_logic(self):
         pass
