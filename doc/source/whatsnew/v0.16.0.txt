@@ -99,6 +99,7 @@ Enhancements
 - Added time interval selection in get_data_yahoo (:issue:`9071`)
 - Added ``Series.str.slice_replace()``, which previously raised NotImplementedError (:issue:`8888`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
+- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
 
 
 Performance
