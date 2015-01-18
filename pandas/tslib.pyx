@@ -1722,10 +1722,11 @@ class Timedelta(_Timedelta):
             kwargs = dict([ (k, _to_py_int_float(v)) for k, v in iteritems(kwargs) ])
 
             try:
-                value = timedelta(**kwargs)
+                nano = kwargs.pop('nanoseconds',0)
+                value = convert_to_timedelta64(timedelta(**kwargs),'ns',False) + nano
             except TypeError as e:
                 raise ValueError("cannot construct a TimeDelta from the passed arguments, allowed keywords are "
-                                 "[days, seconds, microseconds, milliseconds, minutes, hours, weeks]")
+                                 "[weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds]")
 
         if isinstance(value, Timedelta):
             value = value.value
