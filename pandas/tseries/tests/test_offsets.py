@@ -25,7 +25,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas.io.pickle import read_pickle
-from pandas.tslib import NaT, Timestamp
+from pandas.tslib import NaT, Timestamp, Timedelta
 import pandas.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
@@ -2817,6 +2817,7 @@ def test_Easter():
     assertEq(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
     assertEq(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
+
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
     assertEq(Hour(-1), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
@@ -2904,6 +2905,10 @@ def test_Nanosecond():
     assert (Nano(3) + Nano(2)) == Nano(5)
     assert (Nano(3) - Nano(2)) == Nano()
 
+    # GH9284
+    assert Nano(1) + Nano(10) == Nano(11)
+    assert Nano(5) + Micro(1) == Nano(1005)
+    assert Micro(5) + Nano(1) == Nano(5001)
 
 def test_tick_offset():
     assert not Day().isAnchored()
@@ -2926,6 +2931,23 @@ def test_compare_ticks():
             assert(kls(4) > three)
             assert(kls(3) == kls(3))
             assert(kls(3) != kls(4))
+
+
+class TestTicks(tm.TestCase):
+
+    def test_ticks(self):
+        offsets = [(Hour, Timedelta(hours=5)),
+                   (Minute, Timedelta(hours=2, minutes=3)),
+                   (Second, Timedelta(hours=2, seconds=3)),
+                   (Milli, Timedelta(hours=2, milliseconds=3)),
+                   (Micro, Timedelta(hours=2, microseconds=3)),
+                   (Nano, Timedelta(hours=2, nanoseconds=3))]
+
+        for kls, expected in offsets:
+            offset = kls(3)
+            result = offset + Timedelta(hours=2)
+            self.assertTrue(isinstance(result, Timedelta))
+            self.assertEqual(result, expected)
 
 
 class TestOffsetNames(tm.TestCase):

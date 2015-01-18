@@ -152,6 +152,9 @@ Bug Fixes
 
 
 
+- Bug in adding ``offsets.Nano`` to other offets raises ``TypeError`` (:issue:`9284`)
+
+
 
 
 
