@@ -1249,6 +1249,7 @@ class CSVFormatter(object):
         self.blocks = self.obj._data.blocks
         ncols = sum(b.shape[0] for b in self.blocks)
         self.data = [None] * ncols
+        self.type_strings = [None] * ncols
 
         if chunksize is None:
             chunksize = (100000 // (len(self.cols) or 1)) or 1
@@ -1388,6 +1389,14 @@ class CSVFormatter(object):
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding
                 self.writer = com.UnicodeWriter(f, **writer_kwargs)
+
+            elif self.engine == 'fast':
+                self.index = False
+                if close:
+                    f.close()
+                self.writer = lib.FastWriter(self.path_or_buf)
+                close = False
+
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 
@@ -1399,7 +1408,6 @@ class CSVFormatter(object):
                                  index=self.index,
                                  index_label=self.index_label,
                                  date_format=self.date_format)
-
             else:
                 self._save()
 
@@ -1518,12 +1526,18 @@ class CSVFormatter(object):
             for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
+                self.type_strings[col_loc] = b.dtype.kind
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
                                         float_format=self.float_format,
                                         date_format=self.date_format)
 
-        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        if self.engine == 'fast':
+            lib.write_csv_rows_fast(self.data, ix, self.nlevels, self.cols,
+                                    self.writer, self.type_strings)
+        else:
+            lib.write_csv_rows(self.data, ix, self.nlevels, self.cols,
+                               self.writer)
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",

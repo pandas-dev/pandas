@@ -937,7 +937,6 @@ def write_csv_rows(list data, list data_index, int nlevels, list cols, object wr
 
     cdef int N, j, i, ncols
     cdef list rows
-    cdef object val
 
     # In crude testing, N>100 yields little marginal improvement
     N=100
@@ -976,6 +975,70 @@ def write_csv_rows(list data, list data_index, int nlevels, list cols, object wr
 
     if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
         writer.writerows(rows[:((j+1) % N)])
+
+
+from libc.stdio cimport fprintf, FILE, fopen, fclose, fflush
+cdef class FastWriter:
+
+    cdef FILE* _cfile
+
+    def __cinit__(self, filename):
+        filename_byte_string = filename.encode("UTF-8")
+        cdef char* fname = filename_byte_string
+
+        cdef FILE* _cfile
+        _cfile = fopen(fname, "a")
+        if _cfile == NULL:
+            return
+        self._cfile = _cfile
+
+    cpdef int writerow(self, list row):
+        cdef char* colname
+        for item in row[:-1]:
+            tmp = str(item)
+            colname = tmp
+            fprintf(self._cfile, "%s,", colname)
+        tmp = str(row[-1])
+        colname = tmp
+        fprintf(self._cfile, "%s", colname)
+        fprintf(self._cfile, '\n')
+
+    def __dealloc__(self):
+        fflush(self._cfile)
+        fclose(self._cfile)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def write_csv_rows_fast(list data, list data_index, int nlevels, list cols, 
+                        FastWriter writer, list type_strings):
+    cdef:
+        int N, j, i, ncols
+
+    ncols = len(cols)
+
+    j = -1
+
+    for j in range(len(data_index)):
+        for i in range(ncols-1):
+            tmp = data[i][j]
+            typestring = type_strings[i]
+            if typestring == 'f':
+                fprintf(writer._cfile, "%f,", <float>tmp)
+            elif typestring == 'i':
+                fprintf(writer._cfile, "%i,", <int>tmp)
+            elif typestring == 'O':
+                fprintf(writer._cfile, "%s,", <char*>tmp)
+        # last column wthout comma
+        tmp = data[i+1][j]
+        typestring = type_strings[i+1]
+        if typestring == 'f':
+            fprintf(writer._cfile, "%f", <float>tmp)
+        elif typestring == 'i':
+            fprintf(writer._cfile, "%i", <int>tmp)
+        elif typestring == 'O':
+            fprintf(writer._cfile, "%s", <char*>tmp)
+        fprintf(writer._cfile, "\n")
+
 
 #-------------------------------------------------------------------------------
 # Groupby-related functions
