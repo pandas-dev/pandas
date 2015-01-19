@@ -2906,6 +2906,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     fontsize : int or string
     rot : label rotation angle
     grid : Setting this to True will show the grid
+    ax : Matplotlib axis object, default None
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
