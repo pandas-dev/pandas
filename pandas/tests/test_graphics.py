@@ -28,6 +28,8 @@ from numpy.random import rand, randn
 from numpy.testing import assert_array_equal, assert_allclose
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
+import weakref
+import gc
 
 
 def _skip_if_mpl_14_or_dev_boxplot():
@@ -3390,6 +3392,33 @@ class TestDataFramePlots(TestPlotBase):
                              "y label is invisible but shouldn't")
 
 
+    def test_memory_leak(self):
+        """ Check that every plot type gets properly collected. """
+        import matplotlib.pyplot as plt
+        results = {}
+        for kind in plotting._plot_klass.keys():
+            args = {}
+            if kind in ['hexbin', 'scatter', 'pie']:
+                df = self.hexbin_df
+                args = {'x': 'A', 'y': 'B'}
+            elif kind == 'area':
+                df = self.tdf.abs()
+            else:
+                df = self.tdf
+
+            # Use a weakref so we can see if the object gets collected without
+            # also preventing it from being collected
+            results[kind] = weakref.proxy(df.plot(kind=kind, **args))
+
+        # have matplotlib delete all the figures
+        plt.close('all')
+        # force a garbage collection
+        gc.collect()
+        for key in results:
+            # check that every plot was collected
+            with tm.assertRaises(ReferenceError):
+                # need to actually access something to get an error
+                results[key].lines
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):

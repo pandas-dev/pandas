@@ -141,7 +141,6 @@ Bug Fixes
 
 
 
-
 - Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
 - Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
@@ -164,3 +163,4 @@ Bug Fixes
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+- Fixed memory leak in ``AreaPlot`` and ``LinePlot`` that prevented calls to ``plt.close()`` from having any effect. (:issue:`9003`)
