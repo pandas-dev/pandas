@@ -84,6 +84,10 @@ Backwards incompatible API changes
 - ``TimedeltaIndex.freqstr`` now output the same string format as ``DatetimeIndex``. (:issue:`9116`)
 
 
+- Bar and horizontal bar plots no longer add a dashed line along the info axis.
+The prior style can be achieved with matplotlib's `axhline` or `axvline`
+methods (:issue:`9088`).
+
 Deprecations
 ~~~~~~~~~~~~
 
