@@ -3297,6 +3297,34 @@ class TestGroupBy(tm.TestCase):
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
 
+    def test_groupby_datetime_categorical(self):
+        # GH9049: ensure backward compatibility
+        levels = pd.date_range('2014-01-01', periods=4)
+        codes = np.random.randint(0, 4, size=100)
+
+        cats = Categorical.from_codes(codes, levels, name='myfactor')
+
+        data = DataFrame(np.random.randn(100, 4))
+
+        result = data.groupby(cats).mean()
+
+        expected = data.groupby(np.asarray(cats)).mean()
+        expected = expected.reindex(levels)
+        expected.index.name = 'myfactor'
+
+        assert_frame_equal(result, expected)
+        self.assertEqual(result.index.name, cats.name)
+
+        grouped = data.groupby(cats)
+        desc_result = grouped.describe()
+
+        idx = cats.codes.argsort()
+        ord_labels = np.asarray(cats).take(idx)
+        ord_data = data.take(idx)
+        expected = ord_data.groupby(ord_labels, sort=False).describe()
+        expected.index.names = ['myfactor', None]
+        assert_frame_equal(desc_result, expected)
+
     def test_groupby_groups_datetimeindex(self):
         # #1430
         from pandas.tseries.api import DatetimeIndex
