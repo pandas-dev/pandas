@@ -683,6 +683,30 @@ class TestTimedeltas(tm.TestCase):
         actual = pd.to_timedelta(pd.NaT)
         self.assertEqual(actual.value, timedelta_NaT.astype('int64'))
 
+    def test_to_timedelta_on_nanoseconds(self):
+        # GH 9273
+        result = Timedelta(nanoseconds=100)
+        expected = Timedelta('100ns')
+        self.assertEqual(result, expected)
+
+        result = Timedelta(days=1,hours=1,minutes=1,weeks=1,seconds=1,milliseconds=1,microseconds=1,nanoseconds=1)
+        expected = Timedelta(694861001001001)
+        self.assertEqual(result, expected)
+
+        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
+        expected = Timedelta('1us1ns')
+        self.assertEqual(result, expected)
+
+        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
+        expected = Timedelta('999ns')
+        self.assertEqual(result, expected)
+
+        result = Timedelta(microseconds=1) + 5*Timedelta(nanoseconds=-2)
+        expected = Timedelta('990ns')
+        self.assertEqual(result, expected)
+
+        self.assertRaises(TypeError, lambda: Timedelta(nanoseconds='abc'))
+
     def test_timedelta_ops_with_missing_values(self):
         # setup
         s1 = pd.to_timedelta(Series(['00:00:01']))
