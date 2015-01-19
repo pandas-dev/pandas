@@ -338,9 +338,11 @@ class TestTimestamp(tm.TestCase):
 
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
-        self.assertTrue((ts_from_method - ts_from_string) < delta)
-        self.assertTrue((ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
+        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
+        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
+                            - ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_today(self):
 
@@ -353,10 +355,11 @@ class TestTimestamp(tm.TestCase):
 
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
-        self.assertTrue((ts_from_method - ts_from_string) < delta)
-        self.assertTrue((ts_datetime - ts_from_method) < delta)
-        self.assertTrue((ts_datetime - ts_from_method) < delta)
-        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
+        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
+        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
+                            - ts_from_method_tz.tz_localize(None)) < delta)
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
