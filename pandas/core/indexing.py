@@ -1166,7 +1166,25 @@ class _NDFrameIndexer(object):
 
 class _IXIndexer(_NDFrameIndexer):
 
-    """ A primarily location based indexer, with integer fallback """
+    """A primarily label-location based indexer, with integer position
+    fallback.
+
+    ``.ix[]`` supports mixed integer and label based access. It is
+    primarily label based, but will fall back to integer positional
+    access unless the corresponding axis is of integer type.
+
+    ``.ix`` is the most general indexer and will support any of the
+    inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating
+    point label schemes. ``.ix`` is exceptionally useful when dealing
+    with mixed positional and label based hierachical indexes.
+
+    However, when an axis is integer based, ONLY label based access
+    and not positional access is supported. Thus, in such cases, it's
+    usually better to be explicit and use ``.iloc`` or ``.loc``.
+
+    See more at :ref:`Advanced Indexing <advanced>`.
+
+    """
 
     def _has_valid_type(self, key, axis):
         if isinstance(key, slice):
@@ -1224,7 +1242,27 @@ class _LocationIndexer(_NDFrameIndexer):
 
 class _LocIndexer(_LocationIndexer):
 
-    """ purely label based location based indexing """
+    """Purely label-location based indexer for selection by label.
+
+    ``.loc[]`` is primarily label based, but may also be used with a
+    boolean array.
+
+    Allowed inputs are:
+
+    - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is
+      interpreted as a *label* of the index, and **never** as an
+      integer position along the index).
+    - A list or array of labels, e.g. ``['a', 'b', 'c']``.
+    - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
+      to usual python slices, **both** the start and the stop are included!).
+    - A boolean array.
+
+    ``.loc`` will raise a ``KeyError`` when the items are not found.
+
+    See more at :ref:`Selection by Label <indexing.label>`
+
+    """
+
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
                     "endpoints included! Can be slices of integers if the "
                     "index is integers), listlike of labels, boolean")
@@ -1340,7 +1378,27 @@ class _LocIndexer(_LocationIndexer):
 
 class _iLocIndexer(_LocationIndexer):
 
-    """ purely integer based location based indexing """
+    """Purely integer-location based indexing for selection by position.
+
+    ``.iloc[]`` is primarily integer position based (from ``0`` to
+    ``length-1`` of the axis), but may also be used with a boolean
+    array.
+
+    Allowed inputs are:
+
+    - An integer, e.g. ``5``.
+    - A list or array of integers, e.g. ``[4, 3, 0]``.
+    - A slice object with ints, e.g. ``1:7``.
+    - A boolean array.
+
+    ``.iloc`` will raise ``IndexError`` if a requested indexer is
+    out-of-bounds, except *slice* indexers which allow out-of-bounds
+    indexing (this conforms with python/numpy *slice* semantics).
+
+    See more at :ref:`Selection by Position <indexing.integer>`
+
+    """
+
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
                     "point is EXCLUDED), listlike of integers, boolean array")
     _exception = IndexError
@@ -1512,7 +1570,13 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
 class _AtIndexer(_ScalarAccessIndexer):
 
-    """ label based scalar accessor """
+    """Fast label-based scalar accessor
+
+    Similarly to ``loc``, ``at`` provides **label** based scalar lookups.
+    You can also set using these indexers.
+
+    """
+
     _takeable = False
 
     def _convert_key(self, key, is_setter=False):
@@ -1535,7 +1599,13 @@ class _AtIndexer(_ScalarAccessIndexer):
 
 class _iAtIndexer(_ScalarAccessIndexer):
 
-    """ integer based scalar accessor """
+    """Fast integer location scalar accessor.
+
+    Similarly to ``iloc``, ``iat`` provides **integer** based lookups.
+    You can also set using these indexers.
+
+    """
+
     _takeable = True
 
     def _has_valid_setitem_indexer(self, indexer):
