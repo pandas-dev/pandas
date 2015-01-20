@@ -248,7 +248,7 @@ Dependencies
 ------------
 
 * `NumPy <http://www.numpy.org>`__: 1.7.0 or higher
-* `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
+* `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
    * Needed for time zone support
 
