@@ -20,7 +20,7 @@ from pandas.compat import(
 )
 from pandas import compat
 
-from numpy import random, nan
+from numpy import random, nan, inf
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
@@ -5138,23 +5138,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_div(self):
 
-        # integer div, but deal with the 0's
+        # integer div, but deal with the 0's (GH 9144)
         p = DataFrame({ 'first' : [3,4,5,8], 'second' : [0,0,0,3] })
         result = p / p
 
-        ### this is technically wrong as the integer portion is coerced to float ###
-        expected = DataFrame({ 'first' : Series([1,1,1,1],dtype='float64'), 'second' : Series([np.inf,np.inf,np.inf,1]) })
+        expected = DataFrame({'first': Series([1.0, 1.0, 1.0, 1.0]),
+                              'second': Series([nan, nan, nan, 1])})
         assert_frame_equal(result,expected)
 
-        result2 = DataFrame(p.values.astype('float64')/p.values,index=p.index,columns=p.columns).fillna(np.inf)
+        result2 = DataFrame(p.values.astype('float') / p.values, index=p.index,
+                            columns=p.columns)
         assert_frame_equal(result2,expected)
 
         result = p / 0
-        expected = DataFrame(np.inf,index=p.index,columns=p.columns)
+        expected = DataFrame(inf, index=p.index, columns=p.columns)
+        expected.iloc[0:3, 1] = nan
         assert_frame_equal(result,expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values.astype('float64')/0,index=p.index,columns=p.columns).fillna(np.inf)
+        result2 = DataFrame(p.values.astype('float64') / 0, index=p.index,
+                            columns=p.columns)
         assert_frame_equal(result2,expected)
 
         p = DataFrame(np.random.randn(10, 5))
@@ -5604,7 +5607,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # broadcasting issue in GH7325
         df = DataFrame(np.arange(3*2).reshape((3,2)),dtype='int64')
-        expected = DataFrame([[np.inf,np.inf],[1.0,1.5],[1.0,1.25]])
+        expected = DataFrame([[nan, inf], [1.0, 1.5], [1.0, 1.25]])
         result = df.div(df[0],axis='index')
         assert_frame_equal(result,expected)
 
