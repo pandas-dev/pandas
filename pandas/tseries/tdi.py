@@ -370,7 +370,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
     @property
     def components(self):
         """
-        Return a dataframe of the components of the Timedeltas
+        Return a dataframe of the components (days, hours, minutes,
+        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
 
         Returns
         -------

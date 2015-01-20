@@ -498,10 +498,7 @@ Due to implementation details the methods show up here as methods of the
    :toctree: generated/
 
    TimedeltaProperties.days
-   TimedeltaProperties.hours
-   TimedeltaProperties.minutes
    TimedeltaProperties.seconds
-   TimedeltaProperties.milliseconds
    TimedeltaProperties.microseconds
    TimedeltaProperties.nanoseconds
    TimedeltaProperties.components
@@ -1358,10 +1355,7 @@ Components
    :toctree: generated/
 
    TimedeltaIndex.days
-   TimedeltaIndex.hours
-   TimedeltaIndex.minutes
    TimedeltaIndex.seconds
-   TimedeltaIndex.milliseconds
    TimedeltaIndex.microseconds
    TimedeltaIndex.nanoseconds
    TimedeltaIndex.components
