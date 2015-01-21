@@ -4098,7 +4098,7 @@ def get_empty_dtype_and_na(join_units):
         # Null blocks should not influence upcast class selection, unless there
         # are only null blocks, when same upcasting rules must be applied to
         # null upcast classes.
-        if unit.is_null:
+        if unit.is_null and unit.shape[1] == 0:
             null_upcast_classes.add(upcast_cls)
         else:
             upcast_classes.add(upcast_cls)
