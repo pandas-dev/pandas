@@ -56,7 +56,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 
 from suite import REPO_PATH
-VB_DIR = os.path.dirname(os.path.abspath(__file__))
+VB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_MIN_DURATION = 0.01
 HEAD_COL="head[ms]"
 BASE_COL="base[ms]"
@@ -505,7 +505,7 @@ def main():
 
     print("\n")
 
-    # move away from the pandas root dit, to avoid possible import
+    # move away from the pandas root dir, to avoid possible import
     # surprises
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
