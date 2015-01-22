@@ -559,3 +559,6 @@ for ngroups in ngroups_list:
     for func_name in no_arg_func_list:
         bmark = make_large_ngroups_bmark(ngroups, func_name)
         inject_bmark_into_globals(bmark)
+
+# avoid bmark to be collected as Benchmark object
+del bmark

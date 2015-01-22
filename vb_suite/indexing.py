@@ -15,9 +15,8 @@ ts = tm.makeTimeSeries()
 dt = ts.index[500]
 """
 statement = "ts[dt]"
-
 bm_getitem = Benchmark(statement, setup, ncalls=100000,
-                       name='series_getitem_scalar')
+                       name='time_series_getitem_scalar')
 
 setup = common_setup + """
 index = tm.makeStringIndex(1000)
@@ -25,9 +24,9 @@ s = Series(np.random.rand(1000), index=index)
 idx = index[100]
 """
 statement = "s.get_value(idx)"
-bm_df_getitem3 = Benchmark(statement, setup,
-                           name='series_get_value',
-                           start_date=datetime(2011, 11, 12))
+bm_get_value = Benchmark(statement, setup,
+                         name='series_get_value',
+                         start_date=datetime(2011, 11, 12))
 
 
 setup = common_setup + """
