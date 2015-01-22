@@ -3,6 +3,9 @@ from __future__ import print_function
 # don't introduce a pandas/pandas.compat import
 # or we get a bootstrapping problem
 from StringIO import StringIO
+import numpy as np
+
+_int64_max = np.iinfo(np.int64).max
 
 header = """
 cimport numpy as np
@@ -680,7 +683,7 @@ def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = resx[i, j]
 """
@@ -726,7 +729,7 @@ def group_last_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = resx[i, j]
 """
@@ -773,7 +776,7 @@ def group_nth_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = resx[i, j]
 """
@@ -819,7 +822,7 @@ def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = resx[i, j]
 """
@@ -1278,7 +1281,7 @@ def group_min_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
 
     minx = np.empty_like(out)
-    minx.fill(np.inf)
+    minx.fill(%(inf_val)s)
 
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
@@ -1319,7 +1322,7 @@ def group_min_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = minx[i, j]
 """
@@ -1344,7 +1347,7 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
 
     maxx = np.empty_like(out)
-    maxx.fill(-np.inf)
+    maxx.fill(-%(inf_val)s)
 
     N, K = (<object> values).shape
 
@@ -1381,7 +1384,7 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = maxx[i, j]
 """
@@ -1402,7 +1405,7 @@ def group_max_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     nobs = np.zeros_like(out)
     maxx = np.empty_like(out)
-    maxx.fill(-np.inf)
+    maxx.fill(-%(inf_val)s)
 
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
@@ -1443,7 +1446,7 @@ def group_max_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = maxx[i, j]
 """
@@ -1469,7 +1472,7 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
 
     minx = np.empty_like(out)
-    minx.fill(np.inf)
+    minx.fill(%(inf_val)s)
 
     N, K = (<object> values).shape
 
@@ -1506,7 +1509,7 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = %(nan_val)s
             else:
                 out[i, j] = minx[i, j]
 """
@@ -2286,6 +2289,70 @@ def generate_put_template(template, use_ints=True, use_floats=True,
         output.write(func)
     return output.getvalue()
 
+def generate_put_min_max_template(template, use_ints=True, use_floats=True,
+                                  use_objects=False, use_datelikes=False):
+    floats_list = [
+        ('float64', 'float64_t', 'nan', 'np.inf'),
+        ('float32', 'float32_t', 'nan', 'np.inf'),
+    ]
+    ints_list = [
+        ('int64', 'int64_t', 'iNaT', _int64_max),
+    ]
+    date_like_list = [
+        ('int64', 'int64_t', 'iNaT', _int64_max),
+    ]
+    object_list = [('object', 'object', 'nan', 'np.inf')]
+    function_list = []
+    if use_floats:
+        function_list.extend(floats_list)
+    if use_ints:
+        function_list.extend(ints_list)
+    if use_objects:
+        function_list.extend(object_list)
+    if use_datelikes:
+        function_list.extend(date_like_list)
+
+    output = StringIO()
+    for name, dest_type, nan_val, inf_val in function_list:
+        func = template % {'name': name,
+                           'dest_type2': dest_type,
+                           'nan_val': nan_val,
+                           'inf_val': inf_val}
+        output.write(func)
+    return output.getvalue()
+
+def generate_put_selection_template(template, use_ints=True, use_floats=True,
+                                    use_objects=False, use_datelikes=False):
+    floats_list = [
+        ('float64', 'float64_t', 'float64_t', 'nan'),
+        ('float32', 'float32_t', 'float32_t', 'nan'),
+    ]
+    ints_list = [
+        ('int64', 'int64_t', 'int64_t', 'iNaT'),
+    ]
+    date_like_list = [
+        ('int64', 'int64_t', 'int64_t', 'iNaT'),
+    ]
+    object_list = [('object', 'object', 'object', 'nan')]
+    function_list = []
+    if use_floats:
+        function_list.extend(floats_list)
+    if use_ints:
+        function_list.extend(ints_list)
+    if use_objects:
+        function_list.extend(object_list)
+    if use_datelikes:
+        function_list.extend(date_like_list)
+
+    output = StringIO()
+    for name, c_type, dest_type, nan_val in function_list:
+        func = template % {'name': name,
+                           'c_type': c_type,
+                           'dest_type2': dest_type,
+                           'nan_val': nan_val}
+        output.write(func)
+    return output.getvalue()
+
 def generate_take_template(template, exclude=None):
     # name, dest, ctypein, ctypeout, preval, postval, cancopy
     function_list = [
@@ -2347,11 +2414,8 @@ def generate_from_template(template, exclude=None):
     return output.getvalue()
 
 put_2d = [diff_2d_template]
-groupbys = [group_last_template,
-            group_last_bin_template,
-            group_nth_template,
-            group_nth_bin_template,
-            group_add_template,
+
+groupbys = [group_add_template,
             group_add_bin_template,
             group_prod_template,
             group_prod_bin_template,
@@ -2359,11 +2423,17 @@ groupbys = [group_last_template,
             group_var_bin_template,
             group_mean_template,
             group_mean_bin_template,
-            group_min_template,
-            group_min_bin_template,
-            group_max_template,
-            group_max_bin_template,
             group_ohlc_template]
+
+groupby_selection = [group_last_template,
+                     group_last_bin_template,
+                     group_nth_template,
+                     group_nth_bin_template]
+
+groupby_min_max = [group_min_template,
+                   group_min_bin_template,
+                   group_max_template,
+                   group_max_bin_template]
 
 groupby_count = [group_count_template, group_count_bin_template]
 
@@ -2407,9 +2477,18 @@ def generate_take_cython_file(path='generated.pyx'):
         for template in groupbys:
             print(generate_put_template(template, use_ints=False), file=f)
 
+        for template in groupby_selection:
+            print(generate_put_selection_template(template, use_ints=True),
+                  file=f)
+
+        for template in groupby_min_max:
+            print(generate_put_min_max_template(template, use_ints=True),
+                  file=f)
+
         for template in groupby_count:
-            print(generate_put_template(template, use_ints=False,
-                                        use_datelikes=True, use_objects=True),
+            print(generate_put_selection_template(template, use_ints=True,
+                                                  use_datelikes=True,
+                                                  use_objects=True),
                   file=f)
 
         # for template in templates_1d_datetime:

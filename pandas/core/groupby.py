@@ -24,7 +24,8 @@ import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype,
-                               is_categorical_dtype, _values_from_object)
+                               is_categorical_dtype, _values_from_object,
+                               _is_datetime_or_timedelta_dtype, is_bool_dtype)
 from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -1444,7 +1445,9 @@ class BaseGrouper(object):
                 f = getattr(_algos, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
-            return getattr(_algos, fname, None)
+
+            if dtype_str == 'float64':
+                return getattr(_algos, fname, None)
 
         ftype = self._cython_functions[how]
 
@@ -1471,7 +1474,6 @@ class BaseGrouper(object):
         return func, dtype_str
 
     def aggregate(self, values, how, axis=0):
-
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
@@ -1487,27 +1489,44 @@ class BaseGrouper(object):
                 raise NotImplementedError
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        if is_numeric_dtype(values.dtype):
-            values = com.ensure_float(values)
-            is_numeric = True
-            out_dtype = 'f%d' % values.dtype.itemsize
+        is_numeric = is_numeric_dtype(values.dtype)
+
+        if _is_datetime_or_timedelta_dtype(values.dtype):
+            values = values.view('int64')
+        elif is_bool_dtype(values.dtype):
+            values = _algos.ensure_float64(values)
+        elif com.is_integer_dtype(values):
+            values = values.astype('int64', copy=False)
+        elif is_numeric:
+            values = _algos.ensure_float64(values)
         else:
-            is_numeric = issubclass(values.dtype.type, (np.datetime64,
-                                                        np.timedelta64))
+            values = values.astype(object)
+
+        try:
+            agg_func, dtype_str = self._get_aggregate_function(how, values)
+        except NotImplementedError:
             if is_numeric:
-                out_dtype = 'float64'
-                values = values.view('int64')
+                values = _algos.ensure_float64(values)
+                agg_func, dtype_str = self._get_aggregate_function(how, values)
             else:
-                out_dtype = 'object'
-                values = values.astype(object)
+                raise
+
+        if is_numeric:
+            out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+        else:
+            out_dtype = 'object'
 
         # will be filled in Cython function
         result = np.empty(out_shape, dtype=out_dtype)
-
         result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        result = self._aggregate(result, counts, values, how, is_numeric)
+        result = self._aggregate(result, counts, values, agg_func, is_numeric)
+
+        if com.is_integer_dtype(result):
+            if len(result[result == tslib.iNaT]) > 0:
+                result = result.astype('float64')
+                result[result == tslib.iNaT] = np.nan
 
         if self._filter_empty_groups and not counts.all():
             if result.ndim == 2:
@@ -1535,9 +1554,7 @@ class BaseGrouper(object):
 
         return result, names
 
-    def _aggregate(self, result, counts, values, how, is_numeric):
-        agg_func, dtype = self._get_aggregate_function(how, values)
-
+    def _aggregate(self, result, counts, values, agg_func, is_numeric):
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
@@ -1796,9 +1813,7 @@ class BinGrouper(BaseGrouper):
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
     }
 
-    def _aggregate(self, result, counts, values, how, is_numeric=True):
-
-        agg_func, dtype = self._get_aggregate_function(how, values)
+    def _aggregate(self, result, counts, values, agg_func, is_numeric=True):
 
         if values.ndim > 3:
             # punting for now
@@ -2534,9 +2549,6 @@ class NDFrameGroupBy(GroupBy):
         for block in data.blocks:
 
             values = block._try_operate(block.values)
-
-            if block.is_numeric:
-                values = _algos.ensure_float64(values)
 
             result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
 
