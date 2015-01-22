@@ -774,12 +774,15 @@ class TestCategorical(tm.TestCase):
         exp = np.asarray(["a","b"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
+
         cat = Categorical(["a","b","a","a"], categories=["a","b","c"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
-        cat = Categorical(["a","b","a", np.nan], categories=["a","b","c"])
+
+        # unique should not sort
+        cat = Categorical(["b", "b", np.nan, "a"], categories=["a","b","c"])
         res = cat.unique()
-        exp = np.asarray(["a","b", np.nan], dtype=object)
+        exp = np.asarray(["b", np.nan, "a"], dtype=object)
         self.assert_numpy_array_equal(res, exp)
 
     def test_mode(self):
