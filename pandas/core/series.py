@@ -1336,15 +1336,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = com.diff(_values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
-    def autocorr(self):
+    def autocorr(self, lag=1):
         """
-        Lag-1 autocorrelation
+        Lag-N autocorrelation
+
+        Parameters
+        ----------
+        lag : int, default 1
+            Number of lags to apply before performing autocorrelation.
 
         Returns
         -------
         autocorr : float
         """
-        return self.corr(self.shift(1))
+        return self.corr(self.shift(lag))
 
     def dot(self, other):
         """
