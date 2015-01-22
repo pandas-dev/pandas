@@ -478,7 +478,7 @@ This function is often used along with discretization functions like ``cut``:
 
    get_dummies(cut(values, bins))
 
-See also :func:`Series.str.get_dummies <pandas.core.strings.StringMethods.get_dummies>`.
+See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
 .. versionadded:: 0.15.0
 
