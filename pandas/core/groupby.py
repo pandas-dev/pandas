@@ -997,16 +997,16 @@ class GroupBy(PandasObject):
         Examples
         --------
 
-        >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
+        >>> df = DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
                             columns=['A', 'B'])
-        >>> df.groupby('A', as_index=False).tail(1)
+        >>> df.groupby('A').tail(1)
            A  B
-        0  1  2
-        2  5  6
+        1  a  2
+        3  b  2
         >>> df.groupby('A').head(1)
            A  B
-        0  1  2
-        2  5  6
+        0  a  1
+        2  b  1
 
         """
         obj = self._selected_obj
