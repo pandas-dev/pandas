@@ -6304,7 +6304,30 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_autocorr(self):
         # Just run the function
-        self.ts.autocorr()
+        corr1 = self.ts.autocorr()
+        
+        # Now run it with the lag parameter
+        corr2 = self.ts.autocorr(lag=1)
+        
+        # corr() with lag needs Series of at least length 2
+        if len(self.ts) <= 2:
+            self.assertTrue(np.isnan(corr1))
+            self.assertTrue(np.isnan(corr2))
+        else:
+            self.assertEqual(corr1, corr2)
+        
+        # Choose a random lag between 1 and length of Series - 2
+        # and compare the result with the Series corr() function
+        n = 1 + np.random.randint(max(1, len(self.ts) - 2))
+        corr1 = self.ts.corr(self.ts.shift(n))
+        corr2 = self.ts.autocorr(lag=n)
+
+        # corr() with lag needs Series of at least length 2
+        if len(self.ts) <= 2:
+            self.assertTrue(np.isnan(corr1))
+            self.assertTrue(np.isnan(corr2))
+        else:
+            self.assertEqual(corr1, corr2)
 
     def test_first_last_valid(self):
         ts = self.ts.copy()
