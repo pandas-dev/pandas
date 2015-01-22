@@ -231,6 +231,15 @@ class CheckNameIntegration(object):
         expected = Series([time(0),time(0),np.nan,time(0),time(0)],dtype='object')
         tm.assert_series_equal(result, expected)
 
+    def test_dt_accessor_api(self):
+        # GH 9322
+        from pandas.tseries.common import (CombinedDatetimelikeProperties,
+                                           DatetimeProperties)
+        self.assertIs(Series.dt, CombinedDatetimelikeProperties)
+
+        s = Series(date_range('2000-01-01', periods=3))
+        self.assertIsInstance(s.dt, DatetimeProperties)
+
     def test_binop_maybe_preserve_name(self):
 
         # names match, preserve

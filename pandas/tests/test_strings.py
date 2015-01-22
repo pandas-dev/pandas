@@ -32,8 +32,9 @@ class TestStringMethods(tm.TestCase):
 
     def test_api(self):
 
-        # GH 6106
-        self.assertIsNone(Series.str)
+        # GH 6106, GH 9322
+        self.assertIs(Series.str, strings.StringMethods)
+        self.assertIsInstance(Series(['']).str, strings.StringMethods)
 
     def test_iter(self):
         # GH3638

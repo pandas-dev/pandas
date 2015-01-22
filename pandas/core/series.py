@@ -27,7 +27,10 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
 from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.strings import StringMethods
+from pandas.tseries.common import (maybe_to_datetimelike,
+                                   CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
@@ -2452,11 +2455,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_values = com.take_1d(values, locs)
         return self._constructor(new_values, index=where).__finalize__(self)
 
-    @cache_readonly
-    def str(self):
-        from pandas.core.strings import StringMethods
-        return StringMethods(self)
-
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period
@@ -2503,25 +2501,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                  index=new_index).__finalize__(self)
 
     #------------------------------------------------------------------------------
+    # string methods
+
+    def _make_str_accessor(self):
+        return StringMethods(self)
+
+    str = base.AccessorProperty(StringMethods, _make_str_accessor)
+
+    #------------------------------------------------------------------------------
     # Datetimelike delegation methods
 
-    @cache_readonly
-    def dt(self):
-        from pandas.tseries.common import maybe_to_datetimelike
+    def _make_dt_accessor(self):
         try:
             return maybe_to_datetimelike(self)
         except (Exception):
             raise TypeError("Can only use .dt accessor with datetimelike values")
 
+    dt = base.AccessorProperty(CombinedDatetimelikeProperties, _make_dt_accessor)
+
     #------------------------------------------------------------------------------
     # Categorical methods
 
-    @cache_readonly
-    def cat(self):
-        from pandas.core.categorical import CategoricalAccessor
+    def _make_cat_accessor(self):
         if not com.is_categorical_dtype(self.dtype):
             raise TypeError("Can only use .cat accessor with a 'category' dtype")
         return CategoricalAccessor(self.values, self.index)
+
+    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
