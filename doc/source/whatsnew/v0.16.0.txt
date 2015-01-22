@@ -88,6 +88,35 @@ Backwards incompatible API changes
 The prior style can be achieved with matplotlib's `axhline` or `axvline`
 methods (:issue:`9088`).
 
+
+- ``Series`` now supports bitwise operation for integral types (:issue:`9016`)
+
+  Previously even if the input dtypes where integral, the output dtype was coerced to bool.
+
+  .. code-block:: python
+    In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+    Out[2]:
+    a    True
+    b    True
+    c    True
+    d    True
+    dtype: bool
+
+  Now if the input dtypes are integral, the output dtype is also integral and the output
+  values are the result of the bitwise operation.
+
+  .. code-block:: python
+
+    In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+    Out[2]:
+    a    4
+    b    5
+    c    6
+    d    7
+    dtype: int64
+
+
+
 Deprecations
 ~~~~~~~~~~~~
 
