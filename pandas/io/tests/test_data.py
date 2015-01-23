@@ -126,6 +126,12 @@ class TestGoogle(tm.TestCase):
         assert np.issubdtype(data.High.dtype, np.number)
         assert np.issubdtype(data.Volume.dtype, np.number)
 
+    def test_unicode_date(self):
+        #GH8967
+        data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
+        self.assertEquals(data.index.name, 'Date')
+
+
 class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
