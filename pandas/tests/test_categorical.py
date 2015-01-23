@@ -2522,6 +2522,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertIs(Series.cat, CategoricalAccessor)
         s = Series(list('aabbcde')).astype('category')
         self.assertIsInstance(s.cat, CategoricalAccessor)
+        with tm.assertRaisesRegexp(TypeError, "only use .cat accessor"):
+            Series([1]).cat
 
     def test_pickle_v0_14_1(self):
         cat = pd.Categorical(values=['a', 'b', 'c'],

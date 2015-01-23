@@ -197,6 +197,7 @@ Bug Fixes
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
 - Bug in ``DataFrame.where`` and ``Series.where`` coerce numerics to string incorrectly (:issue:`9280`)
 - Bug in ``DataFrame.where`` and ``Series.where`` raise ``ValueError`` when string list-like is passed. (:issue:`9280`)
+- Accessing ``Series.str`` methods on with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
 
 - Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
 

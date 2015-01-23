@@ -2045,7 +2045,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         y : Series or DataFrame if func returns a Series
         """
         if len(self) == 0:
-            return Series()
+            return self._constructor(dtype=self.dtype,
+                                     index=self.index).__finalize__(self)
 
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
@@ -2504,6 +2505,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # string methods
 
     def _make_str_accessor(self):
+        if not com.is_object_dtype(self.dtype):
+            # this really should exclude all series with any non-string values,
+            # but that isn't practical for performance reasons until we have a
+            # str dtype (GH 9343)
+            raise TypeError("Can only use .str accessor with string values, "
+                            "which use np.object_ dtype in pandas")
         return StringMethods(self)
 
     str = base.AccessorProperty(StringMethods, _make_str_accessor)
