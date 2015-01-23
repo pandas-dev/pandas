@@ -226,6 +226,14 @@ Exponentially-weighted moving window functions
    ewmcorr
    ewmcov
 
+Visualization / Plotting
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   interact
+
 .. _api.series:
 
 Series
@@ -593,14 +601,15 @@ the Categorical back to a numpy array, so levels and order information is not pr
 
    Categorical.__array__
 
-Plotting
-~~~~~~~~
+Visualization / Plotting
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. currentmodule:: pandas
 
 .. autosummary::
    :toctree: generated/
 
    Series.hist
+   Series.interact
    Series.plot
 
 Serialization / IO / Conversion
@@ -860,13 +869,14 @@ Time series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
-Plotting
-~~~~~~~~
+Visualization / Plotting
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    DataFrame.boxplot
    DataFrame.hist
+   DataFrame.interact
    DataFrame.plot
 
 Serialization / IO / Conversion
@@ -1103,6 +1113,13 @@ Serialization / IO / Conversion
    Panel.to_sparse
    Panel.to_frame
    Panel.to_clipboard
+
+Visualization / Plotting
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.interact
 
 .. _api.panel4d:
 

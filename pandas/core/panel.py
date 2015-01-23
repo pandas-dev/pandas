@@ -603,6 +603,21 @@ class Panel(NDFrame):
     def tail(self, n=5):
         raise NotImplementedError
 
+    def interact(self, **kwargs):
+        """Visualize the contents of the Panel interatively
+
+        Parameters
+        ----------
+        See :func:`pandas.interact` for a list of keyword arguments to control
+        the display.
+
+        See Also
+        --------
+        pandas.interact
+        """
+        from pandas.tools.interact import interact
+        interact(self, **kwargs)
+
     def _needs_reindex_multi(self, axes, method, level):
         """ don't allow a multi reindex on Panel or above ndim """
         return False

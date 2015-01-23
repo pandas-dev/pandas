@@ -1543,6 +1543,21 @@ class DataFrame(NDFrame):
                             _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
+    def interact(self, **kwargs):
+        """Visualize the contents of the DataFrame interatively
+
+        Parameters
+        ----------
+        See :func:`pandas.interact` for a list of keyword arguments to control
+        the display.
+
+        See Also
+        --------
+        pandas.interact
+        """
+        from pandas.tools.interact import interact
+        interact(self, **kwargs)
+
     def memory_usage(self, index=False):
         """Memory usage of DataFrame columns.
 
