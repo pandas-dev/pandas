@@ -1891,21 +1891,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = pd.Series([1, 2, 3])
         w = s.where(s>1, 'X')
 
+        self.assertFalse(com.is_integer(w[0]))
+        self.assertTrue(com.is_integer(w[1]))
+        self.assertTrue(com.is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(isinstance(w[1], int))
-        self.assertTrue(isinstance(w[2], int))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s>1, ['X', 'Y', 'Z'])
+        self.assertFalse(com.is_integer(w[0]))
+        self.assertTrue(com.is_integer(w[1]))
+        self.assertTrue(com.is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(isinstance(w[1], int))
-        self.assertTrue(isinstance(w[2], int))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s>1, np.array(['X', 'Y', 'Z']))
+        self.assertFalse(com.is_integer(w[0]))
+        self.assertTrue(com.is_integer(w[1]))
+        self.assertTrue(com.is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(isinstance(w[1], int))
-        self.assertTrue(isinstance(w[2], int))
         self.assertTrue(w.dtype == 'object')
 
     def test_setitem_boolean(self):
