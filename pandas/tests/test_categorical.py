@@ -169,6 +169,20 @@ class TestCategorical(tm.TestCase):
             c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1,2], categories=[1,2,3])
 
+        # if the categorical is constructed without ordering, use the "order of appearance" in
+        # the categories instead of sorting the lexiographicaly.
+        # see https://github.com/mwaskom/seaborn/issues/361 for a discussion on this topic
+        c1 = Categorical(["a", "c", "b", "a"], ordered=False)
+        self.assert_numpy_array_equal(c1.categories, np.array(["a","c","b"]))
+        # mae sure that construction with (implicit) ordered=True sorts the categories
+        c2 = Categorical(["a", "c", "b", "a"])
+        self.assert_numpy_array_equal(c2.categories, np.array(["a","b","c"]))
+        c2 = Categorical(["a", "c", "b", "a"], ordered=True)
+        self.assert_numpy_array_equal(c2.categories, np.array(["a","b","c"]))
+        # ensure that the order in the categories is preserved when setting ordered=False
+        c2.ordered = False
+        self.assert_numpy_array_equal(c2.categories, np.array(["a","b","c"]))
+
     def test_constructor_with_generator(self):
         # This was raising an Error in isnull(single_val).any() because isnull returned a scalar
         # for a generator
