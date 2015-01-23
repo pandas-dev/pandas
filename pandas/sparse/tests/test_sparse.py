@@ -280,6 +280,11 @@ class TestSparseSeries(tm.TestCase,
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
         assert_equal(sp_series.values.values, arr)
+        
+    # GH 9272
+    def test_constructor_empty(self):
+        sp = SparseSeries()
+        self.assertEqual(len(sp.index), 0)
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
@@ -862,6 +867,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
             ValueError, "^Column length", SparseDataFrame, self.frame.values,
             columns=self.frame.columns[:-1])
 
+    # GH 9272 
     def test_constructor_empty(self):
         sp = SparseDataFrame()
         self.assertEqual(len(sp.index), 0)
@@ -1605,6 +1611,13 @@ class TestSparsePanel(tm.TestCase,
         with tm.assertRaisesRegexp(TypeError,
                                    "input must be a dict, a 'list' was passed"):
             SparsePanel(['a', 'b', 'c'])
+        
+    # GH 9272    
+    def test_constructor_empty(self):
+        sp = SparsePanel()
+        self.assertEqual(len(sp.items), 0)
+        self.assertEqual(len(sp.major_axis), 0)
+        self.assertEqual(len(sp.minor_axis), 0)
 
     def test_from_dict(self):
         fd = SparsePanel.from_dict(self.data_dict)
