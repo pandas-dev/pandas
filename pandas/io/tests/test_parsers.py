@@ -2984,6 +2984,28 @@ col1~~~~~col2  col3++++++++++++++++++col4
         tm.assert_frame_equal(expected, read_fwf(BytesIO(test.encode('utf8')),
                                                  header=None, encoding='utf8'))
 
+    def test_convert_to_nd_arrays(self):
+        #GH 9266
+        with open('test.txt','w') as f:
+            f.write(
+            """1421302964.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
+               1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""
+                )
+        try:
+            pd.read_fwf('test.txt', colspecs=[(0,17),(25,26),(33,37),(49,51),(58,62),(63,1000)],
+                      names=['time','pri','pgn','dst','src','data'],
+                      converters={'pgn':lambda x: int(x,16),
+                                  'src':lambda x: int(x,16),
+                                  'dst':lambda x: int(x,16),
+                                  'data':lambda x: len(x.split(' '))},
+                                   index_col='time')
+        except AttributeError:
+              self.assertIn('Error with read_fwf function.')
+
+            
+            
+            
+
 
 class TestCParserHighMemory(ParserTests, tm.TestCase):
 
