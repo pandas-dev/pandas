@@ -4,14 +4,19 @@ Easy integration of DataFrame into pyqt framework
 @author: Jev Kuznetsov
 '''
 try:
-    from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
-    from PyQt4.QtGui import (
+    from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
+    from PyQt5.QtWidgets import (
         QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
 except ImportError:
-    from PySide.QtCore import QAbstractTableModel, Qt, QModelIndex
-    from PySide.QtGui import (
-        QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
-    QVariant = lambda value=None: value
+    try:
+        from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
+        from PyQt4.QtGui import (
+            QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+    except ImportError:
+        from PySide.QtCore import QAbstractTableModel, Qt, QModelIndex
+        from PySide.QtGui import (
+            QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+        QVariant = lambda value=None: value
 
 from pandas import DataFrame, Index
 
@@ -48,7 +53,7 @@ class DataFrameModel(QAbstractTableModel):
                 return QVariant()
 
     def data(self, index, role=Qt.DisplayRole):
-        if role != Qt.DisplayRole:
+        if role not in (Qt.DisplayRole, Qt.EditRole):
             return QVariant()
 
         if not index.isValid():
@@ -82,25 +87,25 @@ class DataFrameModel(QAbstractTableModel):
         return self.df.shape[1]
 
 
-class DataFrameWidget(QWidget):
+class DataFrameWidget(QTableView):
     ''' a simple widget for using DataFrames in a gui '''
-    def __init__(self, dataFrame, parent=None):
-        super(DataFrameWidget, self).__init__(parent)
+    def __init__(self, parent=None, dataFrame=None):
+        super(DataFrameWidget, self).__init__(parent=parent)
 
         self.dataModel = DataFrameModel()
-        self.dataTable = QTableView()
-        self.dataTable.setModel(self.dataModel)
+        self.setModel(self.dataModel)
+        self.dataFrame = dataFrame
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.dataTable)
-        self.setLayout(layout)
-        # Set DataFrame
-        self.setDataFrame(dataFrame)
+    @property
+    def dataFrame(self):
+        return self.dataModel.df
 
-    def setDataFrame(self, dataFrame):
-        self.dataModel.setDataFrame(dataFrame)
-        self.dataModel.signalUpdate()
-        self.dataTable.resizeColumnsToContents()
+    @dataFrame.setter
+    def dataFrame(self, value):
+        if value is not self.dataFrame:
+            self.dataModel.setDataFrame(value)
+            self.dataModel.signalUpdate()
+            self.resizeColumnsToContents()
 
 #-----------------stand alone test code
 
