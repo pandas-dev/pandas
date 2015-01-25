@@ -535,12 +535,14 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.get
    Series.str.join
    Series.str.len
+   Series.str.ljust
    Series.str.lower
    Series.str.lstrip
    Series.str.match
    Series.str.pad
    Series.str.repeat
    Series.str.replace
+   Series.str.rjust
    Series.str.rstrip
    Series.str.slice
    Series.str.slice_replace

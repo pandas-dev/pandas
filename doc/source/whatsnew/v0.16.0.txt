@@ -110,6 +110,11 @@ Enhancements
 
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
 
+
+
+- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
+- ``StringMethods.pad()`` and ``center()`` now accept `fillchar` option to specify filling character (:issue:`9352`)
+
 Performance
 ~~~~~~~~~~~
 
