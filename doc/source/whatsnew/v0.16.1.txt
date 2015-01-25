@@ -11,6 +11,7 @@ Highlights include:
 
 - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
 - New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
+- Revised "Merge, join, and concatenate" documentation including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
 
 - New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enchancements.sample>`
 
