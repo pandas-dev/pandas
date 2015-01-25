@@ -32,8 +32,13 @@ class TestStringMethods(tm.TestCase):
 
     def test_api(self):
 
-        # GH 6106
-        self.assertIsNone(Series.str)
+        # GH 6106, GH 9322
+        self.assertIs(Series.str, strings.StringMethods)
+        self.assertIsInstance(Series(['']).str, strings.StringMethods)
+
+        # GH 9184
+        with tm.assertRaisesRegexp(TypeError, "only use .str accessor"):
+            Series([1]).str
 
     def test_iter(self):
         # GH3638
@@ -78,26 +83,6 @@ class TestStringMethods(tm.TestCase):
 
         self.assertFalse(i)
         assert_series_equal(ds, s)
-
-    def test_iter_numeric_try_string(self):
-        # behavior identical to empty series
-        dsi = Series(lrange(4))
-
-        i, s = 100, 'h'
-
-        for i, s in enumerate(dsi.str):
-            pass
-
-        self.assertEqual(i, 100)
-        self.assertEqual(s, 'h')
-
-        dsf = Series(np.arange(4.))
-
-        for i, s in enumerate(dsf.str):
-            pass
-
-        self.assertEqual(i, 100)
-        self.assertEqual(s, 'h')
 
     def test_iter_object_try_string(self):
         ds = Series([slice(None, randint(10), randint(10, 20))

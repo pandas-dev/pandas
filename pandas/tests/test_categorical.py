@@ -909,8 +909,8 @@ class TestCategorical(tm.TestCase):
         exp = np.array([1])
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
-       
-        # Searching for a value that is not present in the Categorical 
+
+        # Searching for a value that is not present in the Categorical
         res = c1.searchsorted(['bread', 'eggs'])
         chk = s1.searchsorted(['bread', 'eggs'])
         exp = np.array([1, 4])
@@ -927,7 +927,7 @@ class TestCategorical(tm.TestCase):
         # As above, but with a sorter array to reorder an unsorted array
         res = c2.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
         chk = s2.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
-        exp = np.array([3, 5])       # eggs after donuts, after switching milk and donuts 
+        exp = np.array([3, 5])       # eggs after donuts, after switching milk and donuts
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -2515,6 +2515,15 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = Series(list('aabbcde')).astype('category')
         results = get_dir(s)
         tm.assert_almost_equal(results,list(sorted(set(ok_for_cat))))
+
+    def test_cat_accessor_api(self):
+        # GH 9322
+        from pandas.core.categorical import CategoricalAccessor
+        self.assertIs(Series.cat, CategoricalAccessor)
+        s = Series(list('aabbcde')).astype('category')
+        self.assertIsInstance(s.cat, CategoricalAccessor)
+        with tm.assertRaisesRegexp(TypeError, "only use .cat accessor"):
+            Series([1]).cat
 
     def test_pickle_v0_14_1(self):
         cat = pd.Categorical(values=['a', 'b', 'c'],

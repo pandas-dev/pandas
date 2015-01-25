@@ -2,8 +2,6 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.common import isnull, _values_from_object
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
 import pandas.compat as compat
 import re
 import pandas.lib as lib
@@ -12,6 +10,8 @@ import textwrap
 
 
 def _get_array_list(arr, others):
+    from pandas.core.series import Series
+
     if len(others) and isinstance(_values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
@@ -95,6 +95,8 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
 
 
 def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+    from pandas.core.series import Series
+
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
@@ -459,6 +461,9 @@ def str_extract(arr, pat, flags=0):
     2    NaN   NaN
 
     """
+    from pandas.core.series import Series
+    from pandas.core.frame import DataFrame
+
     regex = re.compile(pat, flags=flags)
     # just to be safe, check this
     if regex.groups == 0:
@@ -510,6 +515,8 @@ def str_get_dummies(arr, sep='|'):
     See also ``pd.get_dummies``.
 
     """
+    from pandas.core.frame import DataFrame
+
     # TODO remove this hack?
     arr = arr.fillna('')
     try:
@@ -643,6 +650,9 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     -------
     split : array
     """
+    from pandas.core.series import Series
+    from pandas.core.frame import DataFrame
+
     if return_type not in ('series', 'frame'):
         raise ValueError("return_type must be {'series', 'frame'}")
     if pat is None:
@@ -949,6 +959,9 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result):
+        from pandas.core.series import Series
+        from pandas.core.frame import DataFrame
+
         if not hasattr(result, 'ndim'):
             return result
         elif result.ndim == 1:

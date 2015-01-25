@@ -231,6 +231,18 @@ class CheckNameIntegration(object):
         expected = Series([time(0),time(0),np.nan,time(0),time(0)],dtype='object')
         tm.assert_series_equal(result, expected)
 
+    def test_dt_accessor_api(self):
+        # GH 9322
+        from pandas.tseries.common import (CombinedDatetimelikeProperties,
+                                           DatetimeProperties)
+        self.assertIs(Series.dt, CombinedDatetimelikeProperties)
+
+        s = Series(date_range('2000-01-01', periods=3))
+        self.assertIsInstance(s.dt, DatetimeProperties)
+
+        with tm.assertRaisesRegexp(TypeError, "only use .dt accessor"):
+            Series([1]).dt
+
     def test_binop_maybe_preserve_name(self):
 
         # names match, preserve
@@ -5405,9 +5417,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         tm.assert_frame_equal(result, expected)
 
         # empty series
-        s = Series()
+        s = Series(dtype=object, name='foo', index=pd.Index([], name='bar'))
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
+        # check all metadata (GH 9322)
+        self.assertIsNot(s, rs)
+        self.assertIs(s.index, rs.index)
+        self.assertEqual(s.dtype, rs.dtype)
+        self.assertEqual(s.name, rs.name)
 
         # index but no data
         s = Series(index=[1, 2, 3])

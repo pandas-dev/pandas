@@ -297,6 +297,73 @@ ipython_exec_lines = [
     'pd.options.display.encoding="utf8"'
     ]
 
+
+# Add custom Documenter to handle attributes/methods of an AccessorProperty
+# eg pandas.Series.str and pandas.Series.dt (see GH9322)
+
+from sphinx.util import rpartition
+from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
+
+
+class AccessorLevelDocumenter(Documenter):
+    """
+    Specialized Documenter subclass for objects on accessor level (methods,
+    attributes).
+    """
+
+    # This is the simple straightforward version
+    # modname is None, base the last elements (eg 'hour')
+    # and path the part before (eg 'Series.dt')
+    # def resolve_name(self, modname, parents, path, base):
+    #     modname = 'pandas'
+    #     mod_cls = path.rstrip('.')
+    #     mod_cls = mod_cls.split('.')
+    #
+    #     return modname, mod_cls + [base]
+
+    def resolve_name(self, modname, parents, path, base):
+        if modname is None:
+            if path:
+                mod_cls = path.rstrip('.')
+            else:
+                mod_cls = None
+                # if documenting a class-level object without path,
+                # there must be a current class, either from a parent
+                # auto directive ...
+                mod_cls = self.env.temp_data.get('autodoc:class')
+                # ... or from a class directive
+                if mod_cls is None:
+                    mod_cls = self.env.temp_data.get('py:class')
+                # ... if still None, there's no way to know
+                if mod_cls is None:
+                    return None, []
+            # HACK: this is added in comparison to ClassLevelDocumenter
+            # mod_cls still exists of class.accessor, so an extra
+            # rpartition is needed
+            modname, accessor = rpartition(mod_cls, '.')
+            modname, cls = rpartition(modname, '.')
+            parents = [cls, accessor]
+            # if the module name is still missing, get it like above
+            if not modname:
+                modname = self.env.temp_data.get('autodoc:module')
+            if not modname:
+                modname = self.env.temp_data.get('py:module')
+            # ... else, it stays None, which means invalid
+        return modname, parents + [base]
+
+
+class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
+
+    objtype = 'accessorattribute'
+    directivetype = 'attribute'
+
+
+class AccessorMethodDocumenter(AccessorLevelDocumenter, MethodDocumenter):
+
+    objtype = 'accessormethod'
+    directivetype = 'method'
+
+
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
 def remove_flags_docstring(app, what, name, obj, options, lines):
@@ -305,3 +372,5 @@ def remove_flags_docstring(app, what, name, obj, options, lines):
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.add_autodocumenter(AccessorAttributeDocumenter)
+    app.add_autodocumenter(AccessorMethodDocumenter)
