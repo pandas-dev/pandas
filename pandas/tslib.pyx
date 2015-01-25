@@ -997,6 +997,8 @@ cdef class _NaT(_Timestamp):
 
 
 def _delta_to_nanoseconds(delta):
+    if hasattr(delta, 'nanos'):
+        return delta.nanos
     if hasattr(delta, 'delta'):
         delta = delta.delta
     if is_timedelta64_object(delta):

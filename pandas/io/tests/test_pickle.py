@@ -75,6 +75,7 @@ class TestPickle(tm.TestCase):
             if 'series' in data:
                 if 'ts' in data['series']:
                     self._validate_timeseries(data['series']['ts'], self.data['series']['ts'])
+                    self._validate_frequency(data['series']['ts'])
 
     def test_read_pickles_0_10_1(self):
         self.read_pickles('0.10.1')
@@ -147,6 +148,21 @@ class TestPickle(tm.TestCase):
         self.assertEqual(pickled.index.freq, current.index.freq)
         self.assertEqual(pickled.index.freq.normalize, False)
         self.assert_numpy_array_equal(pickled > 0, current > 0)
+
+    def _validate_frequency(self, pickled):
+        # GH 9291
+        from pandas.tseries.offsets import Day
+        freq = pickled.index.freq
+        result = freq + Day(1)
+        self.assertTrue(result, Day(2))
+
+        result = freq + pandas.Timedelta(hours=1)
+        self.assertTrue(isinstance(result, pandas.Timedelta))
+        self.assertEqual(result, pandas.Timedelta(days=1, hours=1))
+
+        result = freq + pandas.Timedelta(nanoseconds=1)
+        self.assertTrue(isinstance(result, pandas.Timedelta))
+        self.assertEqual(result, pandas.Timedelta(days=1, nanoseconds=1))
 
 
 if __name__ == '__main__':
