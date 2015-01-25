@@ -908,7 +908,7 @@ class SQLTable(PandasObject):
 
         col_type = self._get_notnull_col_dtype(col)
 
-        from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
+        from sqlalchemy.types import (BigInteger, Integer, Float, Text, Boolean,
             DateTime, Date, Time)
 
         if col_type == 'datetime64' or col_type == 'datetime':
@@ -923,10 +923,15 @@ class SQLTable(PandasObject):
                           "database.", UserWarning)
             return BigInteger
         elif col_type == 'floating':
-            return Float
+            if col.dtype == 'float32':
+                return Float(precision=23)
+            else:
+                return Float(precision=53)
         elif col_type == 'integer':
-            # TODO: Refine integer size.
-            return BigInteger
+            if col.dtype == 'int32':
+                return Integer
+            else:
+                return BigInteger
         elif col_type == 'boolean':
             return Boolean
         elif col_type == 'date':
@@ -1187,9 +1192,17 @@ class SQLDatabase(PandasSQL):
     def get_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
         if schema:
-            return self.meta.tables.get('.'.join([schema, table_name]))
+            tbl = self.meta.tables.get('.'.join([schema, table_name]))
         else:
-            return self.meta.tables.get(table_name)
+            tbl = self.meta.tables.get(table_name)
+
+        # Avoid casting double-precision floats into decimals
+        from sqlalchemy import Numeric
+        for column in tbl.columns:
+            if isinstance(column.type, Numeric):
+                column.type.asdecimal = False
+
+        return tbl
 
     def drop_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
@@ -1198,8 +1211,9 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None):
-        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys)
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys,
+                         dtype=dtype)
         return str(table.sql_schema())
 
 
@@ -1213,7 +1227,7 @@ _SQL_TYPES = {
         'sqlite': 'TEXT',
     },
     'floating': {
-        'mysql': 'FLOAT',
+        'mysql': 'DOUBLE',
         'sqlite': 'REAL',
     },
     'integer': {
@@ -1520,13 +1534,13 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
         table = SQLiteTable(table_name, self, frame=frame, index=False,
-                            keys=keys)
+                            keys=keys, dtype=dtype)
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
+def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1545,11 +1559,14 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
+    dtype : dict of column name to SQL type, default None
+        Optional specifying the datatype for columns. The SQL type should
+        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
 
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys)
+    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
 
 
 # legacy names, with depreciation warnings and copied docs
