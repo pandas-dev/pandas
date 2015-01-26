@@ -1607,6 +1607,16 @@ when plotting a large number of points.
 Trellis plotting interface
 --------------------------
 
+.. warning::
+
+    The ``rplot`` trellis plotting interface is deprecated and will be removed
+    in a future version. We refer to external packages like
+    `seaborn <https://github.com/mwaskom/seaborn>`_ for similar but more
+    refined functionality.
+
+    The docs below include some example on how to convert your existing code to
+    these packages.
+
 .. ipython:: python
    :suppress:
 
@@ -1622,7 +1632,6 @@ Trellis plotting interface
    iris_data = read_csv('data/iris.data')
    from pandas import read_csv
    from pandas.tools.plotting import radviz
-   import pandas.tools.rplot as rplot
    plt.close('all')
 
 
@@ -1641,6 +1650,7 @@ Trellis plotting interface
 We import the rplot API:
 
 .. ipython:: python
+   :okwarning:
 
    import pandas.tools.rplot as rplot
 

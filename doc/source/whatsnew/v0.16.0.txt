@@ -365,10 +365,25 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      In [4]: df.loc[2:3]
      TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
 
+
+.. _whatsnew_0160.deprecations:
+
 Deprecations
 ~~~~~~~~~~~~
 
-.. _whatsnew_0160.deprecations:
+- The ``rplot`` trellis plotting interface is deprecated and will be removed
+  in a future version. We refer to external packages like
+  `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_ for similar
+  but more refined functionality (:issue:`3445`).
+
+  The documentation includes some examples how to convert your existing code
+  using ``rplot`` to seaborn: - :ref:`rplot docs <rplot>`
+
+
+.. _whatsnew_0160.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - ``DataFrame.pivot_table`` and ``crosstab``'s ``rows`` and ``cols`` keyword arguments were removed in favor
   of ``index`` and ``columns`` (:issue:`6581`)
