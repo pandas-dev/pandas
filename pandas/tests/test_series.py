@@ -5954,7 +5954,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
         ts = pd.Series([1,2], index=idx)
         left = ts.unstack()
-        left.columns = left.columns.astype('float64')
         right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
                           columns=[nan, 3.5])
         assert_frame_equal(left, right)

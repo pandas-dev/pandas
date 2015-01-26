@@ -12328,6 +12328,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series({'float64' : 2, 'object' : 2})
         assert_series_equal(result, expected)
 
+        # GH7405
+        for c, d in (np.zeros(5), np.zeros(5)), \
+                    (np.arange(5, dtype='f8'), np.arange(5, 10, dtype='f8')):
+
+            df = DataFrame({'A': ['a']*5, 'C':c, 'D':d,
+                            'B':pd.date_range('2012-01-01', periods=5)})
+
+            right = df.iloc[:3].copy(deep=True)
+
+            df = df.set_index(['A', 'B'])
+            df['D'] = df['D'].astype('int64')
+
+            left = df.iloc[:3].unstack(0)
+            right = right.set_index(['A', 'B']).unstack(0)
+            right[('D', 'a')] = right[('D', 'a')].astype('int64')
+
+            self.assertEqual(left.shape, (3, 2))
+            tm.assert_frame_equal(left, right)
+
     def test_unstack_non_unique_index_names(self):
         idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
                                      names=['c1', 'c1'])
@@ -12384,6 +12403,93 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 self.assertEqual(udf.notnull().values.sum(), 2 * len(df))
                 for col in ['4th', '5th']:
                     verify(udf[col])
+
+        # GH7403
+        df = pd.DataFrame({'A': list('aaaabbbb'),'B':range(8), 'C':range(8)})
+        df.iloc[3, 1] = np.NaN
+        left = df.set_index(['A', 'B']).unstack(0)
+
+        vals = [[3, 0, 1, 2, nan, nan, nan, nan],
+                [nan, nan, nan, nan, 4, 5, 6, 7]]
+        vals = list(map(list, zip(*vals)))
+        idx = Index([nan, 0, 1, 2, 4, 5, 6, 7], name='B')
+        cols = MultiIndex(levels=[['C'], ['a', 'b']],
+                          labels=[[0, 0], [0, 1]],
+                          names=[None, 'A'])
+
+        right = DataFrame(vals, columns=cols, index=idx)
+        assert_frame_equal(left, right)
+
+        df = DataFrame({'A': list('aaaabbbb'), 'B':list(range(4))*2,
+                        'C':range(8)})
+        df.iloc[2,1] = np.NaN
+        left = df.set_index(['A', 'B']).unstack(0)
+
+        vals = [[2, nan], [0, 4], [1, 5], [nan, 6], [3, 7]]
+        cols = MultiIndex(levels=[['C'], ['a', 'b']],
+                          labels=[[0, 0], [0, 1]],
+                          names=[None, 'A'])
+        idx = Index([nan, 0, 1, 2, 3], name='B')
+        right = DataFrame(vals, columns=cols, index=idx)
+        assert_frame_equal(left, right)
+
+        df = pd.DataFrame({'A': list('aaaabbbb'),'B':list(range(4))*2,
+                           'C':range(8)})
+        df.iloc[3,1] = np.NaN
+        left = df.set_index(['A', 'B']).unstack(0)
+
+        vals = [[3, nan], [0, 4], [1, 5], [2, 6], [nan, 7]]
+        cols = MultiIndex(levels=[['C'], ['a', 'b']],
+                          labels=[[0, 0], [0, 1]],
+                          names=[None, 'A'])
+        idx = Index([nan, 0, 1, 2, 3], name='B')
+        right = DataFrame(vals, columns=cols, index=idx)
+        assert_frame_equal(left, right)
+
+        # GH7401
+        df = pd.DataFrame({'A': list('aaaaabbbbb'), 'C':np.arange(10),
+            'B':date_range('2012-01-01', periods=5).tolist()*2 })
+
+        df.iloc[3,1] = np.NaN
+        left = df.set_index(['A', 'B']).unstack()
+
+        vals = np.array([[3, 0, 1, 2, nan, 4], [nan, 5, 6, 7, 8, 9]])
+        idx = Index(['a', 'b'], name='A')
+        cols = MultiIndex(levels=[['C'], date_range('2012-01-01', periods=5)],
+                          labels=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+                          names=[None, 'B'])
+
+        right = DataFrame(vals, columns=cols, index=idx)
+        assert_frame_equal(left, right)
+
+        # GH4862
+        vals = [['Hg', nan, nan, 680585148],
+                ['U', 0.0, nan, 680585148],
+                ['Pb', 7.07e-06, nan, 680585148],
+                ['Sn', 2.3614e-05, 0.0133, 680607017],
+                ['Ag', 0.0, 0.0133, 680607017],
+                ['Hg', -0.00015, 0.0133, 680607017]]
+        df = DataFrame(vals, columns=['agent', 'change', 'dosage', 's_id'],
+                index=[17263, 17264, 17265, 17266, 17267, 17268])
+
+        left = df.copy().set_index(['s_id','dosage','agent']).unstack()
+
+        vals = [[nan, nan, 7.07e-06, nan, 0.0],
+                [0.0, -0.00015, nan, 2.3614e-05, nan]]
+
+        idx = MultiIndex(levels=[[680585148, 680607017], [0.0133]],
+                         labels=[[0, 1], [-1, 0]],
+                         names=['s_id', 'dosage'])
+
+        cols = MultiIndex(levels=[['change'], ['Ag', 'Hg', 'Pb', 'Sn', 'U']],
+                          labels=[[0, 0, 0, 0, 0], [0, 1, 2, 3, 4]],
+                          names=[None, 'agent'])
+
+        right = DataFrame(vals, columns=cols, index=idx)
+        assert_frame_equal(left, right)
+
+        left = df.ix[17264:].copy().set_index(['s_id','dosage','agent'])
+        assert_frame_equal(left.unstack(), right)
 
     def test_stack_datetime_column_multiIndex(self):
         # GH 8039
