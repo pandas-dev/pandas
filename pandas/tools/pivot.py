@@ -41,7 +41,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     margins : boolean, default False
         Add all row / columns (e.g. for subtotal / grand totals)
     display_value : string, default 'normal'
-        Type of display. Among 'normal', 'col_ratio', 'row_ratio' 
+        Type of display. Among 'normal', 'col_ratio', 'row_ratio', 'total_ratio'
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
     rows : kwarg only alias of index [deprecated]
@@ -154,6 +154,13 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if len(index) == 0 and len(columns) > 0:
         table = table.T
+
+    if display_value == "col_ratio":
+        table = table.div(table.sum(axis=0), axis=1)
+    elif display_value == "row_ratio":
+        table = table.div(table.sum(axis=1), axis=0)
+    elif display_value == "total_ratio":
+        table = table.div(table.sum().sum())
 
     return table
 
