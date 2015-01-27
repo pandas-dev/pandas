@@ -2263,6 +2263,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_repeat(self):
         # GH 9361
+        # fixed by # GH 7891
         m_idx = pd.MultiIndex.from_tuples([(1, 2), (3, 4),
                                            (5, 6), (7, 8)])
         data = ['a', 'b', 'c', 'd']
