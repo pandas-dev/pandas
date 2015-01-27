@@ -134,8 +134,6 @@ Bug Fixes
 - Bug in the returned ``Series.dt.components`` index was reset to the default index (:issue:`9247`)
 
 
-
-
 - Fixed bug in ``to_sql`` when mapping a Timestamp object column (datetime
   column with timezone info) to the according sqlalchemy type (:issue:`9085`).
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
@@ -210,3 +208,6 @@ Bug Fixes
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
 - Bug in to_sql not storing float64 values using double precision. (:issue:`9009`)
+
+
+- Bug in read_csv.  Buffer overflows with certain malformed input files (:issue:`9205`)
