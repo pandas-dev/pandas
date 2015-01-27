@@ -216,8 +216,6 @@ typedef struct parser_t {
 } parser_t;
 
 
-
-
 typedef struct coliter_t {
     char **words;
     int *line_start;
@@ -260,18 +258,18 @@ int tokenize_all_rows(parser_t *self);
   token stream
 
  */
-int clear_parsed_lines(parser_t *self, size_t nlines);
+//int clear_parsed_lines(parser_t *self, size_t nlines);
 
 int64_t str_to_int64(const char *p_item, int64_t int_min,
                      int64_t int_max, int *error, char tsep);
-uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
+//uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
 
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
-int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
+//int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
 int P_INLINE to_longlong(char *item, long long *p_value);
-int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep);
-int P_INLINE to_boolean(char *item, uint8_t *val);
+//int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep);
+int to_boolean(char *item, uint8_t *val);
 
 #endif // _PARSER_COMMON_H_

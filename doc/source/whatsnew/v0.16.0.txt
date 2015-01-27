@@ -157,8 +157,6 @@ Bug Fixes
 - Bug in the returned ``Series.dt.components`` index was reset to the default index (:issue:`9247`)
 
 
-
-
 - Fixed bug in ``to_sql`` when mapping a Timestamp object column (datetime
   column with timezone info) to the according sqlalchemy type (:issue:`9085`).
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
@@ -237,3 +235,5 @@ Bug Fixes
 
 
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
+
+- Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
