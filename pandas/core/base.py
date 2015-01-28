@@ -440,9 +440,10 @@ class IndexOpsMixin(object):
         -------
         nunique : int
         """
+        result = self.unique()
         if dropna:
-            return len(set(self.unique()) - {None})
-        return len(self.unique())
+            return len(result) - np.isnan(np.sum(result))
+        return len(result)
 
     def factorize(self, sort=False, na_sentinel=-1):
         """
