@@ -1271,14 +1271,23 @@ def _possibly_downcast_to_dtype(result, dtype):
         dtype = np.dtype(dtype)
 
     try:
-
         # don't allow upcasts here (except if empty)
+        print dtype.kind, result.dtype.kind
         if dtype.kind == result.dtype.kind:
             if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
                 return result
 
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
+
+        # a datetimelike
+        elif ((dtype.kind == 'M' and result.dtype.kind == 'i') or
+              dtype.kind == 'm'):
+            try:
+                result = result.astype(dtype)
+            except:
+                pass
+
         elif dtype == np.bool_ or issubclass(dtype.type, np.integer):
 
             # if we don't have any elements, just astype it
@@ -1308,13 +1317,6 @@ def _possibly_downcast_to_dtype(result, dtype):
                     # hit here
                     if (new_result == result).all():
                         return new_result
-
-        # a datetimelike
-        elif dtype.kind in ['M','m'] and result.dtype.kind in ['i']:
-            try:
-                result = result.astype(dtype)
-            except:
-                pass
 
     except:
         pass

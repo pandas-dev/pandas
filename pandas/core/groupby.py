@@ -1083,12 +1083,24 @@ class GroupBy(PandasObject):
     def _cython_agg_general(self, how, numeric_only=True):
         output = {}
         for name, obj in self._iterate_slices():
-            is_numeric = is_numeric_dtype(obj.dtype)
+            if is_numeric_dtype(obj.dtype):
+                obj = com.ensure_float(obj)
+                is_numeric = True
+                out_dtype = 'f%d' % obj.dtype.itemsize
+                values = obj.values
+            else:
+                is_numeric = issubclass(obj.dtype.type, (np.datetime64,
+                                                         np.timedelta64))
+                if is_numeric:
+                    values = obj.view('int64')
+                else:
+                    values = obj.astype(object)
+
             if numeric_only and not is_numeric:
                 continue
 
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -2567,9 +2579,9 @@ class NDFrameGroupBy(GroupBy):
             data = data.get_numeric_data(copy=False)
 
         for block in data.blocks:
-
             values = block._try_operate(block.values)
 
+            # TODO DAN
             if block.is_numeric:
                 values = _algos.ensure_float64(values)
 

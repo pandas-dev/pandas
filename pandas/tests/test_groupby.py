@@ -41,6 +41,7 @@ def _skip_if_mpl_not_installed():
     except ImportError:
         raise nose.SkipTest("matplotlib not installed")
 
+
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
     self.stringIndex = Index([rands(8).upper() for x in range(250)])
@@ -602,6 +603,28 @@ class TestGroupBy(tm.TestCase):
         e.loc['Pony'] = np.nan
         e.name = None
         assert_series_equal(result,e)
+
+        # ...and with timedeltas
+        df1 = df.copy()
+        df1['D'] = pd.to_timedelta(['00:00:01', '00:00:02', '00:00:03',
+                                    '00:00:04', '00:00:05', '00:00:06',
+                                    '00:00:07'])
+        result = df1.groupby('A').apply(f)[['D']]
+        e = df1.groupby('A').first()[['D']]
+        e.loc['Pony'] = np.nan
+        print(type(result))
+        print(type(e))
+        assert_frame_equal(result, e)
+
+        def f(grp):
+            if grp.name == 'Pony':
+                return None
+            return grp.iloc[0].loc['D']
+        result = df1.groupby('A').apply(f)['D']
+        e = df1.groupby('A').first()['D'].copy()
+        e.loc['Pony'] = np.nan
+        e.name = None
+        assert_series_equal(result, e)
 
     def test_agg_api(self):
 
@@ -4363,6 +4386,19 @@ class TestGroupBy(tm.TestCase):
         g = ser.groupby(list('ababb'))
         actual = g.filter(lambda x: len(x) > 2)
         expected = ser.take([1, 3, 4])
+        assert_series_equal(actual, expected)
+
+    def test_groupby_methods_on_timedelta64(self):
+        df = self.df.copy().iloc[:4]
+        df['E'] = pd.to_timedelta(['00:00:01', '00:00:02', '00:00:03', '00:00:04'])
+        # DataFrameGroupBy
+        actual = df.groupby('A').mean()['E']
+        expected = pd.to_timedelta(Series(['00:00:03', '00:00:02'], index=['bar', 'foo'], name='E'))
+        assert_series_equal(actual, expected)
+
+        ser = df['E']
+        # SeriesGroupBy
+        actual = ser.groupby(df['A']).mean()
         assert_series_equal(actual, expected)
 
     def test_groupby_selection_with_methods(self):
