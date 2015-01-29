@@ -212,7 +212,9 @@ Method Summary
     :meth:`~Series.str.replace`,Replace occurrences of pattern/regex with some other string
     :meth:`~Series.str.repeat`,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
     :meth:`~Series.str.pad`,"Add whitespace to left, right, or both sides of strings"
-    :meth:`~Series.str.center`,Equivalent to ``pad(side='both')``
+    :meth:`~Series.str.center`,Equivalent to ``str.center``
+    :meth:`~Series.str.ljust`,Equivalent to ``str.ljust``
+    :meth:`~Series.str.rjust`,Equivalent to ``str.rjust``
     :meth:`~Series.str.wrap`,Split long strings into lines with length less than a given width
     :meth:`~Series.str.slice`,Slice each string in the Series
     :meth:`~Series.str.slice_replace`,Replace slice in each string with passed value

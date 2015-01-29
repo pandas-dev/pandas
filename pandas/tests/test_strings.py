@@ -805,11 +805,41 @@ class TestStringMethods(tm.TestCase):
                       u('eeeeee')])
         tm.assert_almost_equal(result, exp)
 
-    def test_center(self):
+    def test_pad_fillchar(self):
+
+        values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
+
+        result = values.str.pad(5, side='left', fillchar='X')
+        exp = Series(['XXXXa', 'XXXXb', NA, 'XXXXc', NA, 'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.pad(5, side='right', fillchar='X')
+        exp = Series(['aXXXX', 'bXXXX', NA, 'cXXXX', NA, 'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.pad(5, side='both', fillchar='X')
+        exp = Series(['XXaXX', 'XXbXX', NA, 'XXcXX', NA, 'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not str"):
+            result = values.str.pad(5, fillchar='XY')
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
+            result = values.str.pad(5, fillchar=5)
+
+    def test_center_ljust_rjust(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
 
         result = values.str.center(5)
         exp = Series(['  a  ', '  b  ', NA, '  c  ', NA, 'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.ljust(5)
+        exp = Series(['a    ', 'b    ', NA, 'c    ', NA, 'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.rjust(5)
+        exp = Series(['    a', '    b', NA, '    c', NA, 'eeeeee'])
         tm.assert_almost_equal(result, exp)
 
         # mixed
@@ -819,7 +849,18 @@ class TestStringMethods(tm.TestCase):
         rs = Series(mixed).str.center(5)
         xp = Series(['  a  ', NA, '  b  ', NA, NA, '  c  ', ' eee ', NA, NA,
                      NA])
+        tm.assert_isinstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
 
+        rs = Series(mixed).str.ljust(5)
+        xp = Series(['a    ', NA, 'b    ', NA, NA, 'c    ', 'eee  ', NA, NA,
+                     NA])
+        tm.assert_isinstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
+
+        rs = Series(mixed).str.rjust(5)
+        xp = Series(['    a', NA, '    b', NA, NA, '    c', '  eee', NA, NA,
+                     NA])
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
@@ -831,6 +872,58 @@ class TestStringMethods(tm.TestCase):
         exp = Series([u('  a  '), u('  b  '), NA, u('  c  '), NA,
                       u('eeeeee')])
         tm.assert_almost_equal(result, exp)
+
+        result = values.str.ljust(5)
+        exp = Series([u('a    '), u('b    '), NA, u('c    '), NA,
+                      u('eeeeee')])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.rjust(5)
+        exp = Series([u('    a'), u('    b'), NA, u('    c'), NA,
+                      u('eeeeee')])
+        tm.assert_almost_equal(result, exp)
+
+    def test_center_ljust_rjust_fillchar(self):
+        values = Series(['a', 'bb', 'cccc', 'ddddd', 'eeeeee'])
+
+        result = values.str.center(5, fillchar='X')
+        expected = Series(['XXaXX', 'XXbbX', 'Xcccc', 'ddddd', 'eeeeee'])
+        tm.assert_series_equal(result, expected)
+        expected = np.array([v.center(5, 'X') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.ljust(5, fillchar='X')
+        expected = Series(['aXXXX', 'bbXXX', 'ccccX', 'ddddd', 'eeeeee'])
+        tm.assert_series_equal(result, expected)
+        expected = np.array([v.ljust(5, 'X') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rjust(5, fillchar='X')
+        expected = Series(['XXXXa', 'XXXbb', 'Xcccc', 'ddddd', 'eeeeee'])
+        tm.assert_series_equal(result, expected)
+        expected = np.array([v.rjust(5, 'X') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        # If fillchar is not a charatter, normal str raises TypeError
+        # 'aaa'.ljust(5, 'XY')
+        # TypeError: must be char, not str
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not str"):
+            result = values.str.center(5, fillchar='XY')
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not str"):
+            result = values.str.ljust(5, fillchar='XY')
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not str"):
+            result = values.str.rjust(5, fillchar='XY')
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
+            result = values.str.center(5, fillchar=1)
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
+            result = values.str.ljust(5, fillchar=1)
+
+        with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
+            result = values.str.rjust(5, fillchar=1)
 
     def test_split(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])

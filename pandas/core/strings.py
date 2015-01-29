@@ -3,6 +3,7 @@ import numpy as np
 from pandas.compat import zip
 from pandas.core.common import isnull, _values_from_object
 import pandas.compat as compat
+from pandas.util.decorators import Appender
 import re
 import pandas.lib as lib
 import warnings
@@ -543,9 +544,9 @@ def str_findall(arr, pat, flags=0):
     return _na_map(regex.findall, arr)
 
 
-def str_pad(arr, width, side='left'):
+def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings with whitespace
+    Pad strings with an additional character
 
     Parameters
     ----------
@@ -554,38 +555,31 @@ def str_pad(arr, width, side='left'):
         Minimum width of resulting string; additional characters will be filled
         with spaces
     side : {'left', 'right', 'both'}, default 'left'
+    fillchar : str
+        Additional character for filling, default is whitespace
 
     Returns
     -------
     padded : array
     """
+
+    if not isinstance(fillchar, compat.string_types):
+        msg = 'fillchar must be a character, not {0}'
+        raise TypeError(msg.format(type(fillchar).__name__))
+
+    if len(fillchar) != 1:
+        raise TypeError('fillchar must be a character, not str')
+
     if side == 'left':
-        f = lambda x: x.rjust(width)
+        f = lambda x: x.rjust(width, fillchar)
     elif side == 'right':
-        f = lambda x: x.ljust(width)
+        f = lambda x: x.ljust(width, fillchar)
     elif side == 'both':
-        f = lambda x: x.center(width)
+        f = lambda x: x.center(width, fillchar)
     else:  # pragma: no cover
         raise ValueError('Invalid side')
 
     return _na_map(f, arr)
-
-
-def str_center(arr, width):
-    """
-    "Center" strings, filling left and right side with additional whitespace
-
-    Parameters
-    ----------
-    width : int
-        Minimum width of resulting string; additional characters will be filled
-        with spaces
-
-    Returns
-    -------
-    centered : array
-    """
-    return str_pad(arr, width, side='both')
 
 
 def str_split(arr, pat=None, n=None, return_type='series'):
@@ -978,14 +972,37 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_pad)
-    def pad(self, width, side='left'):
-        result = str_pad(self.series, width, side=side)
+    def pad(self, width, side='left', fillchar=' '):
+        result = str_pad(self.series, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    @copy(str_center)
-    def center(self, width):
-        result = str_center(self.series, width)
-        return self._wrap_result(result)
+    _shared_docs['str_pad'] = ("""
+    "Center" strings, filling %s side with an additional character
+
+    Parameters
+    ----------
+    width : int
+        Minimum width of resulting string; additional characters will be filled
+        with ``fillchar``
+    fillchar : str
+        Additional character for filling, default is whitespace
+
+    Returns
+    -------
+    centered : array
+    """)
+
+    @Appender(_shared_docs['str_pad'] % 'left and right')
+    def center(self, width, fillchar=' '):
+        return self.pad(width, side='both', fillchar=fillchar)
+
+    @Appender(_shared_docs['str_pad'] % 'right')
+    def ljust(self, width, fillchar=' '):
+        return self.pad(width, side='right', fillchar=fillchar)
+
+    @Appender(_shared_docs['str_pad'] % 'left')
+    def rjust(self, width, fillchar=' '):
+        return self.pad(width, side='left', fillchar=fillchar)
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):

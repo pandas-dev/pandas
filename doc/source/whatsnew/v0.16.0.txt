@@ -111,6 +111,11 @@ Enhancements
 - Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
 ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
 
+
+
+- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
+- ``StringMethods.pad()`` and ``center()`` now accept `fillchar` option to specify filling character (:issue:`9352`)
+
 Performance
 ~~~~~~~~~~~
 
