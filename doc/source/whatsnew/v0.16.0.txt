@@ -104,11 +104,12 @@ Enhancements
 - Added ``Series.str.slice_replace()``, which previously raised NotImplementedError (:issue:`8888`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
 - ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
-
 - ``Timedelta`` will now accept nanoseconds keyword in constructor (:issue:`9273`)
 - SQL code now safely escapes table and column names (:issue:`8986`)
 
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
+- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
+``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
 
 Performance
 ~~~~~~~~~~~

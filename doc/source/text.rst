@@ -228,3 +228,10 @@ Method Summary
     :meth:`~Series.str.lstrip`,Equivalent to ``str.lstrip``
     :meth:`~Series.str.lower`,Equivalent to ``str.lower``
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
+    :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
+    :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
+    :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``
+    :meth:`~Series.str.isspace`,Equivalent to ``str.isspace``
+    :meth:`~Series.str.islower`,Equivalent to ``str.islower``
+    :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
+    :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``

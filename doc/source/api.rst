@@ -549,6 +549,13 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.strip
    Series.str.title
    Series.str.upper
+   Series.str.isalnum
+   Series.str.isalpha
+   Series.str.isdigit
+   Series.str.isspace
+   Series.str.islower
+   Series.str.isupper
+   Series.str.istitle
    Series.str.get_dummies
 
 .. _api.categorical:
