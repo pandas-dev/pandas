@@ -1367,30 +1367,16 @@ class BaseGrouper(object):
 
     def _get_compressed_labels(self):
         all_labels = [ping.labels for ping in self.groupings]
-        if self._overflow_possible:
-            tups = lib.fast_zip(all_labels)
-            labs, uniques = algos.factorize(tups)
+        if len(all_labels) > 1:
+            group_index = get_group_index(all_labels, self.shape,
+                                          sort=True, xnull=True)
+            return _compress_group_index(group_index)
 
-            if self.sort:
-                uniques, labs = _reorder_by_uniques(uniques, labs)
+        ping = self.groupings[0]
+        self.compressed = False
+        self._filter_empty_groups = False
 
-            return labs, uniques
-        else:
-            if len(all_labels) > 1:
-                group_index = get_group_index(all_labels, self.shape)
-                comp_ids, obs_group_ids = _compress_group_index(group_index)
-            else:
-                ping = self.groupings[0]
-                comp_ids = ping.labels
-                obs_group_ids = np.arange(len(ping.group_index))
-                self.compressed = False
-                self._filter_empty_groups = False
-
-            return comp_ids, obs_group_ids
-
-    @cache_readonly
-    def _overflow_possible(self):
-        return _int64_overflow_possible(self.shape)
+        return ping.labels, np.arange(len(ping.group_index))
 
     @cache_readonly
     def ngroups(self):
@@ -1402,15 +1388,13 @@ class BaseGrouper(object):
         return MultiIndex.from_arrays(recons, names=self.names)
 
     def get_group_levels(self):
-        obs_ids = self.group_info[1]
+        comp_ids, obs_ids, _ = self.group_info
 
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].group_index]
 
-        if self._overflow_possible:
-            recons_labels = [np.array(x) for x in zip(*obs_ids)]
-        else:
-            recons_labels = decons_group_index(obs_ids, self.shape)
+        recons_labels = decons_obs_group_ids(comp_ids, obs_ids,
+                self.shape, (ping.labels for ping in self.groupings))
 
         name_list = []
         for ping, labels in zip(self.groupings, recons_labels):
@@ -3490,32 +3474,16 @@ def get_splitter(data, *args, **kwargs):
 # Misc utilities
 
 
-def get_group_index(label_list, shape):
+def get_group_index(labels, shape, sort, xnull):
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
-    combinations.
-    """
-    if len(label_list) == 1:
-        return label_list[0]
-
-    n = len(label_list[0])
-    group_index = np.zeros(n, dtype=np.int64)
-    mask = np.zeros(n, dtype=bool)
-    for i in range(len(shape)):
-        stride = np.prod([x for x in shape[i + 1:]], dtype=np.int64)
-        group_index += com._ensure_int64(label_list[i]) * stride
-        mask |= label_list[i] < 0
-
-    np.putmask(group_index, mask, -1)
-    return group_index
-
-
-def get_flat_ids(labels, shape, retain_lex_rank):
-    """
-    Given a list of labels at each level, returns a flat array of int64 ids
-    corresponding to unique tuples across the labels. If `retain_lex_rank`,
-    rank of returned ids preserve lexical ranks of labels.
+    combinations, *as long as* this space fits within int64 bounds;
+    otherwise, though group indices identify unique combinations of
+    labels, they cannot be deconstructed.
+    - If `sort`, rank of returned ids preserve lexical ranks of labels.
+      i.e. returned id's can be used to do lexical sort on labels;
+    - If `xnull` nulls (-1 labels) are passed through.
 
     Parameters
     ----------
@@ -3523,9 +3491,11 @@ def get_flat_ids(labels, shape, retain_lex_rank):
         Integers identifying levels at each location
     shape: sequence of ints same length as labels
         Number of unique levels at each location
-    retain_lex_rank: boolean
+    sort: boolean
         If the ranks of returned ids should match lexical ranks of labels
-
+    xnull: boolean
+        If true nulls are eXcluded. i.e. -1 values in the labels are
+        passed through
     Returns
     -------
     An array of type int64 where two elements are equal if their corresponding
@@ -3544,12 +3514,18 @@ def get_flat_ids(labels, shape, retain_lex_rank):
             stride //= shape[i]
             out += labels[i] * stride
 
+        if xnull: # exclude nulls
+            mask = labels[0] == -1
+            for lab in labels[1:nlev]:
+                mask |= lab == -1
+            out[mask] = -1
+
         if nlev == len(shape):  # all levels done!
             return out
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
-        comp_ids, obs_ids = _compress_group_index(out, sort=retain_lex_rank)
+        comp_ids, obs_ids = _compress_group_index(out, sort=sort)
 
         labels = [comp_ids] + labels[nlev:]
         shape = [len(obs_ids)] + shape[nlev:]
@@ -3560,9 +3536,10 @@ def get_flat_ids(labels, shape, retain_lex_rank):
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
     labels = map(com._ensure_int64, labels)
-    labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+    if not xnull:
+        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
 
-    return loop(labels, shape)
+    return loop(list(labels), list(shape))
 
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -3578,6 +3555,11 @@ def _int64_overflow_possible(shape):
 
 def decons_group_index(comp_labels, shape):
     # reconstruct labels
+    if _int64_overflow_possible(shape):
+        # at some point group indices are factorized,
+        # and may not be deconstructed here! wrong path!
+        raise ValueError('cannot deconstruct factorized group indices!')
+
     label_list = []
     factor = 1
     y = 0
@@ -3591,12 +3573,25 @@ def decons_group_index(comp_labels, shape):
     return label_list[::-1]
 
 
+def decons_obs_group_ids(comp_ids, obs_ids, shape, labels):
+    """reconstruct labels from observed ids"""
+    from pandas.hashtable import unique_label_indices
+
+    if not _int64_overflow_possible(shape):
+        # obs ids are deconstructable! take the fast route!
+        return decons_group_index(obs_ids, shape)
+
+    i = unique_label_indices(comp_ids)
+    i8copy = lambda a: a.astype('i8', subok=False, copy=True)
+    return [i8copy(lab[i]) for lab in labels]
+
+
 def _indexer_from_factorized(labels, shape, compress=True):
     if _int64_overflow_possible(shape):
         indexer = np.lexsort(np.array(labels[::-1]))
         return indexer
 
-    group_index = get_group_index(labels, shape)
+    group_index = get_group_index(labels, shape, sort=True, xnull=True)
 
     if compress:
         comp_ids, obs_ids = _compress_group_index(group_index)
@@ -3712,9 +3707,12 @@ class _KeyMapper(object):
 
 def _get_indices_dict(label_list, keys):
     shape = list(map(len, keys))
-    ngroups = np.prod(shape)
 
-    group_index = get_group_index(label_list, shape)
+    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    ngroups = ((group_index.size and group_index.max()) + 1) \
+              if _int64_overflow_possible(shape) \
+              else np.prod(shape, dtype='i8')
+
     sorter = _get_group_index_sorter(group_index, ngroups)
 
     sorted_labels = [lab.take(sorter) for lab in label_list]

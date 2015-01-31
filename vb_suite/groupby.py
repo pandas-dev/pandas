@@ -485,6 +485,22 @@ df = DataFrame(np.random.randint(1, n / 100, (n, 3)),
 groupby_agg_builtins1 = Benchmark("df.groupby('jim').agg([sum, min, max])", setup)
 groupby_agg_builtins2 = Benchmark("df.groupby(['jim', 'joe']).agg([sum, min, max])", setup)
 
+
+setup = common_setup + '''
+arr = np.random.randint(- 1 << 12, 1 << 12, (1 << 17, 5))
+i = np.random.choice(len(arr), len(arr) * 5)
+arr = np.vstack((arr, arr[i]))  # add sume duplicate rows
+
+i = np.random.permutation(len(arr))
+arr = arr[i]  # shuffle rows
+
+df = DataFrame(arr, columns=list('abcde'))
+df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
+'''
+
+groupby_int64_overflow = Benchmark("df.groupby(list('abcde')).max()", setup,
+                                   name='groupby_int64_overflow')
+
 #----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 

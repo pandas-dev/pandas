@@ -12,8 +12,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
 from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
                                 isnull)
-from pandas.core.groupby import (get_group_index, _compress_group_index,
-                                 decons_group_index)
+from pandas.core.groupby import get_group_index, _compress_group_index
+
 import pandas.core.common as com
 import pandas.algos as algos
 
@@ -103,10 +103,6 @@ class _Unstacker(object):
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
-
-        # group_index = get_group_index(to_sort, sizes)
-        # comp_index, obs_ids = _compress_group_index(group_index)
-
         ngroups = len(obs_ids)
 
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
@@ -252,6 +248,8 @@ def _make_new_index(lev, lab):
 
 
 def _unstack_multiple(data, clocs):
+    from pandas.core.groupby import decons_obs_group_ids
+
     if len(clocs) == 0:
         return data
 
@@ -271,10 +269,10 @@ def _unstack_multiple(data, clocs):
     rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
-    group_index = get_group_index(clabels, shape)
+    group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-    recons_labels = decons_group_index(obs_ids, shape)
+    recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels)
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
@@ -449,9 +447,9 @@ def _unstack_frame(obj, level):
 
 
 def get_compressed_ids(labels, sizes):
-    from pandas.core.groupby import get_flat_ids
+    from pandas.core.groupby import get_group_index
 
-    ids = get_flat_ids(labels, sizes, True)
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return _compress_group_index(ids, sort=True)
 
 

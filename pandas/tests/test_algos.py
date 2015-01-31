@@ -261,6 +261,21 @@ def test_quantile():
     expected = algos.quantile(s.values, [0, .25, .5, .75, 1.])
     tm.assert_almost_equal(result, expected)
 
+def test_unique_label_indices():
+    from pandas.hashtable import unique_label_indices
+
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype('i8')
+
+    left = unique_label_indices(a)
+    right = np.unique(a, return_index=True)[1]
+
+    tm.assert_array_equal(left, right)
+
+    a[np.random.choice(len(a), 10)] = -1
+    left= unique_label_indices(a)
+    right = np.unique(a, return_index=True)[1][1:]
+    tm.assert_array_equal(left, right)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
