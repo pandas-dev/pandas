@@ -2880,6 +2880,8 @@ class TestGroupBy(tm.TestCase):
         self.assertEqual(len(left), len(right))
 
     def test_int64_overflow(self):
+        from pandas.core.groupby import _int64_overflow_possible
+
         B = np.concatenate((np.arange(1000), np.arange(1000),
                             np.arange(500)))
         A = np.arange(2500)
@@ -2910,6 +2912,45 @@ class TestGroupBy(tm.TestCase):
             self.assertEqual(left[k], right[k[::-1]])
             self.assertEqual(left[k], v)
         self.assertEqual(len(left), len(right))
+
+        # GH9096
+        values = range(55109)
+        data = pd.DataFrame.from_dict({'a': values, 'b': values,
+                                       'c': values, 'd': values})
+        grouped = data.groupby(['a', 'b', 'c', 'd'])
+        self.assertEqual(len(grouped), len(values))
+
+        arr = np.random.randint(- 1 << 12, 1 << 12, (1 << 15, 5))
+        i = np.random.choice(len(arr), len(arr) * 4)
+        arr = np.vstack((arr, arr[i]))  # add sume duplicate rows
+
+        i = np.random.permutation(len(arr))
+        arr = arr[i]  # shuffle rows
+
+        df = DataFrame(arr, columns=list('abcde'))
+        df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
+        gr = df.groupby(list('abcde'))
+
+        # verify this is testing what it is supposed to test!
+        self.assertTrue(_int64_overflow_possible(gr.grouper.shape))
+
+        # mannually compute groupings
+        jim, joe = defaultdict(list), defaultdict(list)
+        for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
+            jim[key].append(a)
+            joe[key].append(b)
+
+        self.assertEqual(len(gr), len(jim))
+        mi = MultiIndex.from_tuples(jim.keys(), names=list('abcde'))
+
+        def aggr(func):
+            f = lambda a: np.fromiter(map(func, a), dtype='f8')
+            arr = np.vstack((f(jim.values()), f(joe.values()))).T
+            res = DataFrame(arr, columns=['jim', 'joe'], index=mi)
+            return res.sort_index()
+
+        assert_frame_equal(gr.mean(), aggr(np.mean))
+        assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_groupby_sort_multi(self):
         df = DataFrame({'a': ['foo', 'bar', 'baz'],
@@ -4942,7 +4983,7 @@ def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
 
     def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape)
+        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
         label_list2 = decons_group_index(group_index, shape)
 
         for a, b in zip(label_list, label_list2):
