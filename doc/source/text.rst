@@ -215,6 +215,7 @@ Method Summary
     :meth:`~Series.str.center`,Equivalent to ``str.center``
     :meth:`~Series.str.ljust`,Equivalent to ``str.ljust``
     :meth:`~Series.str.rjust`,Equivalent to ``str.rjust``
+    :meth:`~Series.str.zfill`,Equivalent to ``str.zfill``
     :meth:`~Series.str.wrap`,Split long strings into lines with length less than a given width
     :meth:`~Series.str.slice`,Slice each string in the Series
     :meth:`~Series.str.slice_replace`,Replace slice in each string with passed value
