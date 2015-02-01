@@ -14,7 +14,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.random import randint
 
-from pandas.compat import range, lrange, u
+from pandas.compat import range, lrange, u, unichr
 import pandas.compat as compat
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range, MultiIndex)
@@ -630,6 +630,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.islower())
         tm.assert_series_equal(empty_str, empty.str.isupper())
         tm.assert_series_equal(empty_str, empty.str.istitle())
+        tm.assert_series_equal(empty_str, empty.str.isnumeric())
+        tm.assert_series_equal(empty_str, empty.str.isdecimal())
 
     def test_ismethods(self):
         values = ['A', 'b', 'Xy', '4', '3A', '', 'TT', '55', '-', '  ']
@@ -658,6 +660,31 @@ class TestStringMethods(tm.TestCase):
         self.assertEquals(str_s.str.islower().tolist(), [v.islower() for v in values])
         self.assertEquals(str_s.str.isupper().tolist(), [v.isupper() for v in values])
         self.assertEquals(str_s.str.istitle().tolist(), [v.istitle() for v in values])
+
+    def test_isnumeric(self):
+        # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
+        # 0x2605: ★ not number
+        # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
+        # 0xFF13: ３ Em 3
+        values = ['A', '3', unichr(0x00bc), unichr(0x2605),
+                  unichr(0x1378), unichr(0xFF13), 'four']
+        s = Series(values)
+        numeric_e = [False, True, True, False, True, True, False]
+        decimal_e = [False, True, False, False, False, True, False]
+        tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e))
+        tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
+        unicodes = [u('A'), u('3'), unichr(0x00bc), unichr(0x2605),
+                  unichr(0x1378), unichr(0xFF13), u('four')]
+        self.assertEquals(s.str.isnumeric().tolist(), [v.isnumeric() for v in unicodes])
+        self.assertEquals(s.str.isdecimal().tolist(), [v.isdecimal() for v in unicodes])
+
+        values = ['A', np.nan, unichr(0x00bc), unichr(0x2605),
+                  np.nan, unichr(0xFF13), 'four']
+        s = Series(values)
+        numeric_e = [False, np.nan, True, False, np.nan, True, False]
+        decimal_e = [False, np.nan, False, False, np.nan, True, False]
+        tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e))
+        tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
 
     def test_get_dummies(self):
         s = Series(['a|b', 'a|c', np.nan])

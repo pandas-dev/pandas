@@ -559,6 +559,8 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.islower
    Series.str.isupper
    Series.str.istitle
+   Series.str.isnumeric
+   Series.str.isdecimal
    Series.str.get_dummies
 
 .. _api.categorical:

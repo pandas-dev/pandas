@@ -1096,23 +1096,37 @@ class StringMethods(object):
                            docstring=_shared_docs['casemethods'] % 'titlecase')
 
     _shared_docs['ismethods'] = ("""
-    Check whether all characters in each string in the array are %s
+    Check whether all characters in each string in the array are %(type)s.
+    Equivalent to ``str.%(method)s``.
 
     Returns
     -------
     Series of boolean values
     """)
+    _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
+    _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
+    _shared_docs['isdigit'] = dict(type='digits', method='isdigit')
+    _shared_docs['isspace'] = dict(type='whitespace', method='isspace')
+    _shared_docs['islower'] = dict(type='lowercase', method='islower')
+    _shared_docs['isupper'] = dict(type='uppercase', method='isupper')
+    _shared_docs['istitle'] = dict(type='titlecase', method='istitle')
+    _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
+    _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
-                             docstring=_shared_docs['ismethods'] % 'alphanumeric')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
-                             docstring=_shared_docs['ismethods'] % 'alphabetic')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
-                             docstring=_shared_docs['ismethods'] % 'digits')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
-                             docstring=_shared_docs['ismethods'] % 'whitespace')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
-                             docstring=_shared_docs['ismethods'] % 'lowercase')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
-                             docstring=_shared_docs['ismethods'] % 'uppercase')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
-                             docstring=_shared_docs['ismethods'] % 'titlecase')
+                             docstring=_shared_docs['ismethods'] % _shared_docs['istitle'])
+    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isnumeric'])
+    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isdecimal'])
