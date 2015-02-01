@@ -544,6 +544,46 @@ def str_findall(arr, pat, flags=0):
     return _na_map(regex.findall, arr)
 
 
+def str_find(arr, sub, start=0, end=None, side='left'):
+    """
+    Return indexes in each strings where the substring is
+    fully contained between [start:end]. Return -1 on failure.
+
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+    side : {'left', 'right'}, default 'left'
+        Specifies a starting side, equivalent to ``find`` or ``rfind``
+
+    Returns
+    -------
+    found : array
+    """
+
+    if not isinstance(sub, compat.string_types):
+        msg = 'expected a string object, not {0}'
+        raise TypeError(msg.format(type(sub).__name__))
+
+    if side == 'left':
+        method = 'find'
+    elif side == 'right':
+        method = 'rfind'
+    else:  # pragma: no cover
+        raise ValueError('Invalid side')
+
+    if end is None:
+        f = lambda x: getattr(x, method)(sub, start)
+    else:
+        f = lambda x: getattr(x, method)(sub, start, end)
+
+    return _na_map(f, arr, dtype=int)
+
+
 def str_pad(arr, width, side='left', fillchar=' '):
     """
     Pad strings with an additional character
@@ -1071,6 +1111,41 @@ class StringMethods(object):
     endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
     extract = _pat_wrapper(str_extract, flags=True)
+
+    _shared_docs['find'] = ("""
+    Return %(side)s indexes in each strings where the substring is
+    fully contained between [start:end]. Return -1 on failure.
+    Equivalent to standard ``str.%(method)s``.
+
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+
+    Returns
+    -------
+    found : array
+
+    See Also
+    --------
+    %(also)s
+    """)
+
+    @Appender(_shared_docs['find'] % dict(side='lowest', method='find',
+              also='rfind : Return highest indexes in each strings'))
+    def find(self, sub, start=0, end=None):
+        result = str_find(self.series, sub, start=start, end=end, side='left')
+        return self._wrap_result(result)
+
+    @Appender(_shared_docs['find'] % dict(side='highest', method='rfind',
+              also='find : Return lowest indexes in each strings'))
+    def rfind(self, sub, start=0, end=None):
+        result = str_find(self.series, sub, start=start, end=end, side='right')
+        return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
     Compute length of each string in array.
