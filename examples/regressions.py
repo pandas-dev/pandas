@@ -3,13 +3,14 @@ import string
 
 import numpy as np
 
+from pandas import date_range
 from pandas.core.api import Series, DataFrame, DatetimeIndex
 from pandas.stats.api import ols
 
 N = 100
 
 start = datetime(2009, 9, 2)
-dateRange = DatetimeIndex(start, periods=N)
+dateRange = date_range(start, periods=N)
 
 
 def makeDataFrame():
