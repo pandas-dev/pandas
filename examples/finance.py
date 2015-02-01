@@ -35,12 +35,12 @@ def getQuotes(symbol, start, end):
 
 msft = getQuotes('MSFT', startDate, endDate)
 aapl = getQuotes('AAPL', startDate, endDate)
-goog = getQuotes('GOOG', startDate, endDate)
+googl = getQuotes('GOOGL', startDate, endDate)
 ibm = getQuotes('IBM', startDate, endDate)
 
 px = DataFrame({'MSFT': msft['close'],
                 'IBM': ibm['close'],
-                'GOOG': goog['close'],
+                'GOOGL': googl['close'],
                 'AAPL': aapl['close']})
 returns = px / px.shift(1) - 1
 
