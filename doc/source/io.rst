@@ -563,7 +563,7 @@ writing to a file). For example:
 
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
-Finally, the parser allows you can specify a custom ``date_parser`` function to
+Finally, the parser allows you to specify a custom ``date_parser`` function to
 take full advantage of the flexibility of the date parsing API:
 
 .. ipython:: python
@@ -572,6 +572,31 @@ take full advantage of the flexibility of the date parsing API:
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
                     date_parser=conv.parse_date_time)
    df
+
+Pandas will try to call the ``date_parser`` function in three different ways. If 
+an exception is raised, the next one is tried:
+
+1. ``date_parser`` is first called with one or more arrays as arguments,
+   as defined using `parse_dates` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``)
+
+2. If #1 fails, ``date_parser`` is called with all the columns
+   concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``)
+
+3. If #2 fails, ``date_parser`` is called once for every row with one or more
+   string arguments from the columns indicated with `parse_dates`
+   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
+   for the second, etc.)
+
+Note that performance-wise, you should try these methods of parsing dates in order:
+
+1. Try to infer the format using ``infer_datetime_format=True`` (see section below)
+
+2. If you know the format, use ``pd.to_datetime()``:
+   ``date_parser=lambda x: pd.to_datetime(x, format=...)``
+   
+3. If you have a really non-standard format, use a custom ``date_parser`` function.
+   For optimal performance, this should be vectorized, i.e., it should accept arrays
+   as arguments.
 
 You can explore the date parsing functionality in ``date_converters.py`` and
 add your own. We would love to turn this module into a community supported set

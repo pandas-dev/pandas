@@ -104,7 +104,12 @@ keep_date_col : boolean, default False
 date_parser : function
     Function to use for converting a sequence of string columns to an
     array of datetime instances. The default uses dateutil.parser.parser
-    to do the conversion.
+    to do the conversion. Pandas will try to call date_parser in three different
+    ways, advancing to the next if an exception occurs: 1) Pass one or more arrays
+    (as defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
+    values from the columns defined by parse_dates into a single array and pass
+    that; and 3) call date_parser once for each row using one or more strings
+    (corresponding to the columns defined by parse_dates) as arguments.
 dayfirst : boolean, default False
     DD/MM format dates, international and European format
 thousands : str, default None
