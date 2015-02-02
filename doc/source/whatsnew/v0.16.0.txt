@@ -22,6 +22,13 @@ New features
 
 .. _whatsnew_0160.api:
 
+- ``value_counts`` accepts a base argument:
+
+  ..ipython::python
+
+     Series(list('aaabbc')).value_counts(base=list('acd'))
+
+
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
