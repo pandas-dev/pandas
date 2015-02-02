@@ -2734,30 +2734,32 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series
         """
-        # kludge for #1833
-        def _m8_to_i8(x):
-            if issubclass(x.dtype.type, np.datetime64):
-                return x.view(np.int64)
-            return x
+        from pandas.core.groupby import get_group_index
+        from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
-        # if we are only duplicating on Categoricals this can be much faster
+        size_hint = min(len(self), _SIZE_HINT_LIMIT)
+
+        def factorize(vals):
+            (hash_klass, vec_klass), vals = \
+                    algos._get_data_algo(vals, algos._hashtables)
+
+            uniques, table = vec_klass(), hash_klass(size_hint)
+            labels = table.get_labels(vals, uniques, 0, -1)
+
+            return labels.astype('i8', copy=False), len(uniques)
+
         if subset is None:
-            values = list(_m8_to_i8(self.get_values().T))
-        else:
-            if np.iterable(subset) and not isinstance(subset, compat.string_types):
-                if isinstance(subset, tuple):
-                    if subset in self.columns:
-                        values = [self[subset].get_values()]
-                    else:
-                        values = [_m8_to_i8(self[x].get_values()) for x in subset]
-                else:
-                    values = [_m8_to_i8(self[x].get_values()) for x in subset]
-            else:
-                values = [self[subset].get_values()]
+            subset = self.columns
+        elif not np.iterable(subset) or \
+                isinstance(subset, compat.string_types) or \
+                isinstance(subset, tuple) and subset in self.columns:
+            subset = subset,
 
-        keys = lib.fast_zip_fillna(values)
-        duplicated = lib.duplicated(keys, take_last=take_last)
-        return Series(duplicated, index=self.index)
+        vals = (self[col].values for col in subset)
+        labels, shape = map(list, zip( * map(factorize, vals)))
+
+        ids = get_group_index(labels, shape, sort=False, xnull=False)
+        return Series(duplicated_int64(ids, take_last), index=self.index)
 
     #----------------------------------------------------------------------
     # Sorting
