@@ -1278,7 +1278,7 @@ def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
 def duplicated(ndarray[object] values, take_last=False):
     cdef:
         Py_ssize_t i, n
-        dict seen = {}
+        set seen = set()
         object row
 
     n = len(values)
@@ -1291,7 +1291,7 @@ def duplicated(ndarray[object] values, take_last=False):
             if row in seen:
                 result[i] = 1
             else:
-                seen[row] = None
+                seen.add(row)
                 result[i] = 0
     else:
         for i from 0 <= i < n:
@@ -1299,7 +1299,7 @@ def duplicated(ndarray[object] values, take_last=False):
             if row in seen:
                 result[i] = 1
             else:
-                seen[row] = None
+                seen.add(row)
                 result[i] = 0
 
     return result.view(np.bool_)

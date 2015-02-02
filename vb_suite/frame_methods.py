@@ -506,3 +506,17 @@ frame_from_records_generator_nrows = Benchmark('df = DataFrame.from_records(get_
                                 setup,
                                 name='frame_from_records_generator_nrows',
                                 start_date=datetime(2013,10,04))  # issue-4911
+
+setup = common_setup + '''
+n = 1 << 20
+
+t = date_range('2015-01-01', freq='S', periods=n // 64)
+xs = np.random.randn(n // 64).round(2)
+
+df = DataFrame({'a':np.random.randint(- 1 << 8, 1 << 8, n),
+                'b':np.random.choice(t, n),
+                'c':np.random.choice(xs, n)})
+'''
+
+frame_duplicated = Benchmark('df.duplicated()', setup,
+                             name='frame_duplicated')
