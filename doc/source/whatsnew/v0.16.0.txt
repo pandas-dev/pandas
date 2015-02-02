@@ -22,14 +22,29 @@ New features
 
 .. _whatsnew_0160.api:
 
+.. _whatsnew_0160.api_breaking:
+
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0160.api_breaking:
+.. _whatsnew_0160.api_breaking.timedelta:
 
-- In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a sub-class of ``datetime.timedelta``. Mentioned :ref:`here <whatsnew_0150.timedeltaindex>` was a notice of an API change w.r.t. the ``.seconds`` accessor. The intent was to provide a user-friendly set of accessors that give the 'natural' value for that unit, e.g. if you had a ``Timedelta('1 day, 10:11:12')``, then ``.seconds`` would return 12. However, this is at odds with the definition of ``datetime.timedelta``, which defines ``.seconds`` as ``10 * 3600 + 11 * 60 + 12 == 36672``.
+- In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a
+  sub-class of ``datetime.timedelta``.
+  Mentioned :ref:`here <whatsnew_0150.timedeltaindex>` was a notice of an API
+  change w.r.t. the ``.seconds`` accessor. The intent was to provide a
+  user-friendly set of accessors that give the 'natural' value for that unit,
+  e.g. if you had a ``Timedelta('1 day, 10:11:12')``, then ``.seconds`` would
+  return 12. However, this is at odds with the definition of
+  ``datetime.timedelta``, which defines ``.seconds`` as
+  ``10 * 3600 + 11 * 60 + 12 == 36672``.
 
-  So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. Further, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
+  So in v0.16.0, we are restoring the API to match that of
+  ``datetime.timedelta``. Further, the component values are still available
+  through the ``.components`` accessor. This affects the ``.seconds`` and
+  ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``,
+  ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex``
+  and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
 
   Previous Behavior
 
