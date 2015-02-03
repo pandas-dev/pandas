@@ -698,6 +698,7 @@ class SparseSeries(Series):
         s : SparseSeries
         """
         return(_coo_to_sparse_series(A, dense_index=dense_index))
+
 # overwrite series methods with unaccelerated versions
 ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,
                                    **ops.series_special_funcs)
