@@ -437,7 +437,7 @@ class Panel(NDFrame):
         kwargs['na_rep'] = na_rep
 
         for item, df in compat.iteritems(self):
-            name = str(item)
+            name = unicode(item)
             df.to_excel(writer, name, **kwargs)
         writer.save()
 
