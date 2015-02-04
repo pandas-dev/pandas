@@ -872,6 +872,9 @@ Data In/Out
 `Performance comparison of SQL vs HDF5
 <http://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
 
+`HDFS work flows using pandas
+<http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+
 .. _cookbook.csv:
 
 CSV
