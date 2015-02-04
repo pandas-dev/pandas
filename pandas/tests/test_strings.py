@@ -925,6 +925,26 @@ class TestStringMethods(tm.TestCase):
         with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
             result = values.str.rjust(5, fillchar=1)
 
+    def test_zfill(self):
+        values = Series(['1', '22', 'aaa', '333', '45678'])
+
+        result = values.str.zfill(5)
+        expected = Series(['00001', '00022', '00aaa', '00333', '45678'])
+        tm.assert_series_equal(result, expected)
+        expected = np.array([v.zfill(5) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.zfill(3)
+        expected = Series(['001', '022', 'aaa', '333', '45678'])
+        tm.assert_series_equal(result, expected)
+        expected = np.array([v.zfill(3) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        values = Series(['1', np.nan, 'aaa', np.nan, '45678'])
+        result = values.str.zfill(5)
+        expected = Series(['00001', np.nan, '00aaa', np.nan, '45678'])
+        tm.assert_series_equal(result, expected)
+
     def test_split(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
 

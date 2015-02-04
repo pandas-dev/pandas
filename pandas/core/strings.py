@@ -977,7 +977,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     _shared_docs['str_pad'] = ("""
-    "Center" strings, filling %s side with an additional character
+    Filling %s side of strings with an additional character
 
     Parameters
     ----------
@@ -989,7 +989,7 @@ class StringMethods(object):
 
     Returns
     -------
-    centered : array
+    filled : array
     """)
 
     @Appender(_shared_docs['str_pad'] % 'left and right')
@@ -1003,6 +1003,23 @@ class StringMethods(object):
     @Appender(_shared_docs['str_pad'] % 'left')
     def rjust(self, width, fillchar=' '):
         return self.pad(width, side='left', fillchar=fillchar)
+
+    def zfill(self, width):
+        """"
+        Filling left side with 0
+
+        Parameters
+        ----------
+        width : int
+            Minimum width of resulting string; additional characters will be filled
+            with 0
+
+        Returns
+        -------
+        filled : array
+        """
+        result = str_pad(self.series, width, side='left', fillchar='0')
+        return self._wrap_result(result)
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):

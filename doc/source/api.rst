@@ -551,6 +551,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.strip
    Series.str.title
    Series.str.upper
+   Series.str.zfill
    Series.str.isalnum
    Series.str.isalpha
    Series.str.isdigit

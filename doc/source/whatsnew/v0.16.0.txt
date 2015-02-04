@@ -131,6 +131,7 @@ Enhancements
 
 - Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
 - ``StringMethods.pad()`` and ``center()`` now accept `fillchar` option to specify filling character (:issue:`9352`)
+- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
 
 Performance
 ~~~~~~~~~~~
