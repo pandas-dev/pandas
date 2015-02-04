@@ -6,7 +6,7 @@ The SQL tests are broken down in different classes:
 - Tests for the public API (only tests with sqlite3)
     - `_TestSQLApi` base class
     - `TestSQLApi`: test the public API with sqlalchemy engine
-    - `TesySQLiteFallbackApi`: test the public API with a sqlite DBAPI connection
+    - `TestSQLiteFallbackApi`: test the public API with a sqlite DBAPI connection
 - Tests for the different SQL flavors (flavor specific type conversions)
     - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
       common methods, the different tested flavors (sqlite3, MySQL, PostgreSQL)
@@ -1676,13 +1676,14 @@ class TestSQLiteFallback(PandasSQLTest):
             flavor=self.flavor)
 
         for ndx, weird_name in enumerate(['test_weird_name]','test_weird_name[',
-            'test_weird_name`','test_weird_name"', 'test_weird_name\'']):
+            'test_weird_name`','test_weird_name"', 'test_weird_name\'', 
+            '_b.test_weird_name_01-30', '"_b.test_weird_name_01-30"']):
             df.to_sql(weird_name, self.conn, flavor=self.flavor)
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=['a', weird_name])
             c_tbl = 'test_weird_col_name%d'%ndx
-            df.to_sql(c_tbl, self.conn, flavor=self.flavor)
+            df2.to_sql(c_tbl, self.conn, flavor=self.flavor)
             sql.table_exists(c_tbl, self.conn)
 
 
