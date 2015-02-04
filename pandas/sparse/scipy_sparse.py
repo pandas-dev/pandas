@@ -38,7 +38,8 @@ def _check_is_partition(parts, whole):
 
 
 def _to_ijv(ss, ilevels=(0,), jlevels=(1,), sort_labels=False):
-    """ For arbitrary (MultiIndexed) SparseSeries return (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
+    """ For arbitrary (MultiIndexed) SparseSeries return
+    (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
     passing to scipy.sparse.coo constructor. """
     # index and column levels must be a partition of the index
     _check_is_partition([ilevels, jlevels], range(ss.index.nlevels))
