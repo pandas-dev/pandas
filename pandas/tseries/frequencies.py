@@ -935,7 +935,9 @@ class _FrequencyInferer(object):
             return None
 
         week_of_months = unique((self.index.day - 1) // 7)
-        if len(week_of_months) > 1:
+        # Only attempt to infer up to WOM-4. See #9425
+        week_of_months = week_of_months[week_of_months < 4]
+        if len(week_of_months) == 0 or len(week_of_months) > 1:
             return None
 
         # get which week
