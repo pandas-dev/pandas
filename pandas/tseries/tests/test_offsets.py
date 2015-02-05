@@ -2818,122 +2818,9 @@ def test_Easter():
     assertEq(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 
-def test_Hour():
-    assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
-    assertEq(Hour(-1), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
-    assertEq(2 * Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
-    assertEq(-1 * Hour(), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
-
-    assert (Hour(3) + Hour(2)) == Hour(5)
-    assert (Hour(3) - Hour(2)) == Hour()
-
-    assert(Hour(4) != Hour(1))
-
-    assert not Hour().isAnchored()
-
-
-def test_Minute():
-    assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
-    assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
-    assertEq(2 * Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 2))
-    assertEq(-1 * Minute(), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
-
-    assert (Minute(3) + Minute(2)) == Minute(5)
-    assert (Minute(3) - Minute(2)) == Minute()
-    assert(Minute(5) != Minute())
-
-    assert not Minute().isAnchored()
-
-
-def test_Second():
-    assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
-    assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
-    assertEq(2 * Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 2))
-    assertEq(
-        -1 * Second(), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
-
-    assert (Second(3) + Second(2)) == Second(5)
-    assert (Second(3) - Second(2)) == Second()
-
-    assert not Second().isAnchored()
-
-
-def test_Millisecond():
-    assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
-    assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
-    assertEq(Milli(2), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
-    assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
-    assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
-
-    assert (Milli(3) + Milli(2)) == Milli(5)
-    assert (Milli(3) - Milli(2)) == Milli()
-
-
-def test_MillisecondTimestampArithmetic():
-    assertEq(Milli(), Timestamp('2010-01-01'), Timestamp('2010-01-01 00:00:00.001'))
-    assertEq(Milli(-1), Timestamp('2010-01-01 00:00:00.001'), Timestamp('2010-01-01'))
-
-
-def test_Microsecond():
-    assertEq(Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1))
-    assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
-    assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
-    assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
-
-    assert (Micro(3) + Micro(2)) == Micro(5)
-    assert (Micro(3) - Micro(2)) == Micro()
-
-
-def test_NanosecondGeneric():
-    timestamp = Timestamp(datetime(2010, 1, 1))
-    assert timestamp.nanosecond == 0
-
-    result = timestamp + Nano(10)
-    assert result.nanosecond == 10
-
-    reverse_result = Nano(10) + timestamp
-    assert reverse_result.nanosecond == 10
-
-
-def test_Nanosecond():
-    timestamp = Timestamp(datetime(2010, 1, 1))
-    assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
-    assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
-    assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
-    assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
-
-    assert (Nano(3) + Nano(2)) == Nano(5)
-    assert (Nano(3) - Nano(2)) == Nano()
-
-    # GH9284
-    assert Nano(1) + Nano(10) == Nano(11)
-    assert Nano(5) + Micro(1) == Nano(1005)
-    assert Micro(5) + Nano(1) == Nano(5001)
-
-def test_tick_offset():
-    assert not Day().isAnchored()
-    assert not Milli().isAnchored()
-    assert not Micro().isAnchored()
-    assert not Nano().isAnchored()
-
-
-def test_compare_ticks():
-    offsets = [Hour, Minute, Second, Milli, Micro]
-
-    for kls in offsets:
-        three = kls(3)
-        four = kls(4)
-
-        for _ in range(10):
-            assert(three < kls(4))
-            assert(kls(3) < four)
-            assert(four > kls(3))
-            assert(kls(4) > three)
-            assert(kls(3) == kls(3))
-            assert(kls(3) != kls(4))
-
-
 class TestTicks(tm.TestCase):
+
+    ticks = [Hour, Minute, Second, Milli, Micro, Nano]
 
     def test_ticks(self):
         offsets = [(Hour, Timedelta(hours=5)),
@@ -2948,6 +2835,129 @@ class TestTicks(tm.TestCase):
             result = offset + Timedelta(hours=2)
             self.assertTrue(isinstance(result, Timedelta))
             self.assertEqual(result, expected)
+
+    def test_Hour(self):
+        assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
+        assertEq(Hour(-1), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
+        assertEq(2 * Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
+        assertEq(-1 * Hour(), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
+
+        self.assertEquals(Hour(3) + Hour(2), Hour(5))
+        self.assertEquals(Hour(3) - Hour(2), Hour())
+
+        self.assertNotEquals(Hour(4), Hour(1))
+
+    def test_Minute(self):
+        assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
+        assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
+        assertEq(2 * Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 2))
+        assertEq(-1 * Minute(), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
+
+        self.assertEquals(Minute(3) + Minute(2), Minute(5))
+        self.assertEquals(Minute(3) - Minute(2), Minute())
+        self.assertNotEquals(Minute(5), Minute())
+
+    def test_Second(self):
+        assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
+        assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
+        assertEq(2 * Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 2))
+        assertEq(
+            -1 * Second(), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
+
+        self.assertEquals(Second(3) + Second(2), Second(5))
+        self.assertEquals(Second(3) - Second(2), Second())
+
+    def test_Millisecond(self):
+        assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
+        assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+        assertEq(Milli(2), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+        assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+        assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+
+        self.assertEquals(Milli(3) + Milli(2), Milli(5))
+        self.assertEquals(Milli(3) - Milli(2), Milli())
+
+    def test_MillisecondTimestampArithmetic(self):
+        assertEq(Milli(), Timestamp('2010-01-01'), Timestamp('2010-01-01 00:00:00.001'))
+        assertEq(Milli(-1), Timestamp('2010-01-01 00:00:00.001'), Timestamp('2010-01-01'))
+
+    def test_Microsecond(self):
+        assertEq(Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1))
+        assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+        assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
+        assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+
+        self.assertEquals(Micro(3) + Micro(2), Micro(5))
+        self.assertEquals(Micro(3) - Micro(2), Micro())
+
+    def test_NanosecondGeneric(self):
+        timestamp = Timestamp(datetime(2010, 1, 1))
+        self.assertEquals(timestamp.nanosecond, 0)
+
+        result = timestamp + Nano(10)
+        self.assertEquals(result.nanosecond, 10)
+
+        reverse_result = Nano(10) + timestamp
+        self.assertEquals(reverse_result.nanosecond, 10)
+
+    def test_Nanosecond(self):
+        timestamp = Timestamp(datetime(2010, 1, 1))
+        assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
+        assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
+        assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
+        assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
+
+        self.assertEquals(Nano(3) + Nano(2), Nano(5))
+        self.assertEquals(Nano(3) - Nano(2), Nano())
+
+        # GH9284
+        self.assertEquals(Nano(1) + Nano(10), Nano(11))
+        self.assertEquals(Nano(5) + Micro(1), Nano(1005))
+        self.assertEquals(Micro(5) + Nano(1), Nano(5001))
+
+    def test_tick_zero(self):
+        for t1 in self.ticks:
+            for t2 in self.ticks:
+                self.assertEquals(t1(0), t2(0))
+                self.assertEquals(t1(0) + t2(0), t1(0))
+
+                if t1 is not Nano:
+                    self.assertEquals(t1(2) + t2(0), t1(2))
+            if t1 is Nano:
+                self.assertEquals(t1(2) + Nano(0), t1(2))
+
+    def test_tick_equalities(self):
+        for t in self.ticks:
+            self.assertEquals(t(3), t(3))
+            self.assertEquals(t(), t(1))
+
+            # not equals
+            self.assertNotEquals(t(3), t(2))
+            self.assertNotEquals(t(3), t(-3))
+
+    def test_tick_operators(self):
+        for t in self.ticks:
+            self.assertEquals(t(3) + t(2), t(5))
+            self.assertEquals(t(3) - t(2), t(1))
+            self.assertEquals(t(800) + t(300), t(1100))
+            self.assertEquals(t(1000) - t(5), t(995))
+
+    def test_tick_offset(self):
+        for t in self.ticks:
+            self.assertFalse(t().isAnchored())
+
+    def test_compare_ticks(self):
+        for kls in self.ticks:
+            three = kls(3)
+            four = kls(4)
+
+            for _ in range(10):
+                self.assertTrue(three < kls(4))
+                self.assertTrue(kls(3) < four)
+                self.assertTrue(four > kls(3))
+                self.assertTrue(kls(4) > three)
+                self.assertTrue(kls(3) == kls(3))
+                self.assertTrue(kls(3) != kls(4))
 
 
 class TestOffsetNames(tm.TestCase):
