@@ -1217,11 +1217,9 @@ class BaseGrouper(object):
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True):
-        self.axis = axis
-        self.groupings = groupings
-        self.sort = sort
-        self.group_keys = group_keys
-        self.compressed = True
+        self._filter_empty_groups = self.compressed = len(groupings) != 1
+        self.axis, self.groupings, self.sort, self.group_keys = \
+                axis, groupings, sort, group_keys
 
     @property
     def shape(self):
@@ -1373,31 +1371,34 @@ class BaseGrouper(object):
             return _compress_group_index(group_index)
 
         ping = self.groupings[0]
-        self.compressed = False
-        self._filter_empty_groups = False
-
         return ping.labels, np.arange(len(ping.group_index))
 
     @cache_readonly
     def ngroups(self):
         return len(self.result_index)
 
+    @property
+    def recons_labels(self):
+        comp_ids, obs_ids, _ = self.group_info
+        labels = (ping.labels for ping in self.groupings)
+        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels)
+
     @cache_readonly
     def result_index(self):
-        recons = self.get_group_levels()
-        return MultiIndex.from_arrays(recons, names=self.names)
+        if not self.compressed and len(self.groupings) == 1:
+            return self.groupings[0].group_index.rename(self.names[0])
+
+        return MultiIndex(levels=[ping.group_index for ping in self.groupings],
+                          labels=self.recons_labels,
+                          verify_integrity=False,
+                          names=self.names)
 
     def get_group_levels(self):
-        comp_ids, obs_ids, _ = self.group_info
-
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].group_index]
 
-        recons_labels = decons_obs_group_ids(comp_ids, obs_ids,
-                self.shape, (ping.labels for ping in self.groupings))
-
         name_list = []
-        for ping, labels in zip(self.groupings, recons_labels):
+        for ping, labels in zip(self.groupings, self.recons_labels):
             labels = com._ensure_platform_int(labels)
             levels = ping.group_index.take(labels)
 
@@ -1431,8 +1432,6 @@ class BaseGrouper(object):
     }
 
     _name_functions = {}
-
-    _filter_empty_groups = True
 
     def _get_aggregate_function(self, how, values):
 
@@ -1796,8 +1795,6 @@ class BinGrouper(BaseGrouper):
     _name_functions = {
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
     }
-
-    _filter_empty_groups = True
 
     def _aggregate(self, result, counts, values, how, is_numeric=True):
 
