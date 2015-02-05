@@ -654,20 +654,31 @@ def _bool_method_SERIES(op, name, str_rep):
         return result
 
     def wrapper(self, other):
+        is_self_int_dtype = com.is_integer_dtype(self.dtype)
+
+        fill_int = lambda x: x.fillna(0)
+        fill_bool = lambda x: x.fillna(False).astype(bool)
+
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
+            other = other.reindex_like(self)
+            is_other_int_dtype = com.is_integer_dtype(other.dtype)
+            other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
-            other = other.reindex_like(self).fillna(False).astype(bool)
-            return self._constructor(na_op(self.values, other.values),
+            filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
+            return filler(self._constructor(na_op(self.values, other.values),
                                      index=self.index,
-                                     name=name).fillna(False).astype(bool)
+                                     name=name))
+
         elif isinstance(other, pd.DataFrame):
             return NotImplemented
+
         else:
-            # scalars
-            res = self._constructor(na_op(self.values, other),
-                                    index=self.index).fillna(False)
-            return res.astype(bool).__finalize__(self)
+            # scalars, list, tuple, np.array
+            filler = fill_int if is_self_int_dtype and com.is_integer_dtype(np.asarray(other)) else fill_bool
+            return filler(self._constructor(na_op(self.values, other),
+                                    index=self.index)).__finalize__(self)
+
     return wrapper
 
 

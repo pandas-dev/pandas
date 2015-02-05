@@ -3790,6 +3790,96 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         for v in [np.nan]:
             self.assertRaises(TypeError, lambda : t & v)
 
+    def test_operators_bitwise(self):
+        # GH 9016: support bitwise op for integer types
+        index = list('bca')
+
+        s_tft = Series([True, False, True], index=index)
+        s_fff = Series([False, False, False], index=index)
+        s_tff = Series([True, False, False], index=index)
+        s_empty = Series([])
+        s_0101 = Series([0,1,0,1])
+        s_0123 = Series(range(4))
+        s_3333 = Series([3] * 4)
+        s_4444 = Series([4] * 4)
+
+        res = s_tft & s_empty
+        expected = s_fff
+        assert_series_equal(res, expected)
+
+        res = s_tft | s_empty
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+        res = s_0123 & s_3333
+        expected = Series(range(4))
+        assert_series_equal(res, expected)
+
+        res = s_0123 | s_4444
+        expected = Series(range(4, 8))
+        assert_series_equal(res, expected)
+
+        s_a0b1c0 = Series([1], list('b'))
+
+        res = s_tft & s_a0b1c0
+        expected = s_tff
+        assert_series_equal(res, expected)
+
+        res = s_tft | s_a0b1c0
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+        n0 = 0
+        res = s_tft & n0
+        expected = s_fff
+        assert_series_equal(res, expected)
+
+        res = s_0123 & n0
+        expected = Series([0] * 4)
+        assert_series_equal(res, expected)
+
+        n1 = 1
+        res = s_tft & n1
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+        res = s_0123 & n1
+        expected = Series([0, 1, 0, 1])
+        assert_series_equal(res, expected)
+
+        s_1111 = Series([1]*4, dtype='int8')
+        res = s_0123 & s_1111
+        expected = Series([0, 1, 0, 1], dtype='int64')
+        assert_series_equal(res, expected)
+
+        res = s_0123.astype(np.int16) | s_1111.astype(np.int32)
+        expected = Series([1, 1, 3, 3], dtype='int32')
+        assert_series_equal(res, expected)
+
+        self.assertRaises(TypeError, lambda: s_1111 & 'a')
+        self.assertRaises(TypeError, lambda: s_1111 & ['a','b','c','d'])
+        self.assertRaises(TypeError, lambda: s_0123 & np.NaN)
+        self.assertRaises(TypeError, lambda: s_0123 & 3.14)
+        self.assertRaises(TypeError, lambda: s_0123 & [0.1, 4, 3.14, 2])
+
+        # s_0123 will be all false now because of reindexing like s_tft
+        assert_series_equal(s_tft & s_0123, Series([False] * 3, list('bca')))
+        # s_tft will be all false now because of reindexing like s_0123
+        assert_series_equal(s_0123 & s_tft, Series([False] * 4))
+        assert_series_equal(s_0123 & False, Series([False] * 4))
+        assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
+        assert_series_equal(s_0123 & [False], Series([False] * 4))
+        assert_series_equal(s_0123 & (False), Series([False] * 4))
+        assert_series_equal(s_0123 & Series([False, np.NaN, False, False]), Series([False] * 4))
+
+        s_ftft = Series([False, True, False, True])
+        assert_series_equal(s_0123 & Series([0.1, 4, -3.14, 2]), s_ftft)
+
+        s_abNd = Series(['a','b',np.NaN,'d'])
+        res = s_0123 & s_abNd
+        expected = s_ftft
+        assert_series_equal(res, expected)
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)
         s[::2] = np.nan
