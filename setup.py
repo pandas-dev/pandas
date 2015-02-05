@@ -462,6 +462,7 @@ ext_data = dict(
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c',
                        'pandas/src/period.c']},
+    period=dict(pyxfile='period'),
     index={'pyxfile': 'index',
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
