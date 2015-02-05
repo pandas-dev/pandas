@@ -77,7 +77,7 @@ Backwards incompatible API changes
      t.components
      t.components.seconds
 
-- ``Index.duplicated`` now returns `np.array(dtype=bool)` rather than `Index(dtype=object)` containing `bool` values. (:issue:`8875`)
+- ``Index.duplicated`` now returns ``np.array(dtype=bool)`` rather than ``Index(dtype=object)`` containing ``bool`` values. (:issue:`8875`)
 - ``DataFrame.to_json`` now returns accurate type serialisation for each column for frames of mixed dtype (:issue:`9037`)
 
   Previously data was coerced to a common dtype before serialisation, which for
@@ -100,13 +100,13 @@ Backwards incompatible API changes
 
 
 - Bar and horizontal bar plots no longer add a dashed line along the info axis.
-The prior style can be achieved with matplotlib's `axhline` or `axvline`
+  The prior style can be achieved with matplotlib's ``axhline`` or ``axvline``
 methods (:issue:`9088`).
 
 
 - ``Series`` now supports bitwise operation for integral types (:issue:`9016`)
 
-  Previously even if the input dtypes where integral, the output dtype was coerced to bool.
+  Previously even if the input dtypes where integral, the output dtype was coerced to ``bool``.
 
   .. code-block:: python
     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
@@ -144,22 +144,22 @@ Enhancements
 .. _whatsnew_0160.enhancements:
 
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
-- Added time interval selection in get_data_yahoo (:issue:`9071`)
-- Added ``Series.str.slice_replace()``, which previously raised NotImplementedError (:issue:`8888`)
+- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
+- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
 - ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
-- Lag parameter was added to the autocorrelation method of Series, defaults to lag-1 autocorrelation (:issue:`9192`)
-- ``Timedelta`` will now accept nanoseconds keyword in constructor (:issue:`9273`)
+- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
+- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
 - SQL code now safely escapes table and column names (:issue:`8986`)
 
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
 - Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
-``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
+  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
 
 
 
 - Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
-- ``StringMethods.pad()`` and ``center()`` now accept `fillchar` option to specify filling character (:issue:`9352`)
+- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 - Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
 
 Performance
@@ -170,7 +170,7 @@ Performance
 - Fixed a performance regression for ``.loc`` indexing with an array or list-like (:issue:`9126`:).
 - ``DataFrame.to_json`` 30x performance improvement for mixed dtype frames. (:issue:`9037`)
 - Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values (:issue:`9125`)
-- Improved the speed of `nunique` by calling `unique` instead of `value_counts` (:issue:`9129`, :issue:`7771`)
+- Improved the speed of ``nunique`` by calling ``unique`` instead of ``value_counts`` (:issue:`9129`, :issue:`7771`)
 - Performance improvement of up to 10x in ``DataFrame.count`` and ``DataFrame.dropna`` by taking advantage of homogeneous/heterogeneous dtypes appropriately (:issue:`9136`)
 - Performance improvement of up to 20x in ``DataFrame.count`` when using a ``MultiIndex`` and the ``level`` keyword argument  (:issue:`9163`)
 - Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
@@ -180,13 +180,13 @@ Bug Fixes
 
 .. _whatsnew_0160.bug_fixes:
 
-- Fixed issue using `read_csv` on s3 with Python 3.
+- Fixed issue using ``read_csv`` on s3 with Python 3.
 - Fixed compatibility issue in ``DatetimeIndex`` affecting architectures where ``numpy.int_`` defaults to ``numpy.int32`` (:issue:`8943`)
 - Bug in Panel indexing with an object-like (:issue:`9140`)
 - Bug in the returned ``Series.dt.components`` index was reset to the default index (:issue:`9247`)
 
 
-- Fixed bug in ``to_sql`` when mapping a Timestamp object column (datetime
+- Fixed bug in ``to_sql`` when mapping a ``Timestamp`` object column (datetime
   column with timezone info) to the according sqlalchemy type (:issue:`9085`).
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
   SQLAlchemy type  (:issue:`9083`).
@@ -196,7 +196,7 @@ Bug Fixes
 - Fixed bug on bug endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
-- Bug in ``pivot`` and `unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`)
+- Bug in ``pivot`` and ``unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`)
 - Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
 - Bug in ``MultiIndex`` where inserting new keys would fail (:issue:`9250`).
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
@@ -221,7 +221,7 @@ Bug Fixes
 
 
 
-- Bug in DatetimeIndex iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
+- Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
 
 
 
@@ -246,9 +246,9 @@ Bug Fixes
 
 - Bug in using grouper functions that need passed thru arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
 
-- DataFrame now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
-- Bug in read_csv when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
-- isnull now detects ``NaT`` in PeriodIndex (:issue:`9129`)
+- ``DataFrame`` now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
+- Bug in ``read_csv`` when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
+- ``isnull`` now detects ``NaT`` in ``PeriodIndex`` (:issue:`9129`)
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
 - Bug in ``DataFrame.where`` and ``Series.where`` coerce numerics to string incorrectly (:issue:`9280`)
 - Bug in ``DataFrame.where`` and ``Series.where`` raise ``ValueError`` when string list-like is passed. (:issue:`9280`)
@@ -260,7 +260,7 @@ Bug Fixes
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format wass applied. This prevented other row or column formatting being applied. (:issue:`9167`)
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
-- Bug in to_sql not storing float64 values using double precision. (:issue:`9009`)
+- Bug in ``to_sql`` not storing float64 values using double precision. (:issue:`9009`)
 
 
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
