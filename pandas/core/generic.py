@@ -3998,7 +3998,9 @@ Returns
             nanops.nanskew)
         cls.kurt = _make_stat_function(
             'kurt',
-            'Return unbiased kurtosis over requested axis\nNormalized by N-1',
+            'Return unbiased kurtosis over requested axis using Fisher''s '
+            'definition of\nkurtosis (kurtosis of normal == 0.0). Normalized '
+            'by N-1\n',
             nanops.nankurt)
         cls.kurtosis = cls.kurt
         cls.prod = _make_stat_function(

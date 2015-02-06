@@ -511,7 +511,6 @@ def nankurt(values, axis=None, skipna=True):
     D = (values ** 4).sum(axis) / count - A ** 4 - 6 * B * A * A - 4 * C * A
 
     B = _zero_out_fperr(B)
-    C = _zero_out_fperr(C)
     D = _zero_out_fperr(D)
 
     if not isinstance(B, np.ndarray):
