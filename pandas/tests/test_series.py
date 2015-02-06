@@ -3799,7 +3799,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s_tff = Series([True, False, False], index=index)
         s_empty = Series([])
         s_0101 = Series([0,1,0,1])
-        s_0123 = Series(range(4))
+        s_0123 = Series(range(4),dtype='int64')
         s_3333 = Series([3] * 4)
         s_4444 = Series([4] * 4)
 
@@ -3812,11 +3812,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(res, expected)
 
         res = s_0123 & s_3333
-        expected = Series(range(4))
+        expected = Series(range(4),dtype='int64')
         assert_series_equal(res, expected)
 
         res = s_0123 | s_4444
-        expected = Series(range(4, 8))
+        expected = Series(range(4, 8),dtype='int64')
         assert_series_equal(res, expected)
 
         s_a0b1c0 = Series([1], list('b'))
