@@ -501,6 +501,25 @@ df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
 groupby_int64_overflow = Benchmark("df.groupby(list('abcde')).max()", setup,
                                    name='groupby_int64_overflow')
 
+
+setup = common_setup + '''
+from itertools import product
+from string import ascii_letters, digits
+
+n = 5 * 7 * 11 * (1 << 9)
+alpha = list(map(''.join, product(ascii_letters + digits, repeat=4)))
+f = lambda k: np.repeat(np.random.choice(alpha, n // k), k)
+
+df = DataFrame({'a': f(11), 'b': f(7), 'c': f(5), 'd': f(1)})
+df['joe'] = (np.random.randn(len(df)) * 10).round(3)
+
+i = np.random.permutation(len(df))
+df = df.iloc[i].reset_index(drop=True).copy()
+'''
+
+groupby_multi_index = Benchmark("df.groupby(list('abcd')).max()", setup,
+                                name='groupby_multi_index')
+
 #----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 
