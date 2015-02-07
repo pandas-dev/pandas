@@ -27,19 +27,42 @@ def _get_array_list(arr, others):
 
 def str_cat(arr, others=None, sep=None, na_rep=None):
     """
-    Concatenate arrays of strings with given separator
+    Concatenate strings in the Series/Index with given separator.
 
     Parameters
     ----------
-    arr : list or array-like
-    others : list or array, or list of arrays
+    others : list-like, or list of list-likes
+      If None, returns str concatenating strings of the Series
     sep : string or None, default None
     na_rep : string or None, default None
         If None, an NA in any array will propagate
 
     Returns
     -------
-    concat : array
+    concat : Series/Index of objects or str
+
+    Examples
+    --------
+    If ``others`` is specified, corresponding values are
+    concatenated with the separator. Result will be a Series of strings.
+
+    >>> Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
+    0    a,A
+    1    b,B
+    2    c,C
+    dtype: object
+
+    Otherwise, strings in the Series are concatenated. Result will be a string.
+
+    >>> Series(['a', 'b', 'c']).str.cat(sep=',')
+    'a,b,c'
+
+    Also, you can pass a list of list-likes.
+
+    >>> Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
+    0    a,x,1
+    1    b,y,2
+    dtype: object
     """
     if sep is None:
         sep = ''
@@ -130,18 +153,17 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
 
 def str_count(arr, pat, flags=0):
     """
-    Count occurrences of pattern in each string
+    Count occurrences of pattern in each string of the Series/Index.
 
     Parameters
     ----------
-    arr : list or array-like
     pat : string, valid regular expression
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
     Returns
     -------
-    counts : arrays
+    counts : Series/Index of integer values
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
@@ -150,7 +172,8 @@ def str_count(arr, pat, flags=0):
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
-    Check whether given pattern is contained in each string in the array
+    Return boolean Series/``array`` whether given pattern/regex is
+    contained in each string in the Series/Index.
 
     Parameters
     ----------
@@ -166,7 +189,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Returns
     -------
-    Series of boolean values
+    contained : Series/array of boolean values
 
     See Also
     --------
@@ -197,8 +220,9 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
 def str_startswith(arr, pat, na=np.nan):
     """
-    Return boolean array indicating whether each string starts with passed
-    pattern
+    Return boolean Series/``array`` indicating whether each string in the
+    Series/Index starts with passed pattern. Equivalent to
+    :meth:`str.startswith`.
 
     Parameters
     ----------
@@ -208,7 +232,7 @@ def str_startswith(arr, pat, na=np.nan):
 
     Returns
     -------
-    startswith : array (boolean)
+    startswith : Series/array of boolean values
     """
     f = lambda x: x.startswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -216,8 +240,9 @@ def str_startswith(arr, pat, na=np.nan):
 
 def str_endswith(arr, pat, na=np.nan):
     """
-    Return boolean array indicating whether each string ends with passed
-    pattern
+    Return boolean Series indicating whether each string in the
+    Series/Index ends with passed pattern. Equivalent to
+    :meth:`str.endswith`.
 
     Parameters
     ----------
@@ -227,7 +252,7 @@ def str_endswith(arr, pat, na=np.nan):
 
     Returns
     -------
-    endswith : array (boolean)
+    endswith : Series/array of boolean values
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -235,7 +260,9 @@ def str_endswith(arr, pat, na=np.nan):
 
 def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
-    Replace
+    Replace occurrences of pattern/regex in the Series/Index with
+    some other string. Equivalent to :meth:`str.replace` or
+    :func:`re.sub`.
 
     Parameters
     ----------
@@ -252,7 +279,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Returns
     -------
-    replaced : array
+    replaced : Series/Index of objects
     """
     use_re = not case or len(pat) > 1 or flags
 
@@ -272,7 +299,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the array by indicated number of times
+    Duplicate each string in the Series/Index by indicated number
+    of times.
 
     Parameters
     ----------
@@ -281,7 +309,7 @@ def str_repeat(arr, repeats):
 
     Returns
     -------
-    repeated : array
+    repeated : Series/Index of objects
     """
     if np.isscalar(repeats):
         def rep(x):
@@ -305,7 +333,8 @@ def str_repeat(arr, repeats):
 
 def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     """
-    Deprecated: Find groups in each string using passed regular expression.
+    Deprecated: Find groups in each string in the Series/Index
+    using passed regular expression.
     If as_indexer=True, determine if each string matches a regular expression.
 
     Parameters
@@ -322,9 +351,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
     Returns
     -------
-    Series of boolean values
+    Series/array of boolean values
         if as_indexer=True
-    Series of tuples
+    Series/Index of tuples
         if as_indexer=False, default but deprecated
 
     See Also
@@ -359,6 +388,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
     if (not as_indexer) and regex.groups > 0:
         dtype = object
+
         def f(x):
             m = regex.match(x)
             if m:
@@ -382,7 +412,8 @@ def _get_single_group_name(rx):
 
 def str_extract(arr, pat, flags=0):
     """
-    Find groups in each string using passed regular expression
+    Find groups in each string in the Series using passed regular
+    expression.
 
     Parameters
     ----------
@@ -441,6 +472,7 @@ def str_extract(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("This pattern contains no groups to capture.")
     empty_row = [np.nan]*regex.groups
+
     def f(x):
         if not isinstance(x, compat.string_types):
             return empty_row
@@ -468,7 +500,17 @@ def str_extract(arr, pat, flags=0):
 
 def str_get_dummies(arr, sep='|'):
     """
-    Split each string by sep and return a frame of dummy/indicator variables.
+    Split each string in the Series by sep and return a frame of
+    dummy/indicator variables.
+
+    Parameters
+    ----------
+    sep : string, default "|"
+        String to split on.
+
+    Returns
+    -------
+    dummies : DataFrame
 
     Examples
     --------
@@ -478,14 +520,15 @@ def str_get_dummies(arr, sep='|'):
     1  1  0  0
     2  1  0  1
 
-    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+    >>> Series(['a|b', np.nan, 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  0  0  0
     2  1  0  1
 
-    See also ``pd.get_dummies``.
-
+    See Also
+    --------
+    pandas.get_dummies
     """
     from pandas.core.frame import DataFrame
 
@@ -511,7 +554,8 @@ def str_get_dummies(arr, sep='|'):
 
 def str_join(arr, sep):
     """
-    Join lists contained as elements in array, a la str.join
+    Join lists contained as elements in the Series/Index with
+    passed delimiter. Equivalent to :meth:`str.join`.
 
     Parameters
     ----------
@@ -520,14 +564,15 @@ def str_join(arr, sep):
 
     Returns
     -------
-    joined : array
+    joined : Series/Index of objects
     """
     return _na_map(sep.join, arr)
 
 
 def str_findall(arr, pat, flags=0):
     """
-    Find all occurrences of pattern or regular expression
+    Find all occurrences of pattern or regular expression in the
+    Series/Index. Equivalent to :func:`re.findall`.
 
     Parameters
     ----------
@@ -538,7 +583,7 @@ def str_findall(arr, pat, flags=0):
 
     Returns
     -------
-    matches : array
+    matches : Series/Index of lists
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -546,8 +591,8 @@ def str_findall(arr, pat, flags=0):
 
 def str_find(arr, sub, start=0, end=None, side='left'):
     """
-    Return indexes in each strings where the substring is
-    fully contained between [start:end]. Return -1 on failure.
+    Return indexes in each strings in the Series/Index where the
+    substring is fully contained between [start:end]. Return -1 on failure.
 
     Parameters
     ----------
@@ -562,7 +607,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
     Returns
     -------
-    found : array
+    found : Series/Index of integer values
     """
 
     if not isinstance(sub, compat.string_types):
@@ -586,11 +631,11 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings with an additional character
+    Pad strings in the Series/Index with an additional character to
+    specified side.
 
     Parameters
     ----------
-    arr : list or array-like
     width : int
         Minimum width of resulting string; additional characters will be filled
         with spaces
@@ -600,7 +645,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     Returns
     -------
-    padded : array
+    padded : Series/Index of objects
     """
 
     if not isinstance(fillchar, compat.string_types):
@@ -624,8 +669,8 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 def str_split(arr, pat=None, n=None, return_type='series'):
     """
-    Split each string (a la re.split) in array by given pattern, propagating NA
-    values
+    Split each string (a la re.split) in the Series/Index by given
+    pattern, propagating NA values. Equivalent to :meth:`str.split`.
 
     Parameters
     ----------
@@ -643,7 +688,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
 
     Returns
     -------
-    split : array
+    split : Series/Index of objects or DataFrame
     """
     from pandas.core.series import Series
     from pandas.core.frame import DataFrame
@@ -677,7 +722,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in array
+    Slice substrings from each element in the Series/Index
 
     Parameters
     ----------
@@ -687,7 +732,7 @@ def str_slice(arr, start=None, stop=None, step=None):
 
     Returns
     -------
-    sliced : array
+    sliced : Series/Index of objects
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
@@ -696,17 +741,19 @@ def str_slice(arr, start=None, stop=None, step=None):
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
     """
-    Replace a slice of each string with another string.
+    Replace a slice of each string in the Series/Index with another
+    string.
 
     Parameters
     ----------
     start : int or None
     stop : int or None
     repl : str or None
+        String for replacement
 
     Returns
     -------
-    replaced : array
+    replaced : Series/Index of objects
     """
     if repl is None:
         repl = ''
@@ -726,56 +773,35 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
     return _na_map(f, arr)
 
 
-def str_strip(arr, to_strip=None):
+def str_strip(arr, to_strip=None, side='both'):
     """
-    Strip whitespace (including newlines) from each string in the array
+    Strip whitespace (including newlines) from each string in the
+    Series/Index.
 
     Parameters
     ----------
     to_strip : str or unicode
+    side : {'left', 'right', 'both'}, default 'both'
 
     Returns
     -------
-    stripped : array
+    stripped : Series/Index of objects
     """
-    return _na_map(lambda x: x.strip(to_strip), arr)
-
-
-def str_lstrip(arr, to_strip=None):
-    """
-    Strip whitespace (including newlines) from left side of each string in the
-    array
-
-    Parameters
-    ----------
-    to_strip : str or unicode
-
-    Returns
-    -------
-    stripped : array
-    """
-    return _na_map(lambda x: x.lstrip(to_strip), arr)
-
-
-def str_rstrip(arr, to_strip=None):
-    """
-    Strip whitespace (including newlines) from right side of each string in the
-    array
-
-    Parameters
-    ----------
-    to_strip : str or unicode
-
-    Returns
-    -------
-    stripped : array
-    """
-    return _na_map(lambda x: x.rstrip(to_strip), arr)
+    if side == 'both':
+        f = lambda x: x.strip(to_strip)
+    elif side == 'left':
+        f = lambda x: x.lstrip(to_strip)
+    elif side == 'right':
+        f = lambda x: x.rstrip(to_strip)
+    else:  # pragma: no cover
+        raise ValueError('Invalid side')
+    return _na_map(f, arr)
 
 
 def str_wrap(arr, width, **kwargs):
-    r"""
-    Wrap long strings to be formatted in paragraphs.
+    """
+    Wrap long strings in the Series/Index to be formatted in
+    paragraphs with length less than a given width.
 
     This method has the same keyword parameters and defaults as
     :class:`textwrap.TextWrapper`.
@@ -787,31 +813,32 @@ def str_wrap(arr, width, **kwargs):
     expand_tabs : bool, optional
         If true, tab characters will be expanded to spaces (default: True)
     replace_whitespace : bool, optional
-        If true, each whitespace character (as defined by string.whitespace) remaining
-        after tab expansion will be replaced by a single space (default: True)
-    drop_whitespace : bool, optional
-        If true, whitespace that, after wrapping, happens to end up at the beginning
-        or end of a line is dropped (default: True)
-    break_long_words : bool, optional
-        If true, then words longer than width will be broken in order to ensure that
-        no lines are longer than width. If it is false, long words will not be broken,
-        and some lines may be longer than width. (default: True)
-    break_on_hyphens : bool, optional
-        If true, wrapping will occur preferably on whitespace and right after hyphens
-        in compound words, as it is customary in English. If false, only whitespaces
-        will be considered as potentially good places for line breaks, but you need
-        to set break_long_words to false if you want truly insecable words.
+        If true, each whitespace character (as defined by string.whitespace)
+        remaining after tab expansion will be replaced by a single space
         (default: True)
+    drop_whitespace : bool, optional
+        If true, whitespace that, after wrapping, happens to end up at the
+        beginning or end of a line is dropped (default: True)
+    break_long_words : bool, optional
+        If true, then words longer than width will be broken in order to ensure
+        that no lines are longer than width. If it is false, long words will
+        not be broken, and some lines may be longer than width. (default: True)
+    break_on_hyphens : bool, optional
+        If true, wrapping will occur preferably on whitespace and right after
+        hyphens in compound words, as it is customary in English. If false,
+        only whitespaces will be considered as potentially good places for line
+        breaks, but you need to set break_long_words to false if you want truly
+        insecable words. (default: True)
 
     Returns
     -------
-    wrapped : array
+    wrapped : Series/Index of objects
 
     Notes
     -----
-    Internally, this method uses a :class:`textwrap.TextWrapper` instance with default
-    settings. To achieve behavior matching R's stringr library str_wrap function, use
-    the arguments:
+    Internally, this method uses a :class:`textwrap.TextWrapper` instance with
+    default settings. To achieve behavior matching R's stringr library str_wrap
+    function, use the arguments:
 
     - expand_tabs = False
     - replace_whitespace = True
@@ -836,7 +863,8 @@ def str_wrap(arr, width, **kwargs):
 
 def str_get(arr, i):
     """
-    Extract element from lists, tuples, or strings in each element in the array
+    Extract element from lists, tuples, or strings in each element in the
+    Series/Index.
 
     Parameters
     ----------
@@ -845,7 +873,7 @@ def str_get(arr, i):
 
     Returns
     -------
-    items : array
+    items : Series/Index of objects
     """
     f = lambda x: x[i] if len(x) > i else np.nan
     return _na_map(f, arr)
@@ -853,7 +881,8 @@ def str_get(arr, i):
 
 def str_decode(arr, encoding, errors="strict"):
     """
-    Decode character string to unicode using indicated encoding
+    Decode character string in the Series/Index to unicode
+    using indicated encoding. Equivalent to :meth:`str.decode`.
 
     Parameters
     ----------
@@ -862,7 +891,7 @@ def str_decode(arr, encoding, errors="strict"):
 
     Returns
     -------
-    decoded : array
+    decoded : Series/Index of objects
     """
     f = lambda x: x.decode(encoding, errors)
     return _na_map(f, arr)
@@ -870,7 +899,8 @@ def str_decode(arr, encoding, errors="strict"):
 
 def str_encode(arr, encoding, errors="strict"):
     """
-    Encode character string to some other encoding using indicated encoding
+    Encode character string in the Series/Index to some other encoding
+    using indicated encoding. Equivalent to :meth:`str.encode`.
 
     Parameters
     ----------
@@ -879,7 +909,7 @@ def str_encode(arr, encoding, errors="strict"):
 
     Returns
     -------
-    encoded : array
+    encoded : Series/Index of objects
     """
     f = lambda x: x.encode(encoding, errors)
     return _na_map(f, arr)
@@ -1011,7 +1041,7 @@ class StringMethods(object):
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
         result = str_match(self.series, pat, case=case, flags=flags,
-                              na=na, as_indexer=as_indexer)
+                           na=na, as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
@@ -1031,7 +1061,8 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     _shared_docs['str_pad'] = ("""
-    Filling %s side of strings with an additional character
+    Filling %(side)s side of strings in the Series/Index with an
+    additional character. Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -1043,34 +1074,36 @@ class StringMethods(object):
 
     Returns
     -------
-    filled : array
+    filled : Series/Index of objects
     """)
 
-    @Appender(_shared_docs['str_pad'] % 'left and right')
+    @Appender(_shared_docs['str_pad'] % dict(side='left and right',
+              method='center'))
     def center(self, width, fillchar=' '):
         return self.pad(width, side='both', fillchar=fillchar)
 
-    @Appender(_shared_docs['str_pad'] % 'right')
+    @Appender(_shared_docs['str_pad'] % dict(side='right', method='right'))
     def ljust(self, width, fillchar=' '):
         return self.pad(width, side='right', fillchar=fillchar)
 
-    @Appender(_shared_docs['str_pad'] % 'left')
+    @Appender(_shared_docs['str_pad'] % dict(side='left', method='left'))
     def rjust(self, width, fillchar=' '):
         return self.pad(width, side='left', fillchar=fillchar)
 
     def zfill(self, width):
         """"
-        Filling left side with 0
+        Filling left side of strings in the Series/Index with 0.
+        Equivalent to :meth:`str.zfill`.
 
         Parameters
         ----------
         width : int
-            Minimum width of resulting string; additional characters will be filled
-            with 0
+            Minimum width of resulting string; additional characters will be
+            filled with 0
 
         Returns
         -------
-        filled : array
+        filled : Series/Index of objects
         """
         result = str_pad(self.series, width, side='left', fillchar='0')
         return self._wrap_result(result)
@@ -1095,19 +1128,31 @@ class StringMethods(object):
         result = str_encode(self.series, encoding, errors)
         return self._wrap_result(result)
 
-    @copy(str_strip)
+    _shared_docs['str_strip'] = ("""
+    Strip whitespace (including newlines) from each string in the
+    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+
+    Returns
+    -------
+    stripped : Series/Index of objects
+    """)
+
+    @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
+              method='strip'))
     def strip(self, to_strip=None):
-        result = str_strip(self.series, to_strip)
+        result = str_strip(self.series, to_strip, side='both')
         return self._wrap_result(result)
 
-    @copy(str_lstrip)
+    @Appender(_shared_docs['str_strip'] % dict(side='left side',
+              method='lstrip'))
     def lstrip(self, to_strip=None):
-        result = str_lstrip(self.series, to_strip)
+        result = str_strip(self.series, to_strip, side='left')
         return self._wrap_result(result)
 
-    @copy(str_rstrip)
+    @Appender(_shared_docs['str_strip'] % dict(side='right side',
+              method='rstrip'))
     def rstrip(self, to_strip=None):
-        result = str_rstrip(self.series, to_strip)
+        result = str_strip(self.series, to_strip, side='right')
         return self._wrap_result(result)
 
     @copy(str_wrap)
@@ -1127,9 +1172,9 @@ class StringMethods(object):
     extract = _pat_wrapper(str_extract, flags=True)
 
     _shared_docs['find'] = ("""
-    Return %(side)s indexes in each strings where the substring is
-    fully contained between [start:end]. Return -1 on failure.
-    Equivalent to standard ``str.%(method)s``.
+    Return %(side)s indexes in each strings in the Series/Index
+    where the substring is fully contained between [start:end].
+    Return -1 on failure. Equivalent to standard :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -1142,7 +1187,7 @@ class StringMethods(object):
 
     Returns
     -------
-    found : array
+    found : Series/Index of integer values
 
     See Also
     --------
@@ -1162,45 +1207,51 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Compute length of each string in array.
+    Compute length of each string in the Series/Index.
 
     Returns
     -------
-    lengths : array
+    lengths : Series/Index of integer values
     """)
     len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
 
     _shared_docs['casemethods'] = ("""
-    Convert strings in array to %(type)s.
-    Equivalent to ``str.%(method)s``.
+    Convert strings in the Series/Index to %(type)s.
+    Equivalent to :meth:`str.%(method)s`.
 
     Returns
     -------
-    converted : array
+    converted : Series/Index of objects
     """)
     _shared_docs['lower'] = dict(type='lowercase', method='lower')
     _shared_docs['upper'] = dict(type='uppercase', method='upper')
     _shared_docs['title'] = dict(type='titlecase', method='title')
-    _shared_docs['capitalize'] = dict(type='be capitalized', method='capitalize')
+    _shared_docs['capitalize'] = dict(type='be capitalized',
+                                      method='capitalize')
     _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
     lower = _noarg_wrapper(lambda x: x.lower(),
-                           docstring=_shared_docs['casemethods'] % _shared_docs['lower'])
+                           docstring=_shared_docs['casemethods'] %
+                           _shared_docs['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
-                           docstring=_shared_docs['casemethods'] % _shared_docs['upper'])
+                           docstring=_shared_docs['casemethods'] %
+                           _shared_docs['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
-                           docstring=_shared_docs['casemethods'] % _shared_docs['title'])
+                           docstring=_shared_docs['casemethods'] %
+                           _shared_docs['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
-                                docstring=_shared_docs['casemethods'] % _shared_docs['capitalize'])
+                                docstring=_shared_docs['casemethods'] %
+                                _shared_docs['capitalize'])
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
-                              docstring=_shared_docs['casemethods'] % _shared_docs['swapcase'])
+                              docstring=_shared_docs['casemethods'] %
+                              _shared_docs['swapcase'])
 
     _shared_docs['ismethods'] = ("""
-    Check whether all characters in each string in the array are %(type)s.
-    Equivalent to ``str.%(method)s``.
+    Check whether all characters in each string in the Series/Index
+    are %(type)s. Equivalent to :meth:`str.%(method)s`.
 
     Returns
     -------
-    Series of boolean values
+    is : Series/array of boolean values
     """)
     _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
     _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
@@ -1212,20 +1263,29 @@ class StringMethods(object):
     _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
     _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isalnum'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isalpha'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isdigit'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isspace'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['islower'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isupper'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['istitle'])
+                             docstring=_shared_docs['ismethods'] %
+                             _shared_docs['istitle'])
     isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isnumeric'])
+                               docstring=_shared_docs['ismethods'] %
+                               _shared_docs['isnumeric'])
     isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
-                             docstring=_shared_docs['ismethods'] % _shared_docs['isdecimal'])
+                               docstring=_shared_docs['ismethods'] %
+                               _shared_docs['isdecimal'])
