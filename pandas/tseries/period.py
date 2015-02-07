@@ -13,7 +13,9 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas.period import Period
+import pandas.period as period
 from pandas.period import (
+    get_period_field_arr,
     _validate_end_alias,
     _quarter_to_myear,
 )
@@ -32,7 +34,7 @@ from pandas.compat import zip, u
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = _gfc(self.freq)
-        return tslib.get_period_field_arr(alias, self.values, base)
+        return get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
@@ -41,7 +43,7 @@ def _field_accessor(name, alias, docstring=None):
 def _get_ordinals(data, freq):
     f = lambda x: Period(x, freq=freq).ordinal
     if isinstance(data[0], Period):
-        return tslib.extract_ordinals(data, freq)
+        return period.extract_ordinals(data, freq)
     else:
         return lib.map_infer(data, f)
 
@@ -51,7 +53,7 @@ def dt64arr_to_periodarr(data, freq, tz):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
     base, mult = _gfc(freq)
-    return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
+    return period.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 # --- Period index sketch
 
@@ -236,7 +238,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 else:
                     base1, _ = _gfc(data.freq)
                     base2, _ = _gfc(freq)
-                    data = tslib.period_asfreq_arr(data.values, base1,
+                    data = period.period_asfreq_arr(data.values, base1,
                                                    base2, 1)
             else:
                 if freq is None and len(data) > 0:
@@ -363,7 +365,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             raise ValueError('Only mult == 1 supported')
 
         end = how == 'E'
-        new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
+        new_data = period.period_asfreq_arr(self.values, base1, base2, end)
         return self._simple_new(new_data, self.name, freq=freq)
 
     def to_datetime(self, dayfirst=False):
@@ -431,7 +433,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        new_data = tslib.periodarr_to_dt64arr(new_data.values, base)
+        new_data = period.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def _add_delta(self, other):
@@ -881,7 +883,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
-            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
+            val = period.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)
@@ -890,7 +892,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):
-            ordinals.append(tslib.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
+            ordinals.append(period.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq
 

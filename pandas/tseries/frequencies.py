@@ -12,6 +12,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
+import pandas.period as period
 from pandas.tslib import Timedelta
 
 class FreqGroup(object):
@@ -31,12 +32,12 @@ class FreqGroup(object):
 
 class Resolution(object):
 
-    RESO_US = tslib.US_RESO
-    RESO_MS = tslib.MS_RESO
-    RESO_SEC = tslib.S_RESO
-    RESO_MIN = tslib.T_RESO
-    RESO_HR = tslib.H_RESO
-    RESO_DAY = tslib.D_RESO
+    RESO_US = period.US_RESO
+    RESO_MS = period.MS_RESO
+    RESO_SEC = period.S_RESO
+    RESO_MIN = period.T_RESO
+    RESO_HR = period.H_RESO
+    RESO_DAY = period.D_RESO
 
     _reso_str_map = {
     RESO_US: 'microsecond',
