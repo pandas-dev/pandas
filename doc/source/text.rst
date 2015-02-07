@@ -233,6 +233,8 @@ Method Summary
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
     :meth:`~Series.str.find`,Equivalent to ``str.find``
     :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
+    :meth:`~Series.str.capicalize`,Equivalent to ``str.capitalize``
+    :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
     :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``

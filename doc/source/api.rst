@@ -521,6 +521,7 @@ strings and apply several methods to it. These can be acccessed like
    :toctree: generated/
    :template: autosummary/accessor_method.rst
 
+   Series.str.capitalize
    Series.str.cat
    Series.str.center
    Series.str.contains
@@ -549,6 +550,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.split
    Series.str.startswith
    Series.str.strip
+   Series.str.swapcase
    Series.str.title
    Series.str.upper
    Series.str.zfill

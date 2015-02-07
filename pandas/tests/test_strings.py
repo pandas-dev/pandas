@@ -328,6 +328,53 @@ class TestStringMethods(tm.TestCase):
         result = result.str.lower()
         tm.assert_series_equal(result, values)
 
+    def test_capitalize(self):
+        values = Series(["FOO", "BAR", NA, "Blah", "blurg"])
+        result = values.str.capitalize()
+        exp = Series(["Foo", "Bar", NA, "Blah", "Blurg"])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(["FOO", NA, "bar", True, datetime.today(),
+                        "blah", None, 1, 2.])
+        mixed = mixed.str.capitalize()
+        exp = Series(["Foo", NA, "Bar", NA, NA, "Blah", NA, NA, NA])
+        tm.assert_almost_equal(mixed, exp)
+
+        # unicode
+        values = Series([u("FOO"), NA, u("bar"), u("Blurg")])
+        results = values.str.capitalize()
+        exp = Series([u("Foo"), NA, u("Bar"), u("Blurg")])
+        tm.assert_series_equal(results, exp)
+
+    def test_swapcase(self):
+        values = Series(["FOO", "BAR", NA, "Blah", "blurg"])
+        result = values.str.swapcase()
+        exp = Series(["foo", "bar", NA, "bLAH", "BLURG"])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(["FOO", NA, "bar", True, datetime.today(),
+                        "Blah", None, 1, 2.])
+        mixed = mixed.str.swapcase()
+        exp = Series(["foo", NA, "BAR", NA, NA, "bLAH", NA, NA, NA])
+        tm.assert_almost_equal(mixed, exp)
+
+        # unicode
+        values = Series([u("FOO"), NA, u("bar"), u("Blurg")])
+        results = values.str.swapcase()
+        exp = Series([u("foo"), NA, u("BAR"), u("bLURG")])
+        tm.assert_series_equal(results, exp)
+
+    def test_casemethods(self):
+        values = ['aaa', 'bbb', 'CCC', 'Dddd', 'eEEE']
+        s = Series(values)
+        self.assertEqual(s.str.lower().tolist(), [v.lower() for v in values])
+        self.assertEqual(s.str.upper().tolist(), [v.upper() for v in values])
+        self.assertEqual(s.str.title().tolist(), [v.title() for v in values])
+        self.assertEqual(s.str.capitalize().tolist(), [v.capitalize() for v in values])
+        self.assertEqual(s.str.swapcase().tolist(), [v.swapcase() for v in values])
+
     def test_replace(self):
         values = Series(['fooBAD__barBAD', NA])
 
@@ -636,6 +683,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.istitle())
         tm.assert_series_equal(empty_str, empty.str.isnumeric())
         tm.assert_series_equal(empty_str, empty.str.isdecimal())
+        tm.assert_series_equal(empty_str, empty.str.capitalize())
+        tm.assert_series_equal(empty_str, empty.str.swapcase())
 
     def test_ismethods(self):
         values = ['A', 'b', 'Xy', '4', '3A', '', 'TT', '55', '-', '  ']

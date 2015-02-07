@@ -17,6 +17,8 @@ We recommend that all users upgrade to this version.
 Enhancements
 ~~~~~~~~~~~~
 
+- Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
+
 
 
 
@@ -58,7 +60,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated. 
+- Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 
 
 

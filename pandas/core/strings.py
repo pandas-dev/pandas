@@ -1157,18 +1157,28 @@ class StringMethods(object):
     len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
 
     _shared_docs['casemethods'] = ("""
-    Convert strings in array to %s
+    Convert strings in array to %(type)s.
+    Equivalent to ``str.%(method)s``.
 
     Returns
     -------
-    uppercase : array
+    converted : array
     """)
+    _shared_docs['lower'] = dict(type='lowercase', method='lower')
+    _shared_docs['upper'] = dict(type='uppercase', method='upper')
+    _shared_docs['title'] = dict(type='titlecase', method='title')
+    _shared_docs['capitalize'] = dict(type='be capitalized', method='capitalize')
+    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
     lower = _noarg_wrapper(lambda x: x.lower(),
-                           docstring=_shared_docs['casemethods'] % 'lowercase')
+                           docstring=_shared_docs['casemethods'] % _shared_docs['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
-                           docstring=_shared_docs['casemethods'] % 'uppercase')
+                           docstring=_shared_docs['casemethods'] % _shared_docs['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
-                           docstring=_shared_docs['casemethods'] % 'titlecase')
+                           docstring=_shared_docs['casemethods'] % _shared_docs['title'])
+    capitalize = _noarg_wrapper(lambda x: x.capitalize(),
+                                docstring=_shared_docs['casemethods'] % _shared_docs['capitalize'])
+    swapcase = _noarg_wrapper(lambda x: x.swapcase(),
+                              docstring=_shared_docs['casemethods'] % _shared_docs['swapcase'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string in the array are %(type)s.
