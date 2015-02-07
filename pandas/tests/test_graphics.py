@@ -2353,10 +2353,9 @@ class TestDataFramePlots(TestPlotBase):
         tm._skip_if_no_scipy()
 
         df = DataFrame(randn(100, 2))
-        import pandas.tools.plotting as plt
 
         def scat(**kwds):
-            return plt.scatter_matrix(df, **kwds)
+            return plotting.scatter_matrix(df, **kwds)
 
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
@@ -2369,11 +2368,32 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(scat, range_padding=.1)
 
         def scat2(x, y, by=None, ax=None, figsize=None):
-            return plt.scatter_plot(df, x, y, by, ax, figsize=None)
+            return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, 0, 1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
+
+    def test_scatter_matrix_axis(self):
+        tm._skip_if_no_scipy()
+        scatter_matrix = plotting.scatter_matrix
+
+        with tm.RNGContext(42):
+            df = DataFrame(randn(100, 3))
+
+        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes0_labels = axes[0][0].yaxis.get_majorticklabels()
+        # GH 5662
+        expected = ['-2', '-1', '0', '1', '2']
+        self._check_text_labels(axes0_labels, expected)
+        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+
+        df[0] = ((df[0] - 2) / 3)
+        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes0_labels = axes[0][0].yaxis.get_majorticklabels()
+        expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
+        self._check_text_labels(axes0_labels, expected)
+        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @slow
     def test_andrews_curves(self):
