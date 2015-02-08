@@ -2272,7 +2272,7 @@ def _plot(data, x=None, y=None, subplots=False,
     if kind in _all_kinds:
         klass = _plot_klass[kind]
     else:
-        raise ValueError('Invalid chart type given %s' % kind)
+        raise ValueError("%r is not a valid plot kind" % kind)
 
     from pandas import DataFrame
     if kind in _dataframe_kinds:
@@ -2280,7 +2280,8 @@ def _plot(data, x=None, y=None, subplots=False,
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
-            raise ValueError('Invalid chart type given %s' % kind)
+            raise ValueError("plot kind %r can only be used for data frames"
+                             % kind)
 
     elif kind in _series_kinds:
         if isinstance(data, DataFrame):
