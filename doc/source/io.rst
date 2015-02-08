@@ -3368,7 +3368,8 @@ The key functions are:
     The function :func:`~pandas.read_sql` is a convenience wrapper around
     :func:`~pandas.read_sql_table` and :func:`~pandas.read_sql_query` (and for
     backward compatibility) and will delegate to specific function depending on
-    the provided input (database table name or sql query).
+    the provided input (database table name or sql query). 
+    Table names do not need to be quoted if they have special characters.
 
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
