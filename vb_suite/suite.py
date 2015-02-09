@@ -6,6 +6,7 @@ import os
 modules = ['attrs_caching',
            'binary_ops',
            'ctors',
+           'factorize',
            'frame_ctor',
            'frame_methods',
            'groupby',

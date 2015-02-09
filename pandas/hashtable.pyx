@@ -1,4 +1,5 @@
-from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
+from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check,
+                      PyString_AsStringAndSize, PyDict_Copy)
 
 from khash cimport *
 from numpy cimport *
@@ -842,6 +843,127 @@ cdef class PyObjectHashTable(HashTable):
                 count += 1
 
         return labels
+
+
+cdef inline cbuf_t to_cbuf(object s):
+    cdef cbuf_t output
+    PyString_AsStringAndSize(s, <char**>&output.buf, &output.len)
+    return output
+
+
+cdef class CBufHashTable(HashTable):
+    cdef kh_cbuf_map_t *table
+
+    def __cinit__(self, int size_hint=1):
+        self.table = kh_init_cbuf_map()
+        if size_hint is not None:
+            kh_resize_cbuf_map(self.table, size_hint)
+
+    def __dealloc__(self):
+        kh_destroy_cbuf_map(self.table)
+
+    cdef inline int check_type(self, object val):
+        return util.is_string_object(val)
+
+    cpdef get_item(self, object val):
+        cdef khiter_t it
+        it = kh_get_cbuf_map(self.table, to_cbuf(val))
+        if it != self.table.n_buckets:
+            return self.table.vals[it]
+        else:
+            raise KeyError(val)
+
+    def get_iter_test(self, object key, Py_ssize_t iterations):
+        cdef khiter_t it
+        cdef Py_ssize_t i, val
+        for i in range(iterations):
+            it = kh_get_cbuf_map(self.table, to_cbuf(key))
+            if it != self.table.n_buckets:
+                val = self.table.vals[it]
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        cdef:
+            khiter_t it
+            int ret = 0
+            cbuf_t buf
+
+        buf = to_cbuf(key)
+
+        it = kh_put_cbuf_map(self.table, buf, &ret)
+        self.table.keys[it] = buf
+        if kh_exist_cbuf_map(self.table, it):
+            self.table.vals[it] = val
+        else:
+            raise KeyError(key)
+
+    def get_indexer(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
+            cbuf_t buf
+            int64_t[::1] out = labels
+            khiter_t it
+            kh_cbuf_map_t *table = self.table
+
+        for i in range(n):
+            buf = to_cbuf(values[i])
+            it = kh_get_cbuf_map(table, buf)
+            if it != table.n_buckets:
+                out[i] = table.vals[it]
+            else:
+                out[i] = -1
+        return labels
+
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = 0
+            int ret = 0
+            object val
+            cbuf_t buf
+            khiter_t it
+            ObjectVector uniques = ObjectVector()
+
+        for i in range(n):
+            val = values[i]
+            buf = to_cbuf(val)
+            it = kh_get_cbuf_map(self.table, buf)
+            if it == self.table.n_buckets:
+                it = kh_put_cbuf_map(self.table, buf, &ret)
+                count += 1
+                uniques.append(val)
+
+        return uniques.to_array()
+
+    def factorize(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
+            list reverse = []
+            Py_ssize_t idx, count = 0
+            int ret = 0
+            object val
+            cbuf_t buf
+            khiter_t it
+
+        for i in range(n):
+            val = values[i]
+            buf = to_cbuf(val)
+            it = kh_get_cbuf_map(self.table, buf)
+            if it != self.table.n_buckets:
+                idx = self.table.vals[it]
+                labels[i] = idx
+            else:
+                it = kh_put_cbuf_map(self.table, buf, &ret)
+
+                self.table.vals[it] = count
+                reverse.append(val)
+                labels[i] = count
+                count += 1
+
+        return PyDict_Copy(enumerate(reverse)), labels
+
+
 
 
 cdef class Factorizer:

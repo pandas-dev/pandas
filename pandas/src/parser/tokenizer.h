@@ -33,7 +33,7 @@ See LICENSE for the license
 #include <stdint.h>
 #endif
 
-#include "khash.h"
+#include "khash_python.h"
 
 #define CHUNKSIZE 1024*256
 #define KB 1024

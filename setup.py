@@ -275,7 +275,7 @@ class CleanCommand(Command):
                                'JSONtoObj.c',
                                'ultrajsonenc.c',
                                'ultrajsondec.c',
-                               ]
+                               'xxhash.c']
 
         for root, dirs, files in os.walk('pandas'):
             for f in files:
@@ -452,7 +452,11 @@ ext_data = dict(
          'pxdfiles': [],
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
-               'pxdfiles': ['hashtable']},
+               'pxdfiles': ['hashtable'],
+               'depends': ['pandas/src/xxhash/xxhash.h',
+                           'pandas/src/klib/khash_python.h',
+                           'pandas/src/klib/khash.h'],
+               'sources': ['pandas/src/xxhash/xxhash.c']},
     tslib={'pyxfile': 'tslib',
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
@@ -467,9 +471,14 @@ ext_data = dict(
     parser=dict(pyxfile='parser',
                 depends=['pandas/src/parser/tokenizer.h',
                          'pandas/src/parser/io.h',
-                         'pandas/src/numpy_helper.h'],
+                         'pandas/src/numpy_helper.h',
+                         'pandas/src/xxhash/xxhash.h',
+                         'pandas/src/klib/khash_python.h',
+                         'pandas/src/klib/khash.h'],
                 sources=['pandas/src/parser/tokenizer.c',
-                         'pandas/src/parser/io.c'])
+                         'pandas/src/parser/io.c',
+                         'pandas/src/xxhash/xxhash.c'],
+                libraries=['hashtable'])
 )
 
 extensions = []
