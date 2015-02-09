@@ -53,6 +53,12 @@ def _indexOp(opname):
         func = getattr(self._data.view(np.ndarray), opname)
         result = func(np.asarray(other))
 
+        # This is required because Numpy has a nasty bug:
+        # https://github.com/numpy/numpy/issues/2091
+        if result == np.array(NotImplemented):
+            msg = 'This operation cannot be performed using numpy because of a nasty bug: https://github.com/numpy/numpy/issues/2091.'
+            raise NotImplementedError(msg, (self, other, opname))
+
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
         if com.is_bool_dtype(result):
