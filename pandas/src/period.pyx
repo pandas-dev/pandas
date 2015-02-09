@@ -1,6 +1,11 @@
 from datetime import datetime, date, timedelta
 import operator
 
+from cpython cimport (
+    PyObject_RichCompareBool,
+    Py_EQ, Py_NE,
+)
+
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
@@ -27,6 +32,7 @@ from tslib cimport (
     _is_utc,
     _is_tzlocal,
     _get_dst_info,
+    _nat_scalar_rules,
 )
 
 from sys import version_info
@@ -615,7 +621,7 @@ def _period_field_accessor(name, alias):
     return property(f)
 
 
-class Period(object):
+cdef class Period(object):
     """
     Represents an period of time
 
@@ -634,14 +640,17 @@ class Period(object):
     minute : int, default 0
     second : int, default 0
     """
-    __slots__ = ['freq', 'ordinal']
+    cdef public:
+        int64_t ordinal
+        object freq
+
     _comparables = ['name','freqstr']
     _typ = 'period'
 
     @classmethod
     def _from_ordinal(cls, ordinal, freq):
         """ fast creation from an ordinal and freq that are already validated! """
-        self = object.__new__(cls)
+        self = Period.__new__(cls)
         self.ordinal = ordinal
         self.freq = freq
         return self
@@ -659,7 +668,6 @@ class Period(object):
         self.freq = None
 
         # ordinal is the period offset from the gregorian proleptic epoch
-        self.ordinal = None
 
         if ordinal is not None and value is not None:
             raise ValueError(("Only value or ordinal but not both should be "
@@ -669,26 +677,25 @@ class Period(object):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
                 raise ValueError('Must supply freq for ordinal value')
-            self.ordinal = ordinal
 
         elif value is None:
             if freq is None:
                 raise ValueError("If value is None, freq cannot be None")
 
-            self.ordinal = _ordinal_from_fields(year, month, quarter, day,
+            ordinal = _ordinal_from_fields(year, month, quarter, day,
                                                 hour, minute, second, freq)
 
         elif isinstance(value, Period):
             other = value
             if freq is None or _gfc(freq) == _gfc(other.freq):
-                self.ordinal = other.ordinal
+                ordinal = other.ordinal
                 freq = other.freq
             else:
                 converted = other.asfreq(freq)
-                self.ordinal = converted.ordinal
+                ordinal = converted.ordinal
 
         elif lib.is_null_datetimelike(value) or value in tslib._nat_strings:
-            self.ordinal = tslib.iNaT
+            ordinal = tslib.iNaT
             if freq is None:
                 raise ValueError("If value is NaT, freq cannot be None "
                                  "because it cannot be inferred")
@@ -722,26 +729,30 @@ class Period(object):
             # TODO: Better error message - this is slightly confusing
             raise ValueError('Only mult == 1 supported')
 
-        if self.ordinal is None:
-            self.ordinal = period_ordinal(dt.year, dt.month, dt.day,
+        if ordinal is None:
+            self.ordinal = get_period_ordinal(dt.year, dt.month, dt.day,
                                                 dt.hour, dt.minute, dt.second, dt.microsecond, 0,
                                                 base)
+        else:
+            self.ordinal = ordinal
 
         self.freq = frequencies._get_freq_str(base)
 
-    def __eq__(self, other):
+    def __richcmp__(self, other, op):
         if isinstance(other, Period):
             from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
                 raise ValueError("Cannot compare non-conforming periods")
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
-                return False
-            return (self.ordinal == other.ordinal
-                    and _gfc(self.freq) == _gfc(other.freq))
-        return NotImplemented
-
-    def __ne__(self, other):
-        return not self == other
+                return _nat_scalar_rules[op]
+            return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+        else:
+            if op == Py_EQ:
+                return NotImplemented
+            elif op == Py_NE:
+                return NotImplemented
+            raise TypeError('Cannot compare type %r with type %r' %
+                            (type(self).__name__, type(other).__name__))
 
     def __hash__(self):
         return hash((self.ordinal, self.freq))
@@ -806,25 +817,6 @@ class Period(object):
             return self.ordinal - other.ordinal
         else:  # pragma: no cover
             return NotImplemented
-
-    def _comp_method(func, name):
-        def f(self, other):
-            if isinstance(other, Period):
-                if other.freq != self.freq:
-                    raise ValueError("Cannot compare non-conforming periods")
-                if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
-                    return False
-                return func(self.ordinal, other.ordinal)
-            else:
-                raise TypeError(other)
-
-        f.__name__ = name
-        return f
-
-    __lt__ = _comp_method(operator.lt, '__lt__')
-    __le__ = _comp_method(operator.le, '__le__')
-    __gt__ = _comp_method(operator.gt, '__gt__')
-    __ge__ = _comp_method(operator.ge, '__ge__')
 
     def asfreq(self, freq, how='E'):
         """
@@ -1094,7 +1086,7 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
-    return period_ordinal(year, month, day, hour, minute, second, 0, 0, base)
+    return get_period_ordinal(year, month, day, hour, minute, second, 0, 0, base)
 
 
 def _quarter_to_myear(year, quarter, freq):
