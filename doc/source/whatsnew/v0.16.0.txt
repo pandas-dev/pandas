@@ -190,6 +190,14 @@ Enhancements
 - Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
 
 - Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
+- The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
+  
+.. code-block:: python
+
+   # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
+   pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3]) 
+  
+- A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
 - Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
 - ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 - Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
