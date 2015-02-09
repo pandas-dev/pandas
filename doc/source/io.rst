@@ -3937,12 +3937,12 @@ And here's the code
        if os.path.exists('test.sql'):
            os.remove('test.sql')
        sql_db = sqlite3.connect('test.sql')
-       sql.write_frame(df, name='test_table', con=sql_db)
+       df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
 
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
-       sql.read_frame("select * from test_table", sql_db)
+       pd.read_sql_query("select * from test_table", sql_db)
        sql_db.close()
 
    def test_hdf_fixed_write(df):
