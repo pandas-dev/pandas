@@ -107,6 +107,15 @@ class TestGroupBy(tm.TestCase):
                                       'E': np.random.randn(11),
                                       'F': np.random.randn(11)})
 
+        index = MultiIndex(levels=[[1, 2], [1, 2]],
+                           labels=[[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]],
+                           names=['a', 'b'])
+        self.mseries = Series([0, 1, 2, 3, 4, 5], index=index)
+        index = MultiIndex(levels=[[1, 2], [1, 2]],
+                           labels=[[0, 0, 1], [1, 0, 0]],
+                           names=['a', 'b'])
+        self.mseries_result = Series([0, 2, 4], index=index)
+
     def test_basic(self):
 
         def checkit(dtype):
@@ -4888,6 +4897,14 @@ class TestGroupBy(tm.TestCase):
         gb2 = df2.groupby('a')
         expected = gb2.transform('mean')
         tm.assert_frame_equal(result, expected)
+
+    def test_groupby_sort_multiindex_series(self):
+        # series multiindex groupby sort argument was not being passed through _compress_group_index
+        # GH 9444
+        result = self.mseries.groupby(level=['a', 'b'], sort=False).first()
+        assert_series_equal(result, self.mseries_result)
+        result = self.mseries.groupby(level=['a', 'b'], sort=True).first()
+        assert_series_equal(result, self.mseries_result.sort_index())
 
     def test_groupby_categorical_two_columns(self):
 

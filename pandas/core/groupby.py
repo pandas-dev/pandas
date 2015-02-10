@@ -1378,7 +1378,7 @@ class BaseGrouper(object):
         else:
             if len(all_labels) > 1:
                 group_index = get_group_index(all_labels, self.shape)
-                comp_ids, obs_group_ids = _compress_group_index(group_index)
+                comp_ids, obs_group_ids = _compress_group_index(group_index, sort=self.sort)
             else:
                 ping = self.groupings[0]
                 comp_ids = ping.labels

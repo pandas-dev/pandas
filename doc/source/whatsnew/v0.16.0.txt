@@ -258,3 +258,4 @@ Bug Fixes
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
 - Bug in to_sql not storing float64 values using double precision. (:issue:`9009`)
+- Fixed bug in ``Series.groupby`` where grouping on ``MultiIndex`` levels would ignore the sort argument (:issue:`9444`)
