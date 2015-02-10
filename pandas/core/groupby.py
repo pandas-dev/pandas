@@ -1862,7 +1862,6 @@ class Grouping(object):
             self.grouper = grouper.values
 
         # pre-computed
-        self._was_factor = False
         self._should_compress = True
 
         # we have a single grouper which may be a myriad of things, some of which are
@@ -1887,8 +1886,6 @@ class Grouping(object):
                 level_values = index.levels[level].take(inds)
                 self.grouper = level_values.map(self.grouper)
             else:
-                self._was_factor = True
-
                 # all levels may not be observed
                 labels, uniques = algos.factorize(inds, sort=True)
 
@@ -1913,17 +1910,10 @@ class Grouping(object):
 
             # a passed Categorical
             elif isinstance(self.grouper, Categorical):
-
-                factor = self.grouper
-                self._was_factor = True
-
-                # Is there any way to avoid this?
-                self.grouper = np.asarray(factor)
-
-                self._labels = factor.codes
-                self._group_index = factor.categories
+                self._labels = self.grouper.codes
+                self._group_index = self.grouper.categories
                 if self.name is None:
-                    self.name = factor.name
+                    self.name = self.grouper.name
 
             # a passed Grouper like
             elif isinstance(self.grouper, Grouper):
@@ -1936,8 +1926,8 @@ class Grouping(object):
                     self.name = grouper.name
 
             # no level passed
-            if not isinstance(self.grouper, (Series, Index, np.ndarray)):
-                if getattr(self.grouper,'ndim', 1) != 1:
+            if not isinstance(self.grouper, (Series, Index, Categorical, np.ndarray)):
+                if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)
                 self.grouper = self.index.map(self.grouper)
@@ -1988,21 +1978,15 @@ class Grouping(object):
         return self._group_index
 
     def _make_labels(self):
-        if self._was_factor:  # pragma: no cover
-            raise Exception('Should not call this method grouping by level')
-        else:
+        if self._labels is None or self._group_index is None:
             labels, uniques = algos.factorize(self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
 
-    _groups = None
-
-    @property
+    @cache_readonly
     def groups(self):
-        if self._groups is None:
-            self._groups = self.index.groupby(self.grouper)
-        return self._groups
+        return self.index.groupby(self.grouper)
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     """
@@ -3238,10 +3222,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return result
         elif len(groupings) == 1:
             return result
-        elif not any([ping._was_factor for ping in groupings]):
+        elif not any([isinstance(ping.grouper, Categorical)
+                      for ping in groupings]):
             return result
 
-        levels_list = [ ping._group_index for ping in groupings ]
+        levels_list = [ ping.group_index for ping in groupings ]
         index = MultiIndex.from_product(levels_list, names=self.grouper.names)
         d = { self.obj._get_axis_name(self.axis) : index, 'copy' : False }
         return result.reindex(**d).sortlevel(axis=self.axis)
