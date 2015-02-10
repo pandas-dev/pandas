@@ -238,3 +238,5 @@ Method Summary
     :meth:`~Series.str.islower`,Equivalent to ``str.islower``
     :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
     :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``
+    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isnumeric``
+    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isdecimal``
