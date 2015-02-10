@@ -207,6 +207,31 @@ class TestCommon(unittest.TestCase):
             result = com.load_data(name)
             assert np.equal(result, factors)
 
+    def test_pandas_constructor_compat(self):
+        """
+        test that rpy2 SexpVector get handled by Pandas object constructors
+        """
+        types = [pd.Series, pd.DataFrame, pd.Panel]
+        rnorm = r['rnorm']
+        for typ in types:
+            shape = typ._AXIS_LEN * [10]
+            N = 10 ** typ._AXIS_LEN
+
+            # create array on the R side
+            r_cmd = "test_arr = rnorm({N}); dim(test_arr) = c({shape});test_arr"
+            r_cmd = r_cmd.format(N=N, shape=','.join(map(str, shape)))
+            test_arr = r(r_cmd)
+
+            # numpy.array handles array interfaces correctly
+            npy_arr = np.array(test_arr)
+            assert npy_arr.ndim == typ._AXIS_LEN
+            assert npy_arr.size == N
+
+            assert isinstance(test_arr, robj.SexpVector)
+            pobj = typ(test_arr)
+            tm.assert_almost_equal(pobj.values, np.array(test_arr))
+            tm.assert_almost_equal(pobj.values, npy_arr)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    # '--with-coverage', '--cover-package=pandas.core'],
