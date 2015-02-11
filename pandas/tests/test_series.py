@@ -4006,6 +4006,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.idxmin()
         self.assertEqual(result, 1.1)
 
+    def test_idxnonzero(self):
+
+        dat = pd.Series(index=list("abcde"), data=[0, 1, 2, "3", False])
+        self.assertEqual(dat.idxnonzero().tolist(), list("bcd"))
+        self.assertTrue(pd.Index([]).identical( (dat==5).idxnonzero() ))
+
     def test_ndarray_compat(self):
 
         # test numpy compat with Series as sub-class of NDFrame
