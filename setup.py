@@ -265,31 +265,28 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
-        self._clean_exclude = ['np_datetime.c',
-                               'np_datetime_strings.c',
-                               'period.c',
-                               'tokenizer.c',
-                               'io.c',
-                               'ujson.c',
-                               'objToJSON.c',
-                               'JSONtoObj.c',
-                               'ultrajsonenc.c',
-                               'ultrajsondec.c',
+        self._clean_exclude = ['pandas/src/datetime/np_datetime.c',
+                               'pandas/src/datetime/np_datetime_strings.c',
+                               'pandas/src/period.c',
+                               'pandas/src/parser/tokenizer.c',
+                               'pandas/src/parser/io.c',
+                               'pandas/src/ujson/python/ujson.c',
+                               'pandas/src/ujson/python/objToJSON.c',
+                               'pandas/src/ujson/python/JSONtoObj.c',
+                               'pandas/src/ujson/lib/ultrajsonenc.c',
+                               'pandas/src/ujson/lib/ultrajsondec.c',
                                ]
 
         for root, dirs, files in os.walk('pandas'):
             for f in files:
-                if f in self._clean_exclude:
-                    continue
-
-                # XXX
-                if 'ujson' in f:
+                filepath = pjoin(root, f)
+                if filepath in self._clean_exclude:
                     continue
 
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyo',
                                                '.pyd', '.c', '.orig'):
-                    self._clean_me.append(pjoin(root, f))
+                    self._clean_me.append(filepath)
             for d in dirs:
                 if d == '__pycache__':
                     self._clean_trees.append(pjoin(root, d))
