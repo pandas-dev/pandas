@@ -237,6 +237,7 @@ Bug Fixes
 
 
 - Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
+- Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)
 
 
 
