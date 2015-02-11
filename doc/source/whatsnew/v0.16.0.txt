@@ -228,7 +228,7 @@ Bug Fixes
 
 
 
-
+- Bug in binary operator method (eg ``.mul()``) alignment with integer levels (:issue:`9463`).
 
 
 
