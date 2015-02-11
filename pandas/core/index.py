@@ -55,9 +55,17 @@ def _indexOp(opname):
 
         # This is required because Numpy has a nasty bug:
         # https://github.com/numpy/numpy/issues/2091
-        if result == np.array(NotImplemented):
-            msg = 'This operation cannot be performed using numpy because of a nasty bug: https://github.com/numpy/numpy/issues/2091.'
-            raise NotImplementedError(msg, (self, other, opname))
+        # It can be removed if the test test_index/Base/test_numpy_bug_triggered_with__eq__
+        # no longer covers this code.
+        try:
+            if result == np.array(NotImplemented):
+                url = 'https://github.com/numpy/numpy/issues/2091'
+                msg = 'This operation cannot be performed using numpy because of a nasty bug: {}'.format(url)
+                raise NotImplementedError(msg, (self, other, opname))
+        except NotImplementedError as e:
+            raise(e)
+        except Exception:
+            pass
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
