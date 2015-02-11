@@ -408,19 +408,19 @@ class TestDateRange(tm.TestCase):
         end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
 
         dr = date_range(start=start, periods=3)
-        self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertTrue(dr.tz == tz('US/Eastern'))
+        self.assertTrue(dr[0] == start)
+        self.assertTrue(dr[2] == end)
 
         dr = date_range(end=end, periods=3)
-        self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertTrue(dr.tz == tz('US/Eastern'))
+        self.assertTrue(dr[0] == start)
+        self.assertTrue(dr[2] == end)
 
         dr = date_range(start=start, end=end)
-        self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertTrue(dr.tz == tz('US/Eastern'))
+        self.assertTrue(dr[0] == start)
+        self.assertTrue(dr[2] == end)
 
     def test_month_range_union_tz_pytz(self):
         tm._skip_if_no_pytz()

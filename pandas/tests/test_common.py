@@ -955,7 +955,7 @@ class TestMaybe(tm.TestCase):
         self.assertTrue(result.dtype == object)
 
         result = com._maybe_convert_string_to_object(1)
-        self.assertEquals(result, 1)
+        self.assertEqual(result, 1)
 
         arr = np.array(['x', 'y'], dtype=str)
         result = com._maybe_convert_string_to_object(arr)

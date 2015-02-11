@@ -303,14 +303,14 @@ class CheckNameIntegration(object):
         df = pd.DataFrame({'i':[0]*3, 'b':[False]*3})
         vc = df.i.value_counts()
         result = vc.get(99,default='Missing')
-        self.assertEquals(result,'Missing')
+        self.assertEqual(result,'Missing')
 
         vc = df.b.value_counts()
         result = vc.get(False,default='Missing')
-        self.assertEquals(result,3)
+        self.assertEqual(result,3)
 
         result = vc.get(True,default='Missing')
-        self.assertEquals(result,'Missing')
+        self.assertEqual(result,'Missing')
 
     def test_delitem(self):
 
@@ -2240,7 +2240,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # 1 - element series with ddof=1
         s = self.ts.iloc[[0]]
         result = s.sem(ddof=1)
-        self.assert_(isnull(result))
+        self.assertTrue(isnull(result))
 
     def test_skew(self):
         tm._skip_if_no_scipy()
@@ -2606,7 +2606,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(['abc', True])
-        self.assertEquals('abc', s.any())  # 'abc' || True => 'abc'
+        self.assertEqual('abc', s.any())  # 'abc' || True => 'abc'
 
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.
@@ -6414,17 +6414,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_autocorr(self):
         # Just run the function
         corr1 = self.ts.autocorr()
-        
+
         # Now run it with the lag parameter
         corr2 = self.ts.autocorr(lag=1)
-        
+
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
             self.assertTrue(np.isnan(corr1))
             self.assertTrue(np.isnan(corr2))
         else:
             self.assertEqual(corr1, corr2)
-        
+
         # Choose a random lag between 1 and length of Series - 2
         # and compare the result with the Series corr() function
         n = 1 + np.random.randint(max(1, len(self.ts) - 2))

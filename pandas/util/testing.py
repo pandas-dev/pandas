@@ -42,6 +42,7 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex
+from pandas.util.decorators import deprecate
 
 from pandas import _testing
 
@@ -96,6 +97,23 @@ class TestCase(unittest.TestCase):
         with ensure_clean(path) as path:
             pd.to_pickle(obj, path)
             return pd.read_pickle(path)
+
+    # https://docs.python.org/3/library/unittest.html#deprecated-aliases
+    def assertEquals(self, *args, **kwargs):
+        return deprecate('assertEquals', self.assertEqual)(*args, **kwargs)
+
+    def assertNotEquals(self, *args, **kwargs):
+        return deprecate('assertNotEquals', self.assertNotEqual)(*args, **kwargs)
+
+    def assert_(self, *args, **kwargs):
+        return deprecate('assert_', self.assertTrue)(*args, **kwargs)
+
+    def assertAlmostEquals(self, *args, **kwargs):
+        return deprecate('assertAlmostEquals', self.assertAlmostEqual)(*args, **kwargs)
+
+    def assertNotAlmostEquals(self, *args, **kwargs):
+        return deprecate('assertNotAlmostEquals', self.assertNotAlmostEqual)(*args, **kwargs)
+
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.

@@ -39,9 +39,9 @@ class TestDatetimeIndexOps(Ops):
 
         # attribute access should still work!
         s = Series(dict(year=2000,month=1,day=10))
-        self.assertEquals(s.year,2000)
-        self.assertEquals(s.month,1)
-        self.assertEquals(s.day,10)
+        self.assertEqual(s.year,2000)
+        self.assertEqual(s.month,1)
+        self.assertEqual(s.day,10)
         self.assertRaises(AttributeError, lambda : s.weekday)
 
     def test_asobject_tolist(self):

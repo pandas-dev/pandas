@@ -411,8 +411,8 @@ class TestTimeSeries(tm.TestCase):
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
-        self.assertEquals(stamp, dtval)
-        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
@@ -423,8 +423,8 @@ class TestTimeSeries(tm.TestCase):
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
-        self.assertEquals(stamp, dtval)
-        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_index_convert_to_datetime_array(self):
         tm._skip_if_no_pytz()
@@ -454,8 +454,8 @@ class TestTimeSeries(tm.TestCase):
             tm.assert_isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 tm.assert_isinstance(x, datetime)
-                self.assertEquals(x, stamp.to_pydatetime())
-                self.assertEquals(x.tzinfo, stamp.tzinfo)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz=pytz.timezone('US/Eastern'))
@@ -474,8 +474,8 @@ class TestTimeSeries(tm.TestCase):
             tm.assert_isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 tm.assert_isinstance(x, datetime)
-                self.assertEquals(x, stamp.to_pydatetime())
-                self.assertEquals(x.tzinfo, stamp.tzinfo)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
@@ -1542,24 +1542,24 @@ class TestTimeSeries(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
     def test_to_period_tz_dateutil(self):
         tm._skip_if_no_dateutil()
@@ -1573,24 +1573,24 @@ class TestTimeSeries(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
     def test_frame_to_period(self):
         K = 5
@@ -1788,11 +1788,11 @@ class TestTimeSeries(tm.TestCase):
 
         result = ts.append(ts2)
         result_df = df.append(df2)
-        self.assert_(result.index.equals(rng3))
-        self.assert_(result_df.index.equals(rng3))
+        self.assertTrue(result.index.equals(rng3))
+        self.assertTrue(result_df.index.equals(rng3))
 
         appended = rng.append(rng2)
-        self.assert_(appended.equals(rng3))
+        self.assertTrue(appended.equals(rng3))
 
     def test_append_concat_tz_dateutil(self):
         # GH 2938
@@ -1812,11 +1812,11 @@ class TestTimeSeries(tm.TestCase):
 
         result = ts.append(ts2)
         result_df = df.append(df2)
-        self.assert_(result.index.equals(rng3))
-        self.assert_(result_df.index.equals(rng3))
+        self.assertTrue(result.index.equals(rng3))
+        self.assertTrue(result_df.index.equals(rng3))
 
         appended = rng.append(rng2)
-        self.assert_(appended.equals(rng3))
+        self.assertTrue(appended.equals(rng3))
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
