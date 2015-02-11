@@ -1229,7 +1229,6 @@ class Categorical(PandasObject):
             else:
                 return self.categories[i]
         else:
-            key = self._maybe_coerce_indexer(key)
             return Categorical(values=self._codes[key], categories=self.categories,
                                ordered=self.ordered, fastpath=True)
 
@@ -1253,6 +1252,7 @@ class Categorical(PandasObject):
 
         rvalue = value if is_list_like(value) else [value]
         to_add = Index(rvalue).difference(self.categories)
+
         # no assignments of values not in categories, but it's always ok to set something to np.nan
         if len(to_add) and not isnull(to_add).all():
             raise ValueError("cannot setitem on a Categorical with a new category,"
@@ -1297,7 +1297,6 @@ class Categorical(PandasObject):
             nan_pos = np.where(isnull(self.categories))[0]
             lindexer[lindexer == -1] = nan_pos
 
-        key = self._maybe_coerce_indexer(key)
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
