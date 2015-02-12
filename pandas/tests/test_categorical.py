@@ -34,6 +34,50 @@ class TestCategorical(tm.TestCase):
         subf = self.factor[np.asarray(self.factor) == 'c']
         tm.assert_almost_equal(subf._codes, [2, 2, 2])
 
+    def test_getitem_listlike(self):
+
+        # GH 9469
+        # properly coerce the input indexers
+        np.random.seed(1)
+        c = Categorical(np.random.randint(0, 5, size=150000).astype(np.int8))
+        result = c.codes[np.array([100000]).astype(np.int64)]
+        expected = c[np.array([100000]).astype(np.int64)].codes
+        self.assert_numpy_array_equal(result, expected)
+
+    def test_setitem(self):
+
+        # int/positional
+        c = self.factor.copy()
+        c[0] = 'b'
+        self.assertEqual(c[0], 'b')
+        c[-1] = 'a'
+        self.assertEqual(c[-1], 'a')
+
+        # boolean
+        c = self.factor.copy()
+        indexer = np.zeros(len(c),dtype='bool')
+        indexer[0] = True
+        indexer[-1] = True
+        c[indexer] = 'c'
+        expected = Categorical.from_array(['c', 'b', 'b', 'a',
+                                           'a', 'c', 'c', 'c'])
+
+        self.assert_categorical_equal(c, expected)
+
+    def test_setitem_listlike(self):
+
+        # GH 9469
+        # properly coerce the input indexers
+        np.random.seed(1)
+        c = Categorical(np.random.randint(0, 5, size=150000).astype(np.int8)).add_categories([-1000])
+        indexer = np.array([100000]).astype(np.int64)
+        c[indexer] = -1000
+
+        # we are asserting the code result here
+        # which maps to the -1000 category
+        result = c.codes[np.array([100000]).astype(np.int64)]
+        self.assertEqual(result, np.array([5], dtype='int8'))
+
     def test_constructor_unsortable(self):
 
         # it works!
