@@ -8,7 +8,7 @@ import pandas.core.common as com
 from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
                                 ABCSeries, ABCDataFrame, ABCPanel, is_float,
-                                _values_from_object)
+                                _values_from_object, _infer_fill_value)
 import pandas.lib as lib
 
 import numpy as np
@@ -238,7 +238,9 @@ class _NDFrameIndexer(object):
                             self.obj[key] = value
                             return self.obj
 
-                        self.obj[key] = np.nan
+
+                        # add a new item with the dtype setup
+                        self.obj[key] = _infer_fill_value(value)
 
                         new_indexer = _convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes)

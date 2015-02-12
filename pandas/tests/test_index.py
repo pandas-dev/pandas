@@ -297,6 +297,9 @@ class TestIndex(Base, tm.TestCase):
         i_view = i.view()
         self.assertEqual(i_view.name, 'Foo')
 
+        # with arguments
+        self.assertRaises(TypeError, lambda : i.view('i8'))
+
     def test_legacy_pickle_identity(self):
 
         # GH 8431
@@ -1469,6 +1472,12 @@ class TestInt64Index(Numeric, tm.TestCase):
         i_view = i.view()
         self.assertEqual(i_view.name, 'Foo')
 
+        i_view = i.view('i8')
+        tm.assert_index_equal(i, Int64Index(i_view))
+
+        i_view = i.view(Int64Index)
+        tm.assert_index_equal(i, Int64Index(i_view))
+
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
@@ -1856,7 +1865,21 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx = Int64Index([1, 2], name='asdf')
         self.assertEqual(idx.name, idx[1:].name)
 
-class TestDatetimeIndex(Base, tm.TestCase):
+class DatetimeLike(Base):
+
+    def test_view(self):
+
+        i = self.create_index()
+
+        i_view = i.view('i8')
+        result = self._holder(i)
+        tm.assert_index_equal(result, i)
+
+        i_view = i.view(self._holder)
+        result = self._holder(i)
+        tm.assert_index_equal(result, i)
+
+class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     _holder = DatetimeIndex
     _multiprocess_can_split_ = True
 
@@ -1926,7 +1949,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         self.assertEqual(len(idx2), periods)
 
 
-class TestPeriodIndex(Base, tm.TestCase):
+class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
 
@@ -1936,7 +1959,7 @@ class TestPeriodIndex(Base, tm.TestCase):
     def test_pickle_compat_construction(self):
         pass
 
-class TestTimedeltaIndex(Base, tm.TestCase):
+class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 
