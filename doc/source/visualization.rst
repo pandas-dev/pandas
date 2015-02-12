@@ -387,7 +387,6 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
    np.random.seed(123456)
 
 .. ipython:: python
-   :okwarning:
 
    df = DataFrame(rand(10,5))
    plt.figure();
@@ -1271,7 +1270,7 @@ or columns needed, given the other.
 .. ipython:: python
 
    @savefig frame_plot_subplots_layout.png
-   df.plot(subplots=True, layout=(3, 2), figsize=(6, 6), sharex=False);
+   df.plot(subplots=True, layout=(2, 3), figsize=(6, 6), sharex=False);
 
 .. ipython:: python
    :suppress:
@@ -1282,22 +1281,23 @@ The above example is identical to using
 
 .. ipython:: python
 
-   df.plot(subplots=True, layout=(3, -1), figsize=(6, 6), sharex=False);
+   df.plot(subplots=True, layout=(2, -1), figsize=(6, 6), sharex=False);
 
 .. ipython:: python
    :suppress:
 
    plt.close('all')
 
-The required number of columns (2) is inferred from the number of series to plot
-and the given number of rows (3).
+The required number of columns (3) is inferred from the number of series to plot
+and the given number of rows (2).
 
 Also, you can pass multiple axes created beforehand as list-like via ``ax`` keyword.
 This allows to use more complicated layout.
 The passed axes must be the same number as the subplots being drawn.
 
-When multiple axes are passed via ``ax`` keyword, ``layout``, ``sharex`` and ``sharey`` keywords are ignored.
-These must be configured when creating axes.
+When multiple axes are passed via ``ax`` keyword, ``layout``, ``sharex`` and ``sharey`` keywords
+don't affect to the output. You should explicitly pass ``sharex=False`` and ``sharey=False``,
+otherwise you will see a warning.
 
 .. ipython:: python
 
@@ -1306,9 +1306,9 @@ These must be configured when creating axes.
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
 
-   df.plot(subplots=True, ax=target1, legend=False);
+   df.plot(subplots=True, ax=target1, legend=False, sharex=False, sharey=False);
    @savefig frame_plot_subplots_multi_ax.png
-   (-df).plot(subplots=True, ax=target2, legend=False);
+   (-df).plot(subplots=True, ax=target2, legend=False, sharex=False, sharey=False);
 
 .. ipython:: python
    :suppress:
