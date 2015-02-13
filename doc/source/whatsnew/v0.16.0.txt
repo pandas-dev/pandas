@@ -130,6 +130,34 @@ methods (:issue:`9088`).
     d    7
     dtype: int64
 
+ - default behavior for HDF write functions is now to keep rows that are all missing except for index. (:issue:`9382`)
+ 
+ Previously,
+
+  .. ipython:: python
+    In [1]: myFile = HDFStore('file.hdf')
+            seriesWithMissingRow = pd.Series([0, np.nan, 2], index = ['user1', 'user2', 'user3'])
+            myFile.append('fileKey', seriesWithMissingRow, append = False)
+            myFile['fileKey']
+
+    Out[1]:
+           user1    0
+           user3    2
+           dtype: float64
+
+New behavior:
+  .. ipython:: python
+    In [2]: myFile = HDFStore('file.hdf')
+            seriesWithMissingRow = pd.Series([0, np.nan, 2], index = ['user1', 'user2', 'user3'])
+            myFile.append('fileKey', seriesWithMissingRow, append = False)
+            myFile['fileKey']
+
+    Out[2]:
+            user1     0
+            user2   NaN
+            user3     2
+            dtype: float64
+
 
 
 Deprecations
