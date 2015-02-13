@@ -193,6 +193,8 @@ Bug Fixes
   SQLAlchemy type  (:issue:`9083`).
 
 
+- Items in ``Categorical.unique()`` (and ``s.unique()`` if ``s`` is of dtype ``category``) now appear in the order in which they are originally found, not in sorted order (:issue:`9331`). This is now consistent with the behavior for other dtypes in pandas.
+
 
 - Fixed bug on bug endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 
