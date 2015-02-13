@@ -136,7 +136,7 @@ methods (:issue:`9088`).
 
   .. ipython:: python
     In [1]: myFile = HDFStore('file.hdf')
-            seriesWithMissingRow = pd.Series([0, nan, 2], index = ['user1', 'user2', 'user3'])
+            seriesWithMissingRow = pd.Series([0, np.nan, 2], index = ['user1', 'user2', 'user3'])
             myFile.append('fileKey', seriesWithMissingRow)
             myFile['fileKey']
 
