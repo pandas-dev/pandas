@@ -3265,6 +3265,30 @@ class TestGroupBy(tm.TestCase):
                                   self.df['B'].values]).sum()
         self.assertEqual(result.index.names, (None, None))
 
+    def test_groupby_sort_categorical(self):
+        # dataframe groupby sort was being ignored # GH 8868
+        df = DataFrame([['(7.5, 10]', 10, 10],
+                        ['(7.5, 10]', 8, 20],
+                        ['(2.5, 5]', 5, 30],
+                        ['(5, 7.5]', 6, 40],
+                        ['(2.5, 5]', 4, 50],
+                        ['(0, 2.5]', 1, 60],
+                        ['(5, 7.5]', 7, 70]], columns=['range', 'foo', 'bar'])
+        df['range'] = Categorical(df['range'])
+        index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
+        index.name = 'range'
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = index
+        index = Index(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'], dtype='object')
+        index.name = 'range'
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=['foo', 'bar'])
+        result_nosort.index = index
+
+        col = 'range'
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+
+
     def test_groupby_sort_multiindex_series(self):
         # series multiindex groupby sort argument was not being passed through _compress_group_index
         # GH 9444
