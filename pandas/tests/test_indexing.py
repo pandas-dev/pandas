@@ -3158,6 +3158,19 @@ class TestIndexing(tm.TestCase):
         df.loc[3] = [6,7]
         assert_frame_equal(df,DataFrame([[6,7]],index=[3],columns=['A','B'],dtype='float64'))
 
+    def test_partial_setting_with_datetimelike_dtype(self):
+
+        # GH9478
+        # a datetimeindex alignment issue with partial setting
+        df = pd.DataFrame(np.arange(6.).reshape(3,2), columns=list('AB'),
+                          index=pd.date_range('1/1/2000', periods=3, freq='1H'))
+        expected = df.copy()
+        expected['C'] = [expected.index[0]] + [pd.NaT,pd.NaT]
+
+        mask = df.A < 1
+        df.loc[mask, 'C'] = df.loc[mask].index
+        assert_frame_equal(df, expected)
+
     def test_series_partial_set(self):
         # partial set with new index
         # Regression from GH4825
