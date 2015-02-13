@@ -137,7 +137,7 @@ methods (:issue:`9088`).
   .. ipython:: python
     In [1]: myFile = HDFStore('file.hdf')
             seriesWithMissingRow = pd.Series([0, np.nan, 2], index = ['user1', 'user2', 'user3'])
-            myFile.append('fileKey', seriesWithMissingRow)
+            myFile.append('fileKey', seriesWithMissingRow, append = False)
             myFile['fileKey']
 
     Out[1]:
@@ -148,8 +148,8 @@ methods (:issue:`9088`).
 New behavior:
   .. ipython:: python
     In [2]: myFile = HDFStore('file.hdf')
-            seriesWithMissingRow = pd.Series([0, nan, 2], index = ['user1', 'user2', 'user3'])
-            myFile.append('fileKey', seriesWithMissingRow)
+            seriesWithMissingRow = pd.Series([0, np.nan, 2], index = ['user1', 'user2', 'user3'])
+            myFile.append('fileKey', seriesWithMissingRow, append = False)
             myFile['fileKey']
 
     Out[2]:
