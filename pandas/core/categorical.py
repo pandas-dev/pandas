@@ -78,10 +78,6 @@ def _cat_compare_op(op):
 
     return f
 
-def _is_categorical(array):
-    """ return if we are a categorical possibility """
-    return isinstance(array, Categorical) or isinstance(array.dtype, CategoricalDtype)
-
 def _maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
     if isinstance(array, ABCSeries):

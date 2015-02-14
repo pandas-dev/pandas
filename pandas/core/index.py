@@ -19,7 +19,8 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
-                                ABCSeries, _ensure_object, _ensure_int64)
+                                ABCSeries, _ensure_object, _ensure_int64, is_bool_indexer,
+                                is_list_like, is_bool_dtype, is_integer_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -55,7 +56,7 @@ def _indexOp(opname):
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
-        if com.is_bool_dtype(result):
+        if is_bool_dtype(result):
             return result
         try:
             return Index(result)
@@ -160,7 +161,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
             elif issubclass(data.dtype.type, np.floating):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, np.bool) or com.is_bool_dtype(data):
+            elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
             else:
                 subarr = com._asarray_tuplesafe(data, dtype=object)
@@ -510,15 +511,15 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')
 
-        if level is not None and not com.is_list_like(level) and com.is_list_like(names):
+        if level is not None and not is_list_like(level) and is_list_like(names):
             raise TypeError("Names must be a string")
 
-        if not com.is_list_like(names) and level is None and self.nlevels > 1:
+        if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
-        if not com.is_list_like(names):
+        if not is_list_like(names):
             names = [names]
-        if level is not None and not com.is_list_like(level):
+        if level is not None and not is_list_like(level):
             level = [level]
 
         if inplace:
@@ -768,7 +769,7 @@ class Index(IndexOpsMixin, PandasObject):
             and we have a mixed index (e.g. number/labels). figure out
             the indexer. return None if we can't help
         """
-        if (typ is None or typ in ['iloc','ix']) and (com.is_integer_dtype(keyarr) and not self.is_floating()):
+        if (typ is None or typ in ['iloc','ix']) and (is_integer_dtype(keyarr) and not self.is_floating()):
             if self.inferred_type != 'integer':
                 keyarr = np.where(keyarr < 0,
                                   len(self) + keyarr, keyarr)
@@ -929,7 +930,7 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization of basic indexing.
             return promote(getitem(key))
 
-        if com._is_bool_indexer(key):
+        if is_bool_indexer(key):
             key = np.asarray(key)
 
         key = _values_from_object(key)
@@ -2104,7 +2105,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array or an array of indices, which
             # is OK as long as they are representable by a slice.
-            if com.is_bool_dtype(slc):
+            if is_bool_dtype(slc):
                 slc = lib.maybe_booleans_to_slice(slc.view('u1'))
             else:
                 slc = lib.maybe_indices_to_slice(slc.astype('i8'))
@@ -2882,15 +2883,15 @@ class MultiIndex(Index):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         """
-        if level is not None and not com.is_list_like(level):
-            if not com.is_list_like(levels):
+        if level is not None and not is_list_like(level):
+            if not is_list_like(levels):
                 raise TypeError("Levels must be list-like")
-            if com.is_list_like(levels[0]):
+            if is_list_like(levels[0]):
                 raise TypeError("Levels must be list-like")
             level = [level]
             levels = [levels]
-        elif level is None or com.is_list_like(level):
-            if not com.is_list_like(levels) or not com.is_list_like(levels[0]):
+        elif level is None or is_list_like(level):
+            if not is_list_like(levels) or not is_list_like(levels[0]):
                 raise TypeError("Levels must be list of lists-like")
 
         if inplace:
@@ -2980,15 +2981,15 @@ class MultiIndex(Index):
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
         """
-        if level is not None and not com.is_list_like(level):
-            if not com.is_list_like(labels):
+        if level is not None and not is_list_like(level):
+            if not is_list_like(labels):
                 raise TypeError("Labels must be list-like")
-            if com.is_list_like(labels[0]):
+            if is_list_like(labels[0]):
                 raise TypeError("Labels must be list-like")
             level = [level]
             labels = [labels]
-        elif level is None or com.is_list_like(level):
-            if not com.is_list_like(labels) or not com.is_list_like(labels[0]):
+        elif level is None or is_list_like(level):
+            if not is_list_like(labels) or not is_list_like(labels[0]):
                 raise TypeError("Labels must be list of lists-like")
 
         if inplace:
@@ -3642,7 +3643,7 @@ class MultiIndex(Index):
 
             return tuple(retval)
         else:
-            if com._is_bool_indexer(key):
+            if is_bool_indexer(key):
                 key = np.asarray(key)
                 sortorder = self.sortorder
             else:
@@ -4404,14 +4405,14 @@ class MultiIndex(Index):
         ranges = []
         for i,k in enumerate(tup):
 
-            if com._is_bool_indexer(k):
+            if is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
                 if len(k) != len(self):
                     raise ValueError("cannot index with a boolean indexer that is"
                                      " not the same length as the index")
                 ranges.append(k)
-            elif com.is_list_like(k):
+            elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
                 indexers = []
                 for x in k:

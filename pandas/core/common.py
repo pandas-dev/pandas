@@ -368,7 +368,7 @@ def notnull(obj):
         return not res
     return ~res
 
-def _is_null_datelike_scalar(other):
+def is_null_datelike_scalar(other):
     """ test whether the object is a null datelike, e.g. Nat
     but guard against passing a non-scalar """
     if other is pd.NaT or other is None:
@@ -2084,7 +2084,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
     return value
 
 
-def _is_bool_indexer(key):
+def is_bool_indexer(key):
     if isinstance(key, (ABCSeries, np.ndarray)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
@@ -2363,6 +2363,9 @@ def _maybe_make_list(obj):
         return [obj]
     return obj
 
+########################
+##### TYPE TESTING #####
+########################
 
 is_bool = lib.is_bool
 
@@ -2431,7 +2434,7 @@ def _get_dtype_type(arr_or_dtype):
     return arr_or_dtype.dtype.type
 
 
-def _is_any_int_dtype(arr_or_dtype):
+def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.integer)
 
@@ -2442,7 +2445,7 @@ def is_integer_dtype(arr_or_dtype):
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
-def _is_int_or_datetime_dtype(arr_or_dtype):
+def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
             issubclass(tipo, (np.datetime64, np.timedelta64)))
@@ -2467,12 +2470,12 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
     return tipo == _TD_DTYPE
 
 
-def _is_datetime_or_timedelta_dtype(arr_or_dtype):
+def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
 
-needs_i8_conversion = _is_datetime_or_timedelta_dtype
+needs_i8_conversion = is_datetime_or_timedelta_dtype
 
 def i8_boxer(arr_or_dtype):
     """ return the scalar boxer for the dtype """
@@ -2493,7 +2496,7 @@ def is_float_dtype(arr_or_dtype):
     return issubclass(tipo, np.floating)
 
 
-def _is_floating_dtype(arr_or_dtype):
+def is_floating_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return isinstance(tipo, np.floating)
 
@@ -2501,6 +2504,10 @@ def _is_floating_dtype(arr_or_dtype):
 def is_bool_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.bool_)
+
+def is_categorical(array):
+    """ return if we are a categorical possibility """
+    return isinstance(array, ABCCategorical) or isinstance(array.dtype, CategoricalDtype)
 
 def is_categorical_dtype(arr_or_dtype):
     if hasattr(arr_or_dtype,'dtype'):

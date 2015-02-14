@@ -1348,7 +1348,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             val = getitem(key)
             return Timestamp(val, offset=self.offset, tz=self.tz)
         else:
-            if com._is_bool_indexer(key):
+            if com.is_bool_indexer(key):
                 key = np.asarray(key)
                 if key.all():
                     key = slice(0,None,None)

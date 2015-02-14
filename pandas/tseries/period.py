@@ -112,7 +112,7 @@ class Period(PandasObject):
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
 
-        elif com._is_null_datelike_scalar(value) or value in tslib._nat_strings:
+        elif com.is_null_datelike_scalar(value) or value in tslib._nat_strings:
             self.ordinal = tslib.iNaT
             if freq is None:
                 raise ValueError("If value is NaT, freq cannot be None "
@@ -1113,7 +1113,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             val = getitem(key)
             return Period(ordinal=val, freq=self.freq)
         else:
-            if com._is_bool_indexer(key):
+            if com.is_bool_indexer(key):
                 key = np.asarray(key)
 
             result = getitem(key)

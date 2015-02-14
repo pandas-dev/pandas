@@ -13,7 +13,7 @@ from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, _is_bool_indexer,
+from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe, _infer_dtype_from_scalar,
                                 is_list_like, _values_from_object,
@@ -531,7 +531,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif key is Ellipsis:
                 return self
-            elif _is_bool_indexer(key):
+            elif is_bool_indexer(key):
                 pass
             else:
 
@@ -547,7 +547,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if com.is_iterator(key):
             key = list(key)
 
-        if _is_bool_indexer(key):
+        if is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
 
         return self._get_with(key)
@@ -640,7 +640,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif key is Ellipsis:
                     self[:] = value
                     return
-                elif _is_bool_indexer(key):
+                elif is_bool_indexer(key):
                     pass
                 elif com.is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
@@ -665,7 +665,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if 'unorderable' in str(e):  # pragma: no cover
                     raise IndexError(key)
 
-            if _is_bool_indexer(key):
+            if is_bool_indexer(key):
                 key = _check_bool_indexer(self.index, key)
                 try:
                     self.where(~key, value, inplace=True)
