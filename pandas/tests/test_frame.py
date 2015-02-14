@@ -13300,7 +13300,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         index = Index([idx1, idx2],
                       name="composite_index", tupleize_cols=False)
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
-        self.assertEqual(df.ix[IndexType("foo", "bar")]["A"], 1)
+        result = df.ix[IndexType("foo", "bar")]["A"]
+        self.assertEqual(result, 1)
 
     def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])

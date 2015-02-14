@@ -10,7 +10,6 @@ from pandas.compat import u
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
 from pandas.core.index import Index, _ensure_index
-from pandas.core.indexing import _is_null_slice
 from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
 from pandas.util.decorators import cache_readonly
@@ -18,7 +17,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, is_sequence,
+                                is_list_like, is_sequence, is_null_slice,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
@@ -78,7 +77,7 @@ def _cat_compare_op(op):
 
     return f
 
-def _maybe_to_categorical(array):
+def maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
     if isinstance(array, ABCSeries):
         return array.values
@@ -1116,7 +1115,7 @@ class Categorical(PandasObject):
         # only allow 1 dimensional slicing, but can
         # in a 2-d case be passd (slice(None),....)
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not _is_null_slice(slicer[0]):
+            if not is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
 
@@ -1263,7 +1262,7 @@ class Categorical(PandasObject):
             # only allow 1 dimensional slicing, but can
             # in a 2-d case be passd (slice(None),....)
             if len(key) == 2:
-                if not _is_null_slice(key[0]):
+                if not is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim categorical")
                 key = key[1]
             elif len(key) == 1:

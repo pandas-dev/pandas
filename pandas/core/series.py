@@ -24,7 +24,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _maybe_box_datetimelike, ABCDataFrame)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
-from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
+from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
@@ -548,7 +548,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             key = list(key)
 
         if is_bool_indexer(key):
-            key = _check_bool_indexer(self.index, key)
+            key = check_bool_indexer(self.index, key)
 
         return self._get_with(key)
 
@@ -666,7 +666,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise IndexError(key)
 
             if is_bool_indexer(key):
-                key = _check_bool_indexer(self.index, key)
+                key = check_bool_indexer(self.index, key)
                 try:
                     self.where(~key, value, inplace=True)
                     return
@@ -2183,7 +2183,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # check/convert indicies here
         if convert:
-            indices = _maybe_convert_indices(
+            indices = maybe_convert_indices(
                 indices, len(self._get_axis(axis)))
 
         indices = com._ensure_platform_int(indices)

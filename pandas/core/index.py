@@ -20,7 +20,7 @@ from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import (_values_from_object, is_float, is_integer,
                                 ABCSeries, _ensure_object, _ensure_int64, is_bool_indexer,
-                                is_list_like, is_bool_dtype, is_integer_dtype)
+                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -720,7 +720,7 @@ class Index(IndexOpsMixin, PandasObject):
         def is_int(v):
             return v is None or is_integer(v)
 
-        is_null_slice = start is None and stop is None
+        is_null_slicer = start is None and stop is None
         is_index_slice = is_int(start) and is_int(stop)
         is_positional = is_index_slice and not self.is_integer()
 
@@ -742,7 +742,7 @@ class Index(IndexOpsMixin, PandasObject):
             if self.inferred_type == 'mixed-integer-float':
                 raise
 
-        if is_null_slice:
+        if is_null_slicer:
             indexer = key
         elif is_positional:
             indexer = key
@@ -2615,7 +2615,7 @@ class Float64Index(NumericIndex):
         if not np.isscalar(key):
             raise InvalidIndexError
 
-        from pandas.core.indexing import _maybe_droplevels
+        from pandas.core.indexing import maybe_droplevels
         from pandas.core.series import Series
 
         k = _values_from_object(key)
@@ -2626,7 +2626,7 @@ class Float64Index(NumericIndex):
             return new_values
 
         new_index = self[loc]
-        new_index = _maybe_droplevels(new_index, k)
+        new_index = maybe_droplevels(new_index, k)
         return Series(new_values, index=new_index, name=series.name)
 
     def equals(self, other):
@@ -3245,7 +3245,7 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
-        from pandas.core.indexing import _maybe_droplevels
+        from pandas.core.indexing import maybe_droplevels
         from pandas.core.series import Series
 
         # Label-based
@@ -3257,7 +3257,7 @@ class MultiIndex(Index):
             loc = self.get_loc(k)
             new_values = series.values[loc]
             new_index = self[loc]
-            new_index = _maybe_droplevels(new_index, k)
+            new_index = maybe_droplevels(new_index, k)
             return Series(new_values, index=new_index, name=series.name)
 
         try:
@@ -4192,7 +4192,7 @@ class MultiIndex(Index):
         -------
         loc : int or slice object
         """
-        def _maybe_drop_levels(indexer, levels, drop_level):
+        def maybe_droplevels(indexer, levels, drop_level):
             if not drop_level:
                 return self[indexer]
             # kludgearound
@@ -4221,7 +4221,7 @@ class MultiIndex(Index):
 
                 result = loc if result is None else result & loc
 
-            return result, _maybe_drop_levels(result, level, drop_level)
+            return result, maybe_droplevels(result, level, drop_level)
 
         level = self._get_level_number(level)
 
@@ -4234,7 +4234,7 @@ class MultiIndex(Index):
             try:
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
-                    new_index = _maybe_drop_levels(indexer, [0], drop_level)
+                    new_index = maybe_droplevels(indexer, [0], drop_level)
                     return indexer, new_index
             except TypeError:
                 pass
@@ -4248,8 +4248,8 @@ class MultiIndex(Index):
                         indexer = self.get_loc(key)
                     ilevels = [i for i in range(len(key))
                                if key[i] != slice(None, None)]
-                    return indexer, _maybe_drop_levels(indexer, ilevels,
-                                                       drop_level)
+                    return indexer, maybe_droplevels(indexer, ilevels,
+                                                     drop_level)
 
                 if len(key) == self.nlevels:
 
@@ -4307,11 +4307,11 @@ class MultiIndex(Index):
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key))
                            if key[i] != slice(None, None)]
-                return indexer, _maybe_drop_levels(indexer, ilevels,
-                                                   drop_level)
+                return indexer, maybe_droplevels(indexer, ilevels,
+                                                 drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            return indexer, _maybe_drop_levels(indexer, [level], drop_level)
+            return indexer, maybe_droplevels(indexer, [level], drop_level)
 
     def _get_level_indexer(self, key, level=0):
         # return a boolean indexer or a slice showing where the key is
@@ -4388,8 +4388,6 @@ class MultiIndex(Index):
                for passing to iloc
         """
 
-        from pandas.core.indexing import _is_null_slice
-
         # must be lexsorted to at least as many levels
         if not self.is_lexsorted_for_tuple(tup):
             raise KeyError('MultiIndex Slicing requires the index to be fully lexsorted'
@@ -4427,7 +4425,7 @@ class MultiIndex(Index):
                 else:
                     ranges.append(np.zeros(self.labels[i].shape, dtype=bool))
 
-            elif _is_null_slice(k):
+            elif is_null_slice(k):
                 # empty slice
                 pass
 

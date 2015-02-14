@@ -16,8 +16,8 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _possibly_infer_to_datetimelike, array_equivalent,
                                 _maybe_convert_string_to_object, is_categorical)
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
-from pandas.core.categorical import Categorical, _maybe_to_categorical
+from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.categorical import Categorical, maybe_to_categorical
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -560,7 +560,7 @@ class Block(PandasObject):
         elif isinstance(indexer, slice):
 
             if is_list_like(value) and l:
-                if len(value) != _length_of_indexer(indexer, values):
+                if len(value) != length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
 
@@ -1638,7 +1638,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                  fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
                                                fastpath=True, placement=placement,
                                                **kwargs)
 
@@ -3262,7 +3262,7 @@ class BlockManager(PandasObject):
 
         n = self.shape[axis]
         if convert:
-            indexer = _maybe_convert_indices(indexer, n)
+            indexer = maybe_convert_indices(indexer, n)
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
@@ -4449,5 +4449,5 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
     else:
         indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
-            indexer = _maybe_convert_indices(indexer, length)
+            indexer = maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)

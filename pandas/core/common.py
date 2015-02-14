@@ -2544,8 +2544,12 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-    return (hasattr(arg, '__iter__') and
+     return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
+
+def is_null_slice(obj):
+    return (isinstance(obj, slice) and obj.start is None and
+            obj.stop is None and obj.step is None)
 
 
 def is_hashable(arg):
