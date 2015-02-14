@@ -12407,7 +12407,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # GH7403
         df = pd.DataFrame({'A': list('aaaabbbb'),'B':range(8), 'C':range(8)})
         df.iloc[3, 1] = np.NaN
-        left = df.set_index(['A', 'B']).unstack(0)
+        dfs  = df.set_index(['A', 'B'])
+        left = dfs.unstack(0)
 
         vals = [[3, 0, 1, 2, nan, nan, nan, nan],
                 [nan, nan, nan, nan, 4, 5, 6, 7]]
@@ -12419,6 +12420,23 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         right = DataFrame(vals, columns=cols, index=idx)
         assert_frame_equal(left, right)
+
+
+        left = dfs.unstack([0, 1])
+        data = [3, 0, 1, 2, 4, 5, 6, 7]
+        idx = MultiIndex(levels=[['C'], ['a', 'b'], [0, 1, 2, 4, 5, 6, 7]],
+                         labels=[[0, 0, 0, 0, 0, 0, 0, 0],
+                                 [0, 0, 0, 0, 1, 1, 1, 1],
+                                 [-1, 0, 1, 2, 3, 4, 5, 6]],
+                         names=[None, 'A', 'B'])
+        right = Series(data, index=idx, dtype=dfs.dtypes[0])
+        print("dfs=")
+        print(dfs)
+        print("\nleft=")
+        print(left)
+        print("\nright=")
+        print(right)
+        assert_series_equal(left, right)
 
         df = DataFrame({'A': list('aaaabbbb'), 'B':list(range(4))*2,
                         'C':range(8)})
