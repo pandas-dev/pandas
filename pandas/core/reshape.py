@@ -17,7 +17,7 @@ from pandas.core.groupby import get_group_index, _compress_group_index
 import pandas.core.common as com
 import pandas.algos as algos
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -194,8 +194,11 @@ class _Unstacker(object):
 
     def get_new_columns(self):
         if self.value_columns is None:
-            return _make_new_index(self.removed_level, None) \
-                    if self.lift != 0 else self.removed_level
+            if self.lift == 0:
+                return self.removed_level
+
+            lev = self.removed_level
+            return lev.insert(0, _get_na_value(lev.dtype.type))
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -222,29 +225,14 @@ class _Unstacker(object):
         # construct the new index
         if len(self.new_index_levels) == 1:
             lev, lab = self.new_index_levels[0], result_labels[0]
-            return _make_new_index(lev, lab) \
-                    if (lab == -1).any() else lev.take(lab)
+            if (lab == -1).any():
+                lev = lev.insert(len(lev), _get_na_value(lev.dtype.type))
+            return lev.take(lab)
 
         return MultiIndex(levels=self.new_index_levels,
                           labels=result_labels,
                           names=self.new_index_names,
                           verify_integrity=False)
-
-
-def _make_new_index(lev, lab):
-    from pandas.core.index import Index, _get_na_value
-
-    nan = _get_na_value(lev.dtype.type)
-    vals = lev.values.astype('object')
-    vals = np.insert(vals, 0, nan) if lab is None else \
-           np.insert(vals, len(vals), nan).take(lab)
-
-    try:
-        vals = vals.astype(lev.dtype, subok=False, copy=False)
-    except ValueError:
-        return Index(vals, **lev._get_attributes_dict())
-
-    return lev._shallow_copy(vals)
 
 
 def _unstack_multiple(data, clocs):
