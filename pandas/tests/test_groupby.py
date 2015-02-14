@@ -3483,6 +3483,77 @@ class TestGroupBy(tm.TestCase):
         exp = np.array([1,2,4,np.nan])
         self.assert_numpy_array_equivalent(result, exp)
 
+    def test_groupby_non_arithmetic_agg_types(self):
+        # GH9311, GH6620
+        df = pd.DataFrame([{'a': 1, 'b': 1},
+                           {'a': 1, 'b': 2},
+                           {'a': 2, 'b': 3},
+                           {'a': 2, 'b': 4}])
+
+        dtypes = ['int8', 'int16', 'int32', 'int64',
+                  'float32', 'float64']
+
+        grp_exp = {'first': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
+                   'last': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
+                   'min': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
+                   'max': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
+                   'nth': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
+                           'args': [1]},
+                   'count': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
+                             'out_type': 'int64'}}
+
+        for dtype in dtypes:
+            df_in = df.copy()
+            df_in['b'] = df_in.b.astype(dtype)
+
+            for method, data in compat.iteritems(grp_exp):
+                if 'args' not in data:
+                    data['args'] = []
+
+                if 'out_type' in data:
+                    out_type = data['out_type']
+                else:
+                    out_type = dtype
+
+                exp = data['df']
+                df_out = pd.DataFrame(exp)
+
+                df_out['b'] = df_out.b.astype(out_type)
+                df_out.set_index('a', inplace=True)
+
+                grpd = df_in.groupby('a')
+                t = getattr(grpd, method)(*data['args'])
+                assert_frame_equal(t, df_out)
+
+    def test_groupby_non_arithmetic_agg_intlike_precision(self):
+        # GH9311, GH6620
+        c = 24650000000000000
+
+        inputs = ((Timestamp('2011-01-15 12:50:28.502376'),
+                   Timestamp('2011-01-20 12:50:28.593448')),
+                  (1 + c, 2 + c))
+
+        for i in inputs:
+            df = pd.DataFrame([{'a': 1,
+                                'b': i[0]},
+                               {'a': 1,
+                                'b': i[1]}])
+
+            grp_exp = {'first': {'expected': i[0]},
+                       'last': {'expected': i[1]},
+                       'min': {'expected': i[0]},
+                       'max': {'expected': i[1]},
+                       'nth': {'expected': i[1], 'args': [1]},
+                       'count': {'expected': 2}}
+
+            for method, data in compat.iteritems(grp_exp):
+                if 'args' not in data:
+                    data['args'] = []
+
+                grpd = df.groupby('a')
+                res = getattr(grpd, method)(*data['args'])
+                self.assertEqual(res.iloc[0].b, data['expected'])
+
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
