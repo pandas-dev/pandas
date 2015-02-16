@@ -609,7 +609,7 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com._is_int_or_datetime_dtype(lk) and com._is_int_or_datetime_dtype(rk):
+    if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
         lk = com._ensure_int64(lk)
         rk = com._ensure_int64(rk)

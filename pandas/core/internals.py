@@ -11,13 +11,13 @@ from pandas.core.base import PandasObject
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
-                                _is_null_datelike_scalar, _maybe_promote,
+                                is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 _possibly_infer_to_datetimelike, array_equivalent,
-                                _maybe_convert_string_to_object)
+                                _maybe_convert_string_to_object, is_categorical)
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
-from pandas.core.categorical import Categorical, _maybe_to_categorical, _is_categorical
+from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.categorical import Categorical, maybe_to_categorical
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -560,7 +560,7 @@ class Block(PandasObject):
         elif isinstance(indexer, slice):
 
             if is_list_like(value) and l:
-                if len(value) != _length_of_indexer(indexer, values):
+                if len(value) != length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
 
@@ -1324,7 +1324,7 @@ class TimeDeltaBlock(IntBlock):
 
         values = masker(values)
 
-        if _is_null_datelike_scalar(other):
+        if is_null_datelike_scalar(other):
             other = np.nan
         elif isinstance(other, (np.timedelta64, Timedelta, timedelta)):
             other = _coerce_scalar_to_timedelta_type(other, unit='s', box=False).item()
@@ -1638,7 +1638,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                  fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
                                                fastpath=True, placement=placement,
                                                **kwargs)
 
@@ -1799,7 +1799,7 @@ class DatetimeBlock(Block):
             we are going to compare vs i8, so coerce to integer
             values is always ndarra like, other may not be """
         values = values.view('i8')
-        if _is_null_datelike_scalar(other):
+        if is_null_datelike_scalar(other):
             other = tslib.iNaT
         elif isinstance(other, datetime):
             other = lib.Timestamp(other).asm8.view('i8')
@@ -2072,7 +2072,7 @@ def make_block(values, placement, klass=None, ndim=None,
             klass = DatetimeBlock
         elif issubclass(vtype, np.complexfloating):
             klass = ComplexBlock
-        elif _is_categorical(values):
+        elif is_categorical(values):
             klass = CategoricalBlock
 
         else:
@@ -2947,7 +2947,7 @@ class BlockManager(PandasObject):
         #        can prob also fix the various if tests for sparse/categorical
 
         value_is_sparse = isinstance(value, SparseArray)
-        value_is_cat = _is_categorical(value)
+        value_is_cat = is_categorical(value)
         value_is_nonconsolidatable = value_is_sparse or value_is_cat
 
         if value_is_sparse:
@@ -3262,7 +3262,7 @@ class BlockManager(PandasObject):
 
         n = self.shape[axis]
         if convert:
-            indexer = _maybe_convert_indices(indexer, n)
+            indexer = maybe_convert_indices(indexer, n)
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
@@ -3594,7 +3594,7 @@ def form_blocks(arrays, names, axes):
             int_items.append((i, k, v))
         elif v.dtype == np.bool_:
             bool_items.append((i, k, v))
-        elif _is_categorical(v):
+        elif is_categorical(v):
             cat_items.append((i, k, v))
         else:
             object_items.append((i, k, v))
@@ -4449,5 +4449,5 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
     else:
         indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
-            indexer = _maybe_convert_indices(indexer, length)
+            indexer = maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)

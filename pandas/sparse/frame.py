@@ -13,7 +13,6 @@ import numpy as np
 from pandas.core.common import (isnull, notnull, _pickle_array,
                                 _unpickle_array, _try_sort)
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _maybe_convert_indices
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)

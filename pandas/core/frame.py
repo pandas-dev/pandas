@@ -30,9 +30,9 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 is_categorical_dtype)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_maybe_droplevels,
-                                  _convert_to_index_sliceable,
-                                  _check_bool_indexer)
+from pandas.core.indexing import (maybe_droplevels,
+                                  convert_to_index_sliceable,
+                                  check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
@@ -1765,7 +1765,7 @@ class DataFrame(NDFrame):
             pass
 
         # see if we can slice the rows
-        indexer = _convert_to_index_sliceable(self, key)
+        indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             return self._getitem_slice(indexer)
 
@@ -1798,7 +1798,7 @@ class DataFrame(NDFrame):
 
     def _getitem_array(self, key):
         # also raises Exception if object array with NA values
-        if com._is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             # warning here just in case -- previously __setitem__ was
             # reindexing but __getitem__ was not; it seems more reasonable to
             # go with the __setitem__ behavior since that is more consistent
@@ -1809,9 +1809,9 @@ class DataFrame(NDFrame):
             elif len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d.' %
                                  (len(key), len(self.index)))
-            # _check_bool_indexer will throw exception if Series key cannot
+            # check_bool_indexer will throw exception if Series key cannot
             # be reindexed to match DataFrame rows
-            key = _check_bool_indexer(self.index, key)
+            key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             return self.take(indexer, axis=0, convert=False)
         else:
@@ -1822,7 +1822,7 @@ class DataFrame(NDFrame):
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
-            result_columns = _maybe_droplevels(new_columns, key)
+            result_columns = maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
@@ -2097,7 +2097,7 @@ class DataFrame(NDFrame):
     def __setitem__(self, key, value):
 
         # see if we can slice the rows
-        indexer = _convert_to_index_sliceable(self, key)
+        indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
@@ -2115,11 +2115,11 @@ class DataFrame(NDFrame):
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
-        if com._is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             if len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(key), len(self.index)))
-            key = _check_bool_indexer(self.index, key)
+            key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
             self.ix._setitem_with_indexer(indexer, value)
@@ -2246,7 +2246,7 @@ class DataFrame(NDFrame):
             if isinstance(self.columns, MultiIndex) and key in self.columns:
                 loc = self.columns.get_loc(key)
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                    cols = _maybe_droplevels(self.columns[loc], key)
+                    cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
                         value = value.reindex_axis(cols, axis=1)
             # now align rows

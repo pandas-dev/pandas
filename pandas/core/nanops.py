@@ -19,12 +19,12 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 ensure_float, _ensure_float64,
                                 _ensure_int64, _ensure_object,
                                 is_float, is_integer, is_complex,
-                                is_float_dtype, _is_floating_dtype,
+                                is_float_dtype, is_floating_dtype,
                                 is_complex_dtype, is_integer_dtype,
                                 is_bool_dtype, is_object_dtype,
                                 is_datetime64_dtype, is_timedelta64_dtype,
-                                _is_datetime_or_timedelta_dtype,
-                                _is_int_or_datetime_dtype, _is_any_int_dtype)
+                                is_datetime_or_timedelta_dtype,
+                                is_int_or_datetime_dtype, is_any_int_dtype)
 
 
 class disallow(object):
@@ -105,7 +105,7 @@ class bottleneck_switch(object):
 def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
     if (not is_object_dtype(dt) and
-            not _is_datetime_or_timedelta_dtype(dt)):
+            not is_datetime_or_timedelta_dtype(dt)):
 
         # bottleneck does not properly upcast during the sum
         # so can overflow
@@ -198,7 +198,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
 
 def _isfinite(values):
-    if _is_datetime_or_timedelta_dtype(values):
+    if is_datetime_or_timedelta_dtype(values):
         return isnull(values)
     if (is_complex_dtype(values) or is_float_dtype(values) or
             is_integer_dtype(values) or is_bool_dtype(values)):
@@ -207,11 +207,11 @@ def _isfinite(values):
 
 
 def _na_ok_dtype(dtype):
-    return not _is_int_or_datetime_dtype(dtype)
+    return not is_int_or_datetime_dtype(dtype)
 
 
 def _view_if_needed(values):
-    if _is_datetime_or_timedelta_dtype(values):
+    if is_datetime_or_timedelta_dtype(values):
         return values.view(np.int64)
     return values
 
@@ -332,7 +332,7 @@ def _get_counts_nanvar(mask, axis, ddof):
 def _nanvar(values, axis=None, skipna=True, ddof=1):
     # private nanvar calculator
     mask = isnull(values)
-    if not _is_floating_dtype(values):
+    if not is_floating_dtype(values):
         values = values.astype('f8')
 
     count, d = _get_counts_nanvar(mask, axis, ddof)
@@ -367,7 +367,7 @@ def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isnull(values)
-    if not _is_floating_dtype(values):
+    if not is_floating_dtype(values):
         values = values.astype('f8')
     count, _ = _get_counts_nanvar(mask, axis, ddof)
 
@@ -461,7 +461,7 @@ def nanargmin(values, axis=None, skipna=True):
 def nanskew(values, axis=None, skipna=True):
 
     mask = isnull(values)
-    if not _is_floating_dtype(values):
+    if not is_floating_dtype(values):
         values = values.astype('f8')
 
     count = _get_counts(mask, axis)
@@ -496,7 +496,7 @@ def nanskew(values, axis=None, skipna=True):
 def nankurt(values, axis=None, skipna=True):
 
     mask = isnull(values)
-    if not _is_floating_dtype(values):
+    if not is_floating_dtype(values):
         values = values.astype('f8')
 
     count = _get_counts(mask, axis)
@@ -533,7 +533,7 @@ def nankurt(values, axis=None, skipna=True):
 @disallow('M8','m8')
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not _is_any_int_dtype(values):
+    if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
