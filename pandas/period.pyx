@@ -2,15 +2,18 @@ from datetime import datetime, date, timedelta
 import operator
 import numpy as np
 
+cdef extern from "datetime_helper.h":
+    double total_seconds(object)
+
 from pandas import compat
-from pandas.core import common as com
-from pandas.core.base import PandasObject
 
 from pandas.tseries import frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries import offsets
 from pandas.tseries.tools import parse_time_string
 
+cimport lib
+import lib
 from pandas import tslib
 from tslib import Timedelta, Timestamp
 
@@ -26,7 +29,7 @@ def _period_field_accessor(name, alias):
     return property(f)
 
 
-class Period(PandasObject):
+class Period(object):
     """
     Represents an period of time
 
@@ -74,7 +77,7 @@ class Period(PandasObject):
             raise ValueError(("Only value or ordinal but not both should be "
                               "given but not both"))
         elif ordinal is not None:
-            if not com.is_integer(ordinal):
+            if not lib.is_integer(ordinal):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
                 raise ValueError('Must supply freq for ordinal value')
@@ -96,14 +99,14 @@ class Period(PandasObject):
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
 
-        elif com.is_null_datelike_scalar(value) or value in tslib._nat_strings:
+        elif lib.is_null_datetimelike(value) or value in tslib._nat_strings:
             self.ordinal = tslib.iNaT
             if freq is None:
                 raise ValueError("If value is NaT, freq cannot be None "
                                  "because it cannot be inferred")
 
-        elif isinstance(value, compat.string_types) or com.is_integer(value):
-            if com.is_integer(value):
+        elif isinstance(value, compat.string_types) or lib.is_integer(value):
+            if lib.is_integer(value):
                 value = str(value)
             value = value.upper()
 
@@ -184,7 +187,7 @@ class Period(PandasObject):
         if isinstance(other, (timedelta, np.timedelta64,
                               offsets.Tick, offsets.DateOffset, Timedelta)):
             return self._add_delta(other)
-        elif com.is_integer(other):
+        elif lib.is_integer(other):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
@@ -198,7 +201,7 @@ class Period(PandasObject):
                               offsets.Tick, offsets.DateOffset, Timedelta)):
             neg_other = -other
             return self + neg_other
-        elif com.is_integer(other):
+        elif lib.is_integer(other):
             if self.ordinal == tslib.iNaT:
                 ordinal = self.ordinal
             else:
@@ -320,14 +323,14 @@ class Period(PandasObject):
     def now(cls, freq=None):
         return Period(datetime.now(), freq=freq)
 
+    # HACK IT UP AND YOU BETTER FIX IT SOON
+    def __str__(self):
+        return self.__unicode__()
+
     def __repr__(self):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = frequencies._reverse_period_code_map[base]
-
-        if not compat.PY3:
-            encoding = com.get_option("display.encoding")
-            formatted = formatted.encode(encoding)
 
         return "Period('%s', '%s')" % (formatted, freqstr)
 
