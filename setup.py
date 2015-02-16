@@ -265,16 +265,23 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
-        self._clean_exclude = ['pandas/src/datetime/np_datetime.c',
-                               'pandas/src/datetime/np_datetime_strings.c',
-                               'pandas/src/period.c',
-                               'pandas/src/parser/tokenizer.c',
-                               'pandas/src/parser/io.c',
-                               'pandas/src/ujson/python/ujson.c',
-                               'pandas/src/ujson/python/objToJSON.c',
-                               'pandas/src/ujson/python/JSONtoObj.c',
-                               'pandas/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/src/ujson/lib/ultrajsondec.c',
+
+        base = pjoin('pandas','src')
+        dt = pjoin(base,'datetime')
+        src = base
+        parser = pjoin(base,'parser')
+        ujson_python = pjoin(base,'ujson','python')
+        ujson_lib = pjoin(base,'ujson','lib')
+        self._clean_exclude = [pjoin(dt,'np_datetime.c'),
+                               pjoin(dt,'np_datetime_strings.c'),
+                               pjoin(src,'period.c'),
+                               pjoin(parser,'tokenizer.c'),
+                               pjoin(parser,'io.c'),
+                               pjoin(ujson_python,'ujson.c'),
+                               pjoin(ujson_python,'objToJSON.c'),
+                               pjoin(ujson_python,'JSONtoObj.c'),
+                               pjoin(ujson_lib,'ultrajsonenc.c'),
+                               pjoin(ujson_lib,'ultrajsondec.c'),
                                ]
 
         for root, dirs, files in os.walk('pandas'):
