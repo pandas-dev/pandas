@@ -27,7 +27,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _get_dtype, _maybe_box_datetimelike,
-                                is_categorical_dtype)
+                                is_categorical_dtype, is_object_dtype, _possibly_infer_to_datetimelike)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels,
@@ -396,7 +396,15 @@ class DataFrame(NDFrame):
                     raise_with_traceback(e)
 
         index, columns = _get_axes(*values.shape)
-        return create_block_manager_from_blocks([values.T], [columns, index])
+        values = values.T
+
+        # if we don't have a dtype specified, then try to convert objects
+        # on the entire block; this is to convert if we have datetimelike's
+        # embedded in an object type
+        if dtype is None and is_object_dtype(values):
+            values = _possibly_infer_to_datetimelike(values)
+
+        return create_block_manager_from_blocks([values], [columns, index])
 
     @property
     def axes(self):
@@ -1537,7 +1545,7 @@ class DataFrame(NDFrame):
             # cases (e.g., it misses categorical data even with object
             # categories)
             size_qualifier = ('+' if 'object' in counts
-                              or self.index.dtype.kind == 'O' else '')
+                              or is_object_dtype(self.index) else '')
             mem_usage = self.memory_usage(index=True).sum()
             lines.append("memory usage: %s\n" %
                             _sizeof_fmt(mem_usage, size_qualifier))
@@ -2257,6 +2265,8 @@ class DataFrame(NDFrame):
 
         elif (isinstance(value, Index) or is_sequence(value)):
             from pandas.core.series import _sanitize_index
+
+            # turn me into an ndarray
             value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
@@ -2267,6 +2277,11 @@ class DataFrame(NDFrame):
                 value = value.copy().T
             else:
                 value = value.copy()
+
+            # possibly infer to datetimelike
+            if is_object_dtype(value.dtype):
+                value = _possibly_infer_to_datetimelike(value.ravel()).reshape(value.shape)
+
         else:
             # upcast the scalar
             dtype, value = _infer_dtype_from_scalar(value)
@@ -2341,7 +2356,7 @@ class DataFrame(NDFrame):
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
                 result[i] = self.get_value(r, c)
 
-        if result.dtype == 'O':
+        if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
 
         return result
@@ -4232,7 +4247,7 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if result.dtype == np.object_:
+        if is_object_dtype(result.dtype):
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)

@@ -1467,8 +1467,11 @@ class NDFrame(PandasObject):
             if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
-            result = Series(new_values, index=self.columns,
-                            name=self.index[loc])
+            result = Series(new_values,
+                            index=self.columns,
+                            name=self.index[loc],
+                            copy=copy,
+                            dtype=new_values.dtype)
 
         else:
             result = self.iloc[loc]

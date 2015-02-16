@@ -490,7 +490,9 @@ def decode(obj):
         index = obj['index']
         return globals()[obj['klass']](unconvert(obj['data'], dtype,
                                                  obj['compress']),
-                                       index=index, name=obj['name'])
+                                       index=index,
+                                       dtype=dtype,
+                                       name=obj['name'])
     elif typ == 'block_manager':
         axes = obj['axes']
 
