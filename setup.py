@@ -445,7 +445,7 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
-                   'pandas/src/period.h']
+                   'pandas/src/period_helper.h']
 
 
 # some linux distros require it
@@ -461,24 +461,24 @@ ext_data = dict(
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c',
-                       'pandas/src/period.c']},
-    period=dict(pyxfile='period',
-                depends=tseries_depends,
-                sources=['pandas/src/datetime/np_datetime.c',
+                       'pandas/src/period_helper.c']},
+    _period={'pyxfile': 'src/period',
+             'depends': tseries_depends,
+             'sources': ['pandas/src/datetime/np_datetime.c',
                          'pandas/src/datetime/np_datetime_strings.c',
-                         'pandas/src/period.c']),
+                         'pandas/src/period_helper.c']},
     index={'pyxfile': 'index',
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
            'depends': [srcpath('generated', suffix='.pyx'),
                        srcpath('join', suffix='.pyx')]},
-    parser=dict(pyxfile='parser',
-                depends=['pandas/src/parser/tokenizer.h',
-                         'pandas/src/parser/io.h',
-                         'pandas/src/numpy_helper.h'],
-                sources=['pandas/src/parser/tokenizer.c',
-                         'pandas/src/parser/io.c'])
+    parser={'pyxfile': 'parser',
+            'depends': ['pandas/src/parser/tokenizer.h',
+                        'pandas/src/parser/io.h',
+                        'pandas/src/numpy_helper.h'],
+            'sources': ['pandas/src/parser/tokenizer.c',
+                        'pandas/src/parser/io.c']}
 )
 
 extensions = []

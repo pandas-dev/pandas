@@ -3,12 +3,12 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import tslib
-from pandas import period
+import pandas._period as period
 import datetime
 
 from pandas.core.api import Timestamp, Series, Timedelta
 from pandas.tslib import get_timezone
-from pandas.period import period_asfreq, period_ordinal
+from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets

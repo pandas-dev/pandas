@@ -36,7 +36,7 @@ cdef bint PY2 = version_info[0] == 2
 cdef int64_t NPY_NAT = util.get_nat()
 
 
-cdef extern from "period.h":
+cdef extern from "period_helper.h":
     ctypedef struct date_info:
         int64_t absdate
         double abstime

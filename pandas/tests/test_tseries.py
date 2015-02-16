@@ -7,7 +7,7 @@ from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas.compat import range, lrange, zip
 import pandas.lib as lib
-import pandas.period as period
+import pandas._period as period
 import pandas.algos as algos
 
 

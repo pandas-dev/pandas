@@ -12,7 +12,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.period as period
+import pandas._period as period
 from pandas.tslib import Timedelta
 
 class FreqGroup(object):

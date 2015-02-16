@@ -28,7 +28,7 @@ import pandas.tseries.tools as tools
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.period as period
+import pandas._period as period
 import pandas.algos as _algos
 import pandas.index as _index
 

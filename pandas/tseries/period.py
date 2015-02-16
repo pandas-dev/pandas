@@ -12,9 +12,9 @@ from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
-from pandas.period import Period
-import pandas.period as period
-from pandas.period import (
+from pandas._period import Period
+import pandas._period as period
+from pandas._period import (
     get_period_field_arr,
     _validate_end_alias,
     _quarter_to_myear,
