@@ -11,7 +11,7 @@ from distutils.version import LooseVersion
 
 import nose
 
-from numpy import nan
+from numpy import nan, inf
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
@@ -2689,6 +2689,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result2 = p['second'] % p['first']
         self.assertFalse(np.array_equal(result, result2))
 
+        # GH 9144
+        s = Series([0, 1])
+
+        result = s % 0
+        expected = Series([nan, nan])
+        assert_series_equal(result, expected)
+
+        result = 0 % s
+        expected = Series([nan, 0.0])
+        assert_series_equal(result, expected)
+
     def test_div(self):
 
         # no longer do integer div for any ops, but deal with the 0's
@@ -2728,6 +2739,21 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         result = p['second'] / p['first']
+        assert_series_equal(result, expected)
+
+        # GH 9144
+        s = Series([-1, 0, 1])
+
+        result = 0 / s
+        expected = Series([0.0, nan, 0.0])
+        assert_series_equal(result, expected)
+
+        result = s / 0
+        expected = Series([-inf, nan, inf])
+        assert_series_equal(result, expected)
+
+        result = s // 0
+        expected = Series([-inf, nan, inf])
         assert_series_equal(result, expected)
 
     def test_operators(self):
@@ -6414,17 +6440,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_autocorr(self):
         # Just run the function
         corr1 = self.ts.autocorr()
-        
+
         # Now run it with the lag parameter
         corr2 = self.ts.autocorr(lag=1)
-        
+
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
             self.assertTrue(np.isnan(corr1))
             self.assertTrue(np.isnan(corr2))
         else:
             self.assertEqual(corr1, corr2)
-        
+
         # Choose a random lag between 1 and length of Series - 2
         # and compare the result with the Series corr() function
         n = 1 + np.random.randint(max(1, len(self.ts) - 2))

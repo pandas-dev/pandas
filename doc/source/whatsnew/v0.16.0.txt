@@ -131,6 +131,37 @@ methods (:issue:`9088`).
     dtype: int64
 
 
+- During division involving a ``Series`` or ``DataFrame``, ``0/0`` and ``0//0`` now give ``np.nan`` instead of ``np.inf``. (:issue:`9144`, :issue:`8445`)
+
+  Previous Behavior
+
+  .. code-block:: python
+
+        In [2]: p = pd.Series([0, 1])
+
+        In [3]: p / 0
+        Out[3]:
+        0    inf
+        1    inf
+        dtype: float64
+
+        In [4]: p // 0
+        Out[4]:
+        0    inf
+        1    inf
+        dtype: float64
+
+
+
+  New Behavior
+
+  .. ipython:: python
+
+     p = pd.Series([0, 1])
+     p / 0
+     p // 0
+
+
 
 Deprecations
 ~~~~~~~~~~~~
