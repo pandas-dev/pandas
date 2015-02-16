@@ -653,13 +653,13 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(str_s.str.isupper(), Series(upper_e))
         tm.assert_series_equal(str_s.str.istitle(), Series(title_e))
 
-        self.assertEquals(str_s.str.isalnum().tolist(), [v.isalnum() for v in values])
-        self.assertEquals(str_s.str.isalpha().tolist(), [v.isalpha() for v in values])
-        self.assertEquals(str_s.str.isdigit().tolist(), [v.isdigit() for v in values])
-        self.assertEquals(str_s.str.isspace().tolist(), [v.isspace() for v in values])
-        self.assertEquals(str_s.str.islower().tolist(), [v.islower() for v in values])
-        self.assertEquals(str_s.str.isupper().tolist(), [v.isupper() for v in values])
-        self.assertEquals(str_s.str.istitle().tolist(), [v.istitle() for v in values])
+        self.assertEqual(str_s.str.isalnum().tolist(), [v.isalnum() for v in values])
+        self.assertEqual(str_s.str.isalpha().tolist(), [v.isalpha() for v in values])
+        self.assertEqual(str_s.str.isdigit().tolist(), [v.isdigit() for v in values])
+        self.assertEqual(str_s.str.isspace().tolist(), [v.isspace() for v in values])
+        self.assertEqual(str_s.str.islower().tolist(), [v.islower() for v in values])
+        self.assertEqual(str_s.str.isupper().tolist(), [v.isupper() for v in values])
+        self.assertEqual(str_s.str.istitle().tolist(), [v.istitle() for v in values])
 
     def test_isnumeric(self):
         # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
@@ -675,8 +675,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
         unicodes = [u('A'), u('3'), unichr(0x00bc), unichr(0x2605),
                   unichr(0x1378), unichr(0xFF13), u('four')]
-        self.assertEquals(s.str.isnumeric().tolist(), [v.isnumeric() for v in unicodes])
-        self.assertEquals(s.str.isdecimal().tolist(), [v.isdecimal() for v in unicodes])
+        self.assertEqual(s.str.isnumeric().tolist(), [v.isnumeric() for v in unicodes])
+        self.assertEqual(s.str.isdecimal().tolist(), [v.isdecimal() for v in unicodes])
 
         values = ['A', np.nan, unichr(0x00bc), unichr(0x2605),
                   np.nan, unichr(0xFF13), 'four']

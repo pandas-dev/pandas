@@ -303,14 +303,14 @@ class CheckNameIntegration(object):
         df = pd.DataFrame({'i':[0]*3, 'b':[False]*3})
         vc = df.i.value_counts()
         result = vc.get(99,default='Missing')
-        self.assertEquals(result,'Missing')
+        self.assertEqual(result,'Missing')
 
         vc = df.b.value_counts()
         result = vc.get(False,default='Missing')
-        self.assertEquals(result,3)
+        self.assertEqual(result,3)
 
         result = vc.get(True,default='Missing')
-        self.assertEquals(result,'Missing')
+        self.assertEqual(result,'Missing')
 
     def test_delitem(self):
 
@@ -2240,7 +2240,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # 1 - element series with ddof=1
         s = self.ts.iloc[[0]]
         result = s.sem(ddof=1)
-        self.assert_(isnull(result))
+        self.assertTrue(isnull(result))
 
     def test_skew(self):
         tm._skip_if_no_scipy()
@@ -2606,7 +2606,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(['abc', True])
-        self.assertEquals('abc', s.any())  # 'abc' || True => 'abc'
+        self.assertEqual('abc', s.any())  # 'abc' || True => 'abc'
 
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.

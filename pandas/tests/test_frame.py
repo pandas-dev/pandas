@@ -10414,7 +10414,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df['timedelta'] = Timedelta('1 min')
         result = df.applymap(str)
         for f in ['datetime','timedelta']:
-            self.assertEquals(result.loc[0,f],str(df.loc[0,f]))
+            self.assertEqual(result.loc[0,f],str(df.loc[0,f]))
 
     def test_filter(self):
         # items

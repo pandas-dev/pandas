@@ -1457,7 +1457,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # Categoricals should not show up together with numerical columns
         result = self.cat.describe()
-        self.assertEquals(len(result.columns),1)
+        self.assertEqual(len(result.columns),1)
 
 
         # In a frame, describe() for the cat should be the same as for string arrays (count, unique,
