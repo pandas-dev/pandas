@@ -828,7 +828,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 pass
 
         freq = None
-        if isinstance(item, Timedelta):
+        if isinstance(item, (Timedelta, tslib.NaTType)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:

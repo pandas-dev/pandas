@@ -184,6 +184,21 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df.pivot('b', 'a', 'c'), expected.T)
 
+        # GH9491
+        df = DataFrame({'a':pd.date_range('2014-02-01', periods=6, freq='D'),
+                        'c':100 + np.arange(6)})
+        df['b'] = df['a'] - pd.Timestamp('2014-02-02')
+        df.loc[1, 'a'] = df.loc[3, 'a'] = nan
+        df.loc[1, 'b'] = df.loc[4, 'b'] = nan
+
+        pv = df.pivot('a', 'b', 'c')
+        self.assertEqual(pv.notnull().values.sum(), len(df))
+
+        for _, row in df.iterrows():
+            self.assertEqual(pv.loc[row['a'], row['b']], row['c'])
+
+        tm.assert_frame_equal(df.pivot('b', 'a', 'c'), pv.T)
+
     def test_pivot_with_tz(self):
         # GH 5878
         df = DataFrame({'dt1': [datetime.datetime(2013, 1, 1, 9, 0),

@@ -205,6 +205,7 @@ Bug Fixes
 - Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
 - Bug in ``MultiIndex`` where inserting new keys would fail (:issue:`9250`).
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
+- Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
 
 
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
