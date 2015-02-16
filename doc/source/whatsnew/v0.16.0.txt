@@ -187,6 +187,7 @@ Enhancements
 - Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
   ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
 
+- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
 
 - Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
 - Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)

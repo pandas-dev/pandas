@@ -531,6 +531,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.encode
    Series.str.endswith
    Series.str.extract
+   Series.str.find
    Series.str.findall
    Series.str.get
    Series.str.join
@@ -542,6 +543,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.pad
    Series.str.repeat
    Series.str.replace
+   Series.str.rfind
    Series.str.rjust
    Series.str.rstrip
    Series.str.slice

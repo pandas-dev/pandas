@@ -610,6 +610,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty_list.str.join(''))
         tm.assert_series_equal(empty_int, empty.str.len())
         tm.assert_series_equal(empty_list, empty_list.str.findall('a'))
+        tm.assert_series_equal(empty_int, empty.str.find('a'))
+        tm.assert_series_equal(empty_int, empty.str.rfind('a'))
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
@@ -769,6 +771,64 @@ class TestStringMethods(tm.TestCase):
         result = values.str.findall('BAD[_]*')
         exp = Series([[u('BAD__'), u('BAD')], NA, [], [u('BAD')]])
         tm.assert_almost_equal(result, exp)
+
+    def test_find(self):
+        values = Series(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF', 'XXXX'])
+        result = values.str.find('EF')
+        tm.assert_series_equal(result, Series([4, 3, 1, 0, -1]))
+        expected = np.array([v.find('EF') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF')
+        tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
+        expected = np.array([v.rfind('EF') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.find('EF', 3)
+        tm.assert_series_equal(result, Series([4, 3, 7, 4, -1]))
+        expected = np.array([v.find('EF', 3) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF', 3)
+        tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
+        expected = np.array([v.rfind('EF', 3) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.find('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
+        expected = np.array([v.find('EF', 3, 6) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
+        expected = np.array([v.rfind('EF', 3, 6) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+            result = values.str.find(0)
+
+        with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+            result = values.str.rfind(0)
+
+    def test_find_nan(self):
+        values = Series(['ABCDEFG', np.nan, 'DEFGHIJEF', np.nan, 'XXXX'])
+        result = values.str.find('EF')
+        tm.assert_series_equal(result, Series([4, np.nan, 1, np.nan, -1]))
+
+        result = values.str.rfind('EF')
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.find('EF', 3)
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.rfind('EF', 3)
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.find('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
+
+        result = values.str.rfind('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
 
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
