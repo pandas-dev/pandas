@@ -175,6 +175,7 @@ Performance
 - Performance improvement of up to 20x in ``DataFrame.count`` when using a ``MultiIndex`` and the ``level`` keyword argument  (:issue:`9163`)
 - Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
 - Performance improvements in multi-key ``groupby`` (:issue:`9429`)
+- Performance improvements in ``MultiIndex.sortlevel`` (:issue:`9445`)
 
 Bug Fixes
 ~~~~~~~~~

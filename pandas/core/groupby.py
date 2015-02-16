@@ -3581,21 +3581,15 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels):
 
 
 def _indexer_from_factorized(labels, shape, compress=True):
-    if _int64_overflow_possible(shape):
-        indexer = np.lexsort(np.array(labels[::-1]))
-        return indexer
+    ids = get_group_index(labels, shape, sort=True, xnull=False)
 
-    group_index = get_group_index(labels, shape, sort=True, xnull=True)
-
-    if compress:
-        comp_ids, obs_ids = _compress_group_index(group_index)
-        max_group = len(obs_ids)
+    if not compress:
+        ngroups = (ids.size and ids.max()) + 1
     else:
-        comp_ids = group_index
-        max_group = com._long_prod(shape)
+        ids, obs = _compress_group_index(ids, sort=True)
+        ngroups = len(obs)
 
-    indexer = _get_group_index_sorter(comp_ids.astype(np.int64), max_group)
-    return indexer
+    return _get_group_index_sorter(ids, ngroups)
 
 
 def _lexsort_indexer(keys, orders=None, na_position='last'):
@@ -3750,7 +3744,8 @@ def _compress_group_index(group_index, sort=True):
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
 
-    table = _hash.Int64HashTable(min(1000000, len(group_index)))
+    size_hint = min(len(group_index), _hash._SIZE_HINT_LIMIT)
+    table = _hash.Int64HashTable(size_hint)
 
     group_index = com._ensure_int64(group_index)
 
