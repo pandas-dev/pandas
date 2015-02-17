@@ -2682,7 +2682,7 @@ def _astype_nansafe(arr, dtype, copy=True):
     return arr.view(dtype)
 
 
-def _clean_fill_method(method):
+def _clean_fill_method(method, allow_nearest=False):
     if method is None:
         return None
     method = method.lower()
@@ -2690,11 +2690,21 @@ def _clean_fill_method(method):
         method = 'pad'
     if method == 'bfill':
         method = 'backfill'
-    if method not in ['pad', 'backfill']:
-        msg = ('Invalid fill method. Expecting pad (ffill) or backfill '
-               '(bfill). Got %s' % method)
+
+    valid_methods = ['pad', 'backfill']
+    expecting = 'pad (ffill) or backfill (bfill)'
+    if allow_nearest:
+        valid_methods.append('nearest')
+        expecting = 'pad (ffill), backfill (bfill) or nearest'
+    if method not in valid_methods:
+        msg = ('Invalid fill method. Expecting %s. Got %s'
+               % (expecting, method))
         raise ValueError(msg)
     return method
+
+
+def _clean_reindex_fill_method(method):
+    return _clean_fill_method(method, allow_nearest=True)
 
 
 def _all_none(*args):

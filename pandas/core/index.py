@@ -1089,22 +1089,20 @@ class Index(IndexOpsMixin, PandasObject):
     def asof(self, label):
         """
         For a sorted index, return the most recent label up to and including
-        the passed label. Return NaN if not found
+        the passed label. Return NaN if not found.
+
+        See also
+        --------
+        get_loc : asof is a thin wrapper around get_loc with method='pad'
         """
-        if isinstance(label, (Index, ABCSeries, np.ndarray)):
-            raise TypeError('%s' % type(label))
-
-        if not isinstance(label, Timestamp):
-            label = Timestamp(label)
-
-        if label not in self:
-            loc = self.searchsorted(label, side='left')
-            if loc > 0:
-                return self[loc - 1]
-            else:
-                return np.nan
-
-        return label
+        try:
+            loc = self.get_loc(label, method='pad')
+        except KeyError:
+            return _get_na_value(self.dtype)
+        else:
+            if isinstance(loc, slice):
+                loc = loc.indices(len(self))[-1]
+            return self[loc]
 
     def asof_locs(self, where, mask):
         """
@@ -1402,15 +1400,34 @@ class Index(IndexOpsMixin, PandasObject):
         the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
         return Index(the_diff, name=result_name)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
         Get integer location for requested label
+
+        Parameters
+        ----------
+        key : label
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
 
         Returns
         -------
         loc : int if unique index, possibly slice or mask if not
         """
-        return self._engine.get_loc(_values_from_object(key))
+        if method is None:
+            return self._engine.get_loc(_values_from_object(key))
+
+        indexer = self.get_indexer([key], method=method)
+        if indexer.ndim > 1 or indexer.size > 1:
+            raise TypeError('get_loc requires scalar valued input')
+        loc = indexer.item()
+        if loc == -1:
+            raise KeyError(key)
+        return loc
 
     def get_value(self, series, key):
         """
@@ -1477,19 +1494,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
-        current data to the new index. The mask determines whether labels are
-        found or not in the current index
+        current data to the new index.
 
         Parameters
         ----------
         target : Index
-        method : {'pad', 'ffill', 'backfill', 'bfill'}
-            pad / ffill: propagate LAST valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-
-        Notes
-        -----
-        This is a low-level method and probably should be used at your own risk
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+        limit : int
+            Maximum number of consecuctive labels in ``target`` to match for
+            inexact matches.
 
         Examples
         --------
@@ -1498,9 +1516,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : ndarray
+        indexer : ndarray of int
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
         """
-        method = self._get_method(method)
+        method = com._clean_reindex_fill_method(method)
         target = _ensure_index(target)
 
         pself, ptarget = self._possibly_promote(target)
@@ -1516,20 +1537,72 @@ class Index(IndexOpsMixin, PandasObject):
             raise InvalidIndexError('Reindexing only valid with uniquely'
                                     ' valued Index objects')
 
-        if method == 'pad':
-            if not self.is_monotonic or not target.is_monotonic:
-                raise ValueError('Must be monotonic for forward fill')
-            indexer = self._engine.get_pad_indexer(target.values, limit)
-        elif method == 'backfill':
-            if not self.is_monotonic or not target.is_monotonic:
-                raise ValueError('Must be monotonic for backward fill')
-            indexer = self._engine.get_backfill_indexer(target.values, limit)
-        elif method is None:
-            indexer = self._engine.get_indexer(target.values)
+        if method == 'pad' or method == 'backfill':
+            indexer = self._get_fill_indexer(target, method, limit)
+        elif method == 'nearest':
+            indexer = self._get_nearest_indexer(target, limit)
         else:
-            raise ValueError('unrecognized method: %s' % method)
+            indexer = self._engine.get_indexer(target.values)
 
         return com._ensure_platform_int(indexer)
+
+    def _get_fill_indexer(self, target, method, limit=None):
+        if self.is_monotonic_increasing and target.is_monotonic_increasing:
+            method = (self._engine.get_pad_indexer if method == 'pad'
+                      else self._engine.get_backfill_indexer)
+            indexer = method(target.values, limit)
+        else:
+            indexer = self._get_fill_indexer_searchsorted(target, method, limit)
+        return indexer
+
+    def _get_fill_indexer_searchsorted(self, target, method, limit=None):
+        """
+        Fallback pad/backfill get_indexer that works for monotonic decreasing
+        indexes and non-monotonic targets
+        """
+        if limit is not None:
+            raise ValueError('limit argument for %r method only well-defined '
+                             'if index and target are monotonic' % method)
+
+        side = 'left' if method == 'pad' else 'right'
+        target = np.asarray(target)
+
+        # find exact matches first (this simplifies the algorithm)
+        indexer = self.get_indexer(target)
+        nonexact = (indexer == -1)
+        indexer[nonexact] = self._searchsorted_monotonic(target[nonexact], side)
+        if side == 'left':
+            # searchsorted returns "indices into a sorted array such that,
+            # if the corresponding elements in v were inserted before the
+            # indices, the order of a would be preserved".
+            # Thus, we need to subtract 1 to find values to the left.
+            indexer[nonexact] -= 1
+            # This also mapped not found values (values of 0 from
+            # np.searchsorted) to -1, which conveniently is also our
+            # sentinel for missing values
+        else:
+            # Mark indices to the right of the largest value as not found
+            indexer[indexer == len(self)] = -1
+        return indexer
+
+    def _get_nearest_indexer(self, target, limit):
+        """
+        Get the indexer for the nearest index labels; requires an index with
+        values that can be subtracted from each other (e.g., not strings or
+        tuples).
+        """
+        left_indexer = self.get_indexer(target, 'pad', limit=limit)
+        right_indexer = self.get_indexer(target, 'backfill', limit=limit)
+
+        target = np.asarray(target)
+        left_distances = abs(self.values[left_indexer] - target)
+        right_distances = abs(self.values[right_indexer] - target)
+
+        op = operator.lt if self.is_monotonic_increasing else operator.le
+        indexer = np.where(op(left_distances, right_distances)
+                           | (right_indexer == -1),
+                           left_indexer, right_indexer)
+        return indexer
 
     def get_indexer_non_unique(self, target, **kwargs):
         """ return an indexer suitable for taking from a non unique index
@@ -1615,16 +1688,6 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None:
             self._validate_index_level(level)
         return lib.ismember(self._array_values(), value_set)
-
-    def _get_method(self, method):
-        if method:
-            method = method.lower()
-
-        aliases = {
-            'ffill': 'pad',
-            'bfill': 'backfill'
-        }
-        return aliases.get(method, method)
 
     def reindex(self, target, method=None, level=None, limit=None):
         """
@@ -2063,6 +2126,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return label
 
+    def _searchsorted_monotonic(self, label, side='left'):
+        if self.is_monotonic_increasing:
+            return self.searchsorted(label, side=side)
+        elif self.is_monotonic_decreasing:
+            # np.searchsorted expects ascending sort order, have to reverse
+            # everything for it to work (element ordering, search side and
+            # resulting value).
+            pos = self[::-1].searchsorted(
+                label, side='right' if side == 'left' else 'right')
+            return len(self) - pos
+
+        raise ValueError('index must be monotonic increasing or decreasing')
+
     def get_slice_bound(self, label, side):
         """
         Calculate slice bound that corresponds to given label.
@@ -2088,19 +2164,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             slc = self.get_loc(label)
-        except KeyError:
-            if self.is_monotonic_increasing:
-                return self.searchsorted(label, side=side)
-            elif self.is_monotonic_decreasing:
-                # np.searchsorted expects ascending sort order, have to reverse
-                # everything for it to work (element ordering, search side and
-                # resulting value).
-                pos = self[::-1].searchsorted(
-                    label, side='right' if side == 'left' else 'right')
-                return len(self) - pos
-
-            # In all other cases, just re-raise the KeyError
-            raise
+        except KeyError as err:
+            try:
+                return self._searchsorted_monotonic(label, side)
+            except ValueError:
+                # raise the original KeyError
+                raise err
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array or an array of indices, which
@@ -2664,7 +2733,7 @@ class Float64Index(NumericIndex):
         except:
             return False
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         try:
             if np.all(np.isnan(key)):
                 nan_idxs = self._nan_idxs
@@ -2676,7 +2745,7 @@ class Float64Index(NumericIndex):
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass
-        return super(Float64Index, self).get_loc(key)
+        return super(Float64Index, self).get_loc(key, method=method)
 
     @property
     def is_all_dates(self):
@@ -3932,7 +4001,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = self._get_method(method)
+        method = com._clean_reindex_fill_method(method)
 
         target = _ensure_index(target)
 
@@ -3949,20 +4018,13 @@ class MultiIndex(Index):
 
         self_index = self._tuple_index
 
-        if method == 'pad':
-            if not self.is_unique or not self.is_monotonic:
-                raise AssertionError(('Must be unique and monotonic to '
-                                      'use forward fill getting the indexer'))
-            indexer = self_index._engine.get_pad_indexer(target_index.values,
-                                                         limit=limit)
-        elif method == 'backfill':
-            if not self.is_unique or not self.is_monotonic:
-                raise AssertionError(('Must be unique and monotonic to '
-                                      'use backward fill getting the indexer'))
-            indexer = self_index._engine.get_backfill_indexer(target_index.values,
-                                                              limit=limit)
+        if method == 'pad' or method == 'backfill':
+            indexer = self_index._get_fill_indexer(target, method, limit)
+        elif method == 'nearest':
+            raise NotImplementedError("method='nearest' not implemented yet "
+                                      'for MultiIndex; see GitHub issue 9365')
         else:
-            indexer = self_index._engine.get_indexer(target_index.values)
+            indexer = self_index._engine.get_indexer(target.values)
 
         return com._ensure_platform_int(indexer)
 
@@ -4099,7 +4161,7 @@ class MultiIndex(Index):
             else:
                 return start + section.searchsorted(idx, side=side)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
         Get integer location, slice or boolean mask for requested label or tuple
         If the key is past the lexsort depth, the return may be a boolean mask
@@ -4108,11 +4170,16 @@ class MultiIndex(Index):
         Parameters
         ----------
         key : label or tuple
+        method : None
 
         Returns
         -------
         loc : int, slice object or boolean mask
         """
+        if method is not None:
+            raise NotImplementedError('only the default get_loc method is '
+                                      'currently supported for MultiIndex')
+
         def _maybe_to_slice(loc):
             '''convert integer indexer to boolean mask or slice if possible'''
             if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':

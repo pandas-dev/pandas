@@ -1227,7 +1227,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self._engine.get_value(_values_from_object(series), key)
         return _maybe_box(self, values, series, key)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
         Get integer location for requested label
 
@@ -1237,15 +1237,18 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if isinstance(key, datetime):
             # needed to localize naive datetimes
-            stamp = Timestamp(key, tz=self.tz)
-            return self._engine.get_loc(stamp)
+            key = Timestamp(key, tz=self.tz)
+            return Index.get_loc(self, key, method=method)
 
         if isinstance(key, time):
+            if method is not None:
+                raise NotImplementedError('cannot yet lookup inexact labels '
+                                          'when key is a time object')
             return self.indexer_at_time(key)
 
         try:
-            return Index.get_loc(self, key)
-        except (KeyError, ValueError):
+            return Index.get_loc(self, key, method=method)
+        except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
             except (TypeError, KeyError, ValueError):
@@ -1253,7 +1256,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 stamp = Timestamp(key, tz=self.tz)
-                return self._engine.get_loc(stamp)
+                return Index.get_loc(self, stamp, method=method)
             except (KeyError, ValueError):
                 raise KeyError(key)
 
@@ -1637,9 +1640,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         Parameters
         ----------
         time : datetime.time or string
-        tz : string or pytz.timezone or dateutil.tz.tzfile
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries
 
         Returns
         -------

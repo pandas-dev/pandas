@@ -1672,10 +1672,12 @@ class NDFrame(PandasObject):
             keywords)
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
+            Method to use for filling holes in reindexed DataFrame:
+              * default: don't fill gaps
+              * pad / ffill: propagate last valid observation forward to next valid
+              * backfill / bfill: use next valid observation to fill gap
+              * nearest: use nearest valid observations to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
         level : int or name
@@ -1703,7 +1705,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = com._clean_fill_method(kwargs.get('method'))
+        method = com._clean_reindex_fill_method(kwargs.get('method'))
         level = kwargs.get('level')
         copy = kwargs.get('copy', True)
         limit = kwargs.get('limit')
@@ -1744,9 +1746,8 @@ class NDFrame(PandasObject):
 
             axis = self._get_axis_number(a)
             obj = obj._reindex_with_indexers(
-                {axis: [new_index, indexer]}, method=method,
-                fill_value=fill_value, limit=limit, copy=copy,
-                allow_dups=False)
+                {axis: [new_index, indexer]},
+                fill_value=fill_value, copy=copy, allow_dups=False)
 
         return obj
 
@@ -1770,10 +1771,12 @@ class NDFrame(PandasObject):
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         axis : %(axes_single_arg)s
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed object.
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
+            Method to use for filling holes in reindexed DataFrame:
+              * default: don't fill gaps
+              * pad / ffill: propagate last valid observation forward to next valid
+              * backfill / bfill: use next valid observation to fill gap
+              * nearest: use nearest valid observations to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
         level : int or name
@@ -1802,15 +1805,14 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
-        method = com._clean_fill_method(method)
+        method = com._clean_reindex_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers(
-            {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
-            limit=limit, copy=copy)
+            {axis: [new_index, indexer]}, fill_value=fill_value, copy=copy)
 
-    def _reindex_with_indexers(self, reindexers, method=None,
-                               fill_value=np.nan, limit=None, copy=False,
+    def _reindex_with_indexers(self, reindexers,
+                               fill_value=np.nan, copy=False,
                                allow_dups=False):
         """ allow_dups indicates an internal call here """
 

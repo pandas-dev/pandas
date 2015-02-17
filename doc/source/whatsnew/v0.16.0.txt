@@ -20,6 +20,15 @@ users upgrade to this version.
 New features
 ~~~~~~~~~~~~
 
+- Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
+
+    .. ipython:: python
+
+    df = pd.DataFrame({'x': range(5)})
+    df.reindex([0.2, 1.8, 3.5], method='nearest')
+
+  This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
+
 .. _whatsnew_0160.api:
 
 .. _whatsnew_0160.api_breaking:
@@ -189,6 +198,9 @@ Enhancements
 
 - Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
 
+- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
+- ``Index.asof`` now works on all index types (:issue:`9258`).
+
 - Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
 - Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
 - ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
@@ -243,6 +255,22 @@ Bug Fixes
 
 
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
+
+- Looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`). Old behavior:
+
+  .. ipython:: python
+    :verbatim:
+
+    In [4]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
+    Out[4]: Timestamp('2000-01-31 00:00:00')
+
+  Fixed behavior:
+
+  .. ipython:: python
+
+    pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
+
+  To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 
 
 

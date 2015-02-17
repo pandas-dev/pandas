@@ -660,7 +660,8 @@ class TestTimeSeries(tm.TestCase):
     def test_pad_require_monotonicity(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
 
-        rng2 = rng[::2][::-1]
+        # neither monotonic increasing or decreasing
+        rng2 = rng[[1, 0, 2]]
 
         self.assertRaises(ValueError, rng2.get_indexer, rng,
                           method='pad')
