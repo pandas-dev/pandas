@@ -4679,7 +4679,7 @@ class TestHDFStore(tm.TestCase):
             tm.assert_frame_equal(df, other)
 
     def test_all_missing_values(self):
-        df_with_missing = DataFrame({'col1':[np.nan]})
+        df_with_missing = DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan, np.nan]})
         
         with ensure_clean_path(self.path) as path:
             df_with_missing.to_hdf(path, 'df_with_missing', format = 't')
