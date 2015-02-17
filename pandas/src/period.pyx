@@ -612,15 +612,6 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     return result
 
 
-def _period_field_accessor(name, alias):
-    def f(self):
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-        base, mult = _gfc(self.freq)
-        return get_period_field(alias, self.ordinal, base)
-    f.__name__ = name
-    return property(f)
-
-
 cdef class Period(object):
     """
     Represents an period of time
@@ -890,19 +881,50 @@ cdef class Period(object):
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
-    year = _period_field_accessor('year', 0)
-    month = _period_field_accessor('month', 3)
-    day = _period_field_accessor('day', 4)
-    hour = _period_field_accessor('hour', 5)
-    minute = _period_field_accessor('minute', 6)
-    second = _period_field_accessor('second', 7)
-    weekofyear = _period_field_accessor('week', 8)
-    week = weekofyear
-    dayofweek = _period_field_accessor('dayofweek', 10)
-    weekday = dayofweek
-    dayofyear = _period_field_accessor('dayofyear', 9)
-    quarter = _period_field_accessor('quarter', 2)
-    qyear = _period_field_accessor('qyear', 1)
+    cdef _field(self, alias):
+        from pandas.tseries.frequencies import get_freq_code as _gfc
+        base, mult = _gfc(self.freq)
+        return get_period_field(alias, self.ordinal, base)
+
+    property year:
+        def __get__(self):
+            return self._field(0)
+    property month:
+        def __get__(self):
+            return self._field(3)
+    property day:
+        def __get__(self):
+            return self._field(4)
+    property hour:
+        def __get__(self):
+            return self._field(5)
+    property minute:
+        def __get__(self):
+            return self._field(6)
+    property second:
+        def __get__(self):
+            return self._field(7)
+    property weekofyear:
+        def __get__(self):
+            return self._field(8)
+    property week:
+        def __get__(self):
+            return self.weekofyear
+    property dayofweek:
+        def __get__(self):
+            return self._field(10)
+    property weekday:
+        def __get__(self):
+            return self.dayofweek
+    property dayofyear:
+        def __get__(self):
+            return self._field(9)
+    property quarter:
+        def __get__(self):
+            return self._field(2)
+    property qyear:
+        def __get__(self):
+            return self._field(1)
 
     @classmethod
     def now(cls, freq=None):
