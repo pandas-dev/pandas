@@ -274,7 +274,7 @@ class CleanCommand(Command):
         ujson_lib = pjoin(base,'ujson','lib')
         self._clean_exclude = [pjoin(dt,'np_datetime.c'),
                                pjoin(dt,'np_datetime_strings.c'),
-                               pjoin(src,'period.c'),
+                               pjoin(src,'period_helper.c'),
                                pjoin(parser,'tokenizer.c'),
                                pjoin(parser,'io.c'),
                                pjoin(ujson_python,'ujson.c'),
