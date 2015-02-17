@@ -28,6 +28,7 @@ import pandas.tseries.tools as tools
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
+import pandas._period as period
 import pandas.algos as _algos
 import pandas.index as _index
 
@@ -1461,7 +1462,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @cache_readonly
     def _resolution(self):
-        return tslib.resolution(self.asi8, self.tz)
+        return period.resolution(self.asi8, self.tz)
 
     def equals(self, other):
         """

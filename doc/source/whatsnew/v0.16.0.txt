@@ -208,6 +208,7 @@ Performance
 - Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
 - Performance improvements in multi-key ``groupby`` (:issue:`9429`)
 - Performance improvements in ``MultiIndex.sortlevel`` (:issue:`9445`)
+- Cythonized ``Period`` (:issue:`9440`)
 
 Bug Fixes
 ~~~~~~~~~
