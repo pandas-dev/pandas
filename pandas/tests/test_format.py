@@ -527,13 +527,13 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>str&lt;ing1 &amp;amp;</th>
-      <td> &lt;type 'str'&gt;</td>
-      <td> &lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
     </tr>
     <tr>
       <th>stri&gt;ng2 &amp;amp;</th>
-      <td> &lt;type 'str'&gt;</td>
-      <td> &lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
     </tr>
   </tbody>
 </table>"""
@@ -559,13 +559,13 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>str<ing1 &amp;</th>
-      <td> <b>bold</b></td>
-      <td> <b>bold</b></td>
+      <td><b>bold</b></td>
+      <td><b>bold</b></td>
     </tr>
     <tr>
       <th>stri>ng2 &amp;</th>
-      <td> <b>bold</b></td>
-      <td> <b>bold</b></td>
+      <td><b>bold</b></td>
+      <td><b>bold</b></td>
     </tr>
   </tbody>
 </table>"""
@@ -597,16 +597,16 @@ class TestDataFrameFormatting(tm.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td> 0</td>
-      <td> 3</td>
-      <td> 5</td>
-      <td> 3</td>
+      <td>0</td>
+      <td>3</td>
+      <td>5</td>
+      <td>3</td>
     </tr>
     <tr>
-      <td> 1</td>
-      <td> 4</td>
-      <td> 6</td>
-      <td> 4</td>
+      <td>1</td>
+      <td>4</td>
+      <td>6</td>
+      <td>4</td>
     </tr>
   </tbody>
 </table>"""
@@ -640,26 +640,26 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>0</th>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -695,26 +695,26 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>0</th>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -746,24 +746,24 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -799,24 +799,24 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -840,23 +840,23 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>a</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>b</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>c</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>d</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -896,35 +896,35 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>2001-01-01</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-02</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-03</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-04</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>...</th>
@@ -936,35 +936,35 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
     <tr>
       <th>2001-01-17</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-18</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-19</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-20</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -1010,34 +1010,34 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">bar</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>baz</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>...</th>
@@ -1053,34 +1053,34 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>foo</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">qux</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -1129,68 +1129,68 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>bar</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>bar</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>baz</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>foo</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>qux</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>qux</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -1766,17 +1766,17 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td> a</td>\n'
-                    '      <td> b</td>\n'
-                    '      <td> c</td>\n'
-                    '      <td> d</td>\n'
+                    '      <td>a</td>\n'
+                    '      <td>b</td>\n'
+                    '      <td>c</td>\n'
+                    '      <td>d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> e</td>\n'
-                    '      <td> f</td>\n'
-                    '      <td> g</td>\n'
-                    '      <td> h</td>\n'
+                    '      <td>e</td>\n'
+                    '      <td>f</td>\n'
+                    '      <td>g</td>\n'
+                    '      <td>h</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
@@ -1808,17 +1808,17 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td> a</td>\n'
-                    '      <td> b</td>\n'
-                    '      <td> c</td>\n'
-                    '      <td> d</td>\n'
+                    '      <td>a</td>\n'
+                    '      <td>b</td>\n'
+                    '      <td>c</td>\n'
+                    '      <td>d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> e</td>\n'
-                    '      <td> f</td>\n'
-                    '      <td> g</td>\n'
-                    '      <td> h</td>\n'
+                    '      <td>e</td>\n'
+                    '      <td>f</td>\n'
+                    '      <td>g</td>\n'
+                    '      <td>h</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
@@ -1843,25 +1843,24 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td>     6</td>\n'
-                    '      <td>     1</td>\n'
-                    '      <td> 223442</td>\n'
+                    '      <td>6</td>\n'
+                    '      <td>1</td>\n'
+                    '      <td>223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> 30000</td>\n'
-                    '      <td>     2</td>\n'
-                    '      <td>      0</td>\n'
+                    '      <td>30000</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>2</th>\n'
-                    '      <td>     2</td>\n'
-                    '      <td> 70000</td>\n'
-                    '      <td>      1</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>70000</td>\n'
+                    '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
-
         self.assertEqual(result, expected)
 
         result = df.to_html(justify='right')
@@ -1877,21 +1876,21 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td>     6</td>\n'
-                    '      <td>     1</td>\n'
-                    '      <td> 223442</td>\n'
+                    '      <td>6</td>\n'
+                    '      <td>1</td>\n'
+                    '      <td>223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> 30000</td>\n'
-                    '      <td>     2</td>\n'
-                    '      <td>      0</td>\n'
+                    '      <td>30000</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>2</th>\n'
-                    '      <td>     2</td>\n'
-                    '      <td> 70000</td>\n'
-                    '      <td>      1</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>70000</td>\n'
+                    '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')

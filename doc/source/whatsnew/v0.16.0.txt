@@ -21,6 +21,11 @@ New features
 ~~~~~~~~~~~~
 
 .. _whatsnew_0160.api:
+API changes
+~~~~~~~~~~~
+
+-Changed ``.to_html`` to remove leading/trailing spaces in table body (:issue:`4987`)
+
 
 .. _whatsnew_0160.api_breaking:
 
