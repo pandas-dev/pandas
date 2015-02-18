@@ -1925,6 +1925,9 @@ class Grouping(object):
 
             # a passed Categorical
             elif isinstance(self.grouper, Categorical):
+                # fix bug #GH8868 sort=False being ignored in categorical groupby
+                if not self.sort:
+                    self.grouper = self.grouper.reorder_categories(self.grouper.unique())
                 self._labels = self.grouper.codes
                 self._group_index = self.grouper.categories
                 if self.name is None:
