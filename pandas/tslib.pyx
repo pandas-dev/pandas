@@ -601,6 +601,9 @@ class NaTType(_NaT):
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
 
+    def date(self):
+        raise ValueError("pd.NaT.date() can't return a valid date")
+
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
           'week', 'dayofyear']
