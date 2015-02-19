@@ -1509,7 +1509,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
 
         freq = None
-        if isinstance(item, datetime):
+        if isinstance(item, (datetime, np.datetime64)):
             zone = tslib.get_timezone(self.tz)
             izone = tslib.get_timezone(getattr(item, 'tzinfo', None))
             if zone != izone:

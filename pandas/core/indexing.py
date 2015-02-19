@@ -246,6 +246,7 @@ class _NDFrameIndexer(object):
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes)
                         self._setitem_with_indexer(new_indexer, value)
+
                         return self.obj
 
                     # reindex the axis
