@@ -11,6 +11,7 @@ labeling information
 from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
+from cloudtb.pandas import _dataframe_dict
 
 import functools
 import collections
@@ -637,7 +638,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None):
+    def _from_dict(cls, data, orient='columns', dtype=None):
         """
         Construct DataFrame from dict of array-like or dicts
 
@@ -667,6 +668,11 @@ class DataFrame(NDFrame):
             raise ValueError('only recognize index or columns for orient')
 
         return cls(data, index=index, columns=columns, dtype=dtype)
+
+    @classmethod
+    def from_dict(cls, data, orient='columns', dtype=None):
+        data = _dataframe_dict(data)
+        return cls._from_dict(data, orient, dtype)
 
     @deprecate_kwarg(old_arg_name='outtype', new_arg_name='orient')
     def to_dict(self, orient='dict'):
