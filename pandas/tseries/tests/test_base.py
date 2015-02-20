@@ -292,6 +292,12 @@ Freq: H"""
 
             tm.assert_index_equal(idx.unique(), exp_idx)
 
+    def test_nonunique_contains(self):
+        # GH 9512
+        for idx in map(DatetimeIndex, ([0, 1, 0], [0, 0, -1], [0, -1, -1],
+                                       ['2015', '2015', '2016'], ['2015', '2015', '2014'])):
+            tm.assertIn(idx[0], idx)
+
 
 class TestTimedeltaIndexOps(Ops):
 
@@ -683,6 +689,14 @@ Freq: D"""
         tm.assert_series_equal(idx.value_counts(dropna=False), expected)
 
         tm.assert_index_equal(idx.unique(), exp_idx)
+
+    def test_nonunique_contains(self):
+        # GH 9512
+        for idx in map(TimedeltaIndex, ([0, 1, 0], [0, 0, -1], [0, -1, -1],
+                                        ['00:01:00', '00:01:00', '00:02:00'],
+                                        ['00:01:00', '00:01:00', '00:00:01'])):
+            tm.assertIn(idx[0], idx)
+
 
 class TestPeriodIndexOps(Ops):
 
