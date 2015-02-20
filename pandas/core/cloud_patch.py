@@ -9,7 +9,6 @@ and related and neighboring rights to this software to the public domain
 worldwide. THIS SOFTWARE IS DISTRIBUTED WITHOUT ANY WARRANTY.
 <http://creativecommons.org/publicdomain/zero/1.0/>
 '''
-import pandas as pd
 
 
 def _dataframe_dict(data, index=None, filler='', header=None):
@@ -19,16 +18,12 @@ def _dataframe_dict(data, index=None, filler='', header=None):
                 return data
         except TypeError:
             return data
-    if isinstance(data, dict):
-        header = resolve_header(header)
-        if header is None:
-            header = get_header(data)
-    else:
+    if not isinstance(data, dict):
         header = resolve_header(header)
         if header is None:
             header = get_header(data[0])
         data = unpack(data, header)
-        data = flatten(data)
+    data = flatten(data)
     data = fill_keys(data, filler)
     return data
 
@@ -72,7 +67,7 @@ worldwide. THIS SOFTWARE IS DISTRIBUTED WITHOUT ANY WARRANTY.
 import itertools
 import collections
 
-def isiter(obj, exclude=(str, bytes, bytearray)):
+def _isiter(obj, exclude=(str, bytes, bytearray)):
     '''Returns True if object is an iterator.
     Returns False for str, bytes and bytearray objects
     by default'''
@@ -99,7 +94,7 @@ def depth(d, deep=0, isiter=False):
     '''Find the depth of a nested dictionary'''
     if not isinstance(d, dict) or not d:  # not a dict or an empty dict
         throw(TypeError) if isiter and \
-            not isiter(d) else None
+            not _isiter(d) else None
         return deep
     return max(depth(v, deep + 1, isiter) for k, v in d.items())
 
@@ -134,7 +129,7 @@ def setitem(dic, item, value):
     for i, k in enumerate(item):
         if i < len(item) - 1:
             if k not in dic:
-                dic[k] = {}
+                dic[k] = type(dic)()
             dic = dic[k]
         else:
             dic[k] = value
@@ -175,8 +170,8 @@ def fill_keys(data, filler=None):
     # convert all keys to tuples
     keys = tuple(key if isinstance(key, tuple) else (key,) for key in keys)
     maxlen = max(map(len, keys))
-    return type(data)({key + ((filler,) * (maxlen - len(key))): value for
-                       (key, value) in zip(keys, values)})
+    return type(data)((key + ((filler,) * (maxlen - len(key))), value) for
+                       (key, value) in zip(keys, values))
 
 
 def update(todict, fromdict, keys=None):
