@@ -11,7 +11,7 @@ labeling information
 from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
-from cloudtb.pandas import _dataframe_dict
+from pandas.core.cloud_patch import _dataframe_dict
 
 import functools
 import collections
