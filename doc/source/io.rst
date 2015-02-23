@@ -1949,55 +1949,105 @@ module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
-Besides ``read_excel`` you can also read Excel files using the ``ExcelFile``
-class. The following two commands are equivalent:
+Reading Excel Files
+~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.16
+
+``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
+
+.. versionadded:: 0.13
+
+Sheets can be specified by sheet index or sheet name, using an integer or string,
+respectively.
+
+.. versionadded:: 0.12
+
+``ExcelFile`` has been moved to the top level namespace.
+   
+There are two approaches to reading an excel file.  The ``read_excel`` function
+and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
+with file-specific arguments (ie. identical data formats across sheets).
+``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
+formats across sheets).  Choosing the approach is largely a question of
+code readability and execution speed.  
+
+Equivalent class and function approaches to read a single sheet:
 
 .. code-block:: python
 
     # using the ExcelFile class
     xls = pd.ExcelFile('path_to_file.xls')
-    xls.parse('Sheet1', index_col=None, na_values=['NA'])
+    data = xls.parse('Sheet1', index_col=None, na_values=['NA'])
 
     # using the read_excel function
-    read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+    data = read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
-The class based approach can be used to read multiple sheets or to introspect
-the sheet names using the ``sheet_names`` attribute.
-
-.. note::
-
-   The prior method of accessing ``ExcelFile`` has been moved from
-   ``pandas.io.parsers`` to the top level namespace starting from pandas
-   0.12.0.
-
-.. versionadded:: 0.13
-
-There are now two ways to read in sheets from an Excel file. You can provide
-either the index of a sheet or its name to by passing different values for
-``sheet_name``.
-
-- Pass a string to refer to the name of a particular sheet in the workbook.
-- Pass an integer to refer to the index of a sheet. Indices follow Python
-  convention, beginning at 0.
-- The default value is ``sheet_name=0``. This reads the first sheet.
-
-Using the sheet name:
+Equivalent class and function approaches to read multiple sheets:
 
 .. code-block:: python
 
+    data = {}
+    # For when Sheet1's format differs from Sheet2
+    xls = pd.ExcelFile('path_to_file.xls')
+    data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
+    data['Sheet2'] = xls.parse('Sheet2', index_col=1)
+    
+    # For when Sheet1's format is identical to Sheet2
+    data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
+   
+Specifying Sheets    
++++++++++++++++++
+.. _io.specifying_sheets:
+
+.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+
+.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+
+- The arguments ``sheetname`` allows specifying the sheet or sheets to read.
+- The default value for ``sheetname`` is 0, indicating to read the first sheet
+- Pass a string to refer to the name of a particular sheet in the workbook.
+- Pass an integer to refer to the index of a sheet. Indices follow Python
+  convention, beginning at 0.
+- Pass a list of either strings or integers, to return a dictionary of specified sheets.
+- Pass a ``None`` to return a dictionary of all available sheets.
+
+.. code-block:: python
+
+   # Returns a DataFrame
    read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 Using the sheet index:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+   # Returns a DataFrame
+   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA']) 
 
 Using all default values:
 
 .. code-block:: python
 
+   # Returns a DataFrame
    read_excel('path_to_file.xls')
+
+Using None to get all sheets:
+
+.. code-block:: python
+
+   # Returns a dictionary of DataFrames
+   read_excel('path_to_file.xls',sheetname=None)
+
+Using a list to get multiple sheets:
+   
+.. code-block:: python
+
+   # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
+   read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+Parsing Specific Columns
+++++++++++++++++++++++++
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
@@ -2017,26 +2067,30 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
-.. note::
+Cell Converters
++++++++++++++++
 
-   It is possible to transform the contents of Excel cells via the `converters`
-   option. For instance, to convert a column to boolean:
+It is possible to transform the contents of Excel cells via the `converters`
+option. For instance, to convert a column to boolean:
 
-   .. code-block:: python
+.. code-block:: python
 
-      read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
 
-   This options handles missing values and treats exceptions in the converters
-   as missing data. Transformations are applied cell by cell rather than to the
-   column as a whole, so the array dtype is not guaranteed. For instance, a
-   column of integers with missing values cannot be transformed to an array
-   with integer dtype, because NaN is strictly a float. You can manually mask
-   missing data to recover integer dtype:
+This options handles missing values and treats exceptions in the converters
+as missing data. Transformations are applied cell by cell rather than to the
+column as a whole, so the array dtype is not guaranteed. For instance, a
+column of integers with missing values cannot be transformed to an array
+with integer dtype, because NaN is strictly a float. You can manually mask
+missing data to recover integer dtype:
 
-   .. code-block:: python
+.. code-block:: python
 
-      cfun = lambda x: int(x) if x else -1
-      read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+   cfun = lambda x: int(x) if x else -1
+   read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+
+Writing Excel Files
+~~~~~~~~~~~~~~~~~~~
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
