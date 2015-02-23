@@ -6,7 +6,7 @@ from pandas import tslib
 import pandas._period as period
 import datetime
 
-from pandas.core.api import Timestamp, Series, Timedelta
+from pandas.core.api import Timestamp, Series, Timedelta, Period
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
@@ -137,6 +137,12 @@ class TestTimestamp(tm.TestCase):
         expected_repr = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
         self.assertEqual(repr(result), expected_repr)
         self.assertEqual(result, eval(repr(result)))
+
+    def test_constructor_invalid(self):
+        with tm.assertRaisesRegexp(TypeError, 'Cannot convert input'):
+            Timestamp(slice(2))
+        with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
+            Timestamp(Period('1000-01-01'))
 
     def test_conversion(self):
         # GH 9255

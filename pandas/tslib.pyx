@@ -1154,8 +1154,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
         return convert_to_tsobject(ts, tz, None)
-    else:
+    elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp unambiguously. Use to_timestamp")
+    else:
+        raise TypeError('Cannot convert input to Timestamp')
 
     if obj.value != NPY_NAT:
         _check_dts_bounds(&obj.dts)

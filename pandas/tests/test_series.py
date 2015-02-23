@@ -5862,8 +5862,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.reindex(new_index).ffill(downcast='infer')
         assert_series_equal(result, expected)
 
-        # invalid because we can't forward fill on this type of index
-        self.assertRaises(ValueError, lambda : s.reindex(new_index, method='ffill'))
+        expected = Series([1, 5, 3, 5], index=new_index)
+        result = s.reindex(new_index, method='ffill')
+        assert_series_equal(result, expected)
 
         # inferrence of new dtype
         s = Series([True,False,False,True],index=list('abcd'))
@@ -5877,6 +5878,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.shift(1).fillna(method='bfill')
         expected = Series(False,index=lrange(0,5))
         assert_series_equal(result, expected)
+
+    def test_reindex_nearest(self):
+        s = Series(np.arange(10, dtype='int64'))
+        target = [0.1, 0.9, 1.5, 2.0]
+        actual = s.reindex(target, method='nearest')
+        expected = Series(np.around(target).astype('int64'), target)
+        assert_series_equal(expected, actual)
+
+        actual = s.reindex_like(actual, method='nearest')
+        assert_series_equal(expected, actual)
 
     def test_reindex_backfill(self):
         pass

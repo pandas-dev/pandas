@@ -516,7 +516,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, self.freq).ordinal
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
-    def get_loc(self, key):
+    def get_indexer(self, target, method=None, limit=None):
+        if hasattr(target, 'freq') and target.freq != self.freq:
+            raise ValueError('target and index have different freq: '
+                             '(%s, %s)' % (target.freq, self.freq))
+        return Index.get_indexer(self, target, method, limit)
+
+    def get_loc(self, key, method=None):
         """
         Get integer location for requested label
 
@@ -538,7 +544,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             key = Period(key, self.freq)
             try:
-                return self._engine.get_loc(key.ordinal)
+                return Index.get_loc(self, key.ordinal, method=method)
             except KeyError:
                 raise KeyError(key)
 

@@ -649,7 +649,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self._engine.get_value(_values_from_object(series), key)
         return _maybe_box(self, values, series, key)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
         Get integer location for requested label
 
@@ -659,11 +659,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if _is_convertible_to_td(key):
             key = Timedelta(key)
-            return self._engine.get_loc(key)
+            return Index.get_loc(self, key, method=method)
 
         try:
-            return Index.get_loc(self, key)
-        except (KeyError, ValueError):
+            return Index.get_loc(self, key, method=method)
+        except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
             except (TypeError, KeyError, ValueError):
@@ -671,7 +671,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 stamp = Timedelta(key)
-                return self._engine.get_loc(stamp)
+                return Index.get_loc(self, stamp, method=method)
             except (KeyError, ValueError):
                 raise KeyError(key)
 

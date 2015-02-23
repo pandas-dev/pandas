@@ -1875,27 +1875,43 @@ class CheckIndexing(object):
         except Exception as e:
             self.assertNotEqual(type(e), UnboundLocalError)
 
-    def test_reverse_reindex_ffill_raises(self):
+    def test_reindex_methods(self):
+        df = pd.DataFrame({'x': range(5)})
+        target = np.array([-0.1, 0.9, 1.1, 1.5])
+
+        for method, expected_values in [('nearest', [0, 1, 1, 2]),
+                                        ('pad', [np.nan, 0, 1, 1]),
+                                        ('backfill', [0, 1, 2, 2])]:
+            expected = pd.DataFrame({'x': expected_values}, index=target)
+            actual = df.reindex(target, method=method)
+            assert_frame_equal(expected, actual)
+
+            e2 = expected[::-1]
+            actual = df.reindex(target[::-1], method=method)
+            assert_frame_equal(e2, actual)
+
+            new_order = [3, 0, 2, 1]
+            e2 = expected.iloc[new_order]
+            actual = df.reindex(target[new_order], method=method)
+            assert_frame_equal(e2, actual)
+
+            switched_method = ('pad' if method == 'backfill'
+                               else 'backfill' if method == 'pad'
+                               else method)
+            actual = df[::-1].reindex(target, method=switched_method)
+            assert_frame_equal(expected, actual)
+
+    def test_non_monotonic_reindex_methods(self):
         dr = pd.date_range('2013-08-01', periods=6, freq='B')
         data = np.random.randn(6,1)
         df = pd.DataFrame(data, index=dr, columns=list('A'))
-        df['A'][3] = np.nan
-        df_rev = pd.DataFrame(data, index=dr[::-1], columns=list('A'))
-        # Reverse index is not 'monotonic'
+        df_rev = pd.DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]],
+                              columns=list('A'))
+        # index is not monotonic increasing or decreasing
         self.assertRaises(ValueError, df_rev.reindex, df.index, method='pad')
         self.assertRaises(ValueError, df_rev.reindex, df.index, method='ffill')
         self.assertRaises(ValueError, df_rev.reindex, df.index, method='bfill')
-
-    def test_reversed_reindex_ffill_raises(self):
-        dr = pd.date_range('2013-08-01', periods=6, freq='B')
-        data = np.random.randn(6,1)
-        df = pd.DataFrame(data, index=dr, columns=list('A'))
-        df['A'][3] = np.nan
-        df = pd.DataFrame(data, index=dr, columns=list('A'))
-        # Reversed reindex is not 'monotonic'
-        self.assertRaises(ValueError, df.reindex, dr[::-1], method='pad')
-        self.assertRaises(ValueError, df.reindex, dr[::-1], method='ffill')
-        self.assertRaises(ValueError, df.reindex, dr[::-1], method='bfill')
+        self.assertRaises(ValueError, df_rev.reindex, df.index, method='nearest')
 
     def test_reindex_level(self):
         from itertools import permutations

@@ -1544,7 +1544,7 @@ class TestPeriodIndex(tm.TestCase):
 
         df = df.set_index(idx1)
         self.assertTrue(df.index.equals(idx1))
-        df = df.reindex(idx2)
+        df = df.set_index(idx2)
         self.assertTrue(df.index.equals(idx2))
 
     def test_nested_dict_frame_constructor(self):
