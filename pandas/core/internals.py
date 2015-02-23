@@ -1174,18 +1174,18 @@ class FloatBlock(FloatOrComplexBlock):
         
         
         if float_format and decimal != '.':
-            formater = lambda v : (float_format % v).replace('.',decimal,1)
+            formatter = lambda v : (float_format % v).replace('.',decimal,1)
         elif decimal != '.':
-            formater = lambda v : ('%g' % v).replace('.',decimal,1)
+            formatter = lambda v : ('%g' % v).replace('.',decimal,1)
         elif float_format:
-            formater = lambda v : float_format % v
+            formatter = lambda v : float_format % v
         else:
-            formater = None
+            formatter = None
             
-        if formater:
+        if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
-                [formater(val) for val in values.ravel()[imask]])
+                [formatter(val) for val in values.ravel()[imask]])
         
         return values.tolist()
 

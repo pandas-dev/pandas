@@ -1127,7 +1127,7 @@ class DataFrame(NDFrame):
             Format string for datetime objects
         cols : kwarg only alias of columns [deprecated]
         decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ‘,’ for European data
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
 
         formatter = fmt.CSVFormatter(self, path_or_buf,

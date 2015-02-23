@@ -2268,7 +2268,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ‘,’ for European data
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
