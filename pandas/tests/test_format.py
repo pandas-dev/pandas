@@ -2343,7 +2343,15 @@ $1$,$2$
         df = DataFrame({'col' : [1,2]})
         expected = ',col\n0,1\n1,2\n'
         self.assertEqual(df.to_csv(), expected)
+        
+    def test_to_csv_decimal(self):
+        df = DataFrame({'col1' : [1], 'col2' : ['a'], 'col3' : [10.1] })
+        
+        expected_default = ',col1,col2,col3\n0,1,a,10.1\n'
+        self.assertEqual(df.to_csv(), expected_default)
 
+        expected_european_excel = ';col1;col2;col3\n0;1;a;10,1\n'
+        self.assertEqual(df.to_csv(decimal=',',sep=';'), expected_european_excel)
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
