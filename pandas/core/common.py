@@ -2030,6 +2030,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
 
     Parameters
     ----------
+    value : np.array
     convert_dates : boolean, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
@@ -2068,9 +2069,9 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         inferred_type = lib.infer_dtype(sample)
 
         if inferred_type in ['datetime', 'datetime64'] or (convert_dates and inferred_type in ['date']):
-            value = _try_datetime(v)
+            value = _try_datetime(v).reshape(shape)
         elif inferred_type in ['timedelta', 'timedelta64']:
-            value = _try_timedelta(v)
+            value = _try_timedelta(v).reshape(shape)
 
         # its possible to have nulls intermixed within the datetime or timedelta
         # these will in general have an inferred_type of 'mixed', so have to try
@@ -2081,9 +2082,9 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         elif inferred_type in ['mixed']:
 
             if lib.is_possible_datetimelike_array(_ensure_object(v)):
-                value = _try_timedelta(v)
+                value = _try_timedelta(v).reshape(shape)
                 if lib.infer_dtype(value) in ['mixed']:
-                    value = _try_datetime(v)
+                    value = _try_datetime(v).reshape(shape)
 
     return value
 

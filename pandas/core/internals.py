@@ -13,8 +13,8 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                _possibly_infer_to_datetimelike, array_equivalent,
-                                _maybe_convert_string_to_object, is_categorical)
+                                array_equivalent, _maybe_convert_string_to_object,
+                                is_categorical)
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
@@ -2074,25 +2074,8 @@ def make_block(values, placement, klass=None, ndim=None,
             klass = ComplexBlock
         elif is_categorical(values):
             klass = CategoricalBlock
-
         else:
-
-            # we want to infer here if its a datetimelike if its object type
-            # this is pretty strict in that it requires a datetime/timedelta
-            # value IN addition to possible nulls/strings
-            # an array of ONLY strings will not be inferred
-            if np.prod(values.shape):
-                result = _possibly_infer_to_datetimelike(values)
-                vtype = result.dtype.type
-                if issubclass(vtype, np.datetime64):
-                    klass = DatetimeBlock
-                    values = result
-                elif (issubclass(vtype, np.timedelta64)):
-                    klass = TimeDeltaBlock
-                    values = result
-
-            if klass is None:
-                klass = ObjectBlock
+            klass = ObjectBlock
 
     return klass(values, ndim=ndim, fastpath=fastpath,
                  placement=placement)

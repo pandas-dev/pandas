@@ -246,6 +246,7 @@ Bug Fixes
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
   SQLAlchemy type  (:issue:`9083`).
 - Bug in ``.loc`` partial setting with a ``np.datetime64`` (:issue:`9516`)
+- Incorrect dtypes inferred on datetimelike looking series & on xs slices (:issue:`9477`)
 
 - Items in ``Categorical.unique()`` (and ``s.unique()`` if ``s`` is of dtype ``category``) now appear in the order in which they are originally found, not in sorted order (:issue:`9331`). This is now consistent with the behavior for other dtypes in pandas.
 

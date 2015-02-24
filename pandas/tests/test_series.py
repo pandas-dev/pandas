@@ -569,6 +569,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(int(Series([1.])), 1)
         self.assertEqual(long(Series([1.])), 1)
 
+
     def test_astype(self):
         s = Series(np.random.randn(5),name='foo')
 
@@ -777,6 +778,28 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         s2[1] = 5
         self.assertEqual(s[1], 5)
+
+    def test_constructor_datelike_coercion(self):
+
+        # GH 9477
+        # incorrectly infering on dateimelike looking when object dtype is specified
+        s = Series([Timestamp('20130101'),'NOV'],dtype=object)
+        self.assertEqual(s.iloc[0],Timestamp('20130101'))
+        self.assertEqual(s.iloc[1],'NOV')
+        self.assertTrue(s.dtype == object)
+
+        # the dtype was being reset on the slicing and re-inferred to datetime even
+        # thought the blocks are mixed
+        belly = '216 3T19'.split()
+        wing1 = '2T15 4H19'.split()
+        wing2 = '416 4T20'.split()
+        mat = pd.to_datetime('2016-01-22 2019-09-07'.split())
+        df = pd.DataFrame({'wing1':wing1, 'wing2':wing2, 'mat':mat}, index=belly)
+
+        result = df.loc['3T19']
+        self.assertTrue(result.dtype == object)
+        result = df.loc['216']
+        self.assertTrue(result.dtype == object)
 
     def test_constructor_dtype_datetime64(self):
         import pandas.tslib as tslib
