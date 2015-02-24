@@ -2832,18 +2832,12 @@ class DataFrame(NDFrame):
         duplicated : Series
         """
         from pandas.core.groupby import get_group_index
+        from pandas.core.algorithms import factorize
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
-        size_hint = min(len(self), _SIZE_HINT_LIMIT)
-
-        def factorize(vals):
-            (hash_klass, vec_klass), vals = \
-                    algos._get_data_algo(vals, algos._hashtables)
-
-            uniques, table = vec_klass(), hash_klass(size_hint)
-            labels = table.get_labels(vals, uniques, 0, -1)
-
-            return labels.astype('i8', copy=False), len(uniques)
+        def f(vals):
+            labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+            return labels.astype('i8',copy=False), len(shape)
 
         if subset is None:
             subset = self.columns
@@ -2853,7 +2847,7 @@ class DataFrame(NDFrame):
             subset = subset,
 
         vals = (self[col].values for col in subset)
-        labels, shape = map(list, zip( * map(factorize, vals)))
+        labels, shape = map(list, zip( * map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
         return Series(duplicated_int64(ids, take_last), index=self.index)

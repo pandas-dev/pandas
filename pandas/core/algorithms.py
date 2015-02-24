@@ -95,7 +95,7 @@ def _unique_generic(values, table_type, type_caster):
 
 
 
-def factorize(values, sort=False, order=None, na_sentinel=-1):
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     Encode input values as an enumerated type or categorical variable
 
@@ -106,8 +106,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     sort : boolean, default False
         Sort by values
     order : deprecated
-    na_sentinel: int, default -1
+    na_sentinel : int, default -1
         Value to mark "not found"
+    size_hint : hint to the hashtable sizer
 
     Returns
     -------
@@ -129,7 +130,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     is_timedelta = com.is_timedelta64_dtype(vals)
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
-    table = hash_klass(len(vals))
+    table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
     labels = table.get_labels(vals, uniques, 0, na_sentinel)
 
