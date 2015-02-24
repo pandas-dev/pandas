@@ -5,6 +5,7 @@ import logging
 import sys
 from time import sleep
 import uuid
+import traceback
 
 import numpy as np
 
@@ -49,6 +50,7 @@ if not compat.PY3:
                 _GOOGLE_API_CLIENT_VALID_VERSION = True
 
         except ImportError:
+            traceback.format_exc()
             _GOOGLE_API_CLIENT_INSTALLED = False
 
 
