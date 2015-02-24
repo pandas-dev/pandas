@@ -3698,8 +3698,17 @@ You will then be authenticated to the specified BigQuery account
 via Google's Oauth2 mechanism. In general, this is as simple as following the
 prompts in a browser window which will be opened for you. Should the browser not
 be available, or fail to launch, a code will be provided to complete the process
-manually.  Additional information on the authentication mechanism can be found
+manually.  Additional information on this authentication mechanism can be found
 `here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__
+
+Alternatively, you can use a headless authentication mechanism via the Google Cloud SDK. More
+information on installing the SDK and authenticating is available `here <https://cloud.google.com/sdk/gcloud/>`__
+
+Once you have your authentication credentials setup, you can use this approach by including the gcloud_credentials parameter. It will accept either a boolean True (in which case it uses the SDK's default credentials path), or string filepath to the credentials file:
+
+.. code-block:: python
+
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', project_id = projectid, gcloud_credentials = True)
 
 You can define which column from BigQuery to use as an index in the
 destination DataFrame as well as a preferred column order as follows:
