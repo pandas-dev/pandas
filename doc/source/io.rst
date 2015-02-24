@@ -573,7 +573,7 @@ take full advantage of the flexibility of the date parsing API:
                     date_parser=conv.parse_date_time)
    df
 
-Pandas will try to call the ``date_parser`` function in three different ways. If 
+Pandas will try to call the ``date_parser`` function in three different ways. If
 an exception is raised, the next one is tried:
 
 1. ``date_parser`` is first called with one or more arrays as arguments,
@@ -593,7 +593,7 @@ Note that performance-wise, you should try these methods of parsing dates in ord
 
 2. If you know the format, use ``pd.to_datetime()``:
    ``date_parser=lambda x: pd.to_datetime(x, format=...)``
-   
+
 3. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
@@ -1965,13 +1965,13 @@ respectively.
 .. versionadded:: 0.12
 
 ``ExcelFile`` has been moved to the top level namespace.
-   
+
 There are two approaches to reading an excel file.  The ``read_excel`` function
 and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
 with file-specific arguments (ie. identical data formats across sheets).
 ``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
 formats across sheets).  Choosing the approach is largely a question of
-code readability and execution speed.  
+code readability and execution speed.
 
 Equivalent class and function approaches to read a single sheet:
 
@@ -1993,12 +1993,13 @@ Equivalent class and function approaches to read multiple sheets:
     xls = pd.ExcelFile('path_to_file.xls')
     data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
     data['Sheet2'] = xls.parse('Sheet2', index_col=1)
-    
+
     # For when Sheet1's format is identical to Sheet2
     data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
-   
-Specifying Sheets    
+
+Specifying Sheets
 +++++++++++++++++
+
 .. _io.specifying_sheets:
 
 .. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
@@ -2023,7 +2024,7 @@ Using the sheet index:
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA']) 
+   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
 
 Using all default values:
 
@@ -2040,7 +2041,7 @@ Using None to get all sheets:
    read_excel('path_to_file.xls',sheetname=None)
 
 Using a list to get multiple sheets:
-   
+
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
@@ -3422,7 +3423,7 @@ The key functions are:
     The function :func:`~pandas.read_sql` is a convenience wrapper around
     :func:`~pandas.read_sql_table` and :func:`~pandas.read_sql_query` (and for
     backward compatibility) and will delegate to specific function depending on
-    the provided input (database table name or sql query). 
+    the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
