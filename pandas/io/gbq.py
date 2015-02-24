@@ -35,7 +35,7 @@ if not compat.PY3:
         try:
             from apiclient.discovery import build
             from apiclient.http import MediaFileUpload
-            from apiclient.errors import HttpError
+            from apiclient.errors import HttpError 
 
             from oauth2client.client import OAuth2WebServerFlow
             from oauth2client.client import AccessTokenRefreshError
