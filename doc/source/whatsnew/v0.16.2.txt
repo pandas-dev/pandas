@@ -97,6 +97,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor instead of returning an incorrect result (:issue:`10217`).
+- ``axis`` parameter of ``DataFrame.quantile`` now accepts also ``index`` and``column``. (:issue:`9543`)
 
 - Adding empty ``DataFrame``s results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`)
 
@@ -116,7 +117,11 @@ Bug Fixes
 - Bug where read_hdf store.select modifies the passed columns list when
   multi-indexed (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
+
 - Bug where some of the nan funcs do not have consistent return dtypes (:issue:`10251`)
+
+- Bug in ``DataFrame.quantile`` on checking that a valid axis was passed (:issue:`9543`)
+
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
 - Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)
 
