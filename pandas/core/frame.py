@@ -4363,8 +4363,9 @@ class DataFrame(NDFrame):
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             0 <= q <= 1, the quantile(s) to compute
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
+        axis : {0, 1, 'index', 'columns'} (default 0)
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise 
+
 
         Returns
         -------
@@ -4410,6 +4411,9 @@ class DataFrame(NDFrame):
                 return _quantile(values, per)
 
         data = self._get_numeric_data() if numeric_only else self
+
+        axis = self._get_axis_number(axis)
+
         if axis == 1:
             data = data.T
 
