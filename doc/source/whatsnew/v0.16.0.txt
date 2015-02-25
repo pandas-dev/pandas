@@ -344,3 +344,4 @@ Bug Fixes
 - Bug in groupby MultiIndex with missing pair (:issue:`9049`, :issue:`9344`)
 - Fixed bug in ``Series.groupby`` where grouping on ``MultiIndex`` levels would ignore the sort argument (:issue:`9444`)
 - Fix bug in ``DataFrame.Groupby`` where sort=False is ignored in case of Categorical columns. (:issue:`8868`)
+- Fix issue on when reading HDF5 files using ``read_hdf`` from a Windows file share without write-permissions. (:issue:`9551`)
