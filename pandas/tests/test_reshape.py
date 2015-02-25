@@ -322,6 +322,138 @@ class TestGetDummies(tm.TestCase):
                              'cat_x', 'cat_y']]
         assert_frame_equal(result, expected)
 
+    def test_series_fill_scalar(self):
+        s_list = ['a', 'b', 'c', 'a']
+        s_series = Series(s_list)
+        s_series_index = Series(s_list, index=['A', 'B', 'C', 'D'])
+
+        expected = DataFrame({'a': ['Yes', 0.0, 0.0, 'Yes'],
+                              'b': [0.0, 'Yes', 0.0, 0.0],
+                              'c': [0.0, 0.0, 'Yes', 0.0]})
+        result = get_dummies(s_series, pos_value='Yes')
+
+        assert_frame_equal(result, expected)
+
+        expected.index = list('ABCD')
+        result = get_dummies(s_series_index, pos_value='Yes')
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({'a': ['Yes', 'No', 'No', 'Yes'],
+                              'b': ['No', 'Yes', 'No', 'No'],
+                              'c': ['No', 'No', 'Yes', 'No']})
+        result = get_dummies(s_series, pos_value='Yes', neg_value='No')
+        assert_frame_equal(result, expected)
+
+        expected.index = list('ABCD')
+        result = get_dummies(s_series_index, pos_value='Yes', neg_value='No')
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_fill_scalar(self):
+        df = DataFrame({'A': ['X', 'Y', 'X'], 'B':['x', 'x', 'y']})
+
+        expected = DataFrame({'A_X': ['Yes', 0, 'Yes'],
+                              'A_Y': [0, 'Yes', 0],
+                              'B_x': ['Yes', 'Yes', 0],
+                              'B_y': [0, 0, 'Yes']})
+        result = get_dummies(df, pos_value='Yes')
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({'A_X': ['Yes', 'No', 'Yes'],
+                              'A_Y': ['No', 'Yes', 'No'],
+                              'B_x': ['Yes', 'Yes', 'No'],
+                              'B_y': ['No', 'No', 'Yes']})
+        result = get_dummies(df, pos_value='Yes', neg_value='No')
+        assert_frame_equal(result, expected)
+
+    def test_series_fill_dict(self):
+        s_list = ['a', 'b', 'c', 'a']
+        s_series = Series(['a', 'b', 'c', 'a'])
+        s_series_index = Series(s_list, index=['A', 'B', 'C', 'D'])
+
+        d_true = {'a': 'Y_a', 'b': 'Y_b', 'c': 'Y_c'}
+        d_na = {'a': 'N_a', 'b': 'N_b', 'c': 'N_c'}
+        expected = DataFrame({'a': [1.0, 'N_a', 'N_a', 1.0],
+                              'b': ['N_b', 1.0, 'N_b', 'N_b'],
+                              'c': ['N_c', 'N_c', 1.0, 'N_c']})
+        result = get_dummies(s_series, neg_value=d_na)
+        assert_frame_equal(result, expected)
+
+        expected.index = list('ABCD')
+        result = get_dummies(s_series_index, neg_value=d_na)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({'a': ['Y_a', 'N_a', 'N_a', 'Y_a'],
+                              'b': ['N_b', 'Y_b', 'N_b', 'N_b'],
+                              'c': ['N_c', 'N_c', 'Y_c', 'N_c']})
+        result = get_dummies(s_series, pos_value=d_true, neg_value=d_na)
+        assert_frame_equal(result, expected)
+
+        expected.index = list('ABCD')
+        result = get_dummies(s_series_index, pos_value=d_true, neg_value=d_na)
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_fill_dict(self):
+        df = DataFrame({'A': ['X', 'Y', 'X'], 'B':['x', 'x', 'y']})
+
+        expected = DataFrame({'A_X': ['Y_AX', 0, 'Y_AX'],
+                              'A_Y': [0, 'Y_AY', 0],
+                              'B_x': ['Y_Bx', 'Y_Bx', 0],
+                              'B_y': [0, 0, 'Y_By']})
+        result = get_dummies(df, pos_value={'A_X': 'Y_AX', 'A_Y': 'Y_AY',
+                                            'B_x': 'Y_Bx', 'B_y': 'Y_By'})
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({'A_X': [1, 'N_AX', 1],
+                              'A_Y': ['N_AY', 1, 'N_AY'],
+                              'B_x': [1, 1, 'N_Bx'],
+                              'B_y': ['N_By', 'N_By', 1]})
+        result = get_dummies(df, neg_value={'A_X': 'N_AX', 'A_Y': 'N_AY',
+                                            'B_x': 'N_Bx', 'B_y': 'N_By'})
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({'A_X': ['Y_AX', 'N_AX', 'Y_AX'],
+                              'A_Y': ['N_AY', 'Y_AY', 'N_AY'],
+                              'B_x': ['Y_Bx', 'Y_Bx', 'N_Bx'],
+                              'B_y': ['N_By', 'N_By', 'Y_By']})
+        result = get_dummies(df, pos_value={'A_X': 'Y_AX', 'A_Y': 'Y_AY',
+                                            'B_x': 'Y_Bx', 'B_y': 'Y_By'},
+                                 neg_value={'A_X': 'N_AX', 'A_Y': 'N_AY',
+                                            'B_x': 'N_Bx', 'B_y': 'N_By'})
+        assert_frame_equal(result, expected)
+
+    def test_series_dummies_fill_list(self):
+        # must be all errors
+        s = Series(['a', 'b', 'c', 'a'])
+
+        s_list = [1, 1, 0, 1]
+        s_series = Series([0, 1, 1, 0])
+        v_msg = "invalid pos_value, use scalar or dict"
+        na_msg = "invalid neg_value, use scalar or dict"
+        with tm.assertRaisesRegexp(ValueError, v_msg):
+            result = get_dummies(s, pos_value=s_list)
+        with tm.assertRaisesRegexp(ValueError, v_msg):
+            result = get_dummies(s, pos_value=s_series)
+        with tm.assertRaisesRegexp(ValueError, na_msg):
+            result = get_dummies(s, neg_value=s_list)
+        with tm.assertRaisesRegexp(ValueError, na_msg):
+            result = get_dummies(s, neg_value=s_series)
+
+    def test_dataframe_dummies_fill_list(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['x', 'y', 'z']})
+
+        s_list = ['a', 'b', 'c', 'a']
+        s_series = Series(['a', 'b', 'c', 'a'])
+        v_msg = "invalid pos_value, use scalar or dict"
+        na_msg = "invalid neg_value, use scalar or dict"
+        with tm.assertRaisesRegexp(ValueError, v_msg):
+            result = get_dummies(df, pos_value=s_list)
+        with tm.assertRaisesRegexp(ValueError, v_msg):
+            result = get_dummies(df, pos_value=s_series)
+        with tm.assertRaisesRegexp(ValueError, na_msg):
+            result = get_dummies(df, neg_value=s_list)
+        with tm.assertRaisesRegexp(ValueError, na_msg):
+            result = get_dummies(df, neg_value=s_series)
+
 
 class TestConvertDummies(tm.TestCase):
     def test_convert_dummies(self):
