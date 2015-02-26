@@ -1,6 +1,7 @@
 
 from datetime import datetime
 import pandas.util.testing as tm
+from pandas import DatetimeIndex
 from pandas.tseries.holiday import (
     USFederalHolidayCalendar, USMemorialDay, USThanksgivingDay,
     nearest_workday, next_monday_or_tuesday, next_monday,
@@ -49,6 +50,29 @@ class TestCalendar(tm.TestCase):
                          self.holiday_list)
         self.assertEqual(list(holidays_2.to_pydatetime()),
                          self.holiday_list)
+
+    def test_calendar_caching(self):
+        # Test for issue #9552
+
+        class TestCalendar(AbstractHolidayCalendar):
+            def __init__(self, name=None, rules=None):
+                super(TestCalendar, self).__init__(
+                    name=name,
+                    rules=rules
+                )
+
+        jan1 = TestCalendar(rules=[Holiday('jan1', year=2015, month=1, day=1)])
+        jan2 = TestCalendar(rules=[Holiday('jan2', year=2015, month=1, day=2)])
+
+        tm.assert_index_equal(
+            jan1.holidays(),
+            DatetimeIndex(['01-Jan-2015'])
+        )
+        tm.assert_index_equal(
+            jan2.holidays(),
+            DatetimeIndex(['02-Jan-2015'])
+        )
+
 
 class TestHoliday(tm.TestCase):
 
