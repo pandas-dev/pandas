@@ -279,7 +279,7 @@ class AbstractHolidayCalendar(object):
     rules = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
-    _holiday_cache = None
+    _cache = None
 
     def __init__(self, name=None, rules=None):
         """
@@ -350,14 +350,6 @@ class AbstractHolidayCalendar(object):
             return holidays
         else:
             return holidays.index
-
-    @property
-    def _cache(self):
-        return self.__class__._holiday_cache
-
-    @_cache.setter
-    def _cache(self, values):
-        self.__class__._holiday_cache = values
 
     @staticmethod
     def merge_class(base, other):
