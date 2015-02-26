@@ -218,8 +218,12 @@ Bug Fixes
 >>>>>>> bed38f2... FIX: division of Decimal would crash on fill because Decimal does not support type or dtype. (GH9787)
 =======
 - Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
+<<<<<<< HEAD
 >>>>>>> 39fa180... FIX: timeseries asfreq would drop the name of the index, closes #9854
 =======
 
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
 >>>>>>> 99aabee... What's new and doc
+=======
+- Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
+>>>>>>> b1e8d9f... Moved caching in `AbstractHolidayCalendar` to the instance level
