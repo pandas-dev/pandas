@@ -716,13 +716,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
                   If keep_tz is True:
 
-                    If the timezone is not set or is UTC, the resulting
+                    If the timezone is not set, the resulting
                     Series will have a datetime64[ns] dtype.
-                    Otherwise the Series will have an object dtype.
+                    Otherwise the Series will have an object dtype; the
+                    tz will be preserved.
 
                   If keep_tz is False:
 
-                    Series will have a datetime64[ns] dtype.
+                    Series will have a datetime64[ns] dtype. TZ aware
+                    objects will have the tz removed.
 
         Returns
         -------
