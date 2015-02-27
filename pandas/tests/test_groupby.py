@@ -5044,6 +5044,11 @@ class TestGroupBy(tm.TestCase):
                          "C3":[nan,nan,nan,nan, 10,100,nan,nan, nan,nan,200,34]}, index=idx)
         tm.assert_frame_equal(res, exp)
 
+def test_convert_grouper(axis, grouper):
+    def f():
+        len(grouper) != len(axis)
+    self.assertRaisesRegexp(ValueError, 'Grouper and axis must be same length', f)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
