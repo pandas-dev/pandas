@@ -212,6 +212,55 @@ Enhancements
 - ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 - Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
 
+Interaction with scipy.sparse
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods
+  (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix``
+  instances (see :ref:`here <sparse.scipysparse>`).
+  For example, given a SparseSeries with MultiIndex we can convert to a
+  `scipy.sparse.coo_matrix` by specifying the row and column labels as
+  index levels:
+
+  .. ipython:: python
+
+     from numpy import nan
+     s = Series([3.0, nan, 1.0, 3.0, nan, nan])
+     s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                       (1, 2, 'a', 1),
+                                       (1, 1, 'b', 0),
+                                       (1, 1, 'b', 1),
+                                       (2, 1, 'b', 0),
+                                       (2, 1, 'b', 1)],
+                                       names=['A', 'B', 'C', 'D'])
+
+     s
+     # SparseSeries
+     ss = s.to_sparse()
+     ss
+
+     A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
+                                  column_levels=['C', 'D'],
+                                  sort_labels=False)
+
+     A
+     A.todense()
+     rows
+     columns
+
+  The from_coo method is a convenience method for creating a ``SparseSeries``
+  from a ``scipy.sparse.coo_matrix``:
+
+  .. ipython:: python
+
+     from scipy import sparse
+     A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
+                                 shape=(3, 4))
+     A
+     A.todense()
+
+     ss = SparseSeries.from_coo(A)
+     ss
+
 Performance
 ~~~~~~~~~~~
 

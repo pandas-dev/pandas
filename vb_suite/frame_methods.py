@@ -500,9 +500,9 @@ def get_data(n=100000):
 frame_from_records_generator = Benchmark('df = DataFrame.from_records(get_data())',
                                 setup,
                                 name='frame_from_records_generator',
-                                start_date=datetime(2013,10,04))  # issue-4911
+                                start_date=datetime(2013,10,4))  # issue-4911
 
 frame_from_records_generator_nrows = Benchmark('df = DataFrame.from_records(get_data(), nrows=1000)',
                                 setup,
                                 name='frame_from_records_generator_nrows',
-                                start_date=datetime(2013,10,04))  # issue-4911
+                                start_date=datetime(2013,10,4))  # issue-4911
