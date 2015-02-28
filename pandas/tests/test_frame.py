@@ -1876,7 +1876,7 @@ class CheckIndexing(object):
             self.assertNotEqual(type(e), UnboundLocalError)
 
     def test_reindex_methods(self):
-        df = pd.DataFrame({'x': range(5)})
+        df = pd.DataFrame({'x': list(range(5))})
         target = np.array([-0.1, 0.9, 1.1, 1.5])
 
         for method, expected_values in [('nearest', [0, 1, 1, 2]),
