@@ -20,7 +20,7 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal)
-from pandas import concat
+from pandas import concat, lib
 from pandas.io.common import PerformanceWarning
 
 import pandas.util.testing as tm
@@ -211,8 +211,6 @@ class TestIndexing(tm.TestCase):
 
             except AssertionError:
                 raise
-            except TypeError:
-                raise AssertionError(_print('type error'))
             except Exception as detail:
 
                 # if we are in fails, the ok, otherwise raise it
@@ -608,7 +606,7 @@ class TestIndexing(tm.TestCase):
         expected = Series([0,1,0],index=[4,5,6])
         assert_series_equal(s, expected)
 
-    def test_ix_loc_setitem(self):
+    def test_ix_loc_setitem_consistency(self):
 
         # GH 5771
         # loc with slice and series
@@ -655,6 +653,84 @@ class TestIndexing(tm.TestCase):
         df2 = df.copy()
         df2.ix[:,2] = pd.to_datetime(df['timestamp'], unit='s')
         assert_frame_equal(df2,expected)
+
+    def test_ix_loc_consistency(self):
+
+        # GH 8613
+        # some edge cases where ix/loc should return the same
+        # this is not an exhaustive case
+
+        def compare(result, expected):
+            if lib.isscalar(expected):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(expected.equals(result))
+
+        # failure cases for .loc, but these work for .ix
+        df = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'))
+        for key in [ slice(1,3), tuple([slice(0,2),slice(0,2)]), tuple([slice(0,2),df.columns[0:2]]) ]:
+
+            for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
+                           tm.makeDateIndex, tm.makePeriodIndex, tm.makeTimedeltaIndex ]:
+                df.index = index(len(df.index))
+                df.ix[key]
+
+                self.assertRaises(TypeError, lambda : df.loc[key])
+
+        df = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=pd.date_range('2012-01-01', periods=5))
+
+        for key in [ '2012-01-03',
+                     '2012-01-31',
+                     slice('2012-01-03','2012-01-03'),
+                     slice('2012-01-03','2012-01-04'),
+                     slice('2012-01-03','2012-01-06',2),
+                     slice('2012-01-03','2012-01-31'),
+                     tuple([[True,True,True,False,True]]),
+                     ]:
+
+            # getitem
+
+            # if the expected raises, then compare the exceptions
+            try:
+                expected = df.ix[key]
+            except KeyError:
+                self.assertRaises(KeyError, lambda : df.loc[key])
+                continue
+
+            result = df.loc[key]
+            compare(result, expected)
+
+            # setitem
+            df1 = df.copy()
+            df2 = df.copy()
+
+            df1.ix[key] = 10
+            df2.loc[key] = 10
+            compare(df2, df1)
+
+        # edge cases
+        s = Series(['a','b','c','d'], [1,2,3,4])
+        self.assertRaises(TypeError, lambda : s.ix[1.5:5.5])
+        self.assertRaises(TypeError, lambda : s.loc[1.5:5.5])
+
+        s = Series([1,2,3,4], index=list('abde'))
+
+        result1 = s['a':'c']
+        result2 = s.ix['a':'c']
+        result3 = s.loc['a':'c']
+        assert_series_equal(result1,result2)
+        assert_series_equal(result1,result3)
+
+        # now work rather than raising KeyError
+        s = Series(range(5),[-2,-1,1,2,3])
+
+        result1 = s.ix[-10:3]
+        result2 = s.loc[-10:3]
+        assert_series_equal(result1,result2)
+
+        result1 = s.ix[0:3]
+        result2 = s.loc[0:3]
+        assert_series_equal(result1,result2)
 
     def test_loc_setitem_multiindex(self):
 
@@ -776,7 +852,11 @@ class TestIndexing(tm.TestCase):
     def test_loc_getitem_label_out_of_range(self):
 
         # out of range label
-        self.check_result('label range', 'loc', 'f', 'ix', 'f', typs = ['ints','labels','mixed','ts','floats'], fails=KeyError)
+        self.check_result('label range', 'loc', 'f', 'ix', 'f', typs = ['ints','labels','mixed','ts'], fails=KeyError)
+        self.check_result('label range', 'loc', 'f', 'ix', 'f', typs = ['floats'], fails=TypeError)
+        self.check_result('label range', 'loc', 20, 'ix', 20, typs = ['ints','labels','mixed'], fails=KeyError)
+        self.check_result('label range', 'loc', 20, 'ix', 20, typs = ['ts'], axes=0, fails=TypeError)
+        self.check_result('label range', 'loc', 20, 'ix', 20, typs = ['floats'], axes=0, fails=TypeError)
 
     def test_loc_getitem_label_list(self):
 
@@ -813,9 +893,6 @@ class TestIndexing(tm.TestCase):
         self.check_result('bool', 'loc', b, 'ix', b, typs = ['empty'], fails = KeyError)
 
     def test_loc_getitem_int_slice(self):
-
-        # int slices in int
-        self.check_result('int slice1', 'loc', slice(2,4), 'ix', { 0 : [2,4], 1: [3,6], 2: [4,8] }, typs = ['ints'], fails=KeyError)
 
         # ok
         self.check_result('int slice2', 'loc', slice(2,4), 'ix', [2,4], typs = ['ints'], axes = 0)
@@ -920,7 +997,7 @@ class TestIndexing(tm.TestCase):
     def test_loc_getitem_label_slice(self):
 
         # label slices (with ints)
-        self.check_result('lab slice', 'loc', slice(1,3), 'ix', slice(1,3), typs = ['labels','mixed','ts','floats','empty'], fails=KeyError)
+        self.check_result('lab slice', 'loc', slice(1,3), 'ix', slice(1,3), typs = ['labels','mixed','empty','ts','floats'], fails=TypeError)
 
         # real label slices
         self.check_result('lab slice', 'loc', slice('a','c'), 'ix', slice('a','c'), typs = ['labels'], axes=0)
@@ -931,20 +1008,15 @@ class TestIndexing(tm.TestCase):
         self.check_result('ts  slice', 'loc', slice('20130102','20130104'), 'ix', slice('20130102','20130104'), typs = ['ts'], axes=1, fails=KeyError)
         self.check_result('ts  slice', 'loc', slice('20130102','20130104'), 'ix', slice('20130102','20130104'), typs = ['ts'], axes=2, fails=KeyError)
 
-        self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=0, fails=KeyError)
+        self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=0, fails=TypeError)
         self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=1, fails=KeyError)
         self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=2, fails=KeyError)
 
-        self.check_result('mixed slice', 'loc', slice(2,4,2), 'ix', slice(2,4,2), typs = ['mixed'], axes=0)
+        self.check_result('mixed slice', 'loc', slice(2,4,2), 'ix', slice(2,4,2), typs = ['mixed'], axes=0, fails=TypeError)
 
     def test_loc_general(self):
 
-        # GH 2922 (these are fails)
-        df = DataFrame(np.random.rand(4,4),columns=['A','B','C','D'])
-        self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(0,2),slice(0,2)]))
-
         df = DataFrame(np.random.rand(4,4),columns=['A','B','C','D'], index=['A','B','C','D'])
-        self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(0,2),df.columns[0:2]]))
 
         # want this to work
         result = df.loc[:,"A":"B"].iloc[0:2,:]
@@ -3239,10 +3311,10 @@ class TestIndexing(tm.TestCase):
         # don't allow not string inserts
         def f():
             df.loc[100.0, :] = df.ix[0]
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
         def f():
             df.loc[100,:] = df.ix[0]
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             df.ix[100.0, :] = df.ix[0]
@@ -3887,8 +3959,8 @@ class TestIndexing(tm.TestCase):
             check_invalid(index())
         check_invalid(Index(np.arange(5) * 2.5),loc=KeyError, ix=KeyError, getitem=KeyError)
 
-        def check_getitem(index):
-
+        def check_index(index, error):
+            index = index()
             s = Series(np.arange(len(index)),index=index)
 
             # positional selection
@@ -3898,22 +3970,26 @@ class TestIndexing(tm.TestCase):
             result4 = s.iloc[5.0]
 
             # by value
-            self.assertRaises(KeyError, lambda : s.loc[5])
-            self.assertRaises(KeyError, lambda : s.loc[5.0])
+            self.assertRaises(error, lambda : s.loc[5])
+            self.assertRaises(error, lambda : s.loc[5.0])
 
             # this is fallback, so it works
             result5 = s.ix[5]
             result6 = s.ix[5.0]
+
             self.assertEqual(result1, result2)
             self.assertEqual(result1, result3)
             self.assertEqual(result1, result4)
             self.assertEqual(result1, result5)
             self.assertEqual(result1, result6)
 
-        # all index types except float/int
-        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
-                       tm.makeDateIndex, tm.makePeriodIndex ]:
-            check_getitem(index())
+        # string-like
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex ]:
+            check_index(index, KeyError)
+
+        # datetimelike
+        for index in [ tm.makeDateIndex, tm.makeTimedeltaIndex, tm.makePeriodIndex ]:
+            check_index(index, TypeError)
 
         # exact indexing when found on IntIndex
         s = Series(np.arange(10),dtype='int64')
@@ -3943,8 +4019,8 @@ class TestIndexing(tm.TestCase):
             assert_series_equal(result1, result2)
             assert_series_equal(result1, result3)
 
-            # not in the index
-            self.assertRaises(KeyError, lambda : s.loc[2:5])
+            # loc will fail
+            self.assertRaises(TypeError, lambda : s.loc[2:5])
 
             # make all float slicing fail
             self.assertRaises(TypeError, lambda : s[2.0:5])
@@ -3955,9 +4031,9 @@ class TestIndexing(tm.TestCase):
             self.assertRaises(TypeError, lambda : s.ix[2.0:5.0])
             self.assertRaises(TypeError, lambda : s.ix[2:5.0])
 
-            self.assertRaises(KeyError, lambda : s.loc[2.0:5])
-            self.assertRaises(KeyError, lambda : s.loc[2.0:5.0])
-            self.assertRaises(KeyError, lambda : s.loc[2:5.0])
+            self.assertRaises(TypeError, lambda : s.loc[2.0:5])
+            self.assertRaises(TypeError, lambda : s.loc[2.0:5.0])
+            self.assertRaises(TypeError, lambda : s.loc[2:5.0])
 
             # these work for now
             #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
@@ -3966,7 +4042,7 @@ class TestIndexing(tm.TestCase):
 
         # all index types except int, float
         for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
-                       tm.makeDateIndex, tm.makePeriodIndex ]:
+                       tm.makeDateIndex, tm.makeTimedeltaIndex, tm.makePeriodIndex ]:
             check_slicing_positional(index())
 
         # int
@@ -3981,15 +4057,12 @@ class TestIndexing(tm.TestCase):
         # these are all value based
         result2 = s.ix[2:5]
         result3 = s.loc[2:5]
-        result4 = s.loc[2.0:5]
-        result5 = s.loc[2.0:5.0]
-        result6 = s.loc[2:5.0]
         assert_series_equal(result2, result3)
-        assert_series_equal(result2, result4)
-        assert_series_equal(result2, result5)
-        assert_series_equal(result2, result6)
 
         # make all float slicing fail
+        self.assertRaises(TypeError, lambda : s.loc[2.0:5])
+        self.assertRaises(TypeError, lambda : s.loc[2.0:5.0])
+        self.assertRaises(TypeError, lambda : s.loc[2:5.0])
         self.assertRaises(TypeError, lambda : s[2.0:5])
         self.assertRaises(TypeError, lambda : s[2.0:5.0])
         self.assertRaises(TypeError, lambda : s[2:5.0])
@@ -4097,9 +4170,7 @@ class TestIndexing(tm.TestCase):
         import warnings
         warnings.filterwarnings(action='error', category=FutureWarning)
 
-        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
-                       tm.makeDateIndex, tm.makePeriodIndex ]:
-
+        def check_index(index):
             i = index(5)
 
             for s in  [ Series(np.arange(len(i)),index=i), DataFrame(np.random.randn(len(i),len(i)),index=i,columns=i) ]:
@@ -4114,8 +4185,11 @@ class TestIndexing(tm.TestCase):
             # fallsback to position selection ,series only
             s = Series(np.arange(len(i)),index=i)
             s[3]
-            self.assertRaises(FutureWarning, lambda :
-                              s[3.0])
+            self.assertRaises(FutureWarning, lambda : s[3.0])
+
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makeTimedeltaIndex, tm.makePeriodIndex ]:
+            check_index(index)
 
         # ints
         i = index(5)

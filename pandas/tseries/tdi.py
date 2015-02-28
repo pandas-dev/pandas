@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.core.common import (ABCSeries, _TD_DTYPE, _INT64_DTYPE,
                                 is_timedelta64_dtype, _maybe_box,
-                                _values_from_object, isnull)
+                                _values_from_object, isnull, is_integer, is_float)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -156,9 +156,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 freq = None
 
         if periods is not None:
-            if com.is_float(periods):
+            if is_float(periods):
                 periods = int(periods)
-            elif not com.is_integer(periods):
+            elif not is_integer(periods):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
@@ -687,7 +687,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         Returns
         -------
-        bound : Timedelta or object
+        label :  object
 
         """
         if isinstance(label, compat.string_types):
@@ -698,12 +698,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             else:
                 return (lbound + _resolution_map[parsed.resolution]() -
                         Timedelta(1, 'ns'))
+        elif is_integer(label) or is_float(label):
+            self._invalid_indexer('slice',label)
+
         return label
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-
+        if is_integer(key) or is_float(key):
+            self._invalid_indexer('slice',key)
         loc = self._partial_td_slice(key, freq, use_lhs=use_lhs,
                                      use_rhs=use_rhs)
         return loc
@@ -866,7 +870,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         new_tds = np.delete(self.asi8, loc)
 
         freq = 'infer'
-        if lib.is_integer(loc):
+        if is_integer(loc):
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:

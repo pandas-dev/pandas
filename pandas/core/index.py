@@ -640,7 +640,7 @@ class Index(IndexOpsMixin, PandasObject):
         def to_int():
             ikey = int(key)
             if ikey != key:
-                return self._convert_indexer_error(key, 'label')
+                return self._invalid_indexer('label', key)
             return ikey
 
         if typ == 'iloc':
@@ -651,7 +651,7 @@ class Index(IndexOpsMixin, PandasObject):
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
                     type(self).__name__),FutureWarning)
                 return key
-            return self._convert_indexer_error(key, 'label')
+            return self._invalid_indexer('label', key)
 
         if is_float(key):
             if not self.is_floating():
@@ -667,7 +667,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         for c in ['start','stop','step']:
             if not f(getattr(key,c)):
-                self._convert_indexer_error(key.start, 'slice {0} value'.format(c))
+                self._invalid_indexer('slice {0} value'.format(c), key.start)
 
     def _convert_slice_indexer_getitem(self, key, is_index_slice=False):
         """ called from the getitem slicers, determine how to treat the key
@@ -698,7 +698,7 @@ class Index(IndexOpsMixin, PandasObject):
                                   "and not floating point",FutureWarning)
                     return int(v)
 
-                self._convert_indexer_error(v, 'slice {0} value'.format(c))
+                self._invalid_indexer('slice {0} value'.format(c), v)
 
             return slice(*[ f(c) for c in ['start','stop','step']])
 
@@ -787,11 +787,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return None
 
-    def _convert_indexer_error(self, key, msg=None):
-        if msg is None:
-            msg = 'label'
-        raise TypeError("the {0} [{1}] is not a proper indexer for this index "
-                        "type ({2})".format(msg, key, self.__class__.__name__))
+    def _invalid_indexer(self, form, key):
+        """ consistent invalid indexer message """
+        raise TypeError("cannot do {form} indexing on {klass} with these "
+                        "indexers [{key}] of {typ}".format(form=form,
+                                                           klass=type(self),
+                                                           key=key,
+                                                           typ=type(key)))
 
     def get_duplicates(self):
         from collections import defaultdict
@@ -2119,11 +2121,27 @@ class Index(IndexOpsMixin, PandasObject):
         label : object
         side : {'left', 'right'}
 
+        Returns
+        -------
+        label :  object
+
         Notes
         -----
         Value of `side` parameter should be validated in caller.
 
         """
+
+        # pass thru float indexers if we have a numeric type index
+        # which then can decide to process / or convert and warng
+        if is_float(label):
+            if not self.is_floating():
+                self._invalid_indexer('slice',label)
+
+        # we are not an integer based index, and we have an integer label
+        # treat as positional based slicing semantics
+        if not self.is_integer() and is_integer(label):
+            self._invalid_indexer('slice',label)
+
         return label
 
     def _searchsorted_monotonic(self, label, side='left'):
@@ -2158,10 +2176,12 @@ class Index(IndexOpsMixin, PandasObject):
                 " must be either 'left' or 'right': %s" % (side,))
 
         original_label = label
+
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
         label = self._maybe_cast_slice_bound(label, side)
 
+        # we need to look up the label
         try:
             slc = self.get_loc(label)
         except KeyError as err:
@@ -2653,6 +2673,31 @@ class Float64Index(NumericIndex):
                             'float64 or object is not supported' %
                             self.__class__)
         return Index(self.values, name=self.name, dtype=dtype)
+
+    def _maybe_cast_slice_bound(self, label, side):
+        """
+        This function should be overloaded in subclasses that allow non-trivial
+        casting on label-slice bounds, e.g. datetime-like indices allowing
+        strings containing formatted datetimes.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+
+        Returns
+        -------
+        label :  object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+
+        """
+        if not (is_integer(label) or is_float(label)):
+            self._invalid_indexer('slice',label)
+
+        return label
 
     def _convert_scalar_indexer(self, key, typ=None):
         if typ == 'iloc':

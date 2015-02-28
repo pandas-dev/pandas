@@ -536,7 +536,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
 
                 # we can try to coerce the indexer (or this will raise)
-                new_key = self.index._convert_scalar_indexer(key)
+                new_key = self.index._convert_scalar_indexer(key,typ='getitem')
                 if type(new_key) != type(key):
                     return self.__getitem__(new_key)
                 raise

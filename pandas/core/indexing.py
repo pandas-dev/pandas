@@ -1243,25 +1243,7 @@ class _LocIndexer(_LocationIndexer):
         # boolean
 
         if isinstance(key, slice):
-
-            if ax.is_floating():
-
-                # allowing keys to be slicers with no fallback
-                pass
-
-            else:
-                if key.start is not None:
-                    if key.start not in ax:
-                        raise KeyError(
-                            "start bound [%s] is not the [%s]" %
-                            (key.start, self.obj._get_axis_name(axis))
-                        )
-                if key.stop is not None:
-                    if key.stop not in ax:
-                        raise KeyError(
-                            "stop bound [%s] is not in the [%s]" %
-                            (key.stop, self.obj._get_axis_name(axis))
-                        )
+            return True
 
         elif is_bool_indexer(key):
             return True
