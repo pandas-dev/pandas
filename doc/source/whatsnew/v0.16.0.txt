@@ -20,6 +20,8 @@ users upgrade to this version.
 New features
 ~~~~~~~~~~~~
 
+.. _whatsnew_0160.enhancements:
+
 - Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
 
   .. ipython:: python
@@ -29,7 +31,41 @@ New features
 
   This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
-- DataFrame assign method
+- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
+- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
+- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
+- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
+- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
+- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
+- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
+- SQL code now safely escapes table and column names (:issue:`8986`)
+
+- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
+- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
+  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
+
+- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
+
+- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
+- ``Index.asof`` now works on all index types (:issue:`9258`).
+
+- Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
+- The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
+
+  .. code-block:: python
+
+     # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
+     pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+- A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
+- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
+- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
+- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
+
+DataFrame Assign
+~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.enhancements.assign:
 
 Inspired by `dplyr's
 <http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__ ``mutate`` verb, DataFrame has a new
@@ -70,6 +106,55 @@ calculate the ratio, and plot
   :scale: 50 %
 
 See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`9229`)
+
+
+Interaction with scipy.sparse
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.enhancements.sparse:
+
+Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
+
+.. ipython:: python
+
+   from numpy import nan
+   s = Series([3.0, nan, 1.0, 3.0, nan, nan])
+   s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                     (1, 2, 'a', 1),
+                                     (1, 1, 'b', 0),
+                                     (1, 1, 'b', 1),
+                                     (2, 1, 'b', 0),
+                                     (2, 1, 'b', 1)],
+                                     names=['A', 'B', 'C', 'D'])
+
+   s
+
+   # SparseSeries
+   ss = s.to_sparse()
+   ss
+
+   A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
+                                column_levels=['C', 'D'],
+                                sort_labels=False)
+
+   A
+   A.todense()
+   rows
+   columns
+
+The from_coo method is a convenience method for creating a ``SparseSeries``
+from a ``scipy.sparse.coo_matrix``:
+
+.. ipython:: python
+
+   from scipy import sparse
+   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
+                               shape=(3, 4))
+   A
+   A.todense()
+
+   ss = SparseSeries.from_coo(A)
+   ss
 
 .. _whatsnew_0160.api:
 
@@ -277,90 +362,6 @@ Deprecations
 
 .. _whatsnew_0160.deprecations:
 
-
-Enhancements
-~~~~~~~~~~~~
-
-.. _whatsnew_0160.enhancements:
-
-- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
-- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
-- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
-- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
-- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
-- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
-- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
-- SQL code now safely escapes table and column names (:issue:`8986`)
-
-- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
-- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
-  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
-
-- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
-
-- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
-- ``Index.asof`` now works on all index types (:issue:`9258`).
-
-- Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
-- The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
-
-  .. code-block:: python
-
-     # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-     pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
-
-- A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
-- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
-- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
-- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
-
-Interaction with scipy.sparse
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _whatsnew_0160.enhancements.sparse:
-
-Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
-
-.. ipython:: python
-
-   from numpy import nan
-   s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-   s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                     (1, 2, 'a', 1),
-                                     (1, 1, 'b', 0),
-                                     (1, 1, 'b', 1),
-                                     (2, 1, 'b', 0),
-                                     (2, 1, 'b', 1)],
-                                     names=['A', 'B', 'C', 'D'])
-
-   s
-
-   # SparseSeries
-   ss = s.to_sparse()
-   ss
-
-   A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                column_levels=['C', 'D'],
-                                sort_labels=False)
-
-   A
-   A.todense()
-   rows
-   columns
-
-The from_coo method is a convenience method for creating a ``SparseSeries``
-from a ``scipy.sparse.coo_matrix``:
-
-.. ipython:: python
-
-   from scipy import sparse
-   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
-   A
-   A.todense()
-
-   ss = SparseSeries.from_coo(A)
-   ss
 
 Performance
 ~~~~~~~~~~~
