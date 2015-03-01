@@ -969,11 +969,11 @@ class TestIndex(Base, tm.TestCase):
 
         # int slicing with floats
         idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=int))
-        self.assertRaises(TypeError, lambda : idx.slice_locs(5.0, 10.0))
-        self.assertRaises(TypeError, lambda : idx.slice_locs(4.5, 10.5))
+        self.assertEqual(idx.slice_locs(5.0, 10.0), (3, n))
+        self.assertEqual(idx.slice_locs(4.5, 10.5), (3, 8))
         idx2 = idx[::-1]
-        self.assertRaises(TypeError, lambda : idx2.slice_locs(8.5, 1.5))
-        self.assertRaises(TypeError, lambda : idx2.slice_locs(10.5, -1))
+        self.assertEqual(idx2.slice_locs(8.5, 1.5), (2, 6))
+        self.assertEqual(idx2.slice_locs(10.5, -1), (0, n))
 
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])

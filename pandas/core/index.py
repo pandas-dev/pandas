@@ -2134,7 +2134,7 @@ class Index(IndexOpsMixin, PandasObject):
         # pass thru float indexers if we have a numeric type index
         # which then can decide to process / or convert and warng
         if is_float(label):
-            if not self.is_floating():
+            if not (self.is_integer() or self.is_floating()):
                 self._invalid_indexer('slice',label)
 
         # we are not an integer based index, and we have an integer label

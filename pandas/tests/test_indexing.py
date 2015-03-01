@@ -709,10 +709,6 @@ class TestIndexing(tm.TestCase):
             compare(df2, df1)
 
         # edge cases
-        s = Series(['a','b','c','d'], [1,2,3,4])
-        self.assertRaises(TypeError, lambda : s.ix[1.5:5.5])
-        self.assertRaises(TypeError, lambda : s.loc[1.5:5.5])
-
         s = Series([1,2,3,4], index=list('abde'))
 
         result1 = s['a':'c']
@@ -4047,7 +4043,7 @@ class TestIndexing(tm.TestCase):
 
         # int
         index = tm.makeIntIndex()
-        s = Series(np.arange(len(index))+10,index)
+        s = Series(np.arange(len(index))+10,index+5)
 
         # this is positional
         result1 = s[2:5]
@@ -4059,55 +4055,80 @@ class TestIndexing(tm.TestCase):
         result3 = s.loc[2:5]
         assert_series_equal(result2, result3)
 
-        # make all float slicing fail
-        self.assertRaises(TypeError, lambda : s.loc[2.0:5])
-        self.assertRaises(TypeError, lambda : s.loc[2.0:5.0])
-        self.assertRaises(TypeError, lambda : s.loc[2:5.0])
-        self.assertRaises(TypeError, lambda : s[2.0:5])
-        self.assertRaises(TypeError, lambda : s[2.0:5.0])
-        self.assertRaises(TypeError, lambda : s[2:5.0])
+        # float slicers on an int index
+        expected = Series([11,12,13],index=[6,7,8])
+        result = s.loc[6.0:8.5]
+        assert_series_equal(result, expected)
 
-        self.assertRaises(TypeError, lambda : s.ix[2.0:5])
-        self.assertRaises(TypeError, lambda : s.ix[2.0:5.0])
-        self.assertRaises(TypeError, lambda : s.ix[2:5.0])
+        result = s.loc[5.5:8.5]
+        assert_series_equal(result, expected)
+
+        result = s.loc[5.5:8.0]
+        assert_series_equal(result, expected)
+
+        # make all float slicing fail for ix/[] with an int index
+        self.assertRaises(TypeError, lambda : s[6.0:8])
+        self.assertRaises(TypeError, lambda : s[6.0:8.0])
+        self.assertRaises(TypeError, lambda : s[6:8.0])
+        self.assertRaises(TypeError, lambda : s.ix[6.0:8])
+        self.assertRaises(TypeError, lambda : s.ix[6.0:8.0])
+        self.assertRaises(TypeError, lambda : s.ix[6:8.0])
 
         # these work for now
-        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
-        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
-        #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
+        #self.assertRaises(TypeError, lambda : s.iloc[6.0:8])
+        #self.assertRaises(TypeError, lambda : s.iloc[6.0:8.0])
+        #self.assertRaises(TypeError, lambda : s.iloc[6:8.0])
 
         # float
         index = tm.makeFloatIndex()
-        s = Series(np.arange(len(index))+10,index=index)
+        s = Series(np.arange(len(index))+10,index=index+5)
 
         # these are all value based
-        result1 = s[2:5]
-        result2 = s.ix[2:5]
-        result3 = s.loc[2:5]
+        result1 = s[6:8]
+        result2 = s.ix[6:8]
+        result3 = s.loc[6:8]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
 
         # these are all valid
-        result1a = s[2.0:5]
-        result2a = s[2.0:5.0]
-        result3a = s[2:5.0]
+        result1a = s[6.0:8]
+        result2a = s[6.0:8.0]
+        result3a = s[6:8.0]
+        result1b = s[6.5:8]
+        result2b = s[6.5:8.5]
+        result3b = s[6:8.5]
         assert_series_equal(result1a, result2a)
         assert_series_equal(result1a, result3a)
-
-        result1b = s.ix[2.0:5]
-        result2b = s.ix[2.0:5.0]
-        result3b = s.ix[2:5.0]
-        assert_series_equal(result1b, result2b)
-        assert_series_equal(result1b, result3b)
-
-        result1c = s.loc[2.0:5]
-        result2c = s.loc[2.0:5.0]
-        result3c = s.loc[2:5.0]
-        assert_series_equal(result1c, result2c)
-        assert_series_equal(result1c, result3c)
-
         assert_series_equal(result1a, result1b)
+        assert_series_equal(result1a, result2b)
+        assert_series_equal(result1a, result3b)
+
+        result1c = s.ix[6.0:8]
+        result2c = s.ix[6.0:8.0]
+        result3c = s.ix[6:8.0]
+        result1d = s.ix[6.5:8]
+        result2d = s.ix[6.5:8.5]
+        result3d = s.ix[6:8.5]
         assert_series_equal(result1a, result1c)
+        assert_series_equal(result1a, result2c)
+        assert_series_equal(result1a, result3c)
+        assert_series_equal(result1a, result1d)
+        assert_series_equal(result1a, result2d)
+        assert_series_equal(result1a, result3d)
+
+        result1e = s.loc[6.0:8]
+        result2e = s.loc[6.0:8.0]
+        result3e = s.loc[6:8.0]
+        result1f = s.loc[6.5:8]
+        result2f = s.loc[6.5:8.5]
+        result3f = s.loc[6:8.5]
+        assert_series_equal(result1a, result1e)
+        assert_series_equal(result1a, result2e)
+        assert_series_equal(result1a, result3e)
+        assert_series_equal(result1a, result1f)
+        assert_series_equal(result1a, result2f)
+        assert_series_equal(result1a, result3f)
+
 
         # these work for now
         #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
