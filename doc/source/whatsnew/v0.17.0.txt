@@ -823,3 +823,4 @@ Bug Fixes
 - Bug in ``TimedeltaIndex`` formatter causing error while trying to save ``DataFrame`` with ``TimedeltaIndex`` using ``to_csv`` (:issue:`10833`)
 - Bug in ``DataFrame.where`` when handling Series slicing (:issue:`10218`, :issue:`9558`)
 - Bug where ``pd.read_gbq`` throws ``ValueError`` when Bigquery returns zero rows (:issue:`10273`)
+- Bug in ``to_json`` which was causing segmentation fault when serializing 0-rank ndarray (:issue:`9576`)

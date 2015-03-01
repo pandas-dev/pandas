@@ -1035,6 +1035,12 @@ class NumpyJSONTests(TestCase):
         outp = ujson.decode(ujson.encode(arr), numpy=True, dtype=np.float32)
         assert_array_almost_equal_nulp(arr, outp)
 
+    def testOdArray(self):
+        def will_raise():
+            ujson.encode(np.array(1))
+
+        self.assertRaises(TypeError, will_raise)
+
     def testArrayNumpyExcept(self):
 
         input = ujson.dumps([42, {}, 'a'])
