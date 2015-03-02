@@ -707,8 +707,11 @@ class Index(IndexOpsMixin, PandasObject):
             if v is None or is_integer(v):
                 return True
 
-            # dissallow floats
+            # dissallow floats (except for .ix)
             elif is_float(v):
+                if typ == 'ix':
+                    return True
+
                 return False
 
             return True

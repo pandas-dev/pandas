@@ -295,25 +295,17 @@ Selection By Label
 .. warning::
 
    ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
-   using integers in a ``DatetimeIndex`` or float indexers in an ``Int64Index``. These will raise a ``TypeError``.
+   using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
 
   .. ipython:: python
 
      dfl = DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=date_range('20130101',periods=5))
      dfl
-     sl = Series(range(5),[-2,-1,1,2,3])
-     sl
 
   .. code-block:: python
 
      In [4]: dfl.loc[2:3]
      TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
-
-  .. code-block:: python
-
-     In [8]: sl.loc[-1.0:2]
-     TypeError: cannot do slice indexing on <class 'pandas.core.index.Int64Index'> with these indexers [-1.0] of <type 'float'>
-
 
   String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
 

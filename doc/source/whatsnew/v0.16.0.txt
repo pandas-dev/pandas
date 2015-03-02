@@ -322,13 +322,6 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      In [6]: s.loc[-10:3]
      KeyError: 'start bound [-10] is not the [index]'
 
-     In [8]: s.loc[-1.0:2]
-     Out[2]:
-     -1    1
-      1    2
-      2    3
-     dtype: int64
-
   New Behavior
 
   .. ipython:: python
@@ -336,10 +329,25 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      df.loc['2013-01-02':'2013-01-10']
      s.loc[-10:3]
 
+- allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
+
   .. code-block:: python
 
-     In [8]: s.loc[-1.0:2]
-     TypeError: cannot do slice indexing on <class 'pandas.core.index.Int64Index'> with these indexers [-1.0] of <type 'float'>
+  Previous Behavior
+
+     In [8]: s.ix[-1.0:2]
+     TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
+
+  New Behavior
+
+  .. ipython:: python
+
+     In [8]: s.ix[-1.0:2]
+     Out[2]:
+     -1    1
+      1    2
+      2    3
+     dtype: int64
 
 - provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 
