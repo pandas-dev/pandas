@@ -4730,7 +4730,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(iranks, exp)
 
         iseries = Series([1e-50, 1e-100, 1e-20, 1e-2, 1e-20+1e-30, 1e-1])
-        exp = Series([2, 1, 3.5, 5, 3.5, 6])
+        exp = Series([2, 1, 3, 5, 4, 6.0])
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 

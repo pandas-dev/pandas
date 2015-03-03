@@ -349,6 +349,7 @@ Bug Fixes
 - Bug in ``MultiIndex`` where inserting new keys would fail (:issue:`9250`).
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
+- Bug in ``rank`` where comparing floats with tolerance will cause inconsistent behaviour (:issue:`8365`).
 
 
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
