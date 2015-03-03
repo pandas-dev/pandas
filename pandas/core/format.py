@@ -684,7 +684,8 @@ class DataFrameFormatter(TableFormatter):
         return format_array(
             frame.iloc[:, i]._values,
             formatter, float_format=self.float_format, na_rep=self.na_rep,
-            space=self.col_space
+            space=self.col_space,
+            justify=getattr(formatter,'justify','right')
         )
 
     def to_html(self, classes=None, notebook=False):
