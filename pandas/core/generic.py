@@ -2305,7 +2305,7 @@ class NDFrame(PandasObject):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = com._clean_fill_method(method)
+        method = com._clean_fill_method(method, allow_nearest=True)
 
         from pandas import DataFrame
         if value is None:
@@ -2336,13 +2336,25 @@ class NDFrame(PandasObject):
                 return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
-            method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method=method,
-                                              axis=axis,
-                                              limit=limit,
-                                              inplace=inplace,
-                                              coerce=True,
-                                              downcast=downcast)
+            method = com._clean_fill_method(method, allow_nearest=True)
+            new_data = None
+            if method == "nearest":
+                axis = 1
+                new_data = self._data.interpolate(method=method,
+                                                  index=self.index,
+                                                  values=self,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
+            else:
+                new_data = self._data.interpolate(method=method,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
