@@ -2325,7 +2325,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_csv(self, path, index=True, sep=",", na_rep='',
                float_format=None, header=False,
                index_label=None, mode='w', nanRep=None, encoding=None,
-               date_format=None):
+               date_format=None, decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2353,6 +2353,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         date_format: string, default None
             Format string for datetime objects.
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
@@ -2360,7 +2362,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                   float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
-                  encoding=encoding, date_format=date_format)
+                  encoding=encoding, date_format=date_format, decimal=decimal)
         if path is None:
             return result
 

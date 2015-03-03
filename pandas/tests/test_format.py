@@ -2401,7 +2401,22 @@ $1$,$2$
         df = DataFrame({'col' : [1,2]})
         expected = ',col\n0,1\n1,2\n'
         self.assertEqual(df.to_csv(), expected)
+        
+    def test_to_csv_decimal(self):
+        # GH 8448
+        df = DataFrame({'col1' : [1], 'col2' : ['a'], 'col3' : [10.1] })
+        
+        expected_default = ',col1,col2,col3\n0,1,a,10.1\n'
+        self.assertEqual(df.to_csv(), expected_default)
 
+        expected_european_excel = ';col1;col2;col3\n0;1;a;10,1\n'
+        self.assertEqual(df.to_csv(decimal=',',sep=';'), expected_european_excel)
+        
+        expected_float_format_default = ',col1,col2,col3\n0,1,a,10.10\n'
+        self.assertEqual(df.to_csv(float_format = '%.2f'), expected_float_format_default)        
+        
+        expected_float_format = ';col1;col2;col3\n0;1;a;10,10\n'
+        self.assertEqual(df.to_csv(decimal=',',sep=';', float_format = '%.2f'), expected_float_format)
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
