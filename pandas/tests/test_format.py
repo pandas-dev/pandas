@@ -2345,6 +2345,7 @@ $1$,$2$
         self.assertEqual(df.to_csv(), expected)
         
     def test_to_csv_decimal(self):
+        # GH 8448
         df = DataFrame({'col1' : [1], 'col2' : ['a'], 'col3' : [10.1] })
         
         expected_default = ',col1,col2,col3\n0,1,a,10.1\n'
