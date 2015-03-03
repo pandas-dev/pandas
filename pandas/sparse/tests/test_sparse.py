@@ -783,8 +783,10 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
             ([3.0, 1.0, 2.0], ([0, 1, 1], [0, 2, 3])), shape=(3, 4)))
         self.coo_matrices.append(scipy.sparse.coo_matrix(
             ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)))
-        self.ils = [[(1, 2), (1, 1), (2, 1)], [(1, 1), (1, 2), (2, 1)]]
-        self.jls = [[('a', 0), ('a', 1), ('b', 0), ('b', 1)]]
+        self.coo_matrices.append(scipy.sparse.coo_matrix(
+            ([3.0, 1.0, 2.0], ([0, 1, 1], [0, 0, 1])), shape=(3, 2)))
+        self.ils = [[(1, 2), (1, 1), (2, 1)], [(1, 1), (1, 2), (2, 1)], [(1, 2, 'a'), (1, 1, 'b'), (2, 1, 'b')]]
+        self.jls = [[('a', 0), ('a', 1), ('b', 0), ('b', 1)], [0, 1]]
 
     def test_to_coo_text_names_integer_row_levels_nosort(self):
         ss = self.sparse_series[0]
@@ -797,6 +799,13 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         kwargs = {'row_levels': [0, 1],
                   'column_levels': [2, 3], 'sort_labels': True}
         result = (self.coo_matrices[1], self.ils[1], self.jls[0])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_text_names_text_row_levels_nosort_col_level_single(self):
+        ss = self.sparse_series[0]
+        kwargs = {'row_levels': ['A', 'B', 'C'],
+                  'column_levels': ['D'], 'sort_labels': False}
+        result = (self.coo_matrices[2], self.ils[2], self.jls[1])
         self._run_test(ss, kwargs, result)
 
     def test_to_coo_integer_names_integer_row_levels_nosort(self):

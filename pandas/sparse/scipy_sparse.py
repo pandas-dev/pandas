@@ -8,7 +8,7 @@ from pandas.core.index import MultiIndex, Index
 from pandas.core.series import Series
 import itertools
 import numpy as np
-from pandas.compat import OrderedDict
+from pandas.compat import OrderedDict, lmap
 from pandas.tools.util import cartesian_product
 
 
@@ -54,7 +54,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
         def _get_label_to_i_dict(labels, sort_labels=False):
             """ Return OrderedDict of unique labels to number.
             Optionally sort by label. """
-            labels = Index(map(tuple, labels)).unique().tolist()  # squish
+            labels = Index(lmap(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(list(labels))
             d = OrderedDict((k, i) for i, k in enumerate(labels))
@@ -73,7 +73,8 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
             labels_to_i = _get_label_to_i_dict(
                 ilabels, sort_labels=sort_labels)
             labels_to_i = Series(labels_to_i)
-            labels_to_i.index = MultiIndex.from_tuples(labels_to_i.index)
+            if len(subset) > 1:
+                labels_to_i.index = MultiIndex.from_tuples(labels_to_i.index)
             labels_to_i.index.names = [index.names[i] for i in subset]
             labels_to_i.name = 'value'
             return(labels_to_i)
