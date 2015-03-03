@@ -840,16 +840,16 @@ class HTMLFormatter(TableFormatter):
 
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
-    def write_td(self, s, indent=0, tags=None):
-        return self._write_cell(s, kind='td', indent=indent, tags=tags)
+    def write_td(self, s, indent=0, tags=None,column=None):
+        return self._write_cell(s, kind='td', indent=indent, tags=tags, column=column)
 
-    def _write_cell(self, s, kind='td', indent=0, tags=None):
+    def _write_cell(self, s, kind='td', indent=0, tags=None, column=None):
         if tags is not None:
             start_tag = '<%s %s>' % (kind, tags)
         else:
             start_tag = '<%s>' % kind
-
-        if self.escape:
+                      
+        if (self.escape if not isinstance(self.escape, (tuple,list,dict)) else self.escape.get(column,True)):
             # escape & first to prevent double escaping of &
             esc = OrderedDict(
                 [('&', r'&amp;'), ('<', r'&lt;'), ('>', r'&gt;')]
@@ -861,7 +861,7 @@ class HTMLFormatter(TableFormatter):
             '%s%s</%s>' % (start_tag, rs, kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
-                 align=None, tags=None, nindex_levels=0):
+                 align=None, tags=None, nindex_levels=0, escape=None):
         if tags is None:
             tags = {}
 
@@ -876,7 +876,7 @@ class HTMLFormatter(TableFormatter):
             if header or (self.bold_rows and i < nindex_levels):
                 self.write_th(s, indent, tags=val_tag)
             else:
-                self.write_td(s, indent, tags=val_tag)
+                self.write_td(s, indent, tags=val_tag, column=i-nindex_levels)
 
         indent -= indent_delta
         self.write('</tr>', indent)
