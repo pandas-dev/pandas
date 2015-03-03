@@ -1107,7 +1107,6 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, quoting=None,
@@ -1165,7 +1164,6 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         date_format : string, default None
             Format string for datetime objects
-        cols : kwarg only alias of columns [deprecated]
         """
 
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -1186,7 +1184,6 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
@@ -1228,7 +1225,6 @@ class DataFrame(NDFrame):
         encoding: string, default None
             encoding of the resulting excel file. Only necessary for xlwt,
             other writers support unicode natively.
-        cols : kwarg only alias of columns [deprecated]
         inf_rep : string, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel)

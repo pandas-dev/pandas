@@ -217,6 +217,12 @@ Deprecations
 
 .. _whatsnew_0160.deprecations:
 
+- ``DataFrame.pivot_table`` and ``crosstab``'s ``rows`` and ``cols`` keyword arguments were removed in favor
+  of ``index`` and ``columns`` (:issue:`6581`)
+- ``DataFrame.to_excel`` and ``DataFrame.to_csv`` ``cols`` keyword argument was removed in favor of ``columns`` (:issue:`6581`)
+- Removed ``covert_dummies`` in favor of ``get_dummies`` (:issue:`6581`)
+- Removed ``value_range`` in favor of ``describe`` (:issue:`6581`)
+
 
 Enhancements
 ~~~~~~~~~~~~
