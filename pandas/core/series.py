@@ -491,7 +491,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise
         except:
             if isinstance(i, slice):
-                indexer = self.index._convert_slice_indexer(i, typ='iloc')
+                indexer = self.index._convert_slice_indexer(i, kind='iloc')
                 return self._get_values(indexer)
             else:
                 label = self.index[i]
@@ -504,8 +504,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _is_mixed_type(self):
         return False
 
-    def _slice(self, slobj, axis=0, typ=None):
-        slobj = self.index._convert_slice_indexer(slobj, typ=typ or 'getitem')
+    def _slice(self, slobj, axis=0, kind=None):
+        slobj = self.index._convert_slice_indexer(slobj, kind=kind or 'getitem')
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -536,7 +536,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
 
                 # we can try to coerce the indexer (or this will raise)
-                new_key = self.index._convert_scalar_indexer(key,typ='getitem')
+                new_key = self.index._convert_scalar_indexer(key,kind='getitem')
                 if type(new_key) != type(key):
                     return self.__getitem__(new_key)
                 raise
@@ -555,7 +555,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, typ='getitem')
+            indexer = self.index._convert_slice_indexer(key, kind='getitem')
             return self._get_values(indexer)
         elif isinstance(key, ABCDataFrame):
             raise TypeError('Indexing a Series with DataFrame is not supported, '\
@@ -693,7 +693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, typ='getitem')
+            indexer = self.index._convert_slice_indexer(key, kind='getitem')
             return self._set_values(indexer, value)
         else:
             if isinstance(key, tuple):

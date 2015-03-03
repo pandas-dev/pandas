@@ -675,7 +675,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             except (KeyError, ValueError):
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side):
+    def _maybe_cast_slice_bound(self, label, side, kind):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -684,6 +684,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None
 
         Returns
         -------

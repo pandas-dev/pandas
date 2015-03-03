@@ -378,7 +378,7 @@ class SparseDataFrame(DataFrame):
         return dense.to_sparse(kind=self._default_kind,
                                fill_value=self._default_fill_value)
 
-    def _slice(self, slobj, axis=0, typ=None):
+    def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:
             new_index = self.index[slobj]
             new_columns = self.columns
