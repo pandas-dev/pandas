@@ -1863,7 +1863,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
   }
   tc->prv = pc;
 
-  if (PyIter_Check(obj) || PyArray_Check(obj))
+  if (PyIter_Check(obj) || (PyArray_Check(obj) && !PyArray_CheckScalar(obj) ))
   {
     PRINTMARK();
     goto ISITERABLE;
@@ -2063,6 +2063,23 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
   {
     PRINTMARK();
     pc->PyTypeToJSON = NpyFloatToDOUBLE; tc->type = JT_DOUBLE;
+    return;
+  }
+  else
+  if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
+    #if PY_MAJOR_VERSION >= 3
+      PyErr_Format(
+        PyExc_TypeError,
+        "%R (0d array) is not JSON serializable at the moment",
+        obj
+      );
+    #else
+      PyErr_Format(
+        PyExc_TypeError,
+        "%s (0d array) is not JSON serializable at the moment",
+        PyString_AsString(PyObject_Repr(obj))
+      );
+    #endif
     return;
   }
 
