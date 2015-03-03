@@ -1065,12 +1065,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.xaxis.get_label(), 'a')
 
     @slow
-    def test_explicit_label(self):
-        df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
-        ax = df.plot(x='a', y='b', label='LABEL')
-        self._check_text_labels(ax.xaxis.get_label(), 'LABEL')
-
-    @slow
     def test_donot_overwrite_index_name(self):
         # GH 8494
         df = DataFrame(randn(2, 2), columns=['a', 'b'])
@@ -2541,6 +2535,20 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=['data1'])
         ax = df3.plot(kind='scatter', x='g', y='h', label='data3', ax=ax)
         self._check_legend_labels(ax, labels=['data1', 'data3'])
+
+        # ensure label args pass through and
+        # index name does not mutate
+        # column names don't mutate
+        df5 = df.set_index('a')
+        ax = df5.plot(y='b')
+        self._check_legend_labels(ax, labels=['b'])
+        ax = df5.plot(y='b', label='LABEL_b')
+        self._check_legend_labels(ax, labels=['LABEL_b'])
+        self._check_text_labels(ax.xaxis.get_label(), 'a')
+        ax = df5.plot(y='c', label='LABEL_c', ax=ax)
+        self._check_legend_labels(ax, labels=['LABEL_b','LABEL_c'])
+        self.assertTrue(df5.columns.tolist() == ['b','c'])
+
 
     def test_legend_name(self):
         multi = DataFrame(randn(4, 4),
