@@ -67,6 +67,7 @@ calculate the ratio, and plot
         .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
 
 .. image:: _static/whatsnew_assign.png
+  :scale: 50 %
 
 See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`9229`)
 
