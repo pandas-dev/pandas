@@ -1476,6 +1476,11 @@ class DataFrame(NDFrame):
                           FutureWarning, stacklevel=2)
             col_space = colSpace
 
+        formatters = formatters or getattr(self,'_formatters_html',None)
+        escape = {list(self.columns).index(k):
+                        getattr(formatters[k],'escape',escape) for k in formatters}   \
+                 if formatters else escape
+                     
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
