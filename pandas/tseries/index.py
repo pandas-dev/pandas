@@ -10,7 +10,7 @@ import warnings
 
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
-                                ABCSeries)
+                                ABCSeries, is_integer, is_float)
 from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -215,9 +215,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 freq = None
 
         if periods is not None:
-            if com.is_float(periods):
+            if is_float(periods):
                 periods = int(periods)
-            elif not com.is_integer(periods):
+            elif not is_integer(periods):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
@@ -1262,7 +1262,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             except (KeyError, ValueError):
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side):
+    def _maybe_cast_slice_bound(self, label, side, kind):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -1270,16 +1270,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None
+
+        Returns
+        -------
+        label :  object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
 
         """
-        if isinstance(label, float):
-            raise TypeError('Cannot index datetime64 with float keys')
-        if isinstance(label, time):
-            raise KeyError('Cannot index datetime64 with time keys')
+        if is_float(label) or isinstance(label, time) or is_integer(label):
+            self._invalid_indexer('slice',label)
 
         if isinstance(label, compat.string_types):
             freq = getattr(self, 'freqstr',
@@ -1298,7 +1301,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                                        use_rhs=use_rhs)
         return loc
 
-    def slice_indexer(self, start=None, end=None, step=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -1333,11 +1336,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 (end is None or isinstance(end, compat.string_types))):
                 mask = True
                 if start is not None:
-                    start_casted = self._maybe_cast_slice_bound(start, 'left')
+                    start_casted = self._maybe_cast_slice_bound(start, 'left', kind)
                     mask = start_casted <= self
 
                 if end is not None:
-                    end_casted = self._maybe_cast_slice_bound(end, 'right')
+                    end_casted = self._maybe_cast_slice_bound(end, 'right', kind)
                     mask = (self <= end_casted) & mask
 
                 indexer = mask.nonzero()[0][::step]
@@ -1556,7 +1559,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         new_dates = np.delete(self.asi8, loc)
 
         freq = None
-        if lib.is_integer(loc):
+        if is_integer(loc):
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:

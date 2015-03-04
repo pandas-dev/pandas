@@ -91,8 +91,8 @@ class _NDFrameIndexer(object):
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)
 
-    def _slice(self, obj, axis=0, typ=None):
-        return self.obj._slice(obj, axis=axis, typ=typ)
+    def _slice(self, obj, axis=0, kind=None):
+        return self.obj._slice(obj, axis=axis, kind=kind)
 
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
@@ -163,12 +163,12 @@ class _NDFrameIndexer(object):
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
         # a scalar
-        return ax._convert_scalar_indexer(key, typ=self.name)
+        return ax._convert_scalar_indexer(key, kind=self.name)
 
     def _convert_slice_indexer(self, key, axis):
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        return ax._convert_slice_indexer(key, typ=self.name)
+        return ax._convert_slice_indexer(key, kind=self.name)
 
     def _has_valid_setitem_indexer(self, indexer):
         return True
@@ -960,7 +960,7 @@ class _NDFrameIndexer(object):
                 keyarr = _asarray_tuplesafe(key)
 
             # handle a mixed integer scenario
-            indexer = labels._convert_list_indexer_for_mixed(keyarr, typ=self.name)
+            indexer = labels._convert_list_indexer_for_mixed(keyarr, kind=self.name)
             if indexer is not None:
                 return self.obj.take(indexer, axis=axis)
 
@@ -1107,7 +1107,7 @@ class _NDFrameIndexer(object):
                     objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
-                indexer = labels._convert_list_indexer_for_mixed(objarr, typ=self.name)
+                indexer = labels._convert_list_indexer_for_mixed(objarr, kind=self.name)
                 if indexer is not None:
                     return indexer
 
@@ -1163,7 +1163,7 @@ class _NDFrameIndexer(object):
         indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, typ='iloc')
+            return self._slice(indexer, axis=axis, kind='iloc')
         else:
             return self.obj.take(indexer, axis=axis, convert=False)
 
@@ -1221,7 +1221,7 @@ class _LocationIndexer(_NDFrameIndexer):
                                        slice_obj.step)
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, typ='iloc')
+            return self._slice(indexer, axis=axis, kind='iloc')
         else:
             return self.obj.take(indexer, axis=axis, convert=False)
 
@@ -1243,25 +1243,7 @@ class _LocIndexer(_LocationIndexer):
         # boolean
 
         if isinstance(key, slice):
-
-            if ax.is_floating():
-
-                # allowing keys to be slicers with no fallback
-                pass
-
-            else:
-                if key.start is not None:
-                    if key.start not in ax:
-                        raise KeyError(
-                            "start bound [%s] is not the [%s]" %
-                            (key.start, self.obj._get_axis_name(axis))
-                        )
-                if key.stop is not None:
-                    if key.stop not in ax:
-                        raise KeyError(
-                            "stop bound [%s] is not in the [%s]" %
-                            (key.stop, self.obj._get_axis_name(axis))
-                        )
+            return True
 
         elif is_bool_indexer(key):
             return True
@@ -1430,7 +1412,7 @@ class _iLocIndexer(_LocationIndexer):
 
         slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
-            return self._slice(slice_obj, axis=axis, typ='iloc')
+            return self._slice(slice_obj, axis=axis, kind='iloc')
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
@@ -1590,7 +1572,7 @@ def convert_to_index_sliceable(obj, key):
     """
     idx = obj.index
     if isinstance(key, slice):
-        return idx._convert_slice_indexer(key, typ='getitem')
+        return idx._convert_slice_indexer(key, kind='getitem')
 
     elif isinstance(key, compat.string_types):
 

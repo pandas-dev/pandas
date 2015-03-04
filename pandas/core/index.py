@@ -632,18 +632,26 @@ class Index(IndexOpsMixin, PandasObject):
     def holds_integer(self):
         return self.inferred_type in ['integer', 'mixed-integer']
 
-    def _convert_scalar_indexer(self, key, typ=None):
-        """ convert a scalar indexer, right now we are converting
+    def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+
+        right now we are converting
         floats -> ints if the index supports it
         """
 
         def to_int():
             ikey = int(key)
             if ikey != key:
-                return self._convert_indexer_error(key, 'label')
+                return self._invalid_indexer('label', key)
             return ikey
 
-        if typ == 'iloc':
+        if kind == 'iloc':
             if is_integer(key):
                 return key
             elif is_float(key):
@@ -651,7 +659,7 @@ class Index(IndexOpsMixin, PandasObject):
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
                     type(self).__name__),FutureWarning)
                 return key
-            return self._convert_indexer_error(key, 'label')
+            return self._invalid_indexer('label', key)
 
         if is_float(key):
             if not self.is_floating():
@@ -661,14 +669,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return key
 
-    def _validate_slicer(self, key, f):
-        """ validate and raise if needed on a slice indexers according to the
-        passed in function """
-
-        for c in ['start','stop','step']:
-            if not f(getattr(key,c)):
-                self._convert_indexer_error(key.start, 'slice {0} value'.format(c))
-
     def _convert_slice_indexer_getitem(self, key, is_index_slice=False):
         """ called from the getitem slicers, determine how to treat the key
             whether positional or not """
@@ -676,15 +676,22 @@ class Index(IndexOpsMixin, PandasObject):
             return key
         return self._convert_slice_indexer(key)
 
-    def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer. disallow floats in the start/stop/step """
+    def _convert_slice_indexer(self, key, kind=None):
+        """
+        convert a slice indexer. disallow floats in the start/stop/step
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+        """
 
         # if we are not a slice, then we are done
         if not isinstance(key, slice):
             return key
 
         # validate iloc
-        if typ == 'iloc':
+        if kind == 'iloc':
 
             # need to coerce to_int if needed
             def f(c):
@@ -698,7 +705,7 @@ class Index(IndexOpsMixin, PandasObject):
                                   "and not floating point",FutureWarning)
                     return int(v)
 
-                self._convert_indexer_error(v, 'slice {0} value'.format(c))
+                self._invalid_indexer('slice {0} value'.format(c), v)
 
             return slice(*[ f(c) for c in ['start','stop','step']])
 
@@ -707,12 +714,18 @@ class Index(IndexOpsMixin, PandasObject):
             if v is None or is_integer(v):
                 return True
 
-            # dissallow floats
+            # dissallow floats (except for .ix)
             elif is_float(v):
+                if kind == 'ix':
+                    return True
+
                 return False
 
             return True
-        self._validate_slicer(key, validate)
+        for c in ['start','stop','step']:
+            v = getattr(key,c)
+            if not validate(v):
+                self._invalid_indexer('slice {0} value'.format(c), v)
 
         # figure out if this is a positional indexer
         start, stop, step = key.start, key.stop, key.step
@@ -724,7 +737,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_index_slice = is_int(start) and is_int(stop)
         is_positional = is_index_slice and not self.is_integer()
 
-        if typ == 'getitem':
+        if kind == 'getitem':
             return self._convert_slice_indexer_getitem(
                 key, is_index_slice=is_index_slice)
 
@@ -760,16 +773,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexer
 
-    def _convert_list_indexer(self, key, typ=None):
+    def _convert_list_indexer(self, key, kind=None):
         """ convert a list indexer. these should be locations """
         return key
 
-    def _convert_list_indexer_for_mixed(self, keyarr, typ=None):
+    def _convert_list_indexer_for_mixed(self, keyarr, kind=None):
         """ passed a key that is tuplesafe that is integer based
             and we have a mixed index (e.g. number/labels). figure out
             the indexer. return None if we can't help
         """
-        if (typ is None or typ in ['iloc','ix']) and (is_integer_dtype(keyarr) and not self.is_floating()):
+        if (kind is None or kind in ['iloc','ix']) and (is_integer_dtype(keyarr) and not self.is_floating()):
             if self.inferred_type != 'integer':
                 keyarr = np.where(keyarr < 0,
                                   len(self) + keyarr, keyarr)
@@ -787,11 +800,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return None
 
-    def _convert_indexer_error(self, key, msg=None):
-        if msg is None:
-            msg = 'label'
-        raise TypeError("the {0} [{1}] is not a proper indexer for this index "
-                        "type ({2})".format(msg, key, self.__class__.__name__))
+    def _invalid_indexer(self, form, key):
+        """ consistent invalid indexer message """
+        raise TypeError("cannot do {form} indexing on {klass} with these "
+                        "indexers [{key}] of {kind}".format(form=form,
+                                                           klass=type(self),
+                                                           key=key,
+                                                           kind=type(key)))
 
     def get_duplicates(self):
         from collections import defaultdict
@@ -839,8 +854,8 @@ class Index(IndexOpsMixin, PandasObject):
         """ return a string of the type inferred from the values """
         return lib.infer_dtype(self)
 
-    def is_type_compatible(self, typ):
-        return typ == self.inferred_type
+    def is_type_compatible(self, kind):
+        return kind == self.inferred_type
 
     @cache_readonly
     def is_all_dates(self):
@@ -2077,7 +2092,7 @@ class Index(IndexOpsMixin, PandasObject):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
 
-    def slice_indexer(self, start=None, end=None, step=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
         For an ordered Index, compute the slice indexer for input labels and
         step
@@ -2089,6 +2104,7 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end
         step : int, default None
+        kind : string, default None
 
         Returns
         -------
@@ -2098,7 +2114,7 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         This function assumes that the data is sorted, so use at your own peril
         """
-        start_slice, end_slice = self.slice_locs(start, end, step=step)
+        start_slice, end_slice = self.slice_locs(start, end, step=step, kind=kind)
 
         # return a slice
         if not lib.isscalar(start_slice):
@@ -2108,7 +2124,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return slice(start_slice, end_slice, step)
 
-    def _maybe_cast_slice_bound(self, label, side):
+    def _maybe_cast_slice_bound(self, label, side, kind):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -2118,12 +2134,30 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None
+
+        Returns
+        -------
+        label :  object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
 
         """
+
+        # We are a plain index here (sub-class override this method if they
+        # wish to have special treatment for floats/ints, e.g. Float64Index and
+        # datetimelike Indexes
+        # reject them
+        if is_float(label):
+            self._invalid_indexer('slice',label)
+
+        # we are trying to find integer bounds on a non-integer based index
+        # this is rejected (generally .loc gets you here)
+        elif is_integer(label):
+            self._invalid_indexer('slice',label)
+
         return label
 
     def _searchsorted_monotonic(self, label, side='left'):
@@ -2139,7 +2173,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError('index must be monotonic increasing or decreasing')
 
-    def get_slice_bound(self, label, side):
+    def get_slice_bound(self, label, side, kind):
         """
         Calculate slice bound that corresponds to given label.
 
@@ -2150,6 +2184,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None, the type of indexer
 
         """
         if side not in ('left', 'right'):
@@ -2158,10 +2193,12 @@ class Index(IndexOpsMixin, PandasObject):
                 " must be either 'left' or 'right': %s" % (side,))
 
         original_label = label
+
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
-        label = self._maybe_cast_slice_bound(label, side)
+        label = self._maybe_cast_slice_bound(label, side, kind)
 
+        # we need to look up the label
         try:
             slc = self.get_loc(label)
         except KeyError as err:
@@ -2194,7 +2231,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None):
+    def slice_locs(self, start=None, end=None, step=None, kind=None):
         """
         Compute slice locations for input labels.
 
@@ -2204,6 +2241,9 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the beginning
         end : label, default None
             If None, defaults to the end
+        step : int, defaults None
+            If None, defaults to 1
+        kind : string, defaults None
 
         Returns
         -------
@@ -2218,13 +2258,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         start_slice = None
         if start is not None:
-            start_slice = self.get_slice_bound(start, 'left')
+            start_slice = self.get_slice_bound(start, 'left', kind)
         if start_slice is None:
             start_slice = 0
 
         end_slice = None
         if end is not None:
-            end_slice = self.get_slice_bound(end, 'right')
+            end_slice = self.get_slice_bound(end, 'right', kind)
         if end_slice is None:
             end_slice = len(self)
 
@@ -2481,6 +2521,35 @@ class NumericIndex(Index):
     """
     _is_numeric_dtype = True
 
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        """
+        This function should be overloaded in subclasses that allow non-trivial
+        casting on label-slice bounds, e.g. datetime-like indices allowing
+        strings containing formatted datetimes.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+        kind : string / None
+
+        Returns
+        -------
+        label :  object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+
+        """
+
+        # we are a numeric index, so we accept
+        # integer/floats directly
+        if not (is_integer(label) or is_float(label)):
+            self._invalid_indexer('slice',label)
+
+        return label
+
 class Int64Index(NumericIndex):
 
     """
@@ -2654,27 +2723,30 @@ class Float64Index(NumericIndex):
                             self.__class__)
         return Index(self.values, name=self.name, dtype=dtype)
 
-    def _convert_scalar_indexer(self, key, typ=None):
-        if typ == 'iloc':
+    def _convert_scalar_indexer(self, key, kind=None):
+        if kind == 'iloc':
             return super(Float64Index, self)._convert_scalar_indexer(key,
-                                                                     typ=typ)
+                                                                     kind=kind)
         return key
 
-    def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer, by definition these are labels
-            unless we are iloc """
+    def _convert_slice_indexer(self, key, kind=None):
+        """
+        convert a slice indexer, by definition these are labels
+        unless we are iloc
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+        """
 
         # if we are not a slice, then we are done
         if not isinstance(key, slice):
             return key
 
-        if typ == 'iloc':
+        if kind == 'iloc':
             return super(Float64Index, self)._convert_slice_indexer(key,
-                                                                    typ=typ)
-
-        # allow floats here
-        validator = lambda v: v is None or is_integer(v) or is_float(v)
-        self._validate_slicer(key, validator)
+                                                                    kind=kind)
 
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step)
@@ -4099,12 +4171,12 @@ class MultiIndex(Index):
         """
         return Index(self.values)
 
-    def get_slice_bound(self, label, side):
+    def get_slice_bound(self, label, side, kind):
         if not isinstance(label, tuple):
             label = label,
         return self._partial_tup_index(label, side=side)
 
-    def slice_locs(self, start=None, end=None, step=None):
+    def slice_locs(self, start=None, end=None, step=None, kind=None):
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels. They can be tuples representing partial levels, e.g. for a
@@ -4119,6 +4191,7 @@ class MultiIndex(Index):
             If None, defaults to the end
         step : int or None
             Slice step
+        kind : string, optional, defaults None
 
         Returns
         -------
@@ -4130,7 +4203,7 @@ class MultiIndex(Index):
         """
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
-        return super(MultiIndex, self).slice_locs(start, end, step)
+        return super(MultiIndex, self).slice_locs(start, end, step, kind=kind)
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:

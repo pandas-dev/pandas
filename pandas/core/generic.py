@@ -1168,11 +1168,11 @@ class NDFrame(PandasObject):
         else:
             self._item_cache.clear()
 
-    def _slice(self, slobj, axis=0, typ=None):
+    def _slice(self, slobj, axis=0, kind=None):
         """
         Construct a slice of this container.
 
-        typ parameter is maintained for compatibility with Series slicing.
+        kind parameter is maintained for compatibility with Series slicing.
 
         """
         axis = self._get_block_manager_axis(axis)

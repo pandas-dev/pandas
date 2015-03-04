@@ -22,7 +22,8 @@ from pandas._period import (
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
-                                _values_from_object, ABCSeries)
+                                _values_from_object, ABCSeries,
+                                is_integer, is_float)
 from pandas import compat
 from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
@@ -166,9 +167,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         freq = frequencies.get_standard_freq(freq)
 
         if periods is not None:
-            if com.is_float(periods):
+            if is_float(periods):
                 periods = int(periods)
-            elif not com.is_integer(periods):
+            elif not is_integer(periods):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
@@ -533,7 +534,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         try:
             return self._engine.get_loc(key)
         except KeyError:
-            if com.is_integer(key):
+            if is_integer(key):
                 raise
 
             try:
@@ -548,7 +549,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             except KeyError:
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side):
+    def _maybe_cast_slice_bound(self, label, side, kind):
         """
         If label is a string or a datetime, cast it to Period.ordinal according to
         resolution.
@@ -557,6 +558,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None
 
         Returns
         -------
@@ -576,6 +578,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 return bounds[0 if side == 'left' else 1]
             except Exception:
                 raise KeyError(label)
+        elif is_integer(label) or is_float(label):
+            self._invalid_indexer('slice',label)
 
         return label
 

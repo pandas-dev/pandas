@@ -68,10 +68,10 @@ class SparsePanel(Panel):
     def __init__(self, frames=None, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
                  copy=False):
-                 
+
         if frames is None:
             frames = {}
-            
+
         if isinstance(frames, np.ndarray):
             new_frames = {}
             for item, vals in zip(items, frames):
@@ -191,7 +191,7 @@ class SparsePanel(Panel):
 
         return self.xs(key, axis=axis)
 
-    def _slice(self, slobj, axis=0, typ=None):
+    def _slice(self, slobj, axis=0, kind=None):
         """
         for compat as we don't support Block Manager here
         """
