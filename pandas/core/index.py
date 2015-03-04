@@ -415,7 +415,7 @@ class Index(IndexOpsMixin, PandasObject):
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-    def to_series(self):
+    def to_series(self, **kwargs):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index

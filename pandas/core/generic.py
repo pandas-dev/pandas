@@ -1932,7 +1932,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Attribute access
 
-    def __finalize__(self, other, method=None):
+    def __finalize__(self, other, method=None, **kwargs):
         """
         propagate metadata from other to self
 
@@ -3404,7 +3404,7 @@ class NDFrame(PandasObject):
         """
         return self.where(~cond, np.nan)
 
-    def shift(self, periods=1, freq=None, axis=0, **kwds):
+    def shift(self, periods=1, freq=None, axis=0, **kwargs):
         """
         Shift index by desired number of periods with an optional time freq
 
@@ -3430,10 +3430,10 @@ class NDFrame(PandasObject):
             return self
 
         block_axis = self._get_block_manager_axis(axis)
-        if freq is None and not len(kwds):
+        if freq is None and not len(kwargs):
             new_data = self._data.shift(periods=periods, axis=block_axis)
         else:
-            return self.tshift(periods, freq, **kwds)
+            return self.tshift(periods, freq, **kwargs)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -3473,7 +3473,7 @@ class NDFrame(PandasObject):
 
         return new_obj.__finalize__(self)
 
-    def tshift(self, periods=1, freq=None, axis=0, **kwds):
+    def tshift(self, periods=1, freq=None, axis=0, **kwargs):
         """
         Shift the time index, using the index's frequency if available
 
@@ -3512,7 +3512,7 @@ class NDFrame(PandasObject):
         if periods == 0:
             return self
 
-        offset = _resolve_offset(freq, kwds)
+        offset = _resolve_offset(freq, kwargs)
 
         if isinstance(offset, string_types):
             offset = datetools.to_offset(offset)
@@ -3894,28 +3894,28 @@ class NDFrame(PandasObject):
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
-                   **kwds):
+                   **kwargs):
         # TODO: Not sure if above is correct - need someone to confirm.
-        axis = self._get_axis_number(kwds.pop('axis', self._stat_axis_name))
+        axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
         if fill_method is None:
             data = self
         else:
             data = self.fillna(method=fill_method, limit=limit)
 
         rs = (data.div(data.shift(periods=periods, freq=freq,
-                                  axis=axis, **kwds)) - 1)
+                                  axis=axis, **kwargs)) - 1)
         if freq is None:
             mask = com.isnull(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)(**kwds)
+            return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
+        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
     @classmethod
