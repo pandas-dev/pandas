@@ -48,22 +48,3 @@ def compose(*funcs):
     """Compose 2 or more callables"""
     assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
     return reduce(_compose2, funcs)
-
-### FIXME: remove in 0.16
-def value_range(df):
-    """
-    Return the minimum and maximum of a dataframe in a series object
-
-    Parameters
-    ----------
-    df : DataFrame
-
-    Returns
-    -------
-    (maximum, minimum) : Series
-
-    """
-    from pandas import Series
-    warnings.warn("value_range is deprecated. Use .describe() instead", FutureWarning)
-
-    return Series((min(df.min()), max(df.max())), ('Minimum', 'Maximum'))

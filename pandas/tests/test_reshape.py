@@ -16,7 +16,7 @@ import numpy as np
 from pandas.util.testing import assert_frame_equal
 from numpy.testing import assert_array_equal
 
-from pandas.core.reshape import (melt, convert_dummies, lreshape, get_dummies,
+from pandas.core.reshape import (melt, lreshape, get_dummies,
                                  wide_to_long)
 import pandas.util.testing as tm
 from pandas.compat import StringIO, cPickle, range, u
@@ -321,34 +321,6 @@ class TestGetDummies(tm.TestCase):
         expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c',
                              'cat_x', 'cat_y']]
         assert_frame_equal(result, expected)
-
-
-class TestConvertDummies(tm.TestCase):
-    def test_convert_dummies(self):
-        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
-                              'foo', 'bar', 'foo', 'foo'],
-                        'B': ['one', 'one', 'two', 'three',
-                              'two', 'two', 'one', 'three'],
-                        'C': np.random.randn(8),
-                        'D': np.random.randn(8)})
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = convert_dummies(df, ['A', 'B'])
-            result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
-
-        expected = DataFrame({'A_foo': [1, 0, 1, 0, 1, 0, 1, 1],
-                              'A_bar': [0, 1, 0, 1, 0, 1, 0, 0],
-                              'B_one': [1, 1, 0, 0, 0, 0, 1, 0],
-                              'B_two': [0, 0, 1, 0, 1, 1, 0, 0],
-                              'B_three': [0, 0, 0, 1, 0, 0, 0, 1],
-                              'C': df['C'].values,
-                              'D': df['D'].values},
-                             columns=result.columns, dtype=float)
-        expected2 = expected.rename(columns=lambda x: x.replace('_', '.'))
-
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result2, expected2)
-
 
 class TestLreshape(tm.TestCase):
 

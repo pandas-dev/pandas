@@ -929,39 +929,6 @@ def wide_to_long(df, stubnames, i, j):
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
 
-
-def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """
-    Compute DataFrame with specified columns converted to dummy variables (0 /
-    1). Result columns will be prefixed with the column name, then the level
-    name, e.g. 'A_foo' for column A and level foo
-
-    Parameters
-    ----------
-    data : DataFrame
-    cat_variables : list-like
-        Must be column names in the DataFrame
-    prefix_sep : string, default '_'
-        String to use to separate column name from dummy level
-
-    Returns
-    -------
-    dummies : DataFrame
-    """
-    import warnings
-
-    warnings.warn("'convert_dummies' is deprecated and will be removed "
-                  "in a future release. Use 'get_dummies' instead.",
-                  FutureWarning)
-
-    result = data.drop(cat_variables, axis=1)
-    for variable in cat_variables:
-        dummies = _get_dummies_1d(data[variable], prefix=variable,
-                                  prefix_sep=prefix_sep)
-        result = result.join(dummies)
-    return result
-
-
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None):
     """

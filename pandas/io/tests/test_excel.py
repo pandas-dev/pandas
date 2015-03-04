@@ -556,14 +556,6 @@ class ExcelWriterBase(SharedItems):
 
             self.assertRaises(xlrd.XLRDError, xl.parse, '0')
 
-    def test_excel_deprecated_options(self):
-        with ensure_clean(self.ext) as path:
-            with tm.assert_produces_warning(FutureWarning):
-                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-
-            with tm.assert_produces_warning(False):
-                self.frame.to_excel(path, 'test1', columns=['A', 'B'])
-
     def test_excelwriter_contextmanager(self):
         _skip_if_no_xlrd()
 

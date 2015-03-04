@@ -5944,23 +5944,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, lambda : df == (2,2))
         self.assertRaises(ValueError, lambda : df == [2,2])
 
-    def test_to_csv_deprecated_options(self):
-
-        pname = '__tmp_to_csv_deprecated_options__'
-        with ensure_clean(pname) as path:
-
-            self.tsframe[1:3] = np.nan
-            self.tsframe.to_csv(path, nanRep='foo')
-            recons = read_csv(path,index_col=0,parse_dates=[0],na_values=['foo'])
-            assert_frame_equal(self.tsframe, recons)
-
-        with tm.assert_produces_warning(FutureWarning):
-            self.frame.to_csv(path, cols=['A', 'B'])
-
-        with tm.assert_produces_warning(False):
-            self.frame.to_csv(path, columns=['A', 'B'])
-
-
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'
