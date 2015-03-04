@@ -1932,7 +1932,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Attribute access
 
-    def __finalize__(self, other, method=None, **kwargs):
+    def __finalize__(self, other, method=None):
         """
         propagate metadata from other to self
 
