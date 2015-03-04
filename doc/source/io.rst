@@ -82,10 +82,10 @@ They can take a number of arguments:
     (including http, ftp, and S3 locations), or any object with a ``read``
     method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
-    on. `read_csv` is capable of inferring the delimiter automatically in some
-    cases by "sniffing." The separator may be specified as a regular
-    expression; for instance you may use '\|\\s*' to indicate a pipe plus
-    arbitrary whitespace.
+    on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
+    automatically in some cases by "sniffing".
+    The separator may be specified as a regular expression; for instance
+    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace.
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
@@ -1085,8 +1085,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module.
+comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
    :suppress:
@@ -1098,7 +1098,7 @@ class of the csv module.
 .. ipython:: python
 
     print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv')
+    pd.read_csv('tmp2.sv', sep=None)
 
 .. _io.chunking:
 
