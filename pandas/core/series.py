@@ -357,6 +357,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         numpy.nonzero
+        Series.idxnonzero
         """
         return self.values.nonzero()
 
@@ -1218,6 +1219,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ndarray compat
     argmin = idxmin
     argmax = idxmax
+
+    def idxnonzero(self):
+        """
+        Indices of the elements that are non-zero
+
+        See Also
+        --------
+        Series.nonzero
+        """
+        return self.index[self.values.nonzero()[0]]
 
     @Appender(np.ndarray.round.__doc__)
     def round(self, decimals=0, out=None):
