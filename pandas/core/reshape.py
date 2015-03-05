@@ -260,7 +260,8 @@ def _unstack_multiple(data, clocs):
     group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-    recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels)
+    recons_labels = decons_obs_group_ids(comp_ids,
+                       obs_ids, shape, clabels, xnull=False)
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
