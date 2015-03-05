@@ -1677,7 +1677,7 @@ class Index(IndexOpsMixin, PandasObject):
     def isin(self, values, level=None):
         """
         Compute boolean array of whether each index value is found in the
-        passed set of values
+        passed set of values.
 
         Parameters
         ----------
