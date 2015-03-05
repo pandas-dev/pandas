@@ -9246,6 +9246,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,self.frame)
         self.assertFalse(result is self.frame)
 
+    def test_reindex_nan(self):
+        df = pd.DataFrame([[1, 2], [3, 5], [7, 11], [9, 23]],
+                index=[2, np.nan, 1, 5], columns=['joe', 'jim'])
+
+        i, j = [np.nan, 5, 5, np.nan, 1, 2, np.nan], [1, 3, 3, 1, 2, 0, 1]
+        tm.assert_frame_equal(df.reindex(i), df.iloc[j])
+
+        df.index = df.index.astype('object')
+        tm.assert_frame_equal(df.reindex(i), df.iloc[j])
+
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
