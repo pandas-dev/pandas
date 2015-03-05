@@ -3821,22 +3821,41 @@ outside of this range, the variable is cast to ``int16``.
 Reading from Stata format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The top-level function ``read_stata`` will read a dta files
-and return a DataFrame.  Alternatively,  the class :class:`~pandas.io.stata.StataReader`
-can be used if more granular access is required. :class:`~pandas.io.stata.StataReader`
-reads the header of the dta file at initialization. The method
-:func:`~pandas.io.stata.StataReader.data` reads and converts observations to a DataFrame.
+The top-level function ``read_stata`` will read a dta file and return
+either a DataFrame or a :class:`~pandas.io.stata.StataReader` that can
+be used to read the file incrementally.
 
 .. ipython:: python
 
    pd.read_stata('stata.dta')
 
+.. versionadded:: 0.16.0
+
+Specifying a ``chunksize`` yields a
+:class:`~pandas.io.stata.StataReader` instance that can be used to
+read ``chunksize`` lines from the file at a time.  The ``StataReader``
+object can be used as an iterator.
+
+    reader = pd.read_stata('stata.dta', chunksize=1000)
+    for df in reader:
+        do_something(df)
+
+For more fine-grained control, use ``iterator=True`` and specify
+``chunksize`` with each call to
+:func:`~pandas.io.stata.StataReader.read`.
+
+.. ipython:: python
+
+  reader = pd.read_stata('stata.dta', iterator=True)
+  chunk1 = reader.read(10)
+  chunk2 = reader.read(20)
+
 Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``variable_labels``, which requires data to be
-called before use (see ``pandas.io.stata.StataReader``).
+also be retrieved by the function ``value_labels``, which requires :func:`~pandas.io.stata.StataReader.read`
+to be called before use.
 
 The parameter ``convert_missing`` indicates whether missing value
 representations in Stata should be preserved.  If ``False`` (the default),

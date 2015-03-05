@@ -55,6 +55,8 @@ performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
+- Allow Stata files to be read incrementally, support for long strings in Stata files (issue:`9493`:) :ref:`here<io.stata_reader>`.
+
 See the :ref:`v0.16.0 Whatsnew <whatsnew_0160>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.16.0.
 
