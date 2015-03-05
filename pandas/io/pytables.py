@@ -318,6 +318,7 @@ def read_hdf(path_or_buf, key, **kwargs):
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
+        kwargs.setdefault("mode", "r")
         store = HDFStore(path_or_buf, **kwargs)
         try:
             return f(store, True)
