@@ -1468,7 +1468,14 @@ class DataFrame(NDFrame):
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
-
+        formatters : callabable or dict/list/tuple of callables, optional
+            The keys to the dict are the column names, any missing or additional
+            names will be given defaults or ignored respectively. If list/tuple
+            the length should match the columns exactly.
+            Each callable can have an optional boolean `escape` attribute, 
+            and an optional string `justify` attribute. See `_make_fixed_width` 
+            function in `format.py` for meaning of `justify`.  If `escape` is
+            not provided the primary `escape` argument is used (see above).
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1476,10 +1483,11 @@ class DataFrame(NDFrame):
                           FutureWarning, stacklevel=2)
             col_space = colSpace
 
-        formatters = formatters or getattr(self,'_formatters_html',None)
-        escape = {list(self.columns).index(k):
-                        getattr(formatters[k],'escape',escape) for k in formatters}   \
-                 if formatters else escape
+        # convert dict/single callable to list
+        if isinstance(formatters,dict):
+            formatters = tuple(formatters.get(cname,None) for cname in self.columns)
+        elif callable(formatters):
+            formatters = (formatters,)*len(self.columns)
                      
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,

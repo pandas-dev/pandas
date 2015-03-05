@@ -821,7 +821,8 @@ class HTMLFormatter(TableFormatter):
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
-
+        if self.fmt.formatters is not None and len(self.fmt.formatters):
+            self.escape = tuple(getattr(f,'escape',self.escape) for f in self.fmt.formatters)
         self.max_rows = max_rows or len(self.fmt.frame)
         self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
@@ -850,7 +851,7 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = '<%s>' % kind
                       
-        if (self.escape if not isinstance(self.escape, (tuple,list,dict)) else self.escape.get(column,True)):
+        if (self.escape if column is None or not isinstance(self.escape, tuple) else self.escape[column]):
             # escape & first to prevent double escaping of &
             esc = OrderedDict(
                 [('&', r'&amp;'), ('<', r'&lt;'), ('>', r'&gt;')]
