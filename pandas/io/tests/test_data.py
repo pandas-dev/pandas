@@ -117,6 +117,7 @@ class TestGoogle(tm.TestCase):
                 self.assertEqual((4, 3), result.shape)
                 assert_n_failed_equals_n_null_columns(w, result)
 
+    @network
     def test_dtypes(self):
         #GH3995, #GH8980
         data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
@@ -125,6 +126,13 @@ class TestGoogle(tm.TestCase):
         assert np.issubdtype(data.Low.dtype, np.number)
         assert np.issubdtype(data.High.dtype, np.number)
         assert np.issubdtype(data.Volume.dtype, np.number)
+
+    @network
+    def test_unicode_date(self):
+        #GH8967
+        data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
+        self.assertEquals(data.index.name, 'Date')
+
 
 class TestYahoo(tm.TestCase):
     @classmethod
@@ -366,24 +374,35 @@ class TestYahooOptions(tm.TestCase):
         self.assertTrue(len(data) > 1)
 
     @network
+    def test_get_underlying_price(self):
+        #GH7
+        try:
+            options_object = web.Options('^spxpm', 'yahoo')
+            url = options_object._yahoo_url_from_expiry(options_object.expiry_dates[0])
+            root = options_object._parse_url(url)
+            quote_price = options_object._underlying_price_from_root(root)
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
+        self.assert_(isinstance(quote_price, float))
+
     def test_sample_page_price_quote_time1(self):
         #Tests the weekend quote time format
-        price, quote_time = self.aapl._get_underlying_price(self.html1)
-        self.assertIsInstance(price, (int, float, complex))
-        self.assertIsInstance(quote_time, (datetime, Timestamp))
+        price, quote_time = self.aapl._underlying_price_and_time_from_url(self.html1)
+        self.assert_(isinstance(price, (int, float, complex)))
+        self.assert_(isinstance(quote_time, (datetime, Timestamp)))
 
     def test_chop(self):
         #regression test for #7625
         self.aapl.chop_data(self.data1, above_below=2, underlying_price=np.nan)
         chopped = self.aapl.chop_data(self.data1, above_below=2, underlying_price=100)
-        self.assertIsInstance(chopped, DataFrame)
+        self.assert_(isinstance(chopped, DataFrame))
         self.assertTrue(len(chopped) > 1)
 
     def test_chop_out_of_strike_range(self):
         #regression test for #7625
         self.aapl.chop_data(self.data1, above_below=2, underlying_price=np.nan)
         chopped = self.aapl.chop_data(self.data1, above_below=2, underlying_price=100000)
-        self.assertIsInstance(chopped, DataFrame)
+        self.assert_(isinstance(chopped, DataFrame))
         self.assertTrue(len(chopped) > 1)
 
 
@@ -391,9 +410,9 @@ class TestYahooOptions(tm.TestCase):
     def test_sample_page_price_quote_time2(self):
         #Tests the EDT page format
         #regression test for #8741
-        price, quote_time = self.aapl._get_underlying_price(self.html2)
-        self.assertIsInstance(price, (int, float, complex))
-        self.assertIsInstance(quote_time, (datetime, Timestamp))
+        price, quote_time = self.aapl._underlying_price_and_time_from_url(self.html2)
+        self.assert_(isinstance(price, (int, float, complex)))
+        self.assert_(isinstance(quote_time, (datetime, Timestamp)))
 
     @network
     def test_sample_page_chg_float(self):
