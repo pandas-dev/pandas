@@ -4327,8 +4327,9 @@ class JoinUnit(object):
         if not self.needs_filling:
             return self.block.dtype
         else:
-            return np.dtype(com._maybe_promote(self.block.dtype,
-                                               self.block.fill_value)[0])
+            return com._get_dtype(com._maybe_promote(self.block.dtype,
+                                                     self.block.fill_value)[0])
+
         return self._dtype
 
     @cache_readonly
