@@ -187,7 +187,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     _comparables = ['name','freqstr','tz']
     _attributes = ['name','freq','tz']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
-                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter',
+                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'days_in_month', 'daysinmonth',
                          'date','time','microsecond','nanosecond','is_month_start','is_month_end',
                          'is_quarter_start','is_quarter_end','is_year_start','is_year_end','tz','freq']
     _is_numeric_dtype = False
@@ -1401,6 +1401,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     weekday = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy', "The ordinal day of the year")
     quarter = _field_accessor('quarter', 'q', "The quarter of the date")
+    days_in_month = _field_accessor('days_in_month', 'dim', "The number of days in the month")
+    daysinmonth = days_in_month
     is_month_start = _field_accessor('is_month_start', 'is_month_start', "Logical indicating if first day of month (defined by frequency)")
     is_month_end = _field_accessor('is_month_end', 'is_month_end', "Logical indicating if last day of month (defined by frequency)")
     is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start', "Logical indicating if first day of quarter (defined by frequency)")

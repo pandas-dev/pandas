@@ -937,7 +937,7 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
@@ -947,7 +947,7 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
@@ -1625,7 +1625,7 @@ class TestTimeSeries(tm.TestCase):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
 
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'days_in_month', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
         for f in fields:
             expected = getattr(idx, f)[-1]
             result = getattr(Timestamp(idx[-1]), f)
@@ -2865,6 +2865,9 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.quarter[0], 1)
         self.assertEqual(dti.quarter[120], 2)
 
+        self.assertEqual(dti.days_in_month[0], 31)
+        self.assertEqual(dti.days_in_month[90], 30)
+
         self.assertEqual(dti.is_month_start[0], True)
         self.assertEqual(dti.is_month_start[1], False)
         self.assertEqual(dti.is_month_start[31], True)
@@ -2948,7 +2951,9 @@ class TestDatetime64(tm.TestCase):
             (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
             (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
             (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
-            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1)]
+            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1),
+            (Timestamp('2012-02-01').days_in_month, 29),
+            (Timestamp('2013-02-01').days_in_month, 28)]
 
         for ts, value in tests:
             self.assertEqual(ts, value)
