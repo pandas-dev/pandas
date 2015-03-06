@@ -95,6 +95,7 @@ cdef extern from "period_helper.h":
     int phour(int64_t ordinal, int freq) except INT32_MIN
     int pminute(int64_t ordinal, int freq) except INT32_MIN
     int psecond(int64_t ordinal, int freq) except INT32_MIN
+    int pdays_in_month(int64_t ordinal, int freq) except INT32_MIN
     char *c_strftime(date_info *dinfo, char *fmt)
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
 
@@ -427,6 +428,8 @@ cdef accessor _get_accessor_func(int code):
         return &pday_of_year
     elif code == 10:
         return &pweekday
+    elif code == 11:
+        return &pdays_in_month
     return NULL
 
 
@@ -925,6 +928,12 @@ cdef class Period(object):
     property qyear:
         def __get__(self):
             return self._field(1)
+    property days_in_month:
+        def __get__(self):
+            return self._field(11)
+    property daysinmonth:
+        def __get__(self):
+            return self.days_in_month
 
     @classmethod
     def now(cls, freq=None):

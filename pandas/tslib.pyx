@@ -391,6 +391,12 @@ class Timestamp(_Timestamp):
         return self._get_field('q')
 
     @property
+    def days_in_month(self):
+        return self._get_field('dim')
+
+    daysinmonth = days_in_month
+
+    @property
     def freqstr(self):
         return getattr(self.offset, 'freqstr', self.offset)
 
@@ -603,7 +609,7 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear']
+          'week', 'dayofyear', 'days_in_month']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -3186,6 +3192,14 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.month
             out[i] = ((out[i] - 1) / 3) + 1
+        return out
+
+    elif field == 'dim':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            out[i] = monthrange(dts.year, dts.month)[1]
         return out
 
     raise ValueError("Field %s not supported" % field)

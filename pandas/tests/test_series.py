@@ -79,7 +79,7 @@ class CheckNameIntegration(object):
         # GH 7207
         # test .dt namespace accessor
 
-        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq']
+        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq','days_in_month','daysinmonth']
         ok_for_period = ok_for_base + ['qyear']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
