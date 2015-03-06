@@ -2423,6 +2423,39 @@ class TestCategoricalAsBlock(tm.TestCase):
             df.append(df_wrong_categories)
         self.assertRaises(ValueError, f)
 
+
+    def test_merge(self):
+        # GH 9426
+
+        right = DataFrame({'c': {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e'},
+                              'd': {0: 'null', 1: 'null', 2: 'null', 3: 'null', 4: 'null'}})
+        left = DataFrame({'a': {0: 'f', 1: 'f', 2: 'f', 3: 'f', 4: 'f'},
+                          'b': {0: 'g', 1: 'g', 2: 'g', 3: 'g', 4: 'g'}})
+        df = pd.merge(left, right, how='left', left_on='b', right_on='c')
+
+        # object-object
+        expected = df.copy()
+
+        # object-cat
+        cright = right.copy()
+        cright['d'] = cright['d'].astype('category')
+        result = pd.merge(left, cright, how='left', left_on='b', right_on='c')
+        tm.assert_frame_equal(result, expected)
+
+        # cat-object
+        cleft = left.copy()
+        cleft['b'] = cleft['b'].astype('category')
+        result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
+        tm.assert_frame_equal(result, expected)
+
+        # cat-cat
+        cright = right.copy()
+        cright['d'] = cright['d'].astype('category')
+        cleft = left.copy()
+        cleft['b'] = cleft['b'].astype('category')
+        result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
+        tm.assert_frame_equal(result, expected)
+
     def test_na_actions(self):
 
         cat = pd.Categorical([1,2,3,np.nan], categories=[1,2,3])

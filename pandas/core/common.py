@@ -1146,7 +1146,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if issubclass(np.dtype(dtype).type, compat.string_types):
+    if is_categorical_dtype(dtype):
+        dtype = dtype
+    elif issubclass(np.dtype(dtype).type, compat.string_types):
         dtype = np.object_
 
     return dtype, fill_value
