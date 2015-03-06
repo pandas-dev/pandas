@@ -3837,6 +3837,7 @@ read ``chunksize`` lines from the file at a time.  The ``StataReader``
 object can be used as an iterator.
 
 .. ipython:: python
+
   reader = pd.read_stata('stata.dta', chunksize=3)
   for df in reader:
       print(df.shape)
@@ -3862,7 +3863,7 @@ The parameter ``convert_missing`` indicates whether missing value
 representations in Stata should be preserved.  If ``False`` (the default),
 missing values are represented as ``np.nan``.  If ``True``, missing values are
 represented using ``StataMissingValue`` objects, and columns containing missing
-values will have ```object`` data type.
+values will have ``object`` data type.
 
 :func:`~pandas.read_stata` and :class:`~pandas.io.stata.StataReader` supports .dta
 formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
