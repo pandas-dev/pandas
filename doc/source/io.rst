@@ -3779,15 +3779,15 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
-*Stata* data files have limited data type support; only strings with 244 or
-fewer characters, ``int8``, ``int16``, ``int32``, ``float32` and ``float64``
-can be stored
-in ``.dta`` files.  Additionally, *Stata* reserves certain values to represent
-missing data. Exporting a non-missing value that is outside of the
-permitted range in Stata for a particular data type will retype the variable
-to the next larger size.  For example, ``int8`` values are restricted to lie
-between -127 and 100 in Stata, and so variables with values above 100 will
-trigger a conversion to ``int16``. ``nan`` values in floating points data
+*Stata* data files have limited data type support; only strings with
+244 or fewer characters, ``int8``, ``int16``, ``int32``, ``float32``
+and ``float64`` can be stored in ``.dta`` files.  Additionally,
+*Stata* reserves certain values to represent missing data. Exporting a
+non-missing value that is outside of the permitted range in Stata for
+a particular data type will retype the variable to the next larger
+size.  For example, ``int8`` values are restricted to lie between -127
+and 100 in Stata, and so variables with values above 100 will trigger
+a conversion to ``int16``. ``nan`` values in floating points data
 types are stored as the basic missing data type (``.`` in *Stata*).
 
 .. note::
@@ -3810,7 +3810,7 @@ outside of this range, the variable is cast to ``int16``.
 
 .. warning::
 
-  :class:`~pandas.io.stata.StataWriter`` and
+  :class:`~pandas.io.stata.StataWriter` and
   :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
@@ -3836,9 +3836,10 @@ Specifying a ``chunksize`` yields a
 read ``chunksize`` lines from the file at a time.  The ``StataReader``
 object can be used as an iterator.
 
-    reader = pd.read_stata('stata.dta', chunksize=1000)
-    for df in reader:
-        do_something(df)
+.. ipython:: python
+  reader = pd.read_stata('stata.dta', chunksize=3)
+  for df in reader:
+      print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -3847,8 +3848,8 @@ For more fine-grained control, use ``iterator=True`` and specify
 .. ipython:: python
 
   reader = pd.read_stata('stata.dta', iterator=True)
-  chunk1 = reader.read(10)
-  chunk2 = reader.read(20)
+  chunk1 = reader.read(5)
+  chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -3869,7 +3870,7 @@ formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
 .. note::
 
    Setting ``preserve_dtypes=False`` will upcast to the standard pandas data types:
-   ``int64`` for all integer types and ``float64`` for floating poitn data.  By default,
+   ``int64`` for all integer types and ``float64`` for floating point data.  By default,
    the Stata data types are preserved when importing.
 
 .. ipython:: python
