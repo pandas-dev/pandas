@@ -13,7 +13,7 @@ lxml=3.2.1
 scipy
 xlsxwriter=0.4.6
 statsmodels
-boto=2.26.1
+boto=2.36.0
 bottleneck=0.8.0
 psycopg2=2.5.2
 patsy

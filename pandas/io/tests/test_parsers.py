@@ -3802,9 +3802,6 @@ class TestS3(tm.TestCase):
         except ImportError:
             raise nose.SkipTest("boto not installed")
 
-        if compat.PY3:
-            raise nose.SkipTest("boto incompatible with Python 3")
-
     @tm.network
     def test_parse_public_s3_bucket(self):
         import nose.tools as nt
