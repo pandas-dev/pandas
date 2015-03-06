@@ -4048,7 +4048,7 @@ class TestIndexing(tm.TestCase):
         # IntIndex #
         ############
         index = tm.makeIntIndex()
-        s = Series(np.arange(len(index))+10,index+5)
+        s = Series(np.arange(len(index),dtype='int64')+10,index+5)
 
         # this is positional
         result1 = s[2:5]
