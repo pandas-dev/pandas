@@ -157,7 +157,8 @@ class _Unstacker(object):
         # may need to coerce categoricals here
         if self.is_categorical is not None:
             values = [ Categorical.from_array(values[:,i],
-                                              categories=self.is_categorical.categories)
+                                              categories=self.is_categorical.categories,
+                                              ordered=True)
                        for i in range(values.shape[-1]) ]
 
         return DataFrame(values, index=index, columns=columns)
@@ -1049,7 +1050,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     # Series avoids inconsistent NaN handling
-    cat = Categorical.from_array(Series(data))
+    cat = Categorical.from_array(Series(data), ordered=True)
     levels = cat.categories
 
     # if all NaN
@@ -1117,7 +1118,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        cat = Categorical.from_array(mapped_items.take(labels))
+        cat = Categorical.from_array(mapped_items.take(labels), ordered=True)
         labels = cat.codes
         items = cat.categories
 

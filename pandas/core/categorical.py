@@ -17,7 +17,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, is_sequence, is_null_slice,
+                                is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
@@ -141,7 +141,7 @@ class Categorical(PandasObject):
         to be the unique values of values.
     ordered : boolean, optional
         Whether or not this categorical is treated as a ordered categorical. If not given,
-        the resulting categorical will be ordered if values can be sorted.
+        the resulting categorical will not be ordered.
     name : str, optional
         Name for the Categorical variable. If name is None, will attempt
         to infer from values.
@@ -184,7 +184,6 @@ class Categorical(PandasObject):
     dtype = CategoricalDtype()
     """The dtype (always "category")"""
 
-    ordered = None
     """Whether or not this Categorical is ordered.
 
     Only ordered `Categoricals` can be sorted (according to the order
@@ -201,10 +200,9 @@ class Categorical(PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare ops, which raise
     __array_priority__ = 1000
     _typ = 'categorical'
-    ordered = False
     name = None
 
-    def __init__(self, values, categories=None, ordered=None, name=None, fastpath=False,
+    def __init__(self, values, categories=None, ordered=False, name=None, fastpath=False,
                  levels=None):
 
         if fastpath:
@@ -212,7 +210,7 @@ class Categorical(PandasObject):
             self._codes = _coerce_indexer_dtype(values, categories)
             self.name = name
             self.categories = categories
-            self.ordered = ordered
+            self._ordered = ordered
             return
 
         if name is None:
@@ -237,8 +235,6 @@ class Categorical(PandasObject):
                 cat = values.values
             if categories is None:
                 categories = cat.categories
-            if ordered is None:
-                ordered = cat.ordered
             values = values.__array__()
 
         elif isinstance(values, Index):
@@ -263,18 +259,12 @@ class Categorical(PandasObject):
 
         if categories is None:
             try:
-                codes, categories = factorize(values, sort=True)
-                # If the underlying data structure was sortable, and the user doesn't want to
-                # "forget" this order, the categorical also is sorted/ordered
-                if ordered is None:
-                    ordered = True
+                codes, categories = factorize(values, sort=ordered)
             except TypeError:
-                codes, categories = factorize(values, sort=False)
-                if ordered:
-                    # raise, as we don't have a sortable data structure and so the user should
-                    # give us one by specifying categories
-                    raise TypeError("'values' is not ordered, please explicitly specify the "
-                                    "categories order by passing in a categories argument.")
+                # raise, as we don't have a sortable data structure and so the user should
+                # give us one by specifying categories
+                raise TypeError("'values' is not factorizable, please pass "
+                                "categories order by passing in a categories argument.")
             except ValueError:
 
                 ### FIXME ####
@@ -300,12 +290,7 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            # if we got categories, we can assume that the order is intended
-            # if ordered is unspecified
-            if ordered is None:
-                ordered = True
-
-        self.ordered = False if ordered is None else ordered
+        self._ordered = ordered
         self.categories = categories
         self.name = name
         self._codes = _coerce_indexer_dtype(codes, categories)
@@ -460,6 +445,37 @@ class Categorical(PandasObject):
     # TODO: Remove after deprecation period in 2017/ after 0.18
     levels = property(fget=_get_levels, fset=_set_levels)
 
+    _ordered = None
+
+    def _set_ordered(self, value):
+        """ Sets the ordered attribute to the boolean value """
+        warn("Setting 'ordered' directly is deprecated, use 'set_ordered'", FutureWarning)
+        self.set_ordered(value, inplace=True)
+
+    def set_ordered(self, value, inplace=False):
+        """
+        Sets the ordered attribute to the boolean value
+
+        Parameters
+        ----------
+        value : boolean to set whether this categorical is ordered (True) or not (False)
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to the value
+        """
+        if not is_bool(value):
+            raise TypeError("ordered must be a boolean value")
+        cat = self if inplace else self.copy()
+        cat._ordered = value
+        if not inplace:
+            return cat
+
+    def _get_ordered(self):
+        """ Gets the ordered attribute """
+        return self._ordered
+
+    ordered = property(fget=_get_ordered, fset=_set_ordered)
+
     def set_categories(self, new_categories, ordered=None, rename=False, inplace=False):
         """ Sets the categories to the specified new_categories.
 
@@ -486,7 +502,7 @@ class Categorical(PandasObject):
         ----------
         new_categories : Index-like
            The categories in new order.
-        ordered : boolean, optional
+        ordered : boolean, (default: False)
            Whether or not the categorical is treated as a ordered categorical. If not given,
            do not change the ordered information.
         rename : boolean (default: False)
@@ -520,8 +536,9 @@ class Categorical(PandasObject):
             cat._codes = _get_codes_for_values(values, new_categories)
             cat._categories = new_categories
 
-        if not ordered is None:
-            cat.ordered = ordered
+        if ordered is None:
+            ordered = self.ordered
+        cat.set_ordered(ordered, inplace=True)
 
         if not inplace:
             return cat
@@ -764,6 +781,15 @@ class Categorical(PandasObject):
         if '_categories' not in state and '_levels' in state:
             state['_categories'] = \
                 self._validate_categories(state.pop('_levels'))
+
+        # 0.16.0 ordered change
+        if '_ordered' not in state:
+
+            # >=15.0 < 0.16.0
+            if 'ordered' in state:
+                state['_ordered'] = state.pop('ordered')
+            else:
+                state['_ordered'] = False
 
         for k, v in compat.iteritems(state):
             setattr(self, k, v)
@@ -1498,6 +1524,7 @@ class CategoricalAccessor(PandasDelegate):
     >>> s.cat.remove_categories(['d'])
     >>> s.cat.remove_unused_categories()
     >>> s.cat.set_categories(list('abcde'))
+    >>> s.cat.set_ordered(True)
 
     """
 
@@ -1533,7 +1560,8 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                                        "add_categories",
                                                        "remove_categories",
                                                        "remove_unused_categories",
-                                                       "set_categories"],
+                                                       "set_categories",
+                                                       "set_ordered"],
                                             typ='method')
 
 ##### utility routines #####
