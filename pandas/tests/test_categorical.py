@@ -82,8 +82,11 @@ class TestCategorical(tm.TestCase):
 
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
-        factor = Categorical.from_array(arr)
+        factor = Categorical.from_array(arr, ordered=False)
         self.assertFalse(factor.ordered)
+
+        # this however will raise as cannot be sorted
+        self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
 
     def test_constructor(self):
 
@@ -526,17 +529,42 @@ class TestCategorical(tm.TestCase):
         cat = Categorical([0,1,2],ordered=True)
         self.assertTrue(cat.ordered)
 
+    def test_ordered_api(self):
+        # GH 9347
+        cat1 = pd.Categorical(["a","c","b"], ordered=False)
+        self.assertTrue(cat1.categories.equals(Index(['a','b','c'])))
+        self.assertFalse(cat1.ordered)
+
+        cat2 = pd.Categorical(["a","c","b"], categories=['b','c','a'], ordered=False)
+        self.assertTrue(cat2.categories.equals(Index(['b','c','a'])))
+        self.assertFalse(cat2.ordered)
+
+        cat3 = pd.Categorical(["a","c","b"], ordered=True)
+        self.assertTrue(cat3.categories.equals(Index(['a','b','c'])))
+        self.assertTrue(cat3.ordered)
+
+        cat4 = pd.Categorical(["a","c","b"], categories=['b','c','a'], ordered=True)
+        self.assertTrue(cat4.categories.equals(Index(['b','c','a'])))
+        self.assertTrue(cat4.ordered)
+
     def test_set_ordered(self):
 
         cat = Categorical(["a","b","c","a"], ordered=True)
-        cat2 = cat.set_ordered(False)
+        cat2 = cat.as_unordered()
         self.assertFalse(cat2.ordered)
-        cat2 = cat.set_ordered(True)
+        cat2 = cat.as_ordered()
+        self.assertTrue(cat2.ordered)
+        cat2.as_unordered(inplace=True)
+        self.assertFalse(cat2.ordered)
+        cat2.as_ordered(inplace=True)
+        self.assertTrue(cat2.ordered)
+
+        self.assertTrue(cat2.set_ordered(True).ordered)
+        self.assertFalse(cat2.set_ordered(False).ordered)
+        cat2.set_ordered(True, inplace=True)
         self.assertTrue(cat2.ordered)
         cat2.set_ordered(False, inplace=True)
         self.assertFalse(cat2.ordered)
-        cat2.set_ordered(True, inplace=True)
-        self.assertTrue(cat2.ordered)
 
         # deperecated in v0.16.0
         with tm.assert_produces_warning(FutureWarning):
@@ -1428,9 +1456,9 @@ class TestCategoricalAsBlock(tm.TestCase):
         tm.assert_series_equal(s.cat.codes, exp_codes)
 
         self.assertEqual(s.cat.ordered, True)
-        s = s.cat.set_ordered(False)
+        s = s.cat.as_unordered()
         self.assertEqual(s.cat.ordered, False)
-        s.cat.set_ordered(True, inplace=True)
+        s.cat.as_ordered(inplace=True)
         self.assertEqual(s.cat.ordered, True)
 
         # reorder
@@ -1659,15 +1687,15 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_groupby(self):
 
-        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], categories=["a","b","c","d"])
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"], categories=["a","b","c","d"], ordered=True)
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         expected = DataFrame({ 'a' : Series([1,2,4,np.nan],index=Index(['a','b','c','d'],name='b')) })
         result = data.groupby("b").mean()
         tm.assert_frame_equal(result, expected)
 
-        raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"])
-        raw_cat2 = Categorical(["c","d","c","d"], categories=["c","d","y"])
+        raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"], ordered=True)
+        raw_cat2 = Categorical(["c","d","c","d"], categories=["c","d","y"], ordered=True)
         df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
 
         # single grouper
@@ -1721,8 +1749,8 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_pivot_table(self):
 
-        raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"])
-        raw_cat2 = Categorical(["c","d","c","d"], categories=["c","d","y"])
+        raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"], ordered=True)
+        raw_cat2 = Categorical(["c","d","c","d"], categories=["c","d","y"], ordered=True)
         df = DataFrame({"A":raw_cat1,"B":raw_cat2, "values":[1,2,3,4]})
         result = pd.pivot_table(df, values='values', index=['A', 'B'])
 
@@ -2671,7 +2699,8 @@ class TestCategoricalAsBlock(tm.TestCase):
          # test the tab completion display
         ok_for_cat = ['categories','codes','ordered','set_categories',
                       'add_categories', 'remove_categories', 'rename_categories',
-                      'reorder_categories', 'remove_unused_categories', 'set_ordered']
+                      'reorder_categories', 'remove_unused_categories',
+                      'as_ordered', 'as_unordered']
         def get_dir(s):
             results = [ r for r in s.cat.__dir__() if not r.startswith('_') ]
             return list(sorted(set(results)))

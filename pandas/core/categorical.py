@@ -139,7 +139,7 @@ class Categorical(PandasObject):
     categories : Index-like (unique), optional
         The unique categories for this categorical. If not given, the categories are assumed
         to be the unique values of values.
-    ordered : boolean, optional
+    ordered : boolean, (default False)
         Whether or not this categorical is treated as a ordered categorical. If not given,
         the resulting categorical will not be ordered.
     name : str, optional
@@ -259,12 +259,14 @@ class Categorical(PandasObject):
 
         if categories is None:
             try:
-                codes, categories = factorize(values, sort=ordered)
+                codes, categories = factorize(values, sort=True)
             except TypeError:
-                # raise, as we don't have a sortable data structure and so the user should
-                # give us one by specifying categories
-                raise TypeError("'values' is not factorizable, please pass "
-                                "categories order by passing in a categories argument.")
+                codes, categories = factorize(values, sort=False)
+                if ordered:
+                    # raise, as we don't have a sortable data structure and so the user should
+                    # give us one by specifying categories
+                    raise TypeError("'values' is not ordered, please explicitly specify the "
+                                    "categories order by passing in a categories argument.")
             except ValueError:
 
                 ### FIXME ####
@@ -290,7 +292,7 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-        self._ordered = ordered
+        self.set_ordered(ordered, inplace=True)
         self.categories = categories
         self.name = name
         self._codes = _coerce_indexer_dtype(codes, categories)
@@ -345,7 +347,7 @@ class Categorical(PandasObject):
             An integer array, where each integer points to a category in categories or -1 for NaN
         categories : index-like
             The categories for the categorical. Items need to be unique.
-        ordered : boolean, optional
+        ordered : boolean, (default False)
             Whether or not this categorical is treated as a ordered categorical. If not given,
             the resulting categorical will be unordered.
         name : str, optional
@@ -469,6 +471,30 @@ class Categorical(PandasObject):
         cat._ordered = value
         if not inplace:
             return cat
+
+    def as_ordered(self, inplace=False):
+        """
+        Sets the Categorical to be ordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to True
+        """
+        return self.set_ordered(True, inplace=inplace)
+
+    def as_unordered(self, inplace=False):
+        """
+        Sets the Categorical to be unordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to False
+        """
+        return self.set_ordered(False, inplace=inplace)
 
     def _get_ordered(self):
         """ Gets the ordered attribute """
@@ -853,7 +879,8 @@ class Categorical(PandasObject):
         array([3, 5])       # eggs after donuts, after switching milk and donuts
         """
         if not self.ordered:
-            raise ValueError("searchsorted requires an ordered Categorical.")
+            raise ValueError("Categorical not ordered\n"
+                             "you can use .as_ordered() to change the Categorical to an ordered one\n")
 
         from pandas.core.series import Series
         values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
@@ -981,7 +1008,8 @@ class Categorical(PandasObject):
         argsorted : numpy array
         """
         if not self.ordered:
-            raise TypeError("Categorical not ordered")
+            raise TypeError("Categorical not ordered\n"
+                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
@@ -1013,7 +1041,8 @@ class Categorical(PandasObject):
         Category.sort
         """
         if not self.ordered:
-            raise TypeError("Categorical not ordered")
+            raise TypeError("Categorical not ordered\n"
+                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
@@ -1394,7 +1423,8 @@ class Categorical(PandasObject):
         min : the minimum of this `Categorical`
         """
         if not self.ordered:
-            raise TypeError("Categorical not ordered")
+            raise TypeError("Categorical not ordered\n"
+                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].min(**kwargs)
@@ -1421,7 +1451,8 @@ class Categorical(PandasObject):
         max : the maximum of this `Categorical`
         """
         if not self.ordered:
-            raise TypeError("Categorical not ordered")
+            raise TypeError("Categorical not ordered\n"
+                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].max(**kwargs)
@@ -1524,7 +1555,8 @@ class CategoricalAccessor(PandasDelegate):
     >>> s.cat.remove_categories(['d'])
     >>> s.cat.remove_unused_categories()
     >>> s.cat.set_categories(list('abcde'))
-    >>> s.cat.set_ordered(True)
+    >>> s.cat.as_ordered()
+    >>> s.cat.as_unordered()
 
     """
 
@@ -1561,7 +1593,8 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                                        "remove_categories",
                                                        "remove_unused_categories",
                                                        "set_categories",
-                                                       "set_ordered"],
+                                                       "as_ordered",
+                                                       "as_unordered"],
                                             typ='method')
 
 ##### utility routines #####

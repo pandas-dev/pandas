@@ -1923,8 +1923,16 @@ class Grouping(object):
 
             # a passed Categorical
             elif isinstance(self.grouper, Categorical):
+
+                # must have an ordered categorical
+                if self.sort:
+                    if not self.grouper.ordered:
+                        raise ValueError("cannot sort by an unordered Categorical in the grouper\n"
+                                         "you can set sort=False in the groupby expression or\n"
+                                         "make the categorical ordered by using .set_ordered(True)\n")
+
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
-                if not self.sort:
+                else:
                     self.grouper = self.grouper.reorder_categories(self.grouper.unique())
                 self._labels = self.grouper.codes
                 self._group_index = self.grouper.categories
