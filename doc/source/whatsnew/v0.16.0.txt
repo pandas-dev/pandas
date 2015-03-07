@@ -307,6 +307,54 @@ Backwards incompatible API changes
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
 
 
+Categorical Changes
+~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking.categorical:
+
+In prior versions, Categoricals that with had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted to have a lexographic ordering of the values and designated as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``, so ordering must now be explicit.
+
+Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.set_ordered(True)``. This will by default return a **new** object and not modify the existing object.
+
+Previous Behavior
+
+.. code-block:: python
+
+   In [1]: cat = pd.Categorical([0,1,2])
+
+   In [2]: cat
+   Out[2]:
+   [0, 1, 2]
+   Categories (3, int64): [0 < 1 < 2]
+
+   In [3]: cat.ordered
+   Out[3]: True
+
+   In [4]: cat.ordered=False
+
+   In [5]: cat
+   Out[5]:
+   [0, 1, 2]
+   Categories (3, int64): [0, 1, 2]
+
+
+New Behavior
+
+.. ipython:: python
+
+   cat = pd.Categorical([0,1,2])
+   cat
+   cat.ordered
+   cat.ordered=True
+   cat = cat.set_ordered(True)
+   cat
+   cat.ordered
+
+   # you can set in the construtor
+   cat = pd.Categorical([0,1,2],ordered=True)
+   cat
+   cat.ordered
+
 Indexing Changes
 ~~~~~~~~~~~~~~~~
 
