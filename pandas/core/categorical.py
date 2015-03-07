@@ -263,7 +263,7 @@ class Categorical(PandasObject):
 
         if categories is None:
             try:
-                codes, categories = factorize(values, sort=True)
+                codes, categories = factorize(values, sort=ordered if not ordered is None else True)
                 # If the underlying data structure was sortable, and the user doesn't want to
                 # "forget" this order, the categorical also is sorted/ordered
                 if ordered is None:
