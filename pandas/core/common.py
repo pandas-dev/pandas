@@ -2683,7 +2683,8 @@ def _astype_nansafe(arr, dtype, copy=True):
     return arr.view(dtype)
 
 
-def _clean_fill_method(method, allow_nearest=False):
+def _clean_fill_method(method, allow_nearest=False,
+                       allow_interp_methods=False):
     if method is None:
         return None
     method = method.lower()
@@ -2697,6 +2698,13 @@ def _clean_fill_method(method, allow_nearest=False):
     if allow_nearest:
         valid_methods.append('nearest')
         expecting = 'pad (ffill), backfill (bfill) or nearest'
+    if allow_interp_methods:
+        interp_methods = ['linear', 'time', 'index', 'values', 'nearest',
+                          'zero', 'slinear', 'quadratic', 'cubic',
+                          'barycentric', 'krogh', 'spline', 'polynomial',
+                          'pchip']
+        valid_methods.extend(interp_methods)
+        expecting += ', '.join("'%s'" % x for x in interp_methods)
     if method not in valid_methods:
         msg = ('Invalid fill method. Expecting %s. Got %s'
                % (expecting, method))
