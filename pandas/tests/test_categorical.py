@@ -1195,6 +1195,17 @@ class TestCategoricalAsBlock(tm.TestCase):
         df["cats"] =  df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
+        # with keywords
+        l = ["a","b","c","a"]
+        s = pd.Series(l)
+        exp = pd.Series(Categorical(l, ordered=True))
+        res = s.astype('category', ordered=True)
+        tm.assert_series_equal(res, exp)
+
+        exp = pd.Series(Categorical(l, categories=list('abcdef'), ordered=True))
+        res = s.astype('category', categories=list('abcdef'), ordered=True)
+        tm.assert_series_equal(res, exp)
+
     def test_construction_series(self):
 
         l = [1,2,3,1]

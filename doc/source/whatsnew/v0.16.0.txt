@@ -355,6 +355,16 @@ New Behavior
    cat
    cat.ordered
 
+For ease of creation of series of ``Categoricals``, we have added the ability to pass keywords when calling ``.astype()``, these
+are passed directly to the constructor.
+
+.. ipython:: python
+
+   s = Series(["a","b","c","a"]).astype('category',ordered=True)
+   s
+   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+   s
+
 Indexing Changes
 ~~~~~~~~~~~~~~~~
 
