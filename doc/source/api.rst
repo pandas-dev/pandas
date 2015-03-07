@@ -585,6 +585,8 @@ following usable methods and properties (all available as ``Series.cat.<method_o
    Categorical.remove_categories
    Categorical.remove_unused_categories
    Categorical.set_categories
+   Categorical.as_ordered
+   Categorical.as_unordered
    Categorical.codes
 
 To create a Series of dtype ``category``, use ``cat = s.astype("category")``.
