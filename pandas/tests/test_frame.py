@@ -4816,12 +4816,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
     def test_str_max_colwidth(self):
+        # GH 7856
         curr_max_colwidth = pd.get_option('max_colwidth')
         # As we change a global option, we save it
         df = pd.DataFrame([{'a': 'foo', 'b': 'bar',
                             'c': 'uncomfortably long line with lots of stuff',
                             'd': 1},
                            {'a': 'foo', 'b': 'bar', 'c': 'stuff', 'd': 1}])
+        df.set_index(['a', 'b', 'c'])
         assert(str(df) == '     a    b                                           c  d\n'
                           '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
                           '1  foo  bar                                       stuff  1')

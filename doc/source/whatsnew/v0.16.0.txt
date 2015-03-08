@@ -553,3 +553,5 @@ Bug Fixes
 
 
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
+
+- Bug in ``DataFrameFormatter._get_formatted_index`` with not applying ``max_colwidth`` to the ``DataFrame`` index (:issue:`7856`)
