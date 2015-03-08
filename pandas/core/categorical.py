@@ -876,6 +876,54 @@ class Categorical(PandasObject):
         """
         return ~self.isnull()
 
+    def dropna(self):
+        """
+        Return the Categorical without null values.
+
+        Both missing values (-1 in .codes) and NA as a category are detected.
+        NA is removed from the categories if present.
+
+        Returns
+        -------
+        valid : Categorical
+        """
+        result = self[self.notnull()]
+        if isnull(result.categories).any():
+            result = result.remove_categories([np.nan])
+        return result
+
+    def value_counts(self, dropna=True):
+        """
+        Returns a Series containing counts of each category.
+
+        Every category will have an entry, even those with a count of 0.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaN, even if NaN is a category.
+
+        Returns
+        -------
+        counts : Series
+        """
+        import pandas.hashtable as htable
+        from pandas.core.series import Series
+
+        cat = self.dropna() if dropna else self
+        keys, counts = htable.value_count_int64(com._ensure_int64(cat._codes))
+        result = Series(counts, index=keys)
+
+        ix = np.arange(len(cat.categories), dtype='int64')
+        if not dropna and -1 in keys:
+            ix = np.append(ix, -1)
+        result = result.reindex(ix, fill_value=0)
+        result.index = (np.append(cat.categories, np.nan)
+            if not dropna and -1 in keys
+            else cat.categories)
+
+        return result
+
     def get_values(self):
         """ Return the values.
 
@@ -1421,34 +1469,12 @@ class Categorical(PandasObject):
         description: `DataFrame`
             A dataframe with frequency and counts by category.
         """
-        # Hack?
-        from pandas.core.frame import DataFrame
-        counts = DataFrame({
-            'codes' : self._codes,
-            'values' : self._codes }
-                           ).groupby('codes').count()
-
+        counts = self.value_counts(dropna=False)
         freqs = counts / float(counts.sum())
 
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
         result.columns = ['counts','freqs']
-
-        # fill in the real categories
-        check = result.index == -1
-        if check.any():
-            # Sort -1 (=NaN) to the last position
-            index = np.arange(0, len(self.categories)+1, dtype='int64')
-            index[-1] = -1
-            result = result.reindex(index)
-            # build new index
-            categories = np.arange(0,len(self.categories)+1 ,dtype=object)
-            categories[:-1] = self.categories
-            categories[-1] = np.nan
-            result.index = categories.take(_ensure_platform_int(result.index))
-        else:
-            result.index = self.categories.take(_ensure_platform_int(result.index))
-            result = result.reindex(self.categories)
         result.index.name = 'categories'
 
         return result
