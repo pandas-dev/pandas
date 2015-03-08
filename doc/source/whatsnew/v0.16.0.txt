@@ -384,6 +384,8 @@ Deprecations
   The documentation includes some examples how to convert your existing code
   using ``rplot`` to seaborn: - :ref:`rplot docs <rplot>`
 
+- The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
+  We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
 
 .. _whatsnew_0160.prior_deprecations:
 

@@ -290,6 +290,11 @@ details.
 Visualizing Data in Qt applications
 -----------------------------------
 
+.. warning::
+
+    The ``qt`` support is **deprecated and will be removed in a future version**.
+    We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_.
+
 There is experimental support for visualizing DataFrames in PyQt4 and PySide
 applications. At the moment you can display and edit the values of the cells
 in the DataFrame. Qt will take care of displaying just the portion of the
