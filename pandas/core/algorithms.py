@@ -212,47 +212,47 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
-    elif is_category:
-        bins = values.categories
-        cat = values
-        values = cat.codes
 
-    dtype = values.dtype
+    if is_category:
 
-    if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)) or is_period:
-        if is_period:
-            values = PeriodIndex(values)
-
-        values = values.view(np.int64)
-        keys, counts = htable.value_count_int64(values)
-
-        if dropna:
-            from pandas.tslib import iNaT
-            msk = keys != iNaT
-            keys, counts = keys[msk], counts[msk]
-        # convert the keys back to the dtype we came in
-        keys = keys.astype(dtype)
-
-    elif com.is_integer_dtype(dtype):
-        values = com._ensure_int64(values)
-        keys, counts = htable.value_count_int64(values)
+        result = values.value_counts(dropna)
 
     else:
-        values = com._ensure_object(values)
-        mask = com.isnull(values)
-        keys, counts = htable.value_count_object(values, mask)
-        if not dropna:
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
 
-    result = Series(counts, index=com._values_from_object(keys))
-    if bins is not None:
-        # TODO: This next line should be more efficient
-        result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
-        if not is_category:
-            result.index = bins[:-1]
+        dtype = values.dtype
+
+        if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
+            if is_period:
+                values = PeriodIndex(values)
+
+            values = values.view(np.int64)
+            keys, counts = htable.value_count_int64(values)
+
+            if dropna:
+                from pandas.tslib import iNaT
+                msk = keys != iNaT
+                keys, counts = keys[msk], counts[msk]
+            # convert the keys back to the dtype we came in
+            keys = keys.astype(dtype)
+
+        elif com.is_integer_dtype(dtype):
+            values = com._ensure_int64(values)
+            keys, counts = htable.value_count_int64(values)
+
         else:
-            result.index = cat.categories
+            values = com._ensure_object(values)
+            mask = com.isnull(values)
+            keys, counts = htable.value_count_object(values, mask)
+            if not dropna and mask.any():
+                keys = np.insert(keys, 0, np.NaN)
+                counts = np.insert(counts, 0, mask.sum())
+
+        result = Series(counts, index=com._values_from_object(keys))
+
+        if bins is not None:
+            # TODO: This next line should be more efficient
+            result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
+            result.index = bins[:-1]
 
     if sort:
         result.sort()

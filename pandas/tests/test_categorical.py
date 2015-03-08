@@ -389,8 +389,8 @@ class TestCategorical(tm.TestCase):
         cat = self.factor.copy()
         cat.set_categories(["a","b","c","d"], inplace=True)
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[3, 2, 3, np.nan],
-                                            freqs=[3/8., 2/8., 3/8., np.nan],
+        expected = DataFrame.from_dict(dict(counts=[3, 2, 3, 0],
+                                            freqs=[3/8., 2/8., 3/8., 0],
                                             categories=['a', 'b', 'c', 'd'])
                                             ).set_index('categories')
         tm.assert_frame_equal(desc, expected)
@@ -415,31 +415,20 @@ class TestCategorical(tm.TestCase):
                                             ).set_index('categories')
         tm.assert_frame_equal(desc, expected)
 
-        # having NaN as category and as "not available" should also print two NaNs in describe!
-        cat = pd.Categorical([np.nan,1, 2, 2])
-        cat.set_categories([1,2,np.nan], rename=True, inplace=True)
-        desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[1, 2, np.nan, 1],
-                                            freqs=[1/4., 2/4., np.nan, 1/4.],
-                                            categories=[1,2,np.nan,np.nan]
-                                            )
-                                            ).set_index('categories')
-        tm.assert_frame_equal(desc, expected)
-
-        # empty categories show up as NA
-        cat = Categorical(["a","b","b","b"], categories=['a','b','c'], ordered=True)
+        # NA as a category
+        cat = pd.Categorical(["a","c","c",np.nan], categories=["b","a","c",np.nan])
         result = cat.describe()
 
-        expected = DataFrame([[1,0.25],[3,0.75],[np.nan,np.nan]],
+        expected = DataFrame([[0,0],[1,0.25],[2,0.5],[1,0.25]],
                              columns=['counts','freqs'],
-                             index=Index(['a','b','c'],name='categories'))
+                             index=Index(['b','a','c',np.nan],name='categories'))
         tm.assert_frame_equal(result,expected)
 
-        # NA as a category
-        cat = pd.Categorical(["a","c","c",np.nan], categories=["b","a","c",np.nan] )
+        # NA as an unused category
+        cat = pd.Categorical(["a","c","c"], categories=["b","a","c",np.nan])
         result = cat.describe()
 
-        expected = DataFrame([[np.nan, np.nan],[1,0.25],[2,0.5], [1,0.25]],
+        expected = DataFrame([[0,0],[1,1/3.],[2,2/3.],[0,0]],
                              columns=['counts','freqs'],
                              index=Index(['b','a','c',np.nan],name='categories'))
         tm.assert_frame_equal(result,expected)
@@ -1572,6 +1561,46 @@ class TestCategoricalAsBlock(tm.TestCase):
         res = s.value_counts(sort=True)
         exp = Series([3,2,1,0], index=["c","b","a","d"])
         tm.assert_series_equal(res, exp)
+
+    def test_value_counts_with_nan(self):
+        # https://github.com/pydata/pandas/issues/9443
+
+        s = pd.Series(["a", "b", "a"], dtype="category")
+        tm.assert_series_equal(
+            s.value_counts(dropna=True),
+            pd.Series([2, 1], index=["a", "b"]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=False),
+            pd.Series([2, 1], index=["a", "b"]))
+
+        s = pd.Series(["a", "b", None, "a", None, None], dtype="category")
+        tm.assert_series_equal(
+            s.value_counts(dropna=True),
+            pd.Series([2, 1], index=["a", "b"]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=False),
+            pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
+        # When we aren't sorting by counts, and np.nan isn't a
+        # category, it should be last.
+        tm.assert_series_equal(
+            s.value_counts(dropna=False, sort=False),
+            pd.Series([2, 1, 3], index=["a", "b", np.nan]))
+
+        s = pd.Series(pd.Categorical(["a", "b", "a"], categories=["a", "b", np.nan]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=True),
+            pd.Series([2, 1], index=["a", "b"]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=False),
+            pd.Series([2, 1, 0], index=["a", "b", np.nan]))
+
+        s = pd.Series(pd.Categorical(["a", "b", None, "a", None, None], categories=["a", "b", np.nan]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=True),
+            pd.Series([2, 1], index=["a", "b"]))
+        tm.assert_series_equal(
+            s.value_counts(dropna=False),
+            pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
 
     def test_groupby(self):
 

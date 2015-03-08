@@ -535,3 +535,11 @@ Bug Fixes
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
 
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
+
+
+
+
+
+- Bug in ``Series.values_counts`` with excluding NaN for categorical type ``Series`` with ``dropna=True``
+- ``Series.values_counts`` and ``Series.describe`` for categorical type will now put NaN entries at the end.
+- ``Series.describe`` for categorical type will now give counts and frequencies of 0, not NA, for unused categories
