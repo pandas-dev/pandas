@@ -90,8 +90,6 @@ By using some special functions:
 See :ref:`documentation <reshaping.tile.cut>` for :func:`~pandas.cut`.
 
 By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to a `DataFrame`.
-This is the only possibility to specify differently ordered categories (or no order at all) at
-creation time and the only reason to use :class:`pandas.Categorical` directly:
 
 .. ipython:: python
 
@@ -102,6 +100,14 @@ creation time and the only reason to use :class:`pandas.Categorical` directly:
     df = DataFrame({"A":["a","b","c","a"]})
     df["B"] = raw_cat
     df
+
+You can also specify differently ordered categories or make the resulting data ordered, by passing these arguments to ``astype()``:
+
+.. ipython:: python
+
+    s = Series(["a","b","c","a"])
+    s_cat = s.astype("category", categories=["b","c","d"], ordered=False)
+    s_cat
 
 Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
 
@@ -176,10 +182,9 @@ It's also possible to pass in the categories in a specific order:
     s.cat.ordered
 
 .. note::
-    New categorical data is automatically ordered if the passed in values are sortable or a
-    `categories` argument is supplied. This is a difference to R's `factors`, which are unordered
-    unless explicitly told to be ordered (``ordered=TRUE``). You can of course overwrite that by
-    passing in an explicit ``ordered=False``.
+
+    New categorical data are NOT automatically ordered. You must explicity pass ``ordered=True`` to
+    indicate an ordered ``Categorical``.
 
 
 Renaming categories
@@ -270,21 +275,29 @@ Sorting and Order
 
 .. _categorical.sort:
 
+.. warning::
+
+   The default for construction has change in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
+
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
-meaning and certain operations are possible. If the categorical is unordered, a `TypeError` is
-raised.
+meaning and certain operations are possible. If the categorical is unordered, an ``OrderingWarning`` is shown.
 
 .. ipython:: python
 
     s = Series(Categorical(["a","b","c","a"], ordered=False))
-    try:
-        s.sort()
-    except TypeError as e:
-        print("TypeError: " + str(e))
-    s = Series(["a","b","c","a"], dtype="category") # ordered per default!
+    s.sort()
+    s = Series(["a","b","c","a"]).astype('category',ordered=True)
     s.sort()
     s
     s.min(), s.max()
+
+You can set categorical data to be ordered by using ``as_ordered()`` or unordered by using ``as_unordered()``. These will by
+default return a *new* object.
+
+.. ipython:: python
+
+    s.cat.as_ordered()
+    s.cat.as_unordered()
 
 Sorting will use the order defined by categories, not any lexical order present on the data type.
 This is even true for strings and numeric data:
@@ -292,7 +305,7 @@ This is even true for strings and numeric data:
 .. ipython:: python
 
     s = Series([1,2,3,1], dtype="category")
-    s.cat.categories = [2,3,1]
+    s = s.cat.set_categories([2,3,1], ordered=True)
     s
     s.sort()
     s
@@ -310,7 +323,7 @@ necessarily make the sort order the same as the categories order.
 .. ipython:: python
 
     s = Series([1,2,3,1], dtype="category")
-    s = s.cat.reorder_categories([2,3,1])
+    s = s.cat.reorder_categories([2,3,1], ordered=True)
     s
     s.sort()
     s
@@ -326,8 +339,8 @@ necessarily make the sort order the same as the categories order.
 
 .. note::
 
-    If the `Categorical` is not ordered, ``Series.min()`` and ``Series.max()`` will raise
-    `TypeError`. Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them
+    If the `Categorical` is not ordered, ``Series.min()`` and ``Series.max()`` will show an ``OrderingWarning``
+    Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them
     (e.g.``Series.median()``, which would need to compute the mean between two values if the length
     of an array is even) do not work and raise a `TypeError`.
 
@@ -339,7 +352,7 @@ The ordering of the categorical is determined by the ``categories`` of that colu
 
 .. ipython:: python
 
-   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'),categories=['e','a','b']),
+   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'),categories=['e','a','b'],ordered=True),
                     'B' : [1,2,1,2,2,1,2,1] })
    dfs.sort(['A','B'])
 
@@ -664,9 +677,6 @@ The following differences to R's factor functions can be observed:
 
 * R's `levels` are named `categories`
 * R's `levels` are always of type string, while `categories` in pandas can be of any dtype.
-* New categorical data is automatically ordered if the passed in values are sortable or a
-  `categories` argument is supplied. This is a difference to R's `factors`, which are unordered
-  unless explicitly told to be ordered (``ordered=TRUE``).
 * It's not possible to specify labels at creation time. Use ``s.cat.rename_categories(new_labels)``
   afterwards.
 * In contrast to R's `factor` function, using categorical data as the sole input to create a

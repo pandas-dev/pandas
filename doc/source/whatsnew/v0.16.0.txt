@@ -13,6 +13,7 @@ users upgrade to this version.
   * ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
   * Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
   * Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
+  * Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
 
 - Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating
 
@@ -306,6 +307,69 @@ Backwards incompatible API changes
 - ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
 
+
+Categorical Changes
+~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking.categorical:
+
+In prior versions, ``Categoricals`` that had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``, ordering must now be explicit.
+
+Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.as_ordered()`` or ``cat.as_unordered()``. These will by default return a **new** object and not modify the existing object. (:issue:`9347`, :issue:`9190`)
+
+Previous Behavior
+
+.. code-block:: python
+
+   In [3]: s = Series([0,1,2], dtype='category')
+
+   In [4]: s
+   Out[4]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0 < 1 < 2]
+
+   In [5]: s.cat.ordered
+   Out[5]: True
+
+   In [6]: s.cat.ordered = False
+
+   In [7]: s
+   Out[7]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0, 1, 2]
+
+New Behavior
+
+.. ipython:: python
+
+   s = Series([0,1,2], dtype='category')
+   s
+   s.cat.ordered
+   s = s.cat.as_ordered()
+   s
+   s.cat.ordered
+
+   # you can set in the constructor of the Categorical
+   s = Series(Categorical([0,1,2],ordered=True))
+   s
+   s.cat.ordered
+
+For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``, these are passed directly to the constructor.
+
+.. ipython:: python
+
+   s = Series(["a","b","c","a"]).astype('category',ordered=True)
+   s
+   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+   s
+
+- In prior versions, trying to ``.order()/.argsort()/.searchsorted()`` on an unordered ``Categorical`` would raise a ``TypeError``. This has been relaxed in that the operation will now succeed but show an ``OrderingWarning``. This will perform the ordering in the order of the categories, then in order of appearance for the values within that category. This operation will NOT modify the existing object. (:issue:`9148`)
 
 Indexing Changes
 ~~~~~~~~~~~~~~~~

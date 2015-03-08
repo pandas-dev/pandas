@@ -367,12 +367,12 @@ class Block(PandasObject):
 
         return blocks
 
-    def astype(self, dtype, copy=False, raise_on_error=True, values=None):
+    def astype(self, dtype, copy=False, raise_on_error=True, values=None, **kwargs):
         return self._astype(dtype, copy=copy, raise_on_error=raise_on_error,
-                            values=values)
+                            values=values, **kwargs)
 
     def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
-                klass=None):
+                klass=None, **kwargs):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
@@ -381,7 +381,7 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
-            return make_block(Categorical(self.values),
+            return make_block(Categorical(self.values, **kwargs),
                               ndim=self.ndim,
                               placement=self.mgr_locs)
 
@@ -1229,8 +1229,8 @@ class FloatBlock(FloatOrComplexBlock):
         values = np.array(values, dtype=object)
         mask = isnull(values)
         values[mask] = na_rep
-        
-        
+
+
         if float_format and decimal != '.':
             formatter = lambda v : (float_format % v).replace('.',decimal,1)
         elif decimal != '.':
@@ -1239,12 +1239,12 @@ class FloatBlock(FloatOrComplexBlock):
             formatter = lambda v : float_format % v
         else:
             formatter = None
-            
+
         if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
                 [formatter(val) for val in values.ravel()[imask]])
-        
+
         return values.tolist()
 
     def should_store(self, value):

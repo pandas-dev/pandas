@@ -10,6 +10,7 @@ from numpy import nan
 from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.api import Categorical, DataFrame
+from pandas.core.categorical import OrderingWarning
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
 from pandas.core.series import Series
@@ -3274,7 +3275,7 @@ class TestGroupBy(tm.TestCase):
                         ['(2.5, 5]', 4, 50],
                         ['(0, 2.5]', 1, 60],
                         ['(5, 7.5]', 7, 70]], columns=['range', 'foo', 'bar'])
-        df['range'] = Categorical(df['range'])
+        df['range'] = Categorical(df['range'],ordered=True)
         index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
         index.name = 'range'
         result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
@@ -3286,6 +3287,21 @@ class TestGroupBy(tm.TestCase):
 
         col = 'range'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+
+        df['range'] = Categorical(df['range'],ordered=False)
+        index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
+        index.name = 'range'
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = index
+        index = Index(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'], dtype='object')
+        index.name = 'range'
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=['foo', 'bar'])
+        result_nosort.index = index
+
+        col = 'range'
+        with tm.assert_produces_warning(OrderingWarning):
+            df.groupby(col, sort=True).first()
         assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
 
 
@@ -3310,7 +3326,7 @@ class TestGroupBy(tm.TestCase):
         levels = ['foo', 'bar', 'baz', 'qux']
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor')
+        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -3338,7 +3354,7 @@ class TestGroupBy(tm.TestCase):
         levels = pd.date_range('2014-01-01', periods=4)
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor')
+        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -3485,21 +3501,21 @@ class TestGroupBy(tm.TestCase):
         data = Series(np.random.randn(9))
 
         codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
-        cats = Categorical.from_codes(codes, [0, 1, 2])
+        cats = Categorical.from_codes(codes, [0, 1, 2], ordered=True)
 
         result = data.groupby(cats).mean()
         exp = data.groupby(codes).mean()
         assert_series_equal(result, exp)
 
         codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
-        cats = Categorical.from_codes(codes, [0, 1, 2, 3])
+        cats = Categorical.from_codes(codes, [0, 1, 2, 3], ordered=True)
 
         result = data.groupby(cats).mean()
         exp = data.groupby(codes).mean().reindex(cats.categories)
         assert_series_equal(result, exp)
 
         cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
-                           categories=["a","b","c","d"])
+                           categories=["a","b","c","d"], ordered=True)
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         result = data.groupby("b").mean()
@@ -4991,7 +5007,7 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_categorical_two_columns(self):
 
         # https://github.com/pydata/pandas/issues/8138
-        d = {'cat': pd.Categorical(["a","b","a","b"], categories=["a", "b", "c"]),
+        d = {'cat': pd.Categorical(["a","b","a","b"], categories=["a", "b", "c"], ordered=True),
              'ints': [1, 1, 2, 2],'val': [10, 20, 30, 40]}
         test = pd.DataFrame(d)
 

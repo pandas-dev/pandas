@@ -17,12 +17,14 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, is_sequence, is_null_slice,
+                                is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 from pandas.core import format as fmt
+
+class OrderingWarning(Warning): pass
 
 def _cat_compare_op(op):
     def f(self, other):
@@ -139,9 +141,9 @@ class Categorical(PandasObject):
     categories : Index-like (unique), optional
         The unique categories for this categorical. If not given, the categories are assumed
         to be the unique values of values.
-    ordered : boolean, optional
+    ordered : boolean, (default False)
         Whether or not this categorical is treated as a ordered categorical. If not given,
-        the resulting categorical will be ordered if values can be sorted.
+        the resulting categorical will not be ordered.
     name : str, optional
         Name for the Categorical variable. If name is None, will attempt
         to infer from values.
@@ -184,7 +186,6 @@ class Categorical(PandasObject):
     dtype = CategoricalDtype()
     """The dtype (always "category")"""
 
-    ordered = None
     """Whether or not this Categorical is ordered.
 
     Only ordered `Categoricals` can be sorted (according to the order
@@ -201,10 +202,9 @@ class Categorical(PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare ops, which raise
     __array_priority__ = 1000
     _typ = 'categorical'
-    ordered = False
     name = None
 
-    def __init__(self, values, categories=None, ordered=None, name=None, fastpath=False,
+    def __init__(self, values, categories=None, ordered=False, name=None, fastpath=False,
                  levels=None):
 
         if fastpath:
@@ -212,7 +212,7 @@ class Categorical(PandasObject):
             self._codes = _coerce_indexer_dtype(values, categories)
             self.name = name
             self.categories = categories
-            self.ordered = ordered
+            self._ordered = ordered
             return
 
         if name is None:
@@ -237,8 +237,6 @@ class Categorical(PandasObject):
                 cat = values.values
             if categories is None:
                 categories = cat.categories
-            if ordered is None:
-                ordered = cat.ordered
             values = values.__array__()
 
         elif isinstance(values, Index):
@@ -264,10 +262,6 @@ class Categorical(PandasObject):
         if categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
-                # If the underlying data structure was sortable, and the user doesn't want to
-                # "forget" this order, the categorical also is sorted/ordered
-                if ordered is None:
-                    ordered = True
             except TypeError:
                 codes, categories = factorize(values, sort=False)
                 if ordered:
@@ -300,12 +294,7 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            # if we got categories, we can assume that the order is intended
-            # if ordered is unspecified
-            if ordered is None:
-                ordered = True
-
-        self.ordered = False if ordered is None else ordered
+        self.set_ordered(ordered, inplace=True)
         self.categories = categories
         self.name = name
         self._codes = _coerce_indexer_dtype(codes, categories)
@@ -360,7 +349,7 @@ class Categorical(PandasObject):
             An integer array, where each integer points to a category in categories or -1 for NaN
         categories : index-like
             The categories for the categorical. Items need to be unique.
-        ordered : boolean, optional
+        ordered : boolean, (default False)
             Whether or not this categorical is treated as a ordered categorical. If not given,
             the resulting categorical will be unordered.
         name : str, optional
@@ -460,6 +449,61 @@ class Categorical(PandasObject):
     # TODO: Remove after deprecation period in 2017/ after 0.18
     levels = property(fget=_get_levels, fset=_set_levels)
 
+    _ordered = None
+
+    def _set_ordered(self, value):
+        """ Sets the ordered attribute to the boolean value """
+        warn("Setting 'ordered' directly is deprecated, use 'set_ordered'", FutureWarning)
+        self.set_ordered(value, inplace=True)
+
+    def set_ordered(self, value, inplace=False):
+        """
+        Sets the ordered attribute to the boolean value
+
+        Parameters
+        ----------
+        value : boolean to set whether this categorical is ordered (True) or not (False)
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to the value
+        """
+        if not is_bool(value):
+            raise TypeError("ordered must be a boolean value")
+        cat = self if inplace else self.copy()
+        cat._ordered = value
+        if not inplace:
+            return cat
+
+    def as_ordered(self, inplace=False):
+        """
+        Sets the Categorical to be ordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to True
+        """
+        return self.set_ordered(True, inplace=inplace)
+
+    def as_unordered(self, inplace=False):
+        """
+        Sets the Categorical to be unordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to False
+        """
+        return self.set_ordered(False, inplace=inplace)
+
+    def _get_ordered(self):
+        """ Gets the ordered attribute """
+        return self._ordered
+
+    ordered = property(fget=_get_ordered, fset=_set_ordered)
+
     def set_categories(self, new_categories, ordered=None, rename=False, inplace=False):
         """ Sets the categories to the specified new_categories.
 
@@ -486,7 +530,7 @@ class Categorical(PandasObject):
         ----------
         new_categories : Index-like
            The categories in new order.
-        ordered : boolean, optional
+        ordered : boolean, (default: False)
            Whether or not the categorical is treated as a ordered categorical. If not given,
            do not change the ordered information.
         rename : boolean (default: False)
@@ -520,8 +564,9 @@ class Categorical(PandasObject):
             cat._codes = _get_codes_for_values(values, new_categories)
             cat._categories = new_categories
 
-        if not ordered is None:
-            cat.ordered = ordered
+        if ordered is None:
+            ordered = self.ordered
+        cat.set_ordered(ordered, inplace=True)
 
         if not inplace:
             return cat
@@ -765,6 +810,15 @@ class Categorical(PandasObject):
             state['_categories'] = \
                 self._validate_categories(state.pop('_levels'))
 
+        # 0.16.0 ordered change
+        if '_ordered' not in state:
+
+            # >=15.0 < 0.16.0
+            if 'ordered' in state:
+                state['_ordered'] = state.pop('ordered')
+            else:
+                state['_ordered'] = False
+
         for k, v in compat.iteritems(state):
             setattr(self, k, v)
 
@@ -775,6 +829,18 @@ class Categorical(PandasObject):
     @property
     def nbytes(self):
         return self._codes.nbytes + self._categories.values.nbytes
+
+    def maybe_coerce_as_ordered(self):
+        """
+        if we are not ordered, but try an ordering operation, let it succeed with a warning
+        This may return a new copy of the object
+        """
+        if not self.ordered:
+            warn("Categorical is not ordered\n"
+                 "sort will be in the order of the categories\n"
+                 "you can use .as_ordered() to change the Categorical to an ordered one\n",
+                 OrderingWarning)
+        return self
 
     def searchsorted(self, v, side='left', sorter=None):
         """Find indices where elements should be inserted to maintain order.
@@ -794,6 +860,11 @@ class Categorical(PandasObject):
         sorter : 1-D array_like, optional
             Optional array of integer indices that sort `self` into ascending
             order. They are typically the result of ``np.argsort``.
+
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
 
         Returns
         -------
@@ -826,8 +897,7 @@ class Categorical(PandasObject):
         >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
         array([3, 5])       # eggs after donuts, after switching milk and donuts
         """
-        if not self.ordered:
-            raise ValueError("searchsorted requires an ordered Categorical.")
+        self = self.maybe_coerce_as_ordered()
 
         from pandas.core.series import Series
         values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
@@ -950,12 +1020,17 @@ class Categorical(PandasObject):
 
         Only ordered Categoricals can be argsorted!
 
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
+
         Returns
         -------
         argsorted : numpy array
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+
+        self = self.maybe_coerce_as_ordered()
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
@@ -978,6 +1053,11 @@ class Categorical(PandasObject):
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
 
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
+
         Returns
         -------
         y : Category or None
@@ -986,8 +1066,8 @@ class Categorical(PandasObject):
         --------
         Category.sort
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+
+        self = self.maybe_coerce_as_ordered()
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
@@ -1036,6 +1116,11 @@ class Categorical(PandasObject):
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
+
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
 
         Returns
         -------
@@ -1358,17 +1443,16 @@ class Categorical(PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
-        Raises
-        ------
-        TypeError
+        Warns
+        -----
+        OrderingWarning
             If the `Categorical` is not `ordered`.
 
         Returns
         -------
         min : the minimum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+        self = self.maybe_coerce_as_ordered()
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].min(**kwargs)
@@ -1385,17 +1469,16 @@ class Categorical(PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
-        Raises
-        ------
-        TypeError
+        Warns
+        -----
+        OrderingWarning
             If the `Categorical` is not `ordered`.
 
         Returns
         -------
         max : the maximum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+        self = self.maybe_coerce_as_ordered()
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].max(**kwargs)
@@ -1498,6 +1581,8 @@ class CategoricalAccessor(PandasDelegate):
     >>> s.cat.remove_categories(['d'])
     >>> s.cat.remove_unused_categories()
     >>> s.cat.set_categories(list('abcde'))
+    >>> s.cat.as_ordered()
+    >>> s.cat.as_unordered()
 
     """
 
@@ -1533,7 +1618,9 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                                        "add_categories",
                                                        "remove_categories",
                                                        "remove_unused_categories",
-                                                       "set_categories"],
+                                                       "set_categories",
+                                                       "as_ordered",
+                                                       "as_unordered"],
                                             typ='method')
 
 ##### utility routines #####
