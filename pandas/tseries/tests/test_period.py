@@ -432,7 +432,9 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(w_date.month, 1)
         assert_equal(w_date.week, 1)
         assert_equal((w_date - 1).week, 52)
-
+        assert_equal(w_date.days_in_month, 31)
+        assert_equal(Period(freq='WK', year=2012, month=2, day=1).days_in_month, 29)
+        
     def test_properties_daily(self):
         # Test properties on Periods with daily frequency.
         b_date = Period(freq='B', year=2007, month=1, day=1)
@@ -443,6 +445,8 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(b_date.day, 1)
         assert_equal(b_date.weekday, 0)
         assert_equal(b_date.dayofyear, 1)
+        assert_equal(b_date.days_in_month, 31)
+        assert_equal(Period(freq='B', year=2012, month=2, day=1).days_in_month, 29)
         #
         d_date = Period(freq='D', year=2007, month=1, day=1)
         #
@@ -452,6 +456,9 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(d_date.day, 1)
         assert_equal(d_date.weekday, 0)
         assert_equal(d_date.dayofyear, 1)
+        assert_equal(d_date.days_in_month, 31)
+        assert_equal(Period(freq='D', year=2012, month=2,
+                            day=1).days_in_month, 29)
 
     def test_properties_hourly(self):
         # Test properties on Periods with hourly frequency.
@@ -464,6 +471,9 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(h_date.weekday, 0)
         assert_equal(h_date.dayofyear, 1)
         assert_equal(h_date.hour, 0)
+        assert_equal(h_date.days_in_month, 31)
+        assert_equal(Period(freq='H', year=2012, month=2, day=1,
+                            hour=0).days_in_month, 29)
         #
 
     def test_properties_minutely(self):
@@ -478,6 +488,9 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(t_date.dayofyear, 1)
         assert_equal(t_date.hour, 0)
         assert_equal(t_date.minute, 0)
+        assert_equal(t_date.days_in_month, 31)
+        assert_equal(Period(freq='D', year=2012, month=2, day=1, hour=0,
+                            minute=0).days_in_month, 29)
 
     def test_properties_secondly(self):
         # Test properties on Periods with secondly frequency.
@@ -493,13 +506,16 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(s_date.hour, 0)
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)
+        assert_equal(s_date.days_in_month, 31)
+        assert_equal(Period(freq='Min', year=2012, month=2, day=1, hour=0,
+                            minute=0, second=0).days_in_month, 29)
 
     def test_properties_nat(self):
         p_nat = Period('NaT', freq='M')
         t_nat = pd.Timestamp('NaT')
         # confirm Period('NaT') work identical with Timestamp('NaT')
         for f in ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'week', 'dayofyear', 'quarter']:
+                  'week', 'dayofyear', 'quarter', 'days_in_month']:
             self.assertTrue(np.isnan(getattr(p_nat, f)))
             self.assertTrue(np.isnan(getattr(t_nat, f)))
 
@@ -1544,7 +1560,7 @@ class TestPeriodIndex(tm.TestCase):
 
         df = df.set_index(idx1)
         self.assertTrue(df.index.equals(idx1))
-        df = df.reindex(idx2)
+        df = df.set_index(idx2)
         self.assertTrue(df.index.equals(idx2))
 
     def test_nested_dict_frame_constructor(self):
@@ -2327,7 +2343,7 @@ class TestPeriodIndex(tm.TestCase):
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute',
                   'second', 'weekofyear', 'week', 'dayofweek',
-                  'weekday', 'dayofyear', 'quarter', 'qyear']
+                  'weekday', 'dayofyear', 'quarter', 'qyear', 'days_in_month']
 
         periods = list(periodindex)
 

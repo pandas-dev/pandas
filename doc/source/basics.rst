@@ -11,6 +11,7 @@
    from pandas.compat import lrange
    options.display.max_rows=15
 
+
 ==============================
  Essential Basic Functionality
 ==============================
@@ -793,6 +794,7 @@ This is equivalent to the following
    result
    result.loc[:,:,'ItemA']
 
+
 .. _basics.reindexing:
 
 
@@ -948,15 +950,9 @@ chosen from the following table:
 
     pad / ffill, Fill values forward
     bfill / backfill, Fill values backward
+    nearest, Fill from the nearest index value
 
-Other fill methods could be added, of course, but these are the two most
-commonly used for time series data. In a way they only make sense for time
-series or otherwise ordered data, but you may have an application on non-time
-series data where this sort of "interpolation" logic is the correct thing to
-do. More sophisticated interpolation of missing values would be an obvious
-extension.
-
-We illustrate these fill methods on a simple TimeSeries:
+We illustrate these fill methods on a simple Series:
 
 .. ipython:: python
 
@@ -969,18 +965,22 @@ We illustrate these fill methods on a simple TimeSeries:
    ts2.reindex(ts.index)
    ts2.reindex(ts.index, method='ffill')
    ts2.reindex(ts.index, method='bfill')
+   ts2.reindex(ts.index, method='nearest')
 
-Note these methods require that the indexes are **order increasing**.
+These methods require that the indexes are **ordered** increasing or
+decreasing.
 
-Note the same result could have been achieved using :ref:`fillna
-<missing_data.fillna>`:
+Note that the same result could have been achieved using
+:ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
+:ref:`interpolate <missing_data.interpolation>`:
 
 .. ipython:: python
 
    ts2.reindex(ts.index).fillna(method='ffill')
 
-Note that ``reindex`` will raise a ValueError if the index is not
-monotonic. ``fillna`` will not make any checks on the order of the index.
+``reindex`` will raise a ValueError if the index is not monotonic increasing or
+descreasing. ``fillna`` and ``interpolate`` will not make any checks on the
+order of the index.
 
 .. _basics.drop:
 

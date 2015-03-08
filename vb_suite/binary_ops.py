@@ -73,6 +73,51 @@ frame_mult_no_ne = \
               start_date=datetime(2013, 2, 26))
 
 #----------------------------------------------------------------------
+# division
+
+setup = common_setup + """
+df  = DataFrame(np.random.randn(1000, 1000))
+"""
+frame_float_div_by_zero = \
+    Benchmark("df / 0", setup, name='frame_float_div_by_zero')
+
+setup = common_setup + """
+df  = DataFrame(np.random.randn(1000, 1000))
+"""
+frame_float_floor_by_zero = \
+    Benchmark("df // 0", setup, name='frame_float_floor_by_zero')
+
+setup = common_setup + """
+df  = DataFrame(np.random.random_integers((1000, 1000)))
+"""
+frame_int_div_by_zero = \
+    Benchmark("df / 0", setup, name='frame_int_div_by_zero')
+
+setup = common_setup + """
+df  = DataFrame(np.random.randn(1000, 1000))
+df2 = DataFrame(np.random.randn(1000, 1000))
+"""
+frame_float_div = \
+    Benchmark("df // df2", setup, name='frame_float_div')
+
+#----------------------------------------------------------------------
+# modulo
+
+setup = common_setup + """
+df  = DataFrame(np.random.randn(1000, 1000))
+df2 = DataFrame(np.random.randn(1000, 1000))
+"""
+frame_float_mod = \
+    Benchmark("df / df2", setup, name='frame_float_mod')
+
+setup = common_setup + """
+df  = DataFrame(np.random.random_integers((1000, 1000)))
+df2 = DataFrame(np.random.random_integers((1000, 1000)))
+"""
+frame_int_mod = \
+    Benchmark("df / df2", setup, name='frame_int_mod')
+
+#----------------------------------------------------------------------
 # multi and
 
 setup = common_setup + """

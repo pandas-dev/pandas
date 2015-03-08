@@ -29,7 +29,7 @@ users upgrade to this version.
   - Split out string methods documentation into :ref:`Working with Text Data <text>`
 
 - Check the :ref:`API Changes <whatsnew_0150.api>` and :ref:`deprecations <whatsnew_0150.deprecations>` before updating
-  
+
 - :ref:`Other Enhancements <whatsnew_0150.enhancements>`
 
 - :ref:`Performance Improvements <whatsnew_0150.performance>`
@@ -111,16 +111,25 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
    ``Timedelta`` scalars (and ``TimedeltaIndex``) component fields are *not the same* as the component fields on a ``datetime.timedelta`` object. For example, ``.seconds`` on a ``datetime.timedelta`` object returns the total number of seconds combined between ``hours``, ``minutes`` and ``seconds``. In contrast, the pandas ``Timedelta`` breaks out hours, minutes, microseconds and nanoseconds separately.
 
-   .. ipython:: python
+   .. code-block:: python
 
       # Timedelta accessor
-      tds = Timedelta('31 days 5 min 3 sec')
-      tds.minutes
-      tds.seconds
+      In [9]: tds = Timedelta('31 days 5 min 3 sec')
+
+      In [10]: tds.minutes
+      Out[10]: 5L
+
+      In [11]: tds.seconds
+      Out[11]: 3L
 
       # datetime.timedelta accessor
       # this is 5 minutes * 60 + 3 seconds
-      tds.to_pytimedelta().seconds
+      In [12]: tds.to_pytimedelta().seconds
+      Out[12]: 303
+
+   **Note**: this is no longer true starting from v0.16.0, where full
+   compatibility with ``datetime.timedelta`` is introduced. See the
+   :ref:`0.16.0 whatsnew entry <whatsnew_0160.api_breaking.timedelta>`
 
 .. warning::
 
@@ -149,8 +158,7 @@ Access fields for a ``Timedelta``
 .. ipython:: python
 
    td = Timedelta('1 hour 3m 15.5us')
-   td.hours
-   td.minutes
+   td.seconds
    td.microseconds
    td.nanoseconds
 
@@ -403,7 +411,7 @@ Rolling/Expanding Moments improvements
 
     rolling_window(s, window=3, win_type='triang', center=True)
 
-- Removed ``center`` argument from all :func:`expanding_ <expanding_apply>` functions (see :ref:`list <api.functions_expanding>`), 
+- Removed ``center`` argument from all :func:`expanding_ <expanding_apply>` functions (see :ref:`list <api.functions_expanding>`),
   as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
 
 - Added optional ``ddof`` argument to :func:`expanding_cov` and :func:`rolling_cov`.
@@ -574,20 +582,20 @@ for more details):
   .. code-block:: python
 
     In [2]: pd.Categorical.from_codes([0,1,0,2,1], categories=['a', 'b', 'c'])
-    Out[2]: 
+    Out[2]:
     [a, b, a, c, b]
     Categories (3, object): [a, b, c]
 
 API changes related to the introduction of the ``Timedelta`` scalar (see
 :ref:`above <whatsnew_0150.timedeltaindex>` for more details):
-  
+
 - Prior to 0.15.0 :func:`to_timedelta` would return a ``Series`` for list-like/Series input,
   and a ``np.timedelta64`` for scalar input. It will now return a ``TimedeltaIndex`` for
   list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
 
 For API changes related to the rolling and expanding functions, see detailed overview :ref:`above <whatsnew_0150.roll>`.
 
-Other notable API changes:  
+Other notable API changes:
 
 - Consistency when indexing with ``.loc`` and a list-like indexer when no values are found.
 
@@ -872,7 +880,7 @@ Enhancements in the importing/exporting of Stata files:
   objects and columns containing missing values have ``object`` data type. (:issue:`8045`)
 
 Enhancements in the plotting functions:
-  
+
 - Added ``layout`` keyword to ``DataFrame.plot``. You can pass a tuple of ``(rows, columns)``, one of which can be ``-1`` to automatically infer (:issue:`6667`, :issue:`8071`).
 - Allow to pass multiple axes to ``DataFrame.plot``, ``hist`` and ``boxplot`` (:issue:`5353`, :issue:`6970`, :issue:`7069`)
 - Added support for ``c``, ``colormap`` and ``colorbar`` arguments for ``DataFrame.plot`` with ``kind='scatter'`` (:issue:`7780`)

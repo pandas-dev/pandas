@@ -17,6 +17,7 @@ cnp.import_array()
 cnp.import_ufunc()
 
 cdef int64_t iNaT = util.get_nat()
+_SIZE_HINT_LIMIT = (1 << 20) + 7
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
@@ -1073,7 +1074,7 @@ def duplicated_int64(ndarray[int64_t, ndim=1] values, int take_last):
         kh_int64_t * table = kh_init_int64()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
-    kh_resize_int64(table, min(1 << 20, n))
+    kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
 
     if take_last:
         for i from n > i >=0:
@@ -1086,3 +1087,33 @@ def duplicated_int64(ndarray[int64_t, ndim=1] values, int take_last):
 
     kh_destroy_int64(table)
     return out
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def unique_label_indices(ndarray[int64_t, ndim=1] labels):
+    """
+    indices of the first occurrences of the unique labels
+    *excluding* -1. equivelent to:
+        np.unique(labels, return_index=True)[1]
+    """
+    cdef:
+        int ret = 0
+        Py_ssize_t i, n = len(labels)
+        kh_int64_t * table = kh_init_int64()
+        Int64Vector idx = Int64Vector()
+        ndarray[int64_t, ndim=1] arr
+
+    kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
+
+    for i in range(n):
+        kh_put_int64(table, labels[i], &ret)
+        if ret != 0:
+            idx.append(i)
+
+    kh_destroy_int64(table)
+
+    arr = idx.to_array()
+    arr = arr[labels[arr].argsort()]
+
+    return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr

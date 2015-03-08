@@ -449,116 +449,126 @@ Datetimelike Properties
 
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
-Due to implementation details the methods show up here as methods of the
-``DatetimeProperties/PeriodProperties/TimedeltaProperties`` classes. These can be accessed like ``Series.dt.<property>``.
-
-.. currentmodule:: pandas.tseries.common
+These can be accessed like ``Series.dt.<property>``.
 
 **Datetime Properties**
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
 
-   DatetimeProperties.date
-   DatetimeProperties.time
-   DatetimeProperties.year
-   DatetimeProperties.month
-   DatetimeProperties.day
-   DatetimeProperties.hour
-   DatetimeProperties.minute
-   DatetimeProperties.second
-   DatetimeProperties.microsecond
-   DatetimeProperties.nanosecond
-   DatetimeProperties.second
-   DatetimeProperties.weekofyear
-   DatetimeProperties.dayofweek
-   DatetimeProperties.weekday
-   DatetimeProperties.dayofyear
-   DatetimeProperties.quarter
-   DatetimeProperties.is_month_start
-   DatetimeProperties.is_month_end
-   DatetimeProperties.is_quarter_start
-   DatetimeProperties.is_quarter_end
-   DatetimeProperties.is_year_start
-   DatetimeProperties.is_year_end
+   Series.dt.date
+   Series.dt.time
+   Series.dt.year
+   Series.dt.month
+   Series.dt.day
+   Series.dt.hour
+   Series.dt.minute
+   Series.dt.second
+   Series.dt.microsecond
+   Series.dt.nanosecond
+   Series.dt.second
+   Series.dt.weekofyear
+   Series.dt.dayofweek
+   Series.dt.weekday
+   Series.dt.dayofyear
+   Series.dt.quarter
+   Series.dt.is_month_start
+   Series.dt.is_month_end
+   Series.dt.is_quarter_start
+   Series.dt.is_quarter_end
+   Series.dt.is_year_start
+   Series.dt.is_year_end
 
 **Datetime Methods**
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_method.rst
 
-   DatetimeProperties.to_period
-   DatetimeProperties.to_pydatetime
-   DatetimeProperties.tz_localize
-   DatetimeProperties.tz_convert
+   Series.dt.to_period
+   Series.dt.to_pydatetime
+   Series.dt.tz_localize
+   Series.dt.tz_convert
 
 **Timedelta Properties**
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
 
-   TimedeltaProperties.days
-   TimedeltaProperties.hours
-   TimedeltaProperties.minutes
-   TimedeltaProperties.seconds
-   TimedeltaProperties.milliseconds
-   TimedeltaProperties.microseconds
-   TimedeltaProperties.nanoseconds
-   TimedeltaProperties.components
+   Series.dt.days
+   Series.dt.seconds
+   Series.dt.microseconds
+   Series.dt.nanoseconds
+   Series.dt.components
 
 **Timedelta Methods**
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_method.rst
 
-   TimedeltaProperties.to_pytimedelta
+   Series.dt.to_pytimedelta
 
 String handling
 ~~~~~~~~~~~~~~~
 ``Series.str`` can be used to access the values of the series as
-strings and apply several methods to it. Due to implementation
-details the methods show up here as methods of the
-``StringMethods`` class. These can be acccessed like ``Series.str.<function/property>``.
+strings and apply several methods to it. These can be acccessed like
+``Series.str.<function/property>``.
 
 .. currentmodule:: pandas.core.strings
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_method.rst
 
-   StringMethods.cat
-   StringMethods.center
-   StringMethods.contains
-   StringMethods.count
-   StringMethods.decode
-   StringMethods.encode
-   StringMethods.endswith
-   StringMethods.extract
-   StringMethods.findall
-   StringMethods.get
-   StringMethods.join
-   StringMethods.len
-   StringMethods.lower
-   StringMethods.lstrip
-   StringMethods.match
-   StringMethods.pad
-   StringMethods.repeat
-   StringMethods.replace
-   StringMethods.rstrip
-   StringMethods.slice
-   StringMethods.slice_replace
-   StringMethods.split
-   StringMethods.startswith
-   StringMethods.strip
-   StringMethods.title
-   StringMethods.upper
-   StringMethods.get_dummies
+   Series.str.cat
+   Series.str.center
+   Series.str.contains
+   Series.str.count
+   Series.str.decode
+   Series.str.encode
+   Series.str.endswith
+   Series.str.extract
+   Series.str.find
+   Series.str.findall
+   Series.str.get
+   Series.str.join
+   Series.str.len
+   Series.str.ljust
+   Series.str.lower
+   Series.str.lstrip
+   Series.str.match
+   Series.str.pad
+   Series.str.repeat
+   Series.str.replace
+   Series.str.rfind
+   Series.str.rjust
+   Series.str.rstrip
+   Series.str.slice
+   Series.str.slice_replace
+   Series.str.split
+   Series.str.startswith
+   Series.str.strip
+   Series.str.title
+   Series.str.upper
+   Series.str.zfill
+   Series.str.isalnum
+   Series.str.isalpha
+   Series.str.isdigit
+   Series.str.isspace
+   Series.str.islower
+   Series.str.isupper
+   Series.str.istitle
+   Series.str.isnumeric
+   Series.str.isdecimal
+   Series.str.get_dummies
 
 .. _api.categorical:
 
 Categorical
 ~~~~~~~~~~~
-
-.. currentmodule:: pandas.core.categorical
 
 If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
@@ -598,7 +608,6 @@ the Categorical back to a numpy array, so levels and order information is not pr
 
 Plotting
 ~~~~~~~~
-.. currentmodule:: pandas
 
 .. autosummary::
    :toctree: generated/
@@ -624,6 +633,14 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+
+Sparse methods
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseSeries.to_coo
+   SparseSeries.from_coo
 
 .. _api.dataframe:
 
@@ -1358,10 +1375,7 @@ Components
    :toctree: generated/
 
    TimedeltaIndex.days
-   TimedeltaIndex.hours
-   TimedeltaIndex.minutes
    TimedeltaIndex.seconds
-   TimedeltaIndex.milliseconds
    TimedeltaIndex.microseconds
    TimedeltaIndex.nanoseconds
    TimedeltaIndex.components

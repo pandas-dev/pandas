@@ -12,8 +12,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
 from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
                                 isnull)
-from pandas.core.groupby import (get_group_index, _compress_group_index,
-                                 decons_group_index)
+from pandas.core.groupby import get_group_index, _compress_group_index
+
 import pandas.core.common as com
 import pandas.algos as algos
 
@@ -103,10 +103,6 @@ class _Unstacker(object):
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
-
-        # group_index = get_group_index(to_sort, sizes)
-        # comp_index, obs_ids = _compress_group_index(group_index)
-
         ngroups = len(obs_ids)
 
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
@@ -202,10 +198,7 @@ class _Unstacker(object):
                 return self.removed_level
 
             lev = self.removed_level
-            vals = np.insert(lev.astype('object'), 0,
-                             _get_na_value(lev.dtype.type))
-
-            return lev._shallow_copy(vals)
+            return lev.insert(0, _get_na_value(lev.dtype.type))
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -232,20 +225,19 @@ class _Unstacker(object):
         # construct the new index
         if len(self.new_index_levels) == 1:
             lev, lab = self.new_index_levels[0], result_labels[0]
-            if not (lab == -1).any():
-                return lev.take(lab)
-
-            vals = np.insert(lev.astype('object'), len(lev),
-                             _get_na_value(lev.dtype.type)).take(lab)
-
-            return lev._shallow_copy(vals)
+            if (lab == -1).any():
+                lev = lev.insert(len(lev), _get_na_value(lev.dtype.type))
+            return lev.take(lab)
 
         return MultiIndex(levels=self.new_index_levels,
                           labels=result_labels,
                           names=self.new_index_names,
                           verify_integrity=False)
 
+
 def _unstack_multiple(data, clocs):
+    from pandas.core.groupby import decons_obs_group_ids
+
     if len(clocs) == 0:
         return data
 
@@ -265,10 +257,11 @@ def _unstack_multiple(data, clocs):
     rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
-    group_index = get_group_index(clabels, shape)
+    group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-    recons_labels = decons_group_index(obs_ids, shape)
+    recons_labels = decons_obs_group_ids(comp_ids,
+                       obs_ids, shape, clabels, xnull=False)
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
@@ -443,9 +436,9 @@ def _unstack_frame(obj, level):
 
 
 def get_compressed_ids(labels, sizes):
-    from pandas.core.groupby import get_flat_ids
+    from pandas.core.groupby import get_group_index
 
-    ids = get_flat_ids(labels, sizes, True)
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return _compress_group_index(ids, sort=True)
 
 
@@ -930,46 +923,12 @@ def wide_to_long(df, stubnames, i, j):
     if i not in id_vars:
         id_vars += [i]
 
-    stub = stubnames.pop(0)
-    newdf = melt_stub(df, stub, id_vars, j)
+    newdf = melt_stub(df, stubnames[0], id_vars, j)
 
-    for stub in stubnames:
+    for stub in stubnames[1:]:
         new = melt_stub(df, stub, id_vars, j)
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
-
-
-def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """
-    Compute DataFrame with specified columns converted to dummy variables (0 /
-    1). Result columns will be prefixed with the column name, then the level
-    name, e.g. 'A_foo' for column A and level foo
-
-    Parameters
-    ----------
-    data : DataFrame
-    cat_variables : list-like
-        Must be column names in the DataFrame
-    prefix_sep : string, default '_'
-        String to use to separate column name from dummy level
-
-    Returns
-    -------
-    dummies : DataFrame
-    """
-    import warnings
-
-    warnings.warn("'convert_dummies' is deprecated and will be removed "
-                  "in a future release. Use 'get_dummies' instead.",
-                  FutureWarning)
-
-    result = data.drop(cat_variables, axis=1)
-    for variable in cat_variables:
-        dummies = _get_dummies_1d(data[variable], prefix=variable,
-                                  prefix_sep=prefix_sep)
-        result = result.join(dummies)
-    return result
-
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None):

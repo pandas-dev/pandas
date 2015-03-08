@@ -908,7 +908,7 @@ class SQLTable(PandasObject):
 
         col_type = self._get_notnull_col_dtype(col)
 
-        from sqlalchemy.types import (BigInteger, Float, Text, Boolean,
+        from sqlalchemy.types import (BigInteger, Integer, Float, Text, Boolean,
             DateTime, Date, Time)
 
         if col_type == 'datetime64' or col_type == 'datetime':
@@ -923,10 +923,15 @@ class SQLTable(PandasObject):
                           "database.", UserWarning)
             return BigInteger
         elif col_type == 'floating':
-            return Float
+            if col.dtype == 'float32':
+                return Float(precision=23)
+            else:
+                return Float(precision=53)
         elif col_type == 'integer':
-            # TODO: Refine integer size.
-            return BigInteger
+            if col.dtype == 'int32':
+                return Integer
+            else:
+                return BigInteger
         elif col_type == 'boolean':
             return Boolean
         elif col_type == 'date':
@@ -1187,9 +1192,17 @@ class SQLDatabase(PandasSQL):
     def get_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
         if schema:
-            return self.meta.tables.get('.'.join([schema, table_name]))
+            tbl = self.meta.tables.get('.'.join([schema, table_name]))
         else:
-            return self.meta.tables.get(table_name)
+            tbl = self.meta.tables.get(table_name)
+
+        # Avoid casting double-precision floats into decimals
+        from sqlalchemy import Numeric
+        for column in tbl.columns:
+            if isinstance(column.type, Numeric):
+                column.type.asdecimal = False
+
+        return tbl
 
     def drop_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
@@ -1198,8 +1211,9 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None):
-        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys)
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys,
+                         dtype=dtype)
         return str(table.sql_schema())
 
 
@@ -1213,7 +1227,7 @@ _SQL_TYPES = {
         'sqlite': 'TEXT',
     },
     'floating': {
-        'mysql': 'FLOAT',
+        'mysql': 'DOUBLE',
         'sqlite': 'REAL',
     },
     'integer': {
@@ -1239,18 +1253,58 @@ _SQL_TYPES = {
 }
 
 
+def _get_unicode_name(name):
+    try:
+        uname = name.encode("utf-8", "strict").decode("utf-8")
+    except UnicodeError:
+        raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
+    return uname
+
+def _get_valid_mysql_name(name):
+    # Filter for unquoted identifiers 
+    # See http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
+    uname = _get_unicode_name(name)
+    if not len(uname):
+        raise ValueError("Empty table or column name specified")
+
+    basere = r'[0-9,a-z,A-Z$_]'
+    for c in uname:
+        if not re.match(basere, c):
+            if not (0x80 < ord(c) < 0xFFFF):
+                raise ValueError("Invalid MySQL identifier '%s'" % uname)
+    if not re.match(r'[^0-9]', uname):
+        raise ValueError('MySQL identifier cannot be entirely numeric')
+
+    return '`' + uname + '`'
+
+
+def _get_valid_sqlite_name(name):
+    # See http://stackoverflow.com/questions/6514274/how-do-you-escape-strings-for-sqlite-table-column-names-in-python
+    # Ensure the string can be encoded as UTF-8.
+    # Ensure the string does not include any NUL characters.
+    # Replace all " with "".
+    # Wrap the entire thing in double quotes.
+    
+    uname = _get_unicode_name(name)
+    if not len(uname):
+        raise ValueError("Empty table or column name specified")
+
+    nul_index = uname.find("\x00")
+    if nul_index >= 0:
+        raise ValueError('SQLite identifier cannot contain NULs')
+    return '"' + uname.replace('"', '""') + '"'
+
+
 # SQL enquote and wildcard symbols
-_SQL_SYMB = {
-    'mysql': {
-        'br_l': '`',
-        'br_r': '`',
-        'wld': '%s'
-    },
-    'sqlite': {
-        'br_l': '[',
-        'br_r': ']',
-        'wld': '?'
-    }
+_SQL_WILDCARD = {
+    'mysql': '%s',
+    'sqlite': '?'
+}
+
+# Validate and return escaped identifier
+_SQL_GET_IDENTIFIER = {
+    'mysql': _get_valid_mysql_name,
+    'sqlite': _get_valid_sqlite_name,
 }
 
 
@@ -1276,18 +1330,17 @@ class SQLiteTable(SQLTable):
     def insert_statement(self):
         names = list(map(str, self.frame.columns))
         flv = self.pd_sql.flavor
-        br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
-        br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
-        wld = _SQL_SYMB[flv]['wld']  # wildcard char
+        wld = _SQL_WILDCARD[flv]  # wildcard char
+        escape = _SQL_GET_IDENTIFIER[flv]
 
         if self.index is not None:
             [names.insert(0, idx) for idx in self.index[::-1]]
 
-        bracketed_names = [br_l + column + br_r for column in names]
+        bracketed_names = [escape(column) for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
         insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
-            self.name, col_names, wildcards)
+            escape(self.name), col_names, wildcards)
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -1309,29 +1362,28 @@ class SQLiteTable(SQLTable):
             warnings.warn(_SAFE_NAMES_WARNING)
 
         flv = self.pd_sql.flavor
+        escape = _SQL_GET_IDENTIFIER[flv]
 
-        br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
-        br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
+        create_tbl_stmts = [escape(cname) + ' ' + ctype
+                            for cname, ctype, _ in column_names_and_types]
 
-        create_tbl_stmts = [(br_l + '%s' + br_r + ' %s') % (cname, col_type)
-                            for cname, col_type, _ in column_names_and_types]
         if self.keys is not None and len(self.keys):
-            cnames_br = ",".join([br_l + c + br_r for c in self.keys])
+            cnames_br = ",".join([escape(c) for c in self.keys])
             create_tbl_stmts.append(
                 "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
                 tbl=self.name, cnames_br=cnames_br))
 
-        create_stmts = ["CREATE TABLE " + self.name + " (\n" +
+        create_stmts = ["CREATE TABLE " + escape(self.name) + " (\n" +
                         ',\n  '.join(create_tbl_stmts) + "\n)"]
 
         ix_cols = [cname for cname, _, is_index in column_names_and_types
                    if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
-            cnames_br = ",".join([br_l + c + br_r for c in ix_cols])
+            cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
-                "CREATE INDEX ix_{tbl}_{cnames} ON {tbl} ({cnames_br})".format(
-                tbl=self.name, cnames=cnames, cnames_br=cnames_br))
+                "CREATE INDEX " + escape("ix_"+self.name+"_"+cnames) + 
+                "ON " + escape(self.name) + " (" + cnames_br + ")")
 
         return create_stmts
 
@@ -1505,28 +1557,32 @@ class SQLiteDatabase(PandasSQL):
         table.insert(chunksize)
 
     def has_table(self, name, schema=None):
+        escape = _SQL_GET_IDENTIFIER[self.flavor]
+        esc_name = escape(name)
+        wld = _SQL_WILDCARD[self.flavor]
         flavor_map = {
             'sqlite': ("SELECT name FROM sqlite_master "
-                       "WHERE type='table' AND name='%s';") % name,
-            'mysql': "SHOW TABLES LIKE '%s'" % name}
+                       "WHERE type='table' AND name=%s;") % wld,
+            'mysql': "SHOW TABLES LIKE %s" % wld}
         query = flavor_map.get(self.flavor)
 
-        return len(self.execute(query).fetchall()) > 0
+        return len(self.execute(query, [name,]).fetchall()) > 0
 
     def get_table(self, table_name, schema=None):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        drop_sql = "DROP TABLE %s" % name
+        escape = _SQL_GET_IDENTIFIER[self.flavor]
+        drop_sql = "DROP TABLE %s" % escape(name)
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
         table = SQLiteTable(table_name, self, frame=frame, index=False,
-                            keys=keys)
+                            keys=keys, dtype=dtype)
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
+def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1545,11 +1601,14 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
+    dtype : dict of column name to SQL type, default None
+        Optional specifying the datatype for columns. The SQL type should
+        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
 
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys)
+    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
 
 
 # legacy names, with depreciation warnings and copied docs

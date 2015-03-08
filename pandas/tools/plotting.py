@@ -1126,7 +1126,8 @@ class MPLPlot(object):
 
         elif self.subplots and self.legend:
             for ax in self.axes:
-                ax.legend(loc='best')
+                if ax.get_visible():
+                    ax.legend(loc='best')
 
     def _get_ax_legend(self, ax):
         leg = ax.get_legend()
@@ -1451,7 +1452,10 @@ class ScatterPlot(MPLPlot):
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
-        self._add_legend_handle(scatter, label)
+        if label is not None:
+            self._add_legend_handle(scatter, label)
+        else:
+            self.legend = False
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
         errors_y = self._get_errorbars(label=y, index=0, xerr=False)
@@ -1511,6 +1515,9 @@ class HexBinPlot(MPLPlot):
         if cb:
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
+
+    def _make_legend(self):
+        pass
 
     def _post_plot_logic(self):
         ax = self.axes[0]
@@ -1895,8 +1902,6 @@ class BarPlot(MPLPlot):
                 ax.set_xlim((s_edge, e_edge))
                 ax.set_xticks(self.tick_pos)
                 ax.set_xticklabels(str_index)
-                if not self.log: # GH3254+
-                    ax.axhline(0, color='k', linestyle='--')
                 if name is not None and self.use_index:
                     ax.set_xlabel(name)
             elif self.kind == 'barh':
@@ -1904,7 +1909,6 @@ class BarPlot(MPLPlot):
                 ax.set_ylim((s_edge, e_edge))
                 ax.set_yticks(self.tick_pos)
                 ax.set_yticklabels(str_index)
-                ax.axvline(0, color='k', linestyle='--')
                 if name is not None and self.use_index:
                     ax.set_ylabel(name)
             else:
@@ -2228,6 +2232,9 @@ class BoxPlot(LinePlot):
         else:
             ax.set_yticklabels(labels)
 
+    def _make_legend(self):
+        pass
+
     def _post_plot_logic(self):
         pass
 
@@ -2266,7 +2273,7 @@ def _plot(data, x=None, y=None, subplots=False,
     if kind in _all_kinds:
         klass = _plot_klass[kind]
     else:
-        raise ValueError('Invalid chart type given %s' % kind)
+        raise ValueError("%r is not a valid plot kind" % kind)
 
     from pandas import DataFrame
     if kind in _dataframe_kinds:
@@ -2274,7 +2281,8 @@ def _plot(data, x=None, y=None, subplots=False,
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
-            raise ValueError('Invalid chart type given %s' % kind)
+            raise ValueError("plot kind %r can only be used for data frames"
+                             % kind)
 
     elif kind in _series_kinds:
         if isinstance(data, DataFrame):
@@ -2897,6 +2905,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     fontsize : int or string
     rot : label rotation angle
     grid : Setting this to True will show the grid
+    ax : Matplotlib axis object, default None
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot

@@ -137,7 +137,7 @@ cdef extern from "parser/tokenizer.h":
         int quoting                # style of quoting to write */
 
         # hmm =/
-        int numeric_field
+#        int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -198,7 +198,7 @@ cdef extern from "parser/tokenizer.h":
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error, char tsep)
-    uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
+#    uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
 
     double xstrtod(const char *p, char **q, char decimal, char sci,
                    char tsep, int skip_trailing)
@@ -207,12 +207,12 @@ cdef extern from "parser/tokenizer.h":
     double round_trip(const char *p, char **q, char decimal, char sci,
                    char tsep, int skip_trailing)
 
-    inline int to_complex(char *item, double *p_real,
-                          double *p_imag, char sci, char decimal)
+#    inline int to_complex(char *item, double *p_real,
+#                          double *p_imag, char sci, char decimal)
     inline int to_longlong(char *item, long long *p_value)
-    inline int to_longlong_thousands(char *item, long long *p_value,
-                                     char tsep)
-    inline int to_boolean(char *item, uint8_t *val)
+#    inline int to_longlong_thousands(char *item, long long *p_value,
+#                                     char tsep)
+    int to_boolean(char *item, uint8_t *val)
 
 
 cdef extern from "parser/io.h":
@@ -728,7 +728,7 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if self.has_usecols:
+            if self.has_usecols and self.allow_leading_cols:
                 nuse = len(self.usecols)
                 if nuse == passed_count:
                     self.leading_cols = 0
@@ -1055,7 +1055,8 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_t *na_hashset,
                              object na_flist):
-        cdef kh_str_t *true_set, *false_set
+        cdef kh_str_t *true_set
+        cdef kh_str_t *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
@@ -1443,7 +1444,8 @@ cdef _to_fw_string(parser_t *parser, int col, int line_start,
         int error
         Py_ssize_t i, j
         coliter_t it
-        char *word, *data
+        char *word
+        char *data
         ndarray result
 
     result = np.empty(line_end - line_start, dtype='|S%d' % width)

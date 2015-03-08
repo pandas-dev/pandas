@@ -254,12 +254,58 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
+    def test_dropna(self):
+        # https://github.com/pydata/pandas/issues/9443#issuecomment-73719328
+
+        tm.assert_series_equal(
+            pd.Series([True, True, False]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[True, False]))
+        tm.assert_series_equal(
+            pd.Series([True, True, False]).value_counts(dropna=False),
+            pd.Series([2, 1], index=[True, False]))
+
+        tm.assert_series_equal(
+            pd.Series([True, True, False, None]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[True, False]))
+        tm.assert_series_equal(
+            pd.Series([True, True, False, None]).value_counts(dropna=False),
+            pd.Series([2, 1, 1], index=[True, False, np.nan]))
+
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5.]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[5., 10.3]))
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5.]).value_counts(dropna=False),
+            pd.Series([2, 1], index=[5., 10.3]))
+
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5., None]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[5., 10.3]))
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
+            pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+
 def test_quantile():
     s = Series(np.random.randn(100))
 
     result = algos.quantile(s, [0, .25, .5, .75, 1.])
     expected = algos.quantile(s.values, [0, .25, .5, .75, 1.])
     tm.assert_almost_equal(result, expected)
+
+def test_unique_label_indices():
+    from pandas.hashtable import unique_label_indices
+
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype('i8')
+
+    left = unique_label_indices(a)
+    right = np.unique(a, return_index=True)[1]
+
+    tm.assert_array_equal(left, right)
+
+    a[np.random.choice(len(a), 10)] = -1
+    left= unique_label_indices(a)
+    right = np.unique(a, return_index=True)[1][1:]
+    tm.assert_array_equal(left, right)
 
 if __name__ == '__main__':
     import nose

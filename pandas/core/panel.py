@@ -10,11 +10,11 @@ import sys
 import warnings
 import numpy as np
 from pandas.core.common import (PandasError, _try_sort, _default_index,
-                                _infer_dtype_from_scalar, notnull)
+                                _infer_dtype_from_scalar, notnull, is_list_like)
 from pandas.core.categorical import Categorical
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.core.indexing import _maybe_droplevels, _is_list_like
+from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
@@ -145,7 +145,12 @@ class Panel(NDFrame):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        passed_axes = [kwargs.get(a) for a in self._AXIS_ORDERS]
+        passed_axes = [kwargs.pop(a, None) for a in self._AXIS_ORDERS]
+
+        if kwargs:
+            raise TypeError('_init_data() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         axes = None
         if isinstance(data, BlockManager):
             if any(x is not None for x in passed_axes):
@@ -253,7 +258,7 @@ class Panel(NDFrame):
     def __getitem__(self, key):
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
-        if not (_is_list_like(key) or isinstance(key, slice)):
+        if not (is_list_like(key) or isinstance(key, slice)):
             return super(Panel, self).__getitem__(key)
         return self.ix[key]
 
@@ -262,7 +267,7 @@ class Panel(NDFrame):
         loc = info.get_loc(key)
         if isinstance(loc, (slice, np.ndarray)):
             new_index = info[loc]
-            result_index = _maybe_droplevels(new_index, key)
+            result_index = maybe_droplevels(new_index, key)
             slices = [loc] + [slice(None) for x in range(
                 self._AXIS_LEN - 1)]
             new_values = self.values[slices]
@@ -471,7 +476,11 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis, you gave'
                             ' {0} args, but {1} are required'.format(nargs,
                                                                      nreq))
-        takeable = kwargs.get('takeable')
+        takeable = kwargs.pop('takeable', None)
+
+        if kwargs:
+            raise TypeError('get_value() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         if takeable is True:
             lower = self._iget_item_cache(args[0])
@@ -506,7 +515,11 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis plus the '
                             'value provided, you gave {0} args, but {1} are '
                             'required'.format(nargs, nreq))
-        takeable = kwargs.get('takeable')
+        takeable = kwargs.pop('takeable', None)
+
+        if kwargs:
+            raise TypeError('set_value() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         try:
             if takeable is True:
@@ -607,7 +620,7 @@ class Panel(NDFrame):
         """ don't allow a multi reindex on Panel or above ndim """
         return False
 
-    def dropna(self, axis=0, how='any', inplace=False, **kwargs):
+    def dropna(self, axis=0, how='any', inplace=False):
         """
         Drop 2D from panel, holding passed axis constant
 
@@ -806,7 +819,7 @@ class Panel(NDFrame):
         # xs cannot handle a non-scalar key, so just reindex here
         # if we have a multi-index and a single tuple, then its a reduction (GH 7516)
         if not (isinstance(ax, MultiIndex) and isinstance(key, tuple)):
-            if _is_list_like(key):
+            if is_list_like(key):
                 indexer = {self._get_axis_name(axis): key}
                 return self.reindex(**indexer)
 
@@ -1065,7 +1078,7 @@ class Panel(NDFrame):
 
         return self._construct_return_type(result, axes)
 
-    def _construct_return_type(self, result, axes=None, **kwargs):
+    def _construct_return_type(self, result, axes=None):
         """ return the type for the ndim of the result """
         ndim = getattr(result,'ndim',None)
 

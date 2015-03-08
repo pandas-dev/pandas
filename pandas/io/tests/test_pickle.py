@@ -18,7 +18,20 @@ from pandas.compat import u
 from pandas.util.misc import is_little_endian
 import pandas
 
-class TestPickle(tm.TestCase):
+class TestPickle():
+    """
+    How to add pickle tests:
+
+    1. Install pandas version intended to output the pickle.
+
+    2. Execute "generate_legacy_pkcles.py" to create the pickle.
+    $ python generate_legacy_pickles.py <version> <output_dir>
+
+    3. Move the created pickle to "data/legacy_pickle/<version>" directory.
+
+    NOTE: TestPickle can't be a subclass of tm.Testcase to use test generator.
+    http://stackoverflow.com/questions/6689537/nose-test-generators-inside-class
+    """
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -28,7 +41,7 @@ class TestPickle(tm.TestCase):
 
     def compare_element(self, typ, result, expected):
         if isinstance(expected,Index):
-            self.assertTrue(expected.equals(result))
+            tm.assert_index_equal(expected, result)
             return
 
         if typ.startswith('sp_'):
@@ -65,8 +78,9 @@ class TestPickle(tm.TestCase):
             raise nose.SkipTest("known failure on non-little endian")
 
         pth = tm.get_data_path('legacy_pickle/{0}'.format(str(version)))
+        n = 0
         for f in os.listdir(pth):
-            vf = os.path.join(pth,f)
+            vf = os.path.join(pth, f)
             data = self.compare(vf)
 
             if data is None:
@@ -75,21 +89,19 @@ class TestPickle(tm.TestCase):
             if 'series' in data:
                 if 'ts' in data['series']:
                     self._validate_timeseries(data['series']['ts'], self.data['series']['ts'])
+                    self._validate_frequency(data['series']['ts'])
+            n += 1
+        assert n > 0, 'Pickle files are not tested'
 
-    def test_read_pickles_0_10_1(self):
-        self.read_pickles('0.10.1')
-
-    def test_read_pickles_0_11_0(self):
-        self.read_pickles('0.11.0')
-
-    def test_read_pickles_0_12_0(self):
-        self.read_pickles('0.12.0')
-
-    def test_read_pickles_0_13_0(self):
-        self.read_pickles('0.13.0')
-
-    def test_read_pickles_0_14_0(self):
-        self.read_pickles('0.14.0')
+    def test_pickles(self):
+        pickle_path = tm.get_data_path('legacy_pickle')
+        n = 0
+        for v in os.listdir(pickle_path):
+            pth = os.path.join(pickle_path, v)
+            if os.path.isdir(pth):
+                yield self.read_pickles, v
+            n += 1
+        assert n > 0, 'Pickle files are not tested'
 
     def test_round_trip_current(self):
 
@@ -144,9 +156,24 @@ class TestPickle(tm.TestCase):
     def _validate_timeseries(self, pickled, current):
         # GH 7748
         tm.assert_series_equal(pickled, current)
-        self.assertEqual(pickled.index.freq, current.index.freq)
-        self.assertEqual(pickled.index.freq.normalize, False)
-        self.assert_numpy_array_equal(pickled > 0, current > 0)
+        tm.assert_equal(pickled.index.freq, current.index.freq)
+        tm.assert_equal(pickled.index.freq.normalize, False)
+        tm.assert_numpy_array_equal(pickled > 0, current > 0)
+
+    def _validate_frequency(self, pickled):
+        # GH 9291
+        from pandas.tseries.offsets import Day
+        freq = pickled.index.freq
+        result = freq + Day(1)
+        tm.assert_equal(result, Day(2))
+
+        result = freq + pandas.Timedelta(hours=1)
+        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
+        tm.assert_equal(result, pandas.Timedelta(days=1, hours=1))
+
+        result = freq + pandas.Timedelta(nanoseconds=1)
+        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
+        tm.assert_equal(result, pandas.Timedelta(days=1, nanoseconds=1))
 
 
 if __name__ == '__main__':

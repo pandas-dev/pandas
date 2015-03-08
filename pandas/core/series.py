@@ -13,7 +13,7 @@ from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, _is_bool_indexer,
+from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe, _infer_dtype_from_scalar,
                                 is_list_like, _values_from_object,
@@ -24,10 +24,13 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _maybe_box_datetimelike, ABCDataFrame)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
-from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
+from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.strings import StringMethods
+from pandas.tseries.common import (maybe_to_datetimelike,
+                                   CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
@@ -488,7 +491,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise
         except:
             if isinstance(i, slice):
-                indexer = self.index._convert_slice_indexer(i, typ='iloc')
+                indexer = self.index._convert_slice_indexer(i, kind='iloc')
                 return self._get_values(indexer)
             else:
                 label = self.index[i]
@@ -501,8 +504,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _is_mixed_type(self):
         return False
 
-    def _slice(self, slobj, axis=0, typ=None):
-        slobj = self.index._convert_slice_indexer(slobj, typ=typ or 'getitem')
+    def _slice(self, slobj, axis=0, kind=None):
+        slobj = self.index._convert_slice_indexer(slobj, kind=kind or 'getitem')
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -528,12 +531,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif key is Ellipsis:
                 return self
-            elif _is_bool_indexer(key):
+            elif is_bool_indexer(key):
                 pass
             else:
 
                 # we can try to coerce the indexer (or this will raise)
-                new_key = self.index._convert_scalar_indexer(key)
+                new_key = self.index._convert_scalar_indexer(key,kind='getitem')
                 if type(new_key) != type(key):
                     return self.__getitem__(new_key)
                 raise
@@ -544,15 +547,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if com.is_iterator(key):
             key = list(key)
 
-        if _is_bool_indexer(key):
-            key = _check_bool_indexer(self.index, key)
+        if is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
 
         return self._get_with(key)
 
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, typ='getitem')
+            indexer = self.index._convert_slice_indexer(key, kind='getitem')
             return self._get_values(indexer)
         elif isinstance(key, ABCDataFrame):
             raise TypeError('Indexing a Series with DataFrame is not supported, '\
@@ -637,7 +640,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif key is Ellipsis:
                     self[:] = value
                     return
-                elif _is_bool_indexer(key):
+                elif is_bool_indexer(key):
                     pass
                 elif com.is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
@@ -662,8 +665,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if 'unorderable' in str(e):  # pragma: no cover
                     raise IndexError(key)
 
-            if _is_bool_indexer(key):
-                key = _check_bool_indexer(self.index, key)
+            if is_bool_indexer(key):
+                key = check_bool_indexer(self.index, key)
                 try:
                     self.where(~key, value, inplace=True)
                     return
@@ -690,7 +693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, typ='getitem')
+            indexer = self.index._convert_slice_indexer(key, kind='getitem')
             return self._set_values(indexer, value)
         else:
             if isinstance(key, tuple):
@@ -1333,15 +1336,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = com.diff(_values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
-    def autocorr(self):
+    def autocorr(self, lag=1):
         """
-        Lag-1 autocorrelation
+        Lag-N autocorrelation
+
+        Parameters
+        ----------
+        lag : int, default 1
+            Number of lags to apply before performing autocorrelation.
 
         Returns
         -------
         autocorr : float
         """
-        return self.corr(self.shift(1))
+        return self.corr(self.shift(lag))
 
     def dot(self, other):
         """
@@ -2042,7 +2050,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         y : Series or DataFrame if func returns a Series
         """
         if len(self) == 0:
-            return Series()
+            return self._constructor(dtype=self.dtype,
+                                     index=self.index).__finalize__(self)
 
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
@@ -2174,7 +2183,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # check/convert indicies here
         if convert:
-            indices = _maybe_convert_indices(
+            indices = maybe_convert_indices(
                 indices, len(self._get_axis(axis)))
 
         indices = com._ensure_platform_int(indices)
@@ -2316,7 +2325,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_csv(self, path, index=True, sep=",", na_rep='',
                float_format=None, header=False,
                index_label=None, mode='w', nanRep=None, encoding=None,
-               date_format=None):
+               date_format=None, decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2344,6 +2353,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         date_format: string, default None
             Format string for datetime objects.
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
@@ -2351,7 +2362,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                   float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
-                  encoding=encoding, date_format=date_format)
+                  encoding=encoding, date_format=date_format, decimal=decimal)
         if path is None:
             return result
 
@@ -2365,6 +2376,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace : boolean, default False
             Do operation in place.
         """
+        kwargs.pop('how', None)
+        if kwargs:
+            raise TypeError('dropna() got an unexpected keyword '
+                    'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         axis = self._get_axis_number(axis or 0)
         result = remove_na(self)
         if inplace:
@@ -2452,11 +2468,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_values = com.take_1d(values, locs)
         return self._constructor(new_values, index=where).__finalize__(self)
 
-    @cache_readonly
-    def str(self):
-        from pandas.core.strings import StringMethods
-        return StringMethods(self)
-
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period
@@ -2503,25 +2514,39 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                  index=new_index).__finalize__(self)
 
     #------------------------------------------------------------------------------
+    # string methods
+
+    def _make_str_accessor(self):
+        if not com.is_object_dtype(self.dtype):
+            # this really should exclude all series with any non-string values,
+            # but that isn't practical for performance reasons until we have a
+            # str dtype (GH 9343)
+            raise TypeError("Can only use .str accessor with string values, "
+                            "which use np.object_ dtype in pandas")
+        return StringMethods(self)
+
+    str = base.AccessorProperty(StringMethods, _make_str_accessor)
+
+    #------------------------------------------------------------------------------
     # Datetimelike delegation methods
 
-    @cache_readonly
-    def dt(self):
-        from pandas.tseries.common import maybe_to_datetimelike
+    def _make_dt_accessor(self):
         try:
             return maybe_to_datetimelike(self)
         except (Exception):
             raise TypeError("Can only use .dt accessor with datetimelike values")
 
+    dt = base.AccessorProperty(CombinedDatetimelikeProperties, _make_dt_accessor)
+
     #------------------------------------------------------------------------------
     # Categorical methods
 
-    @cache_readonly
-    def cat(self):
-        from pandas.core.categorical import CategoricalAccessor
+    def _make_cat_accessor(self):
         if not com.is_categorical_dtype(self.dtype):
             raise TypeError("Can only use .cat accessor with a 'category' dtype")
         return CategoricalAccessor(self.values, self.index)
+
+    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})

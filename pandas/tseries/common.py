@@ -3,7 +3,9 @@
 import numpy as np
 from pandas.core.base import PandasDelegate
 from pandas.core import common as com
-from pandas import Series, DatetimeIndex, PeriodIndex, TimedeltaIndex
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas import lib, tslib
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype, is_list_like,
@@ -35,6 +37,7 @@ def maybe_to_datetimelike(data, copy=False):
     DelegatedClass
 
     """
+    from pandas import Series
 
     if not isinstance(data, Series):
         raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
@@ -59,6 +62,8 @@ class Properties(PandasDelegate):
         self.index = index
 
     def _delegate_property_get(self, name):
+        from pandas import Series
+
         result = getattr(self.values,name)
 
         # maybe need to upcast (ints)
@@ -82,6 +87,8 @@ class Properties(PandasDelegate):
                          "supported. Change values on the original.")
 
     def _delegate_method(self, name, *args, **kwargs):
+        from pandas import Series
+
         method = getattr(self.values, name)
         result = method(*args, **kwargs)
 
@@ -139,7 +146,16 @@ class TimedeltaProperties(Properties):
 
     @property
     def components(self):
-        return self.values.components
+        """
+        Return a dataframe of the components (days, hours, minutes,
+        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+
+        Returns
+        -------
+        a DataFrame
+
+        """
+        return self.values.components.set_index(self.index)
 
 TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
                                             accessors=TimedeltaIndex._datetimelike_ops,
@@ -165,6 +181,14 @@ class PeriodProperties(Properties):
 PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
                                          accessors=PeriodIndex._datetimelike_ops,
                                          typ='property')
+
+
+class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+    # This class is never instantiated, and exists solely for the benefit of
+    # the Series.dt class property. For Series objects, .dt will always be one
+    # of the more specific classes above.
+    __doc__ = DatetimeProperties.__doc__
+
 
 def _concat_compat(to_concat, axis=0):
     """

@@ -9,7 +9,7 @@ from pandas.tseries.tools import to_datetime
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
 import pandas.tslib as tslib
-from pandas.tslib import Timestamp, OutOfBoundsDatetime
+from pandas.tslib import Timestamp, OutOfBoundsDatetime, Timedelta
 
 import functools
 
@@ -2010,7 +2010,7 @@ def _tick_comp(op):
 
 
 class Tick(SingleConstructorOffset):
-    _inc = timedelta(microseconds=1000)
+    _inc = Timedelta(microseconds=1000)
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
@@ -2107,36 +2107,37 @@ _delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
 
 class Day(Tick):
-    _inc = timedelta(1)
+    _inc = Timedelta(days=1)
     _prefix = 'D'
 
 
 class Hour(Tick):
-    _inc = timedelta(0, 3600)
+    _inc = Timedelta(hours=1)
     _prefix = 'H'
 
 
 class Minute(Tick):
-    _inc = timedelta(0, 60)
+    _inc = Timedelta(minutes=1)
     _prefix = 'T'
 
 
 class Second(Tick):
-    _inc = timedelta(0, 1)
+    _inc = Timedelta(seconds=1)
     _prefix = 'S'
 
 
 class Milli(Tick):
+    _inc = Timedelta(milliseconds=1)
     _prefix = 'L'
 
 
 class Micro(Tick):
-    _inc = timedelta(microseconds=1)
+    _inc = Timedelta(microseconds=1)
     _prefix = 'U'
 
 
 class Nano(Tick):
-    _inc = np.timedelta64(1, 'ns')
+    _inc = Timedelta(nanoseconds=1)
     _prefix = 'N'
 
 

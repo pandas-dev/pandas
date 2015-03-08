@@ -17,6 +17,7 @@ from pandas.tseries.period import PeriodIndex
 import pandas.compat as compat
 
 import pandas.util.testing as tm
+from pandas import Timedelta
 
 def test_to_offset_multiple():
     freqstr = '2h30min'
@@ -79,6 +80,47 @@ def test_to_offset_leading_zero():
     freqstr = '-00H 03T 14S'
     result = frequencies.to_offset(freqstr)
     assert(result.n == -194)
+
+
+def test_to_offset_pd_timedelta():
+    # Tests for #9064
+    td = Timedelta(days=1, seconds=1)
+    result = frequencies.to_offset(td)
+    expected = offsets.Second(86401)
+    assert(expected==result)
+
+    td = Timedelta(days=-1, seconds=1)
+    result = frequencies.to_offset(td)
+    expected = offsets.Second(-86399)
+    assert(expected==result)
+
+    td = Timedelta(hours=1, minutes=10)
+    result = frequencies.to_offset(td)
+    expected = offsets.Minute(70)
+    assert(expected==result)
+
+    td = Timedelta(hours=1, minutes=-10)
+    result = frequencies.to_offset(td)
+    expected = offsets.Minute(50)
+    assert(expected==result)
+
+    td = Timedelta(weeks=1)
+    result = frequencies.to_offset(td)
+    expected = offsets.Day(7)
+    assert(expected==result)
+
+    td1 = Timedelta(hours=1)
+    result1 = frequencies.to_offset(td1)
+    result2 = frequencies.to_offset('60min')
+    assert(result1 == result2)
+
+    td = Timedelta(microseconds=1)
+    result = frequencies.to_offset(td)
+    expected = offsets.Micro(1)
+    assert(expected == result)
+
+    td = Timedelta(microseconds=0)
+    tm.assertRaises(ValueError, lambda: frequencies.to_offset(td))
 
 
 def test_anchored_shortcuts():

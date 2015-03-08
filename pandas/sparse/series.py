@@ -29,12 +29,14 @@ import pandas._sparse as splib
 
 from pandas.util.decorators import Appender
 
+from pandas.sparse.scipy_sparse import _sparse_series_to_coo, _coo_to_sparse_series
+
 #------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
 
 def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                                 **eval_kwargs):
+                  **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -103,7 +105,7 @@ class SparseSeries(Series):
     """
     _subtyp = 'sparse_series'
 
-    def __init__(self, data, index=None, sparse_index=None, kind='block',
+    def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
 
@@ -115,6 +117,9 @@ class SparseSeries(Series):
             if copy:
                 data = data.copy()
         else:
+
+            if data is None:
+                data = []
 
             is_sparse_array = isinstance(data, SparseArray)
             if fill_value is None:
@@ -653,6 +658,98 @@ class SparseSeries(Series):
 
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
+
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
+        """
+        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
+
+        Use row_levels and column_levels to determine the row and column coordinates respectively.
+        row_levels and column_levels are the names (labels) or numbers of the levels.
+        {row_levels, column_levels} must be a partition of the MultiIndex level names (or numbers).
+
+        Parameters
+        ----------
+        row_levels : tuple/list
+        column_levels : tuple/list
+        sort_labels : bool, default False
+            Sort the row and column labels before forming the sparse matrix.
+
+        Returns
+        -------
+        y : scipy.sparse.coo_matrix
+        rows : list (row labels)
+        columns : list (column labels)
+
+        Examples
+        --------
+        >>> from numpy import nan
+        >>> s = Series([3.0, nan, 1.0, 3.0, nan, nan])
+        >>> s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                              (1, 2, 'a', 1),
+                                              (1, 1, 'b', 0),
+                                              (1, 1, 'b', 1),
+                                              (2, 1, 'b', 0),
+                                              (2, 1, 'b', 1)],
+                                              names=['A', 'B', 'C', 'D'])
+        >>> ss = s.to_sparse()
+        >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
+                                         column_levels=['C', 'D'],
+                                         sort_labels=True)
+        >>> A
+        <3x4 sparse matrix of type '<class 'numpy.float64'>'
+                with 3 stored elements in COOrdinate format>
+        >>> A.todense()
+        matrix([[ 0.,  0.,  1.,  3.],
+        [ 3.,  0.,  0.,  0.],
+        [ 0.,  0.,  0.,  0.]])
+        >>> rows
+        [(1, 1), (1, 2), (2, 1)]
+        >>> columns
+        [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
+        """
+        A, rows, columns = _sparse_series_to_coo(
+            self, row_levels, column_levels, sort_labels=sort_labels)
+        return A, rows, columns
+
+    @classmethod
+    def from_coo(cls, A, dense_index=False):
+        """
+        Create a SparseSeries from a scipy.sparse.coo_matrix.
+
+        Parameters
+        ----------
+        A : scipy.sparse.coo_matrix
+        dense_index : bool, default False
+            If False (default), the SparseSeries index consists of only the coords of the non-null entries of the original coo_matrix.
+            If True, the SparseSeries index consists of the full sorted (row, col) coordinates of the coo_matrix.
+
+        Returns
+        -------
+        s : SparseSeries
+
+        Examples
+        ---------
+        >>> from scipy import sparse
+        >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
+                               shape=(3, 4))
+        >>> A
+        <3x4 sparse matrix of type '<class 'numpy.float64'>'
+                with 3 stored elements in COOrdinate format>
+        >>> A.todense()
+        matrix([[ 0.,  0.,  1.,  2.],
+                [ 3.,  0.,  0.,  0.],
+                [ 0.,  0.,  0.,  0.]])
+        >>> ss = SparseSeries.from_coo(A)
+        >>> ss
+        0  2    1
+           3    2
+        1  0    3
+        dtype: float64
+        BlockIndex
+        Block locations: array([0], dtype=int32)
+        Block lengths: array([3], dtype=int32)
+        """
+        return _coo_to_sparse_series(A, dense_index=dense_index)
 
 # overwrite series methods with unaccelerated versions
 ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,

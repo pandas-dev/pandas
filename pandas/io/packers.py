@@ -61,18 +61,30 @@ from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
 from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer
-import zlib
-
-try:
-    import blosc
-    _BLOSC = True
-except:
-    _BLOSC = False
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
 compressor = None
+_IMPORTS = False
+_BLOSC = False
 
+def _importers():
+    # import things we need
+    # but make this done on a first use basis
+
+    global _IMPORTS
+    if _IMPORTS:
+        return
+
+    _IMPORTS = True
+
+    global  _BLOSC
+    import zlib
+    try:
+        import blosc
+        _BLOSC = True
+    except:
+        pass
 
 def to_msgpack(path_or_buf, *args, **kwargs):
     """
@@ -91,6 +103,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     compress : type of compressor (zlib or blosc), default to None (no
                compression)
     """
+    _importers()
     global compressor
     compressor = kwargs.pop('compress', None)
     append = kwargs.pop('append', None)
@@ -133,6 +146,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
+    _importers()
     path_or_buf, _ = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
@@ -476,7 +490,9 @@ def decode(obj):
         index = obj['index']
         return globals()[obj['klass']](unconvert(obj['data'], dtype,
                                                  obj['compress']),
-                                       index=index, name=obj['name'])
+                                       index=index,
+                                       dtype=dtype,
+                                       name=obj['name'])
     elif typ == 'block_manager':
         axes = obj['axes']
 

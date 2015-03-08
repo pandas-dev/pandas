@@ -35,11 +35,6 @@ import pandas.util.testing as tm
 import pandas as pd
 from numpy.testing import assert_equal
 
-def _skip_if_mpl_not_installed():
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        raise nose.SkipTest("matplotlib not installed")
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -2880,6 +2875,8 @@ class TestGroupBy(tm.TestCase):
         self.assertEqual(len(left), len(right))
 
     def test_int64_overflow(self):
+        from pandas.core.groupby import _int64_overflow_possible
+
         B = np.concatenate((np.arange(1000), np.arange(1000),
                             np.arange(500)))
         A = np.arange(2500)
@@ -2910,6 +2907,45 @@ class TestGroupBy(tm.TestCase):
             self.assertEqual(left[k], right[k[::-1]])
             self.assertEqual(left[k], v)
         self.assertEqual(len(left), len(right))
+
+        # GH9096
+        values = range(55109)
+        data = pd.DataFrame.from_dict({'a': values, 'b': values,
+                                       'c': values, 'd': values})
+        grouped = data.groupby(['a', 'b', 'c', 'd'])
+        self.assertEqual(len(grouped), len(values))
+
+        arr = np.random.randint(- 1 << 12, 1 << 12, (1 << 15, 5))
+        i = np.random.choice(len(arr), len(arr) * 4)
+        arr = np.vstack((arr, arr[i]))  # add sume duplicate rows
+
+        i = np.random.permutation(len(arr))
+        arr = arr[i]  # shuffle rows
+
+        df = DataFrame(arr, columns=list('abcde'))
+        df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
+        gr = df.groupby(list('abcde'))
+
+        # verify this is testing what it is supposed to test!
+        self.assertTrue(_int64_overflow_possible(gr.grouper.shape))
+
+        # mannually compute groupings
+        jim, joe = defaultdict(list), defaultdict(list)
+        for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
+            jim[key].append(a)
+            joe[key].append(b)
+
+        self.assertEqual(len(gr), len(jim))
+        mi = MultiIndex.from_tuples(jim.keys(), names=list('abcde'))
+
+        def aggr(func):
+            f = lambda a: np.fromiter(map(func, a), dtype='f8')
+            arr = np.vstack((f(jim.values()), f(joe.values()))).T
+            res = DataFrame(arr, columns=['jim', 'joe'], index=mi)
+            return res.sort_index()
+
+        assert_frame_equal(gr.mean(), aggr(np.mean))
+        assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_groupby_sort_multi(self):
         df = DataFrame({'a': ['foo', 'bar', 'baz'],
@@ -3229,8 +3265,77 @@ class TestGroupBy(tm.TestCase):
                                   self.df['B'].values]).sum()
         self.assertEqual(result.index.names, (None, None))
 
+    def test_groupby_sort_categorical(self):
+        # dataframe groupby sort was being ignored # GH 8868
+        df = DataFrame([['(7.5, 10]', 10, 10],
+                        ['(7.5, 10]', 8, 20],
+                        ['(2.5, 5]', 5, 30],
+                        ['(5, 7.5]', 6, 40],
+                        ['(2.5, 5]', 4, 50],
+                        ['(0, 2.5]', 1, 60],
+                        ['(5, 7.5]', 7, 70]], columns=['range', 'foo', 'bar'])
+        df['range'] = Categorical(df['range'])
+        index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
+        index.name = 'range'
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = index
+        index = Index(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'], dtype='object')
+        index.name = 'range'
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=['foo', 'bar'])
+        result_nosort.index = index
+
+        col = 'range'
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+
+
+    def test_groupby_sort_multiindex_series(self):
+        # series multiindex groupby sort argument was not being passed through _compress_group_index
+        # GH 9444
+        index = MultiIndex(levels=[[1, 2], [1, 2]],
+                           labels=[[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]],
+                           names=['a', 'b'])
+        mseries = Series([0, 1, 2, 3, 4, 5], index=index)
+        index = MultiIndex(levels=[[1, 2], [1, 2]],
+                           labels=[[0, 0, 1], [1, 0, 0]],
+                           names=['a', 'b'])
+        mseries_result = Series([0, 2, 4], index=index)
+
+        result = mseries.groupby(level=['a', 'b'], sort=False).first()
+        assert_series_equal(result, mseries_result)
+        result = mseries.groupby(level=['a', 'b'], sort=True).first()
+        assert_series_equal(result, mseries_result.sort_index())
+
     def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']
+        codes = np.random.randint(0, 4, size=100)
+
+        cats = Categorical.from_codes(codes, levels, name='myfactor')
+
+        data = DataFrame(np.random.randn(100, 4))
+
+        result = data.groupby(cats).mean()
+
+        expected = data.groupby(np.asarray(cats)).mean()
+        expected = expected.reindex(levels)
+        expected.index.name = 'myfactor'
+
+        assert_frame_equal(result, expected)
+        self.assertEqual(result.index.name, cats.name)
+
+        grouped = data.groupby(cats)
+        desc_result = grouped.describe()
+
+        idx = cats.codes.argsort()
+        ord_labels = np.asarray(cats).take(idx)
+        ord_data = data.take(idx)
+        expected = ord_data.groupby(ord_labels, sort=False).describe()
+        expected.index.names = ['myfactor', None]
+        assert_frame_equal(desc_result, expected)
+
+    def test_groupby_datetime_categorical(self):
+        # GH9049: ensure backward compatibility
+        levels = pd.date_range('2014-01-01', periods=4)
         codes = np.random.randint(0, 4, size=100)
 
         cats = Categorical.from_codes(codes, levels, name='myfactor')
@@ -3402,6 +3507,77 @@ class TestGroupBy(tm.TestCase):
         exp = np.array([1,2,4,np.nan])
         self.assert_numpy_array_equivalent(result, exp)
 
+    def test_groupby_non_arithmetic_agg_types(self):
+        # GH9311, GH6620
+        df = pd.DataFrame([{'a': 1, 'b': 1},
+                           {'a': 1, 'b': 2},
+                           {'a': 2, 'b': 3},
+                           {'a': 2, 'b': 4}])
+
+        dtypes = ['int8', 'int16', 'int32', 'int64',
+                  'float32', 'float64']
+
+        grp_exp = {'first': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
+                   'last': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
+                   'min': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
+                   'max': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
+                   'nth': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
+                           'args': [1]},
+                   'count': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
+                             'out_type': 'int64'}}
+
+        for dtype in dtypes:
+            df_in = df.copy()
+            df_in['b'] = df_in.b.astype(dtype)
+
+            for method, data in compat.iteritems(grp_exp):
+                if 'args' not in data:
+                    data['args'] = []
+
+                if 'out_type' in data:
+                    out_type = data['out_type']
+                else:
+                    out_type = dtype
+
+                exp = data['df']
+                df_out = pd.DataFrame(exp)
+
+                df_out['b'] = df_out.b.astype(out_type)
+                df_out.set_index('a', inplace=True)
+
+                grpd = df_in.groupby('a')
+                t = getattr(grpd, method)(*data['args'])
+                assert_frame_equal(t, df_out)
+
+    def test_groupby_non_arithmetic_agg_intlike_precision(self):
+        # GH9311, GH6620
+        c = 24650000000000000
+
+        inputs = ((Timestamp('2011-01-15 12:50:28.502376'),
+                   Timestamp('2011-01-20 12:50:28.593448')),
+                  (1 + c, 2 + c))
+
+        for i in inputs:
+            df = pd.DataFrame([{'a': 1,
+                                'b': i[0]},
+                               {'a': 1,
+                                'b': i[1]}])
+
+            grp_exp = {'first': {'expected': i[0]},
+                       'last': {'expected': i[1]},
+                       'min': {'expected': i[0]},
+                       'max': {'expected': i[1]},
+                       'nth': {'expected': i[1], 'args': [1]},
+                       'count': {'expected': 2}}
+
+            for method, data in compat.iteritems(grp_exp):
+                if 'args' not in data:
+                    data['args'] = []
+
+                grpd = df.groupby('a')
+                res = getattr(grpd, method)(*data['args'])
+                self.assertEqual(res.iloc[0].b, data['expected'])
+
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
@@ -3442,6 +3618,31 @@ class TestGroupBy(tm.TestCase):
 
         # len(bins) != len(series) here
         self.assertRaises(ValueError,lambda : series.groupby(bins).mean())
+
+    def test_groupby_multiindex_missing_pair(self):
+        # GH9049
+        df = DataFrame({'group1': ['a','a','a','b'],
+                        'group2': ['c','c','d','c'],
+                        'value': [1,1,1,5]})
+        df = df.set_index(['group1', 'group2'])
+        df_grouped = df.groupby(level=['group1','group2'], sort=True)
+
+        res = df_grouped.agg('sum')
+        idx = MultiIndex.from_tuples([('a','c'), ('a','d'), ('b','c')], names=['group1', 'group2'])
+        exp = DataFrame([[2], [1], [5]], index=idx, columns=['value'])
+
+        tm.assert_frame_equal(res, exp)
+
+    def test_groupby_levels_and_columns(self):
+        # GH9344, GH9049
+        idx_names = ['x', 'y']
+        idx = pd.MultiIndex.from_tuples([(1, 1), (1, 2), (3, 4), (5, 6)], names=idx_names)
+        df = pd.DataFrame(np.arange(12).reshape(-1, 3), index=idx)
+
+        by_levels = df.groupby(level=idx_names).mean()
+        by_columns = df.reset_index().groupby(idx_names).mean()
+
+        tm.assert_frame_equal(by_levels, by_columns)
 
     def test_gb_apply_list_of_unequal_len_arrays(self):
 
@@ -4322,6 +4523,21 @@ class TestGroupBy(tm.TestCase):
         with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
             df.groupby('a').filter(lambda g: g.c.mean())
 
+    def test_fill_constistency(self):
+
+        # GH9221
+        # pass thru keyword arguments to the generated wrapper
+        # are set if the passed kw is None (only)
+        df = DataFrame(index=pd.MultiIndex.from_product([['value1','value2'],
+                                                         date_range('2014-01-01','2014-01-06')]),
+                       columns=Index(['1','2'], name='id'))
+        df['1'] = [np.nan, 1, np.nan, np.nan, 11, np.nan, np.nan, 2, np.nan, np.nan, 22, np.nan]
+        df['2'] = [np.nan, 3, np.nan, np.nan, 33, np.nan, np.nan, 4, np.nan, np.nan, 44, np.nan]
+
+        expected = df.groupby(level=0, axis=0).fillna(method='ffill')
+        result = df.T.groupby(level=0, axis=1).fillna(method='ffill').T
+        assert_frame_equal(result, expected)
+
     def test_index_label_overlaps_location(self):
         # checking we don't have any label/location confusion in the
         # the wake of GH5375
@@ -4492,26 +4708,6 @@ class TestGroupBy(tm.TestCase):
                 expected = getattr(frame,op)(level=level,axis=axis)
                 assert_frame_equal(result, expected)
 
-    def test_regression_kwargs_whitelist_methods(self):
-        # GH8733
-
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['first', 'second'])
-        raw_frame = DataFrame(np.random.randn(10, 3), index=index,
-                               columns=Index(['A', 'B', 'C'], name='exp'))
-
-        grouped = raw_frame.groupby(level=0, axis=1)
-        grouped.all(test_kwargs='Test kwargs')
-        grouped.any(test_kwargs='Test kwargs')
-        grouped.cumcount(test_kwargs='Test kwargs')
-        grouped.mad(test_kwargs='Test kwargs')
-        grouped.cummin(test_kwargs='Test kwargs')
-        grouped.skew(test_kwargs='Test kwargs')
-        grouped.cumprod(test_kwargs='Test kwargs')
-
     def test_groupby_blacklist(self):
         from string import ascii_lowercase
         letters = np.array(list(ascii_lowercase))
@@ -4543,88 +4739,6 @@ class TestGroupBy(tm.TestCase):
                 msg = fmt.format(bl, type(gb).__name__)
                 with tm.assertRaisesRegexp(AttributeError, msg):
                     getattr(gb, bl)
-
-    def test_series_groupby_plotting_nominally_works(self):
-        _skip_if_mpl_not_installed()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
-
-        weight.groupby(gender).plot()
-        tm.close()
-        height.groupby(gender).hist()
-        tm.close()
-        #Regression test for GH8733
-        height.groupby(gender).plot(alpha=0.5)
-        tm.close()
-
-    def test_plotting_with_float_index_works(self):
-        _skip_if_mpl_not_installed()
-
-        # GH 7025
-        df = DataFrame({'def': [1,1,1,2,2,2,3,3,3],
-                        'val': np.random.randn(9)},
-                       index=[1.0,2.0,3.0,1.0,2.0,3.0,1.0,2.0,3.0])
-
-        df.groupby('def')['val'].plot()
-        tm.close()
-        df.groupby('def')['val'].apply(lambda x: x.plot())
-        tm.close()
-
-    @slow
-    def test_frame_groupby_plot_boxplot(self):
-        _skip_if_mpl_not_installed()
-
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        mpl.use('Agg')
-        tm.close()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
-        df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
-        gb = df.groupby('gender')
-
-        res = gb.plot()
-        self.assertEqual(len(plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
-        tm.close()
-
-        res = gb.boxplot()
-        self.assertEqual(len(plt.get_fignums()), 1)
-        self.assertEqual(len(res), 2)
-        tm.close()
-
-        # now works with GH 5610 as gender is excluded
-        res = df.groupby('gender').hist()
-        tm.close()
-
-    @slow
-    def test_frame_groupby_hist(self):
-        _skip_if_mpl_not_installed()
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        mpl.use('Agg')
-        tm.close()
-
-        n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender_int = tm.choice([0, 1], size=n)
-        df_int = DataFrame({'height': height, 'weight': weight,
-                            'gender': gender_int})
-        gb = df_int.groupby('gender')
-        axes = gb.hist()
-        self.assertEqual(len(axes), 2)
-        self.assertEqual(len(plt.get_fignums()), 2)
-        tm.close()
 
     def test_tab_completion(self):
         grp = self.mframe.groupby(level='second')
@@ -4927,7 +5041,7 @@ def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
 
     def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape)
+        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
         label_list2 = decons_group_index(group_index, shape)
 
         for a, b in zip(label_list, label_list2):

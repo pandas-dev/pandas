@@ -2,6 +2,7 @@
 
 import operator
 from datetime import datetime
+import functools
 
 import nose
 
@@ -11,10 +12,10 @@ import pandas as pd
 dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal, assertRaisesRegexp)
+                                 assert_frame_equal, assert_panel_equal, assertRaisesRegexp, assert_array_equal)
 from numpy.testing import assert_equal
 
-from pandas import Series, DataFrame, bdate_range, Panel
+from pandas import Series, DataFrame, bdate_range, Panel, MultiIndex
 from pandas.core.datetools import BDay
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
@@ -23,6 +24,7 @@ from pandas.core.common import isnull
 import pandas.util.testing as tm
 from pandas.compat import range, lrange, StringIO, lrange
 from pandas import compat
+from pandas.tools.util import cartesian_product
 
 import pandas.sparse.frame as spf
 
@@ -30,7 +32,6 @@ from pandas._sparse import BlockIndex, IntIndex
 from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
                                SparseDataFrame, SparsePanel,
                                SparseArray)
-
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
@@ -168,7 +169,7 @@ class TestSparseSeries(tm.TestCase,
 
         assert_sp_series_equal(df['col'], self.bseries)
 
-        result = df.iloc[:,0]
+        result = df.iloc[:, 0]
         assert_sp_series_equal(result, self.bseries)
 
         # blocking
@@ -280,6 +281,11 @@ class TestSparseSeries(tm.TestCase,
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
         assert_equal(sp_series.values.values, arr)
+        
+    # GH 9272
+    def test_constructor_empty(self):
+        sp = SparseSeries()
+        self.assertEqual(len(sp.index), 0)
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
@@ -743,6 +749,135 @@ class TestSparseSeries(tm.TestCase,
         assert_sp_series_equal(result, expected)
 
 
+class TestSparseSeriesScipyInteraction(tm.TestCase):
+    # Issue 8048: add SparseSeries coo methods
+
+    def setUp(self):
+        tm._skip_if_no_scipy()
+        import scipy.sparse
+        # SparseSeries inputs used in tests, the tests rely on the order
+        self.sparse_series = []
+        s = pd.Series([3.0, nan, 1.0, 2.0, nan, nan])
+        s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                             (1, 2, 'a', 1),
+                                             (1, 1, 'b', 0),
+                                             (1, 1, 'b', 1),
+                                             (2, 1, 'b', 0),
+                                             (2, 1, 'b', 1)],
+                                            names=['A', 'B', 'C', 'D'])
+        self.sparse_series.append(s.to_sparse())
+
+        ss = self.sparse_series[0].copy()
+        ss.index.names = [3, 0, 1, 2]
+        self.sparse_series.append(ss)
+
+        ss = pd.Series(
+            [nan] * 12, index=cartesian_product((range(3), range(4)))).to_sparse()
+        for k, v in zip([(0, 0), (1, 2), (1, 3)], [3.0, 1.0, 2.0]):
+            ss[k] = v
+        self.sparse_series.append(ss)
+
+        # results used in tests
+        self.coo_matrices = []
+        self.coo_matrices.append(scipy.sparse.coo_matrix(
+            ([3.0, 1.0, 2.0], ([0, 1, 1], [0, 2, 3])), shape=(3, 4)))
+        self.coo_matrices.append(scipy.sparse.coo_matrix(
+            ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)))
+        self.coo_matrices.append(scipy.sparse.coo_matrix(
+            ([3.0, 1.0, 2.0], ([0, 1, 1], [0, 0, 1])), shape=(3, 2)))
+        self.ils = [[(1, 2), (1, 1), (2, 1)], [(1, 1), (1, 2), (2, 1)], [(1, 2, 'a'), (1, 1, 'b'), (2, 1, 'b')]]
+        self.jls = [[('a', 0), ('a', 1), ('b', 0), ('b', 1)], [0, 1]]
+
+    def test_to_coo_text_names_integer_row_levels_nosort(self):
+        ss = self.sparse_series[0]
+        kwargs = {'row_levels': [0, 1], 'column_levels': [2, 3]}
+        result = (self.coo_matrices[0], self.ils[0], self.jls[0])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_text_names_integer_row_levels_sort(self):
+        ss = self.sparse_series[0]
+        kwargs = {'row_levels': [0, 1],
+                  'column_levels': [2, 3], 'sort_labels': True}
+        result = (self.coo_matrices[1], self.ils[1], self.jls[0])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_text_names_text_row_levels_nosort_col_level_single(self):
+        ss = self.sparse_series[0]
+        kwargs = {'row_levels': ['A', 'B', 'C'],
+                  'column_levels': ['D'], 'sort_labels': False}
+        result = (self.coo_matrices[2], self.ils[2], self.jls[1])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_integer_names_integer_row_levels_nosort(self):
+        ss = self.sparse_series[1]
+        kwargs = {'row_levels': [3, 0], 'column_levels': [1, 2]}
+        result = (self.coo_matrices[0], self.ils[0], self.jls[0])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_text_names_text_row_levels_nosort(self):
+        ss = self.sparse_series[0]
+        kwargs = {'row_levels': ['A', 'B'], 'column_levels': ['C', 'D']}
+        result = (self.coo_matrices[0], self.ils[0], self.jls[0])
+        self._run_test(ss, kwargs, result)
+
+    def test_to_coo_bad_partition_nonnull_intersection(self):
+        ss = self.sparse_series[0]
+        self.assertRaises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
+
+    def test_to_coo_bad_partition_small_union(self):
+        ss = self.sparse_series[0]
+        self.assertRaises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
+
+    def test_to_coo_nlevels_less_than_two(self):
+        ss = self.sparse_series[0]
+        ss.index = np.arange(len(ss.index))
+        self.assertRaises(ValueError, ss.to_coo)
+
+    def test_to_coo_bad_ilevel(self):
+        ss = self.sparse_series[0]
+        self.assertRaises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
+
+    def test_to_coo_duplicate_index_entries(self):
+        ss = pd.concat(
+            [self.sparse_series[0], self.sparse_series[0]]).to_sparse()
+        self.assertRaises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
+
+    def test_from_coo_dense_index(self):
+        ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=True)
+        check = self.sparse_series[2]
+        assert_sp_series_equal(ss, check)
+
+    def test_from_coo_nodense_index(self):
+        ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=False)
+        check = self.sparse_series[2]
+        check = check.dropna().to_sparse()
+        assert_sp_series_equal(ss, check)
+
+    def _run_test(self, ss, kwargs, check):
+        results = ss.to_coo(**kwargs)
+        self._check_results_to_coo(results, check)
+        # for every test, also test symmetry property (transpose), switch
+        # row_levels and column_levels
+        d = kwargs.copy()
+        d['row_levels'] = kwargs['column_levels']
+        d['column_levels'] = kwargs['row_levels']
+        results = ss.to_coo(**d)
+        results = (results[0].T, results[2], results[1])
+        self._check_results_to_coo(results, check)
+
+    @staticmethod
+    def _check_results_to_coo(results, check):
+        (A, il, jl) = results
+        (A_result, il_result, jl_result) = check
+        # convert to dense and compare
+        assert_array_equal(A.todense(), A_result.todense())
+        # or compare directly as difference of sparse
+        # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
+        # 2.6
+        assert_equal(il, il_result)
+        assert_equal(jl, jl_result)
+
+
 class TestSparseTimeSeries(tm.TestCase):
     pass
 
@@ -862,6 +997,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
             ValueError, "^Column length", SparseDataFrame, self.frame.values,
             columns=self.frame.columns[:-1])
 
+    # GH 9272 
     def test_constructor_empty(self):
         sp = SparseDataFrame()
         self.assertEqual(len(sp.index), 0)
@@ -882,9 +1018,9 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         # GH 2873
         x = Series(np.random.randn(10000), name='a')
         x = x.to_sparse(fill_value=0)
-        tm.assert_isinstance(x,SparseSeries)
+        tm.assert_isinstance(x, SparseSeries)
         df = SparseDataFrame(x)
-        tm.assert_isinstance(df,SparseDataFrame)
+        tm.assert_isinstance(df, SparseDataFrame)
 
         x = Series(np.random.randn(10000), name='a')
         y = Series(np.random.randn(10000), name='b')
@@ -1084,7 +1220,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         data = {'A': [0, 1]}
         iframe = SparseDataFrame(data, default_kind='integer')
         self.assertEqual(type(iframe['A'].sp_index),
-                          type(iframe.icol(0).sp_index))
+                         type(iframe.icol(0).sp_index))
 
     def test_set_value(self):
 
@@ -1605,6 +1741,13 @@ class TestSparsePanel(tm.TestCase,
         with tm.assertRaisesRegexp(TypeError,
                                    "input must be a dict, a 'list' was passed"):
             SparsePanel(['a', 'b', 'c'])
+        
+    # GH 9272    
+    def test_constructor_empty(self):
+        sp = SparsePanel()
+        self.assertEqual(len(sp.items), 0)
+        self.assertEqual(len(sp.major_axis), 0)
+        self.assertEqual(len(sp.minor_axis), 0)
 
     def test_from_dict(self):
         fd = SparsePanel.from_dict(self.data_dict)

@@ -390,6 +390,18 @@ df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
 
 groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)
 
+
+#----------------------------------------------------------------------
+# multi-indexed group sum #9049
+
+setup = common_setup + """
+N = 50
+df = DataFrame({'A': range(N) * 2, 'B': range(N*2), 'C': 1}).set_index(["A", "B"])
+"""
+
+groupby_sum_multiindex = Benchmark("df.groupby(level=[0, 1]).sum()", setup)
+
+
 #----------------------------------------------------------------------
 # Transform testing
 
@@ -485,6 +497,41 @@ df = DataFrame(np.random.randint(1, n / 100, (n, 3)),
 groupby_agg_builtins1 = Benchmark("df.groupby('jim').agg([sum, min, max])", setup)
 groupby_agg_builtins2 = Benchmark("df.groupby(['jim', 'joe']).agg([sum, min, max])", setup)
 
+
+setup = common_setup + '''
+arr = np.random.randint(- 1 << 12, 1 << 12, (1 << 17, 5))
+i = np.random.choice(len(arr), len(arr) * 5)
+arr = np.vstack((arr, arr[i]))  # add sume duplicate rows
+
+i = np.random.permutation(len(arr))
+arr = arr[i]  # shuffle rows
+
+df = DataFrame(arr, columns=list('abcde'))
+df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
+'''
+
+groupby_int64_overflow = Benchmark("df.groupby(list('abcde')).max()", setup,
+                                   name='groupby_int64_overflow')
+
+
+setup = common_setup + '''
+from itertools import product
+from string import ascii_letters, digits
+
+n = 5 * 7 * 11 * (1 << 9)
+alpha = list(map(''.join, product(ascii_letters + digits, repeat=4)))
+f = lambda k: np.repeat(np.random.choice(alpha, n // k), k)
+
+df = DataFrame({'a': f(11), 'b': f(7), 'c': f(5), 'd': f(1)})
+df['joe'] = (np.random.randn(len(df)) * 10).round(3)
+
+i = np.random.permutation(len(df))
+df = df.iloc[i].reset_index(drop=True).copy()
+'''
+
+groupby_multi_index = Benchmark("df.groupby(list('abcd')).max()", setup,
+                                name='groupby_multi_index')
+
 #----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 
@@ -559,3 +606,6 @@ for ngroups in ngroups_list:
     for func_name in no_arg_func_list:
         bmark = make_large_ngroups_bmark(ngroups, func_name)
         inject_bmark_into_globals(bmark)
+
+# avoid bmark to be collected as Benchmark object
+del bmark

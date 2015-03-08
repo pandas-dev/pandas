@@ -71,8 +71,7 @@ Object selection has had a number of user-requested additions in order to
 support more explicit location based indexing. pandas now supports three types
 of multi-axis indexing.
 
-- ``.loc`` is strictly label based, will raise ``KeyError`` when the items are
-  not found, allowed inputs are:
+- ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
 
   - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a
     *label* of the index. This use is **not** an integer position along the
@@ -86,7 +85,7 @@ of multi-axis indexing.
 
 - ``.iloc`` is primarily integer position based (from ``0`` to
   ``length-1`` of the axis), but may also be used with a boolean
-  array.  ``.iloc`` will raise ``IndexError`` if a requested 
+  array.  ``.iloc`` will raise ``IndexError`` if a requested
   indexer is out-of-bounds, except *slice* indexers which allow
   out-of-bounds indexing.  (this conforms with python/numpy *slice*
   semantics).  Allowed inputs are:
@@ -292,6 +291,27 @@ Selection By Label
    Whether a copy or a reference is returned for a setting operation, may depend on the context.
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
+
+.. warning::
+
+   ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
+   using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
+
+  .. ipython:: python
+
+     dfl = DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=date_range('20130101',periods=5))
+     dfl
+
+  .. code-block:: python
+
+     In [4]: dfl.loc[2:3]
+     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+
+  String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
+
+  .. ipython:: python
+
+     dfl.loc['20130102':'20130104']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 **at least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
@@ -1487,5 +1507,3 @@ This will **not** work at all, and so should be avoided
    The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
    assignment. There may be false positives; situations where a chained assignment is inadvertantly
    reported.
-
-

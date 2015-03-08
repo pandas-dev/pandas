@@ -10,7 +10,6 @@ from pandas.compat import u
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
 from pandas.core.index import Index, _ensure_index
-from pandas.core.indexing import _is_null_slice
 from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
 from pandas.util.decorators import cache_readonly
@@ -18,7 +17,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, is_sequence,
+                                is_list_like, is_sequence, is_null_slice,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, _values_from_object, take_1d)
 from pandas.util.terminal import get_terminal_size
@@ -78,11 +77,7 @@ def _cat_compare_op(op):
 
     return f
 
-def _is_categorical(array):
-    """ return if we are a categorical possibility """
-    return isinstance(array, Categorical) or isinstance(array.dtype, CategoricalDtype)
-
-def _maybe_to_categorical(array):
+def maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
     if isinstance(array, ABCSeries):
         return array.values
@@ -829,7 +824,7 @@ class Categorical(PandasObject):
         array([3, 4])	    # eggs before milk
         >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ])
         >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
-        array([3, 5])       # eggs after donuts, after switching milk and donuts 
+        array([3, 5])       # eggs after donuts, after switching milk and donuts
         """
         if not self.ordered:
             raise ValueError("searchsorted requires an ordered Categorical.")
@@ -881,6 +876,54 @@ class Categorical(PandasObject):
         """
         return ~self.isnull()
 
+    def dropna(self):
+        """
+        Return the Categorical without null values.
+
+        Both missing values (-1 in .codes) and NA as a category are detected.
+        NA is removed from the categories if present.
+
+        Returns
+        -------
+        valid : Categorical
+        """
+        result = self[self.notnull()]
+        if isnull(result.categories).any():
+            result = result.remove_categories([np.nan])
+        return result
+
+    def value_counts(self, dropna=True):
+        """
+        Returns a Series containing counts of each category.
+
+        Every category will have an entry, even those with a count of 0.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaN, even if NaN is a category.
+
+        Returns
+        -------
+        counts : Series
+        """
+        import pandas.hashtable as htable
+        from pandas.core.series import Series
+
+        cat = self.dropna() if dropna else self
+        keys, counts = htable.value_count_int64(com._ensure_int64(cat._codes))
+        result = Series(counts, index=keys)
+
+        ix = np.arange(len(cat.categories), dtype='int64')
+        if not dropna and -1 in keys:
+            ix = np.append(ix, -1)
+        result = result.reindex(ix, fill_value=0)
+        result.index = (np.append(cat.categories, np.nan)
+            if not dropna and -1 in keys
+            else cat.categories)
+
+        return result
+
     def get_values(self):
         """ Return the values.
 
@@ -918,7 +961,7 @@ class Categorical(PandasObject):
             result = result[::-1]
         return result
 
-    def order(self, inplace=False, ascending=True, na_position='last', **kwargs):
+    def order(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Category by category value returning a new Categorical by default.
 
         Only ordered Categoricals can be sorted!
@@ -977,7 +1020,7 @@ class Categorical(PandasObject):
                                name=self.name, fastpath=True)
 
 
-    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
+    def sort(self, inplace=True, ascending=True, na_position='last'):
         """ Sorts the Category inplace by category value.
 
         Only ordered Categoricals can be sorted!
@@ -1002,7 +1045,8 @@ class Categorical(PandasObject):
         --------
         Category.order
         """
-        return self.order(inplace=inplace, ascending=ascending, **kwargs)
+        return self.order(inplace=inplace, ascending=ascending,
+                na_position=na_position)
 
     def ravel(self, order='C'):
         """ Return a flattened (numpy) array.
@@ -1038,7 +1082,7 @@ class Categorical(PandasObject):
         """
         return np.asarray(self)
 
-    def fillna(self, fill_value=None, method=None, limit=None, **kwargs):
+    def fillna(self, fill_value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
         Parameters
@@ -1120,7 +1164,7 @@ class Categorical(PandasObject):
         # only allow 1 dimensional slicing, but can
         # in a 2-d case be passd (slice(None),....)
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not _is_null_slice(slicer[0]):
+            if not is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
 
@@ -1229,7 +1273,6 @@ class Categorical(PandasObject):
             else:
                 return self.categories[i]
         else:
-            key = self._maybe_coerce_indexer(key)
             return Categorical(values=self._codes[key], categories=self.categories,
                                ordered=self.ordered, fastpath=True)
 
@@ -1253,6 +1296,7 @@ class Categorical(PandasObject):
 
         rvalue = value if is_list_like(value) else [value]
         to_add = Index(rvalue).difference(self.categories)
+
         # no assignments of values not in categories, but it's always ok to set something to np.nan
         if len(to_add) and not isnull(to_add).all():
             raise ValueError("cannot setitem on a Categorical with a new category,"
@@ -1267,7 +1311,7 @@ class Categorical(PandasObject):
             # only allow 1 dimensional slicing, but can
             # in a 2-d case be passd (slice(None),....)
             if len(key) == 2:
-                if not _is_null_slice(key[0]):
+                if not is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim categorical")
                 key = key[1]
             elif len(key) == 1:
@@ -1297,7 +1341,6 @@ class Categorical(PandasObject):
             nan_pos = np.where(isnull(self.categories))[0]
             lindexer[lindexer == -1] = nan_pos
 
-        key = self._maybe_coerce_indexer(key)
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
@@ -1386,17 +1429,16 @@ class Categorical(PandasObject):
         """
         Return the unique values.
 
-        Unused categories are NOT returned.
+        Unused categories are NOT returned. Unique values are returned in order
+        of appearance.
 
         Returns
         -------
         unique values : array
         """
-        unique_codes = np.unique(self.codes)
-        # for compatibility with normal unique, which has nan last
-        if unique_codes[0] == -1:
-            unique_codes[0:-1] = unique_codes[1:]
-            unique_codes[-1] = -1
+        from pandas.core.nanops import unique1d
+        # unlike np.unique, unique1d does not sort
+        unique_codes = unique1d(self.codes)
         return take_1d(self.categories.values, unique_codes)
 
     def equals(self, other):
@@ -1427,34 +1469,12 @@ class Categorical(PandasObject):
         description: `DataFrame`
             A dataframe with frequency and counts by category.
         """
-        # Hack?
-        from pandas.core.frame import DataFrame
-        counts = DataFrame({
-            'codes' : self._codes,
-            'values' : self._codes }
-                           ).groupby('codes').count()
-
+        counts = self.value_counts(dropna=False)
         freqs = counts / float(counts.sum())
 
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
         result.columns = ['counts','freqs']
-
-        # fill in the real categories
-        check = result.index == -1
-        if check.any():
-            # Sort -1 (=NaN) to the last position
-            index = np.arange(0, len(self.categories)+1, dtype='int64')
-            index[-1] = -1
-            result = result.reindex(index)
-            # build new index
-            categories = np.arange(0,len(self.categories)+1 ,dtype=object)
-            categories[:-1] = self.categories
-            categories[-1] = np.nan
-            result.index = categories.take(_ensure_platform_int(result.index))
-        else:
-            result.index = self.categories.take(_ensure_platform_int(result.index))
-            result = result.reindex(self.categories)
         result.index.name = 'categories'
 
         return result

@@ -9,7 +9,6 @@ import pandas.compat as compat
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import get_group_index
 from pandas.core.series import Series
 from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
@@ -525,27 +524,39 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _get_multiindex_indexer(join_keys, index, sort=False):
-    shape = []
-    labels = []
-    for level, key in zip(index.levels, join_keys):
-        llab, rlab, count = _factorize_keys(level, key, sort=False)
-        labels.append(rlab)
-        shape.append(count)
+def _get_multiindex_indexer(join_keys, index, sort):
+    from functools import partial
 
-    left_group_key = get_group_index(labels, shape)
-    right_group_key = get_group_index(index.labels, shape)
+    # bind `sort` argument
+    fkeys = partial(_factorize_keys, sort=sort)
 
-    left_group_key, right_group_key, max_groups = \
-        _factorize_keys(left_group_key, right_group_key,
-                        sort=False)
+    # left & right join labels and num. of levels at each location
+    rlab, llab, shape = map(list, zip( * map(fkeys, index.levels, join_keys)))
+    if sort:
+        rlab = list(map(np.take, rlab, index.labels))
+    else:
+        i8copy = lambda a: a.astype('i8', subok=False, copy=True)
+        rlab = list(map(i8copy, index.labels))
 
-    left_indexer, right_indexer = \
-        algos.left_outer_join(com._ensure_int64(left_group_key),
-                              com._ensure_int64(right_group_key),
-                              max_groups, sort=False)
+    # fix right labels if there were any nulls
+    for i in range(len(join_keys)):
+        mask = index.labels[i] == -1
+        if mask.any():
+            # check if there already was any nulls at this location
+            # if there was, it is factorized to `shape[i] - 1`
+            a = join_keys[i][llab[i] == shape[i] - 1]
+            if a.size == 0 or not a[0] != a[0]:
+                shape[i] += 1
 
-    return left_indexer, right_indexer
+            rlab[i][mask] = shape[i] - 1
+
+    # get flat i8 join keys
+    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
+
+    # factorize keys to a dense i8 space
+    lkey, rkey, count = fkeys(lkey, rkey)
+
+    return algos.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
@@ -598,7 +609,7 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com._is_int_or_datetime_dtype(lk) and com._is_int_or_datetime_dtype(rk):
+    if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
         lk = com._ensure_int64(lk)
         rk = com._ensure_int64(rk)

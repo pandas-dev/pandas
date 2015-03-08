@@ -2,16 +2,20 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.common import isnull, _values_from_object
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
 import pandas.compat as compat
+from pandas.util.decorators import Appender
 import re
 import pandas.lib as lib
 import warnings
 import textwrap
 
 
+_shared_docs = dict()
+
+
 def _get_array_list(arr, others):
+    from pandas.core.series import Series
+
     if len(others) and isinstance(_values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
@@ -95,6 +99,8 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
 
 
 def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+    from pandas.core.series import Series
+
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
@@ -120,17 +126,6 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         return result
     else:
         return lib.map_infer(arr, f)
-
-
-def str_title(arr):
-    """
-    Convert strings to titlecased version
-
-    Returns
-    -------
-    titled : array
-    """
-    return _na_map(lambda x: x.title(), arr)
 
 
 def str_count(arr, pat, flags=0):
@@ -195,7 +190,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
         else:
             upper_pat = pat.upper()
             f = lambda x: upper_pat in x
-            return _na_map(f, str_upper(arr), na, dtype=bool)
+            uppered = _na_map(lambda x: x.upper(), arr)
+            return _na_map(f, uppered, na, dtype=bool)
     return _na_map(f, arr, na, dtype=bool)
 
 
@@ -235,28 +231,6 @@ def str_endswith(arr, pat, na=np.nan):
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na, dtype=bool)
-
-
-def str_lower(arr):
-    """
-    Convert strings in array to lowercase
-
-    Returns
-    -------
-    lowercase : array
-    """
-    return _na_map(lambda x: x.lower(), arr)
-
-
-def str_upper(arr):
-    """
-    Convert strings in array to uppercase
-
-    Returns
-    -------
-    uppercase : array
-    """
-    return _na_map(lambda x: x.upper(), arr)
 
 
 def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
@@ -459,6 +433,9 @@ def str_extract(arr, pat, flags=0):
     2    NaN   NaN
 
     """
+    from pandas.core.series import Series
+    from pandas.core.frame import DataFrame
+
     regex = re.compile(pat, flags=flags)
     # just to be safe, check this
     if regex.groups == 0:
@@ -510,6 +487,8 @@ def str_get_dummies(arr, sep='|'):
     See also ``pd.get_dummies``.
 
     """
+    from pandas.core.frame import DataFrame
+
     # TODO remove this hack?
     arr = arr.fillna('')
     try:
@@ -546,17 +525,6 @@ def str_join(arr, sep):
     return _na_map(sep.join, arr)
 
 
-def str_len(arr):
-    """
-    Compute length of each string in array.
-
-    Returns
-    -------
-    lengths : array
-    """
-    return _na_map(len, arr, dtype=int)
-
-
 def str_findall(arr, pat, flags=0):
     """
     Find all occurrences of pattern or regular expression
@@ -576,9 +544,49 @@ def str_findall(arr, pat, flags=0):
     return _na_map(regex.findall, arr)
 
 
-def str_pad(arr, width, side='left'):
+def str_find(arr, sub, start=0, end=None, side='left'):
     """
-    Pad strings with whitespace
+    Return indexes in each strings where the substring is
+    fully contained between [start:end]. Return -1 on failure.
+
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+    side : {'left', 'right'}, default 'left'
+        Specifies a starting side, equivalent to ``find`` or ``rfind``
+
+    Returns
+    -------
+    found : array
+    """
+
+    if not isinstance(sub, compat.string_types):
+        msg = 'expected a string object, not {0}'
+        raise TypeError(msg.format(type(sub).__name__))
+
+    if side == 'left':
+        method = 'find'
+    elif side == 'right':
+        method = 'rfind'
+    else:  # pragma: no cover
+        raise ValueError('Invalid side')
+
+    if end is None:
+        f = lambda x: getattr(x, method)(sub, start)
+    else:
+        f = lambda x: getattr(x, method)(sub, start, end)
+
+    return _na_map(f, arr, dtype=int)
+
+
+def str_pad(arr, width, side='left', fillchar=' '):
+    """
+    Pad strings with an additional character
 
     Parameters
     ----------
@@ -587,38 +595,31 @@ def str_pad(arr, width, side='left'):
         Minimum width of resulting string; additional characters will be filled
         with spaces
     side : {'left', 'right', 'both'}, default 'left'
+    fillchar : str
+        Additional character for filling, default is whitespace
 
     Returns
     -------
     padded : array
     """
+
+    if not isinstance(fillchar, compat.string_types):
+        msg = 'fillchar must be a character, not {0}'
+        raise TypeError(msg.format(type(fillchar).__name__))
+
+    if len(fillchar) != 1:
+        raise TypeError('fillchar must be a character, not str')
+
     if side == 'left':
-        f = lambda x: x.rjust(width)
+        f = lambda x: x.rjust(width, fillchar)
     elif side == 'right':
-        f = lambda x: x.ljust(width)
+        f = lambda x: x.ljust(width, fillchar)
     elif side == 'both':
-        f = lambda x: x.center(width)
+        f = lambda x: x.center(width, fillchar)
     else:  # pragma: no cover
         raise ValueError('Invalid side')
 
     return _na_map(f, arr)
-
-
-def str_center(arr, width):
-    """
-    "Center" strings, filling left and right side with additional whitespace
-
-    Parameters
-    ----------
-    width : int
-        Minimum width of resulting string; additional characters will be filled
-        with spaces
-
-    Returns
-    -------
-    centered : array
-    """
-    return str_pad(arr, width, side='both')
 
 
 def str_split(arr, pat=None, n=None, return_type='series'):
@@ -643,6 +644,9 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     -------
     split : array
     """
+    from pandas.core.series import Series
+    from pandas.core.frame import DataFrame
+
     if return_type not in ('series', 'frame'):
         raise ValueError("return_type must be {'series', 'frame'}")
     if pat is None:
@@ -874,14 +878,16 @@ def str_encode(arr, encoding, errors="strict"):
     return _na_map(f, arr)
 
 
-def _noarg_wrapper(f):
+def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
-        result = f(self.series)
+        result = _na_map(f, self.series, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
-    if f.__doc__:
-        wrapper.__doc__ = f.__doc__
+    if docstring is not None:
+        wrapper.__doc__ = docstring
+    else:
+        raise ValueError('Provide docstring')
 
     return wrapper
 
@@ -949,6 +955,9 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result):
+        from pandas.core.series import Series
+        from pandas.core.frame import DataFrame
+
         if not hasattr(result, 'ndim'):
             return result
         elif result.ndim == 1:
@@ -1003,13 +1012,53 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_pad)
-    def pad(self, width, side='left'):
-        result = str_pad(self.series, width, side=side)
+    def pad(self, width, side='left', fillchar=' '):
+        result = str_pad(self.series, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    @copy(str_center)
-    def center(self, width):
-        result = str_center(self.series, width)
+    _shared_docs['str_pad'] = ("""
+    Filling %s side of strings with an additional character
+
+    Parameters
+    ----------
+    width : int
+        Minimum width of resulting string; additional characters will be filled
+        with ``fillchar``
+    fillchar : str
+        Additional character for filling, default is whitespace
+
+    Returns
+    -------
+    filled : array
+    """)
+
+    @Appender(_shared_docs['str_pad'] % 'left and right')
+    def center(self, width, fillchar=' '):
+        return self.pad(width, side='both', fillchar=fillchar)
+
+    @Appender(_shared_docs['str_pad'] % 'right')
+    def ljust(self, width, fillchar=' '):
+        return self.pad(width, side='right', fillchar=fillchar)
+
+    @Appender(_shared_docs['str_pad'] % 'left')
+    def rjust(self, width, fillchar=' '):
+        return self.pad(width, side='left', fillchar=fillchar)
+
+    def zfill(self, width):
+        """"
+        Filling left side with 0
+
+        Parameters
+        ----------
+        width : int
+            Minimum width of resulting string; additional characters will be filled
+            with 0
+
+        Returns
+        -------
+        filled : array
+        """
+        result = str_pad(self.series, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
     @copy(str_slice)
@@ -1063,7 +1112,96 @@ class StringMethods(object):
     findall = _pat_wrapper(str_findall, flags=True)
     extract = _pat_wrapper(str_extract, flags=True)
 
-    len = _noarg_wrapper(str_len)
-    lower = _noarg_wrapper(str_lower)
-    upper = _noarg_wrapper(str_upper)
-    title = _noarg_wrapper(str_title)
+    _shared_docs['find'] = ("""
+    Return %(side)s indexes in each strings where the substring is
+    fully contained between [start:end]. Return -1 on failure.
+    Equivalent to standard ``str.%(method)s``.
+
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+
+    Returns
+    -------
+    found : array
+
+    See Also
+    --------
+    %(also)s
+    """)
+
+    @Appender(_shared_docs['find'] % dict(side='lowest', method='find',
+              also='rfind : Return highest indexes in each strings'))
+    def find(self, sub, start=0, end=None):
+        result = str_find(self.series, sub, start=start, end=end, side='left')
+        return self._wrap_result(result)
+
+    @Appender(_shared_docs['find'] % dict(side='highest', method='rfind',
+              also='find : Return lowest indexes in each strings'))
+    def rfind(self, sub, start=0, end=None):
+        result = str_find(self.series, sub, start=start, end=end, side='right')
+        return self._wrap_result(result)
+
+    _shared_docs['len'] = ("""
+    Compute length of each string in array.
+
+    Returns
+    -------
+    lengths : array
+    """)
+    len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
+
+    _shared_docs['casemethods'] = ("""
+    Convert strings in array to %s
+
+    Returns
+    -------
+    uppercase : array
+    """)
+    lower = _noarg_wrapper(lambda x: x.lower(),
+                           docstring=_shared_docs['casemethods'] % 'lowercase')
+    upper = _noarg_wrapper(lambda x: x.upper(),
+                           docstring=_shared_docs['casemethods'] % 'uppercase')
+    title = _noarg_wrapper(lambda x: x.title(),
+                           docstring=_shared_docs['casemethods'] % 'titlecase')
+
+    _shared_docs['ismethods'] = ("""
+    Check whether all characters in each string in the array are %(type)s.
+    Equivalent to ``str.%(method)s``.
+
+    Returns
+    -------
+    Series of boolean values
+    """)
+    _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
+    _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
+    _shared_docs['isdigit'] = dict(type='digits', method='isdigit')
+    _shared_docs['isspace'] = dict(type='whitespace', method='isspace')
+    _shared_docs['islower'] = dict(type='lowercase', method='islower')
+    _shared_docs['isupper'] = dict(type='uppercase', method='isupper')
+    _shared_docs['istitle'] = dict(type='titlecase', method='istitle')
+    _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
+    _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
+    isalnum = _noarg_wrapper(lambda x: x.isalnum(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isalnum'])
+    isalpha = _noarg_wrapper(lambda x: x.isalpha(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isalpha'])
+    isdigit = _noarg_wrapper(lambda x: x.isdigit(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isdigit'])
+    isspace = _noarg_wrapper(lambda x: x.isspace(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isspace'])
+    islower = _noarg_wrapper(lambda x: x.islower(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['islower'])
+    isupper = _noarg_wrapper(lambda x: x.isupper(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isupper'])
+    istitle = _noarg_wrapper(lambda x: x.istitle(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['istitle'])
+    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isnumeric'])
+    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+                             docstring=_shared_docs['ismethods'] % _shared_docs['isdecimal'])

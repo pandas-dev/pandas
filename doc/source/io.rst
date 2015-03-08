@@ -82,10 +82,10 @@ They can take a number of arguments:
     (including http, ftp, and S3 locations), or any object with a ``read``
     method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
-    on. `read_csv` is capable of inferring the delimiter automatically in some
-    cases by "sniffing." The separator may be specified as a regular
-    expression; for instance you may use '\|\\s*' to indicate a pipe plus
-    arbitrary whitespace.
+    on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
+    automatically in some cases by "sniffing".
+    The separator may be specified as a regular expression; for instance
+    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace.
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
@@ -563,7 +563,7 @@ writing to a file). For example:
 
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
-Finally, the parser allows you can specify a custom ``date_parser`` function to
+Finally, the parser allows you to specify a custom ``date_parser`` function to
 take full advantage of the flexibility of the date parsing API:
 
 .. ipython:: python
@@ -572,6 +572,31 @@ take full advantage of the flexibility of the date parsing API:
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
                     date_parser=conv.parse_date_time)
    df
+
+Pandas will try to call the ``date_parser`` function in three different ways. If
+an exception is raised, the next one is tried:
+
+1. ``date_parser`` is first called with one or more arrays as arguments,
+   as defined using `parse_dates` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``)
+
+2. If #1 fails, ``date_parser`` is called with all the columns
+   concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``)
+
+3. If #2 fails, ``date_parser`` is called once for every row with one or more
+   string arguments from the columns indicated with `parse_dates`
+   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
+   for the second, etc.)
+
+Note that performance-wise, you should try these methods of parsing dates in order:
+
+1. Try to infer the format using ``infer_datetime_format=True`` (see section below)
+
+2. If you know the format, use ``pd.to_datetime()``:
+   ``date_parser=lambda x: pd.to_datetime(x, format=...)``
+
+3. If you have a really non-standard format, use a custom ``date_parser`` function.
+   For optimal performance, this should be vectorized, i.e., it should accept arrays
+   as arguments.
 
 You can explore the date parsing functionality in ``date_converters.py`` and
 add your own. We would love to turn this module into a community supported set
@@ -1060,8 +1085,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module.
+comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
    :suppress:
@@ -1073,7 +1098,7 @@ class of the csv module.
 .. ipython:: python
 
     print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv')
+    pd.read_csv('tmp2.sv', sep=None)
 
 .. _io.chunking:
 
@@ -1924,55 +1949,106 @@ module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
-Besides ``read_excel`` you can also read Excel files using the ``ExcelFile``
-class. The following two commands are equivalent:
+Reading Excel Files
+~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.16
+
+``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
+
+.. versionadded:: 0.13
+
+Sheets can be specified by sheet index or sheet name, using an integer or string,
+respectively.
+
+.. versionadded:: 0.12
+
+``ExcelFile`` has been moved to the top level namespace.
+
+There are two approaches to reading an excel file.  The ``read_excel`` function
+and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
+with file-specific arguments (ie. identical data formats across sheets).
+``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
+formats across sheets).  Choosing the approach is largely a question of
+code readability and execution speed.
+
+Equivalent class and function approaches to read a single sheet:
 
 .. code-block:: python
 
     # using the ExcelFile class
     xls = pd.ExcelFile('path_to_file.xls')
-    xls.parse('Sheet1', index_col=None, na_values=['NA'])
+    data = xls.parse('Sheet1', index_col=None, na_values=['NA'])
 
     # using the read_excel function
-    read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+    data = read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
-The class based approach can be used to read multiple sheets or to introspect
-the sheet names using the ``sheet_names`` attribute.
-
-.. note::
-
-   The prior method of accessing ``ExcelFile`` has been moved from
-   ``pandas.io.parsers`` to the top level namespace starting from pandas
-   0.12.0.
-
-.. versionadded:: 0.13
-
-There are now two ways to read in sheets from an Excel file. You can provide
-either the index of a sheet or its name to by passing different values for
-``sheet_name``.
-
-- Pass a string to refer to the name of a particular sheet in the workbook.
-- Pass an integer to refer to the index of a sheet. Indices follow Python
-  convention, beginning at 0.
-- The default value is ``sheet_name=0``. This reads the first sheet.
-
-Using the sheet name:
+Equivalent class and function approaches to read multiple sheets:
 
 .. code-block:: python
 
+    data = {}
+    # For when Sheet1's format differs from Sheet2
+    xls = pd.ExcelFile('path_to_file.xls')
+    data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
+    data['Sheet2'] = xls.parse('Sheet2', index_col=1)
+
+    # For when Sheet1's format is identical to Sheet2
+    data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
+
+Specifying Sheets
++++++++++++++++++
+
+.. _io.specifying_sheets:
+
+.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+
+.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+
+- The arguments ``sheetname`` allows specifying the sheet or sheets to read.
+- The default value for ``sheetname`` is 0, indicating to read the first sheet
+- Pass a string to refer to the name of a particular sheet in the workbook.
+- Pass an integer to refer to the index of a sheet. Indices follow Python
+  convention, beginning at 0.
+- Pass a list of either strings or integers, to return a dictionary of specified sheets.
+- Pass a ``None`` to return a dictionary of all available sheets.
+
+.. code-block:: python
+
+   # Returns a DataFrame
    read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 Using the sheet index:
 
 .. code-block:: python
 
+   # Returns a DataFrame
    read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
 
 Using all default values:
 
 .. code-block:: python
 
+   # Returns a DataFrame
    read_excel('path_to_file.xls')
+
+Using None to get all sheets:
+
+.. code-block:: python
+
+   # Returns a dictionary of DataFrames
+   read_excel('path_to_file.xls',sheetname=None)
+
+Using a list to get multiple sheets:
+
+.. code-block:: python
+
+   # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
+   read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+Parsing Specific Columns
+++++++++++++++++++++++++
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
@@ -1992,26 +2068,30 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
-.. note::
+Cell Converters
++++++++++++++++
 
-   It is possible to transform the contents of Excel cells via the `converters`
-   option. For instance, to convert a column to boolean:
+It is possible to transform the contents of Excel cells via the `converters`
+option. For instance, to convert a column to boolean:
 
-   .. code-block:: python
+.. code-block:: python
 
-      read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
 
-   This options handles missing values and treats exceptions in the converters
-   as missing data. Transformations are applied cell by cell rather than to the
-   column as a whole, so the array dtype is not guaranteed. For instance, a
-   column of integers with missing values cannot be transformed to an array
-   with integer dtype, because NaN is strictly a float. You can manually mask
-   missing data to recover integer dtype:
+This options handles missing values and treats exceptions in the converters
+as missing data. Transformations are applied cell by cell rather than to the
+column as a whole, so the array dtype is not guaranteed. For instance, a
+column of integers with missing values cannot be transformed to an array
+with integer dtype, because NaN is strictly a float. You can manually mask
+missing data to recover integer dtype:
 
-   .. code-block:: python
+.. code-block:: python
 
-      cfun = lambda x: int(x) if x else -1
-      read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+   cfun = lambda x: int(x) if x else -1
+   read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+
+Writing Excel Files
+~~~~~~~~~~~~~~~~~~~
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
@@ -3344,6 +3424,7 @@ The key functions are:
     :func:`~pandas.read_sql_table` and :func:`~pandas.read_sql_query` (and for
     backward compatibility) and will delegate to specific function depending on
     the provided input (database table name or sql query).
+    Table names do not need to be quoted if they have special characters.
 
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
@@ -3698,15 +3779,15 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
-*Stata* data files have limited data type support; only strings with 244 or
-fewer characters, ``int8``, ``int16``, ``int32``, ``float32` and ``float64``
-can be stored
-in ``.dta`` files.  Additionally, *Stata* reserves certain values to represent
-missing data. Exporting a non-missing value that is outside of the
-permitted range in Stata for a particular data type will retype the variable
-to the next larger size.  For example, ``int8`` values are restricted to lie
-between -127 and 100 in Stata, and so variables with values above 100 will
-trigger a conversion to ``int16``. ``nan`` values in floating points data
+*Stata* data files have limited data type support; only strings with
+244 or fewer characters, ``int8``, ``int16``, ``int32``, ``float32``
+and ``float64`` can be stored in ``.dta`` files.  Additionally,
+*Stata* reserves certain values to represent missing data. Exporting a
+non-missing value that is outside of the permitted range in Stata for
+a particular data type will retype the variable to the next larger
+size.  For example, ``int8`` values are restricted to lie between -127
+and 100 in Stata, and so variables with values above 100 will trigger
+a conversion to ``int16``. ``nan`` values in floating points data
 types are stored as the basic missing data type (``.`` in *Stata*).
 
 .. note::
@@ -3729,7 +3810,7 @@ outside of this range, the variable is cast to ``int16``.
 
 .. warning::
 
-  :class:`~pandas.io.stata.StataWriter`` and
+  :class:`~pandas.io.stata.StataWriter` and
   :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
@@ -3740,28 +3821,49 @@ outside of this range, the variable is cast to ``int16``.
 Reading from Stata format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The top-level function ``read_stata`` will read a dta files
-and return a DataFrame.  Alternatively,  the class :class:`~pandas.io.stata.StataReader`
-can be used if more granular access is required. :class:`~pandas.io.stata.StataReader`
-reads the header of the dta file at initialization. The method
-:func:`~pandas.io.stata.StataReader.data` reads and converts observations to a DataFrame.
+The top-level function ``read_stata`` will read a dta file and return
+either a DataFrame or a :class:`~pandas.io.stata.StataReader` that can
+be used to read the file incrementally.
 
 .. ipython:: python
 
    pd.read_stata('stata.dta')
 
+.. versionadded:: 0.16.0
+
+Specifying a ``chunksize`` yields a
+:class:`~pandas.io.stata.StataReader` instance that can be used to
+read ``chunksize`` lines from the file at a time.  The ``StataReader``
+object can be used as an iterator.
+
+.. ipython:: python
+
+  reader = pd.read_stata('stata.dta', chunksize=3)
+  for df in reader:
+      print(df.shape)
+
+For more fine-grained control, use ``iterator=True`` and specify
+``chunksize`` with each call to
+:func:`~pandas.io.stata.StataReader.read`.
+
+.. ipython:: python
+
+  reader = pd.read_stata('stata.dta', iterator=True)
+  chunk1 = reader.read(5)
+  chunk2 = reader.read(5)
+
 Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``variable_labels``, which requires data to be
-called before use (see ``pandas.io.stata.StataReader``).
+also be retrieved by the function ``value_labels``, which requires :func:`~pandas.io.stata.StataReader.read`
+to be called before use.
 
 The parameter ``convert_missing`` indicates whether missing value
 representations in Stata should be preserved.  If ``False`` (the default),
 missing values are represented as ``np.nan``.  If ``True``, missing values are
 represented using ``StataMissingValue`` objects, and columns containing missing
-values will have ```object`` data type.
+values will have ``object`` data type.
 
 :func:`~pandas.read_stata` and :class:`~pandas.io.stata.StataReader` supports .dta
 formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
@@ -3769,7 +3871,7 @@ formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
 .. note::
 
    Setting ``preserve_dtypes=False`` will upcast to the standard pandas data types:
-   ``int64`` for all integer types and ``float64`` for floating poitn data.  By default,
+   ``int64`` for all integer types and ``float64`` for floating point data.  By default,
    the Stata data types are preserved when importing.
 
 .. ipython:: python
@@ -3911,12 +4013,12 @@ And here's the code
        if os.path.exists('test.sql'):
            os.remove('test.sql')
        sql_db = sqlite3.connect('test.sql')
-       sql.write_frame(df, name='test_table', con=sql_db)
+       df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
 
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
-       sql.read_frame("select * from test_table", sql_db)
+       pd.read_sql_query("select * from test_table", sql_db)
        sql_db.close()
 
    def test_hdf_fixed_write(df):

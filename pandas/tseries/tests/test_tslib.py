@@ -3,10 +3,12 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import tslib
+import pandas._period as period
 import datetime
 
-from pandas.core.api import Timestamp, Series, Timedelta
-from pandas.tslib import period_asfreq, period_ordinal, get_timezone
+from pandas.core.api import Timestamp, Series, Timedelta, Period
+from pandas.tslib import get_timezone
+from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets
@@ -136,6 +138,27 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(repr(result), expected_repr)
         self.assertEqual(result, eval(repr(result)))
 
+    def test_constructor_invalid(self):
+        with tm.assertRaisesRegexp(TypeError, 'Cannot convert input'):
+            Timestamp(slice(2))
+        with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
+            Timestamp(Period('1000-01-01'))
+
+    def test_conversion(self):
+        # GH 9255
+        ts = Timestamp('2000-01-01')
+
+        result = ts.to_pydatetime()
+        expected = datetime.datetime(2000, 1, 1)
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+
+        result = ts.to_datetime64()
+        expected = np.datetime64(ts.value, 'ns')
+        self.assertEqual(result, expected)
+        self.assertEqual(type(result), type(expected))
+        self.assertEqual(result.dtype, expected.dtype)
+
     def test_repr(self):
         tm._skip_if_no_pytz()
         tm._skip_if_no_dateutil()
@@ -144,7 +167,7 @@ class TestTimestamp(tm.TestCase):
 
         # dateutil zone change (only matters for repr)
         import dateutil
-        if dateutil.__version__ >= LooseVersion('2.3'):
+        if dateutil.__version__ >= LooseVersion('2.3') and dateutil.__version__ <= LooseVersion('2.4'):
             timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
         else:
             timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
@@ -323,9 +346,11 @@ class TestTimestamp(tm.TestCase):
 
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
-        self.assertTrue((ts_from_method - ts_from_string) < delta)
-        self.assertTrue((ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
+        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
+        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
+                            - ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_today(self):
 
@@ -338,10 +363,11 @@ class TestTimestamp(tm.TestCase):
 
         # Check that the delta between the times is less than 1s (arbitrarily small)
         delta = Timedelta(seconds=1)
-        self.assertTrue((ts_from_method - ts_from_string) < delta)
-        self.assertTrue((ts_datetime - ts_from_method) < delta)
-        self.assertTrue((ts_datetime - ts_from_method) < delta)
-        self.assertTrue((ts_from_string_tz.tz_localize(None) - ts_from_string) < delta)
+        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
+        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
+        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
+                            - ts_from_method_tz.tz_localize(None)) < delta)
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
@@ -746,11 +772,11 @@ class TestTimestampOps(tm.TestCase):
     def test_resolution(self):
 
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
-                                  [tslib.D_RESO, tslib.D_RESO, tslib.D_RESO, tslib.D_RESO,
-                                   tslib.H_RESO, tslib.T_RESO,tslib.S_RESO, tslib.MS_RESO, tslib.US_RESO]):
+                                  [period.D_RESO, period.D_RESO, period.D_RESO, period.D_RESO,
+                                   period.H_RESO, period.T_RESO, period.S_RESO, period.MS_RESO, period.US_RESO]):
             for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
-                result = tslib.resolution(idx.asi8, idx.tz)
+                result = period.resolution(idx.asi8, idx.tz)
                 self.assertEqual(result, expected)
 
 

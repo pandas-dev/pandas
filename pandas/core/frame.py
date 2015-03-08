@@ -27,12 +27,12 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _get_dtype, _maybe_box_datetimelike,
-                                is_categorical_dtype)
+                                is_categorical_dtype, is_object_dtype, _possibly_infer_to_datetimelike)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_maybe_droplevels,
-                                  _convert_to_index_sliceable,
-                                  _check_bool_indexer)
+from pandas.core.indexing import (maybe_droplevels,
+                                  convert_to_index_sliceable,
+                                  check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
@@ -396,7 +396,15 @@ class DataFrame(NDFrame):
                     raise_with_traceback(e)
 
         index, columns = _get_axes(*values.shape)
-        return create_block_manager_from_blocks([values.T], [columns, index])
+        values = values.T
+
+        # if we don't have a dtype specified, then try to convert objects
+        # on the entire block; this is to convert if we have datetimelike's
+        # embedded in an object type
+        if dtype is None and is_object_dtype(values):
+            values = _possibly_infer_to_datetimelike(values)
+
+        return create_block_manager_from_blocks([values], [columns, index])
 
     @property
     def axes(self):
@@ -1099,13 +1107,12 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
-               escapechar=None, **kwds):
+               escapechar=None, decimal='.', **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1157,7 +1164,8 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         date_format : string, default None
             Format string for datetime objects
-        cols : kwarg only alias of columns [deprecated]
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for European data
         """
 
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -1172,13 +1180,13 @@ class DataFrame(NDFrame):
                                      tupleize_cols=tupleize_cols,
                                      date_format=date_format,
                                      doublequote=doublequote,
-                                     escapechar=escapechar)
+                                     escapechar=escapechar,
+                                     decimal=decimal)
         formatter.save()
 
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
@@ -1220,7 +1228,6 @@ class DataFrame(NDFrame):
         encoding: string, default None
             encoding of the resulting excel file. Only necessary for xlwt,
             other writers support unicode natively.
-        cols : kwarg only alias of columns [deprecated]
         inf_rep : string, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel)
@@ -1537,7 +1544,7 @@ class DataFrame(NDFrame):
             # cases (e.g., it misses categorical data even with object
             # categories)
             size_qualifier = ('+' if 'object' in counts
-                              or self.index.dtype.kind == 'O' else '')
+                              or is_object_dtype(self.index) else '')
             mem_usage = self.memory_usage(index=True).sum()
             lines.append("memory usage: %s\n" %
                             _sizeof_fmt(mem_usage, size_qualifier))
@@ -1765,7 +1772,7 @@ class DataFrame(NDFrame):
             pass
 
         # see if we can slice the rows
-        indexer = _convert_to_index_sliceable(self, key)
+        indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             return self._getitem_slice(indexer)
 
@@ -1798,7 +1805,7 @@ class DataFrame(NDFrame):
 
     def _getitem_array(self, key):
         # also raises Exception if object array with NA values
-        if com._is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             # warning here just in case -- previously __setitem__ was
             # reindexing but __getitem__ was not; it seems more reasonable to
             # go with the __setitem__ behavior since that is more consistent
@@ -1809,9 +1816,9 @@ class DataFrame(NDFrame):
             elif len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d.' %
                                  (len(key), len(self.index)))
-            # _check_bool_indexer will throw exception if Series key cannot
+            # check_bool_indexer will throw exception if Series key cannot
             # be reindexed to match DataFrame rows
-            key = _check_bool_indexer(self.index, key)
+            key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             return self.take(indexer, axis=0, convert=False)
         else:
@@ -1822,7 +1829,7 @@ class DataFrame(NDFrame):
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
-            result_columns = _maybe_droplevels(new_columns, key)
+            result_columns = maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
@@ -2097,7 +2104,7 @@ class DataFrame(NDFrame):
     def __setitem__(self, key, value):
 
         # see if we can slice the rows
-        indexer = _convert_to_index_sliceable(self, key)
+        indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
@@ -2115,11 +2122,11 @@ class DataFrame(NDFrame):
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
-        if com._is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             if len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(key), len(self.index)))
-            key = _check_bool_indexer(self.index, key)
+            key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
             self.ix._setitem_with_indexer(indexer, value)
@@ -2212,6 +2219,88 @@ class DataFrame(NDFrame):
         self._data.insert(
             loc, column, value, allow_duplicates=allow_duplicates)
 
+    def assign(self, **kwargs):
+        """
+        Assign new columns to a DataFrame, returning a new object
+        (a copy) with all the original columns in addition to the new ones.
+
+        .. versionadded:: 0.16.0
+
+        Parameters
+        ----------
+        kwargs : keyword, value pairs
+            keywords are the column names. If the values are
+            callable, they are computed on the DataFrame and
+            assigned to the new columns. If the values are
+            not callable, (e.g. a Series, scalar, or array),
+            they are simply assigned.
+
+        Returns
+        -------
+        df : DataFrame
+            A new DataFrame with the new columns in addition to
+            all the existing columns.
+
+        Notes
+        -----
+        Since ``kwargs`` is a dictionary, the order of your
+        arguments may not be preserved, and so the order of the
+        new columns is not well defined. Assigning multiple
+        columns within the same ``assign`` is possible, but you cannot
+        reference other columns created within the same ``assign`` call.
+
+        Examples
+        --------
+        >>> df = DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+
+        Where the value is a callable, evaluated on `df`:
+
+        >>> df.assign(ln_A = lambda x: np.log(x.A))
+            A         B      ln_A
+        0   1  0.426905  0.000000
+        1   2 -0.780949  0.693147
+        2   3 -0.418711  1.098612
+        3   4 -0.269708  1.386294
+        4   5 -0.274002  1.609438
+        5   6 -0.500792  1.791759
+        6   7  1.649697  1.945910
+        7   8 -1.495604  2.079442
+        8   9  0.549296  2.197225
+        9  10 -0.758542  2.302585
+
+        Where the value already exists and is inserted:
+
+        >>> newcol = np.log(df['A'])
+        >>> df.assign(ln_A=newcol)
+            A         B      ln_A
+        0   1  0.426905  0.000000
+        1   2 -0.780949  0.693147
+        2   3 -0.418711  1.098612
+        3   4 -0.269708  1.386294
+        4   5 -0.274002  1.609438
+        5   6 -0.500792  1.791759
+        6   7  1.649697  1.945910
+        7   8 -1.495604  2.079442
+        8   9  0.549296  2.197225
+        9  10 -0.758542  2.302585
+        """
+        data = self.copy()
+
+        # do all calculations first...
+        results = {}
+        for k, v in kwargs.items():
+
+            if callable(v):
+                results[k] = v(data)
+            else:
+                results[k] = v
+
+        # ... and then assign
+        for k, v in results.items():
+            data[k] = v
+
+        return data
+
     def _sanitize_column(self, key, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
@@ -2246,7 +2335,7 @@ class DataFrame(NDFrame):
             if isinstance(self.columns, MultiIndex) and key in self.columns:
                 loc = self.columns.get_loc(key)
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                    cols = _maybe_droplevels(self.columns[loc], key)
+                    cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
                         value = value.reindex_axis(cols, axis=1)
             # now align rows
@@ -2257,6 +2346,8 @@ class DataFrame(NDFrame):
 
         elif (isinstance(value, Index) or is_sequence(value)):
             from pandas.core.series import _sanitize_index
+
+            # turn me into an ndarray
             value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
@@ -2267,6 +2358,11 @@ class DataFrame(NDFrame):
                 value = value.copy().T
             else:
                 value = value.copy()
+
+            # possibly infer to datetimelike
+            if is_object_dtype(value.dtype):
+                value = _possibly_infer_to_datetimelike(value.ravel()).reshape(value.shape)
+
         else:
             # upcast the scalar
             dtype, value = _infer_dtype_from_scalar(value)
@@ -2341,7 +2437,7 @@ class DataFrame(NDFrame):
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
                 result[i] = self.get_value(r, c)
 
-        if result.dtype == 'O':
+        if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
 
         return result
@@ -2726,38 +2822,34 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
-            For a set of distinct duplicate rows, flag all but the last row as 
-            duplicated. Default is for all but the first row to be flagged            
+            For a set of distinct duplicate rows, flag all but the last row as
+            duplicated. Default is for all but the first row to be flagged
         cols : kwargs only argument of subset [deprecated]
 
         Returns
         -------
         duplicated : Series
         """
-        # kludge for #1833
-        def _m8_to_i8(x):
-            if issubclass(x.dtype.type, np.datetime64):
-                return x.view(np.int64)
-            return x
+        from pandas.core.groupby import get_group_index
+        from pandas.core.algorithms import factorize
+        from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
-        # if we are only duplicating on Categoricals this can be much faster
+        def f(vals):
+            labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+            return labels.astype('i8',copy=False), len(shape)
+
         if subset is None:
-            values = list(_m8_to_i8(self.get_values().T))
-        else:
-            if np.iterable(subset) and not isinstance(subset, compat.string_types):
-                if isinstance(subset, tuple):
-                    if subset in self.columns:
-                        values = [self[subset].get_values()]
-                    else:
-                        values = [_m8_to_i8(self[x].get_values()) for x in subset]
-                else:
-                    values = [_m8_to_i8(self[x].get_values()) for x in subset]
-            else:
-                values = [self[subset].get_values()]
+            subset = self.columns
+        elif not np.iterable(subset) or \
+                isinstance(subset, compat.string_types) or \
+                isinstance(subset, tuple) and subset in self.columns:
+            subset = subset,
 
-        keys = lib.fast_zip_fillna(values)
-        duplicated = lib.duplicated(keys, take_last=take_last)
-        return Series(duplicated, index=self.index)
+        vals = (self[col].values for col in subset)
+        labels, shape = map(list, zip( * map(f, vals)))
+
+        ids = get_group_index(labels, shape, sort=False, xnull=False)
+        return Series(duplicated_int64(ids, take_last), index=self.index)
 
     #----------------------------------------------------------------------
     # Sorting
@@ -3770,35 +3862,65 @@ class DataFrame(NDFrame):
 
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
-        Append columns of other to end of this frame's columns and index,
-        returning a new object.  Columns not in this frame are added as new
-        columns.
+        Append rows of `other` to the end of this frame, returning a new
+        object. Columns not in this frame are added as new columns.
 
         Parameters
         ----------
-        other : DataFrame or list of Series/dict-like objects
+        other : DataFrame or Series/dict-like object, or list of these
+            The data to append.
         ignore_index : boolean, default False
-            If True do not use the index labels. Useful for gluing together
-            record arrays
+            If True, do not use the index labels.
         verify_integrity : boolean, default False
-            If True, raise ValueError on creating index with duplicates
-
-        Notes
-        -----
-        If a list of dict is passed and the keys are all contained in the
-        DataFrame's index, the order of the columns in the resulting DataFrame
-        will be unchanged
+            If True, raise ValueError on creating index with duplicates.
 
         Returns
         -------
         appended : DataFrame
+
+        Notes
+        -----
+        If a list of dict/series is passed and the keys are all contained in the
+        DataFrame's index, the order of the columns in the resulting DataFrame
+        will be unchanged.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+        >>> df
+           A  B
+        0  1  2
+        1  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+        >>> df.append(df2)
+           A  B
+        0  1  2
+        1  3  4
+        0  5  6
+        1  7  8
+
+        With `ignore_index` set to True:
+
+        >>> df.append(df2, ignore_index=True)
+           A  B
+        0  1  2
+        1  3  4
+        2  5  6
+        3  7  8
+
         """
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
                 other = Series(other)
             if other.name is None and not ignore_index:
-                raise TypeError('Can only append a Series if '
-                                'ignore_index=True')
+                raise TypeError('Can only append a Series if ignore_index=True'
+                                ' or if the Series has a name')
 
             index = None if other.name is None else [other.name]
             combined_columns = self.columns.tolist() + self.columns.union(other.index).difference(self.columns).tolist()
@@ -4202,7 +4324,7 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if result.dtype == np.object_:
+        if is_object_dtype(result.dtype):
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)

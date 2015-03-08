@@ -81,9 +81,9 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng_eastern = rng.tz_convert(self.tzstr('US/Eastern'))
 
         # Values are unmodified
-        self.assert_(np.array_equal(rng.asi8, rng_eastern.asi8))
+        self.assertTrue(np.array_equal(rng.asi8, rng_eastern.asi8))
 
-        self.assert_(self.cmptz(rng_eastern.tz, self.tz('US/Eastern')))
+        self.assertTrue(self.cmptz(rng_eastern.tz, self.tz('US/Eastern')))
 
     def test_utc_to_local_no_modify_explicit(self):
         rng = date_range('3/11/2012', '3/12/2012', freq='H', tz='utc')
@@ -119,7 +119,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng = date_range('3/10/2012', '3/11/2012', freq='30T')
         converted = rng.tz_localize(self.tz('US/Eastern'))
         expected_naive = rng + offsets.Hour(5)
-        self.assert_(np.array_equal(converted.asi8, expected_naive.asi8))
+        self.assertTrue(np.array_equal(converted.asi8, expected_naive.asi8))
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
@@ -159,8 +159,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         result = Timestamp(date(2012, 3, 11), tz=self.tz('US/Eastern'))
 
         expected = Timestamp('3/11/2012', tz=self.tz('US/Eastern'))
-        self.assertEquals(result.hour, expected.hour)
-        self.assertEquals(result, expected)
+        self.assertEqual(result.hour, expected.hour)
+        self.assertEqual(result, expected)
 
     def test_timestamp_to_datetime_tzoffset(self):
         # tzoffset
@@ -181,7 +181,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # spring forward, + "7" hours
         expected = Timestamp('3/11/2012 05:00', tz=self.tzstr('US/Eastern'))
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_timedelta_push_over_dst_boundary_explicit(self):
         # #1389
@@ -332,7 +332,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng_eastern = rng.tz_convert(self.tzstr('US/Eastern'))
         # test not valid for dateutil timezones.
         # self.assertIn('EDT', repr(rng_eastern[0].tzinfo))
-        self.assert_('EDT' in repr(rng_eastern[0].tzinfo) or 'tzfile' in repr(rng_eastern[0].tzinfo))
+        self.assertTrue('EDT' in repr(rng_eastern[0].tzinfo) or 'tzfile' in repr(rng_eastern[0].tzinfo))
 
     def test_timestamp_tz_convert(self):
         strdates = ['1/1/2012', '3/1/2012', '4/1/2012']

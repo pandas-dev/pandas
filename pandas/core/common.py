@@ -19,7 +19,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types
 
 from pandas.core.config import get_option
 
@@ -368,7 +368,7 @@ def notnull(obj):
         return not res
     return ~res
 
-def _is_null_datelike_scalar(other):
+def is_null_datelike_scalar(other):
     """ test whether the object is a null datelike, e.g. Nat
     but guard against passing a non-scalar """
     if other is pd.NaT or other is None:
@@ -1011,6 +1011,27 @@ def _coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
+def _infer_fill_value(val):
+    """
+    infer the fill value for the nan/NaT from the provided scalar/ndarray/list-like
+    if we are a NaT, return the correct dtyped element to provide proper block construction
+
+    """
+
+    if not is_list_like(val):
+        val = [val]
+    val = np.array(val,copy=False)
+    if is_datetimelike(val):
+        return np.array('NaT',dtype=val.dtype)
+    elif is_object_dtype(val.dtype):
+        dtype = lib.infer_dtype(_ensure_object(val))
+        if dtype in ['datetime','datetime64']:
+            return np.array('NaT',dtype=_NS_DTYPE)
+        elif dtype in ['timedelta','timedelta64']:
+            return np.array('NaT',dtype=_TD_DTYPE)
+    return np.nan
+
+
 def _infer_dtype_from_scalar(val):
     """ interpret the dtype from a scalar, upcast floats and ints
         return the new value and the dtype """
@@ -1125,7 +1146,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if issubclass(np.dtype(dtype).type, compat.string_types):
+    if is_categorical_dtype(dtype):
+        dtype = dtype
+    elif issubclass(np.dtype(dtype).type, compat.string_types):
         dtype = np.object_
 
     return dtype, fill_value
@@ -1322,6 +1345,19 @@ def _possibly_downcast_to_dtype(result, dtype):
     return result
 
 
+def _maybe_convert_string_to_object(values):
+    """
+    Convert string-like and string-like array to convert object dtype.
+    This is to avoid numpy to handle the array as str dtype.
+    """
+    if isinstance(values, string_types):
+        values = np.array([values], dtype=object)
+    elif (isinstance(values, np.ndarray) and
+        issubclass(values.dtype.type, (np.string_, np.unicode_))):
+        values = values.astype(object)
+    return values
+
+
 def _lcd_dtypes(a_dtype, b_dtype):
     """ return the lcd dtype to hold these types """
 
@@ -1361,36 +1397,40 @@ def _fill_zeros(result, x, y, name, fill):
     mask the nan's from x
     """
 
-    if fill is not None:
+    if fill is None or is_float_dtype(result):
+        return result
 
-        if name.startswith('r'):
-            x,y = y,x
+    if name.startswith(('r', '__r')):
+        x,y = y,x
 
+    if np.isscalar(y):
+        y = np.array(y)
 
-        if not isinstance(y, np.ndarray):
-            dtype, value = _infer_dtype_from_scalar(y)
-            y = np.empty(result.shape, dtype=dtype)
-            y.fill(value)
+    if is_integer_dtype(y):
 
-        if is_integer_dtype(y):
+        if (y == 0).any():
 
-            if (y.ravel() == 0).any():
-                shape = result.shape
-                result = result.ravel().astype('float64')
+            # GH 7325, mask and nans must be broadcastable (also: PR 9308)
+            # Raveling and then reshaping makes np.putmask faster
+            mask = ((y == 0) & ~np.isnan(result)).ravel()
 
-                # GH 7325, mask and nans must be broadcastable
-                signs = np.sign(result)
-                mask = ((y == 0) & ~np.isnan(x)).ravel()
+            shape = result.shape
+            result = result.astype('float64', copy=False).ravel()
 
-                np.putmask(result, mask, fill)
+            np.putmask(result, mask, fill)
 
-                # if we have a fill of inf, then sign it
-                # correctly
-                # GH 6178
-                if np.isinf(fill):
-                    np.putmask(result,(signs<0) & mask, -fill)
+            # if we have a fill of inf, then sign it correctly
+            # (GH 6178 and PR 9308)
+            if np.isinf(fill):
+                signs = np.sign(y if name.startswith(('r', '__r')) else x)
+                negative_inf_mask = (signs.ravel() < 0) & mask
+                np.putmask(result, negative_inf_mask, -fill)
 
-                result = result.reshape(shape)
+            if "floordiv" in name:  # (PR 9308)
+                nan_mask = ((y == 0) & (x == 0)).ravel()
+                np.putmask(result, nan_mask, np.nan)
+
+            result = result.reshape(shape)
 
     return result
 
@@ -1521,7 +1561,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     return values
 
 
-def _clean_interp_method(method, order=None, **kwargs):
+def _clean_interp_method(method, order=None):
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
@@ -1536,7 +1576,7 @@ def _clean_interp_method(method, order=None, **kwargs):
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   fill_value=None, bounds_error=False, **kwargs):
+                   fill_value=None, bounds_error=False, order=None):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -1619,14 +1659,14 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
         result[firstIndex:][invalid] = _interpolate_scipy_wrapper(
             valid_x, valid_y, new_x, method=method, fill_value=fill_value,
-            bounds_error=bounds_error, **kwargs)
+            bounds_error=bounds_error, order=order)
         if limit:
             result[violate_limit] = np.nan
         return result
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
-                               bounds_error=False, order=None, **kwargs):
+                               bounds_error=False, order=None):
     """
     passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to
@@ -1992,6 +2032,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
 
     Parameters
     ----------
+    value : np.array
     convert_dates : boolean, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
@@ -2030,9 +2071,9 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         inferred_type = lib.infer_dtype(sample)
 
         if inferred_type in ['datetime', 'datetime64'] or (convert_dates and inferred_type in ['date']):
-            value = _try_datetime(v)
+            value = _try_datetime(v).reshape(shape)
         elif inferred_type in ['timedelta', 'timedelta64']:
-            value = _try_timedelta(v)
+            value = _try_timedelta(v).reshape(shape)
 
         # its possible to have nulls intermixed within the datetime or timedelta
         # these will in general have an inferred_type of 'mixed', so have to try
@@ -2043,14 +2084,14 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         elif inferred_type in ['mixed']:
 
             if lib.is_possible_datetimelike_array(_ensure_object(v)):
-                value = _try_timedelta(v)
+                value = _try_timedelta(v).reshape(shape)
                 if lib.infer_dtype(value) in ['mixed']:
-                    value = _try_datetime(v)
+                    value = _try_datetime(v).reshape(shape)
 
     return value
 
 
-def _is_bool_indexer(key):
+def is_bool_indexer(key):
     if isinstance(key, (ABCSeries, np.ndarray)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
@@ -2329,6 +2370,9 @@ def _maybe_make_list(obj):
         return [obj]
     return obj
 
+########################
+##### TYPE TESTING #####
+########################
 
 is_bool = lib.is_bool
 
@@ -2397,7 +2441,7 @@ def _get_dtype_type(arr_or_dtype):
     return arr_or_dtype.dtype.type
 
 
-def _is_any_int_dtype(arr_or_dtype):
+def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.integer)
 
@@ -2408,7 +2452,7 @@ def is_integer_dtype(arr_or_dtype):
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
-def _is_int_or_datetime_dtype(arr_or_dtype):
+def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
             issubclass(tipo, (np.datetime64, np.timedelta64)))
@@ -2433,12 +2477,12 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
     return tipo == _TD_DTYPE
 
 
-def _is_datetime_or_timedelta_dtype(arr_or_dtype):
+def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
 
-needs_i8_conversion = _is_datetime_or_timedelta_dtype
+needs_i8_conversion = is_datetime_or_timedelta_dtype
 
 def i8_boxer(arr_or_dtype):
     """ return the scalar boxer for the dtype """
@@ -2459,7 +2503,7 @@ def is_float_dtype(arr_or_dtype):
     return issubclass(tipo, np.floating)
 
 
-def _is_floating_dtype(arr_or_dtype):
+def is_floating_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return isinstance(tipo, np.floating)
 
@@ -2467,6 +2511,10 @@ def _is_floating_dtype(arr_or_dtype):
 def is_bool_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.bool_)
+
+def is_categorical(array):
+    """ return if we are a categorical possibility """
+    return isinstance(array, ABCCategorical) or isinstance(array.dtype, CategoricalDtype)
 
 def is_categorical_dtype(arr_or_dtype):
     if hasattr(arr_or_dtype,'dtype'):
@@ -2503,8 +2551,12 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-    return (hasattr(arg, '__iter__') and
+     return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
+
+def is_null_slice(obj):
+    return (isinstance(obj, slice) and obj.start is None and
+            obj.stop is None and obj.step is None)
 
 
 def is_hashable(arg):
@@ -2524,13 +2576,13 @@ def is_hashable(arg):
     >>> is_hashable(a)
     False
     """
-    # don't consider anything not collections.Hashable, so as not to broaden
-    # the definition of hashable beyond that. For example, old-style classes
-    # are not collections.Hashable but they won't fail hash().
-    if not isinstance(arg, collections.Hashable):
-        return False
+    # unfortunately, we can't use isinstance(arg, collections.Hashable), which
+    # can be faster than calling hash, because numpy scalars on Python 3 fail
+    # this test
 
-    # narrow the definition of hashable if hash(arg) fails in practice
+    # reconsider this decision once this numpy bug is fixed:
+    # https://github.com/numpy/numpy/issues/5562
+
     try:
         hash(arg)
     except TypeError:
@@ -2633,7 +2685,7 @@ def _astype_nansafe(arr, dtype, copy=True):
     return arr.view(dtype)
 
 
-def _clean_fill_method(method):
+def _clean_fill_method(method, allow_nearest=False):
     if method is None:
         return None
     method = method.lower()
@@ -2641,11 +2693,21 @@ def _clean_fill_method(method):
         method = 'pad'
     if method == 'bfill':
         method = 'backfill'
-    if method not in ['pad', 'backfill']:
-        msg = ('Invalid fill method. Expecting pad (ffill) or backfill '
-               '(bfill). Got %s' % method)
+
+    valid_methods = ['pad', 'backfill']
+    expecting = 'pad (ffill) or backfill (bfill)'
+    if allow_nearest:
+        valid_methods.append('nearest')
+        expecting = 'pad (ffill), backfill (bfill) or nearest'
+    if method not in valid_methods:
+        msg = ('Invalid fill method. Expecting %s. Got %s'
+               % (expecting, method))
         raise ValueError(msg)
     return method
+
+
+def _clean_reindex_fill_method(method):
+    return _clean_fill_method(method, allow_nearest=True)
 
 
 def _all_none(*args):

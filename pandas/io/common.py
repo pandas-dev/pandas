@@ -5,7 +5,7 @@ import os
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.compat import StringIO, string_types
+from pandas.compat import StringIO, string_types, BytesIO
 from pandas import compat
 
 
@@ -154,7 +154,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         b = conn.get_bucket(parsed_url.netloc)
         k = boto.s3.key.Key(b)
         k.key = parsed_url.path
-        filepath_or_buffer = StringIO(k.get_contents_as_string())
+        filepath_or_buffer = BytesIO(k.get_contents_as_string(
+            encoding=encoding))
         return filepath_or_buffer, None
 
 

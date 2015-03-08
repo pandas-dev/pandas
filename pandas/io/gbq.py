@@ -13,7 +13,7 @@ from pandas.core.api import DataFrame
 from pandas.tools.merge import concat
 from pandas.core.common import PandasError
 
-
+_IMPORTS = False
 _GOOGLE_API_CLIENT_INSTALLED = False
 _GOOGLE_API_CLIENT_VALID_VERSION = False
 _GOOGLE_FLAGS_INSTALLED = False
@@ -21,52 +21,66 @@ _GOOGLE_FLAGS_VALID_VERSION = False
 _HTTPLIB2_INSTALLED = False
 _SETUPTOOLS_INSTALLED = False
 
-if not compat.PY3:
+def _importers():
+    # import things we need
+    # but make this done on a first use basis
 
-    try:
-        import pkg_resources
-        _SETUPTOOLS_INSTALLED = True
-    except ImportError:
-        _SETUPTOOLS_INSTALLED = False
-   
-    if _SETUPTOOLS_INSTALLED:
-        try:
-            from apiclient.discovery import build
-            from apiclient.http import MediaFileUpload
-            from apiclient.errors import HttpError
+    global _IMPORTS
+    if  _IMPORTS:
+        return
 
-            from oauth2client.client import OAuth2WebServerFlow
-            from oauth2client.client import AccessTokenRefreshError
-            from oauth2client.client import flow_from_clientsecrets
-            from oauth2client.file import Storage
-            from oauth2client.tools import run
-            _GOOGLE_API_CLIENT_INSTALLED=True
-            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+    _IMPORTS = True
 
-            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
-                _GOOGLE_API_CLIENT_VALID_VERSION = True
+    if not compat.PY3:
 
-        except ImportError:
-            _GOOGLE_API_CLIENT_INSTALLED = False
-
+        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
+               _GOOGLE_FLAGS_INSTALLED, _GOOGLE_FLAGS_VALID_VERSION, \
+               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
 
         try:
-            import gflags as flags
-            _GOOGLE_FLAGS_INSTALLED = True
-
-            _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
-
-            if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
-                _GOOGLE_FLAGS_VALID_VERSION = True
-
+            import pkg_resources
+            _SETUPTOOLS_INSTALLED = True
         except ImportError:
-            _GOOGLE_FLAGS_INSTALLED = False
+            _SETUPTOOLS_INSTALLED = False
 
-        try:
-            import httplib2
-            _HTTPLIB2_INSTALLED = True
-        except ImportError:
-            _HTTPLIB2_INSTALLED = False
+        if _SETUPTOOLS_INSTALLED:
+            try:
+                from apiclient.discovery import build
+                from apiclient.http import MediaFileUpload
+                from apiclient.errors import HttpError
+
+                from oauth2client.client import OAuth2WebServerFlow
+                from oauth2client.client import AccessTokenRefreshError
+                from oauth2client.client import flow_from_clientsecrets
+                from oauth2client.file import Storage
+                from oauth2client.tools import run
+                _GOOGLE_API_CLIENT_INSTALLED=True
+                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+                if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+                    _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+            except ImportError:
+                _GOOGLE_API_CLIENT_INSTALLED = False
+
+
+            try:
+                import gflags as flags
+                _GOOGLE_FLAGS_INSTALLED = True
+
+                _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
+
+                if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
+                    _GOOGLE_FLAGS_VALID_VERSION = True
+
+            except ImportError:
+                _GOOGLE_FLAGS_INSTALLED = False
+
+            try:
+                import httplib2
+                _HTTPLIB2_INSTALLED = True
+            except ImportError:
+                _HTTPLIB2_INSTALLED = False
 
 
 logger = logging.getLogger('pandas.io.gbq')
@@ -118,8 +132,10 @@ class InvalidColumnOrder(PandasError, IOError):
     """
     pass
 
-class GbqConnector:
+class GbqConnector(object):
+
     def __init__(self, project_id, reauth=False):
+
         self.project_id     = project_id
         self.reauth         = reauth
         self.credentials    = self.get_credentials()
@@ -185,7 +201,7 @@ class GbqConnector:
 
         job_reference = query_reply['jobReference']
 
-        while(not 'jobComplete' in query_reply):
+        while(not query_reply.get('jobComplete', False)):
             print('Job not yet complete...')
             query_reply = job_collection.getQueryResults(
                             projectId=job_reference['projectId'],
@@ -298,6 +314,8 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 def _test_imports():
+
+    _importers()
     _GOOGLE_API_CLIENT_INSTALLED
     _GOOGLE_API_CLIENT_VALID_VERSION
     _GOOGLE_FLAGS_INSTALLED
@@ -410,8 +428,8 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
     the defined table schema and column types. For simplicity, this method
     uses the Google BigQuery streaming API. The to_gbq method chunks data
     into a default chunk size of 10,000. Failures return the complete error
-    response which can be quite long depending on the size of the insert. 
-    There are several important limitations of the Google streaming API 
+    response which can be quite long depending on the size of the insert.
+    There are several important limitations of the Google streaming API
     which are detailed at:
     https://developers.google.com/bigquery/streaming-data-into-bigquery.
 

@@ -47,7 +47,8 @@ shape = [len(ping.ids) for ping in grouped.groupings]
 from pandas.core.groupby import get_group_index
 
 
-group_index = get_group_index(label_list, shape).astype('i4')
+group_index = get_group_index(label_list, shape,
+                              sort=True, xnull=True).astype('i4')
 
 ngroups = np.prod(shape)
 
