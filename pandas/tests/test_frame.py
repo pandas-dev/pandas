@@ -3362,6 +3362,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({ 1 : s1, 0 : arr },columns=[0,1])
         assert_frame_equal(df,expected)
 
+    def test_constructor_Series_named_different(self):
+        # 9232
+        x = Series([1, 2], name=0)
+        expected = DataFrame([np.nan, np.nan], columns=[1])
+        result = DataFrame(x, columns=[1])
+        assert_frame_equal(result, expected)
+
+        x.name = 1
+        expected = DataFrame([np.nan, np.nan], columns=[0])
+        result = DataFrame(x, columns=[0])
+        assert_frame_equal(result, expected)
+
     def test_constructor_Series_differently_indexed(self):
         # name
         s1 = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')

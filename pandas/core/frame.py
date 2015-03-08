@@ -231,7 +231,7 @@ class DataFrame(NDFrame):
                 if columns is None:
                     columns = data_columns
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
-            elif getattr(data, 'name', None):
+            elif getattr(data, 'name', None) is not None:
                 mgr = self._init_dict({data.name: data}, index, columns,
                                       dtype=dtype)
             else:
@@ -295,15 +295,14 @@ class DataFrame(NDFrame):
         if columns is not None:
             columns = _ensure_index(columns)
 
-            # prefilter if columns passed
-
-            data = dict((k, v) for k, v in compat.iteritems(data)
-                        if k in columns)
-
             if index is None:
                 index = extract_index(list(data.values()))
             else:
                 index = _ensure_index(index)
+
+            # prefilter if columns passed
+            data = dict((k, v) for k, v in compat.iteritems(data)
+                        if k in columns)
 
             arrays = []
             data_names = []
