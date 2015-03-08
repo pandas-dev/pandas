@@ -1,13 +1,18 @@
 .. _whatsnew_0160:
 
-v0.16.0 (February ??, 2015)
----------------------------
+v0.16.0 (March 15, 2015)
+------------------------
 
 This is a major release from 0.15.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
 - Highlights include:
+
+  * ``DataFrame.assign`` method, see :ref:`here <whatsnew_0160.enhancements.assign>`
+  * ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
+  * Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
+  * Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
 
 - Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating
 
@@ -31,6 +36,7 @@ New features
 
   This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
+- Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>`. (issue:`9493`:)
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
 - Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
 - Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
