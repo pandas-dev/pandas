@@ -242,7 +242,7 @@ Backwards incompatible API changes
 
 - ``Series`` now supports bitwise operation for integral types (:issue:`9016`)
 
-  Previously even if the input dtypes where integral, the output dtype was coerced to ``bool``.
+  Previously even if the input dtypes were integral, the output dtype was coerced to ``bool``.
 
   .. code-block:: python
     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
@@ -297,8 +297,8 @@ Backwards incompatible API changes
      p / 0
      p // 0
 
-- ``Series.values_counts`` and ``Series.describe`` for categorical data will now put NaN entries at the end. (:issue:`9443`)
-- ``Series.describe`` for categorical data will now give counts and frequencies of 0, not NA, for unused categories (:issue:`9443`)
+- ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
+- ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
 
 
 Indexing Changes
@@ -310,9 +310,11 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
 
-  .. ipython:: python
+.. ipython:: python
 
-     df = DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=date_range('20130101',periods=5))
+     df = DataFrame(np.random.randn(5,4),
+                    columns=list('ABCD'),
+                    index=date_range('20130101',periods=5))
      df
      s = Series(range(5),[-2,-1,1,2,3])
      s
@@ -336,9 +338,9 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
 
-  .. code-block:: python
-
   Previous Behavior
+
+  .. code-block:: python
 
      In [8]: s.ix[-1.0:2]
      TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
@@ -347,12 +349,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   .. ipython:: python
 
-     In [8]: s.ix[-1.0:2]
-     Out[2]:
-     -1    1
-      1    2
-      2    3
-     dtype: int64
+     s.ix[-1.0:2]
 
 - provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 
@@ -425,7 +422,7 @@ Bug Fixes
 .. _whatsnew_0160.bug_fixes:
 
 - Changed ``.to_html`` to remove leading/trailing spaces in table body (:issue:`4987`)
-- Fixed issue using ``read_csv`` on s3 with Python 3.
+- Fixed issue using ``read_csv`` on s3 with Python 3 (:issue:`9452`)
 - Fixed compatibility issue in ``DatetimeIndex`` affecting architectures where ``numpy.int_`` defaults to ``numpy.int32`` (:issue:`8943`)
 - Bug in Panel indexing with an object-like (:issue:`9140`)
 - Bug in the returned ``Series.dt.components`` index was reset to the default index (:issue:`9247`)
@@ -434,16 +431,16 @@ Bug Fixes
 - Bug in groupby for integer and datetime64 columns when applying an aggregator that caused the value to be
   changed when the number was sufficiently large (:issue:`9311`, :issue:`6620`)
 - Fixed bug in ``to_sql`` when mapping a ``Timestamp`` object column (datetime
-  column with timezone info) to the according sqlalchemy type (:issue:`9085`).
+  column with timezone info) to the appropriate sqlalchemy type (:issue:`9085`).
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
   SQLAlchemy type  (:issue:`9083`).
 - Bug in ``.loc`` partial setting with a ``np.datetime64`` (:issue:`9516`)
-- Incorrect dtypes inferred on datetimelike looking series & on xs slices (:issue:`9477`)
+- Incorrect dtypes inferred on datetimelike looking ``Series`` & on ``.xs`` slices (:issue:`9477`)
 
 - Items in ``Categorical.unique()`` (and ``s.unique()`` if ``s`` is of dtype ``category``) now appear in the order in which they are originally found, not in sorted order (:issue:`9331`). This is now consistent with the behavior for other dtypes in pandas.
 
 
-- Fixed bug on bug endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
+- Fixed bug on big endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and ``unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`, :issue:`9497`)
@@ -533,11 +530,11 @@ Bug Fixes
 
 
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
-- Regression in merging Categoricals and object dtypes (:issue:`9426`)
+- Regression in merging ``Categorical`` and ``object`` dtypes (:issue:`9426`)
 - Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
 - Bug in groupby MultiIndex with missing pair (:issue:`9049`, :issue:`9344`)
 - Fixed bug in ``Series.groupby`` where grouping on ``MultiIndex`` levels would ignore the sort argument (:issue:`9444`)
-- Fix bug in ``DataFrame.Groupby`` where sort=False is ignored in case of Categorical columns. (:issue:`8868`)
+- Fix bug in ``DataFrame.Groupby`` where ``sort=False`` is ignored in the case of Categorical columns. (:issue:`8868`)
 
 
 
@@ -549,4 +546,4 @@ Bug Fixes
 
 
 
-- Bug in ``Series.values_counts`` with excluding NaN for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
+- Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
