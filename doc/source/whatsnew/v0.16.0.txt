@@ -387,6 +387,10 @@ Deprecations
 - The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
 
+- The ``pandas.rpy`` interface is deprecated and will be removed in a future version.
+  Similar functionaility can be accessed thru the `rpy2 <http://rpy.sourceforge.net/>`_ project (:issue:`9602`)
+
+
 .. _whatsnew_0160.prior_deprecations:
 
 Removal of prior version deprecations/changes
