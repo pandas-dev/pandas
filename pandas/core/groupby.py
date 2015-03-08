@@ -1926,10 +1926,7 @@ class Grouping(object):
 
                 # must have an ordered categorical
                 if self.sort:
-                    if not self.grouper.ordered:
-                        raise ValueError("cannot sort by an unordered Categorical in the grouper\n"
-                                         "you can set sort=False in the groupby expression or\n"
-                                         "make the categorical ordered by using .set_ordered(True)\n")
+                    self.grouper = self.grouper.maybe_coerce_as_ordered()
 
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
                 else:

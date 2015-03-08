@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp
-
+from pandas.core.categorical import OrderingWarning
 import pandas.core.common as com
 import pandas.compat as compat
 import pandas.util.testing as tm
@@ -838,8 +838,10 @@ class TestCategorical(tm.TestCase):
 
         # unordered cats have no min/max
         cat = Categorical(["a","b","c","d"], ordered=False)
-        self.assertRaises(TypeError, lambda : cat.min())
-        self.assertRaises(TypeError, lambda : cat.max())
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.min()
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.max()
         cat = Categorical(["a","b","c","d"], ordered=True)
         _min = cat.min()
         _max = cat.max()
@@ -920,7 +922,8 @@ class TestCategorical(tm.TestCase):
 
         # unordered cats are not sortable
         cat = Categorical(["a","b","b","a"], ordered=False)
-        self.assertRaises(TypeError, lambda : cat.sort())
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.sort()
         cat = Categorical(["a","c","b","d"], ordered=True)
 
         # order
@@ -1594,8 +1597,10 @@ class TestCategoricalAsBlock(tm.TestCase):
     def test_min_max(self):
         # unordered cats have no min/max
         cat = Series(Categorical(["a","b","c","d"], ordered=False))
-        self.assertRaises(TypeError, lambda : cat.min())
-        self.assertRaises(TypeError, lambda : cat.max())
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.min()
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.max()
 
         cat = Series(Categorical(["a","b","c","d"], ordered=True))
         _min = cat.min()
@@ -1769,7 +1774,8 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # unordered cats are not sortable
         cat = Series(Categorical(["a","b","b","a"], ordered=False))
-        self.assertRaises(TypeError, lambda : cat.sort())
+        with tm.assert_produces_warning(OrderingWarning):
+            cat.sort()
 
         cat = Series(Categorical(["a","c","b","d"], ordered=True))
 
@@ -1803,9 +1809,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertEqual(res["sort"].dtype, "category")
         self.assertEqual(res["unsort"].dtype, "category")
 
-        def f():
+        with tm.assert_produces_warning(OrderingWarning):
             df.sort(columns=["unsort"], ascending=False)
-        self.assertRaises(TypeError, f)
 
         # multi-columns sort
         # GH 7848

@@ -10,6 +10,7 @@ from numpy import nan
 from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.api import Categorical, DataFrame
+from pandas.core.categorical import OrderingWarning
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
 from pandas.core.series import Series
@@ -3299,7 +3300,8 @@ class TestGroupBy(tm.TestCase):
         result_nosort.index = index
 
         col = 'range'
-        self.assertRaises(ValueError, lambda : df.groupby(col, sort=True).first())
+        with tm.assert_produces_warning(OrderingWarning):
+            df.groupby(col, sort=True).first()
         assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
 
 

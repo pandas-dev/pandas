@@ -24,6 +24,8 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 from pandas.core import format as fmt
 
+class OrderingWarning(Warning): pass
+
 def _cat_compare_op(op):
     def f(self, other):
         # On python2, you can usually compare any type to any type, and Categoricals can be
@@ -828,6 +830,18 @@ class Categorical(PandasObject):
     def nbytes(self):
         return self._codes.nbytes + self._categories.values.nbytes
 
+    def maybe_coerce_as_ordered(self):
+        """
+        if we are not ordered, but try an ordering operation, let it succeed with a warning
+        This may return a new copy of the object
+        """
+        if not self.ordered:
+            warn("Categorical is not ordered\n"
+                 "sort will be in the order of the categories\n"
+                 "you can use .as_ordered() to change the Categorical to an ordered one\n",
+                 OrderingWarning)
+        return self
+
     def searchsorted(self, v, side='left', sorter=None):
         """Find indices where elements should be inserted to maintain order.
 
@@ -846,6 +860,11 @@ class Categorical(PandasObject):
         sorter : 1-D array_like, optional
             Optional array of integer indices that sort `self` into ascending
             order. They are typically the result of ``np.argsort``.
+
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
 
         Returns
         -------
@@ -878,9 +897,7 @@ class Categorical(PandasObject):
         >>> x.searchsorted(['bread', 'eggs'], side='right', sorter=[0, 1, 2, 3, 5, 4])
         array([3, 5])       # eggs after donuts, after switching milk and donuts
         """
-        if not self.ordered:
-            raise ValueError("Categorical not ordered\n"
-                             "you can use .as_ordered() to change the Categorical to an ordered one\n")
+        self = self.maybe_coerce_as_ordered()
 
         from pandas.core.series import Series
         values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
@@ -1003,13 +1020,17 @@ class Categorical(PandasObject):
 
         Only ordered Categoricals can be argsorted!
 
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
+
         Returns
         -------
         argsorted : numpy array
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered\n"
-                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
+
+        self = self.maybe_coerce_as_ordered()
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
@@ -1032,6 +1053,11 @@ class Categorical(PandasObject):
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
 
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
+
         Returns
         -------
         y : Category or None
@@ -1040,9 +1066,8 @@ class Categorical(PandasObject):
         --------
         Category.sort
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered\n"
-                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
+
+        self = self.maybe_coerce_as_ordered()
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
@@ -1091,6 +1116,11 @@ class Categorical(PandasObject):
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
+
+        Warns
+        -----
+        OrderingWarning
+            If the `Categorical` is not `ordered`.
 
         Returns
         -------
@@ -1413,18 +1443,16 @@ class Categorical(PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
-        Raises
-        ------
-        TypeError
+        Warns
+        -----
+        OrderingWarning
             If the `Categorical` is not `ordered`.
 
         Returns
         -------
         min : the minimum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered\n"
-                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
+        self = self.maybe_coerce_as_ordered()
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].min(**kwargs)
@@ -1441,18 +1469,16 @@ class Categorical(PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
-        Raises
-        ------
-        TypeError
+        Warns
+        -----
+        OrderingWarning
             If the `Categorical` is not `ordered`.
 
         Returns
         -------
         max : the maximum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered\n"
-                            "you can use .as_ordered() to change the Categorical to an ordered one\n")
+        self = self.maybe_coerce_as_ordered()
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].max(**kwargs)
