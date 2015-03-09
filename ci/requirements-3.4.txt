@@ -15,5 +15,5 @@ matplotlib
 lxml
 sqlalchemy
 bottleneck
-pymysql
+pymysql==0.6.3
 psycopg2
