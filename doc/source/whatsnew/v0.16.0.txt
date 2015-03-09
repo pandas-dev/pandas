@@ -166,18 +166,15 @@ from a ``scipy.sparse.coo_matrix``:
 
 .. _whatsnew_0160.api_breaking:
 
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. _whatsnew_0160.api_breaking.timedelta:
 
-Changes in Timedelta
-~~~~~~~~~~~~~~~~~~~~
+Change in Timedelta
+~~~~~~~~~~~~~~~~~~~
 
 In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a
 sub-class of ``datetime.timedelta``. Mentioned :ref:`here <whatsnew_0150.timedeltaindex>` was a notice of an API change w.r.t. the ``.seconds`` accessor. The intent was to provide a user-friendly set of accessors that give the 'natural' value for that unit, e.g. if you had a ``Timedelta('1 day, 10:11:12')``, then ``.seconds`` would return 12. However, this is at odds with the definition of ``datetime.timedelta``, which defines ``.seconds`` as ``10 * 3600 + 11 * 60 + 12 == 36672``.
 
- So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. Further, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
+So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. Further, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
 
 Previous Behavior
 
@@ -219,62 +216,62 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
 
-  .. ipython:: python
+.. ipython:: python
 
-     df = DataFrame(np.random.randn(5,4),
-                    columns=list('ABCD'),
-                    index=date_range('20130101',periods=5))
-     df
-     s = Series(range(5),[-2,-1,1,2,3])
-     s
+   df = DataFrame(np.random.randn(5,4),
+                  columns=list('ABCD'),
+                  index=date_range('20130101',periods=5))
+   df
+   s = Series(range(5),[-2,-1,1,2,3])
+   s
 
-  Previous Behavior
+Previous Behavior
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [4]: df.loc['2013-01-02':'2013-01-10']
-     KeyError: 'stop bound [2013-01-10] is not in the [index]'
+   In [4]: df.loc['2013-01-02':'2013-01-10']
+   KeyError: 'stop bound [2013-01-10] is not in the [index]'
 
-     In [6]: s.loc[-10:3]
-     KeyError: 'start bound [-10] is not the [index]'
+   In [6]: s.loc[-10:3]
+   KeyError: 'start bound [-10] is not the [index]'
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     df.loc['2013-01-02':'2013-01-10']
-     s.loc[-10:3]
+   df.loc['2013-01-02':'2013-01-10']
+   s.loc[-10:3]
 
 - allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
 
-  Previous Behavior
+Previous Behavior
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [8]: s.ix[-1.0:2]
-     TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
+   In [8]: s.ix[-1.0:2]
+   TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     s.ix[-1.0:2]
+   s.ix[-1.0:2]
 
 - provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 
-  Previous Behavior
+Previous Behavior
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [4]: df.loc[2:3]
-     KeyError: 'start bound [2] is not the [index]'
+   In [4]: df.loc[2:3]
+   KeyError: 'start bound [2] is not the [index]'
 
-  New Behavior
+New Behavior
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [4]: df.loc[2:3]
-     TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
+   In [4]: df.loc[2:3]
+   TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
 
 
 .. _whatsnew_0160.api:
@@ -306,31 +303,32 @@ API Changes
 - Bar and horizontal bar plots no longer add a dashed line along the info axis. The prior style can be achieved with matplotlib's ``axhline`` or ``axvline`` methods (:issue:`9088`).
 
 
-- ``Series`` now supports bitwise operation for integral types (:issue:`9016`)
+- ``Series`` now supports bitwise operation for integral types (:issue:`9016`). Previously even if the input dtypes were integral, the output dtype was coerced to ``bool``.
 
-  Previously even if the input dtypes were integral, the output dtype was coerced to ``bool``.
+  Previous Behavior
 
   .. code-block:: python
-    In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
-    Out[2]:
-    a    True
-    b    True
-    c    True
-    d    True
-    dtype: bool
 
-  Now if the input dtypes are integral, the output dtype is also integral and the output
+     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+     Out[2]:
+     a    True
+     b    True
+     c    True
+     d    True
+     dtype: bool
+
+  New Behavior. If the input dtypes are integral, the output dtype is also integral and the output
   values are the result of the bitwise operation.
 
   .. code-block:: python
 
-    In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
-    Out[2]:
-    a    4
-    b    5
-    c    6
-    d    7
-    dtype: int64
+     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+     Out[2]:
+     a    4
+     b    5
+     c    6
+     d    7
+     dtype: int64
 
 
 - During division involving a ``Series`` or ``DataFrame``, ``0/0`` and ``0//0`` now give ``np.nan`` instead of ``np.inf``. (:issue:`9144`, :issue:`8445`)
@@ -435,12 +433,8 @@ Bug Fixes
   SQLAlchemy type  (:issue:`9083`).
 - Bug in ``.loc`` partial setting with a ``np.datetime64`` (:issue:`9516`)
 - Incorrect dtypes inferred on datetimelike looking ``Series`` & on ``.xs`` slices (:issue:`9477`)
-
 - Items in ``Categorical.unique()`` (and ``s.unique()`` if ``s`` is of dtype ``category``) now appear in the order in which they are originally found, not in sorted order (:issue:`9331`). This is now consistent with the behavior for other dtypes in pandas.
-
-
 - Fixed bug on big endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
-
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and ``unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`, :issue:`9497`)
 - Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
@@ -448,10 +442,7 @@ Bug Fixes
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
 - Bug in ``rank`` where comparing floats with tolerance will cause inconsistent behaviour (:issue:`8365`).
-
-
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
-
 - Looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`). Old behavior:
 
   .. ipython:: python
@@ -467,50 +458,12 @@ Bug Fixes
     pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
 
   To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
-
-
-
 - Bug in adding ``offsets.Nano`` to other offets raises ``TypeError`` (:issue:`9284`)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 - Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
-
-
-
-
-
 - Bug in binary operator method (eg ``.mul()``) alignment with integer levels (:issue:`9463`).
-
-
-
-
-
-
-
 - Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
 - Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)
-
-
-
-
-
-
-
-
 - Bug in using grouper functions that need passed thru arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
-
 - ``DataFrame`` now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in ``read_csv`` when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - ``isnull`` now detects ``NaT`` in ``PeriodIndex`` (:issue:`9129`)
@@ -520,29 +473,16 @@ Bug Fixes
 - Accessing ``Series.str`` methods on with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
 - Bug in ``DatetimeIndex.__contains__`` when index has duplicates and is not monotonic increasing (:issue:`9512`)
 - Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
-
-
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format wass applied. This prevented other row or column formatting being applied. (:issue:`9167`)
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
 - Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
 - Bug in ``to_sql`` not storing float64 values using double precision. (:issue:`9009`)
-
-
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
 - Regression in merging ``Categorical`` and ``object`` dtypes (:issue:`9426`)
 - Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
 - Bug in groupby MultiIndex with missing pair (:issue:`9049`, :issue:`9344`)
 - Fixed bug in ``Series.groupby`` where grouping on ``MultiIndex`` levels would ignore the sort argument (:issue:`9444`)
 - Fix bug in ``DataFrame.Groupby`` where ``sort=False`` is ignored in the case of Categorical columns. (:issue:`8868`)
-
-
-
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
-
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
-
-
-
-
-
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
