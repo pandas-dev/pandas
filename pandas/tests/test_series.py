@@ -104,12 +104,6 @@ class CheckNameIntegration(object):
             else:
                 tm.assert_series_equal(a,b)
 
-        # invalids
-        for s in [Series(np.arange(5)),
-                  Series(list('abcde')),
-                  Series(np.random.randn(5))]:
-            self.assertRaises(TypeError, lambda : s.dt)
-
         # datetimeindex
         for s in [Series(date_range('20130101',periods=5)),
                   Series(date_range('20130101',periods=5,freq='s')),
@@ -240,8 +234,13 @@ class CheckNameIntegration(object):
         s = Series(date_range('2000-01-01', periods=3))
         self.assertIsInstance(s.dt, DatetimeProperties)
 
-        with tm.assertRaisesRegexp(TypeError, "only use .dt accessor"):
-            Series([1]).dt
+        for s in [Series(np.arange(5)),
+                  Series(list('abcde')),
+                  Series(np.random.randn(5))]:
+            with tm.assertRaisesRegexp(AttributeError,
+                                       "only use .dt accessor"):
+                s.dt
+            self.assertFalse(hasattr(s, 'dt'))
 
     def test_binop_maybe_preserve_name(self):
 

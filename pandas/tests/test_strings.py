@@ -37,8 +37,10 @@ class TestStringMethods(tm.TestCase):
         self.assertIsInstance(Series(['']).str, strings.StringMethods)
 
         # GH 9184
-        with tm.assertRaisesRegexp(TypeError, "only use .str accessor"):
-            Series([1]).str
+        invalid = Series([1])
+        with tm.assertRaisesRegexp(AttributeError, "only use .str accessor"):
+            invalid.str
+        self.assertFalse(hasattr(invalid, 'str'))
 
     def test_iter(self):
         # GH3638

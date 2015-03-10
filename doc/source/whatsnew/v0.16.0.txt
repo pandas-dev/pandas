@@ -302,6 +302,7 @@ API Changes
 
 - Bar and horizontal bar plots no longer add a dashed line along the info axis. The prior style can be achieved with matplotlib's ``axhline`` or ``axvline`` methods (:issue:`9088`).
 
+- ``Series`` accessors ``.dt``, ``.cat`` and ``.str`` now raise ``AttributeError`` instead of ``TypeError`` if the series does not contain the appropriate type of data (:issue:`9617`). This follows Python's built-in exception hierarchy more closely and ensures that tests like ``hasattr(s, 'cat')`` are consistent on both Python 2 and 3.
 
 - ``Series`` now supports bitwise operation for integral types (:issue:`9016`). Previously even if the input dtypes were integral, the output dtype was coerced to ``bool``.
 

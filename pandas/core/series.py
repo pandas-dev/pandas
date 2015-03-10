@@ -2521,8 +2521,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # this really should exclude all series with any non-string values,
             # but that isn't practical for performance reasons until we have a
             # str dtype (GH 9343)
-            raise TypeError("Can only use .str accessor with string values, "
-                            "which use np.object_ dtype in pandas")
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values, which use np.object_ dtype in "
+                                 "pandas")
         return StringMethods(self)
 
     str = base.AccessorProperty(StringMethods, _make_str_accessor)
@@ -2533,8 +2534,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _make_dt_accessor(self):
         try:
             return maybe_to_datetimelike(self)
-        except (Exception):
-            raise TypeError("Can only use .dt accessor with datetimelike values")
+        except Exception:
+            raise AttributeError("Can only use .dt accessor with datetimelike "
+                                 "values")
 
     dt = base.AccessorProperty(CombinedDatetimelikeProperties, _make_dt_accessor)
 
@@ -2543,7 +2545,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _make_cat_accessor(self):
         if not com.is_categorical_dtype(self.dtype):
-            raise TypeError("Can only use .cat accessor with a 'category' dtype")
+            raise AttributeError("Can only use .cat accessor with a "
+                                 "'category' dtype")
         return CategoricalAccessor(self.values, self.index)
 
     cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
