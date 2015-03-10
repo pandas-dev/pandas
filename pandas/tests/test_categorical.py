@@ -918,9 +918,11 @@ class TestCategorical(tm.TestCase):
 
     def test_sort(self):
 
-        # unordered cats are not sortable
+        # unordered cats are sortable
         cat = Categorical(["a","b","b","a"], ordered=False)
-        self.assertRaises(TypeError, lambda : cat.sort())
+        cat.order()
+        cat.sort()
+
         cat = Categorical(["a","c","b","d"], ordered=True)
 
         # order
@@ -1767,9 +1769,12 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_sort(self):
 
-        # unordered cats are not sortable
         cat = Series(Categorical(["a","b","b","a"], ordered=False))
-        self.assertRaises(TypeError, lambda : cat.sort())
+
+        # sort in the categories order
+        expected = Series(Categorical(["a","a","b","b"], ordered=False),index=[0,3,1,2])
+        result = cat.order()
+        tm.assert_series_equal(result, expected)
 
         cat = Series(Categorical(["a","c","b","d"], ordered=True))
 
@@ -1803,9 +1808,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertEqual(res["sort"].dtype, "category")
         self.assertEqual(res["unsort"].dtype, "category")
 
-        def f():
-            df.sort(columns=["unsort"], ascending=False)
-        self.assertRaises(TypeError, f)
+        # unordered cat, but we allow this
+        df.sort(columns=["unsort"], ascending=False)
 
         # multi-columns sort
         # GH 7848

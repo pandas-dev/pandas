@@ -428,22 +428,6 @@ For ease of creation of series of categorical data, we have added the ability to
    s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
    s
 
-.. warning::
-
-   This simple API change may have suprising effects if a user is relying on the previous defaulted behavior implicity. In particular,
-   sorting operations with a ``Categorical`` will now raise an error:
-
-   .. code-block:: python
-
-      In [1]: df = DataFrame({ 'A' : Series(list('aabc')).astype('category'), 'B' : np.arange(4) })
-
-      In [2]: df['A'].order()
-      TypeError: Categorical is not ordered for operation argsort
-      you can use .as_ordered() to change the Categorical to an ordered one
-
-   The solution is to make 'A' orderable, e.g. ``df['A'] = df['A'].cat.as_ordered()``
-
-
 Indexing Changes
 ~~~~~~~~~~~~~~~~
 

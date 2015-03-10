@@ -1013,7 +1013,6 @@ class Categorical(PandasObject):
         -------
         argsorted : numpy array
         """
-        self.check_for_ordered('argsort')
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
@@ -1044,7 +1043,6 @@ class Categorical(PandasObject):
         --------
         Category.sort
         """
-        self.check_for_ordered('sort')
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 

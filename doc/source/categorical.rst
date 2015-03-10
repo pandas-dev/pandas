@@ -280,16 +280,12 @@ Sorting and Order
    The default for construction has change in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
-meaning and certain operations are possible. If the categorical is unordered, a `TypeError` is
-raised.
+meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a `TypeError`.
 
 .. ipython:: python
 
     s = Series(Categorical(["a","b","c","a"], ordered=False))
-    try:
-        s.sort()
-    except TypeError as e:
-        print("TypeError: " + str(e))
+    s.sort()
     s = Series(["a","b","c","a"]).astype('category', ordered=True)
     s.sort()
     s
