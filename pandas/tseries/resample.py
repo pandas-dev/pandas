@@ -395,8 +395,8 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 
     if not isinstance(offset, Tick):  # and first.time() != last.time():
         # hack!
-        first = tools.normalize_date(first)
-        last = tools.normalize_date(last)
+        first = first.normalize()
+        last = last.normalize()
 
     if closed == 'left':
         first = Timestamp(offset.rollback(first))
@@ -409,7 +409,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 
 
 def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
-    from pandas.tseries.tools import normalize_date
+#     from pandas.tseries.tools import normalize_date
 
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -417,7 +417,10 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     #
     # See https://github.com/pydata/pandas/issues/8683
 
-    start_day_nanos = Timestamp(normalize_date(first)).value
+    first_tzinfo = first.tzinfo
+    first = first.tz_localize(None)
+    last = last.tz_localize(None)
+    start_day_nanos = first.normalize().value
 
     base_nanos = (base % offset.n) * offset.nanos // offset.n
     start_day_nanos += base_nanos
@@ -451,8 +454,11 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
         else:
             lresult = last.value + offset.nanos
 
-    return (Timestamp(fresult, tz=first.tz),
-            Timestamp(lresult, tz=last.tz))
+#     return (Timestamp(fresult, tz=first.tz),
+#             Timestamp(lresult, tz=last.tz))
+
+    return (Timestamp(fresult).tz_localize(first_tzinfo),
+            Timestamp(lresult).tz_localize(first_tzinfo))
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False):
