@@ -1485,7 +1485,18 @@ class DataFrame(NDFrame):
 
         # convert dict/single callable to list
         if isinstance(formatters,dict):
-            formatters = tuple(formatters.get(cname,None) for cname in self.columns)
+            formatters_list = []
+            for cname in self.columns:
+                if cname in formatters:
+                    formatters_list.append(formatters[cname])
+                elif isinstance(cname,tuple):
+                    # look through all the names in tuple and take the first
+                    # matching name form the supplied formatters
+                    formatters_list.append(next((formatters[n] for n in cname\
+                                            if n in formatters),None))
+                else:
+                    formatters_list.append(None)
+            formatters = tuple(formatters_list)
         elif callable(formatters):
             formatters = (formatters,)*len(self.columns)
                      
