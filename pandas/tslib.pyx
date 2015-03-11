@@ -456,7 +456,7 @@ class Timestamp(_Timestamp):
             tz = maybe_get_tz(tz)
             if not isinstance(ambiguous, basestring):
                 ambiguous   =   [ambiguous]
-            value = tz_localize_to_utc(np.array([self.value]), tz,
+            value = tz_localize_to_utc(np.array([self.value],dtype='i8'), tz,
                                        ambiguous=ambiguous)[0]
             return Timestamp(value, tz=tz)
         else:
@@ -467,6 +467,7 @@ class Timestamp(_Timestamp):
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
                                 'tz_convert for conversions')
+
 
     def tz_convert(self, tz):
         """
@@ -569,7 +570,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(np.array([self.value]), tz=self.tz)[0]
+        normalized_value = date_normalize(np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 
     def __radd__(self, other):
