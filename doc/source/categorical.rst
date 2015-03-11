@@ -766,6 +766,14 @@ Dtype comparisons work:
     dtype == np.str_
     np.str_ == dtype
 
+To check if a Series contains Categorical data, with pandas 0.16 or later, use
+``hasattr(s, 'cat')``:
+
+.. ipython:: python
+
+    hasattr(Series(['a'], dtype='category'), 'cat')
+    hasattr(Series(['a']), 'cat')
+
 Using `numpy` functions on a `Series` of type ``category`` should not work as `Categoricals`
 are not numeric data (even in the case that ``.categories`` is numeric).
 

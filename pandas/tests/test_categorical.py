@@ -1354,13 +1354,13 @@ class TestCategoricalAsBlock(tm.TestCase):
     def test_series_delegations(self):
 
         # invalid accessor
-        self.assertRaises(TypeError, lambda : Series([1,2,3]).cat)
-        tm.assertRaisesRegexp(TypeError,
+        self.assertRaises(AttributeError, lambda : Series([1,2,3]).cat)
+        tm.assertRaisesRegexp(AttributeError,
                               r"Can only use .cat accessor with a 'category' dtype",
                               lambda : Series([1,2,3]).cat)
-        self.assertRaises(TypeError, lambda : Series(['a','b','c']).cat)
-        self.assertRaises(TypeError, lambda : Series(np.arange(5.)).cat)
-        self.assertRaises(TypeError, lambda : Series([Timestamp('20130101')]).cat)
+        self.assertRaises(AttributeError, lambda : Series(['a','b','c']).cat)
+        self.assertRaises(AttributeError, lambda : Series(np.arange(5.)).cat)
+        self.assertRaises(AttributeError, lambda : Series([Timestamp('20130101')]).cat)
 
         # Series should delegate calls to '.categories', '.codes', '.ordered' and the
         # methods '.set_categories()' 'drop_unused_categories()' to the categorical

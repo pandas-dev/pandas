@@ -113,6 +113,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
+    _accessors = frozenset(['dt', 'cat', 'str'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,

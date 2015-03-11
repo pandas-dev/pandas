@@ -78,10 +78,11 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
-                       'is_copy', 'dt', 'cat', 'str', '_subtyp', '_index',
+                       'is_copy', '_subtyp', '_index',
                        '_default_kind', '_default_fill_value',
                        '__array_struct__','__array_interface__']
     _internal_names_set = set(_internal_names)
+    _accessors = frozenset([])
     _metadata = []
     is_copy = None
 
@@ -1957,9 +1958,9 @@ class NDFrame(PandasObject):
         # Note: obj.x will always call obj.__getattribute__('x') prior to
         # calling obj.__getattr__('x').
 
-        if name in self._internal_names_set:
-            return object.__getattribute__(self, name)
-        elif name in self._metadata:
+        if (name in self._internal_names_set
+                or name in self._metadata
+                or name in self._accessors):
             return object.__getattribute__(self, name)
         else:
             if name in self._info_axis:
