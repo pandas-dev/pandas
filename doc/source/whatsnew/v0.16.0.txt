@@ -13,6 +13,7 @@ users upgrade to this version.
   * ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
   * Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
   * Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
+  * Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
 
 - Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating
 
@@ -365,6 +366,134 @@ API Changes
 
 - ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
+
+
+Categorical Changes
+~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking.categorical:
+
+In prior versions, ``Categoricals`` that had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``. Ordering must now be explicit.
+
+Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.as_ordered()`` or ``cat.as_unordered()``. These will by default return a **new** object and not modify the existing object. (:issue:`9347`, :issue:`9190`)
+
+Previous Behavior
+
+.. code-block:: python
+
+   In [3]: s = Series([0,1,2], dtype='category')
+
+   In [4]: s
+   Out[4]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0 < 1 < 2]
+
+   In [5]: s.cat.ordered
+   Out[5]: True
+
+   In [6]: s.cat.ordered = False
+
+   In [7]: s
+   Out[7]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0, 1, 2]
+
+New Behavior
+
+.. ipython:: python
+
+   s = Series([0,1,2], dtype='category')
+   s
+   s.cat.ordered
+   s = s.cat.as_ordered()
+   s
+   s.cat.ordered
+
+   # you can set in the constructor of the Categorical
+   s = Series(Categorical([0,1,2],ordered=True))
+   s
+   s.cat.ordered
+
+For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``. These are passed directly to the constructor.
+
+.. ipython:: python
+
+   s = Series(["a","b","c","a"]).astype('category',ordered=True)
+   s
+   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+   s
+
+Indexing Changes
+~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0160.api_breaking.indexing:
+
+The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
+
+- slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
+
+.. ipython:: python
+
+     df = DataFrame(np.random.randn(5,4),
+                    columns=list('ABCD'),
+                    index=date_range('20130101',periods=5))
+     df
+     s = Series(range(5),[-2,-1,1,2,3])
+     s
+
+  Previous Behavior
+
+  .. code-block:: python
+
+     In [4]: df.loc['2013-01-02':'2013-01-10']
+     KeyError: 'stop bound [2013-01-10] is not in the [index]'
+
+     In [6]: s.loc[-10:3]
+     KeyError: 'start bound [-10] is not the [index]'
+
+  New Behavior
+
+  .. ipython:: python
+
+     df.loc['2013-01-02':'2013-01-10']
+     s.loc[-10:3]
+
+- allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
+
+  Previous Behavior
+
+  .. code-block:: python
+
+     In [8]: s.ix[-1.0:2]
+     TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
+
+  New Behavior
+
+  .. ipython:: python
+
+     s.ix[-1.0:2]
+
+- provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
+
+  Previous Behavior
+
+  .. code-block:: python
+
+     In [4]: df.loc[2:3]
+     KeyError: 'start bound [2] is not the [index]'
+
+  New Behavior
+
+  .. code-block:: python
+
+     In [4]: df.loc[2:3]
+     TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
 
 
 .. _whatsnew_0160.deprecations:

@@ -3637,7 +3637,7 @@ class LegacyTable(Table):
         if not self.read_axes(where=where, **kwargs):
             return None
 
-        factors = [Categorical.from_array(a.values) for a in self.index_axes]
+        factors = [Categorical.from_array(a.values, ordered=True) for a in self.index_axes]
         levels = [f.categories for f in factors]
         N = [len(f.categories) for f in factors]
         labels = [f.codes for f in factors]

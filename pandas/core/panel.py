@@ -95,8 +95,8 @@ def panel_index(time, panels, names=['time', 'panel']):
                 (1962, 'C')], dtype=object)
     """
     time, panels = _ensure_like_indices(time, panels)
-    time_factor = Categorical.from_array(time)
-    panel_factor = Categorical.from_array(panels)
+    time_factor = Categorical.from_array(time, ordered=True)
+    panel_factor = Categorical.from_array(panels, ordered=True)
 
     labels = [time_factor.codes, panel_factor.codes]
     levels = [time_factor.categories, panel_factor.categories]
