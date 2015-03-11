@@ -464,7 +464,7 @@ Bug Fixes
   To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 - Bug in adding ``offsets.Nano`` to other offets raises ``TypeError`` (:issue:`9284`)
 - Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
-- Bug in ``resample`` around DST transitions (:issue:`5172`, :issue:`8744`, :issue:`8653`, :issue:`9173`, :issue:`9468`).  This required fixing offset classes so they behave correctly on DST transitions.
+- Bugs in ``resample`` around DST transitions. This required fixing offset classes so they behave correctly on DST transitions. (:issue:`5172`, :issue:`8744`, :issue:`8653`, :issue:`9173`, :issue:`9468`).
 - Bug in binary operator method (eg ``.mul()``) alignment with integer levels (:issue:`9463`).
 - Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
 - Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)

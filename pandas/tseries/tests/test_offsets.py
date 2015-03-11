@@ -421,7 +421,7 @@ class TestCommon(Base):
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
-        self.assertDictEqual(offsets, read_pickle(pickle_path))   
+        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
 class TestDateOffset(Base):
     _multiprocess_can_split_ = True
@@ -3310,7 +3310,7 @@ class TestDST(tm.TestCase):
                 tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
                 expected_utc_offset=None
                 )
-    
+
     def test_all_offset_classes(self):
         tests = {MonthBegin: ['11/2/2012', '12/1/2012'],
                  MonthEnd: ['11/2/2012', '11/30/2012'],
@@ -3329,7 +3329,7 @@ class TestDST(tm.TestCase):
                  BQuarterEnd: ['11/2/2012', '12/31/2012'],
                  Day: ['11/4/2012', '11/4/2012 23:00']
                  }
-        
+
         for offset, test_values in iteritems(tests):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
