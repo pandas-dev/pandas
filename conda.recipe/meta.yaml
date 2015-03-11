@@ -1,0 +1,38 @@
+package:
+  name: pandas
+  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+
+build:
+    number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+
+source:
+    git_url: ../
+
+requirements:
+  build:
+    - python
+    - cython
+    - libpython # [win]
+    - numpy
+    - setuptools
+    - pytz
+    - dateutil
+
+  run:
+    - python
+    - numpy
+    - libpython # [win]
+    - dateutil
+    - pytz
+
+test:
+  requires:
+    - nose
+    - coverage
+
+  commands:
+    - python -c "import pandas"
+
+about:
+  home: http://pandas.pydata.org
+  license: BSD
