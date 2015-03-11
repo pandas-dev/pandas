@@ -385,6 +385,8 @@ Deprecations
 - The ``pandas.rpy`` interface is deprecated and will be removed in a future version.
   Similar functionaility can be accessed thru the `rpy2 <http://rpy.sourceforge.net/>`_ project (:issue:`9602`)
 
+- Adding ``DatetimeIndex/PeriodIndex`` to another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to a ``TypeError`` in a future version. ``.union()`` should be used for the union set operation. (:issue:`9094`)
+- Subtracting ``DatetimeIndex/PeriodIndex`` from another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to an actual numeric subtraction yielding a ``TimeDeltaIndex`` in a future version. ``.difference()`` should be used for the differencing set operation. (:issue:`9094`)
 
 .. _whatsnew_0160.prior_deprecations:
 
