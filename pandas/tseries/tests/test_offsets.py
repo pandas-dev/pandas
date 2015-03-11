@@ -1,7 +1,7 @@
 import os
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from pandas.compat import range
+from pandas.compat import range, iteritems
 from pandas import compat
 import nose
 from nose.tools import assert_raises
@@ -410,6 +410,18 @@ class TestCommon(Base):
                 self.assertTrue(isinstance(result, Timestamp))
                 self.assertEqual(result, expected_localize)
 
+    def test_pickle_v0_15_2(self):
+        offsets = {'DateOffset': DateOffset(years=1),
+                   'MonthBegin': MonthBegin(1),
+                   'Day': Day(1),
+                   'YearBegin': YearBegin(1),
+                   'Week': Week(1)}
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'dateoffset_0_15_2.pickle')
+        # This code was executed once on v0.15.2 to generate the pickle:
+        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
+        #
+        self.assertEqual(offsets, read_pickle(pickle_path))   
 
 class TestDateOffset(Base):
     _multiprocess_can_split_ = True
@@ -3298,7 +3310,30 @@ class TestDST(tm.TestCase):
                 tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
                 expected_utc_offset=None
                 )
-
+    
+    def test_all_offset_classes(self):
+        tests = {MonthBegin: ['11/2/2012', '12/1/2012'],
+                 MonthEnd: ['11/2/2012', '11/30/2012'],
+                 BMonthBegin: ['11/2/2012', '12/3/2012'],
+                 BMonthEnd: ['11/2/2012', '11/30/2012'],
+                 CBMonthBegin: ['11/2/2012', '12/3/2012'],
+                 CBMonthEnd: ['11/2/2012', '11/30/2012'],
+                 Week: ['11/2/2012', '11/9/2012'],
+                 YearBegin: ['11/2/2012', '1/1/2013'],
+                 YearEnd: ['11/2/2012', '12/31/2012'],
+                 BYearBegin: ['11/2/2012', '1/1/2013'],
+                 BYearEnd: ['11/2/2012', '12/31/2012'],
+                 QuarterBegin: ['11/2/2012', '12/1/2012'],
+                 QuarterEnd: ['11/2/2012', '12/31/2012'],
+                 BQuarterBegin: ['11/2/2012', '12/3/2012'],
+                 BQuarterEnd: ['11/2/2012', '12/31/2012'],
+                 Day: ['11/4/2012', '11/4/2012 23:00']
+                 }
+        
+        for offset, test_values in iteritems(tests):
+            first = Timestamp(test_values[0], tz='US/Eastern') + offset()
+            second = Timestamp(test_values[1], tz='US/Eastern')
+            self.assertEqual(first, second, str(offset))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

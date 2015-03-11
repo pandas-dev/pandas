@@ -564,6 +564,14 @@ class Timestamp(_Timestamp):
                  self.nanosecond/3600.0/1e+9
                 )/24.0)
 
+    def normalize(self):
+        """
+        Normalize Timestamp to midnight, preserving
+        tz information.
+        """
+        normalized_value = date_normalize(np.array([self.value]), tz=self.tz)[0]
+        return Timestamp(normalized_value).tz_localize(self.tz)
+
     def __radd__(self, other):
         # __radd__ on cython extension types like _Timestamp is not used, so
         # define it here instead
