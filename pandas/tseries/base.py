@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 
-
+import warnings
 from datetime import datetime, time, timedelta
 
 from pandas import compat
@@ -334,6 +334,8 @@ class DatetimeIndexOpsMixin(object):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}".format(typ=type(other)))
             elif isinstance(other, Index):
+                warnings.warn("using '+' to provide set union with datetimelike Indexes is deprecated, "
+                              "use .union()",FutureWarning)
                 return self.union(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(other)
@@ -357,6 +359,8 @@ class DatetimeIndexOpsMixin(object):
                     raise TypeError("cannot subtract TimedeltaIndex and {typ}".format(typ=type(other)))
                 return self._add_delta(-other)
             elif isinstance(other, Index):
+                warnings.warn("using '-' to provide set differences with datetimelike Indexes is deprecated, "
+                              "use .difference()",FutureWarning)
                 return self.difference(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(-other)
