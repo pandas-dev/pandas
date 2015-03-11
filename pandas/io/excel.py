@@ -419,7 +419,11 @@ class ExcelFile(object):
                 data.append(row)
     
             if header is not None:
-                data[header] = _trim_excel_header(data[header])
+                if isinstance(header, (list, tuple, np.ndarray)):
+                    for rownum in header:
+                        data[rownum] = _trim_excel_header(data[rownum])
+                else:
+                    data[header] = _trim_excel_header(data[header])
     
             parser = TextParser(data, header=header, index_col=index_col,
                                 has_index_names=has_index_names,
