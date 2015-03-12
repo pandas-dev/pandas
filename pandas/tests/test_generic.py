@@ -354,6 +354,178 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+    def test_sample(self):
+        # Fixes issue: 2419
+
+        o = self._construct(shape=10)
+
+        ###
+        # Check behavior of random_state argument
+        ###
+
+        # Check for stability when receives seed or random state -- run 10 times.
+        for test in range(10):
+            seed = np.random.randint(0,100)
+            self._compare(o.sample(n=4, random_state=seed), o.sample(n=4, random_state=seed))
+            self._compare(o.sample(frac=0.7,random_state=seed), o.sample(frac=0.7, random_state=seed))
+
+            self._compare(o.sample(n=4, random_state=np.random.RandomState(test)),
+                          o.sample(n=4, random_state=np.random.RandomState(test)))
+
+            self._compare(o.sample(frac=0.7,random_state=np.random.RandomState(test)),
+                          o.sample(frac=0.7, random_state=np.random.RandomState(test)))
+
+
+        # Check for error when random_state argument invalid.
+        with tm.assertRaises(ValueError):
+            o.sample(random_state='astring!')
+
+        ###
+        # Check behavior of `frac` and `N`
+        ###
+
+        # Giving both frac and N throws error
+        with tm.assertRaises(ValueError):
+            o.sample(n=3, frac=0.3)
+
+        # Check that raises right error for negative lengths
+        with tm.assertRaises(ValueError):
+            o.sample(n=-3)
+        with tm.assertRaises(ValueError):
+            o.sample(frac=-0.3)
+
+        # Make sure float values of `n` give error
+        with tm.assertRaises(ValueError):
+            o.sample(n= 3.2)
+
+        # Check lengths are right
+        self.assertTrue(len(o.sample(n=4) == 4))
+        self.assertTrue(len(o.sample(frac=0.34) == 3))
+        self.assertTrue(len(o.sample(frac=0.36) == 4))
+
+        ###
+        # Check weights
+        ###
+
+        # Weight length must be right
+        with tm.assertRaises(ValueError):
+            o.sample(n=3, weights=[0,1])
+
+        with tm.assertRaises(ValueError):
+            bad_weights = [0.5]*11
+            o.sample(n=3, weights=bad_weights)
+
+        # Check won't accept negative weights
+        with tm.assertRaises(ValueError):
+            bad_weights = [-0.1]*10
+            o.sample(n=3, weights=bad_weights)
+
+        # Check inf and -inf throw errors:
+        with tm.assertRaises(ValueError):
+            weights_with_inf = [0.1]*10
+            weights_with_inf[0] = np.inf
+            o.sample(n=3, weights=weights_with_inf)
+
+        with tm.assertRaises(ValueError):
+            weights_with_ninf = [0.1]*10
+            weights_with_ninf[0] =  -np.inf
+            o.sample(n=3, weights=weights_with_ninf)
+
+
+        # A few dataframe test with degenerate weights.
+        easy_weight_list = [0]*10
+        easy_weight_list[5] = 1
+
+        df = pd.DataFrame({'col1':range(10,20),
+                           'col2':range(20,30),
+                           'colString': ['a']*10,
+                           'easyweights':easy_weight_list})
+        sample1 = df.sample(n=1, weights='easyweights')
+        assert_frame_equal(sample1, df.iloc[5:6])
+
+        # Ensure proper error if string given as weight for Series, panel, or
+        # DataFrame with axis = 1.
+        s = Series(range(10))
+        with tm.assertRaises(ValueError):
+            s.sample(n=3, weights='weight_column')
+
+        panel = pd.Panel(items = [0,1,2], major_axis = [2,3,4], minor_axis = [3,4,5])
+        with tm.assertRaises(ValueError):
+            panel.sample(n=1, weights='weight_column')
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, weights='weight_column', axis = 1)
+
+        # Check weighting key error
+        with tm.assertRaises(KeyError):
+            df.sample(n=3, weights='not_a_real_column_name')
+
+         # Check np.nan are replaced by zeros.
+        weights_with_nan = [np.nan]*10
+        weights_with_nan[5] = 0.5
+        self._compare(o.sample(n=1, axis=0, weights=weights_with_nan), o.iloc[5:6])
+
+        # Check None are also replaced by zeros.
+        weights_with_None = [None]*10
+        weights_with_None[5] = 0.5
+        self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
+
+        # Check that re-normalizes weights that don't sum to one.
+        weights_less_than_1 = [0]*10
+        weights_less_than_1[0] = 0.5
+        tm.assert_frame_equal(df.sample(n=1, weights=weights_less_than_1), df.iloc[:1])
+
+
+        ###
+        # Test axis argument
+        ###
+
+        # Test axis argument
+        df = pd.DataFrame({'col1':range(10), 'col2':['a']*10})
+        second_column_weight = [0,1]
+        assert_frame_equal(df.sample(n=1, axis=1, weights=second_column_weight), df[['col2']])
+
+        # Different axis arg types
+        assert_frame_equal(df.sample(n=1, axis='columns', weights=second_column_weight),
+                           df[['col2']])
+
+        weight = [0]*10
+        weight[5] = 0.5
+        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
+                           df.iloc[5:6])
+        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
+                           df.iloc[5:6])
+
+
+        # Check out of range axis values
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=2)
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis='not_a_name')
+
+        with tm.assertRaises(ValueError):
+            s = pd.Series(range(10))
+            s.sample(n=1, axis=1)
+
+        # Test weight length compared to correct axis
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=1, weights=[0.5]*10)
+
+        # Check weights with axis = 1
+        easy_weight_list = [0]*3
+        easy_weight_list[2] = 1
+
+        df = pd.DataFrame({'col1':range(10,20),
+                           'col2':range(20,30),
+                           'colString': ['a']*10})
+        sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
+        assert_frame_equal(sample1, df[['colString']])
+
+        # Test default axes
+        p = pd.Panel(items = ['a','b','c'], major_axis=[2,4,6], minor_axis=[1,3,5])
+        assert_panel_equal(p.sample(n=3, random_state=42), p.sample(n=3, axis=1, random_state=42))
+        assert_frame_equal(df.sample(n=3, random_state=42), df.sample(n=3, axis=0, random_state=42))
 
     def test_size_compat(self):
         # GH8846

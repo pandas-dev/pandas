@@ -390,6 +390,7 @@ Reindexing / Selection / Label manipulation
    Series.reindex_like
    Series.rename
    Series.reset_index
+   Series.sample
    Series.select
    Series.take
    Series.tail
@@ -824,6 +825,7 @@ Reindexing / Selection / Label manipulation
    DataFrame.reindex_like
    DataFrame.rename
    DataFrame.reset_index
+   DataFrame.sample
    DataFrame.select
    DataFrame.set_index
    DataFrame.tail
@@ -1072,6 +1074,7 @@ Reindexing / Selection / Label manipulation
    Panel.reindex_axis
    Panel.reindex_like
    Panel.rename
+   Panel.sample
    Panel.select
    Panel.take
    Panel.truncate

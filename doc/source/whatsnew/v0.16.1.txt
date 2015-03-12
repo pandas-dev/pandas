@@ -12,10 +12,11 @@ Highlights include:
 - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
 - New section on how-to-contribute to *pandas*, see :ref`here <contributing>`
 
+- New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enchancements.sample>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
-
 
 .. _whatsnew_0161.enhancements:
 
@@ -137,6 +138,48 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
    df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
 
 See the :ref:`documentation <advanced.categoricalindex>` for more. (:issue:`7629`)
+
+.. _whatsnew_0161.enhancements.sample:
+
+Sample
+^^^^^^
+
+Series, DataFrames, and Panels now have a new method: :meth:`~pandas.DataFrame.sample`.
+The method accepts a specific number of rows or columns to return, or a fraction of the
+total number or rows or columns. It also has options for sampling with or without replacement,
+for passing in a column for weights for non-uniform sampling, and for setting seed values to
+facilitate replication. (:issue:`2419`)
+
+.. ipython :: python
+
+   example_series = Series([0,1,2,3,4,5])
+
+   # When no arguments are passed, returns 1
+   example_series.sample()
+
+   # One may specify either a number of rows:
+   example_series.sample(n=3)
+
+   # Or a fraction of the rows:
+   example_series.sample(frac=0.5)
+
+   # weights are accepted.
+   example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
+   example_series.sample(n=3, weights=example_weights)
+
+   # weights will also be normalized if they do not sum to one,
+   # and missing values will be treated as zeros.
+   example_weights2 = [0.5, 0, 0, 0, None, np.nan]
+   example_series.sample(n=1, weights=example_weights2)
+
+
+When applied to a DataFrame, one may pass the name of a column to specify sampling weights
+when sampling from rows.
+
+.. ipython :: python
+
+   df = DataFrame({'col1':[9,8,7,6], 'weight_column':[0.5, 0.4, 0.1, 0]})
+   df.sample(n=3, weights='weight_column')
 
 .. _whatsnew_0161.api:
 
