@@ -4593,10 +4593,15 @@ class TestHDFStore(tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
 
-            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d']))
-
+            # basic
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d'], ordered=False))
             store.append('s', s, format='table')
             result = store.select('s')
+            tm.assert_series_equal(s, result)
+
+            s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d'], ordered=True))
+            store.append('s_ordered', s, format='table')
+            result = store.select('s_ordered')
             tm.assert_series_equal(s, result)
 
             df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
@@ -4637,6 +4642,10 @@ class TestHDFStore(tm.TestCase):
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b','c'])]
             result = store.select('df3', where = ['s in ["b","c"]'])
+            tm.assert_frame_equal(result, expected)
+
+            expected = df[df.s.isin(['b','c'])]
+            result = store.select('df3', where = ['s = ["b","c"]'])
             tm.assert_frame_equal(result, expected)
 
             expected = df[df.s.isin(['d'])]
