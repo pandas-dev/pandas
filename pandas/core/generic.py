@@ -1931,6 +1931,25 @@ class NDFrame(PandasObject):
             return self
         return self.iloc[-n:]
 
+    def rand(self, size = 5, size_type = 'number', replacement = False, weights = None, seed = None):
+        """
+        Returns a sample of rows. 
+            size: Number of rows (if size_type = 'number') or share of rows (if size_type = 'frac'). Default 5.
+            size_type: if 'number': return a sample with 'size' number of rows. if 'frac', return 'size' fraction of rows. Default is 'number'. 
+            replacement: Sample with or without replacement.
+            weights: Vector of weights. Must be same length as index.  Default 'None' results in equal probability weighting.
+            seed: seed to be fed to numpy random number generator. 
+        """
+        rs = np.random.RandomState(seed)
+        length = len(self)
+        if size_type == 'number':
+            locs = rs.choice(length, size=size, replace= replacement, p=weight)
+            return self.take(locs, axis=0)
+         
+        if size_type == 'frac':
+            n = int(round(size * length))
+            rand(self, size = n, size_type = 'number', replacement = replacement, weight=weight, seed=seed)
+
     #----------------------------------------------------------------------
     # Attribute access
 
