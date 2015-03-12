@@ -4093,7 +4093,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
             @Substitution(outname=name, desc=desc)
             @Appender(_num_doc)
             def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
-                          **kwargs):
+                          numeric_only=None, **kwargs):
                 if skipna is None:
                     skipna = True
                 if axis is None:
@@ -4102,6 +4102,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                     return self._agg_by_level(name, axis=axis, level=level,
                                               skipna=skipna, ddof=ddof)
                 return self._reduce(f, name, axis=axis,
+                                    numeric_only=numeric_only,
                                     skipna=skipna, ddof=ddof)
             stat_func.__name__ = name
             return stat_func

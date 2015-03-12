@@ -11503,6 +11503,32 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertFalse((result < 0).any())
             nanops._USE_BOTTLENECK = True
 
+    def test_numeric_only_flag(self):
+        # GH #9201
+        methods = ['sem', 'var', 'std']
+        df1 = DataFrame(np.random.randn(5, 3), columns=['foo', 'bar', 'baz'])
+        # set one entry to a number in str format
+        df1.ix[0, 'foo'] = '100'
+
+        df2 = DataFrame(np.random.randn(5, 3), columns=['foo', 'bar', 'baz'])
+        # set one entry to a non-number str
+        df2.ix[0, 'foo'] = 'a'
+
+        for meth in methods:
+            result = getattr(df1, meth)(axis=1, numeric_only=True)
+            expected = getattr(df1[['bar', 'baz']], meth)(axis=1)
+            assert_series_equal(expected, result)
+
+            result = getattr(df2, meth)(axis=1, numeric_only=True)
+            expected = getattr(df2[['bar', 'baz']], meth)(axis=1)
+            assert_series_equal(expected, result)
+
+            assertRaisesRegexp(TypeError, 'float',
+                               getattr(df1, meth), axis=1, numeric_only=False)
+
+            assertRaisesRegexp(TypeError, 'float',
+                               getattr(df2, meth), axis=1, numeric_only=False)
+
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1)/np.sqrt(len(x))
         self._check_stat_op('sem', alt)
