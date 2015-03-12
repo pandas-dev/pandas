@@ -1933,20 +1933,36 @@ class NDFrame(PandasObject):
 
     def rand(self, size = 5, size_type = 'number', replacement = False, weights = None, seed = None):
         """
-        Returns a sample of rows. 
-            size: Number of rows (if size_type = 'number') or share of rows (if size_type = 'frac'). Default 5.
-            size_type: if 'number': return a sample with 'size' number of rows. if 'frac', return 'size' fraction of rows. Default is 'number'. 
-            replacement: Sample with or without replacement.
-            weights: Vector of weights. Must be same length as index.  Default 'None' results in equal probability weighting.
-            seed: seed to be fed to numpy random number generator. 
+        Returns a sample of rows from object. 
+
+        Parameters
+        ----------
+            size: Number of rows (if size_type = 'number') or 
+                  share of rows (if size_type = 'frac'). Default 5.
+            size_type {'number', 'frac'}: 
+                  If 'number': return a sample with 'size' 
+                  number of rows. 
+                  If 'frac', return 'size' fraction of rows. 
+                  Default is 'number'. 
+            replacement {True, False}: Sample with or without replacement.
+            weights: Vector of weights. Must be same length as index.  
+                     Default 'None' results in equal probability weighting.
+            seed: seed to be fed to numpy random.RandomState() Function. Default None. 
         """
+        # Setup vars
         rs = np.random.RandomState(seed)
         length = len(self)
+        
+        # Actual executions
         if size_type == 'number':
-            locs = rs.choice(length, size=size, replace= replacement, p=weight)
+            locs = rs.choice(length, size = size, replace = replacement, p = weight)
             return self.take(locs, axis=0)
          
         if size_type == 'frac':
+            # Check value
+            if size > 1 or size < 0:
+                 raise TypeError("Size must be between 0 and 1 if size_type = 'frac'")
+                 
             n = int(round(size * length))
             rand(self, size = n, size_type = 'number', replacement = replacement, weight=weight, seed=seed)
 
