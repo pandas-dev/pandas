@@ -354,6 +354,14 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+    def test_rand(self):
+        o = self._construct(shape=10)
+        seed = np.random.randint(0,10000)
+        
+        # Check seeding
+        self._compare(o.rand(seed = seed), o.rand(seed = seed))
+   
+        # Check full draw without replacement has all elements
 
     def test_size_compat(self):
         # GH8846
