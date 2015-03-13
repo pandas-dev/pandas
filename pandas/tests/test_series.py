@@ -5037,6 +5037,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertEqual(list(isnull(s)), list(isnull(l)))
             self.assertEqual(list(isnull(s)), list(isnull(u)))
 
+    def test_clip_against_series(self):
+        # GH #6966
+
+        s = Series([1.0, 1.0, 4.0])
+        threshold = Series([1.0, 2.0, 3.0])
+
+        assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
+        assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
+
+        lower = Series([1.0, 2.0, 3.0])
+        upper = Series([1.5, 2.5, 3.5])
+        assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
+        assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
+
     def test_valid(self):
         ts = self.ts.copy()
         ts[::2] = np.NaN
