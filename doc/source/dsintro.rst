@@ -453,7 +453,7 @@ available to insert at a particular location in the columns:
 .. _dsintro.chained_assignment:
 
 Assigning New Columns in Method Chains
---------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.16.0
 
