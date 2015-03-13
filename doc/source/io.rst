@@ -1098,7 +1098,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
 
     print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv', sep=None)
+    pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.chunking:
 

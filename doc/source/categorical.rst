@@ -386,9 +386,9 @@ categories or a categorical with any list-like object, will raise a TypeError.
 
 .. ipython:: python
 
-    cat = Series(Categorical([1,2,3], categories=[3,2,1]))
-    cat_base = Series(Categorical([2,2,2], categories=[3,2,1]))
-    cat_base2 = Series(Categorical([2,2,2]))
+    cat = Series([1,2,3]).astype("category", categories=[3,2,1], ordered=True)
+    cat_base = Series([2,2,2]).astype("category", categories=[3,2,1], ordered=True)
+    cat_base2 = Series([2,2,2]).astype("category", ordered=True)
 
     cat
     cat_base
