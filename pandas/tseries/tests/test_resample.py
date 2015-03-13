@@ -884,7 +884,7 @@ class TestResample(tm.TestCase):
 
         dti = date_range('2013-09-30', '2013-11-02', freq='30Min', tz='Europe/Paris')
         values = range(dti.size)
-        df = DataFrame({"a": values, "b": values, "c": values}, index=dti)
+        df = DataFrame({"a": values, "b": values, "c": values}, index=dti, dtype='int64')
         how = {"a": "min", "b": "max", "c": "count"}
         
         assert_frame_equal(df.resample("W-MON", how=how)[["a", "b", "c"]],
