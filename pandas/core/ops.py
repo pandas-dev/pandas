@@ -571,7 +571,11 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         return result
 
-    def wrapper(self, other):
+    def wrapper(self, other, axis=None):
+        # Validate the axis parameter
+        if axis is not None:
+            self._get_axis_number(axis)
+
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
             if len(self) != len(other):

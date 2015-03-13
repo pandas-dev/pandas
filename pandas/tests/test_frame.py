@@ -11394,6 +11394,39 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertTrue((clipped_df.values[ub_mask] == ub).all() == True)
             self.assertTrue((clipped_df.values[mask] == df.values[mask]).all() == True)
 
+    def test_clip_against_series(self):
+        # GH #6966
+
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = Series(np.random.randn(1000))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub, axis=0)
+
+        for i in range(2):
+            lb_mask = df.iloc[:, i] <= lb
+            ub_mask = df.iloc[:, i] >= ub
+            mask = ~lb_mask & ~ub_mask
+
+            assert_series_equal(clipped_df.loc[lb_mask, i], lb[lb_mask])
+            assert_series_equal(clipped_df.loc[ub_mask, i], ub[ub_mask])
+            assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
+
+    def test_clip_against_frame(self):
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = DataFrame(np.random.randn(1000, 2))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub)
+
+        lb_mask = df <= lb
+        ub_mask = df >= ub
+        mask = ~lb_mask & ~ub_mask
+
+        assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
+        assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
+        assert_frame_equal(clipped_df[mask], df[mask])
+
     def test_get_X_columns(self):
         # numeric and object columns
 
