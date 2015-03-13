@@ -1,6 +1,6 @@
 .. _whatsnew_0160:
 
-v0.16.0 (March 15, 2015)
+v0.16.0 (March 20, 2015)
 ------------------------
 
 This is a major release from 0.15.2 and includes a small number of API changes, several new features,

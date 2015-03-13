@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.16.0
 -------------
 
-**Release date:** (March 15, 2015)
+**Release date:** (March 20, 2015)
 
 This is a major release from 0.15.2 and includes a number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
@@ -66,6 +66,64 @@ of all API changes, enhancements and bugs that have been fixed in 0.16.0.
 
 Thanks
 ~~~~~~
+
+- Aaron Toth
+- Alan Du
+- Alessandro Amici
+- Artemy Kolchinsky
+- Ben Schiller
+- Bill Letson
+- Brandon Bradley
+- Chau Hoang
+- Chris Reynolds
+- Chris Whelan
+- Christer van der Meeren
+- David Cottrell
+- David Stephens
+- Ehsan Azarnasab
+- Garrett-R
+- Guillaume Gay
+- Jake Torcasso
+- Jason Sexauer
+- Jeff Reback
+- John McNamara
+- Joris Van den Bossche
+- Juarez Bochi
+- Junya Hayashi
+- K.-Michael Aye
+- Kerby Shedden
+- Kevin Sheppard
+- Kieran O'Mahony
+- Kodi Arfer
+- Matti Airas
+- Min RK
+- Mortada Mehyar
+- Robert
+- Scott E Lasley
+- Scott Lasley
+- Sergio Pascual
+- Skipper Seabold
+- Stephan Hoyer
+- Thomas Grainger
+- Tom Augspurger
+- TomAugspurger
+- Vladimir Filimonov
+- Vyomkesh Tripathi
+- Will Holmgren
+- Yulong Yang
+- behzad nouri
+- bertrandhaut
+- cel4
+- clham
+- hsperr
+- ischwabacher
+- jnmclarty
+- josham
+- jreback
+- omtinez
+- roch
+- sinhrks
+- unutbu
 
 pandas 0.15.2
 -------------
