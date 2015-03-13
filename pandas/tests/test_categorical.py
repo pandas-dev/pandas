@@ -86,7 +86,11 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(factor.ordered)
 
         # this however will raise as cannot be sorted
-        self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
+        # but fixed in newer versions of numpy
+        if LooseVersion(np.__version__) < "1.10":
+            self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
+        else:
+            Categorical.from_array(arr, ordered=True)
 
     def test_constructor(self):
 
