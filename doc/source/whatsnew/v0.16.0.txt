@@ -7,75 +7,29 @@ This is a major release from 0.15.2 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
-- Highlights include:
+Highlights include:
 
-  * ``DataFrame.assign`` method, see :ref:`here <whatsnew_0160.enhancements.assign>`
-  * ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
-  * Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
-  * Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
-  * Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
+- ``DataFrame.assign`` method, see :ref:`here <whatsnew_0160.enhancements.assign>`
+- ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
+- Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
+- Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
+- Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
 
-- Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating
+Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating.
 
-- :ref:`Other Enhancements <whatsnew_0160.enhancements>`
+.. contents:: What's new in v0.16.0
+    :local:
 
-- :ref:`Performance Improvements <whatsnew_0160.performance>`
-
-- :ref:`Bug Fixes <whatsnew_0160.bug_fixes>`
 
 .. _whatsnew_0160.enhancements:
 
 New features
 ~~~~~~~~~~~~
 
-- Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
-
-  .. ipython:: python
-
-     df = pd.DataFrame({'x': range(5)})
-     df.reindex([0.2, 1.8, 3.5], method='nearest')
-
-  This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
-
-- Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>`. (issue:`9493`:)
-- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
-- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
-- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
-- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
-- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
-- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
-- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
-- SQL code now safely escapes table and column names (:issue:`8986`)
-
-- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
-- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
-  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
-
-- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
-
-- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
-- ``Index.asof`` now works on all index types (:issue:`9258`).
-
-- Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
-- The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
-
-  .. code-block:: python
-
-     # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-     pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
-
-- A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
-- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
-- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
-- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
-- Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
-- Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
-- Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
-
 .. _whatsnew_0160.enhancements.assign:
 
 DataFrame Assign
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Inspired by `dplyr's
 <http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__ ``mutate`` verb, DataFrame has a new
@@ -121,7 +75,7 @@ See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`922
 .. _whatsnew_0160.enhancements.sparse:
 
 Interaction with scipy.sparse
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
 
@@ -166,12 +120,67 @@ from a ``scipy.sparse.coo_matrix``:
    ss = SparseSeries.from_coo(A)
    ss
 
+.. _whatsnew_0160.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
+
+  .. ipython:: python
+
+     df = pd.DataFrame({'x': range(5)})
+     df.reindex([0.2, 1.8, 3.5], method='nearest')
+
+  This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
+
+- Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>`. (issue:`9493`:)
+- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
+- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
+- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
+- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
+- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
+- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
+- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
+- SQL code now safely escapes table and column names (:issue:`8986`)
+
+- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
+- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
+  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
+
+- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
+
+- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
+- ``Index.asof`` now works on all index types (:issue:`9258`).
+
+- Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
+- The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
+
+  .. code-block:: python
+
+     # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
+     pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+- A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
+- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
+- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
+- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
+- Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
+- Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
+- Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
+
+
+.. _whatsnew_0160.api:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _whatsnew_0160.api_breaking:
 
 .. _whatsnew_0160.api_breaking.timedelta:
 
 Changes in Timedelta
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a
 sub-class of ``datetime.timedelta``. Mentioned :ref:`here <whatsnew_0150.timedeltaindex>` was a notice of an API change w.r.t. the ``.seconds`` accessor. The intent was to provide a user-friendly set of accessors that give the 'natural' value for that unit, e.g. if you had a ``Timedelta('1 day, 10:11:12')``, then ``.seconds`` would return 12. However, this is at odds with the definition of ``datetime.timedelta``, which defines ``.seconds`` as ``10 * 3600 + 11 * 60 + 12 == 36672``.
@@ -212,7 +221,7 @@ Using ``.components`` allows the full component access
 .. _whatsnew_0160.api_breaking.indexing:
 
 Indexing Changes
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
 
@@ -276,10 +285,72 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
 
 
-.. _whatsnew_0160.api:
+.. _whatsnew_0160.api_breaking.categorical:
 
-API Changes
-~~~~~~~~~~~
+Categorical Changes
+^^^^^^^^^^^^^^^^^^^
+
+In prior versions, ``Categoricals`` that had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``. Ordering must now be explicit.
+
+Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.as_ordered()`` or ``cat.as_unordered()``. These will by default return a **new** object and not modify the existing object. (:issue:`9347`, :issue:`9190`)
+
+Previous Behavior
+
+.. code-block:: python
+
+   In [3]: s = Series([0,1,2], dtype='category')
+
+   In [4]: s
+   Out[4]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0 < 1 < 2]
+
+   In [5]: s.cat.ordered
+   Out[5]: True
+
+   In [6]: s.cat.ordered = False
+
+   In [7]: s
+   Out[7]:
+   0    0
+   1    1
+   2    2
+   dtype: category
+   Categories (3, int64): [0, 1, 2]
+
+New Behavior
+
+.. ipython:: python
+
+   s = Series([0,1,2], dtype='category')
+   s
+   s.cat.ordered
+   s = s.cat.as_ordered()
+   s
+   s.cat.ordered
+
+   # you can set in the constructor of the Categorical
+   s = Series(Categorical([0,1,2],ordered=True))
+   s
+   s.cat.ordered
+
+For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``. These are passed directly to the constructor.
+
+.. ipython:: python
+
+   s = Series(["a","b","c","a"]).astype('category',ordered=True)
+   s
+   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+   s
+
+
+.. _whatsnew_0160.api_breaking.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
 
 - ``Index.duplicated`` now returns ``np.array(dtype=bool)`` rather than ``Index(dtype=object)`` containing ``bool`` values. (:issue:`8875`)
 - ``DataFrame.to_json`` now returns accurate type serialisation for each column for frames of mixed dtype (:issue:`9037`)
@@ -367,139 +438,27 @@ API Changes
 - ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
 
+- Due to a bug fix, looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`). Old behavior:
 
-Categorical Changes
-~~~~~~~~~~~~~~~~~~~
+  .. ipython:: python
+    :verbatim:
 
-.. _whatsnew_0160.api_breaking.categorical:
+    In [4]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
+    Out[4]: Timestamp('2000-01-31 00:00:00')
 
-In prior versions, ``Categoricals`` that had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``. Ordering must now be explicit.
-
-Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.as_ordered()`` or ``cat.as_unordered()``. These will by default return a **new** object and not modify the existing object. (:issue:`9347`, :issue:`9190`)
-
-Previous Behavior
-
-.. code-block:: python
-
-   In [3]: s = Series([0,1,2], dtype='category')
-
-   In [4]: s
-   Out[4]:
-   0    0
-   1    1
-   2    2
-   dtype: category
-   Categories (3, int64): [0 < 1 < 2]
-
-   In [5]: s.cat.ordered
-   Out[5]: True
-
-   In [6]: s.cat.ordered = False
-
-   In [7]: s
-   Out[7]:
-   0    0
-   1    1
-   2    2
-   dtype: category
-   Categories (3, int64): [0, 1, 2]
-
-New Behavior
-
-.. ipython:: python
-
-   s = Series([0,1,2], dtype='category')
-   s
-   s.cat.ordered
-   s = s.cat.as_ordered()
-   s
-   s.cat.ordered
-
-   # you can set in the constructor of the Categorical
-   s = Series(Categorical([0,1,2],ordered=True))
-   s
-   s.cat.ordered
-
-For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``. These are passed directly to the constructor.
-
-.. ipython:: python
-
-   s = Series(["a","b","c","a"]).astype('category',ordered=True)
-   s
-   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
-   s
-
-Indexing Changes
-~~~~~~~~~~~~~~~~
-
-.. _whatsnew_0160.api_breaking.indexing:
-
-The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
-
-- slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
-
-.. ipython:: python
-
-     df = DataFrame(np.random.randn(5,4),
-                    columns=list('ABCD'),
-                    index=date_range('20130101',periods=5))
-     df
-     s = Series(range(5),[-2,-1,1,2,3])
-     s
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc['2013-01-02':'2013-01-10']
-     KeyError: 'stop bound [2013-01-10] is not in the [index]'
-
-     In [6]: s.loc[-10:3]
-     KeyError: 'start bound [-10] is not the [index]'
-
-  New Behavior
+  Fixed behavior:
 
   .. ipython:: python
 
-     df.loc['2013-01-02':'2013-01-10']
-     s.loc[-10:3]
+    pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
 
-- allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [8]: s.ix[-1.0:2]
-     TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
-
-  New Behavior
-
-  .. ipython:: python
-
-     s.ix[-1.0:2]
-
-- provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc[2:3]
-     KeyError: 'start bound [2] is not the [index]'
-
-  New Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc[2:3]
-     TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
+  To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 
 
 .. _whatsnew_0160.deprecations:
 
 Deprecations
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 - The ``rplot`` trellis plotting interface is deprecated and will be removed
   in a future version. We refer to external packages like
@@ -518,10 +477,11 @@ Deprecations
 - Adding ``DatetimeIndex/PeriodIndex`` to another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to a ``TypeError`` in a future version. ``.union()`` should be used for the union set operation. (:issue:`9094`)
 - Subtracting ``DatetimeIndex/PeriodIndex`` from another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to an actual numeric subtraction yielding a ``TimeDeltaIndex`` in a future version. ``.difference()`` should be used for the differencing set operation. (:issue:`9094`)
 
+
 .. _whatsnew_0160.prior_deprecations:
 
 Removal of prior version deprecations/changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``DataFrame.pivot_table`` and ``crosstab``'s ``rows`` and ``cols`` keyword arguments were removed in favor
   of ``index`` and ``columns`` (:issue:`6581`)
@@ -531,8 +491,8 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0160.performance:
 
-Performance
-~~~~~~~~~~~
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed a performance regression for ``.loc`` indexing with an array or list-like (:issue:`9126`:).
 - ``DataFrame.to_json`` 30x performance improvement for mixed dtype frames. (:issue:`9037`)
@@ -576,21 +536,6 @@ Bug Fixes
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
 - Bug in ``rank`` where comparing floats with tolerance will cause inconsistent behaviour (:issue:`8365`).
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
-- Looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`). Old behavior:
-
-  .. ipython:: python
-    :verbatim:
-
-    In [4]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
-    Out[4]: Timestamp('2000-01-31 00:00:00')
-
-  Fixed behavior:
-
-  .. ipython:: python
-
-    pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
-
-  To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 - Bug in adding ``offsets.Nano`` to other offets raises ``TypeError`` (:issue:`9284`)
 - Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
 - Bugs in ``resample`` around DST transitions. This required fixing offset classes so they behave correctly on DST transitions. (:issue:`5172`, :issue:`8744`, :issue:`8653`, :issue:`9173`, :issue:`9468`).
@@ -620,5 +565,4 @@ Bug Fixes
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
-
 - Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
