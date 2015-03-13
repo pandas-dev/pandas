@@ -23,6 +23,7 @@ Enhancements
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+- Allow clip, clip_lower, and clip_upper to accept array-like arguments as thresholds (:issue:`6966`). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s).
 
   The ``.str`` accessor is now available for both ``Series`` and ``Index``.
 
