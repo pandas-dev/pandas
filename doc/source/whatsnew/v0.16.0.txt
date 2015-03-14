@@ -209,72 +209,6 @@ Using ``.components`` allows the full component access
    t.components
    t.components.seconds
 
-.. _whatsnew_0160.api_breaking.indexing:
-
-Indexing Changes
-~~~~~~~~~~~~~~~~
-
-The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
-
-- Slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
-
-  .. ipython:: python
-
-     df = DataFrame(np.random.randn(5,4),
-                    columns=list('ABCD'),
-                    index=date_range('20130101',periods=5))
-     df
-     s = Series(range(5),[-2,-1,1,2,3])
-     s
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc['2013-01-02':'2013-01-10']
-     KeyError: 'stop bound [2013-01-10] is not in the [index]'
-
-     In [6]: s.loc[-10:3]
-     KeyError: 'start bound [-10] is not the [index]'
-
-  New Behavior
-
-  .. ipython:: python
-
-     df.loc['2013-01-02':'2013-01-10']
-     s.loc[-10:3]
-
-- Allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [8]: s.ix[-1.0:2]
-     TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
-
-  New Behavior
-
-  .. ipython:: python
-
-     s.ix[-1.0:2]
-
-- Provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc[2:3]
-     KeyError: 'start bound [2] is not the [index]'
-
-  New Behavior
-
-  .. code-block:: python
-
-     In [4]: df.loc[2:3]
-     TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
-
 
 .. _whatsnew_0160.api:
 
@@ -436,15 +370,16 @@ Indexing Changes
 
 The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
 
-- slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
+- Slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
 
-.. ipython:: python
+  .. ipython:: python
 
-     df = DataFrame(np.random.randn(5,4),
+     df = DataFrame(np.random.randn(5, 4),
                     columns=list('ABCD'),
-                    index=date_range('20130101',periods=5))
+                    index=date_range('20130101', periods=5))
      df
-     s = Series(range(5),[-2,-1,1,2,3])
+
+     s = Series(range(5), [-2,-1,1,2,3])
      s
 
   Previous Behavior
@@ -464,7 +399,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      df.loc['2013-01-02':'2013-01-10']
      s.loc[-10:3]
 
-- allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
+- Allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
 
   Previous Behavior
 
@@ -479,7 +414,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
      s.ix[-1.0:2]
 
-- provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
+- Provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 
   Previous Behavior
 
