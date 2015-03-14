@@ -622,3 +622,4 @@ Bug Fixes
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
 
 - Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
+- Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)

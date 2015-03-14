@@ -165,6 +165,13 @@ class Panel(NDFrame):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
             copy = False
             dtype = None
+        elif lib.isscalar(data) and all(x is not None for x in passed_axes):
+            if dtype is None:
+                dtype, data = _infer_dtype_from_scalar(data)
+            values = np.empty([len(x) for x in passed_axes], dtype=dtype)
+            values.fill(data)
+            mgr = self._init_matrix(values, passed_axes, dtype=dtype, copy=False)
+            copy = False
         else:  # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
