@@ -98,7 +98,7 @@ fi
 
 python setup.py build_ext --inplace && python setup.py develop
 
-for package in beautifulsoup4 'python-dateutil'; do
+for package in beautifulsoup4; do
     pip uninstall --yes $package
 done
 
