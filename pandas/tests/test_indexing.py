@@ -3751,14 +3751,6 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(s,df.iloc[:,0].order())
         assert_series_equal(s,df[0].order())
 
-        # operating on a copy
-        df = pd.DataFrame({'a': list(range(4)), 'b': list('ab..'), 'c': ['a', 'b', np.nan, 'd']})
-        mask = pd.isnull(df.c)
-
-        def f():
-            df[['c']][mask] = df[['b']][mask]
-        self.assertRaises(com.SettingWithCopyError, f)
-
         # false positives GH6025
         df = DataFrame ({'column1':['a', 'a', 'a'], 'column2': [4,8,9] })
         str(df)
@@ -3789,6 +3781,24 @@ class TestIndexing(tm.TestCase):
         def f():
             df['C'][2] = 'foo'
         self.assertRaises(com.SettingWithCopyError, f)
+
+    def test_setting_with_copy_bug(self):
+
+        # operating on a copy
+        df = pd.DataFrame({'a': list(range(4)), 'b': list('ab..'), 'c': ['a', 'b', np.nan, 'd']})
+        mask = pd.isnull(df.c)
+
+        def f():
+            df[['c']][mask] = df[['b']][mask]
+        self.assertRaises(com.SettingWithCopyError, f)
+
+        # invalid warning as we are returning a new object
+        # GH 8730
+        df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
+        df2 = df1[['x']]
+
+        # this should not raise
+        df2['y'] = ['g', 'h', 'i']
 
     def test_detect_chained_assignment_warnings(self):
 
