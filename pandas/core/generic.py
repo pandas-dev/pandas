@@ -1265,6 +1265,14 @@ class NDFrame(PandasObject):
             except:
                 pass
 
+            # we might be a false positive
+            try:
+                if self.is_copy().shape == self.shape:
+                    self.is_copy = None
+                    return
+            except:
+                pass
+
             # a custom message
             if isinstance(self.is_copy, string_types):
                 t = self.is_copy
@@ -1344,8 +1352,9 @@ class NDFrame(PandasObject):
         result = self._constructor(new_data).__finalize__(self)
 
         # maybe set copy if we didn't actually change the index
-        if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
-            result._set_is_copy(self)
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
 
         return result
 

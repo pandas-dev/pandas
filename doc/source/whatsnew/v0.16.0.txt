@@ -454,6 +454,15 @@ Other API Changes
 
   To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 
+- A Spurious ``SettingWithCopy`` Warning was generated when setting a new item in a frame in some cases (:issue:`8730`)
+
+  The following would previously report a ``SettingWithCopy`` Warning.
+
+  .. ipython:: python
+
+     df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
+     df2 = df1[['x']]
+     df2['y'] = ['g', 'h', 'i']
 
 .. _whatsnew_0160.deprecations:
 
