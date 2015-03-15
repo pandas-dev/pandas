@@ -3278,13 +3278,22 @@ External Compatibility
 producing loss-less round trips to pandas objects. For external
 compatibility, ``HDFStore`` can read native ``PyTables`` format
 tables. It is possible to write an ``HDFStore`` object that can easily
-be imported into ``R`` using the ``rhdf5`` library. Create a table
-format store like this:
+be imported into ``R`` using the
+``rhdf5`` library (`Package website`_). Create a table format store like this:
+
+.. _package website: http://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
 
      .. ipython:: python
 
+        np.random.seed(1)
+        df_for_r = pd.DataFrame({"first": np.random.rand(100),
+                                 "second": np.random.rand(100),
+                                 "class": np.random.randint(0, 2, (100,))},
+                                 index=range(100))
+        print(df_for_r.head())
+
         store_export = HDFStore('export.h5')
-        store_export.append('df_dc', df_dc, data_columns=df_dc.columns)
+        store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
         store_export
 
      .. ipython:: python
@@ -3293,7 +3302,63 @@ format store like this:
         store_export.close()
         import os
         os.remove('export.h5')
+        
+In R this file can be read into a ``data.frame`` object using the ``rhdf5``
+library. The following example function reads the corresponding column names
+and data values from the values and assembles them into a ``data.frame``:
 
+    .. code-block:: R
+    
+       # Load values and column names for all datasets from corresponding nodes and
+       # insert them into one data.frame object.
+
+       library(rhdf5)
+
+       loadhdf5data <- function(h5File) {
+
+       listing <- h5ls(h5File)
+       # Find all data nodes, values are stored in *_values and corresponding column
+       # titles in *_items
+       data_nodes <- grep("_values", listing$name)
+       name_nodes <- grep("_items", listing$name)
+       data_paths = paste(listing$group[data_nodes], listing$name[data_nodes], sep = "/")
+       name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
+       columns = list()
+       for (idx in seq(data_paths)) {
+         # NOTE: matrices returned by h5read have to be transposed to to obtain
+         # required Fortran order!
+         data <- data.frame(t(h5read(h5File, data_paths[idx])))
+         names <- t(h5read(h5File, name_paths[idx]))
+         entry <- data.frame(data)
+         colnames(entry) <- names
+         columns <- append(columns, entry)
+       }
+
+       data <- data.frame(columns)
+
+       return(data)
+       }
+
+Now you can import the ``DataFrame`` into R:
+
+    .. code-block:: R
+    
+       > data = loadhdf5data("transfer.hdf5")
+       > head(data)
+                first    second class
+       1 0.4170220047 0.3266449     0
+       2 0.7203244934 0.5270581     0
+       3 0.0001143748 0.8859421     1
+       4 0.3023325726 0.3572698     1
+       5 0.1467558908 0.9085352     1
+       6 0.0923385948 0.6233601     1
+       
+.. note::
+   The R function lists the entire HDF5 file's contents and assembles the
+   ``data.frame`` object from all matching nodes, so use this only as a
+   starting point if you have stored multiple ``DataFrame`` objects to a
+   single HDF5 file.
+        
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
