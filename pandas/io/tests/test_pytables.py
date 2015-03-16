@@ -10,7 +10,7 @@ import numpy as np
 
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
-                    date_range, Index, DatetimeIndex, isnull)
+                    date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
 
 from pandas.io.pytables import _tables
 try:
@@ -4687,6 +4687,14 @@ class TestHDFStore(tm.TestCase):
             other = read_hdf(path, 'df')
             tm.assert_frame_equal(df, other)
 
+    def test_preserve_timedeltaindex_type(self):
+        df = DataFrame(np.random.normal(size=(10,5)))
+        df.index = timedelta_range(start='0s',periods=10,freq='1s')
+
+        with ensure_clean_store(self.path) as store:
+            
+            store['df'] = df
+            self.assertEqual(type(store['df'].index), TimedeltaIndex)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
