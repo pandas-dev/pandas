@@ -20,6 +20,7 @@ Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsne
 
 .. contents:: What's new in v0.16.0
     :local:
+    :backlinks: none
 
 
 .. _whatsnew_0160.enhancements:
