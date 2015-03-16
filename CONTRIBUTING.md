@@ -19,7 +19,7 @@ looking for a quick way to help out.
         ...
         ```
 
-  - Include the full version string of pandas and it's dependencies. In recent (>0.12) versions
+  - Include the full version string of pandas and its dependencies. In recent (>0.12) versions
     of pandas you can use a built in function:
 
     ```python

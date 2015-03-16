@@ -1039,7 +1039,7 @@ class TestGroupBy(tm.TestCase):
     def test_transform_exclude_nuisance(self):
 
         # this also tests orderings in transform between
-        # series/frame to make sure its consistent
+        # series/frame to make sure it's consistent
         expected = {}
         grouped = self.df.groupby('A')
         expected['C'] = grouped['C'].transform(np.mean)

@@ -699,7 +699,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if v is None or is_integer(v):
                     return v
 
-                # warn if its a convertible float
+                # warn if it's a convertible float
                 if v == int(v):
                     warnings.warn("slice indexers when using iloc should be integers "
                                   "and not floating point",FutureWarning)

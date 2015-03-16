@@ -15,7 +15,7 @@ Options and Settings
 
 Overview
 --------
-pandas has an options system that lets you customize some aspects of it's behaviour,
+pandas has an options system that lets you customize some aspects of its behaviour,
 display-related options being those the user is most likely to adjust.
 
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
@@ -291,7 +291,7 @@ display.expand_frame_repr  True         Whether to print out the full DataFrame
                                         multiple lines, `max_columns` is
                                         still respected, but the output will
                                         wrap-around across multiple "pages"
-                                        if it's width exceeds `display.width`.
+                                        if its width exceeds `display.width`.
 display.float_format       None         The callable should accept a floating
                                         point number and return a string with
                                         the desired format of the number.
