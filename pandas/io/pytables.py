@@ -4233,6 +4233,11 @@ def _convert_index(index, encoding=None, format_type=None):
                         freq=getattr(index, 'freq', None),
                         tz=getattr(index, 'tz', None),
                         index_name=index_name)
+    elif isinstance(index, TimedeltaIndex):
+        converted = index.asi8
+        return IndexCol(converted, 'timedelta64', _tables().Int64Col(),
+                        freq=getattr(index, 'freq', None),
+                        index_name=index_name)
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
         return IndexCol(
@@ -4251,6 +4256,11 @@ def _convert_index(index, encoding=None, format_type=None):
         return IndexCol(converted, 'datetime64', _tables().Int64Col(),
                         freq=getattr(index, 'freq', None),
                         tz=getattr(index, 'tz', None),
+                        index_name=index_name)
+    elif inferred_type == 'timedelta64':
+        converted = values.view('i8')
+        return IndexCol(converted, 'timedelta64', _tables().Int64Col(),
+                        freq=getattr(index, 'freq', None),
                         index_name=index_name)
     elif inferred_type == 'datetime':
         converted = np.asarray([(time.mktime(v.timetuple()) +
@@ -4302,6 +4312,8 @@ def _unconvert_index(data, kind, encoding=None):
     kind = _ensure_decoded(kind)
     if kind == u('datetime64'):
         index = DatetimeIndex(data)
+    elif kind == u('timedelta64'):
+        index = TimedeltaIndex(data)
     elif kind == u('datetime'):
         index = np.asarray([datetime.fromtimestamp(v) for v in data],
                            dtype=object)
