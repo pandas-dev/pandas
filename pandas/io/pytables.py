@@ -18,6 +18,7 @@ from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
 from pandas.core.common import adjoin, pprint_thing
 from pandas.core.algorithms import match, unique
