@@ -14,6 +14,7 @@ Highlights include:
 - Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
 - Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
 - Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
+-  Enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0160.enhancements.string>`
 
 Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating.
 
@@ -120,6 +121,45 @@ from a ``scipy.sparse.coo_matrix``:
    ss = SparseSeries.from_coo(A)
    ss
 
+.. _whatsnew_0160.enhancements.string:
+
+String Methods Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9282`, :issue:`9352`, :issue:`9386`, :issue:`9387`, :issue:`9439`)
+
+=============  =============  =============  ===============    ===============
+..             ..             Methods        ..                 ..
+=============  =============  =============  ===============    ===============
+``isalnum()``  ``isalpha()``  ``isdigit()``  ``isdigit()``      ``isspace()``
+``islower()``  ``isupper()``  ``istitle()``  ``isnumeric()``    ``isdecimal()``
+``find()``     ``rfind()``    ``ljust()``    ``rjust()``        ``zfill()``
+=============  =============  =============  ===============    ===============
+
+.. ipython:: python
+
+   s = Series(['abcd', '3456', 'EFGH'])
+   s.str.isalpha()
+   s.str.find('ab')
+
+
+- :meth:`Series.str.pad` and :meth:`Series.str.center` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
+
+.. ipython:: python
+
+   s = Series(['12', '300', '25'])
+   s.str.pad(5, fillchar='_')
+
+
+- Added :meth:`Series.str.slice_replace`, which previously raised ``NotImplementedError`` (:issue:`8888`)
+
+.. ipython:: python
+
+   s = Series(['ABCD', 'EFGH', 'IJK'])
+   s.str.slice_replace(1, 3, 'X')
+   # replaced with empty char
+   s.str.slice_replace(0, 1)
+
 .. _whatsnew_0160.enhancements.other:
 
 Other enhancements
@@ -137,7 +177,6 @@ Other enhancements
 - Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>`. (issue:`9493`:)
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
 - Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
-- Added ``Series.str.slice_replace()``, which previously raised ``NotImplementedError`` (:issue:`8888`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
 - ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
 - Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
@@ -145,15 +184,8 @@ Other enhancements
 - SQL code now safely escapes table and column names (:issue:`8986`)
 
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
-- Added ``StringMethods.isalnum()``, ``isalpha()``, ``isdigit()``, ``isspace()``, ``islower()``,
-  ``isupper()``, ``istitle()`` which behave as the same as standard ``str`` (:issue:`9282`)
-
-- Added ``StringMethods.find()`` and ``rfind()`` which behave as the same as standard ``str`` (:issue:`9386`)
-
 - ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
 - ``Index.asof`` now works on all index types (:issue:`9258`).
-
-- Added ``StringMethods.isnumeric`` and ``isdecimal`` which behave as the same as standard ``str`` (:issue:`9439`)
 - The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
 
   .. code-block:: python
@@ -162,9 +194,6 @@ Other enhancements
      pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
 
 - A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
-- Added ``StringMethods.ljust()`` and ``rjust()`` which behave as the same as standard ``str`` (:issue:`9352`)
-- ``StringMethods.pad()`` and ``center()`` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
-- Added ``StringMethods.zfill()`` which behave as the same as standard ``str`` (:issue:`9387`)
 - Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
 - Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
 - Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
