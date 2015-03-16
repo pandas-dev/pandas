@@ -1752,7 +1752,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         if self.is_categorical_astype(dtype):
             values = self.values
         else:
-            values = np.array(self.values).astype(dtype)
+            values = np.asarray(self.values).astype(dtype, copy=False)
 
         if copy:
             values = values.copy()

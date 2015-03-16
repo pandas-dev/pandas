@@ -514,6 +514,7 @@ Performance Improvements
 - Performance improvements in ``MultiIndex.sortlevel`` (:issue:`9445`)
 - Performance and memory usage improvements in ``DataFrame.duplicated`` (:issue:`9398`)
 - Cythonized ``Period`` (:issue:`9440`)
+- Decreased memory usage on ``to_hdf`` (:issue:`9648`)
 
 .. _whatsnew_0160.bug_fixes:
 
