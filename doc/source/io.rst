@@ -3271,6 +3271,8 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
    store.append('dfss2', dfss, nan_rep='_nan_')
    store.select('dfss2')
 
+.. _io.external_compatibility:
+
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
