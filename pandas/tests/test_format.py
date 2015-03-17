@@ -2438,16 +2438,16 @@ class TestSeriesFormatting(tm.TestCase):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')]
+        result = [x.split()[1] for x in result.split('\n')[:-1]]
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
         # empty string
         result = self.ts[:0].to_string()
-        self.assertEqual(result, '')
+        self.assertEqual(result, 'Series([], Freq: B)')
 
         result = self.ts[:0].to_string(length=0)
-        self.assertEqual(result, '')
+        self.assertEqual(result, 'Series([], Freq: B)')
 
         # name and length
         cp = self.ts.copy()
@@ -2623,7 +2623,7 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 2):
             self.assertEqual(len(str(s).split('\n')),5)
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')),5)
+            self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 0):
             self.assertEqual(len(str(s).split('\n')),10)
 
@@ -2637,9 +2637,136 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 2):
             self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')),4)
+            self.assertEqual(len(str(s).split('\n')),3)
         with option_context("display.max_rows", 0):
             self.assertEqual(len(str(s).split('\n')),9)
+
+    # Make sure #8532 is fixed
+    def test_consistent_format(self):
+        s = pd.Series([1,1,1,1,1,1,1,1,1,1,0.9999,1,1]*10)
+        with option_context("display.max_rows", 10):
+            res = repr(s)
+        exp = ('0      1.0000\n1      1.0000\n2      1.0000\n3      '
+               '1.0000\n4      1.0000\n        ...  \n125    '
+               '1.0000\n126    1.0000\n127    0.9999\n128    '
+               '1.0000\n129    1.0000\ndtype: float64')
+        self.assertEqual(res, exp)
+
+    @staticmethod
+    def gen_test_series():
+        s1 = pd.Series(['a']*100)
+        s2 = pd.Series(['ab']*100)
+        s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+        s4 = s3[::-1]
+        test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+        return test_sers
+
+    def chck_ncols(self, s):
+        with option_context("display.max_rows", 10):
+            res = repr(s)
+        lines = res.split('\n')
+        lines = [line for line in repr(s).split('\n') \
+                 if not re.match('[^\.]*\.+', line)][:-1]
+        ncolsizes = len(set(len(line.strip()) for line in lines))
+        self.assertEqual(ncolsizes, 1)
+
+    def test_format_explicit(self):
+        test_sers = self.gen_test_series()
+        with option_context("display.max_rows", 4):
+            res = repr(test_sers['onel'])
+            exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
+            self.assertEqual(exp, res)
+            res = repr(test_sers['twol'])
+            exp = ('0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:'
+                   ' object')
+            self.assertEqual(exp, res)
+            res = repr(test_sers['asc'])
+            exp = ('0         a\n1        ab\n      ...  \n4     abcde\n5'
+                   '    abcdef\ndtype: object')
+            self.assertEqual(exp, res)
+            res = repr(test_sers['desc'])
+            exp = ('5    abcdef\n4     abcde\n      ...  \n1        ab\n0'
+                   '         a\ndtype: object')
+            self.assertEqual(exp, res)
+
+    def test_ncols(self):
+        test_sers = self.gen_test_series()
+        for s in test_sers.values():
+            self.chck_ncols(s)
+
+    def test_max_rows_eq_one(self):
+        s = Series(range(10))
+        with option_context("display.max_rows", 1):
+            strrepr = repr(s).split('\n')
+        exp1 = ['0', '0']
+        res1 = strrepr[0].split()
+        self.assertEqual(exp1, res1)
+        exp2 = ['..']
+        res2 = strrepr[1].split()
+        self.assertEqual(exp2, res2)
+
+    def test_truncate_ndots(self):
+        def getndots(s):
+            return len(re.match('[^\.]*(\.*)', s).groups()[0])
+
+        s = Series([0, 2, 3, 6])
+        with option_context("display.max_rows", 2):
+            strrepr = repr(s).replace('\n', '')
+        self.assertEqual(getndots(strrepr), 2)
+
+        s = Series([0, 100, 200, 400])
+        with option_context("display.max_rows", 2):
+            strrepr = repr(s).replace('\n', '')
+        self.assertEqual(getndots(strrepr), 3)
+
+    def test_to_string_name(self):
+        s = Series(range(100))
+        s.name = 'myser'
+        res = s.to_string(max_rows=2, name=True)
+        exp = '0      0\n      ..\n99    99\nName: myser'
+        self.assertEqual(res, exp)
+        res = s.to_string(max_rows=2, name=False)
+        exp = '0      0\n      ..\n99    99'
+        self.assertEqual(res, exp)
+
+    def test_to_string_dtype(self):
+        s = Series(range(100))
+        res = s.to_string(max_rows=2, dtype=True)
+        exp = '0      0\n      ..\n99    99\ndtype: int64'
+        self.assertEqual(res, exp)
+        res = s.to_string(max_rows=2, dtype=False)
+        exp = '0      0\n      ..\n99    99'
+        self.assertEqual(res, exp)
+
+    def test_to_string_length(self):
+        s = Series(range(100))
+        res = s.to_string(max_rows=2, length=True)
+        exp = '0      0\n      ..\n99    99\nLength: 100'
+        self.assertEqual(res, exp)
+
+    def test_to_string_na_rep(self):
+        s = pd.Series(index=range(100))
+        res = s.to_string(na_rep='foo', max_rows=2)
+        exp = '0    foo\n      ..\n99   foo'
+        self.assertEqual(res, exp)
+
+    def test_to_string_float_format(self):
+        s = pd.Series(range(10), dtype=float)
+        res = s.to_string(float_format=lambda x: '{0:2.1f}'.format(x),
+                          max_rows=2)
+        exp = '0   0.0\n     ..\n9   9.0'
+        self.assertEqual(res, exp)
+
+    def test_to_string_header(self):
+        s = pd.Series(range(10))
+        s.index.name = 'foo'
+        res = s.to_string(header=True, max_rows=2)
+        exp = 'foo\n0    0\n    ..\n9    9'
+        self.assertEqual(res, exp)
+        res = s.to_string(header=False, max_rows=2)
+        exp = '0    0\n    ..\n9    9'
+        self.assertEqual(res, exp)
+
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True

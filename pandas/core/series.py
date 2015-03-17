@@ -36,7 +36,7 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.compat import zip, u, OrderedDict
+from pandas.compat import zip, u, OrderedDict, StringIO
 
 import pandas.core.ops as ops
 from pandas.core.algorithms import select_n
@@ -883,43 +883,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
+        buf = StringIO(u(""))
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0
                     else get_option("display.max_rows"))
-        if max_rows and len(self.index) > max_rows:
-            result = self._tidy_repr(min(30, max_rows - 4))
-        elif len(self.index) > 0:
-            result = self._get_repr(print_header=True,
-                                    length=len(self) > 50,
-                                    name=True,
-                                    dtype=True)
-        elif self.name is None:
-            result = u('Series([], dtype: %s)') % (self.dtype)
-        else:
-            result = u('Series([], name: %s, dtype: %s)') % (self.name,
-                                                             self.dtype)
+
+        self.to_string(buf=buf, name=self.name, dtype=self.dtype,
+                       max_rows=max_rows)
+        result = buf.getvalue()
+
         return result
-
-    def _tidy_repr(self, max_vals=20):
-        """
-
-        Internal function, should always return unicode string
-        """
-        if max_vals > 1:
-            num = max_vals // 2
-        else:
-            num = 1
-            max_vals = 2
-        head = self.iloc[:num]._get_repr(print_header=True, length=False,
-                                         dtype=False, name=False)
-        tail = self.iloc[-(max_vals - num):]._get_repr(print_header=False,
-                                                       length=False,
-                                                       name=False,
-                                                       dtype=False)
-        result = head + '\n...\n' + tail
-        result = '%s\n%s' % (result, self._repr_footer())
-
-        return compat.text_type(result)
 
     def _repr_footer(self):
 
@@ -948,8 +921,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                                len(self),
                                                str(self.dtype.name))
 
-    def to_string(self, buf=None, na_rep='NaN', float_format=None,
-                  length=False, dtype=False, name=False):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
+                  length=False, dtype=False, name=False, max_rows=None):
         """
         Render a string representation of the Series
 
@@ -962,12 +935,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float_format : one-parameter function, optional
             formatter function to apply to columns' elements if they are floats
             default None
+        header: boolean, default True
+            Add the Series header (index name)
         length : boolean, default False
             Add the Series length
         dtype : boolean, default False
             Add the Series dtype
         name : boolean, default False
-            Add the Series name (which may be None)
+            Add the Series name if not None
+        max_rows : int, optional
+            Maximum number of rows to show before truncating. If None, show
+            all.
 
         Returns
         -------
@@ -975,7 +953,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  length=length, dtype=dtype, name=name)
+                                  header=header, length=length, dtype=dtype,
+                                  name=name, max_rows=max_rows)
 
         # catch contract violations
         if not isinstance(the_repr, compat.text_type):
@@ -993,17 +972,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     f.write(the_repr)
 
     def _get_repr(
-        self, name=False, print_header=False, length=True, dtype=True,
-            na_rep='NaN', float_format=None):
+        self, name=False, header=True, length=True, dtype=True, na_rep='NaN',
+            float_format=None, max_rows=None):
         """
 
         Internal function, should always return unicode string
         """
-
-        formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
-                                        length=length, dtype=dtype,
+        formatter = fmt.SeriesFormatter(self, name=name,
+                                        length=length, header=header,
+                                        dtype=dtype,
                                         na_rep=na_rep,
-                                        float_format=float_format)
+                                        float_format=float_format,
+                                        max_rows=max_rows)
         result = formatter.to_string()
 
         # TODO: following check prob. not neces.

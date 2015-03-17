@@ -2046,7 +2046,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # with empty series (#4651)
         s = Series([], dtype=np.int64, name='foo')
-        self.assertEqual(repr(s), 'Series([], name: foo, dtype: int64)')
+        self.assertEqual(repr(s), 'Series([], Name: foo, dtype: int64)')
 
         s = Series([], dtype=np.int64, name=None)
         self.assertEqual(repr(s), 'Series([], dtype: int64)')
