@@ -3290,7 +3290,7 @@ be imported into ``R`` using the
                                  "second": np.random.rand(100),
                                  "class": np.random.randint(0, 2, (100,))},
                                  index=range(100))
-        print(df_for_r.head())
+        df_for_r.head()
 
         store_export = HDFStore('export.h5')
         store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
