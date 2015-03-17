@@ -17,10 +17,10 @@ Working with Text Data
 
 .. _text.string_methods:
 
-Series is equipped with a set of string processing methods
+Series and Index are equipped with a set of string processing methods
 that make it easy to operate on each element of the array. Perhaps most
 importantly, these methods exclude missing/NA values automatically. These are
-accessed via the Series's ``str`` attribute and generally have names matching
+accessed via the ``str`` attribute and generally have names matching
 the equivalent (scalar) built-in string methods:
 
 .. ipython:: python
@@ -29,6 +29,13 @@ the equivalent (scalar) built-in string methods:
    s.str.lower()
    s.str.upper()
    s.str.len()
+
+.. ipython:: python
+
+   idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+   idx.str.strip()
+   idx.str.lstrip()
+   idx.str.rstrip()
 
 Splitting and Replacing Strings
 -------------------------------
