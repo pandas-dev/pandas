@@ -4688,13 +4688,17 @@ class TestHDFStore(tm.TestCase):
             tm.assert_frame_equal(df, other)
 
     def test_preserve_timedeltaindex_type(self):
+        # GH9635 
+        # Storing TimedeltaIndexed DataFrames in fixed stores did not preserve
+        # the type of the index.
         df = DataFrame(np.random.normal(size=(10,5)))
-        df.index = timedelta_range(start='0s',periods=10,freq='1s')
+        df.index = timedelta_range(start='0s',periods=10,freq='1s',name='example')
 
         with ensure_clean_store(self.path) as store:
             
             store['df'] = df
-            self.assertEqual(type(store['df'].index), TimedeltaIndex)
+            assert_frame_equal(store['df'], df)
+
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
