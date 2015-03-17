@@ -3717,7 +3717,7 @@ class TestIndexing(tm.TestCase):
         self.assertIsNotNone(df.is_copy)
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
-        # should be ok even though its a copy!
+        # should be ok even though it's a copy!
         self.assertIsNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
         self.assertIsNone(df.is_copy)

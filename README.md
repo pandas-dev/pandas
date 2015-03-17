@@ -87,6 +87,12 @@ or  `pip`:
 pip install pandas
 ```
 
+or  `conda`:
+
+```sh
+conda install pandas
+```
+
 ## Dependencies
 - [NumPy](http://www.numpy.org): 1.7.0 or higher
 - [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
