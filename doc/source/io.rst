@@ -3276,7 +3276,7 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``HDFStore`` write ``table`` format objects in specific formats suitable for
+``HDFStore`` writes ``table`` format objects in specific formats suitable for
 producing loss-less round trips to pandas objects. For external
 compatibility, ``HDFStore`` can read native ``PyTables`` format
 tables. It is possible to write an ``HDFStore`` object that can easily
