@@ -1154,6 +1154,22 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(len(axes), 1)
         self.assertIs(ax.get_axes(), axes[0])
 
+    def test_color_and_style_arguments(self):
+        df = DataFrame({'x': [1, 2], 'y': [3, 4]})
+        # passing both 'color' and 'style' arguments should be allowed
+        # if there is no color symbol in the style strings:
+        ax = df.plot(color = ['red', 'black'], style = ['-', '--'])
+        # check that the linestyles are correctly set:
+        linestyle = [line.get_linestyle() for line in ax.lines]
+        self.assertEqual(linestyle, ['-', '--'])
+        # check that the colors are correctly set:
+        color = [line.get_color() for line in ax.lines]
+        self.assertEqual(color, ['red', 'black'])
+        # passing both 'color' and 'style' arguments should not be allowed
+        # if there is a color symbol in the style strings:
+        with tm.assertRaises(ValueError):
+            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
+
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
         ax = df.plot()
