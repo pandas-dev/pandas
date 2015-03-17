@@ -72,7 +72,7 @@ Bug Fixes
 
 
 
-
+- Bug : TimdeltaIndex serialisation wasn't supported in fixed stores (:issue:`9635`)
 
 
 
