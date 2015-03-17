@@ -871,12 +871,17 @@ class MPLPlot(object):
                           "simultaneously. Using 'color'")
 
         if 'color' in self.kwds and self.style is not None:
+            if com.is_list_like(self.style):
+                styles = self.style
+            else:
+                styles = [self.style]
             # need only a single match
-            if re.match('^[a-z]+?', self.style) is not None:
-                raise ValueError("Cannot pass 'style' string with a color "
-                                 "symbol and 'color' keyword argument. Please"
-                                 " use one or the other or pass 'style' "
-                                 "without a color symbol")
+            for s in styles:
+                if re.match('^[a-z]+?', s) is not None:
+                    raise ValueError("Cannot pass 'style' string with a color "
+                                     "symbol and 'color' keyword argument. Please"
+                                     " use one or the other or pass 'style' "
+                                     "without a color symbol")
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
