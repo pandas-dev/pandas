@@ -1197,6 +1197,40 @@ class TestIndex(Base, tm.TestCase):
             for kind in kinds:
                 joined = res.join(res, how=kind)
                 self.assertIs(res, joined)
+    def test_str_attribute(self):
+        # GH9068
+        methods = ['strip', 'rstrip', 'lstrip']
+        idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+        for method in methods:
+            expected = Index([getattr(str, method)(x) for x in idx.values])
+            tm.assert_index_equal(getattr(Index.str, method)(idx.str), expected)
+
+        # create a few instances that are not able to use .str accessor
+        indices = [Index(range(5)),
+                   tm.makeDateIndex(10),
+                   MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
+                   PeriodIndex(start='2000', end='2010', freq='A')]
+        for idx in indices:
+            with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+                idx.str.repeat(2)
+
+        idx = Index(['a b c', 'd e', 'f'])
+        expected = Index([['a', 'b', 'c'], ['d', 'e'], ['f']])
+        tm.assert_index_equal(idx.str.split(), expected)
+        tm.assert_index_equal(idx.str.split(return_type='series'), expected)
+        # return_type 'index' is an alias for 'series'
+        tm.assert_index_equal(idx.str.split(return_type='index'), expected)
+        with self.assertRaisesRegexp(ValueError, 'not supported'):
+            idx.str.split(return_type='frame')
+
+        # test boolean case, should return np.array instead of boolean Index
+        idx = Index(['a1', 'a2', 'b1', 'b2'])
+        expected = np.array([True, True, False, False])
+        self.assert_array_equal(idx.str.startswith('a'), expected)
+        self.assertIsInstance(idx.str.startswith('a'), np.ndarray)
+        s = Series(range(4), index=idx)
+        expected = Series(range(2), index=['a1', 'a2'])
+        tm.assert_series_equal(s[s.index.str.startswith('a')], expected)
 
     def test_indexing_doesnt_change_class(self):
         idx = Index([1, 2, 3, 'a', 'b', 'c'])
