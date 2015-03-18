@@ -991,6 +991,18 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         with tm.assertRaises(TypeError):
             df.plot(kind='line', blarg=True)
+        try:
+            df.plot(color = ['red', 'black'], style = ['-', '--'])
+            df['x'].plot(color = 'red', style = '-')
+        except:
+            self.fail("Calling 'plot()' on a dataframe/series and passing both 'color' and 'style' arguments should be allowed if there is no color symbol in the style string(s)")
+        try:
+            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
+            df['x'].plot(color = 'red', style = 'k-')
+        except:
+            pass
+        else:
+            self.fail("Calling 'plot()' on a dataframe/series and passing both 'color' and 'style' arguments should raise an error if there is a color symbol in the style string(s)")
 
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
