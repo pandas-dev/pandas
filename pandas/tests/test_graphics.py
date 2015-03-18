@@ -991,18 +991,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         with tm.assertRaises(TypeError):
             df.plot(kind='line', blarg=True)
-        try:
-            df.plot(color = ['red', 'black'], style = ['-', '--'])
-            df['x'].plot(color = 'red', style = '-')
-        except:
-            self.fail("Calling 'plot()' on a dataframe/series and passing both 'color' and 'style' arguments should be allowed if there is no color symbol in the style string(s)")
-        try:
-            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
-            df['x'].plot(color = 'red', style = 'k-')
-        except:
-            pass
-        else:
-            self.fail("Calling 'plot()' on a dataframe/series and passing both 'color' and 'style' arguments should raise an error if there is a color symbol in the style string(s)")
 
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
@@ -1064,6 +1052,22 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(kind='bar', subplots=True, ax=ax)
         self.assertEqual(len(axes), 1)
         self.assertIs(ax.get_axes(), axes[0])
+
+    def test_color_and_style_arguments(self):
+        df = DataFrame({'x': [1, 2], 'y': [3, 4]})
+        # passing both 'color' and 'style' arguments should be allowed
+        # if there is no color symbol in the style strings:
+        ax = df.plot(color = ['red', 'black'], style = ['-', '--'])
+        # check that the linestyles are correctly set:
+        linestyle = [line.get_linestyle() for line in ax.lines]
+        self.assertEqual(linestyle, ['-', '--'])
+        # check that the colors are correctly set:
+        color = [line.get_color() for line in ax.lines]
+        self.assertEqual(color, ['red', 'black'])
+        # passing both 'color' and 'style' arguments should not be allowed
+        # if there is a color symbol in the style strings:
+        with tm.assertRaises(ValueError):
+            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
