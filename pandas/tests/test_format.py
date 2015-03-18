@@ -2695,7 +2695,7 @@ class TestSeriesFormatting(tm.TestCase):
             self.chck_ncols(s)
 
     def test_max_rows_eq_one(self):
-        s = Series(range(10))
+        s = Series(range(10),dtype='int64')
         with option_context("display.max_rows", 1):
             strrepr = repr(s).split('\n')
         exp1 = ['0', '0']
@@ -2720,7 +2720,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(getndots(strrepr), 3)
 
     def test_to_string_name(self):
-        s = Series(range(100))
+        s = Series(range(100),dtype='int64')
         s.name = 'myser'
         res = s.to_string(max_rows=2, name=True)
         exp = '0      0\n      ..\n99    99\nName: myser'
@@ -2730,7 +2730,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(res, exp)
 
     def test_to_string_dtype(self):
-        s = Series(range(100))
+        s = Series(range(100),dtype='int64')
         res = s.to_string(max_rows=2, dtype=True)
         exp = '0      0\n      ..\n99    99\ndtype: int64'
         self.assertEqual(res, exp)
@@ -2739,7 +2739,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(res, exp)
 
     def test_to_string_length(self):
-        s = Series(range(100))
+        s = Series(range(100),dtype='int64')
         res = s.to_string(max_rows=2, length=True)
         exp = '0      0\n      ..\n99    99\nLength: 100'
         self.assertEqual(res, exp)
@@ -2751,14 +2751,14 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(res, exp)
 
     def test_to_string_float_format(self):
-        s = pd.Series(range(10), dtype=float)
+        s = pd.Series(range(10), dtype='float64')
         res = s.to_string(float_format=lambda x: '{0:2.1f}'.format(x),
                           max_rows=2)
         exp = '0   0.0\n     ..\n9   9.0'
         self.assertEqual(res, exp)
 
     def test_to_string_header(self):
-        s = pd.Series(range(10))
+        s = pd.Series(range(10),dtype='int64')
         s.index.name = 'foo'
         res = s.to_string(header=True, max_rows=2)
         exp = 'foo\n0    0\n    ..\n9    9'
