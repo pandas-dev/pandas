@@ -261,11 +261,7 @@ Bug Fixes
 
 
 
-
-
-
-
-
+- Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)
 
 
 

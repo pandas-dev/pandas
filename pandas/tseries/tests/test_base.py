@@ -745,6 +745,13 @@ Freq: D"""
                                         ['00:01:00', '00:01:00', '00:00:01'])):
             tm.assertIn(idx[0], idx)
 
+    def test_unknown_attribute(self):
+        #GH 9680
+        tdi = pd.timedelta_range(start=0,periods=10,freq='1s')
+        ts = pd.Series(np.random.normal(size=10),index=tdi)
+        self.assertNotIn('foo',ts.__dict__.keys())
+        self.assertRaises(AttributeError,lambda : ts.foo)
+
 
 class TestPeriodIndexOps(Ops):
 
