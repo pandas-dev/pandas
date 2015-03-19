@@ -185,9 +185,13 @@ Bug Fixes
 - Fixed bug in ``StataWriter`` resulting in changes to input ``DataFrame`` upon save (:issue:`9795`).
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
 - Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
+
 - Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
+
+- Bug in ``groupby.apply()`` that would raise if a passed user defined function either returned only ``None`` (for all input). (:issue:`9685`)
+
 - Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
 - Bug in ``DataFrame.plot(kind="hist")`` results in ``TypeError`` when ``DataFrame`` contains non-numeric columns  (:issue:`9853`)
 - Bug where repeated plotting of ``DataFrame`` with a ``DatetimeIndex`` may raise ``TypeError`` (:issue:`9852`)

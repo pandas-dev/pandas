@@ -2822,7 +2822,12 @@ class NDFrameGroupBy(GroupBy):
 
             # make Nones an empty object
             if com._count_not_none(*values) != len(values):
-                v = next(v for v in values if v is not None)
+                try:
+                    v = next(v for v in values if v is not None)
+                except StopIteration:
+                    # If all values are None, then this will throw an error.
+                    # We'd prefer it return an empty dataframe. 
+                    return DataFrame()
                 if v is None:
                     return DataFrame()
                 elif isinstance(v, NDFrame):
