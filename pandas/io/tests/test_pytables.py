@@ -9,6 +9,7 @@ import datetime
 import numpy as np
 
 import pandas
+import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, Index, DatetimeIndex, isnull)
 
@@ -33,6 +34,7 @@ from pandas import concat, Timestamp
 from pandas import compat
 from pandas.compat import range, lrange, u
 from pandas.util.testing import assert_produces_warning
+from numpy.testing.decorators import slow
 
 try:
     import tables
@@ -1497,107 +1499,6 @@ class TestHDFStore(tm.TestCase):
             store.put('f2', df)
             self.assertRaises(TypeError, store.create_table_index, 'f2')
 
-    def test_big_table_frame(self):
-        raise nose.SkipTest('no big table frame')
-
-        # create and write a big table
-        df = DataFrame(np.random.randn(2000 * 100, 100), index=range(
-            2000 * 100), columns=['E%03d' % i for i in range(100)])
-        for x in range(20):
-            df['String%03d' % x] = 'string%03d' % x
-
-        import time
-        x = time.time()
-        with ensure_clean_store(self.path,mode='w') as store:
-            store.append('df', df)
-            rows = store.root.df.table.nrows
-            recons = store.select('df')
-            assert isinstance(recons, DataFrame)
-
-        com.pprint_thing("\nbig_table frame [%s] -> %5.2f" % (rows, time.time() - x))
-
-    def test_big_table2_frame(self):
-        # this is a really big table: 1m rows x 60 float columns, 20 string, 20 datetime
-        # columns
-        raise nose.SkipTest('no big table2 frame')
-
-        # create and write a big table
-        com.pprint_thing("\nbig_table2 start")
-        import time
-        start_time = time.time()
-        df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
-            1000 * 1000)), columns=['E%03d' % i for i in range(60)])
-        for x in range(20):
-            df['String%03d' % x] = 'string%03d' % x
-        for x in range(20):
-            df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
-
-        com.pprint_thing("\nbig_table2 frame (creation of df) [rows->%s] -> %5.2f"
-              % (len(df.index), time.time() - start_time))
-
-        def f(chunksize):
-            with ensure_clean_store(self.path,mode='w') as store:
-                store.append('df', df, chunksize=chunksize)
-                r = store.root.df.table.nrows
-                return r
-
-        for c in [10000, 50000, 250000]:
-            start_time = time.time()
-            com.pprint_thing("big_table2 frame [chunk->%s]" % c)
-            rows = f(c)
-            com.pprint_thing("big_table2 frame [rows->%s,chunk->%s] -> %5.2f"
-                             % (rows, c, time.time() - start_time))
-
-    def test_big_put_frame(self):
-        raise nose.SkipTest('no big put frame')
-
-        com.pprint_thing("\nbig_put start")
-        import time
-        start_time = time.time()
-        df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
-            1000 * 1000)), columns=['E%03d' % i for i in range(60)])
-        for x in range(20):
-            df['String%03d' % x] = 'string%03d' % x
-        for x in range(20):
-            df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
-
-        com.pprint_thing("\nbig_put frame (creation of df) [rows->%s] -> %5.2f"
-              % (len(df.index), time.time() - start_time))
-
-        with ensure_clean_store(self.path, mode='w') as store:
-            start_time = time.time()
-            store = HDFStore(self.path, mode='w')
-            store.put('df', df)
-
-            com.pprint_thing(df.get_dtype_counts())
-            com.pprint_thing("big_put frame [shape->%s] -> %5.2f"
-                  % (df.shape, time.time() - start_time))
-
-    def test_big_table_panel(self):
-        raise nose.SkipTest('no big table panel')
-
-        # create and write a big table
-        wp = Panel(
-            np.random.randn(20, 1000, 1000), items=['Item%03d' % i for i in range(20)],
-            major_axis=date_range('1/1/2000', periods=1000), minor_axis=['E%03d' % i for i in range(1000)])
-
-        wp.ix[:, 100:200, 300:400] = np.nan
-
-        for x in range(100):
-            wp['String%03d'] = 'string%03d' % x
-
-        import time
-        x = time.time()
-
-
-        with ensure_clean_store(self.path, mode='w') as store:
-            store.append('wp', wp)
-            rows = store.root.wp.table.nrows
-            recons = store.select('wp')
-            assert isinstance(recons, Panel)
-
-        com.pprint_thing("\nbig_table panel [%s] -> %5.2f" % (rows, time.time() - x))
-
     def test_append_diff_item_order(self):
 
         wp = tm.makePanel()
@@ -1750,6 +1651,43 @@ class TestHDFStore(tm.TestCase):
             store.put('df',df)
             self.assertRaises(TypeError, store.select, 'df', columns=['A'])
             self.assertRaises(TypeError, store.select, 'df',where=[('columns=A')])
+
+    @slow
+    def test_expectedrows_where_indexing(self):
+
+        # 8265, 9676
+        # seems that setting expected rows casuses odd indexing issues in some cases
+        # this requires a big example
+
+        with ensure_clean_path('test.hdf') as path:
+
+            N = 7000000
+            df = pd.DataFrame({'A' : np.random.randint(-20000,-15000,size=N), 'B' : np.random.randn(N) })
+            df.to_hdf(path,'df',mode='w',complib='blosc',format='table',data_columns=True,index=False)
+            uniques = df.A.unique()
+            v1 = uniques[0]
+            v2 = uniques[1]
+            selector = "A=[v1,v2]"
+            expected = sorted([v1,v2])
+
+            def compare(result):
+                result = sorted(result.A.unique().tolist())
+                tm.assert_almost_equal(result, expected)
+
+            result = pd.read_hdf(path,'df',where=selector)
+            compare(result)
+
+            with pd.HDFStore(path) as store:
+                store.create_table_index('df')
+
+            result = pd.read_hdf(path,'df',where=selector)
+            compare(result)
+
+            cs = 500000
+            chunks = N // cs
+            for i in range(chunks):
+                result = pd.read_hdf(path,'df',start=i*cs,stop=(i+1)*cs,where=selector)
+                compare(result)
 
     def test_append_misc(self):
 
@@ -4436,7 +4374,7 @@ class TestHDFStore(tm.TestCase):
             safe_remove(self.path)
 
     def test_legacy_table_write(self):
-        raise nose.SkipTest("skipping for now")
+        raise nose.SkipTest("cannot write legacy tables")
 
         store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
 
