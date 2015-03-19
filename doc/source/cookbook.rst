@@ -5,29 +5,29 @@
 .. ipython:: python
    :suppress:
 
-   import pandas as pd   
+   import pandas as pd
    import numpy as np
-   
+
    import random
    import os
    import itertools
    import functools
-   import datetime   
-   
+   import datetime
+
    np.random.seed(123456)
-   
+
    pd.options.display.max_rows=15
    pd.options.display.mpl_style='default'
 
-   np.set_printoptions(precision=4, suppress=True) 
+   np.set_printoptions(precision=4, suppress=True)
 
-   
+
 ********
 Cookbook
 ********
 
 This is a repository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation.  
+We encourage users to add to this documentation.
 
 Adding interesting links and/or inline examples to this section is a great *First Pull Request*.
 
@@ -40,7 +40,7 @@ explicitly imported for newer users.
 
 These examples are written for python 3.4.  Minor tweaks might be necessary for earlier python
 versions.
-  
+
 Idioms
 ------
 
@@ -60,7 +60,7 @@ if-then...
 **********
 
 An if-then on one column
-     
+
 .. ipython:: python
 
    df.ix[df.AAA >= 5,'BBB'] = -1; df
@@ -70,13 +70,13 @@ An if-then with assignment to 2 columns:
 .. ipython:: python
 
    df.ix[df.AAA >= 5,['BBB','CCC']] = 555; df
-   
+
 Add another line with different logic, to do the -else
 
 .. ipython:: python
 
    df.ix[df.AAA < 5,['BBB','CCC']] = 2000; df
-   
+
 Or use pandas where after you've set up a mask
 
 .. ipython:: python
@@ -91,7 +91,7 @@ Or use pandas where after you've set up a mask
 
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-   
+
    df['logic'] = np.where(df['AAA'] > 5,'high','low'); df
 
 Splitting
@@ -104,10 +104,10 @@ Splitting
 
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-   
+
    dflow = df[df.AAA <= 5]
    dfhigh = df[df.AAA > 5]
-   
+
    dflow; dfhigh
 
 Building Criteria
@@ -134,8 +134,8 @@ Building Criteria
    newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
 
 ...or (with assignment modifies the DataFrame.)
-   
-.. ipython:: python   
+
+.. ipython:: python
 
    df.loc[(df['BBB'] > 25) | (df['CCC'] >= 75), 'AAA'] = 0.1; df
 
@@ -157,11 +157,11 @@ Building Criteria
 
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-   
+
    Crit1 = df.AAA <= 5.5
    Crit2 = df.BBB == 10.0
    Crit3 = df.CCC > -40.0
-   
+
 One could hard code:
 
 .. ipython:: python
@@ -171,10 +171,10 @@ One could hard code:
 ...Or it can be done with a list of dynamically built criteria
 
 .. ipython:: python
- 
+
    CritList = [Crit1,Crit2,Crit3]
    AllCrit = functools.reduce(lambda x,y: x & y, CritList)
-   
+
    df[AllCrit]
 
 .. _cookbook.selection:
@@ -194,7 +194,7 @@ The :ref:`indexing <indexing>` docs.
 
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-   
+
    df[(df.AAA <= 6) & (df.index.isin([0,2,4]))]
 
 `Use loc for label-oriented slicing and iloc positional slicing
@@ -213,23 +213,23 @@ There are 2 explicit slicing methods, with a third general case
 
 .. ipython:: python
    df.iloc[0:3] #Positional
-   
+
    df.loc['bar':'kar'] #Label
 
    #Generic
    df.ix[0:3] #Same as .iloc[0:3]
    df.ix['bar':'kar'] #Same as .loc['bar':'kar']
-   
+
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
 .. ipython:: python
 
    df2 = pd.DataFrame(data=data,index=[1,2,3,4]); #Note index starts at 1.
-   
+
    df2.iloc[1:3] #Position-oriented
-   
+
    df2.loc[1:3] #Label-oriented
-   
+
    df2.ix[1:3] #General, will mimic loc (label-oriented)
    df2.ix[0:3] #General, will mimic iloc (position-oriented), as loc[0:3] would raise a KeyError
 
@@ -240,9 +240,9 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40], 'CCC' : [100,50,-30,-50]}); df
-   
+
    df[~((df.AAA <= 6) & (df.index.isin([0,2,4])))]
-   
+
 Panels
 ******
 
@@ -262,10 +262,10 @@ Panels
    pf = pf.transpose(2,0,1)
    pf['E'] = pd.DataFrame(data, rng, cols)
    pf = pf.transpose(1,2,0);pf
-   
+
    #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
-   
+
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
 <http://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
 
@@ -279,13 +279,13 @@ New Columns
 
    df = pd.DataFrame(
         {'AAA' : [1,2,1,3], 'BBB' : [1,1,2,2], 'CCC' : [2,1,3,1]}); df
-   
+
    source_cols = df.columns # or some subset would work too.
    new_cols = [str(x) + "_cat" for x in source_cols]
    categories = {1 : 'Alpha', 2 : 'Beta', 3 : 'Charlie' }
-   
+
    df[new_cols] = df[source_cols].applymap(categories.get);df
-   
+
 `Keep other columns when using min() with groupby
 <http://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
 
@@ -302,12 +302,12 @@ Method 1 : idxmin() to get the index of the mins
 
 Method 2 : sort then take first of each
 
-.. ipython:: python   
+.. ipython:: python
 
    df.sort("BBB").groupby("AAA", as_index=False).first()
-   
+
 Notice the same results, with the exception of the index.
-   
+
 .. _cookbook.multi_index:
 
 MultiIndexing
@@ -325,8 +325,8 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
                       'One_Y' : [1.2,1.2,1.2],
                       'Two_X' : [1.11,1.11,1.11],
                       'Two_Y' : [1.22,1.22,1.22]}); df
-   
-   # As Labelled Index          
+
+   # As Labelled Index
    df = df.set_index('row');df
    # With Heirarchical Columns
    df.columns = pd.MultiIndex.from_tuples([tuple(c.split('_')) for c in df.columns]);df
@@ -366,9 +366,9 @@ To take the cross section of the 1st level and 1st axis the index:
    df.xs('BB',level=0,axis=0)  #Note : level and axis are optional, and default to zero
 
 ...and now the 2nd level of the 1st axis.
-   
+
 .. ipython:: python
-   
+
    df.xs('six',level=1,axis=0)
 
 `Slicing a multi-index with xs, method #2
@@ -378,14 +378,14 @@ To take the cross section of the 1st level and 1st axis the index:
 
    index = list(itertools.product(['Ada','Quinn','Violet'],['Comp','Math','Sci']))
    headr = list(itertools.product(['Exams','Labs'],['I','II']))
-   
+
    indx = pd.MultiIndex.from_tuples(index,names=['Student','Course'])
    cols = pd.MultiIndex.from_tuples(headr) #Notice these are un-named
-   
+
    data = [[70+x+y+(x*y)%3 for x in range(4)] for y in range(9)]
-   
+
    df = pd.DataFrame(data,indx,cols); df
-   
+
    All = slice(None)
 
    df.loc['Violet']
@@ -405,7 +405,7 @@ Sorting
 
 .. ipython:: python
 
-   df.sort(('Labs', 'II'), ascending=False)   
+   df.sort(('Labs', 'II'), ascending=False)
 
 `Partial Selection, the need for sortedness;
 <https://github.com/pydata/pandas/issues/2995>`__
@@ -480,24 +480,24 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    gb = df.groupby(['animal'])
-     
+
    gb.get_group('cat')
-     
+
 `Apply to different items in a group
 <http://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
 
 .. ipython:: python
 
    def GrowUp(x):
-      avg_weight =  sum(x[x['size'] == 'S'].weight * 1.5) 
+      avg_weight =  sum(x[x['size'] == 'S'].weight * 1.5)
       avg_weight += sum(x[x['size'] == 'M'].weight * 1.25)
       avg_weight += sum(x[x['size'] == 'L'].weight)
       avg_weight /= len(x)
       return pd.Series(['L',avg_weight,True], index=['size', 'weight', 'adult'])
 
-   expected_df = gb.apply(GrowUp) 
-     
-   expected_df 
+   expected_df = gb.apply(GrowUp)
+
+   expected_df
 
 `Expanding Apply
 <http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
@@ -505,32 +505,32 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    S = pd.Series([i / 100.0 for i in range(1,11)])
-    
+
    def CumRet(x,y):
       return x * (1 + y)
-        
+
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
    pd.expanding_apply(S, Red)
 
-     
+
 `Replacing some values with mean of the rest of a group
 <http://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
 
 .. ipython:: python
 
    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
-    
+
    gb = df.groupby('A')
 
    def replace(g):
       mask = g < 0
       g.loc[mask] = g[~mask].mean()
       return g
-    
+
    gb.transform(replace)
-     
+
 `Sort groups by aggregated data
 <http://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__
 
@@ -541,13 +541,13 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
                       'flag': [False, True] * 3})
 
    code_groups = df.groupby('code')
-    
+
    agg_n_sort_order = code_groups[['data']].transform(sum).sort('data')
-    
+
    sorted_df = df.ix[agg_n_sort_order.index]
-     
+
    sorted_df
-     
+
 `Create multiple aggregated columns
 <http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
@@ -555,7 +555,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    rng = pd.date_range(start="2014-10-07",periods=10,freq='2min')
    ts = pd.Series(data = list(range(10)), index = rng)
-    
+
    def MyCust(x):
       if len(x) > 2:
          return x[1] * 1.234
@@ -564,17 +564,17 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    mhc = {'Mean' : np.mean, 'Max' : np.max, 'Custom' : MyCust}
    ts.resample("5min",how = mhc)
    ts
-     
+
 `Create a value counts column and reassign back to the DataFrame
 <http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(), 
+   df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(),
                       'Value': [100, 150, 50, 50]}); df
    df['Counts'] = df.groupby(['Color']).transform(len)
    df
-     
+
 `Shift groups of the values in a column based on the index
 <http://stackoverflow.com/q/23198053/190597>`__
 
@@ -600,6 +600,14 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df_count = df.loc[mask['no']].reset_index()
    df_count
 
+`Grouping like Python's itertools.groupby
+<http://stackoverflow.com/q/29142487/846892>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame([0, 1, 0, 1, 1, 1, 0, 1, 1], columns=['A'])
+   df.A.groupby((df.A != df.A.shift()).cumsum()).groups
+   df.A.groupby((df.A != df.A.shift()).cumsum()).cumsum()
 
 Expanding Data
 **************
@@ -625,7 +633,7 @@ Create a list of dataframes, split using a delineation based on logic included i
 
    df = pd.DataFrame(data={'Case' : ['A','A','A','B','A','A','B','A','A'],
                            'Data' : np.random.randn(9)})
-                                   
+
    dfs = list(zip(*df.groupby(pd.rolling_median((1*(df['Case']=='B')).cumsum(),3,True))))[-1]
 
    dfs[0]
@@ -667,7 +675,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
    df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
                        'Passed': lambda x: sum(x == 'yes'),
                        'Employed' : lambda x : sum(x),
-                       'Grade' : lambda x : sum(x) / len(x)})                 
+                       'Grade' : lambda x : sum(x) / len(x)})
 
 Apply
 *****
@@ -679,7 +687,7 @@ Apply
 
    df = pd.DataFrame(data={'A' : [[2,4,8,16],[100,200],[10,20,30]], 'B' : [['a','b','c'],['jj','kk'],['ccc']]},index=['I','II','III'])
 
-   def SeriesFromSubList(aList): 
+   def SeriesFromSubList(aList):
       return pd.Series(aList)
 
    df_orgz = pd.concat(dict([ (ind,row.apply(SeriesFromSubList)) for ind,row in df.iterrows() ]))
@@ -691,14 +699,14 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
 .. ipython:: python
 
-   df = pd.DataFrame(data=np.random.randn(2000,2)/10000, 
+   df = pd.DataFrame(data=np.random.randn(2000,2)/10000,
                      index=pd.date_range('2001-01-01',periods=2000),
                      columns=['A','B']); df
 
    def gm(aDF,Const):
       v = ((((aDF.A+aDF.B)+1).cumprod())-1)*Const
       return (aDF.index[0],v.iloc[-1])
-                      
+
    S = pd.Series(dict([ gm(df.iloc[i:min(i+51,len(df)-1)],5) for i in range(len(df)-50) ])); S
 
 `Rolling apply with a DataFrame returning a Scalar
@@ -710,10 +718,10 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 
    rng = pd.date_range(start = '2014-01-01',periods = 100)
    df = pd.DataFrame({'Open' : np.random.randn(len(rng)),
-                      'Close' : np.random.randn(len(rng)), 
+                      'Close' : np.random.randn(len(rng)),
                       'Volume' : np.random.randint(100,2000,len(rng))}, index=rng); df
 
-   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum()).round(2)  
+   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum()).round(2)
    window = 5
    s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]); s
 
@@ -788,7 +796,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    rng = pd.date_range('2000-01-01', periods=6)
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
-   
+
 ignore_index is needed in pandas < v0.13, and depending on df construction
 
 .. ipython:: python
@@ -804,7 +812,7 @@ ignore_index is needed in pandas < v0.13, and depending on df construction
                            'Bins' : [110] * 2 + [160] * 3 + [40] * 2,
                            'Test_0' : [0, 1, 0, 1, 2, 0, 1],
                            'Data' : np.random.randn(7)});df
-                     
+
    df['Test_1'] = df['Test_0'] - 1
 
    pd.merge(df, df, left_on=['Bins', 'Area','Test_0'], right_on=['Bins', 'Area','Test_1'],suffixes=('_L','_R'))
@@ -857,7 +865,7 @@ The :ref:`Plotting <visualization>` docs.
    df = pd.DataFrame(
         {u'stratifying_var': np.random.uniform(0, 100, 20),
          u'price': np.random.normal(100, 5, 20)})
-		 
+
    df[u'quartiles'] = pd.qcut(
        df[u'stratifying_var'],
        4,
@@ -1038,7 +1046,7 @@ Storing Attributes to a group node
    df = pd.DataFrame(np.random.randn(8,3))
    store = pd.HDFStore('test.h5')
    store.put('df',df)
-   
+
    # you can store an arbitrary python object via pickle
    store.get_storer('df').attrs.my_attribute = dict(A = 10)
    store.get_storer('df').attrs.my_attribute
@@ -1130,19 +1138,19 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 <http://github.com/pydata/pandas/pull/2899>`__
 
 .. ipython:: python
-   
+
    s  = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
-   
+
    s - s.max()
-   
+
    s.max() - s
-   
+
    s - datetime.datetime(2011,1,1,3,5)
-   
+
    s + datetime.timedelta(minutes=5)
-   
+
    datetime.datetime(2011,1,1,3,5) - s
-   
+
    datetime.timedelta(minutes=5) + s
 
 `Adding and subtracting deltas and dates
@@ -1151,18 +1159,18 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 .. ipython:: python
 
    deltas = pd.Series([ datetime.timedelta(days=i) for i in range(3) ])
-   
+
    df = pd.DataFrame(dict(A = s, B = deltas)); df
-   
+
    df['New Dates'] = df['A'] + df['B'];
-      
+
    df['Delta'] = df['A'] - df['New Dates']; df
-   
+
    df.dtypes
-   
+
 `Another example
 <http://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__
-   
+
 Values can be set to NaT using np.nan, similar to datetime
 
 .. ipython:: python
@@ -1189,7 +1197,7 @@ To globally provide aliases for axis names, one can define these 2 functions:
       if axis not in cls._AXIS_NUMBERS:
          raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
       cls._AXIS_ALIASES.pop(alias,None)
-      
+
 .. ipython:: python
 
    set_axis_alias(pd.DataFrame,'columns', 'myaxis2')
