@@ -452,7 +452,7 @@ Replace
 `Using replace with backrefs
 <http://stackoverflow.com/questions/16818871/extracting-value-and-creating-new-column-out-of-it>`__
 
-.. _cookbook.grouping:
+.. _cookbook.grouping docs:
 
 Grouping
 --------
@@ -599,7 +599,15 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    mask = df.groupby(level=0).agg('idxmax')
    df_count = df.loc[mask['no']].reset_index()
    df_count
+   
+`Grouping like Python's itertools.groupby
+<http://stackoverflow.com/q/29142487/846892>`__
 
+.. ipython:: python
+
+   df = pd.DataFrame([0, 1, 0, 1, 1, 1, 0, 1, 1], columns=['A'])
+   df.A.groupby((df.A != df.A.shift()).cumsum()).groups
+   df.A.groupby((df.A != df.A.shift()).cumsum()).cumsum()
 
 Expanding Data
 **************
@@ -916,7 +924,7 @@ using that handle to read.
 
 `Write a multi-row index CSV without writing duplicates
 <http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
-
+grp
 Parsing date components in multi-columns is faster with a format
 
 .. code-block:: python
