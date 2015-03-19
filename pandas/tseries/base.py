@@ -67,7 +67,7 @@ class DatetimeIndexOpsMixin(object):
         try:
             res = self.get_loc(key)
             return np.isscalar(res) or type(res) == slice or np.any(res)
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, ValueError):
             return False
 
     @property
