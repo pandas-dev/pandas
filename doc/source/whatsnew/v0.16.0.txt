@@ -609,6 +609,7 @@ Bug Fixes
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
 - Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
 - Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
+- Work around Pytables 319 by not passing expectedrows in constructing a HDFStore (:issue:`8265`, :issue:`9676`)
 - ``Series`` text representation disconnected from `max_rows`/`max_columns` (:issue:`7508`).
 - ``Series`` number formatting inconsistent when truncated (:issue:`8532`).
 

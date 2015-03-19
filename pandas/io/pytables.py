@@ -3509,9 +3509,8 @@ class Table(Fixed):
                            fletcher32=False, expectedrows=None):
         """ create the description of the table from the axes & values """
 
-        # expected rows estimate
-        if expectedrows is None:
-            expectedrows = max(self.nrows_expected, 10000)
+
+        # provided expected rows if its passed
         d = dict(name='table', expectedrows=expectedrows)
 
         # description from the axes & values
