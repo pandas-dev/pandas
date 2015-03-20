@@ -15,6 +15,12 @@ Highlights include:
 - Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
 - Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
 -  Enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0160.enhancements.string>`
+- The ``pandas.tools.rplot``, ``pandas.sandbox.qtpandas`` and ``pandas.rpy``
+  modules are deprecated. We refer users to external packages like
+  `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
+  `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
+  `rpy2 <http://rpy.sourceforge.net/>`_ for similar or equivalent
+  functionality, see :ref:`here <whatsnew_0160.deprecations>`
 
 Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating.
 
@@ -129,37 +135,35 @@ String Methods Enhancements
 
 - Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9282`, :issue:`9352`, :issue:`9386`, :issue:`9387`, :issue:`9439`)
 
-=============  =============  =============  ===============    ===============
-..             ..             Methods        ..                 ..
-=============  =============  =============  ===============    ===============
-``isalnum()``  ``isalpha()``  ``isdigit()``  ``isdigit()``      ``isspace()``
-``islower()``  ``isupper()``  ``istitle()``  ``isnumeric()``    ``isdecimal()``
-``find()``     ``rfind()``    ``ljust()``    ``rjust()``        ``zfill()``
-=============  =============  =============  ===============    ===============
+  =============  =============  =============  ===============    ===============
+  ..             ..             Methods        ..                 ..
+  =============  =============  =============  ===============    ===============
+  ``isalnum()``  ``isalpha()``  ``isdigit()``  ``isdigit()``      ``isspace()``
+  ``islower()``  ``isupper()``  ``istitle()``  ``isnumeric()``    ``isdecimal()``
+  ``find()``     ``rfind()``    ``ljust()``    ``rjust()``        ``zfill()``
+  =============  =============  =============  ===============    ===============
 
-.. ipython:: python
+  .. ipython:: python
 
-   s = Series(['abcd', '3456', 'EFGH'])
-   s.str.isalpha()
-   s.str.find('ab')
-
+     s = Series(['abcd', '3456', 'EFGH'])
+     s.str.isalpha()
+     s.str.find('ab')
 
 - :meth:`Series.str.pad` and :meth:`Series.str.center` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   s = Series(['12', '300', '25'])
-   s.str.pad(5, fillchar='_')
-
+     s = Series(['12', '300', '25'])
+     s.str.pad(5, fillchar='_')
 
 - Added :meth:`Series.str.slice_replace`, which previously raised ``NotImplementedError`` (:issue:`8888`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   s = Series(['ABCD', 'EFGH', 'IJK'])
-   s.str.slice_replace(1, 3, 'X')
-   # replaced with empty char
-   s.str.slice_replace(0, 1)
+     s = Series(['ABCD', 'EFGH', 'IJK'])
+     s.str.slice_replace(1, 3, 'X')
+     # replaced with empty char
+     s.str.slice_replace(0, 1)
 
 .. _whatsnew_0160.enhancements.other:
 
@@ -175,18 +179,6 @@ Other enhancements
 
   This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
-- Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>`. (issue:`9493`:)
-- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
-- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
-- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
-- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
-- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
-- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
-- SQL code now safely escapes table and column names (:issue:`8986`)
-
-- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
-- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
-- ``Index.asof`` now works on all index types (:issue:`9258`).
 - The ``read_excel()`` function's :ref:`sheetname <_io.specifying_sheets>` argument now accepts a list and ``None``, to get multiple or all sheets respectively.  If more than one sheet is specified, a dictionary is returned. (:issue:`9450`)
 
   .. code-block:: python
@@ -194,6 +186,18 @@ Other enhancements
      # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
      pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
 
+
+- Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>` (:issue:`9493`:).
+- Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
+- Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
+- Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
+- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
+- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
+- ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
+- SQL code now safely escapes table and column names (:issue:`8986`)
+- Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
+- ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
+- ``Index.asof`` now works on all index types (:issue:`9258`).
 - A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
 - Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
 - Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
@@ -486,15 +490,6 @@ Other API Changes
 
   To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 
-- A Spurious ``SettingWithCopy`` Warning was generated when setting a new item in a frame in some cases (:issue:`8730`)
-
-  The following would previously report a ``SettingWithCopy`` Warning.
-
-  .. ipython:: python
-
-     df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
-     df2 = df1[['x']]
-     df2['y'] = ['g', 'h', 'i']
 
 .. _whatsnew_0160.deprecations:
 
@@ -505,9 +500,8 @@ Deprecations
   in a future version. We refer to external packages like
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_ for similar
   but more refined functionality (:issue:`3445`).
-
   The documentation includes some examples how to convert your existing code
-  using ``rplot`` to seaborn: - :ref:`rplot docs <rplot>`
+  using ``rplot`` to seaborn: :ref:`rplot docs <rplot>`.
 
 - The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
@@ -610,6 +604,9 @@ Bug Fixes
 - Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
 - Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
 - ``Series`` text representation disconnected from `max_rows`/`max_columns` (:issue:`7508`).
+
+\
+
 - ``Series`` number formatting inconsistent when truncated (:issue:`8532`).
 
   Previous Behavior
@@ -645,3 +642,13 @@ Bug Fixes
     128    1.0000
     129    1.0000
     dtype: float64
+
+- A Spurious ``SettingWithCopy`` Warning was generated when setting a new item in a frame in some cases (:issue:`8730`)
+
+  The following would previously report a ``SettingWithCopy`` Warning.
+
+  .. ipython:: python
+
+     df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
+     df2 = df1[['x']]
+     df2['y'] = ['g', 'h', 'i']
