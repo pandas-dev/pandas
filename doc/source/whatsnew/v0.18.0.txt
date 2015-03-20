@@ -175,7 +175,8 @@ Bug Fixes
 
 
 
-- Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
+- Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`
+- Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 
 
 
