@@ -1,17 +1,24 @@
-# Pyperclip v1.3
-# A cross-platform clipboard module for Python. (only handles plain text for now)
-# By Al Sweigart al@coffeeghost.net
+# Pyperclip v1.5.15
+# A cross-platform clipboard module for Python.
+# By Al Sweigart al@inventwithpython.com
 
 # Usage:
 #   import pyperclip
 #   pyperclip.copy('The text to be copied to the clipboard.')
 #   spam = pyperclip.paste()
 
-# On Mac, this module makes use of the pbcopy and pbpaste commands, which should come with the os.
-# On Linux, this module makes use of the xclip command, which should come with the os. Otherwise run "sudo apt-get install xclip"
+# On Windows, no additional modules are needed.
+# On Mac, this module makes use of the pbcopy and pbpaste commands, which
+# should come with the os.
+# On Linux, this module makes use of the xclip or xsel commands, which should
+# come with the os. Otherwise run "sudo apt-get install xclip" or
+# "sudo apt-get install xsel"
+# Otherwise on Linux, you will need the gtk or PyQt4 modules installed.
+# The gtk module is not available for Python 3, and this module does not work
+# with PyGObject yet.
 
 
-# Copyright (c) 2010, Albert Sweigart
+# Copyright (c) 2015, Albert Sweigart
 # All rights reserved.
 #
 # BSD-style license:
@@ -38,139 +45,221 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Change Log:
-# 1.2 Use the platform module to help determine OS.
-# 1.3 Changed ctypes.windll.user32.OpenClipboard(None) to ctypes.windll.user32.OpenClipboard(0), after some people ran into some TypeError
 
-import platform, os
+import platform
+import os
+from subprocess import call, Popen, PIPE
+
+PY2 = '2' == platform.python_version_tuple()[0]
+text_type = unicode if PY2 else str
+
 
 class NoClipboardProgramError(OSError):
     pass
 
 
-def winGetClipboard():
-    ctypes.windll.user32.OpenClipboard(0)
-    pcontents = ctypes.windll.user32.GetClipboardData(1) # 1 is CF_TEXT
-    data = ctypes.c_char_p(pcontents).value
-    #ctypes.windll.kernel32.GlobalUnlock(pcontents)
-    ctypes.windll.user32.CloseClipboard()
+def _pasteWindows():
+    CF_UNICODETEXT = 13
+    d = ctypes.windll
+    d.user32.OpenClipboard(0)
+    handle = d.user32.GetClipboardData(CF_UNICODETEXT)
+    data = ctypes.c_wchar_p(handle).value
+    d.user32.CloseClipboard()
     return data
 
-def winSetClipboard(text):
+
+def _copyWindows(text):
     GMEM_DDESHARE = 0x2000
-    ctypes.windll.user32.OpenClipboard(0)
-    ctypes.windll.user32.EmptyClipboard()
-    try:
-        # works on Python 2 (bytes() only takes one argument)
-        hCd = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(bytes(text))+1)
-    except TypeError:
-        # works on Python 3 (bytes() requires an encoding)
-        hCd = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(bytes(text, 'ascii'))+1)
-    pchData = ctypes.windll.kernel32.GlobalLock(hCd)
-    try:
-        # works on Python 2 (bytes() only takes one argument)
-        ctypes.cdll.msvcrt.strcpy(ctypes.c_char_p(pchData), bytes(text))
-    except TypeError:
-        # works on Python 3 (bytes() requires an encoding)
-        ctypes.cdll.msvcrt.strcpy(ctypes.c_char_p(pchData), bytes(text, 'ascii'))
-    ctypes.windll.kernel32.GlobalUnlock(hCd)
-    ctypes.windll.user32.SetClipboardData(1,hCd)
-    ctypes.windll.user32.CloseClipboard()
+    CF_UNICODETEXT = 13
+    d = ctypes.windll  # cdll expects 4 more bytes in user32.OpenClipboard(0)
+    if not isinstance(text, text_type):
+        text = text.decode('mbcs')
 
-def macSetClipboard(text):
-    outf = os.popen('pbcopy', 'w')
-    outf.write(text)
-    outf.close()
+    d.user32.OpenClipboard(0)
 
-def macGetClipboard():
-    outf = os.popen('pbpaste', 'r')
-    content = outf.read()
-    outf.close()
-    return content
+    d.user32.EmptyClipboard()
+    hCd = d.kernel32.GlobalAlloc(GMEM_DDESHARE,
+                                 len(text.encode('utf-16-le')) + 2)
+    pchData = d.kernel32.GlobalLock(hCd)
+    ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(pchData), text)
+    d.kernel32.GlobalUnlock(hCd)
+    d.user32.SetClipboardData(CF_UNICODETEXT, hCd)
+    d.user32.CloseClipboard()
 
-def gtkGetClipboard():
+
+def _pasteCygwin():
+    CF_UNICODETEXT = 13
+    d = ctypes.cdll
+    d.user32.OpenClipboard(0)
+    handle = d.user32.GetClipboardData(CF_UNICODETEXT)
+    data = ctypes.c_wchar_p(handle).value
+    d.user32.CloseClipboard()
+    return data
+
+
+def _copyCygwin(text):
+    GMEM_DDESHARE = 0x2000
+    CF_UNICODETEXT = 13
+    d = ctypes.cdll
+    if not isinstance(text, text_type):
+        text = text.decode('mbcs')
+    d.user32.OpenClipboard(0)
+    d.user32.EmptyClipboard()
+    hCd = d.kernel32.GlobalAlloc(GMEM_DDESHARE,
+                                 len(text.encode('utf-16-le')) + 2)
+    pchData = d.kernel32.GlobalLock(hCd)
+    ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(pchData), text)
+    d.kernel32.GlobalUnlock(hCd)
+    d.user32.SetClipboardData(CF_UNICODETEXT, hCd)
+    d.user32.CloseClipboard()
+
+
+def _copyOSX(text):
+    p = Popen(['pbcopy', 'w'], stdin=PIPE, close_fds=True)
+    p.communicate(input=text.encode('utf-8'))
+
+
+def _pasteOSX():
+    p = Popen(['pbpaste', 'r'], stdout=PIPE, close_fds=True)
+    stdout, stderr = p.communicate()
+    return stdout.decode('utf-8')
+
+
+def _pasteGtk():
     return gtk.Clipboard().wait_for_text()
 
-def gtkSetClipboard(text):
+
+def _copyGtk(text):
+    global cb
     cb = gtk.Clipboard()
     cb.set_text(text)
     cb.store()
 
-def qtGetClipboard():
+
+def _pasteQt():
     return str(cb.text())
 
-def qtSetClipboard(text):
+
+def _copyQt(text):
     cb.setText(text)
 
-def xclipSetClipboard(text):
-    outf = os.popen('xclip -selection c', 'w')
-    outf.write(text)
-    outf.close()
 
-def xclipGetClipboard():
-    outf = os.popen('xclip -selection c -o', 'r')
-    content = outf.read()
-    outf.close()
-    return content
-
-def xselSetClipboard(text):
-    outf = os.popen('xsel -i', 'w')
-    outf.write(text)
-    outf.close()
-
-def xselGetClipboard():
-    outf = os.popen('xsel -o', 'r')
-    content = outf.read()
-    outf.close()
-    return content
+def _copyXclip(text):
+    p = Popen(['xclip', '-selection', 'c'], stdin=PIPE, close_fds=True)
+    p.communicate(input=text.encode('utf-8'))
 
 
-if os.name == 'nt' or platform.system() == 'Windows':
+def _pasteXclip():
+    p = Popen(['xclip', '-selection', 'c', '-o'], stdout=PIPE, close_fds=True)
+    stdout, stderr = p.communicate()
+    return stdout.decode('utf-8')
+
+
+def _copyXsel(text):
+    p = Popen(['xsel', '-b', '-i'], stdin=PIPE, close_fds=True)
+    p.communicate(input=text.encode('utf-8'))
+
+
+def _pasteXsel():
+    p = Popen(['xsel', '-b', '-o'], stdout=PIPE, close_fds=True)
+    stdout, stderr = p.communicate()
+    return stdout.decode('utf-8')
+
+
+def _copyKlipper(text):
+    p = Popen(['qdbus', 'org.kde.klipper', '/klipper',
+               'setClipboardContents', text.encode('utf-8')],
+              stdin=PIPE, close_fds=True)
+    p.communicate(input=None)
+
+
+def _pasteKlipper():
+    p = Popen(['qdbus', 'org.kde.klipper', '/klipper',
+               'getClipboardContents'], stdout=PIPE, close_fds=True)
+    stdout, stderr = p.communicate()
+    return stdout.decode('utf-8')
+
+
+# Determine the OS/platform and set the copy() and paste() functions
+# accordingly.
+if 'cygwin' in platform.system().lower():
+    _functions = 'Cygwin'  # for debugging
     import ctypes
-    getcb = winGetClipboard
-    setcb = winSetClipboard
+    paste = _pasteCygwin
+    copy = _copyCygwin
+elif os.name == 'nt' or platform.system() == 'Windows':
+    _functions = 'Windows'  # for debugging
+    import ctypes
+    paste = _pasteWindows
+    copy = _copyWindows
 elif os.name == 'mac' or platform.system() == 'Darwin':
-    getcb = macGetClipboard
-    setcb = macSetClipboard
+    _functions = 'OS X pbcopy/pbpaste'  # for debugging
+    paste = _pasteOSX
+    copy = _copyOSX
 elif os.name == 'posix' or platform.system() == 'Linux':
-    xclipExists = os.system('which xclip > /dev/null') == 0
-    if xclipExists:
-        getcb = xclipGetClipboard
-        setcb = xclipSetClipboard
-    else:
-        xselExists = os.system('which xsel > /dev/null') == 0
-        if xselExists:
-            getcb = xselGetClipboard
-            setcb = xselSetClipboard
-        else:
-            try:
-                import gtk
-            except ImportError:
-                try:
-                    import PyQt4 as qt4
-                    import PyQt4.QtCore
-                    import PyQt4.QtGui
-                except ImportError:
-                    try:
-                        import PySide as qt4
-                        import PySide.QtCore
-                        import PySide.QtGui
-                    except ImportError:
-                        raise NoClipboardProgramError('Pyperclip requires the'
-                                                      ' gtk, PyQt4, or PySide'
-                                                      ' module installed, or '
-                                                      'either the xclip or '
-                                                      'xsel command.')
-                app = qt4.QtGui.QApplication([])
-                cb = qt4.QtGui.QApplication.clipboard()
-                getcb = qtGetClipboard
-                setcb = qtSetClipboard
-            else:
-                getcb = gtkGetClipboard
-                setcb = gtkSetClipboard
-copy = setcb
-paste = getcb
+    # Determine which command/module is installed, if any.
+    xclipExists = call(['which', 'xclip'],
+                       stdout=PIPE, stderr=PIPE) == 0
 
-## pandas aliases
+    xselExists = call(['which', 'xsel'],
+                      stdout=PIPE, stderr=PIPE) == 0
+
+    xklipperExists = (
+        call(['which', 'klipper'], stdout=PIPE, stderr=PIPE) == 0 and
+        call(['which', 'qdbus'], stdout=PIPE, stderr=PIPE) == 0
+    )
+
+    gtkInstalled = False
+    try:
+        # Check it gtk is installed.
+        import gtk
+        gtkInstalled = True
+    except ImportError:
+        pass
+
+    if not gtkInstalled:
+        # Check for either PyQt4 or PySide
+        qtBindingInstalled = True
+        try:
+            from PyQt4 import QtGui
+        except ImportError:
+            try:
+                from PySide import QtGui
+            except ImportError:
+                qtBindingInstalled = False
+
+    # Set one of the copy & paste functions.
+    if xclipExists:
+        _functions = 'xclip command'  # for debugging
+        paste = _pasteXclip
+        copy = _copyXclip
+    elif xklipperExists:
+        _functions = '(KDE Klipper) - qdbus (external)'  # for debugging
+        paste = _pasteKlipper
+        copy = _copyKlipper
+    elif gtkInstalled:
+        _functions = 'gtk module'  # for debugging
+        paste = _pasteGtk
+        copy = _copyGtk
+    elif qtBindingInstalled:
+        _functions = 'PyQt4 module'  # for debugging
+        app = QtGui.QApplication([])
+        cb = QtGui.QApplication.clipboard()
+        paste = _pasteQt
+        copy = _copyQt
+    elif xselExists:
+        # TODO: xsel doesn't seem to work on Raspberry Pi (my test Linux
+        # environment). Putting this as the last method tried.
+        _functions = 'xsel command'  # for debugging
+        paste = _pasteXsel
+        copy = _copyXsel
+    else:
+        raise NoClipboardProgramError('Pyperclip requires the gtk, PyQt4, or '
+                                      'PySide module installed, or either the '
+                                      'xclip or xsel command.')
+else:
+    raise RuntimeError('pyperclip does not support your system.')
+
+# pandas aliases
 clipboard_get = paste
 clipboard_set = copy
