@@ -1612,7 +1612,9 @@ class LinePlot(MPLPlot):
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
 
-            label = com.pprint_thing(label)  # .encode('utf-8')
+            if label is not None or self.legend:
+                label = com.pprint_thing(label)  # .encode('utf-8')
+
             kwds['label'] = label
 
             newlines = plotf(ax, x, y, style=style, column_num=i, **kwds)
@@ -2307,7 +2309,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 if com.is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 label = x if x is not None else data.index.name
-                label = kwds.pop('label', label)
+                label = kwds.get('label', label)
                 series = data[y].copy()  # Don't modify
                 series.index.name = label
 

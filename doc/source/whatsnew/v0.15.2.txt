@@ -99,6 +99,7 @@ API changes
 - ``Timestamp('now')`` is now equivalent to ``Timestamp.now()`` in that it returns the local time rather than UTC. Also, ``Timestamp('today')`` is now equivalent to ``Timestamp.today()`` and both have ``tz`` as a possible argument. (:issue:`9000`)
 
 - Fix negative step support for label-based slices (:issue:`8753`)
+- Fixed given label showing as None (:issue:`#8905`)
 
   Old behavior:
 

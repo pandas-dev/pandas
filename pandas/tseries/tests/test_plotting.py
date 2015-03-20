@@ -90,6 +90,20 @@ class TestTSPlot(tm.TestCase):
         self.assertRaises(TypeError, df['A'].plot)
 
     @slow
+    def test_legend_added(self):
+        df = DataFrame(np.random.rand(2, 4), columns=['a', 'b', 'c', 'd'])
+        a_plot = df.plot(kind='scatter', x='a', y='b',
+                         color='DarkBlue', label='Label')
+        b_plot = df.plot(kind='line', x='a', y='b',
+                         color='DarkBlue', label="foo")
+        c_plot = df.plot(kind='line', x='a', y='b',
+                         color='DarkBlue', label=None, legend=False)
+
+        self.assertEqual(a_plot.legend().texts[0].get_text(), 'Label')
+        self.assertEqual(b_plot.legend().texts[0].get_text(), 'foo')
+        self.assertEqual(c_plot.legend(), None)
+
+    @slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt
