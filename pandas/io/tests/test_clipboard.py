@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from numpy.random import randint
 
@@ -46,6 +47,9 @@ class TestClipboard(tm.TestCase):
         cls.data['longdf'] = mkdf(max_rows+1, 3, data_gen_f=lambda *args: randint(2),
                                   c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
+        # Test for non-ascii text: GH9263
+        cls.data['nonascii'] = pd.DataFrame({'en': 'in English'.split(),
+                                             'es': 'en español'.split()})
         cls.data_types = list(cls.data.keys())
 
     @classmethod
