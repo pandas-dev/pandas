@@ -1,3 +1,4 @@
+from __future__ import print_function
 from vbench.api import Benchmark, GitRepo
 from datetime import datetime
 
@@ -128,7 +129,7 @@ def generate_rst_files(benchmarks):
             f.write(rst_text)
 
     with open(os.path.join(RST_BASE, 'index.rst'), 'w') as f:
-        print >> f, """
+        print("""
 Performance Benchmarks
 ======================
 
@@ -149,15 +150,15 @@ Produced on a machine with
 .. toctree::
     :hidden:
     :maxdepth: 3
-"""
+""", file=f)
         for modname, mod_bmks in sorted(by_module.items()):
-            print >> f, '    vb_%s' % modname
+            print('    vb_%s' % modname, file=f)
             modpath = os.path.join(RST_BASE, 'vb_%s.rst' % modname)
             with open(modpath, 'w') as mh:
                 header = '%s\n%s\n\n' % (modname, '=' * len(modname))
-                print >> mh, header
+                print(header, file=mh)
 
                 for bmk in mod_bmks:
-                    print >> mh, bmk.name
-                    print >> mh, '-' * len(bmk.name)
-                    print >> mh, '.. include:: vbench/%s.txt\n' % bmk.name
+                    print(bmk.name, file=mh)
+                    print('-' * len(bmk.name), file=mh)
+                    print('.. include:: vbench/%s.txt\n' % bmk.name, file=mh)
