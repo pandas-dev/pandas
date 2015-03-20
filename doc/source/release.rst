@@ -60,6 +60,12 @@ Highlights include:
 - Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
 - Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
 - Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
+- The ``pandas.tools.rplot``, ``pandas.sandbox.qtpandas`` and ``pandas.rpy``
+  modules are deprecated. We refer users to external packages like
+  `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
+  `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
+  `rpy2 <http://rpy.sourceforge.net/>`_ for similar or equivalent
+  functionality, see :ref:`here <whatsnew_0160.deprecations>`
 
 See the :ref:`v0.16.0 Whatsnew <whatsnew_0160>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.16.0.
