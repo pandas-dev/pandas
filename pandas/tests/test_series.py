@@ -6839,6 +6839,7 @@ class TestSeriesNonUnique(tm.TestCase):
         Series(Series(["a", "c", "b"]).unique()).sort()
     
     def test_datetime_timedelta_quantiles(self):
+        # covers #9694
         self.assertTrue(pd.isnull(Series([],dtype='M8[ns]').quantile(.5)))
         self.assertTrue(pd.isnull(Series([],dtype='m8[ns]').quantile(.5)))
 
