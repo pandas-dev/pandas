@@ -31,3 +31,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+
+- Fixed bug with inplace interpolace along the "columns" axis (:issue:`9687`)

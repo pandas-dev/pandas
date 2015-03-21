@@ -963,6 +963,20 @@ class TestDataFrame(tm.TestCase, Generic):
         result = df[['B', 'D']].interpolate(downcast=None)
         assert_frame_equal(result, df[['B', 'D']])
 
+    def test_interp_inplace_axis1(self):
+        # GH 9687
+        df = DataFrame({'A': [1, 2, 3], 'B': [2, np.nan, 6],
+                        'C': [3, 4, 5]})
+        df.interpolate(axis=1, inplace=True)
+        # dtypes... a bit strange here.
+        # df.T w/ [int, float, int] -> [float, float, float] dtypes
+        # this test may break if we change that in the future.
+        expected = DataFrame({'A': [1., 2, 3], 'B': [2., 3, 6],
+                              'C': [3., 4, 5]})
+        assert_frame_equal(df, expected)
+        self.assertIs(df, df)
+
+
     def test_describe(self):
         desc = tm.makeDataFrame().describe()
         desc = tm.makeMixedDataFrame().describe()

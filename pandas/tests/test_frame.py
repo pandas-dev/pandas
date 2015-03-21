@@ -8683,9 +8683,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.replace({'col': {-1: '-', 1: 'a', 4: 'b'}})
         tm.assert_frame_equal(expected, result)
 
-    def test_interpolate(self):
-        pass
-
     def test_replace_value_is_none(self):
         self.assertRaises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]

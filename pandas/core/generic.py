@@ -2736,10 +2736,11 @@ class NDFrame(PandasObject):
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
-
+        axis = self._get_axis_number(axis)
         if axis == 0:
             ax = self._info_axis_name
         elif axis == 1:
+            orig = self
             self = self.T
             ax = 1
         ax = self._get_axis_number(ax)
@@ -2777,7 +2778,7 @@ class NDFrame(PandasObject):
         if inplace:
             if axis == 1:
                 self._update_inplace(new_data)
-                self = self.T
+                orig._data = self.T._data
             else:
                 self._update_inplace(new_data)
         else:
