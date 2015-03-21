@@ -6837,6 +6837,10 @@ class TestSeriesNonUnique(tm.TestCase):
     def test_unique_data_ownership(self):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
+    
+    def test_datetime_timedelta_quantiles(self):
+        self.assertTrue(pd.isnull(Series([],dtype='M8[ns]').quantile(.5)))
+        self.assertTrue(pd.isnull(Series([],dtype='m8[ns]').quantile(.5)))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
