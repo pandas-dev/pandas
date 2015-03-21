@@ -2095,7 +2095,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             boxer = com.i8_boxer(self)
 
             if len(values) == 0:
-                return boxer(iNaT)
+                return boxer(tslib.iNaT)
 
             values = values.view('i8')
             result = func(values)
