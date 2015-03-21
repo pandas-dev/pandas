@@ -31,3 +31,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``Series.quantile`` on Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
