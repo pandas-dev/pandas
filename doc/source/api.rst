@@ -517,8 +517,6 @@ String handling
 strings and apply several methods to it. These can be acccessed like
 ``Series.str.<function/property>``.
 
-.. currentmodule:: pandas.core.strings
-
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
