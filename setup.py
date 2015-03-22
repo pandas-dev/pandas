@@ -170,7 +170,7 @@ EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
