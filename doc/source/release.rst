@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.16.0
 -------------
 
-**Release date:** (March 20, 2015)
+**Release date:** (March 22, 2015)
 
 This is a major release from 0.15.2 and includes a number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
@@ -77,6 +77,7 @@ Thanks
 - Alan Du
 - Alessandro Amici
 - Artemy Kolchinsky
+- Ashwini Chaudhary
 - Ben Schiller
 - Bill Letson
 - Brandon Bradley
@@ -94,6 +95,7 @@ Thanks
 - Jeff Reback
 - John McNamara
 - Joris Van den Bossche
+- Joschka zur Jacobsmühlen
 - Juarez Bochi
 - Junya Hayashi
 - K.-Michael Aye
@@ -119,6 +121,7 @@ Thanks
 - Yulong Yang
 - behzad nouri
 - bertrandhaut
+- bjonen
 - cel4
 - clham
 - hsperr
