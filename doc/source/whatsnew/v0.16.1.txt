@@ -22,6 +22,9 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+- Add support for separating years and quarters using dashes, for
+  example 2014-Q1.  (:issue:`9688`)
+
 .. _whatsnew_0161.performance:
 
 Performance Improvements
