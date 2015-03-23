@@ -10,9 +10,13 @@
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style='default'
    options.display.max_rows=15
 
 Computational tools

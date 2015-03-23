@@ -12,7 +12,11 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style='default'
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    from pandas.compat import zip
 
 *****************************
@@ -346,7 +350,7 @@ A single group can be selected using ``GroupBy.get_group()``:
 .. ipython:: python
 
    grouped.get_group('bar')
-   
+
 Or for an object grouped on multiple columns:
 
 .. ipython:: python
