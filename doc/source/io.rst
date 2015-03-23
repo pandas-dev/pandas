@@ -41,6 +41,7 @@ object.
     * :ref:`read_html<io.read_html>`
     * :ref:`read_gbq<io.bigquery>` (experimental)
     * :ref:`read_stata<io.stata_reader>`
+    * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
     * :ref:`read_pickle<io.pickle>`
 
@@ -4119,6 +4120,46 @@ with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
 .. _xray: http://xray.readthedocs.org/
+
+.. _io.sas:
+
+SAS Format
+----------
+
+.. versionadded:: 0.17.0
+
+The top-level function :function:`read_sas` currently can read (but
+not write) SAS xport (.XPT) format files.  Pandas cannot currently
+handle SAS7BDAT files.
+
+XPORT files only contain two value types: ASCII text and double
+precision numeric values.  There is no automatic type conversion to
+integers, dates, or categoricals.  By default the whole file is read
+and returned as a ``DataFrame``.
+
+Specify a ``chunksize`` or use ``iterator=True`` to obtain an
+``XportReader`` object for incrementally reading the file.  The
+``XportReader`` object also has attributes that contain additional
+information about the file and its variables.
+
+Read a SAS XPORT file:
+
+.. code-block:: python
+
+    df = pd.read_sas('sas_xport.xpt')
+
+Obtain an iterator and read an XPORT file 100,000 lines at a time:
+
+.. code-block:: python
+
+    rdr = pd.read_sas('sas_xport.xpt', chunk=100000)
+    for chunk in rdr:
+        do_something(chunk)
+
+The specification_ for the xport file format is available from the SAS
+web site.
+
+.. _specification: https://support.sas.com/techsup/technote/ts140.pdf
 
 .. _io.perf:
 
