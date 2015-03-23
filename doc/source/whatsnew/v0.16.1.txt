@@ -3,29 +3,44 @@
 v0.16.1 (April ??, 2015)
 ------------------------
 
-This is a minor bug-fix release from 0.16.0 and includes a small number of API changes, several new features,
-enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
-users upgrade to this version.
+This is a minor bug-fix release from 0.16.0 and includes a a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
 
-- :ref:`Enhancements <whatsnew_0161.enhancements>`
-- :ref:`API Changes <whatsnew_0161.api>`
-- :ref:`Performance Improvements <whatsnew_0161.performance>`
-- :ref:`Bug Fixes <whatsnew_0161.bug_fixes>`
+.. contents:: What's new in v0.16.1
+    :local:
+    :backlinks: none
 
-.. _whatsnew_0161.api:
-
-API changes
-~~~~~~~~~~~
 
 .. _whatsnew_0161.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
+
+
+
+
+
+.. _whatsnew_0161.api:
+
+API changes
+~~~~~~~~~~~
+
+
+
+
+
+
 .. _whatsnew_0161.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
 
 .. _whatsnew_0161.bug_fixes:
 
