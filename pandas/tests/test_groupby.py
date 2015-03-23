@@ -1058,6 +1058,19 @@ class TestGroupBy(tm.TestCase):
         expected = self.df.groupby('A')['C'].transform(np.mean)
         assert_series_equal(result, expected)
 
+    def test_transform_length(self):
+        # GH 9697
+        df = pd.DataFrame({'col1':[1,1,2,2], 'col2':[1,2,3,np.nan]})
+        expected = pd.Series([3.0]*4)
+        def nsum(x):
+            return np.nansum(x)
+        results = [df.groupby('col1').transform(sum)['col2'],
+                   df.groupby('col1')['col2'].transform(sum),
+                   df.groupby('col1').transform(nsum)['col2'],
+                   df.groupby('col1')['col2'].transform(nsum)]
+        for result in results:
+            assert_series_equal(result, expected)
+
     def test_with_na(self):
         index = Index(np.arange(10))
 

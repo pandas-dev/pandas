@@ -2453,7 +2453,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func, compat.string_types):
             func = getattr(self,func)
         values = func().values
-        counts = self.count().values
+        counts = self.size().values
         values = np.repeat(values, com._ensure_platform_int(counts))
 
         return self._set_result_index_ordered(Series(values))
