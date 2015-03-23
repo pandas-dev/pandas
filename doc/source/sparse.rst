@@ -10,9 +10,6 @@
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   import matplotlib.pyplot as plt
-   plt.close('all')
-   options.display.mpl_style='default'
    options.display.max_rows = 15
 
 **********************
@@ -222,4 +219,3 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
    ss_dense = SparseSeries.from_coo(A, dense_index=True)
    ss_dense
-
