@@ -1137,6 +1137,16 @@ should be taken instead.
    df2.drop_duplicates(['a','b'])
    df2.drop_duplicates(['a','b'], take_last=True)
 
+An easier way to drop duplicates on the index than to temporarily forgo it is
+``groupby(level=0)`` combined with ``first()`` or ``last()``.
+
+.. ipython:: python
+
+   df3 = df2.set_index('b')
+   df3
+   df3.reset_index().drop_duplicates(subset='b', take_last=False).set_index('b')
+   df3.groupby(level=0).first()
+
 .. _indexing.dictionarylike:
 
 Dictionary-like :meth:`~pandas.DataFrame.get` method
