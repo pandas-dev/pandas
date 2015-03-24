@@ -470,6 +470,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.microsecond
    Series.dt.nanosecond
    Series.dt.second
+   Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
@@ -481,6 +482,10 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.is_quarter_end
    Series.dt.is_year_start
    Series.dt.is_year_end
+   Series.dt.daysinmonth
+   Series.dt.days_in_month
+   Series.dt.tz
+   Series.dt.freq
 
 **Datetime Methods**
 
@@ -575,6 +580,20 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.isdecimal
    Series.str.get_dummies
 
+..
+    The following is needed to ensure the generated pages are created with the
+    correct template (otherwise they would be created in the Series class page)
+
+..
+    .. autosummary::
+       :toctree: generated/
+       :template: autosummary/accessor.rst
+
+       Series.str
+       Series.cat
+       Series.dt
+
+
 .. _api.categorical:
 
 Categorical
@@ -582,22 +601,28 @@ Categorical
 
 If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
-following usable methods and properties (all available as ``Series.cat.<method_or_property>``).
+following usable methods and properties:
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
 
-   Categorical.categories
-   Categorical.ordered
-   Categorical.rename_categories
-   Categorical.reorder_categories
-   Categorical.add_categories
-   Categorical.remove_categories
-   Categorical.remove_unused_categories
-   Categorical.set_categories
-   Categorical.as_ordered
-   Categorical.as_unordered
-   Categorical.codes
+   Series.cat.categories
+   Series.cat.ordered
+   Series.cat.codes
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.cat.rename_categories
+   Series.cat.reorder_categories
+   Series.cat.add_categories
+   Series.cat.remove_categories
+   Series.cat.remove_unused_categories
+   Series.cat.set_categories
+   Series.cat.as_ordered
+   Series.cat.as_unordered
 
 To create a Series of dtype ``category``, use ``cat = s.astype("category")``.
 
@@ -606,8 +631,13 @@ adding ordering information or special categories is need at creation time of th
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    Categorical
+
+.. autosummary::
+   :toctree: generated/
+
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
