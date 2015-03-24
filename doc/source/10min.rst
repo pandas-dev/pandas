@@ -12,7 +12,11 @@
    from pandas import options
    import pandas as pd
    np.set_printoptions(precision=4, suppress=True)
-   options.display.mpl_style='default'
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    options.display.max_rows=15
 
    #### portions of this were borrowed from the
@@ -695,8 +699,6 @@ Plotting
 
    import matplotlib.pyplot as plt
    plt.close('all')
-   from pandas import options
-   options.display.mpl_style='default'
 
 .. ipython:: python
 
