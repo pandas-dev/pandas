@@ -31,10 +31,14 @@ We use the standard convention for referencing the matplotlib API:
 
    import matplotlib.pyplot as plt
 
-.. versionadded:: 0.11.0
+The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4):
 
-The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4).
-If your version of matplotlib is 1.3 or lower, setting the ``display.mpl_style`` to ``'default'``
+.. code-block:: python
+
+   import matplotlib
+   matplotlib.style.use('ggplot')
+
+If your version of matplotlib is 1.3 or lower, you can set ``display.mpl_style`` to ``'default'``
 with ``pd.options.display.mpl_style = 'default'``
 to produce more appealing plots.
 When set, matplotlib's ``rcParams`` are changed (globally!) to nicer-looking settings.
