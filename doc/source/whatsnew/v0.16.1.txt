@@ -106,6 +106,8 @@ Bug Fixes
 
 - Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
 
+- Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
+
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
 
