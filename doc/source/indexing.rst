@@ -1137,7 +1137,7 @@ should be taken instead.
    df2.drop_duplicates(['a','b'])
    df2.drop_duplicates(['a','b'], take_last=True)
 
-An easier way to drup duplicates on the index than to temporarily forgo it is
+An easier way to drop duplicates on the index than to temporarily forgo it is
 ``groupby(level=0)`` combined with ``first()`` or ``last()``.
 
 .. ipython:: python
