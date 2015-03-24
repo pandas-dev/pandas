@@ -52,7 +52,7 @@ Bug Fixes
 
 
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
-
+- Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
 
 
 
