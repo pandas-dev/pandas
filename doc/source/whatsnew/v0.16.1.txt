@@ -18,6 +18,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
+- ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 - Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
 
   The `.str` accessor is now available for both `Series` and `Index`.
