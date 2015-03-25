@@ -172,14 +172,14 @@ def _retry_read_url(url, retry_count, pause, name):
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
                 rs = rs[:-1]
 
-    #Get rid of unicode characters in index name.
-    try:
-        rs.index.name = rs.index.name.decode('unicode_escape').encode('ascii', 'ignore')
-    except AttributeError:
-        #Python 3 string has no decode method.
-        rs.index.name = rs.index.name.encode('ascii', 'ignore').decode()
+            #Get rid of unicode characters in index name.
+            try:
+                rs.index.name = rs.index.name.decode('unicode_escape').encode('ascii', 'ignore')
+            except AttributeError:
+                #Python 3 string has no decode method.
+                rs.index.name = rs.index.name.encode('ascii', 'ignore').decode()
 
-    return rs
+            return rs
 
     raise IOError("after %d tries, %s did not "
                   "return a 200 for url %r" % (retry_count, name, url))
