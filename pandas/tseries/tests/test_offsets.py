@@ -21,7 +21,7 @@ from pandas.core.datetools import (
 from pandas import Series
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
-from pandas.tseries.tools import parse_time_string
+from pandas.tseries.tools import parse_time_string, DateParseError
 import pandas.tseries.offsets as offsets
 
 from pandas.io.pickle import read_pickle
@@ -3010,12 +3010,33 @@ def test_get_offset():
                                     (name, expected, offset))
 
 
-def test_parse_time_string():
-    (date, parsed, reso) = parse_time_string('4Q1984')
-    (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-    assert date == date_lower
-    assert parsed == parsed_lower
-    assert reso == reso_lower
+class TestParseTimeString(tm.TestCase):
+
+    def test_parse_time_string(self):
+        (date, parsed, reso) = parse_time_string('4Q1984')
+        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+        self.assertEqual(date, date_lower)
+        self.assertEqual(parsed, parsed_lower)
+        self.assertEqual(reso, reso_lower)
+
+    def test_parse_time_quarter_w_dash(self):
+        # https://github.com/pydata/pandas/issue/9688
+        pairs = [
+            ('1988-Q2', '1988Q2'),
+            ('2Q-1988', '2Q1988'),
+        ]
+
+        for dashed, normal in pairs:
+            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
+            (date, parsed, reso) = parse_time_string(normal)
+
+            self.assertEqual(date_dash, date)
+            self.assertEqual(parsed_dash, parsed)
+            self.assertEqual(reso_dash, reso)
+
+        self.assertRaises(DateParseError, parse_time_string, "-2Q1992")
+        self.assertRaises(DateParseError, parse_time_string, "2-Q1992")
+        self.assertRaises(DateParseError, parse_time_string, "4-4Q1992")
 
 
 def test_get_standard_freq():
