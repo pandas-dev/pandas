@@ -138,7 +138,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine='numexpr', truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, assignment_allowed=True):
+         target=None):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -196,9 +196,6 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
         scope. Most users will **not** need to change this parameter.
     target : a target object for assignment, optional, default is None
         essentially this is a passed in resolver
-    assignment_allowed : bool
-        Whether the eval should be able to modify the input through
-        assigment.
 
     Returns
     -------
@@ -239,11 +236,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
 
     # assign if needed
     if env.target is not None and parsed_expr.assigner is not None:
-        if assignment_allowed:
-            env.target[parsed_expr.assigner] = ret
-            return None
-        else:
-            raise ValueError("Expression includes assignment statement: \n"
-                             "\t not allowed from DataFrame.query")
+        env.target[parsed_expr.assigner] = ret
+        return None
 
     return ret

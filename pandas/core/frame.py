@@ -1935,7 +1935,7 @@ class DataFrame(NDFrame):
         >>> df[df.a > df.b]  # same result as the previous expression
         """
         kwargs['level'] = kwargs.pop('level', 0) + 1
-        res = self.eval(expr, assignment_allowed=False, **kwargs)
+        res = self.eval(expr, **kwargs)
 
         try:
             return self.loc[res]
