@@ -1935,6 +1935,7 @@ class DataFrame(NDFrame):
         >>> df[df.a > df.b]  # same result as the previous expression
         """
         kwargs['level'] = kwargs.pop('level', 0) + 1
+        kwargs['parser'] = kwargs.pop('parser', 'pandas_query')
         res = self.eval(expr, **kwargs)
 
         try:

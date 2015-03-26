@@ -15210,7 +15210,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
     def setUpClass(cls):
         super(TestDataFrameQueryPythonPandas, cls).setUpClass()
         cls.engine = 'python'
-        cls.parser = 'pandas'
+        cls.parser = 'pandas_query'
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
