@@ -33,7 +33,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
-                    read_csv, timedelta_range, Timedelta,
+                    read_csv, timedelta_range, Timedelta, CategoricalIndex,
                     option_context)
 import pandas as pd
 from pandas.parser import CParserError
@@ -2385,6 +2385,32 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.set_index(['A', df['B'].values], drop=False)
         expected = df.set_index(['A', 'B'], drop=False)
         assert_frame_equal(result, expected, check_names=False) # TODO should set_index check_names ?
+
+    def test_construction_with_categorical_index(self):
+
+        ci = tm.makeCategoricalIndex(10)
+
+        # with Categorical
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci.values })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        # from a CategoricalIndex
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        idf = df.set_index('B').reset_index().set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        new_df = idf.reset_index()
+        new_df.index = df.B
+        tm.assert_index_equal(new_df.index,ci)
 
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
@@ -10743,6 +10769,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         msg = r'Length of ascending \(5\) != length of by \(2\)'
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_index(by=['A', 'B'], axis=0, ascending=[True] * 5)
+
+    def test_sort_index_categorical_index(self):
+
+        df = DataFrame({'A' : np.arange(6,dtype='int64'),
+                        'B' : Series(list('aabbca')).astype('category',categories=list('cab')) }).set_index('B')
+
+        result = df.sort_index()
+        expected = df.iloc[[4,0,1,5,2,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(ascending=False)
+        expected = df.iloc[[3,2,5,1,0,4]]
+        assert_frame_equal(result, expected)
 
     def test_sort_nan(self):
         # GH3917

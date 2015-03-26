@@ -7,6 +7,10 @@ This is a minor bug-fix release from 0.16.0 and includes a a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
+Highlights include:
+
+- Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161`.enhancements.categoricalindex>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
@@ -31,6 +35,7 @@ Enhancements
   will return a `np.array` instead of a boolean `Index` (:issue:`8875`). This enables the following expression
   to work naturally:
 
+
   .. ipython:: python
 
      idx = Index(['a1', 'a2', 'b1', 'b2'])
@@ -40,6 +45,7 @@ Enhancements
      s[s.index.str.startswith('a')]
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
+
 - ``drop`` function can now accept ``errors`` keyword to suppress ValueError raised when any of label does not exist in the target data. (:issue:`6736`)
 
   .. ipython:: python
@@ -57,6 +63,75 @@ Enhancements
 - Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
 
 - ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
+
+.. _whatsnew_0161.enhancements.categoricalindex:
+
+CategoricalIndex
+^^^^^^^^^^^^^^^^
+
+We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
+and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
+setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+
+.. ipython :: python
+
+   df = DataFrame({'A' : np.arange(6),
+                   'B' : Series(list('aabbca')).astype('category',
+                                                       categories=list('cab'))
+                  })
+   df
+   df.dtypes
+   df.B.cat.categories
+
+setting the index, will create create a CategoricalIndex
+
+.. ipython :: python
+
+   df2 = df.set_index('B')
+   df2.index
+
+indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an Index with duplicates.
+The indexers MUST be in the category or the operation will raise.
+
+.. ipython :: python
+
+   df2.loc['a']
+
+and preserves the ``CategoricalIndex``
+
+.. ipython :: python
+
+   df2.loc['a'].index
+
+sorting will order by the order of the categories
+
+.. ipython :: python
+
+   df2.sort_index()
+
+groupby operations on the index will preserve the index nature as well
+
+.. ipython :: python
+
+   df2.groupby(level=0).sum()
+   df2.groupby(level=0).sum().index
+
+reindexing operations, will return a resulting index based on the type of the passed
+indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+values NOT in the categories, similarly to how you can reindex ANY pandas index.
+
+.. ipython :: python
+
+   df2.reindex(['a','e'])
+   df2.reindex(['a','e']).index
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+
+See the :ref:`documentation <advanced.categoricalindex>` for more. (:issue:`7629`)
+>>>>>>> support CategoricalIndex
 
 .. _whatsnew_0161.api:
 
