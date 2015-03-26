@@ -2594,8 +2594,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # GH #846
     if isinstance(data, (np.ndarray, Index, Series)):
-        subarr = np.array(data, copy=False)
+
         if dtype is not None:
+            subarr = np.array(data, copy=False)
 
             # possibility of nan -> garbage
             if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
