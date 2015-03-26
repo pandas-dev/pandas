@@ -121,7 +121,7 @@ class PandasDelegate(PandasObject):
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ):
+    def _add_delegate_accessors(cls, delegate, accessors, typ, overwrite=False):
         """
         add accessors to cls from the delegate class
 
@@ -131,6 +131,8 @@ class PandasDelegate(PandasObject):
         delegate : the class to get methods/properties & doc-strings
         acccessors : string list of accessors to add
         typ : 'property' or 'method'
+        overwrite : boolean, default False
+           overwrite the method/property in the target class if it exists
 
         """
 
@@ -164,7 +166,7 @@ class PandasDelegate(PandasObject):
                 f = _create_delegator_method(name)
 
             # don't overwrite existing methods/properties
-            if not hasattr(cls, name):
+            if overwrite or not hasattr(cls, name):
                 setattr(cls,name,f)
 
 
