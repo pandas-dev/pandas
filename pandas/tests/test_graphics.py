@@ -1000,8 +1000,14 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
-        axes = _check_plot_works(df.plot, subplots=True, title='blah')
+        _check_plot_works(df.plot, subplots=True, title='blah')
+        # We have to redo it here because _check_plot_works does two plots, once without an ax
+        # kwarg and once with an ax kwarg and the new sharex behaviour does not remove the
+        # visibility of the latter axis (as ax is present).
+        # see: https://github.com/pydata/pandas/issues/9737
+        axes = df.plot(subplots=True, title='blah')
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        #axes[0].figure.savefig("test.png")
         for ax in axes[:2]:
             self._check_visible(ax.xaxis)   # xaxis must be visible for grid
             self._check_visible(ax.get_xticklabels(), visible=False)
@@ -3138,6 +3144,78 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, 'green', has_err='has_yerr')
 
+    def test_sharex_and_ax(self):
+        # https://github.com/pydata/pandas/issues/9737
+        # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
+        # them, so make sure that only the right ones are removed
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax, sharex=True)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_xticklabels():
+                self.assertEqual(label.get_visible(), ax.is_last_row(),
+                                 "x ticklabel has wrong visiblity")
+            self.assertEqual(ax.xaxis.get_label().get_visible(), ax.is_last_row(),
+                            "x label has wrong visiblity")
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+        # without sharex, no labels should be touched!
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_xticklabels():
+                self.assertTrue(label.get_visible(), "x ticklabel is invisible but shouldn't")
+            self.assertTrue(ax.xaxis.get_label().get_visible(),
+                            "x label is invisible but shouldn't")
+
+
+    def test_sharey_and_ax(self):
+        # https://github.com/pydata/pandas/issues/9737
+        # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
+        # them, so make sure that only the right ones are removed
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax, sharey=True)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_yticklabels():
+                self.assertEqual(label.get_visible(), ax.is_first_col(),
+                                 "y ticklabel has wrong visiblity")
+            self.assertEqual(ax.yaxis.get_label().get_visible(), ax.is_first_col(),
+                            "y label has wrong visiblity")
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        # without sharex, no labels should be touched!
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_yticklabels():
+                self.assertTrue(label.get_visible(), "y ticklabel is invisible but shouldn't")
+            self.assertTrue(ax.yaxis.get_label().get_visible(),
+                             "y label is invisible but shouldn't")
+
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -3611,6 +3689,19 @@ def _check_plot_works(f, *args, **kwargs):
         tm.close(fig)
 
     return ret
+
+def _generate_4_axes_via_gridspec():
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    import matplotlib.gridspec
+
+    gs = mpl.gridspec.GridSpec(2, 2)
+    ax_tl = plt.subplot(gs[0,0])
+    ax_ll = plt.subplot(gs[1,0])
+    ax_tr = plt.subplot(gs[0,1])
+    ax_lr = plt.subplot(gs[1,1])
+
+    return gs, [ax_tl, ax_ll, ax_tr, ax_lr]
 
 
 def curpath():
