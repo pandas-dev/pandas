@@ -888,6 +888,21 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         wp = Panel(vals, copy=True)
         self.assertIsNot(wp.values, vals)
 
+        # GH #8285, test when scalar data is used to construct a Panel
+        # if dtype is not passed, it should be inferred
+        value_and_dtype = [(1, 'int64'), (3.14, 'float64'), ('foo', np.object_)]
+        for (val, dtype) in value_and_dtype:
+            wp = Panel(val, items=range(2), major_axis=range(3), minor_axis=range(4))
+            vals = np.empty((2, 3, 4), dtype=dtype)
+            vals.fill(val)
+            assert_panel_equal(wp, Panel(vals, dtype=dtype))
+
+        # test the case when dtype is passed
+        wp = Panel(1, items=range(2), major_axis=range(3), minor_axis=range(4), dtype='float32')
+        vals = np.empty((2, 3, 4), dtype='float32')
+        vals.fill(1)
+        assert_panel_equal(wp, Panel(vals, dtype='float32'))
+
     def test_constructor_cast(self):
         zero_filled = self.panel.fillna(0)
 

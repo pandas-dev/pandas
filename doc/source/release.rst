@@ -48,18 +48,91 @@ analysis / manipulation tool available in any language.
 pandas 0.16.0
 -------------
 
-**Release date:** (February ??, 2015)
+**Release date:** (March 22, 2015)
 
 This is a major release from 0.15.2 and includes a number of API changes, several new features, enhancements, and
 performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
+- ``DataFrame.assign`` method, see :ref:`here <whatsnew_0160.enhancements.assign>`
+- ``Series.to_coo/from_coo`` methods to interact with ``scipy.sparse``, see :ref:`here <whatsnew_0160.enhancements.sparse>`
+- Backwards incompatible change to ``Timedelta`` to conform the ``.seconds`` attribute with ``datetime.timedelta``, see :ref:`here <whatsnew_0160.api_breaking.timedelta>`
+- Changes to the ``.loc`` slicing API to conform with the behavior of ``.ix`` see :ref:`here <whatsnew_0160.api_breaking.indexing>`
+- Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
+- The ``pandas.tools.rplot``, ``pandas.sandbox.qtpandas`` and ``pandas.rpy``
+  modules are deprecated. We refer users to external packages like
+  `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
+  `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
+  `rpy2 <http://rpy.sourceforge.net/>`_ for similar or equivalent
+  functionality, see :ref:`here <whatsnew_0160.deprecations>`
+
 See the :ref:`v0.16.0 Whatsnew <whatsnew_0160>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.16.0.
 
 Thanks
 ~~~~~~
+
+- Aaron Toth
+- Alan Du
+- Alessandro Amici
+- Artemy Kolchinsky
+- Ashwini Chaudhary
+- Ben Schiller
+- Bill Letson
+- Brandon Bradley
+- Chau Hoang
+- Chris Reynolds
+- Chris Whelan
+- Christer van der Meeren
+- David Cottrell
+- David Stephens
+- Ehsan Azarnasab
+- Garrett-R
+- Guillaume Gay
+- Jake Torcasso
+- Jason Sexauer
+- Jeff Reback
+- John McNamara
+- Joris Van den Bossche
+- Joschka zur Jacobsmühlen
+- Juarez Bochi
+- Junya Hayashi
+- K.-Michael Aye
+- Kerby Shedden
+- Kevin Sheppard
+- Kieran O'Mahony
+- Kodi Arfer
+- Matti Airas
+- Min RK
+- Mortada Mehyar
+- Robert
+- Scott E Lasley
+- Scott Lasley
+- Sergio Pascual
+- Skipper Seabold
+- Stephan Hoyer
+- Thomas Grainger
+- Tom Augspurger
+- TomAugspurger
+- Vladimir Filimonov
+- Vyomkesh Tripathi
+- Will Holmgren
+- Yulong Yang
+- behzad nouri
+- bertrandhaut
+- bjonen
+- cel4
+- clham
+- hsperr
+- ischwabacher
+- jnmclarty
+- josham
+- jreback
+- omtinez
+- roch
+- sinhrks
+- unutbu
 
 pandas 0.15.2
 -------------

@@ -226,11 +226,11 @@ class TestTimedeltas(tm.TestCase):
 
         td = Timedelta('1 days 2 hours 3 ns')
         result = td / np.timedelta64(1,'D')
-        self.assertEquals(result, td.value/float(86400*1e9))
+        self.assertEqual(result, td.value/float(86400*1e9))
         result = td / np.timedelta64(1,'s')
-        self.assertEquals(result, td.value/float(1e9))
+        self.assertEqual(result, td.value/float(1e9))
         result = td / np.timedelta64(1,'ns')
-        self.assertEquals(result, td.value)
+        self.assertEqual(result, td.value)
 
     def test_ops_ndarray(self):
         td = Timedelta('1 day')

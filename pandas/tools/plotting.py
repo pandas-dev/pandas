@@ -1126,7 +1126,8 @@ class MPLPlot(object):
 
         elif self.subplots and self.legend:
             for ax in self.axes:
-                ax.legend(loc='best')
+                if ax.get_visible():
+                    ax.legend(loc='best')
 
     def _get_ax_legend(self, ax):
         leg = ax.get_legend()

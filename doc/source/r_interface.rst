@@ -13,11 +13,9 @@
 rpy2 / R interface
 ******************
 
-.. note::
+.. warning::
 
-   This is all highly experimental. I would like to get more people involved
-   with building a nice RPy2 interface for pandas
-
+   In v0.16.0, the ``pandas.rpy`` interface has been **deprecated and will be removed in a future version**. Similar functionaility can be accessed thru the `rpy2 <http://rpy.sourceforge.net/>`_ project.
 
 If your computer has R and rpy2 (> 2.2) installed (which will be left to the
 reader), you will be able to leverage the below functionality. On Windows,

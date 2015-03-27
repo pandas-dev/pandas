@@ -81,7 +81,8 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
         rpow=arith_method(lambda x, y: y ** x, names('rpow'), op('**'),
                           default_axis=default_axis, reversed=True),
         rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%'),
-                          default_axis=default_axis, reversed=True),
+                          default_axis=default_axis, fill_zeros=np.nan,
+                          reversed=True),
     )
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']

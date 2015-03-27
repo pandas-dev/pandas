@@ -231,6 +231,8 @@ Method Summary
     :meth:`~Series.str.lstrip`,Equivalent to ``str.lstrip``
     :meth:`~Series.str.lower`,Equivalent to ``str.lower``
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
+    :meth:`~Series.str.find`,Equivalent to ``str.find``
+    :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
     :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``

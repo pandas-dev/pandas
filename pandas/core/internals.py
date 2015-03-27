@@ -11,13 +11,13 @@ from pandas.core.base import PandasObject
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
-                                _is_null_datelike_scalar, _maybe_promote,
+                                is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                _possibly_infer_to_datetimelike, array_equivalent,
-                                _maybe_convert_string_to_object)
+                                array_equivalent, _maybe_convert_string_to_object,
+                                is_categorical)
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
-from pandas.core.categorical import Categorical, _maybe_to_categorical, _is_categorical
+from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.categorical import Categorical, maybe_to_categorical
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -278,7 +278,7 @@ class Block(PandasObject):
 
     def apply(self, func, **kwargs):
         """ apply the function to my values; return a block if we are not one """
-        result = func(self.values)
+        result = func(self.values, **kwargs)
         if not isinstance(result, Block):
             result = make_block(values=_block_shape(result), placement=self.mgr_locs,)
 
@@ -367,12 +367,12 @@ class Block(PandasObject):
 
         return blocks
 
-    def astype(self, dtype, copy=False, raise_on_error=True, values=None):
+    def astype(self, dtype, copy=False, raise_on_error=True, values=None, **kwargs):
         return self._astype(dtype, copy=copy, raise_on_error=raise_on_error,
-                            values=values)
+                            values=values, **kwargs)
 
     def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
-                klass=None):
+                klass=None, **kwargs):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
@@ -381,7 +381,7 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
-            return make_block(Categorical(self.values),
+            return make_block(Categorical(self.values, **kwargs),
                               ndim=self.ndim,
                               placement=self.mgr_locs)
 
@@ -560,7 +560,7 @@ class Block(PandasObject):
         elif isinstance(indexer, slice):
 
             if is_list_like(value) and l:
-                if len(value) != _length_of_indexer(indexer, values):
+                if len(value) != length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
 
@@ -1219,7 +1219,7 @@ class FloatBlock(FloatOrComplexBlock):
         except:  # pragma: no cover
             return element
 
-    def to_native_types(self, slicer=None, na_rep='', float_format=None,
+    def to_native_types(self, slicer=None, na_rep='', float_format=None, decimal='.',
                         **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -1229,10 +1229,22 @@ class FloatBlock(FloatOrComplexBlock):
         values = np.array(values, dtype=object)
         mask = isnull(values)
         values[mask] = na_rep
-        if float_format:
+
+
+        if float_format and decimal != '.':
+            formatter = lambda v : (float_format % v).replace('.',decimal,1)
+        elif decimal != '.':
+            formatter = lambda v : ('%g' % v).replace('.',decimal,1)
+        elif float_format:
+            formatter = lambda v : float_format % v
+        else:
+            formatter = None
+
+        if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
-                [float_format % val for val in values.ravel()[imask]])
+                [formatter(val) for val in values.ravel()[imask]])
+
         return values.tolist()
 
     def should_store(self, value):
@@ -1324,7 +1336,7 @@ class TimeDeltaBlock(IntBlock):
 
         values = masker(values)
 
-        if _is_null_datelike_scalar(other):
+        if is_null_datelike_scalar(other):
             other = np.nan
         elif isinstance(other, (np.timedelta64, Timedelta, timedelta)):
             other = _coerce_scalar_to_timedelta_type(other, unit='s', box=False).item()
@@ -1638,7 +1650,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                  fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
                                                fastpath=True, placement=placement,
                                                **kwargs)
 
@@ -1740,7 +1752,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         if self.is_categorical_astype(dtype):
             values = self.values
         else:
-            values = np.array(self.values).astype(dtype)
+            values = np.asarray(self.values).astype(dtype, copy=False)
 
         if copy:
             values = values.copy()
@@ -1799,7 +1811,7 @@ class DatetimeBlock(Block):
             we are going to compare vs i8, so coerce to integer
             values is always ndarra like, other may not be """
         values = values.view('i8')
-        if _is_null_datelike_scalar(other):
+        if is_null_datelike_scalar(other):
             other = tslib.iNaT
         elif isinstance(other, datetime):
             other = lib.Timestamp(other).asm8.view('i8')
@@ -1811,10 +1823,7 @@ class DatetimeBlock(Block):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype == 'i8':
-                result = tslib.array_to_datetime(
-                    result.astype(object).ravel()).reshape(result.shape)
-            elif result.dtype.kind in ['i', 'f', 'O']:
+            if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.datetime64)):
             result = lib.Timestamp(result)
@@ -2075,27 +2084,10 @@ def make_block(values, placement, klass=None, ndim=None,
             klass = DatetimeBlock
         elif issubclass(vtype, np.complexfloating):
             klass = ComplexBlock
-        elif _is_categorical(values):
+        elif is_categorical(values):
             klass = CategoricalBlock
-
         else:
-
-            # we want to infer here if its a datetimelike if its object type
-            # this is pretty strict in that it requires a datetime/timedelta
-            # value IN addition to possible nulls/strings
-            # an array of ONLY strings will not be inferred
-            if np.prod(values.shape):
-                result = _possibly_infer_to_datetimelike(values)
-                vtype = result.dtype.type
-                if issubclass(vtype, np.datetime64):
-                    klass = DatetimeBlock
-                    values = result
-                elif (issubclass(vtype, np.timedelta64)):
-                    klass = TimeDeltaBlock
-                    values = result
-
-            if klass is None:
-                klass = ObjectBlock
+            klass = ObjectBlock
 
     return klass(values, ndim=ndim, fastpath=fastpath,
                  placement=placement)
@@ -2950,7 +2942,7 @@ class BlockManager(PandasObject):
         #        can prob also fix the various if tests for sparse/categorical
 
         value_is_sparse = isinstance(value, SparseArray)
-        value_is_cat = _is_categorical(value)
+        value_is_cat = is_categorical(value)
         value_is_nonconsolidatable = value_is_sparse or value_is_cat
 
         if value_is_sparse:
@@ -3265,7 +3257,7 @@ class BlockManager(PandasObject):
 
         n = self.shape[axis]
         if convert:
-            indexer = _maybe_convert_indices(indexer, n)
+            indexer = maybe_convert_indices(indexer, n)
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
@@ -3597,7 +3589,7 @@ def form_blocks(arrays, names, axes):
             int_items.append((i, k, v))
         elif v.dtype == np.bool_:
             bool_items.append((i, k, v))
-        elif _is_categorical(v):
+        elif is_categorical(v):
             cat_items.append((i, k, v))
         else:
             object_items.append((i, k, v))
@@ -4347,8 +4339,9 @@ class JoinUnit(object):
         if not self.needs_filling:
             return self.block.dtype
         else:
-            return np.dtype(com._maybe_promote(self.block.dtype,
-                                               self.block.fill_value)[0])
+            return com._get_dtype(com._maybe_promote(self.block.dtype,
+                                                     self.block.fill_value)[0])
+
         return self._dtype
 
     @cache_readonly
@@ -4452,5 +4445,5 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
     else:
         indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
-            indexer = _maybe_convert_indices(indexer, length)
+            indexer = maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)

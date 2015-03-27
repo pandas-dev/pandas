@@ -13,8 +13,6 @@ from pandas import compat
 import pandas.core.common as com
 import numpy as np
 
-@deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
-@deprecate_kwarg(old_arg_name='rows', new_arg_name='index')
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 fill_value=None, margins=False, dropna=True):
     """
@@ -42,8 +40,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         Add all row / columns (e.g. for subtotal / grand totals)
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
-    rows : kwarg only alias of index [deprecated]
-    cols : kwarg only alias of columns [deprecated]
 
     Examples
     --------
@@ -319,8 +315,6 @@ def _convert_by(by):
         by = list(by)
     return by
 
-@deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
-@deprecate_kwarg(old_arg_name='rows', new_arg_name='index')
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, dropna=True):
     """
@@ -346,8 +340,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         Add row/column margins (subtotals)
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
-    rows : kwarg only alias of index [deprecated]
-    cols : kwarg only alias of columns [deprecated]
 
     Notes
     -----

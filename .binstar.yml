@@ -1,0 +1,38 @@
+package: pandas
+user: jreback
+
+platform:
+ #- osx-64
+ #- linux-32
+ - linux-64
+ - win-64
+ #- win-32
+
+engine:
+ #- python=2.6
+ - python=2.7
+ #- python=3.3
+ #- python=3.4
+
+before_script:
+  - python -V
+
+script:
+  - conda build conda.recipe --quiet
+
+iotimeout: 600
+
+build_targets: conda
+
+notifications:
+  email:
+    recipients: ['jeff@reback.net']
+
+---
+platform: win-32
+engine: python=2.6
+exclude: true
+---
+platform: win-64
+engine: python=2.6
+exclude: true

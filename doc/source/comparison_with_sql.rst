@@ -204,7 +204,7 @@ Grouping by more than one column is done by passing a list of columns to the
 .. code-block:: sql
 
     SELECT smoker, day, COUNT(*), AVG(tip)
-    FROM tip
+    FROM tips
     GROUP BY smoker, day;
     /*
     smoker day

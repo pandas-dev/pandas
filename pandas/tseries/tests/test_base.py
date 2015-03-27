@@ -39,9 +39,9 @@ class TestDatetimeIndexOps(Ops):
 
         # attribute access should still work!
         s = Series(dict(year=2000,month=1,day=10))
-        self.assertEquals(s.year,2000)
-        self.assertEquals(s.month,1)
-        self.assertEquals(s.day,10)
+        self.assertEqual(s.year,2000)
+        self.assertEqual(s.month,1)
+        self.assertEqual(s.day,10)
         self.assertRaises(AttributeError, lambda : s.weekday)
 
     def test_asobject_tolist(self):
@@ -196,12 +196,16 @@ Freq: H"""
 
             for rng, other, expected in [(rng1, other1, expected1), (rng2, other2, expected2),
                                          (rng3, other3, expected3)]:
-                result_add = rng + other
+                # GH9094
+                with tm.assert_produces_warning(FutureWarning):
+                    result_add = rng + other
                 result_union = rng.union(other)
 
                 tm.assert_index_equal(result_add, expected)
                 tm.assert_index_equal(result_union, expected)
-                rng += other
+                # GH9094
+                with tm.assert_produces_warning(FutureWarning):
+                    rng += other
                 tm.assert_index_equal(rng, expected)
 
             # offset
@@ -291,6 +295,12 @@ Freq: H"""
             tm.assert_series_equal(idx.value_counts(dropna=False), expected)
 
             tm.assert_index_equal(idx.unique(), exp_idx)
+
+    def test_nonunique_contains(self):
+        # GH 9512
+        for idx in map(DatetimeIndex, ([0, 1, 0], [0, 0, -1], [0, -1, -1],
+                                       ['2015', '2015', '2016'], ['2015', '2015', '2014'])):
+            tm.assertIn(idx[0], idx)
 
 
 class TestTimedeltaIndexOps(Ops):
@@ -587,6 +597,50 @@ Freq: D"""
         expected = DatetimeIndex(['20121231','20130101','20130102'],tz='US/Eastern')
         tm.assert_index_equal(result,expected)
 
+    def test_dti_dti_deprecated_ops(self):
+
+        # deprecated in 0.16.0 (GH9094)
+        # change to return subtraction -> TimeDeltaIndex in 0.17.0
+        # shoudl move to the appropriate sections above
+
+        dti = date_range('20130101',periods=3)
+        dti_tz = date_range('20130101',periods=3).tz_localize('US/Eastern')
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti-dti
+            expected = Index([])
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti+dti
+            expected = dti
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti_tz-dti_tz
+            expected = Index([])
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti_tz+dti_tz
+            expected = dti_tz
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti_tz-dti
+            expected = dti_tz
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti-dti_tz
+            expected = dti
+            tm.assert_index_equal(result,expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertRaises(TypeError, lambda : dti_tz+dti)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertRaises(TypeError, lambda : dti+dti_tz)
+
     def test_dti_tdi_numeric_ops(self):
 
         # These are normally union/diff set-like ops
@@ -683,6 +737,14 @@ Freq: D"""
         tm.assert_series_equal(idx.value_counts(dropna=False), expected)
 
         tm.assert_index_equal(idx.unique(), exp_idx)
+
+    def test_nonunique_contains(self):
+        # GH 9512
+        for idx in map(TimedeltaIndex, ([0, 1, 0], [0, 0, -1], [0, -1, -1],
+                                        ['00:01:00', '00:01:00', '00:02:00'],
+                                        ['00:01:00', '00:01:00', '00:00:01'])):
+            tm.assertIn(idx[0], idx)
+
 
 class TestPeriodIndexOps(Ops):
 
@@ -895,13 +957,19 @@ Freq: Q-DEC"""
                                      (rng5, other5, expected5), (rng6, other6, expected6),
                                      (rng7, other7, expected7)]:
 
-            result_add = rng + other
+            # GH9094
+            with tm.assert_produces_warning(FutureWarning):
+                result_add = rng + other
+
             result_union = rng.union(other)
 
             tm.assert_index_equal(result_add, expected)
             tm.assert_index_equal(result_union, expected)
+
             # GH 6527
-            rng += other
+            # GH9094
+            with tm.assert_produces_warning(FutureWarning):
+                rng += other
             tm.assert_index_equal(rng, expected)
 
         # offset

@@ -411,8 +411,8 @@ class TestTimeSeries(tm.TestCase):
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
-        self.assertEquals(stamp, dtval)
-        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
@@ -423,8 +423,8 @@ class TestTimeSeries(tm.TestCase):
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
-        self.assertEquals(stamp, dtval)
-        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_index_convert_to_datetime_array(self):
         tm._skip_if_no_pytz()
@@ -454,8 +454,8 @@ class TestTimeSeries(tm.TestCase):
             tm.assert_isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 tm.assert_isinstance(x, datetime)
-                self.assertEquals(x, stamp.to_pydatetime())
-                self.assertEquals(x.tzinfo, stamp.tzinfo)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz=pytz.timezone('US/Eastern'))
@@ -474,8 +474,8 @@ class TestTimeSeries(tm.TestCase):
             tm.assert_isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 tm.assert_isinstance(x, datetime)
-                self.assertEquals(x, stamp.to_pydatetime())
-                self.assertEquals(x.tzinfo, stamp.tzinfo)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
@@ -660,7 +660,8 @@ class TestTimeSeries(tm.TestCase):
     def test_pad_require_monotonicity(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
 
-        rng2 = rng[::2][::-1]
+        # neither monotonic increasing or decreasing
+        rng2 = rng[[1, 0, 2]]
 
         self.assertRaises(ValueError, rng2.get_indexer, rng,
                           method='pad')
@@ -936,7 +937,7 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
@@ -946,7 +947,7 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
@@ -1542,24 +1543,24 @@ class TestTimeSeries(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
     def test_to_period_tz_dateutil(self):
         tm._skip_if_no_dateutil()
@@ -1573,24 +1574,24 @@ class TestTimeSeries(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assert_(result == expected)
-        self.assert_(ts.to_period().equals(xp))
+        self.assertTrue(result == expected)
+        self.assertTrue(ts.to_period().equals(xp))
 
     def test_frame_to_period(self):
         K = 5
@@ -1624,7 +1625,7 @@ class TestTimeSeries(tm.TestCase):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
 
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'days_in_month', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
         for f in fields:
             expected = getattr(idx, f)[-1]
             result = getattr(Timestamp(idx[-1]), f)
@@ -1788,11 +1789,11 @@ class TestTimeSeries(tm.TestCase):
 
         result = ts.append(ts2)
         result_df = df.append(df2)
-        self.assert_(result.index.equals(rng3))
-        self.assert_(result_df.index.equals(rng3))
+        self.assertTrue(result.index.equals(rng3))
+        self.assertTrue(result_df.index.equals(rng3))
 
         appended = rng.append(rng2)
-        self.assert_(appended.equals(rng3))
+        self.assertTrue(appended.equals(rng3))
 
     def test_append_concat_tz_dateutil(self):
         # GH 2938
@@ -1812,11 +1813,11 @@ class TestTimeSeries(tm.TestCase):
 
         result = ts.append(ts2)
         result_df = df.append(df2)
-        self.assert_(result.index.equals(rng3))
-        self.assert_(result_df.index.equals(rng3))
+        self.assertTrue(result.index.equals(rng3))
+        self.assertTrue(result_df.index.equals(rng3))
 
         appended = rng.append(rng2)
-        self.assert_(appended.equals(rng3))
+        self.assertTrue(appended.equals(rng3))
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
@@ -2864,6 +2865,9 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.quarter[0], 1)
         self.assertEqual(dti.quarter[120], 2)
 
+        self.assertEqual(dti.days_in_month[0], 31)
+        self.assertEqual(dti.days_in_month[90], 30)
+
         self.assertEqual(dti.is_month_start[0], True)
         self.assertEqual(dti.is_month_start[1], False)
         self.assertEqual(dti.is_month_start[31], True)
@@ -2947,7 +2951,9 @@ class TestDatetime64(tm.TestCase):
             (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
             (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
             (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
-            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1)]
+            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1),
+            (Timestamp('2012-02-01').days_in_month, 29),
+            (Timestamp('2013-02-01').days_in_month, 28)]
 
         for ts, value in tests:
             self.assertEqual(ts, value)

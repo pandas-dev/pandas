@@ -54,12 +54,16 @@ def apply_wraps(func):
         nano = getattr(other, 'nanosecond', 0)
 
         try:
-            result = func(self, other)
+            if self._adjust_dst and isinstance(other, Timestamp):
+                other = other.tz_localize(None)
 
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+            result = func(self, other)
+            if self._adjust_dst:
+                result = tslib._localize_pydatetime(result, tz)
+            
             result = Timestamp(result)
+            if self.normalize:
+                result = result.normalize()
 
             # nanosecond may be deleted depending on offset process
             if not self.normalize and nano != 0:
@@ -79,7 +83,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+                result = normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = tslib._localize_pydatetime(result, tz)
@@ -158,6 +162,7 @@ class DateOffset(object):
         'hour', 'minute', 'second', 'microsecond'
         )
     _use_relativedelta = False
+    _adjust_dst = False
 
     # default for prior pickles
     normalize = False
@@ -380,15 +385,14 @@ class DateOffset(object):
 
         return fstr
 
-
 class SingleConstructorOffset(DateOffset):
+    
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError("Bad freq suffix %s" % suffix)
         return cls()
-
 
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
@@ -425,6 +429,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     DateOffset subclass representing possibly n business days
     """
     _prefix = 'B'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
@@ -685,6 +690,8 @@ class CustomBusinessDay(BusinessDay):
 
 
 class MonthOffset(SingleConstructorOffset):
+    _adjust_dst = True
+    
     @property
     def name(self):
         if self.isAnchored:
@@ -925,7 +932,7 @@ class Week(DateOffset):
     weekday : int, default None
         Always generate specific day of week. 0 for Monday
     """
-
+    _adjust_dst = True
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
@@ -1031,7 +1038,9 @@ class WeekOfMonth(DateOffset):
         5: Saturdays
         6: Sundays
     """
-
+    
+    _adjust_dst = True
+    
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
@@ -1190,7 +1199,7 @@ class QuarterOffset(DateOffset):
     _default_startingMonth = None
     #: default month in _from_name
     _from_name_startingMonth = None
-
+    _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point
     def __init__(self, n=1, normalize=False, **kwds):
@@ -1395,7 +1404,7 @@ class QuarterBegin(QuarterOffset):
 
 class YearOffset(DateOffset):
     """DateOffset that just needs a month"""
-
+    _adjust_dst = True
     def __init__(self, n=1, normalize=False, **kwds):
         self.month = kwds.get('month', self._default_month)
 
@@ -1627,6 +1636,7 @@ class FY5253(DateOffset):
     _prefix = 'RE'
     _suffix_prefix_last = 'L'
     _suffix_prefix_nearest = 'N'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1848,6 +1858,7 @@ class FY5253Quarter(DateOffset):
     """
 
     _prefix = 'REQ'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1966,6 +1977,8 @@ class Easter(DateOffset):
     the revised method which is valid in years
     1583-4099.
     '''
+    _adjust_dst = True
+    
     def __init__(self, n=1, **kwds):
         super(Easter, self).__init__(n, **kwds)
 

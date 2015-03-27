@@ -1246,6 +1246,7 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_visible(ax.get_yticklabels())
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45, ylabelsize=7)
 
+    @slow
     def test_subplots_layout(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3),
@@ -1290,6 +1291,21 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(subplots=True, layout=(3, 3))
         self._check_axes_shape(axes, axes_num=1, layout=(3, 3))
         self.assertEqual(axes.shape, (3, 3))
+
+    @slow
+    def test_subplots_warnings(self):
+        # GH 9464
+        warnings.simplefilter('error')
+        try:
+            df = DataFrame(np.random.randn(100, 4))
+            df.plot(subplots=True, layout=(3, 2))
+
+            df = DataFrame(np.random.randn(100, 4),
+                           index=date_range('1/1/2000', periods=100))
+            df.plot(subplots=True, layout=(3, 2))
+        except Warning as w:
+            self.fail(w)
+        warnings.simplefilter('default')
 
     @slow
     def test_subplots_multiple_axes(self):

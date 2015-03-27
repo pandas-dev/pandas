@@ -11,7 +11,6 @@ def _create_sp_series():
 
     # nan-based
     arr = np.arange(15, dtype=np.float64)
-    index = np.arange(15)
     arr[7:12] = nan
     arr[-1:] = nan
 
@@ -28,11 +27,10 @@ def _create_sp_tsseries():
 
     # nan-based
     arr = np.arange(15, dtype=np.float64)
-    index = np.arange(15)
     arr[7:12] = nan
     arr[-1:] = nan
 
-    date_index = bdate_range('1/1/2011', periods=len(index))
+    date_index = bdate_range('1/1/2011', periods=len(arr))
     bseries = SparseTimeSeries(arr, index=date_index, kind='block')
     bseries.name = 'btsseries'
     return bseries
@@ -99,7 +97,7 @@ def create_data():
                                columns=['A', 'B', 'A']),
                  cat_onecol=DataFrame(dict(A=Categorical(['foo', 'bar']))),
                  cat_and_float=DataFrame(dict(A=Categorical(['foo', 'bar', 'baz']),
-                                              B=np.arange(3))),
+                                              B=np.arange(3).astype(np.int64))),
     )
     panel = dict(float = Panel(dict(ItemA = frame['float'], ItemB = frame['float']+1)),
                  dup = Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),

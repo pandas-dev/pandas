@@ -424,7 +424,7 @@ def test_is_hashable():
             raise TypeError("Not hashable")
 
     hashable = (
-        1, 'a', tuple(), (1,), HashableClass(),
+        1, 3.14, np.float64(3.14), 'a', tuple(), (1,), HashableClass(),
     )
     not_hashable = (
         [], UnhashableClass1(),
@@ -434,13 +434,10 @@ def test_is_hashable():
     )
 
     for i in hashable:
-        assert isinstance(i, collections.Hashable)
         assert com.is_hashable(i)
     for i in not_hashable:
-        assert not isinstance(i, collections.Hashable)
         assert not com.is_hashable(i)
     for i in abc_hashable_not_really_hashable:
-        assert isinstance(i, collections.Hashable)
         assert not com.is_hashable(i)
 
     # numpy.array is no longer collections.Hashable as of
@@ -455,7 +452,7 @@ def test_is_hashable():
             pass
         c = OldStyleClass()
         assert not isinstance(c, collections.Hashable)
-        assert not com.is_hashable(c)
+        assert com.is_hashable(c)
         hash(c)  # this will not raise
 
 
@@ -955,7 +952,7 @@ class TestMaybe(tm.TestCase):
         self.assertTrue(result.dtype == object)
 
         result = com._maybe_convert_string_to_object(1)
-        self.assertEquals(result, 1)
+        self.assertEqual(result, 1)
 
         arr = np.array(['x', 'y'], dtype=str)
         result = com._maybe_convert_string_to_object(arr)

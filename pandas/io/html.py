@@ -20,29 +20,40 @@ from pandas.compat import (lrange, lmap, u, string_types, iteritems,
 from pandas.core import common as com
 from pandas import Series
 
+_IMPORTS = False
+_HAS_BS4 = False
+_HAS_LXML = False
+_HAS_HTML5LIB = False
 
-try:
-    import bs4
-except ImportError:
-    _HAS_BS4 = False
-else:
-    _HAS_BS4 = True
+def _importers():
+    # import things we need
+    # but make this done on a first use basis
 
+    global _IMPORTS
+    if _IMPORTS:
+        return
 
-try:
-    import lxml
-except ImportError:
-    _HAS_LXML = False
-else:
-    _HAS_LXML = True
+    _IMPORTS = True
 
+    global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
 
-try:
-    import html5lib
-except ImportError:
-    _HAS_HTML5LIB = False
-else:
-    _HAS_HTML5LIB = True
+    try:
+        import bs4
+        _HAS_BS4 = True
+    except ImportError:
+        pass
+
+    try:
+        import lxml
+        _HAS_LXML = True
+    except ImportError:
+        pass
+
+    try:
+        import html5lib
+        _HAS_HTML5LIB = True
+    except ImportError:
+        pass
 
 
 #############
@@ -651,6 +662,7 @@ def _parser_dispatch(flavor):
             raise ImportError("html5lib not found, please install it")
         if not _HAS_BS4:
             raise ImportError("BeautifulSoup4 (bs4) not found, please install it")
+        import bs4
         if bs4.__version__ == LooseVersion('4.2.0'):
             raise ValueError("You're using a version"
                              " of BeautifulSoup4 (4.2.0) that has been"
@@ -839,6 +851,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     --------
     pandas.read_csv
     """
+    _importers()
     if infer_types is not None:
         warnings.warn("infer_types has no effect since 0.15", FutureWarning)
 

@@ -2,12 +2,13 @@
 Base and utility classes for tseries type pandas objects.
 """
 
-
+import warnings
 from datetime import datetime, time, timedelta
 
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
+from pandas.core.common import is_integer, is_float
 import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
@@ -65,7 +66,7 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return np.isscalar(res) or type(res) == slice
+            return np.isscalar(res) or type(res) == slice or np.any(res)
         except (KeyError, TypeError):
             return False
 
@@ -297,6 +298,21 @@ class DatetimeIndexOpsMixin(object):
         from pandas.tseries.frequencies import get_reso_string
         return get_reso_string(self._resolution)
 
+    def _convert_scalar_indexer(self, key, kind=None):
+        """
+        we don't allow integer or float indexing on datetime-like when using loc
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+        """
+
+        if kind in ['loc'] and lib.isscalar(key) and (is_integer(key) or is_float(key)):
+            self._invalid_indexer('index',key)
+
+        return super(DatetimeIndexOpsMixin, self)._convert_scalar_indexer(key, kind=kind)
+
     def _add_datelike(self, other):
         raise NotImplementedError
 
@@ -318,6 +334,8 @@ class DatetimeIndexOpsMixin(object):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}".format(typ=type(other)))
             elif isinstance(other, Index):
+                warnings.warn("using '+' to provide set union with datetimelike Indexes is deprecated, "
+                              "use .union()",FutureWarning)
                 return self.union(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(other)
@@ -341,6 +359,8 @@ class DatetimeIndexOpsMixin(object):
                     raise TypeError("cannot subtract TimedeltaIndex and {typ}".format(typ=type(other)))
                 return self._add_delta(-other)
             elif isinstance(other, Index):
+                warnings.warn("using '-' to provide set differences with datetimelike Indexes is deprecated, "
+                              "use .difference()",FutureWarning)
                 return self.difference(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(-other)

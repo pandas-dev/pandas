@@ -21,7 +21,11 @@ Frequently Asked Questions (FAQ)
    from pandas.tseries.offsets import *
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style='default'
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    from pandas.compat import lrange
 
 
@@ -289,6 +293,11 @@ details.
 
 Visualizing Data in Qt applications
 -----------------------------------
+
+.. warning::
+
+    The ``qt`` support is **deprecated and will be removed in a future version**.
+    We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_.
 
 There is experimental support for visualizing DataFrames in PyQt4 and PySide
 applications. At the moment you can display and edit the values of the cells

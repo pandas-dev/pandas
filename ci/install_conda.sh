@@ -73,6 +73,7 @@ bash miniconda.sh -b -p $HOME/miniconda || exit 1
 conda config --set always_yes yes --set changeps1 no || exit 1
 conda update -q conda || exit 1
 conda config --add channels http://conda.binstar.org/pandas || exit 1
+conda config --set ssl_verify false || exit 1
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1
@@ -97,7 +98,7 @@ fi
 
 python setup.py build_ext --inplace && python setup.py develop
 
-for package in beautifulsoup4 'python-dateutil'; do
+for package in beautifulsoup4; do
     pip uninstall --yes $package
 done
 

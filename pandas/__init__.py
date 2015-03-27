@@ -57,7 +57,6 @@ from pandas.tools.merge import merge, concat, ordered_merge
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix, plot_params
 from pandas.tools.tile import cut, qcut
-from pandas.tools.util import value_range
 from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
 import pandas.util.testing

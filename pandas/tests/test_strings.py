@@ -37,8 +37,10 @@ class TestStringMethods(tm.TestCase):
         self.assertIsInstance(Series(['']).str, strings.StringMethods)
 
         # GH 9184
-        with tm.assertRaisesRegexp(TypeError, "only use .str accessor"):
-            Series([1]).str
+        invalid = Series([1])
+        with tm.assertRaisesRegexp(AttributeError, "only use .str accessor"):
+            invalid.str
+        self.assertFalse(hasattr(invalid, 'str'))
 
     def test_iter(self):
         # GH3638
@@ -610,6 +612,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty_list.str.join(''))
         tm.assert_series_equal(empty_int, empty.str.len())
         tm.assert_series_equal(empty_list, empty_list.str.findall('a'))
+        tm.assert_series_equal(empty_int, empty.str.find('a'))
+        tm.assert_series_equal(empty_int, empty.str.rfind('a'))
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
@@ -653,13 +657,13 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(str_s.str.isupper(), Series(upper_e))
         tm.assert_series_equal(str_s.str.istitle(), Series(title_e))
 
-        self.assertEquals(str_s.str.isalnum().tolist(), [v.isalnum() for v in values])
-        self.assertEquals(str_s.str.isalpha().tolist(), [v.isalpha() for v in values])
-        self.assertEquals(str_s.str.isdigit().tolist(), [v.isdigit() for v in values])
-        self.assertEquals(str_s.str.isspace().tolist(), [v.isspace() for v in values])
-        self.assertEquals(str_s.str.islower().tolist(), [v.islower() for v in values])
-        self.assertEquals(str_s.str.isupper().tolist(), [v.isupper() for v in values])
-        self.assertEquals(str_s.str.istitle().tolist(), [v.istitle() for v in values])
+        self.assertEqual(str_s.str.isalnum().tolist(), [v.isalnum() for v in values])
+        self.assertEqual(str_s.str.isalpha().tolist(), [v.isalpha() for v in values])
+        self.assertEqual(str_s.str.isdigit().tolist(), [v.isdigit() for v in values])
+        self.assertEqual(str_s.str.isspace().tolist(), [v.isspace() for v in values])
+        self.assertEqual(str_s.str.islower().tolist(), [v.islower() for v in values])
+        self.assertEqual(str_s.str.isupper().tolist(), [v.isupper() for v in values])
+        self.assertEqual(str_s.str.istitle().tolist(), [v.istitle() for v in values])
 
     def test_isnumeric(self):
         # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
@@ -675,8 +679,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
         unicodes = [u('A'), u('3'), unichr(0x00bc), unichr(0x2605),
                   unichr(0x1378), unichr(0xFF13), u('four')]
-        self.assertEquals(s.str.isnumeric().tolist(), [v.isnumeric() for v in unicodes])
-        self.assertEquals(s.str.isdecimal().tolist(), [v.isdecimal() for v in unicodes])
+        self.assertEqual(s.str.isnumeric().tolist(), [v.isnumeric() for v in unicodes])
+        self.assertEqual(s.str.isdecimal().tolist(), [v.isdecimal() for v in unicodes])
 
         values = ['A', np.nan, unichr(0x00bc), unichr(0x2605),
                   np.nan, unichr(0xFF13), 'four']
@@ -769,6 +773,64 @@ class TestStringMethods(tm.TestCase):
         result = values.str.findall('BAD[_]*')
         exp = Series([[u('BAD__'), u('BAD')], NA, [], [u('BAD')]])
         tm.assert_almost_equal(result, exp)
+
+    def test_find(self):
+        values = Series(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF', 'XXXX'])
+        result = values.str.find('EF')
+        tm.assert_series_equal(result, Series([4, 3, 1, 0, -1]))
+        expected = np.array([v.find('EF') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF')
+        tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
+        expected = np.array([v.rfind('EF') for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.find('EF', 3)
+        tm.assert_series_equal(result, Series([4, 3, 7, 4, -1]))
+        expected = np.array([v.find('EF', 3) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF', 3)
+        tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
+        expected = np.array([v.rfind('EF', 3) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.find('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
+        expected = np.array([v.find('EF', 3, 6) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        result = values.str.rfind('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
+        expected = np.array([v.rfind('EF', 3, 6) for v in values.values])
+        tm.assert_numpy_array_equal(result.values, expected)
+
+        with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+            result = values.str.find(0)
+
+        with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+            result = values.str.rfind(0)
+
+    def test_find_nan(self):
+        values = Series(['ABCDEFG', np.nan, 'DEFGHIJEF', np.nan, 'XXXX'])
+        result = values.str.find('EF')
+        tm.assert_series_equal(result, Series([4, np.nan, 1, np.nan, -1]))
+
+        result = values.str.rfind('EF')
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.find('EF', 3)
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.rfind('EF', 3)
+        tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+
+        result = values.str.find('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
+
+        result = values.str.rfind('EF', 3, 6)
+        tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
 
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])

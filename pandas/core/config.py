@@ -109,7 +109,11 @@ def _set_option(*args, **kwargs):
                              "arguments")
 
     # default to false
-    silent = kwargs.get('silent', False)
+    silent = kwargs.pop('silent', False)
+
+    if kwargs:
+        raise TypeError('_set_option() got an unexpected keyword '
+                'argument "{0}"'.format(list(kwargs.keys())[0]))
 
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k, silent)

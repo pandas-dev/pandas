@@ -170,7 +170,7 @@ EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
@@ -187,8 +187,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 15
-MICRO = 2
+MINOR = 16
+MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -265,16 +265,23 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
-        self._clean_exclude = ['pandas/src/datetime/np_datetime.c',
-                               'pandas/src/datetime/np_datetime_strings.c',
-                               'pandas/src/period.c',
-                               'pandas/src/parser/tokenizer.c',
-                               'pandas/src/parser/io.c',
-                               'pandas/src/ujson/python/ujson.c',
-                               'pandas/src/ujson/python/objToJSON.c',
-                               'pandas/src/ujson/python/JSONtoObj.c',
-                               'pandas/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/src/ujson/lib/ultrajsondec.c',
+
+        base = pjoin('pandas','src')
+        dt = pjoin(base,'datetime')
+        src = base
+        parser = pjoin(base,'parser')
+        ujson_python = pjoin(base,'ujson','python')
+        ujson_lib = pjoin(base,'ujson','lib')
+        self._clean_exclude = [pjoin(dt,'np_datetime.c'),
+                               pjoin(dt,'np_datetime_strings.c'),
+                               pjoin(src,'period_helper.c'),
+                               pjoin(parser,'tokenizer.c'),
+                               pjoin(parser,'io.c'),
+                               pjoin(ujson_python,'ujson.c'),
+                               pjoin(ujson_python,'objToJSON.c'),
+                               pjoin(ujson_python,'JSONtoObj.c'),
+                               pjoin(ujson_lib,'ultrajsonenc.c'),
+                               pjoin(ujson_lib,'ultrajsondec.c'),
                                ]
 
         for root, dirs, files in os.walk('pandas'):
@@ -438,7 +445,7 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
-                   'pandas/src/period.h']
+                   'pandas/src/period_helper.h']
 
 
 # some linux distros require it
@@ -449,24 +456,30 @@ ext_data = dict(
          'pxdfiles': [],
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
-               'pxdfiles': ['hashtable']},
+               'pxdfiles': ['hashtable'],
+               'depends': ['pandas/src/klib/khash_python.h']},
     tslib={'pyxfile': 'tslib',
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c',
-                       'pandas/src/period.c']},
+                       'pandas/src/period_helper.c']},
+    _period={'pyxfile': 'src/period',
+             'depends': tseries_depends,
+             'sources': ['pandas/src/datetime/np_datetime.c',
+                         'pandas/src/datetime/np_datetime_strings.c',
+                         'pandas/src/period_helper.c']},
     index={'pyxfile': 'index',
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
            'depends': [srcpath('generated', suffix='.pyx'),
                        srcpath('join', suffix='.pyx')]},
-    parser=dict(pyxfile='parser',
-                depends=['pandas/src/parser/tokenizer.h',
-                         'pandas/src/parser/io.h',
-                         'pandas/src/numpy_helper.h'],
-                sources=['pandas/src/parser/tokenizer.c',
-                         'pandas/src/parser/io.c'])
+    parser={'pyxfile': 'parser',
+            'depends': ['pandas/src/parser/tokenizer.h',
+                        'pandas/src/parser/io.h',
+                        'pandas/src/numpy_helper.h'],
+            'sources': ['pandas/src/parser/tokenizer.c',
+                        'pandas/src/parser/io.c']}
 )
 
 extensions = []

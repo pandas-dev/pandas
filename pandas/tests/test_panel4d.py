@@ -629,6 +629,21 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         panel4d = Panel4D(vals, copy=True)
         self.assertIsNot(panel4d.values, vals)
 
+        # GH #8285, test when scalar data is used to construct a Panel4D
+        # if dtype is not passed, it should be inferred
+        value_and_dtype = [(1, 'int64'), (3.14, 'float64'), ('foo', np.object_)]
+        for (val, dtype) in value_and_dtype:
+            panel4d = Panel4D(val, labels=range(2), items=range(3), major_axis=range(4), minor_axis=range(5))
+            vals = np.empty((2, 3, 4, 5), dtype=dtype)
+            vals.fill(val)
+            assert_panel4d_equal(panel4d, Panel4D(vals, dtype=dtype))
+
+        # test the case when dtype is passed
+        panel4d = Panel4D(1, labels=range(2), items=range(3), major_axis=range(4), minor_axis=range(5), dtype='float32')
+        vals = np.empty((2, 3, 4, 5), dtype='float32')
+        vals.fill(1)
+        assert_panel4d_equal(panel4d, Panel4D(vals, dtype='float32'))
+
     def test_constructor_cast(self):
         zero_filled = self.panel4d.fillna(0)
 

@@ -31,10 +31,14 @@ We use the standard convention for referencing the matplotlib API:
 
    import matplotlib.pyplot as plt
 
-.. versionadded:: 0.11.0
+The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4):
 
-The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4).
-If your version of matplotlib is 1.3 or lower, setting the ``display.mpl_style`` to ``'default'``
+.. code-block:: python
+
+   import matplotlib
+   matplotlib.style.use('ggplot')
+
+If your version of matplotlib is 1.3 or lower, you can set ``display.mpl_style`` to ``'default'``
 with ``pd.options.display.mpl_style = 'default'``
 to produce more appealing plots.
 When set, matplotlib's ``rcParams`` are changed (globally!) to nicer-looking settings.
@@ -1607,6 +1611,16 @@ when plotting a large number of points.
 Trellis plotting interface
 --------------------------
 
+.. warning::
+
+    The ``rplot`` trellis plotting interface is **deprecated and will be removed
+    in a future version**. We refer to external packages like
+    `seaborn <https://github.com/mwaskom/seaborn>`_ for similar but more
+    refined functionality.
+
+    The docs below include some example on how to convert your existing code to
+    ``seaborn``.
+
 .. ipython:: python
    :suppress:
 
@@ -1622,7 +1636,6 @@ Trellis plotting interface
    iris_data = read_csv('data/iris.data')
    from pandas import read_csv
    from pandas.tools.plotting import radviz
-   import pandas.tools.rplot as rplot
    plt.close('all')
 
 
@@ -1641,13 +1654,20 @@ Trellis plotting interface
 We import the rplot API:
 
 .. ipython:: python
+   :okwarning:
 
    import pandas.tools.rplot as rplot
 
 Examples
 ~~~~~~~~
 
-RPlot is a flexible API for producing Trellis plots. These plots allow you to arrange data in a rectangular grid by values of certain attributes.
+RPlot was an API for producing Trellis plots. These plots allow you toµ
+arrange data in a rectangular grid by values of certain attributes.
+In the example below, data from the tips data set is arranged by the attributes
+'sex' and 'smoker'. Since both of those attributes can take on one of two
+values, the resulting grid has two columns and two rows. A histogram is
+displayed for each cell of the grid.
+
 
 .. ipython:: python
 
@@ -1665,7 +1685,20 @@ RPlot is a flexible API for producing Trellis plots. These plots allow you to ar
 
    plt.close('all')
 
-In the example above, data from the tips data set is arranged by the attributes 'sex' and 'smoker'. Since both of those attributes can take on one of two values, the resulting grid has two columns and two rows. A histogram is displayed for each cell of the grid.
+A similar plot can be made with ``seaborn`` using the ``FacetGrid`` object,
+resulting in the following image:
+
+.. code-block:: python
+
+    import seaborn as sns
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
+    g.map(plt.hist, "total_bill")
+
+.. image:: _static/rplot-seaborn-example1.png
+
+
+Example below is the same as previous except the plot is set to kernel density
+estimation. A ``seaborn`` example is included beneath.
 
 .. ipython:: python
 
@@ -1683,7 +1716,15 @@ In the example above, data from the tips data set is arranged by the attributes 
 
    plt.close('all')
 
-Example above is the same as previous except the plot is set to kernel density estimation. This shows how easy it is to have different plots for the same Trellis structure.
+.. code-block:: python
+
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
+    g.map(sns.kdeplot, "total_bill")
+
+.. image:: _static/rplot-seaborn-example2.png
+
+The plot below shows that it is possible to have two or more plots for the same
+data displayed on the same Trellis grid cell.
 
 .. ipython:: python
 
@@ -1702,7 +1743,27 @@ Example above is the same as previous except the plot is set to kernel density e
 
    plt.close('all')
 
-The plot above shows that it is possible to have two or more plots for the same data displayed on the same Trellis grid cell.
+A seaborn equivalent for a simple scatter plot:
+
+.. code-block:: python
+
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
+    g.map(plt.scatter, "total_bill", "tip")
+
+.. image:: _static/rplot-seaborn-example3.png
+
+and with a regression line, using the dedicated ``seaborn`` ``regplot`` function:
+
+.. code-block:: python
+
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker", margin_titles=True)
+    g.map(sns.regplot, "total_bill", "tip", order=2)
+
+.. image:: _static/rplot-seaborn-example3b.png
+
+
+Below is a similar plot but with 2D kernel density estimation plot superimposed,
+followed by a ``seaborn`` equivalent:
 
 .. ipython:: python
 
@@ -1721,7 +1782,17 @@ The plot above shows that it is possible to have two or more plots for the same 
 
    plt.close('all')
 
-Above is a similar plot but with 2D kernel density estimation plot superimposed.
+.. code-block:: python
+
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
+    g.map(plt.scatter, "total_bill", "tip")
+    g.map(sns.kdeplot, "total_bill", "tip")
+
+.. image:: _static/rplot-seaborn-example4.png
+
+It is possible to only use one attribute for grouping data. The example above
+only uses 'sex' attribute. If the second grouping attribute is not specified,
+the plots will be arranged in a column.
 
 .. ipython:: python
 
@@ -1739,7 +1810,7 @@ Above is a similar plot but with 2D kernel density estimation plot superimposed.
 
    plt.close('all')
 
-It is possible to only use one attribute for grouping data. The example above only uses 'sex' attribute. If the second grouping attribute is not specified, the plots will be arranged in a column.
+If the first grouping attribute is not specified the plots will be arranged in a row.
 
 .. ipython:: python
 
@@ -1757,15 +1828,17 @@ It is possible to only use one attribute for grouping data. The example above on
 
    plt.close('all')
 
-If the first grouping attribute is not specified the plots will be arranged in a row.
+In ``seaborn``, this can also be done by only specifying one of the ``row``
+and ``col`` arguments.
+
+In the example below the colour and shape of the scatter plot graphical
+objects is mapped to 'day' and 'size' attributes respectively. You use
+scale objects to specify these mappings. The list of scale classes is
+given below with initialization arguments for quick reference.
 
 .. ipython:: python
 
    plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['.', 'smoker']))
-   plot.add(rplot.GeomHistogram())
 
    plot = rplot.RPlot(tips_data, x='tip', y='total_bill')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
@@ -1779,38 +1852,12 @@ If the first grouping attribute is not specified the plots will be arranged in a
 
    plt.close('all')
 
-As shown above, scatter plots are also possible. Scatter plots allow you to map various data attributes to graphical properties of the plot. In the example above the colour and shape of the scatter plot graphical objects is mapped to 'day' and 'size' attributes respectively. You use scale objects to specify these mappings. The list of scale classes is given below with initialization arguments for quick reference.
+This can also be done in ``seaborn``, at least for 3 variables:
 
+.. code-block:: python
 
-Scales
-~~~~~~
+    g = sns.FacetGrid(tips_data, row="sex", col="smoker", hue="day")
+    g.map(plt.scatter, "tip", "total_bill")
+    g.add_legend()
 
-::
-
-   ScaleGradient(column, colour1, colour2)
-
-This one allows you to map an attribute (specified by parameter column) value to the colour of a graphical object. The larger the value of the attribute the closer the colour will be to colour2, the smaller the value, the closer it will be to colour1.
-
-::
-
-   ScaleGradient2(column, colour1, colour2, colour3)
-
-The same as ScaleGradient but interpolates linearly between three colours instead of two.
-
-::
-
-   ScaleSize(column, min_size, max_size, transform)
-
-Map attribute value to size of the graphical object. Parameter min_size (default 5.0) is the minimum size of the graphical object, max_size (default 100.0) is the maximum size and transform is a one argument function that will be used to transform the attribute value (defaults to lambda x: x).
-
-::
-
-   ScaleShape(column)
-
-Map the shape of the object to attribute value. The attribute has to be categorical.
-
-::
-
-   ScaleRandomColour(column)
-
-Assign a random colour to a value of categorical attribute specified by column.
+.. image:: _static/rplot-seaborn-example6.png

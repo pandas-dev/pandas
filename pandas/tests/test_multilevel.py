@@ -92,18 +92,18 @@ class TestMultiLevel(tm.TestCase):
                            (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz)),
                            (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz))]
         expected = Index([1.1, 1.2, 1.3] + expected_tuples)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = midx_lv2.append(idx1)
         expected = Index(expected_tuples + [1.1, 1.2, 1.3])
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = midx_lv2.append(midx_lv2)
         expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = midx_lv2.append(midx_lv3)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
         result = midx_lv3.append(midx_lv2)
         expected = Index._simple_new(
@@ -111,7 +111,7 @@ class TestMultiLevel(tm.TestCase):
                       (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
                       (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')]
                       + expected_tuples), None)
-        self.assert_(result.equals(expected))
+        self.assertTrue(result.equals(expected))
 
     def test_dataframe_constructor(self):
         multi = DataFrame(np.random.randn(4, 4),

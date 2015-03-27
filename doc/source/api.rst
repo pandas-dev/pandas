@@ -517,8 +517,6 @@ String handling
 strings and apply several methods to it. These can be acccessed like
 ``Series.str.<function/property>``.
 
-.. currentmodule:: pandas.core.strings
-
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -531,6 +529,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.encode
    Series.str.endswith
    Series.str.extract
+   Series.str.find
    Series.str.findall
    Series.str.get
    Series.str.join
@@ -542,6 +541,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.pad
    Series.str.repeat
    Series.str.replace
+   Series.str.rfind
    Series.str.rjust
    Series.str.rstrip
    Series.str.slice
@@ -583,6 +583,8 @@ following usable methods and properties (all available as ``Series.cat.<method_o
    Categorical.remove_categories
    Categorical.remove_unused_categories
    Categorical.set_categories
+   Categorical.as_ordered
+   Categorical.as_unordered
    Categorical.codes
 
 To create a Series of dtype ``category``, use ``cat = s.astype("category")``.
@@ -631,6 +633,14 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+
+Sparse methods
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseSeries.to_coo
+   SparseSeries.from_coo
 
 .. _api.dataframe:
 
@@ -851,6 +861,7 @@ Combining / joining / merging
    :toctree: generated/
 
    DataFrame.append
+   DataFrame.assign
    DataFrame.join
    DataFrame.merge
    DataFrame.update

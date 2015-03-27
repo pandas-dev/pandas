@@ -53,19 +53,6 @@ class TestPivotTable(tm.TestCase):
         expected = self.data.groupby(index + [columns])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
-    def test_pivot_table_warnings(self):
-        index = ['A', 'B']
-        columns = 'C'
-        with tm.assert_produces_warning(FutureWarning):
-            table = pivot_table(self.data, values='D', rows=index,
-                                cols=columns)
-
-        with tm.assert_produces_warning(False):
-            table2 = pivot_table(self.data, values='D', index=index,
-                                 columns=columns)
-
-        tm.assert_frame_equal(table, table2)
-
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
                         'cols': ['x', 'y', 'z'],
@@ -183,6 +170,21 @@ class TestPivotTable(tm.TestCase):
                              columns = Index(['C1','C2','C3','C4'],name='b'))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df.pivot('b', 'a', 'c'), expected.T)
+
+        # GH9491
+        df = DataFrame({'a':pd.date_range('2014-02-01', periods=6, freq='D'),
+                        'c':100 + np.arange(6)})
+        df['b'] = df['a'] - pd.Timestamp('2014-02-02')
+        df.loc[1, 'a'] = df.loc[3, 'a'] = nan
+        df.loc[1, 'b'] = df.loc[4, 'b'] = nan
+
+        pv = df.pivot('a', 'b', 'c')
+        self.assertEqual(pv.notnull().values.sum(), len(df))
+
+        for _, row in df.iterrows():
+            self.assertEqual(pv.loc[row['a'], row['b']], row['c'])
+
+        tm.assert_frame_equal(df.pivot('b', 'a', 'c'), pv.T)
 
     def test_pivot_with_tz(self):
         # GH 5878

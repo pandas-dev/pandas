@@ -17,7 +17,7 @@ from pandas.core.groupby import get_group_index, _compress_group_index
 import pandas.core.common as com
 import pandas.algos as algos
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -157,7 +157,8 @@ class _Unstacker(object):
         # may need to coerce categoricals here
         if self.is_categorical is not None:
             values = [ Categorical.from_array(values[:,i],
-                                              categories=self.is_categorical.categories)
+                                              categories=self.is_categorical.categories,
+                                              ordered=True)
                        for i in range(values.shape[-1]) ]
 
         return DataFrame(values, index=index, columns=columns)
@@ -194,8 +195,11 @@ class _Unstacker(object):
 
     def get_new_columns(self):
         if self.value_columns is None:
-            return _make_new_index(self.removed_level, None) \
-                    if self.lift != 0 else self.removed_level
+            if self.lift == 0:
+                return self.removed_level
+
+            lev = self.removed_level
+            return lev.insert(0, _get_na_value(lev.dtype.type))
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -222,29 +226,14 @@ class _Unstacker(object):
         # construct the new index
         if len(self.new_index_levels) == 1:
             lev, lab = self.new_index_levels[0], result_labels[0]
-            return _make_new_index(lev, lab) \
-                    if (lab == -1).any() else lev.take(lab)
+            if (lab == -1).any():
+                lev = lev.insert(len(lev), _get_na_value(lev.dtype.type))
+            return lev.take(lab)
 
         return MultiIndex(levels=self.new_index_levels,
                           labels=result_labels,
                           names=self.new_index_names,
                           verify_integrity=False)
-
-
-def _make_new_index(lev, lab):
-    from pandas.core.index import Index, _get_na_value
-
-    nan = _get_na_value(lev.dtype.type)
-    vals = lev.values.astype('object')
-    vals = np.insert(vals, 0, nan) if lab is None else \
-           np.insert(vals, len(vals), nan).take(lab)
-
-    try:
-        vals = vals.astype(lev.dtype, subok=False, copy=False)
-    except ValueError:
-        return Index(vals, **lev._get_attributes_dict())
-
-    return lev._shallow_copy(vals)
 
 
 def _unstack_multiple(data, clocs):
@@ -272,7 +261,8 @@ def _unstack_multiple(data, clocs):
     group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-    recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels)
+    recons_labels = decons_obs_group_ids(comp_ids,
+                       obs_ids, shape, clabels, xnull=False)
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
@@ -941,39 +931,6 @@ def wide_to_long(df, stubnames, i, j):
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
 
-
-def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """
-    Compute DataFrame with specified columns converted to dummy variables (0 /
-    1). Result columns will be prefixed with the column name, then the level
-    name, e.g. 'A_foo' for column A and level foo
-
-    Parameters
-    ----------
-    data : DataFrame
-    cat_variables : list-like
-        Must be column names in the DataFrame
-    prefix_sep : string, default '_'
-        String to use to separate column name from dummy level
-
-    Returns
-    -------
-    dummies : DataFrame
-    """
-    import warnings
-
-    warnings.warn("'convert_dummies' is deprecated and will be removed "
-                  "in a future release. Use 'get_dummies' instead.",
-                  FutureWarning)
-
-    result = data.drop(cat_variables, axis=1)
-    for variable in cat_variables:
-        dummies = _get_dummies_1d(data[variable], prefix=variable,
-                                  prefix_sep=prefix_sep)
-        result = result.join(dummies)
-    return result
-
-
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None):
     """
@@ -1093,7 +1050,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     # Series avoids inconsistent NaN handling
-    cat = Categorical.from_array(Series(data))
+    cat = Categorical.from_array(Series(data), ordered=True)
     levels = cat.categories
 
     # if all NaN
@@ -1161,7 +1118,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        cat = Categorical.from_array(mapped_items.take(labels))
+        cat = Categorical.from_array(mapped_items.take(labels), ordered=True)
         labels = cat.codes
         items = cat.categories
 

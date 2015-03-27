@@ -1,7 +1,7 @@
 import os
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from pandas.compat import range
+from pandas.compat import range, iteritems
 from pandas import compat
 import nose
 from nose.tools import assert_raises
@@ -21,7 +21,7 @@ from pandas.core.datetools import (
 from pandas import Series
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
-from pandas.tseries.tools import parse_time_string
+from pandas.tseries.tools import parse_time_string, DateParseError
 import pandas.tseries.offsets as offsets
 
 from pandas.io.pickle import read_pickle
@@ -391,7 +391,7 @@ class TestCommon(Base):
             for tz in self.timezones:
                 expected_localize = expected.tz_localize(tz)
                 result = Timestamp(dt, tz=tz) + offset_s
-                self.assert_(isinstance(result, Timestamp))
+                self.assertTrue(isinstance(result, Timestamp))
                 self.assertEqual(result, expected_localize)
 
             # normalize=True
@@ -407,9 +407,21 @@ class TestCommon(Base):
             for tz in self.timezones:
                 expected_localize = expected.tz_localize(tz)
                 result = Timestamp(dt, tz=tz) + offset_s
-                self.assert_(isinstance(result, Timestamp))
+                self.assertTrue(isinstance(result, Timestamp))
                 self.assertEqual(result, expected_localize)
 
+    def test_pickle_v0_15_2(self):
+        offsets = {'DateOffset': DateOffset(years=1),
+                   'MonthBegin': MonthBegin(1),
+                   'Day': Day(1),
+                   'YearBegin': YearBegin(1),
+                   'Week': Week(1)}
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'dateoffset_0_15_2.pickle')
+        # This code was executed once on v0.15.2 to generate the pickle:
+        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
+        #
+        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
 class TestDateOffset(Base):
     _multiprocess_can_split_ = True
@@ -2842,10 +2854,10 @@ class TestTicks(tm.TestCase):
         assertEq(2 * Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
         assertEq(-1 * Hour(), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
 
-        self.assertEquals(Hour(3) + Hour(2), Hour(5))
-        self.assertEquals(Hour(3) - Hour(2), Hour())
+        self.assertEqual(Hour(3) + Hour(2), Hour(5))
+        self.assertEqual(Hour(3) - Hour(2), Hour())
 
-        self.assertNotEquals(Hour(4), Hour(1))
+        self.assertNotEqual(Hour(4), Hour(1))
 
     def test_Minute(self):
         assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
@@ -2853,9 +2865,9 @@ class TestTicks(tm.TestCase):
         assertEq(2 * Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 2))
         assertEq(-1 * Minute(), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
 
-        self.assertEquals(Minute(3) + Minute(2), Minute(5))
-        self.assertEquals(Minute(3) - Minute(2), Minute())
-        self.assertNotEquals(Minute(5), Minute())
+        self.assertEqual(Minute(3) + Minute(2), Minute(5))
+        self.assertEqual(Minute(3) - Minute(2), Minute())
+        self.assertNotEqual(Minute(5), Minute())
 
     def test_Second(self):
         assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
@@ -2864,8 +2876,8 @@ class TestTicks(tm.TestCase):
         assertEq(
             -1 * Second(), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
 
-        self.assertEquals(Second(3) + Second(2), Second(5))
-        self.assertEquals(Second(3) - Second(2), Second())
+        self.assertEqual(Second(3) + Second(2), Second(5))
+        self.assertEqual(Second(3) - Second(2), Second())
 
     def test_Millisecond(self):
         assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
@@ -2874,8 +2886,8 @@ class TestTicks(tm.TestCase):
         assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
         assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
 
-        self.assertEquals(Milli(3) + Milli(2), Milli(5))
-        self.assertEquals(Milli(3) - Milli(2), Milli())
+        self.assertEqual(Milli(3) + Milli(2), Milli(5))
+        self.assertEqual(Milli(3) - Milli(2), Milli())
 
     def test_MillisecondTimestampArithmetic(self):
         assertEq(Milli(), Timestamp('2010-01-01'), Timestamp('2010-01-01 00:00:00.001'))
@@ -2887,18 +2899,18 @@ class TestTicks(tm.TestCase):
         assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
         assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
 
-        self.assertEquals(Micro(3) + Micro(2), Micro(5))
-        self.assertEquals(Micro(3) - Micro(2), Micro())
+        self.assertEqual(Micro(3) + Micro(2), Micro(5))
+        self.assertEqual(Micro(3) - Micro(2), Micro())
 
     def test_NanosecondGeneric(self):
         timestamp = Timestamp(datetime(2010, 1, 1))
-        self.assertEquals(timestamp.nanosecond, 0)
+        self.assertEqual(timestamp.nanosecond, 0)
 
         result = timestamp + Nano(10)
-        self.assertEquals(result.nanosecond, 10)
+        self.assertEqual(result.nanosecond, 10)
 
         reverse_result = Nano(10) + timestamp
-        self.assertEquals(reverse_result.nanosecond, 10)
+        self.assertEqual(reverse_result.nanosecond, 10)
 
     def test_Nanosecond(self):
         timestamp = Timestamp(datetime(2010, 1, 1))
@@ -2907,40 +2919,40 @@ class TestTicks(tm.TestCase):
         assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
         assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
 
-        self.assertEquals(Nano(3) + Nano(2), Nano(5))
-        self.assertEquals(Nano(3) - Nano(2), Nano())
+        self.assertEqual(Nano(3) + Nano(2), Nano(5))
+        self.assertEqual(Nano(3) - Nano(2), Nano())
 
         # GH9284
-        self.assertEquals(Nano(1) + Nano(10), Nano(11))
-        self.assertEquals(Nano(5) + Micro(1), Nano(1005))
-        self.assertEquals(Micro(5) + Nano(1), Nano(5001))
+        self.assertEqual(Nano(1) + Nano(10), Nano(11))
+        self.assertEqual(Nano(5) + Micro(1), Nano(1005))
+        self.assertEqual(Micro(5) + Nano(1), Nano(5001))
 
     def test_tick_zero(self):
         for t1 in self.ticks:
             for t2 in self.ticks:
-                self.assertEquals(t1(0), t2(0))
-                self.assertEquals(t1(0) + t2(0), t1(0))
+                self.assertEqual(t1(0), t2(0))
+                self.assertEqual(t1(0) + t2(0), t1(0))
 
                 if t1 is not Nano:
-                    self.assertEquals(t1(2) + t2(0), t1(2))
+                    self.assertEqual(t1(2) + t2(0), t1(2))
             if t1 is Nano:
-                self.assertEquals(t1(2) + Nano(0), t1(2))
+                self.assertEqual(t1(2) + Nano(0), t1(2))
 
     def test_tick_equalities(self):
         for t in self.ticks:
-            self.assertEquals(t(3), t(3))
-            self.assertEquals(t(), t(1))
+            self.assertEqual(t(3), t(3))
+            self.assertEqual(t(), t(1))
 
             # not equals
-            self.assertNotEquals(t(3), t(2))
-            self.assertNotEquals(t(3), t(-3))
+            self.assertNotEqual(t(3), t(2))
+            self.assertNotEqual(t(3), t(-3))
 
     def test_tick_operators(self):
         for t in self.ticks:
-            self.assertEquals(t(3) + t(2), t(5))
-            self.assertEquals(t(3) - t(2), t(1))
-            self.assertEquals(t(800) + t(300), t(1100))
-            self.assertEquals(t(1000) - t(5), t(995))
+            self.assertEqual(t(3) + t(2), t(5))
+            self.assertEqual(t(3) - t(2), t(1))
+            self.assertEqual(t(800) + t(300), t(1100))
+            self.assertEqual(t(1000) - t(5), t(995))
 
     def test_tick_offset(self):
         for t in self.ticks:
@@ -2998,12 +3010,33 @@ def test_get_offset():
                                     (name, expected, offset))
 
 
-def test_parse_time_string():
-    (date, parsed, reso) = parse_time_string('4Q1984')
-    (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-    assert date == date_lower
-    assert parsed == parsed_lower
-    assert reso == reso_lower
+class TestParseTimeString(tm.TestCase):
+
+    def test_parse_time_string(self):
+        (date, parsed, reso) = parse_time_string('4Q1984')
+        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+        self.assertEqual(date, date_lower)
+        self.assertEqual(parsed, parsed_lower)
+        self.assertEqual(reso, reso_lower)
+
+    def test_parse_time_quarter_w_dash(self):
+        # https://github.com/pydata/pandas/issue/9688
+        pairs = [
+            ('1988-Q2', '1988Q2'),
+            ('2Q-1988', '2Q1988'),
+        ]
+
+        for dashed, normal in pairs:
+            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
+            (date, parsed, reso) = parse_time_string(normal)
+
+            self.assertEqual(date_dash, date)
+            self.assertEqual(parsed_dash, parsed)
+            self.assertEqual(reso_dash, reso)
+
+        self.assertRaises(DateParseError, parse_time_string, "-2Q1992")
+        self.assertRaises(DateParseError, parse_time_string, "2-Q1992")
+        self.assertRaises(DateParseError, parse_time_string, "4-4Q1992")
 
 
 def test_get_standard_freq():
@@ -3299,6 +3332,29 @@ class TestDST(tm.TestCase):
                 expected_utc_offset=None
                 )
 
+    def test_all_offset_classes(self):
+        tests = {MonthBegin: ['11/2/2012', '12/1/2012'],
+                 MonthEnd: ['11/2/2012', '11/30/2012'],
+                 BMonthBegin: ['11/2/2012', '12/3/2012'],
+                 BMonthEnd: ['11/2/2012', '11/30/2012'],
+                 CBMonthBegin: ['11/2/2012', '12/3/2012'],
+                 CBMonthEnd: ['11/2/2012', '11/30/2012'],
+                 Week: ['11/2/2012', '11/9/2012'],
+                 YearBegin: ['11/2/2012', '1/1/2013'],
+                 YearEnd: ['11/2/2012', '12/31/2012'],
+                 BYearBegin: ['11/2/2012', '1/1/2013'],
+                 BYearEnd: ['11/2/2012', '12/31/2012'],
+                 QuarterBegin: ['11/2/2012', '12/1/2012'],
+                 QuarterEnd: ['11/2/2012', '12/31/2012'],
+                 BQuarterBegin: ['11/2/2012', '12/3/2012'],
+                 BQuarterEnd: ['11/2/2012', '12/31/2012'],
+                 Day: ['11/4/2012', '11/4/2012 23:00']
+                 }
+
+        for offset, test_values in iteritems(tests):
+            first = Timestamp(test_values[0], tz='US/Eastern') + offset()
+            second = Timestamp(test_values[1], tz='US/Eastern')
+            self.assertEqual(first, second, str(offset))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
