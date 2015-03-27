@@ -29,6 +29,46 @@ API changes
 
 
 
+Backwards incompatible API changes
+~~~~~~~~~~~
+- default behavior for HDF write functions with "table" format is now to keep rows that are all missing except for index. (:issue:`9382`)
+ 
+ Previously,
+ 
+  .. code-block:: python
+    In [1]: 
+     df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan, 3]})
+     df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 't')
+     
+     df_without_missing = pd.DataFrame({'col1':[0, -1, 2], 'col2':[1, -1, 3]})
+     df_without_missing.to_hdf('file.h5', 'df_without_missing')
+     
+     pd.read_hdf('file.h5', 'df_with_missing')
+     pd.read_hdf('file.h5', 'df_without_missing')
+
+   Out [1]: 
+         col1  col2
+     0     0     1
+     2     2     3
+        col1  col2
+     0     0     1
+     1    -1    -1
+     2     2     3
+
+
+
+New behavior: 
+
+  .. ipython-block:: python
+     df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan, 3]})
+     df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 't')
+     
+     df_without_missing = pd.DataFrame({'col1':[0, -1, 2], 'col2':[1, -1, 3]})
+     df_without_missing.to_hdf('file.h5', 'df_without_missing')
+     
+     pd.read_hdf('file.h5', 'df_with_missing')
+     pd.read_hdf('file.h5', 'df_without_missing')
+
 
 
 
