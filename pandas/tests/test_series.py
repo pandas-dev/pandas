@@ -1688,6 +1688,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(s, expected)
             self.assertEqual(s.dtype, expected.dtype)
 
+        # GH 9731
+        s = Series(np.arange(10))
+        mask = s > 5
+        values = [2.5, 3.5, 4.5, 5.5]
+        s[mask] = values
+        expected = Series(lrange(6) + values, dtype='float64')
+        assert_series_equal(s, expected)
+
         # can't do these as we are forced to change the itemsize of the input
         # to something we cannot
         for dtype in [np.int8, np.int16, np.int32, np.float16, np.float32]:
