@@ -4586,9 +4586,24 @@ class TestHDFStore(tm.TestCase):
 
             df.to_hdf(path, 'df', format='table')
             other = read_hdf(path, 'df')
+
             tm.assert_frame_equal(df, other)
+            self.assertTrue(df.equals(other))
+            self.assertTrue(other.equals(df))
 
+    def test_round_trip_equals(self):
+        # GH 9330
+        df = DataFrame({"B": [1,2], "A": ["x","y"]})
 
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table')
+            other = read_hdf(path, 'df')
+            tm.assert_frame_equal(df, other)
+            self.assertTrue(df.equals(other))
+            self.assertTrue(other.equals(df))
+
+        
+        
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
         return obj.reindex(sorted(obj.index))
