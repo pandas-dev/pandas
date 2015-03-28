@@ -101,6 +101,10 @@ class TestGoogle(tm.TestCase):
         self.assertIn('INVALID', pan.minor_axis)
 
     @network
+    def test_get_multi_all_invalid(self):
+        sl = ['INVALID', 'INVALID2', 'INVALID3']
+        self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
+
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
             for locale in self.locales:
