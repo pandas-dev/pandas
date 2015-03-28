@@ -331,19 +331,21 @@ def get_locales(prefix=None, normalize=True,
         # raw_locales is "\n" seperated list of locales
         # it may contain non-decodable parts, so split
         # extract what we can and then rejoin.
-        raw_locales = []
+        raw_locales = raw_locales.split(b'\n')
+        out_locales = []
         for x in raw_locales:
-            try:
-                raw_locales.append(str(x, encoding=pd.options.display.encoding))
-            except:
-                pass
+            if compat.PY3:
+                out_locales.append(str(x, encoding=pd.options.display.encoding))
+            else:
+                out_locales.append(str(x))
+
     except TypeError:
         pass
 
     if prefix is None:
-        return _valid_locales(raw_locales, normalize)
+        return _valid_locales(out_locales, normalize)
 
-    found = re.compile('%s.*' % prefix).findall('\n'.join(raw_locales))
+    found = re.compile('%s.*' % prefix).findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
