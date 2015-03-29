@@ -1689,7 +1689,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertEqual(s.dtype, expected.dtype)
 
         # GH 9731
-        s = Series(np.arange(10))
+        s = Series(np.arange(10), dtype='int64')
         mask = s > 5
         values = [2.5, 3.5, 4.5, 5.5]
         s[mask] = values
