@@ -1081,26 +1081,6 @@ def _infer_dtype_from_scalar(val):
     return dtype, val
 
 
-def _maybe_cast(dtype, value):
-    """
-    If `dtype` is date-like, then:
-        if `value` == nan, then convert to NaT
-        if `value` is an integer or integer array, convert to `dtype`
-    """
-    if dtype in _DATELIKE_DTYPES:
-        if np.isscalar(value):
-            if isnull(value):
-                return tslib.iNaT
-            elif is_integer(value):
-                return np.array(value, dtype=dtype)
-
-        elif isinstance(value, np.ndarray):
-            if issubclass(dtype.type, np.integer):
-                return np.array(value, dtype=dtype)
-
-    return value
-
-
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
@@ -1186,8 +1166,18 @@ def _maybe_upcast_putmask(result, mask, other):
     """
 
     if mask.any():
-
-        other = _maybe_cast(result.dtype, other)
+        # Two conversions for date-like dtypes that can't be done automatically
+        # in np.place:
+        #   NaN -> NaT
+        #   integer or integer array -> date-like array
+        if result.dtype in _DATELIKE_DTYPES:
+            if lib.isscalar(other):
+                if isnull(other):
+                    other = tslib.iNaT
+                elif is_integer(other):
+                    other = np.array(other, dtype=result.dtype)
+            elif is_integer_dtype(other):
+                other = np.array(other, dtype=result.dtype)
 
         def changeit():
 
