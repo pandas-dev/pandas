@@ -172,14 +172,14 @@ def _retry_read_url(url, retry_count, pause, name):
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
                 rs = rs[:-1]
 
-    #Get rid of unicode characters in index name.
-    try:
-        rs.index.name = rs.index.name.decode('unicode_escape').encode('ascii', 'ignore')
-    except AttributeError:
-        #Python 3 string has no decode method.
-        rs.index.name = rs.index.name.encode('ascii', 'ignore').decode()
+            #Get rid of unicode characters in index name.
+            try:
+                rs.index.name = rs.index.name.decode('unicode_escape').encode('ascii', 'ignore')
+            except AttributeError:
+                #Python 3 string has no decode method.
+                rs.index.name = rs.index.name.encode('ascii', 'ignore').decode()
 
-    return rs
+            return rs
 
     raise IOError("after %d tries, %s did not "
                   "return a 200 for url %r" % (retry_count, name, url))
@@ -326,18 +326,23 @@ def _dl_mult_symbols(symbols, start, end, interval, chunksize, retry_count, paus
                      method):
     stocks = {}
     failed = []
+    passed = []
     for sym_group in _in_chunks(symbols, chunksize):
         for sym in sym_group:
             try:
                 stocks[sym] = method(sym, start, end, interval, retry_count, pause)
+                passed.append(sym)
             except IOError:
                 warnings.warn('Failed to read symbol: {0!r}, replacing with '
                               'NaN.'.format(sym), SymbolWarning)
                 failed.append(sym)
 
+    if len(passed) == 0:
+        raise RemoteDataError("No data fetched using "
+                              "{0!r}".format(method.__name__))
     try:
-        if len(stocks) > 0 and len(failed) > 0:
-            df_na = stocks.values()[0].copy()
+        if len(stocks) > 0 and len(failed) > 0 and len(passed) > 0:
+            df_na = stocks[passed[0]].copy()
             df_na[:] = np.nan
             for sym in failed:
                 stocks[sym] = df_na
@@ -346,7 +351,6 @@ def _dl_mult_symbols(symbols, start, end, interval, chunksize, retry_count, paus
         # cannot construct a panel with just 1D nans indicating no data
         raise RemoteDataError("No data fetched using "
                               "{0!r}".format(method.__name__))
-
 
 _source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
 
@@ -700,9 +704,6 @@ class Options(object):
 
         calls = frames[self._TABLE_LOC['calls']]
         puts = frames[self._TABLE_LOC['puts']]
-
-        if len(calls) == 0 or len(puts) == 0:
-            raise RemoteDataError('Received no data from Yahoo at url: %s' % url)
 
         calls = self._process_data(calls, 'call')
         puts = self._process_data(puts, 'put')
