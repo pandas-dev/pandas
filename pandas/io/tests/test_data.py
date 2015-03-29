@@ -101,6 +101,10 @@ class TestGoogle(tm.TestCase):
         self.assertIn('INVALID', pan.minor_axis)
 
     @network
+    def test_get_multi_all_invalid(self):
+        sl = ['INVALID', 'INVALID2', 'INVALID3']
+        self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
+
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
             for locale in self.locales:
@@ -297,6 +301,7 @@ class TestYahooOptions(tm.TestCase):
         cls.dirpath = tm.get_data_path()
         cls.html1 = os.path.join(cls.dirpath, 'yahoo_options1.html')
         cls.html2 = os.path.join(cls.dirpath, 'yahoo_options2.html')
+        cls.html3 = os.path.join(cls.dirpath, 'yahoo_options3.html') #Empty table GH#22
         cls.data1 = cls.aapl._option_frames_from_url(cls.html1)['puts']
 
     @classmethod
@@ -427,6 +432,12 @@ class TestYahooOptions(tm.TestCase):
             raise nose.SkipTest(e)
 
         self.assertTrue(len(data) > 1)
+
+    @network
+    def test_empty_table(self):
+        #GH22
+        empty = self.aapl._option_frames_from_url(self.html3)['puts']
+        self.assertTrue(len(empty) == 0)
 
 
 class TestOptionsWarnings(tm.TestCase):
