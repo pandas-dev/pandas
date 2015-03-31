@@ -2672,14 +2672,15 @@ def _astype_nansafe(arr, dtype, copy=True):
         if np.isnan(arr).any():
             raise ValueError('Cannot convert NA to integer')
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
+        # partially address #8732
+        iterate_over = isnull(arr).any() or not is_numeric_dtype(arr.dtype)
         # work around NumPy brokenness, #1987
-        return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+        return lib.astype_intsafe(arr.ravel(), dtype, iterate_over).reshape(arr.shape)
     elif issubclass(dtype.type, compat.text_type):
         # in Py3 that's str, in Py2 that's unicode
         return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
     elif issubclass(dtype.type, compat.string_types):
         return lib.astype_str(arr.ravel()).reshape(arr.shape)
-
     if copy:
         return arr.astype(dtype)
     return arr.view(dtype)

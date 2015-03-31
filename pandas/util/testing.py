@@ -918,6 +918,20 @@ def getMixedTypeDict():
 
     return index, data
 
+
+def makeMixedDataFrameWithNaN():
+    index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
+
+    data = {
+        'A': [0., 1., 2., 3., 4., np.nan],
+        'B': [0., 1., 0., 1., 0., np.nan],
+        'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5', np.nan],
+        'D': bdate_range('1/1/2009', periods=6)
+    }
+
+    return DataFrame(data, index=index)
+
+
 def makeMixedDataFrame():
     return DataFrame(getMixedTypeDict()[1])
 

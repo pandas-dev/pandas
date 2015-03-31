@@ -827,7 +827,7 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
     return maybe_convert_bool(result)
 
 
-def astype_intsafe(ndarray[object] arr, new_dtype):
+def astype_intsafe(ndarray[object] arr, new_dtype, iterate_over):
     cdef:
         Py_ssize_t i, n = len(arr)
         object v
@@ -836,6 +836,9 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
     # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
     is_datelike = new_dtype in ['M8[ns]','m8[ns]']
+
+    if not is_datelike and not iterate_over:
+        return arr.astype(new_dtype)
 
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
