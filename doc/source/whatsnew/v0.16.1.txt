@@ -30,6 +30,7 @@ Enhancements
     df = DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
     df.drop(['A', 'X'], axis=1, errors='ignore')
 
+- Allow conversion of values with dtype ``datetime64`` or ``timedelta64`` to strings using ``astype(str)`` (:issue:`9757`)
 
 .. _whatsnew_0161.api:
 
