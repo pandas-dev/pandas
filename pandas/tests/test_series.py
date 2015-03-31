@@ -5511,6 +5511,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 expec = s.map(compat.text_type)
                 assert_series_equal(res, expec)
 
+        # GH9757
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            ts = Series([Timestamp('2010-01-04 00:00:00')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
+            td = Series([Timedelta(1, unit='d')])
+            s = td.astype(tt)
+            expected = Series([tt(td.values[0])])
+            assert_series_equal(s, expected)
+
     def test_astype_unicode(self):
 
         # GH7758
