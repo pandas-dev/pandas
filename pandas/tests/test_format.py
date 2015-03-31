@@ -2981,10 +2981,12 @@ class TestFloatArrayFormatter(tm.TestCase):
         self.assertTrue(len(result) == 0)
 
     def test_format(self):
-        obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
+        obj = fmt.FloatArrayFormatter(np.array([12, 0, np.nan],
+                                               dtype=np.float64))
         result = obj.get_result()
         self.assertEqual(result[0], " 12")
         self.assertEqual(result[1], "  0")
+        self.assertEqual(result[2], "NaN")
 
 
 class TestRepr_timedelta64(tm.TestCase):

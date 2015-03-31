@@ -76,3 +76,5 @@ Bug Fixes
 
 
 - Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
+
+- Bug in ``FloatArrayFormatter._format_strings``: could not format float arrays containing NaN values (:issue:`9759`).  Caused a FloatingPointError to be raised when trying to render a DataFrame using e.g. ``DataFrame.to_html``.

@@ -1992,7 +1992,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             too_long = maxlen > self.digits + 5
 
-            abs_vals = np.abs(self.values)
+            abs_vals = np.abs(self.values[~np.isnan(self.values)])
 
             # this is pretty arbitrary for now
             has_large_values = (abs_vals > 1e8).any()
