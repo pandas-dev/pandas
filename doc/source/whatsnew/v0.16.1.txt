@@ -31,6 +31,14 @@ API changes
 
 
 
+- When passing in an ax to ``df.plot( ..., ax=ax)``, the `sharex` kwarg will now default to `False`.
+  The result is that the visibility of xlabels and xticklabels will not anymore be changed. You
+  have to do that by yourself for the right axes in your figure or set ``sharex=True`` explicitly
+  (but this changes the visible for all axes in the figure, not only the one which is passed in!).
+  If pandas creates the subplots itself (e.g. no passed in `ax` kwarg), then the
+  default is still ``sharex=True`` and the visibility changes are applied.
+
+
 
 - Add support for separating years and quarters using dashes, for
   example 2014-Q1.  (:issue:`9688`)
