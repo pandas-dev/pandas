@@ -303,45 +303,32 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 ax.set_xlim(boundaries_list[j])
                 ax.set_ylim(boundaries_list[i])
 
-            ax.set_xlabel('')
-            ax.set_ylabel('')
-
-            _label_axis(ax, kind='x', label=b, position='bottom', rotate=True)
-
-            _label_axis(ax, kind='y', label=a, position='left')
+            ax.set_xlabel(b)
+            ax.set_ylabel(a)
 
             if j!= 0:
                 ax.yaxis.set_visible(False)
             if i != n-1:
                 ax.xaxis.set_visible(False)
 
-    for ax in axes.flat:
-        setp(ax.get_xticklabels(), fontsize=8)
-        setp(ax.get_yticklabels(), fontsize=8)
+    if len(df.columns) > 1:
+        lim1 = boundaries_list[0]
+        locs = axes[0][1].yaxis.get_majorticklocs()
+        locs = locs[(lim1[0] <= locs) & (locs <= lim1[1])]
+        adj = (locs - lim1[0]) / (lim1[1] - lim1[0])
+
+        lim0 = axes[0][0].get_ylim()
+        adj = adj * (lim0[1] - lim0[0]) + lim0[0]
+        axes[0][0].yaxis.set_ticks(adj)
+
+        if np.all(locs == locs.astype(int)):
+            # if all ticks are int
+            locs = locs.astype(int)
+        axes[0][0].yaxis.set_ticklabels(locs)
+
+    _set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     return axes
-
-def _label_axis(ax, kind='x', label='', position='top',
-    ticks=True, rotate=False):
-
-    from matplotlib.artist import setp
-    if kind == 'x':
-        ax.set_xlabel(label, visible=True)
-        ax.xaxis.set_visible(True)
-        ax.xaxis.set_ticks_position(position)
-        ax.xaxis.set_label_position(position)
-        if rotate:
-            setp(ax.get_xticklabels(), rotation=90)
-    elif kind == 'y':
-        ax.yaxis.set_visible(True)
-        ax.set_ylabel(label, visible=True)
-        # ax.set_ylabel(a)
-        ax.yaxis.set_ticks_position(position)
-        ax.yaxis.set_label_position(position)
-    return
-
-
-
 
 
 def _gca():
