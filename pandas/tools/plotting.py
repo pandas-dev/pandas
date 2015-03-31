@@ -886,10 +886,11 @@ class MPLPlot(object):
 
         from pandas.core.frame import DataFrame
         if isinstance(data, (Series, np.ndarray, Index)):
+            label = self.label if self.label is not None else data.name
             if keep_index is True:
-                yield self.label, data
+                yield label, data
             else:
-                yield self.label, np.asarray(data)
+                yield label, np.asarray(data)
         elif isinstance(data, DataFrame):
             if self.sort_columns:
                 columns = com._try_sort(data.columns)
@@ -2306,10 +2307,9 @@ def _plot(data, x=None, y=None, subplots=False,
             if y is not None:
                 if com.is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
-                label = x if x is not None else data.index.name
-                label = kwds.pop('label', label)
+                label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
-                series.index.name = label
+                series.name = label
 
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
