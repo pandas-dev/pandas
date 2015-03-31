@@ -769,7 +769,7 @@ class MPLPlot(object):
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
                       'mark_right': True, 'stacked': False}
 
-    def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
+    def __init__(self, data, kind=None, by=None, subplots=False, sharex=None,
                  sharey=False, use_index=True,
                  figsize=None, grid=None, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
@@ -786,7 +786,16 @@ class MPLPlot(object):
         self.sort_columns = sort_columns
 
         self.subplots = subplots
-        self.sharex = sharex
+
+        if sharex is None:
+            if ax is None:
+                 self.sharex = True
+            else:
+                 # if we get an axis, the users should do the visibility setting...
+                 self.sharex = False
+        else:
+            self.sharex = sharex
+
         self.sharey = sharey
         self.figsize = figsize
         self.layout = layout
@@ -2350,10 +2359,14 @@ series_unique = """label : label argument to provide to plot
 df_ax = """ax : matplotlib axes object, default None
     subplots : boolean, default False
         Make separate subplots for each column
-    sharex : boolean, default True
-        In case subplots=True, share x axis
+    sharex : boolean, default True if ax is None else False
+        In case subplots=True, share x axis and set some x axis labels to
+        invisible; defaults to True if ax is None otherwise False if an ax
+        is passed in; Be aware, that passing in both an ax and sharex=True
+        will alter all x axis labels for all axis in a figure!
     sharey : boolean, default False
-        In case subplots=True, share y axis
+        In case subplots=True, share y axis and set some y axis labels to
+        invisible
     layout : tuple (optional)
         (rows, columns) for the layout of subplots"""
 series_ax = """ax : matplotlib axes object
@@ -2465,7 +2478,7 @@ _shared_docs['plot'] = """
 
 @Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
 def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
-               subplots=False, sharex=True, sharey=False, layout=None,     # Dataframe unique
+               subplots=False, sharex=None, sharey=False, layout=None,     # Dataframe unique
                figsize=None, use_index=True, title=None, grid=None,
                legend=True, style=None, logx=False, logy=False, loglog=False,
                xticks=None, yticks=None, xlim=None, ylim=None,
@@ -2730,8 +2743,14 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     yrot : float, default None
         rotation of y axis labels
     ax : matplotlib axes object, default None
-    sharex : bool, if True, the X axis will be shared amongst all subplots.
-    sharey : bool, if True, the Y axis will be shared amongst all subplots.
+    sharex : boolean, default True if ax is None else False
+        In case subplots=True, share x axis and set some x axis labels to
+        invisible; defaults to True if ax is None otherwise False if an ax
+        is passed in; Be aware, that passing in both an ax and sharex=True
+        will alter all x axis labels for all subplots in a figure!
+    sharey : boolean, default False
+        In case subplots=True, share y axis and set some y axis labels to
+        invisible
     figsize : tuple
         The size of the figure to create in inches by default
     layout: (optional) a tuple (rows, columns) for the layout of the histograms
@@ -3129,7 +3148,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     Keyword arguments:
 
     naxes : int
-      Number of required axes. Exceeded axes are set invisible. Default is nrows * ncols.
+      Number of required axes. Exceeded axes are set invisible. Default is
+      nrows * ncols.
 
     sharex : bool
       If True, the X axis will be shared amongst all subplots.
@@ -3256,11 +3276,11 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         ax = fig.add_subplot(nrows, ncols, i + 1, **kwds)
         axarr[i] = ax
 
-    _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
-
     if naxes != nplots:
         for ax in axarr[naxes:]:
             ax.set_visible(False)
+
+    _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
@@ -3276,44 +3296,64 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
 
     return fig, axes
 
+def _remove_xlabels_from_axis(ax):
+    for label in ax.get_xticklabels():
+        label.set_visible(False)
+    try:
+        # set_visible will not be effective if
+        # minor axis has NullLocator and NullFormattor (default)
+        import matplotlib.ticker as ticker
+
+        if isinstance(ax.xaxis.get_minor_locator(), ticker.NullLocator):
+            ax.xaxis.set_minor_locator(ticker.AutoLocator())
+        if isinstance(ax.xaxis.get_minor_formatter(), ticker.NullFormatter):
+            ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+        for label in ax.get_xticklabels(minor=True):
+            label.set_visible(False)
+    except Exception:   # pragma no cover
+        pass
+    ax.xaxis.get_label().set_visible(False)
+
+def _remove_ylables_from_axis(ax):
+    for label in ax.get_yticklabels():
+        label.set_visible(False)
+    try:
+        import matplotlib.ticker as ticker
+        if isinstance(ax.yaxis.get_minor_locator(), ticker.NullLocator):
+            ax.yaxis.set_minor_locator(ticker.AutoLocator())
+        if isinstance(ax.yaxis.get_minor_formatter(), ticker.NullFormatter):
+            ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
+        for label in ax.get_yticklabels(minor=True):
+            label.set_visible(False)
+    except Exception:   # pragma no cover
+        pass
+    ax.yaxis.get_label().set_visible(False)
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
     if nplots > 1:
 
-        if sharex and nrows > 1:
-            for ax in axarr[:naxes][:-ncols]:    # only bottom row
-                for label in ax.get_xticklabels():
-                    label.set_visible(False)
-                try:
-                    # set_visible will not be effective if
-                    # minor axis has NullLocator and NullFormattor (default)
-                    import matplotlib.ticker as ticker
+        # first find out the ax layout, so that we can correctly handle 'gaps"
+        layout = np.zeros((nrows+1,ncols+1), dtype=np.bool)
+        for ax in axarr:
+            layout[ax.rowNum, ax.colNum] = ax.get_visible()
 
-                    if isinstance(ax.xaxis.get_minor_locator(), ticker.NullLocator):
-                        ax.xaxis.set_minor_locator(ticker.AutoLocator())
-                    if isinstance(ax.xaxis.get_minor_formatter(), ticker.NullFormatter):
-                        ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-                    for label in ax.get_xticklabels(minor=True):
-                        label.set_visible(False)
-                except Exception:   # pragma no cover
-                    pass
-                ax.xaxis.get_label().set_visible(False)
+        if sharex and nrows > 1:
+            for ax in axarr:
+                # only the last row of subplots should get x labels -> all other off
+                # layout handles the case that the subplot is the last in the column,
+                # because below is no subplot/gap.
+                if not layout[ax.rowNum+1, ax.colNum]:
+                    continue
+                _remove_xlabels_from_axis(ax)
         if sharey and ncols > 1:
-            for i, ax in enumerate(axarr):
-                if (i % ncols) != 0:  # only first column
-                    for label in ax.get_yticklabels():
-                        label.set_visible(False)
-                    try:
-                        import matplotlib.ticker as ticker
-                        if isinstance(ax.yaxis.get_minor_locator(), ticker.NullLocator):
-                            ax.yaxis.set_minor_locator(ticker.AutoLocator())
-                        if isinstance(ax.yaxis.get_minor_formatter(), ticker.NullFormatter):
-                            ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-                        for label in ax.get_yticklabels(minor=True):
-                            label.set_visible(False)
-                    except Exception:   # pragma no cover
-                        pass
-                    ax.yaxis.get_label().set_visible(False)
+            for ax in axarr:
+                # only the first column should get y labels -> set all other to off
+                # as we only have labels in teh first column and we always have a subplot there,
+                # we can skip the layout test
+                if ax.is_first_col():
+                    continue
+                _remove_ylables_from_axis(ax)
+
 
 
 def _flatten(axes):
