@@ -769,12 +769,14 @@ def str_rstrip(arr, to_strip=None):
 
 
 def str_wrap(arr, width, **kwargs):
-    """
-    Wrap long strings to be formatted in paragraphs
+    r"""
+    Wrap long strings to be formatted in paragraphs.
+
+    This method has the same keyword parameters and defaults as
+    :class:`textwrap.TextWrapper`.
 
     Parameters
     ----------
-    Same keyword parameters and defaults as :class:`textwrap.TextWrapper`
     width : int
         Maximum line-width
     expand_tabs : bool, optional
@@ -806,11 +808,11 @@ def str_wrap(arr, width, **kwargs):
     settings. To achieve behavior matching R's stringr library str_wrap function, use
     the arguments:
 
-        expand_tabs = False
-        replace_whitespace = True
-        drop_whitespace = True
-        break_long_words = False
-        break_on_hyphens = False
+    - expand_tabs = False
+    - replace_whitespace = True
+    - drop_whitespace = True
+    - break_long_words = False
+    - break_on_hyphens = False
 
     Examples
     --------
