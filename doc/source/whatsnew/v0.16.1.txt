@@ -17,6 +17,8 @@ We recommend that all users upgrade to this version.
 Enhancements
 ~~~~~~~~~~~~
 
+- Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
+
 
 
 
