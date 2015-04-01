@@ -4411,9 +4411,13 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False):
         """
-        Gets the mode of each element along the axis selected. Empty if nothing
+        Gets the mode(s) of each element along the axis selected. Empty if nothing
         has 2+ occurrences. Adds a row for each mode per label, fills in gaps
-        with nan.
+        with nan. Note that there could be multiple values returned for the selected
+        axis (when more than one item share the maximum frequency), which is the 
+        reason why a dataframe is returned. This means that if you want to impute 
+        missing values with the mode in a dataframe df, you can just do this: 
+        df.fillna(df.mode().ix[0])
 
         Parameters
         ----------
@@ -4426,6 +4430,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         modes : DataFrame (sorted)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df.mode()
+           A
+        0  1
+        1  2
         """
         data = self if not numeric_only else self._get_numeric_data()
         f = lambda s: s.mode()
