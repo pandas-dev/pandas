@@ -210,10 +210,13 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     Returns
     -------
-    ret : datetime if parsing succeeded. Return type depends on input:
+    ret : datetime if parsing succeeded.
+        Return type depends on input:
+
         - list-like: DatetimeIndex
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
+
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
         return will have datetime.datetime type (or correspoding array/Series).

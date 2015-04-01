@@ -56,6 +56,7 @@ appropriate pandas object (most likely a DataFrame):
 
 
 .. ipython:: python
+   :okwarning:
 
    import pandas.rpy.common as com
    infert = com.load_data('infert')
