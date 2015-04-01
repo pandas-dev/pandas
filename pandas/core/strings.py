@@ -992,6 +992,8 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result):
+        # leave as it is to keep extract and get_dummies results
+        # can be merged to _wrap_result_expand in v0.17
         from pandas.core.series import Series
         from pandas.core.frame import DataFrame
         from pandas.core.index import Index
@@ -1012,6 +1014,33 @@ class StringMethods(object):
             assert result.ndim < 3
             return DataFrame(result, index=self.series.index)
 
+    def _wrap_result_expand(self, result, expand=False):
+        from pandas.core.index import Index
+        if not hasattr(result, 'ndim'):
+            return result
+
+        if isinstance(self.series, Index):
+            name = getattr(result, 'name', None)
+            # if result is a boolean np.array, return the np.array
+            # instead of wrapping it into a boolean Index (GH 8875)
+            if hasattr(result, 'dtype') and is_bool_dtype(result):
+                return result
+
+            if expand:
+                result = list(result)
+            return Index(result, name=name)
+        else:
+            index = self.series.index
+            if expand:
+                cons_row = self.series._constructor
+                cons = self.series._constructor_expanddim
+                data = [cons_row(x) for x in result]
+                return cons(data, index=index)
+            else:
+                name = getattr(result, 'name', None)
+                cons = self.series._constructor
+                return cons(result, name=name, index=index)
+
     @copy(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
         result = str_cat(self.series, others=others, sep=sep, na_rep=na_rep)
@@ -1021,6 +1050,65 @@ class StringMethods(object):
     def split(self, pat=None, n=-1, return_type='series'):
         result = str_split(self.series, pat, n=n, return_type=return_type)
         return self._wrap_result(result)
+
+    _shared_docs['str_partition'] = ("""
+    Split the string at the %(side)s occurrence of `sep`, and return 3 elements
+    containing the part before the separator, the separator itself,
+    and the part after the separator.
+    If the separator is not found, return %(return)s.
+
+    Parameters
+    ----------
+    pat : string, default whitespace
+        String to split on.
+    expand : bool, default True
+        * If True, return DataFrame/MultiIndex expanding dimensionality.
+        * If False, return Series/Index
+
+    Returns
+    -------
+    split : DataFrame/MultiIndex or Series/Index of objects
+
+    See Also
+    --------
+    %(also)s
+
+    Examples
+    --------
+
+    >>> s = Series(['A_B_C', 'D_E_F', 'X'])
+    0    A_B_C
+    1    D_E_F
+    2        X
+    dtype: object
+
+    >>> s.str.partition('_')
+       0  1    2
+    0  A  _  B_C
+    1  D  _  E_F
+    2  X
+
+    >>> s.str.rpartition('_')
+         0  1  2
+    0  A_B  _  C
+    1  D_E  _  F
+    2          X
+    """)
+    @Appender(_shared_docs['str_partition'] % {'side': 'first',
+        'return': '3 elements containing the string itself, followed by two empty strings',
+        'also': 'rpartition : Split the string at the last occurrence of `sep`'})
+    def partition(self, pat=' ', expand=True):
+        f = lambda x: x.partition(pat)
+        result = _na_map(f, self.series)
+        return self._wrap_result_expand(result, expand=expand)
+
+    @Appender(_shared_docs['str_partition'] % {'side': 'last',
+        'return': '3 elements containing two empty strings, followed by the string itself',
+        'also': 'partition : Split the string at the first occurrence of `sep`'})
+    def rpartition(self, pat=' ', expand=True):
+        f = lambda x: x.rpartition(pat)
+        result = _na_map(f, self.series)
+        return self._wrap_result_expand(result, expand=expand)
 
     @copy(str_get)
     def get(self, i):
