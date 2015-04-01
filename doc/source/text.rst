@@ -262,6 +262,8 @@ Method Summary
     :meth:`~Series.str.strip`,Equivalent to ``str.strip``
     :meth:`~Series.str.rstrip`,Equivalent to ``str.rstrip``
     :meth:`~Series.str.lstrip`,Equivalent to ``str.lstrip``
+    :meth:`~Series.str.partition`,Equivalent to ``str.partition``
+    :meth:`~Series.str.rpartition`,Equivalent to ``str.rpartition``
     :meth:`~Series.str.lower`,Equivalent to ``str.lower``
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
     :meth:`~Series.str.find`,Equivalent to ``str.find``
