@@ -664,6 +664,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
+        tm.assert_series_equal(empty_list, empty.str.partition('a', expand=False))
+        tm.assert_series_equal(empty_list, empty.str.rpartition('a', expand=False))
         tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
         tm.assert_series_equal(empty_str, empty.str.slice(step=1))
         tm.assert_series_equal(empty_str, empty.str.strip())
@@ -686,6 +688,12 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
         tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
+
+    def test_empty_str_methods_to_frame(self):
+        empty_str = empty = Series(dtype=str)
+        empty_df = DataFrame([])
+        tm.assert_frame_equal(empty_df, empty.str.partition('a'))
+        tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
     def test_ismethods(self):
         values = ['A', 'b', 'Xy', '4', '3A', '', 'TT', '55', '-', '  ']
@@ -1174,6 +1182,119 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assertRaisesRegexp(ValueError, "return_type must be"):
             s.str.split('_', return_type="some_invalid_type")
+
+    def test_partition_series(self):
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+
+        result = values.str.partition('_', expand=False)
+        exp = Series([['a', '_', 'b_c'], ['c', '_', 'd_e'], NA, ['f', '_', 'g_h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([['a_b', '_', 'c'], ['c_d', '_', 'e'], NA, ['f_g', '_', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # more than one char
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        result = values.str.partition('__', expand=False)
+        exp = Series([['a', '__', 'b__c'], ['c', '__', 'd__e'], NA, ['f', '__', 'g__h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('__', expand=False)
+        exp = Series([['a__b', '__', 'c'], ['c__d', '__', 'e'], NA, ['f__g', '__', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # None
+        values = Series(['a b c', 'c d e', NA, 'f g h'])
+        result = values.str.partition(expand=False)
+        exp = Series([['a', ' ', 'b c'], ['c', ' ', 'd e'], NA, ['f', ' ', 'g h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition(expand=False)
+        exp = Series([['a b', ' ', 'c'], ['c d', ' ', 'e'], NA, ['f g', ' ', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # Not splited
+        values = Series(['abc', 'cde', NA, 'fgh'])
+        result = values.str.partition('_', expand=False)
+        exp = Series([['abc', '', ''], ['cde', '', ''], NA, ['fgh', '', '']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([['', '', 'abc'], ['', '', 'cde'], NA, ['', '', 'fgh']])
+        tm.assert_series_equal(result, exp)
+
+        # unicode
+        values = Series([u('a_b_c'), u('c_d_e'), NA, u('f_g_h')])
+
+        result = values.str.partition('_', expand=False)
+        exp = Series([[u('a'), u('_'), u('b_c')], [u('c'), u('_'), u('d_e')],
+                      NA, [u('f'), u('_'), u('g_h')]])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([[u('a_b'), u('_'), u('c')], [u('c_d'), u('_'), u('e')],
+                      NA, [u('f_g'), u('_'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+        # compare to standard lib
+        values = Series(['A_B_C', 'B_C_D', 'E_F_G', 'EFGHEF'])
+        result = values.str.partition('_', expand=False).tolist()
+        self.assertEqual(result, [v.partition('_') for v in values])
+        result = values.str.rpartition('_', expand=False).tolist()
+        self.assertEqual(result, [v.rpartition('_') for v in values])
+
+    def test_partition_index(self):
+        values = Index(['a_b_c', 'c_d_e', 'f_g_h'])
+
+        result = values.str.partition('_', expand=False)
+        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')]))
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')]))
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        result = values.str.partition('_')
+        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(isinstance(result, MultiIndex))
+        self.assertEqual(result.nlevels, 3)
+
+        result = values.str.rpartition('_')
+        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(isinstance(result, MultiIndex))
+        self.assertEqual(result.nlevels, 3)
+
+    def test_partition_to_dataframe(self):
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.partition('_')
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        tm.assert_frame_equal(result, exp)
+
+        result = values.str.rpartition('_')
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['c', 'e', np.nan, 'h']})
+        tm.assert_frame_equal(result, exp)
+
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.partition('_', expand=True)
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        tm.assert_frame_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=True)
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['c', 'e', np.nan, 'h']})
+        tm.assert_frame_equal(result, exp)
 
     def test_pipe_failures(self):
         # #2119
