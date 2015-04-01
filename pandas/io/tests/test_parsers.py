@@ -1099,6 +1099,21 @@ baz,7,8,9
         self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
 
+    def test_read_csv_infer_compression(self):
+        # GH 9770
+        expected = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+
+        inputs = [self.csv1, self.csv1 + '.gz',
+                  self.csv1 + '.bz2', open(self.csv1)]
+
+        for f in inputs:
+            df = self.read_csv(f, index_col=0, parse_dates=True,
+                compression='infer')
+
+            tm.assert_frame_equal(expected, df)
+
+        inputs[3].close()
+
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
