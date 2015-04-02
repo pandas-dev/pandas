@@ -23,4 +23,3 @@ beautiful-soup
 httplib2
 python-gflags
 google-api-python-client
-blosc
