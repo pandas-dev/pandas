@@ -126,7 +126,6 @@ before_install:
   - pwd
   - uname -a
   - python -V
-  - python -c "import blosc; blosc.print_versions()"
   - ci/before_install.sh
   # Xvfb stuff for clipboard functionality; see the travis-ci documentation
   - export DISPLAY=:99.0
