@@ -4414,6 +4414,7 @@ class DataFrame(NDFrame):
         Gets the mode(s) of each element along the axis selected. Empty if nothing
         has 2+ occurrences. Adds a row for each mode per label, fills in gaps
         with nan. 
+        
         Note that there could be multiple values returned for the selected
         axis (when more than one item share the maximum frequency), which is the 
         reason why a dataframe is returned. If you want to impute missing values 
