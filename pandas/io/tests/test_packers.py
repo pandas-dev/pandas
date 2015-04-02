@@ -462,7 +462,7 @@ class TestCompression(TestPackers):
         }
 
     def test_plain(self):
-        i_rec = self.encode_decode(self.frame, compress='zlib')
+        i_rec = self.encode_decode(self.frame)
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
 
