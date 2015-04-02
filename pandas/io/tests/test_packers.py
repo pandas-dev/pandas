@@ -446,6 +446,37 @@ class TestSparse(TestPackers):
                               check_panel_type=True)
 
 
+class TestCompression(TestPackers):
+
+    def setUp(self):
+        super(TestCompression, self).setUp()
+        data = {
+            'A': np.arange(1000, dtype=float),
+            'B': range(1000),
+            'C': list(100 * 'abcdefghij'),
+        }
+        self.frame = {
+            'float': DataFrame(dict([(k, data[k]) for k in ['A', 'A']])),
+            'int': DataFrame(dict([(k, data[k]) for k in ['B', 'B']])),
+            'mixed': DataFrame(dict([(k, data[k]) for k in ['A', 'B', 'C']])),
+        }
+
+    def test_plain(self):
+        i_rec = self.encode_decode(self.frame, compress='zlib')
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+    def test_compression_zlib(self):
+        i_rec = self.encode_decode(self.frame, compress='zlib')
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+    def test_compression_blosc(self):
+        i_rec = self.encode_decode(self.frame, compress='blosc')
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
