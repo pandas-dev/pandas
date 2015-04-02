@@ -14057,6 +14057,28 @@ starting,ending,measure
         with tm.assertRaises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
 
+    def test_dataframe_metadata(self):
+
+        class TestDataFrame(DataFrame):
+            _metadata = ['testattr']
+
+            @property
+            def _constructor(self):
+                return TestDataFrame
+
+
+        df = TestDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
+                           index=['a', 'b', 'c'])
+        df.testattr = 'XXX'
+
+        self.assertEqual(df.testattr, 'XXX')
+        self.assertEqual(df[['X']].testattr, 'XXX')
+        self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
+        self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+        # GH9776
+        self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
+
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         try:

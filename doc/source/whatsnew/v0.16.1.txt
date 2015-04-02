@@ -69,7 +69,7 @@ Bug Fixes
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
 
 
-
+- Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 
 
 
