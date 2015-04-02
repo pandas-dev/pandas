@@ -121,7 +121,6 @@ before_install:
   - echo $VIRTUAL_ENV
   - export PATH="$HOME/miniconda/bin:$PATH"
   - sudo apt-get install ccache
-  - pip install -U blosc
   - df -h
   - date
   - pwd

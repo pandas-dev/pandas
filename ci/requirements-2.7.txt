@@ -23,3 +23,4 @@ beautiful-soup=4.2.1
 httplib2=0.8
 python-gflags=2.0
 google-api-python-client=1.2
+blosc

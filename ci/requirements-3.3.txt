@@ -15,3 +15,4 @@ lxml=3.2.1
 scipy
 beautiful-soup=4.2.1
 statsmodels
+blosc

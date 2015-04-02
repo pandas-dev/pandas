@@ -14,3 +14,4 @@ numexpr=1.4.2
 pymysql=0.6.0
 sqlalchemy=0.7.8
 xlsxwriter=0.4.6
+blosc
