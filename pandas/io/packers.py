@@ -234,6 +234,8 @@ def unconvert(values, dtype, compress=None):
     if dtype == np.object_:
         return np.array(values, dtype=object)
 
+    values = values.encode('latin1')
+
     if compress == 'zlib':
         import zlib
         values = zlib.decompress(values)
@@ -245,7 +247,7 @@ def unconvert(values, dtype, compress=None):
         return np.frombuffer(values, dtype=dtype)
 
     # from a string
-    return np.fromstring(values.encode('latin1'), dtype=dtype)
+    return np.fromstring(values, dtype=dtype)
 
 
 def encode(obj):
@@ -261,7 +263,8 @@ def encode(obj):
                     'name': getattr(obj, 'name', None),
                     'freq': getattr(obj, 'freqstr', None),
                     'dtype': obj.dtype.num,
-                    'data': convert(obj.asi8)}
+                    'data': convert(obj.asi8),
+                    'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
             tz = getattr(obj, 'tz', None)
 
@@ -275,19 +278,22 @@ def encode(obj):
                     'dtype': obj.dtype.num,
                     'data': convert(obj.asi8),
                     'freq': getattr(obj, 'freqstr', None),
-                    'tz': tz}
+                    'tz': tz,
+                    'compress': compressor}
         elif isinstance(obj, MultiIndex):
             return {'typ': 'multi_index',
                     'klass': obj.__class__.__name__,
                     'names': getattr(obj, 'names', None),
                     'dtype': obj.dtype.num,
-                    'data': convert(obj.values)}
+                    'data': convert(obj.values),
+                    'compress': compressor}
         else:
             return {'typ': 'index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'dtype': obj.dtype.num,
-                    'data': convert(obj.values)}
+                    'data': convert(obj.values),
+                    'compress': compressor}
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
             raise NotImplementedError(
