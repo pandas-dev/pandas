@@ -447,18 +447,22 @@ class TestSparse(TestPackers):
 
 
 class TestCompression(TestPackers):
+    """See https://github.com/pydata/pandas/pull/9783
+    """
 
     def setUp(self):
         super(TestCompression, self).setUp()
         data = {
-            'A': np.arange(1000, dtype=float),
-            'B': range(1000),
+            'A': np.arange(1000, dtype=np.float64),
+            'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
+            'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
+            'E': [datetime.timedelta(days=x) for x in range(1000)],
         }
         self.frame = {
-            'float': DataFrame(dict([(k, data[k]) for k in ['A', 'A']])),
-            'int': DataFrame(dict([(k, data[k]) for k in ['B', 'B']])),
-            'mixed': DataFrame(dict([(k, data[k]) for k in ['A', 'B', 'C']])),
+            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
+            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'mixed': DataFrame(data),
         }
 
     def test_plain(self):

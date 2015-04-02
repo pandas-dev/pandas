@@ -9,4 +9,3 @@ matplotlib
 openpyxl
 xlrd
 scipy
-blosc
