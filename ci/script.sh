@@ -16,6 +16,8 @@ fi
 "$TRAVIS_BUILD_DIR"/ci/build_docs.sh 2>&1 > /tmp/doc.log &
 # doc build log will be shown after tests
 
+pip install -U blosc
+python -c 'import blosc; blosc.print_versions()'
 
 echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
