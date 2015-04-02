@@ -92,8 +92,6 @@ rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
 time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
-python -c 'import blosc; blosc.print_versions()'
-
 # Need to enable for locale testing. The location of the locale file(s) is
 # distro specific. For example, on Arch Linux all of the locales are in a
 # commented file--/etc/locale.gen--that must be commented in to be used
