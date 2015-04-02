@@ -155,6 +155,10 @@ class NDFrame(PandasObject):
     def _constructor_sliced(self):
         raise AbstractMethodError(self)
 
+    @property
+    def _constructor_expanddim(self):
+        raise NotImplementedError
+
     #----------------------------------------------------------------------
     # Axis
 

@@ -191,6 +191,11 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
 
+    @property
+    def _constructor_expanddim(self):
+        from pandas.core.panel import Panel
+        return Panel
+
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
         if data is None:
@@ -1061,8 +1066,6 @@ class DataFrame(NDFrame):
         -------
         panel : Panel
         """
-        from pandas.core.panel import Panel
-
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
                 len(self.index.levels) != 2):
@@ -1100,7 +1103,7 @@ class DataFrame(NDFrame):
                                               shape=shape,
                                               ref_items=selfsorted.columns)
 
-        return Panel(new_mgr)
+        return self._constructor_expanddim(new_mgr)
 
     to_wide = deprecate('to_wide', to_panel)
 
