@@ -236,6 +236,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _constructor(self):
         return Series
 
+    @property
+    def _constructor_expanddim(self):
+        from pandas.core.frame import DataFrame
+        return DataFrame
+
     # types
     @property
     def _can_hold_na(self):
@@ -1047,11 +1052,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         data_frame : DataFrame
         """
-        from pandas.core.frame import DataFrame
         if name is None:
-            df = DataFrame(self)
+            df = self._constructor_expanddim(self)
         else:
-            df = DataFrame({name: self})
+            df = self._constructor_expanddim({name: self})
 
         return df
 
