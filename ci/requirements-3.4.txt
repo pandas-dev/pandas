@@ -17,3 +17,4 @@ sqlalchemy
 bottleneck
 pymysql==0.6.3
 psycopg2
+blosc
