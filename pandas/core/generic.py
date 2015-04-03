@@ -2735,7 +2735,8 @@ class NDFrame(PandasObject):
         Examples
         --------
 
-        # Filling in NaNs:
+        Filling in NaNs
+
         >>> s = pd.Series([0, 1, np.nan, 3])
         >>> s.interpolate()
         0    0
@@ -2962,13 +2963,13 @@ class NDFrame(PandasObject):
 
         Examples
         --------
-        # DataFrame result
-        >>> data.groupby(func, axis=0).mean()
+        DataFrame results
 
-        # DataFrame result
+        >>> data.groupby(func, axis=0).mean()
         >>> data.groupby(['col1', 'col2'])['col3'].mean()
 
-        # DataFrame with hierarchical index
+        DataFrame with hierarchical index
+
         >>> data.groupby(['col1', 'col2']).mean()
 
         Returns
