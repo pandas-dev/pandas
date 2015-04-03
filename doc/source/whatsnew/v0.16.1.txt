@@ -71,6 +71,7 @@ Bug Fixes
 
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
 
+- Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
 
 
 

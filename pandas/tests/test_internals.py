@@ -68,15 +68,15 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr in ('object', 'string', 'O'):
         values = np.reshape(['A%d' % i for i in mat.ravel() + num_offset],
                             shape)
-    elif typestr in ('bool'):
+    elif typestr in ('b','bool',):
         values = np.ones(shape, dtype=np.bool_)
     elif typestr in ('datetime', 'dt', 'M8[ns]'):
         values = (mat * 1e9).astype('M8[ns]')
     elif typestr in ('timedelta', 'td', 'm8[ns]'):
         values = (mat * 1).astype('m8[ns]')
-    elif typestr in ('category'):
+    elif typestr in ('category',):
         values = Categorical([1,1,2,2,3,3,3,3,4,4])
-    elif typestr in ('category2'):
+    elif typestr in ('category2',):
         values = Categorical(['a','a','a','a','b','b','c','c','c','d'])
     elif typestr in ('sparse', 'sparse_na'):
         # FIXME: doesn't support num_rows != 10
@@ -750,6 +750,25 @@ class TestBlockManager(tm.TestCase):
         bm1 = create_mgr('a,a,a: i8-1; b,b,b: i8-2')
         bm2 = BlockManager(bm1.blocks[::-1], bm1.axes)
         self.assertTrue(bm1.equals(bm2))
+
+    def test_equals_block_order_different_dtypes(self):
+        # GH 9330
+        
+        mgr_strings = [ 
+            "a:i8;b:f8", # basic case
+            "a:i8;b:f8;c:c8;d:b", # many types
+            "a:i8;e:dt;f:td;g:string", # more types
+            "a:i8;b:category;c:category2;d:category2", # categories
+            "c:sparse;d:sparse_na;b:f8", # sparse
+            ]
+        
+        for mgr_string in mgr_strings:
+            bm = create_mgr(mgr_string)
+            block_perms = itertools.permutations(bm.blocks)
+            for bm_perm in block_perms:
+                bm_this = BlockManager(bm_perm, bm.axes)
+                self.assertTrue(bm.equals(bm_this))
+                self.assertTrue(bm_this.equals(bm))
 
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr('f8', num_rows=5)
