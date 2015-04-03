@@ -13,8 +13,8 @@ Where to start?
 All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
 
-If you are simply looking to start working with the *pandas* codebase, navigate to the 
-`GitHub "issues" tab <https://github.com/pydata/pandas/issues>`_ and start looking through 
+If you are simply looking to start working with the *pandas* codebase, navigate to the
+`GitHub "issues" tab <https://github.com/pydata/pandas/issues>`_ and start looking through
 interesting issues.  There are a number of issues listed under `Docs
 <https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open>`_
 and `Good as first PR
@@ -31,11 +31,11 @@ Feel free to ask questions on `mailing list
 Bug Reports/Enhancement Requests
 ================================
 
-Bug reports are an important part of making *pandas* more stable.  Having a complete bug report 
-will allow others to reproduce the bug and provide insight into fixing.  Since many versions of 
-*pandas* are supported, knowing version information will also identify improvements made since 
-previous versions.  Often trying the bug-producing code out on the *master* branch is a worthwhile exercise 
-to confirm the bug still exists.  It is also worth searching existing bug reports and pull requests 
+Bug reports are an important part of making *pandas* more stable.  Having a complete bug report
+will allow others to reproduce the bug and provide insight into fixing.  Since many versions of
+*pandas* are supported, knowing version information will also identify improvements made since
+previous versions.  Often trying the bug-producing code out on the *master* branch is a worthwhile exercise
+to confirm the bug still exists.  It is also worth searching existing bug reports and pull requests
 to see if the issue has already been reported and/or fixed.
 
 Bug reports must:
@@ -59,7 +59,7 @@ Bug reports must:
    and in 0.13.1 onwards: ::
 
       >>> pd.show_versions()
-   
+
 #. Explain why the current behavior is wrong/not desired and what you expect instead.
 
 The issue will then show up to the *pandas* community and be open to comments/ideas from others.
@@ -67,15 +67,15 @@ The issue will then show up to the *pandas* community and be open to comments/id
 Working with the code
 =====================
 
-Now that you have an issue you want to fix, enhancement to add, or documentation to improve, 
+Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
 you need to learn how to work with GitHub and the *pandas* code base.
 
 Version Control, Git, and GitHub
 --------------------------------
 
-To the new user, working with Git is one of the more daunting aspects of contributing to *pandas*.  
-It can very quickly become overwhelming, but sticking to the guidelines below will make the process 
-straightforward and will work without much trouble.  As always, if you are having difficulties please 
+To the new user, working with Git is one of the more daunting aspects of contributing to *pandas*.
+It can very quickly become overwhelming, but sticking to the guidelines below will make the process
+straightforward and will work without much trouble.  As always, if you are having difficulties please
 feel free to ask for help.
 
 The code is hosted on `GitHub <https://www.github.com/pydata/pandas>`_. To
@@ -85,14 +85,14 @@ version control to allow many people to work together on the project.
 
 Some great resources for learning git:
 
- * the `GitHub help pages <http://help.github.com/>`_.
- * the `NumPy's documentation <http://docs.scipy.org/doc/numpy/dev/index.html>`_.
- * Matthew Brett's `Pydagogue <http://matthew-brett.github.com/pydagogue/>`_.
+* the `GitHub help pages <http://help.github.com/>`_.
+* the `NumPy's documentation <http://docs.scipy.org/doc/numpy/dev/index.html>`_.
+* Matthew Brett's `Pydagogue <http://matthew-brett.github.com/pydagogue/>`_.
 
 Getting Started with Git
 ------------------------
 
-`GitHub has instructions <http://help.github.com/set-up-git-redirect>`__ for installing git, 
+`GitHub has instructions <http://help.github.com/set-up-git-redirect>`__ for installing git,
 setting up your SSH key, and configuring git.  All these steps need to be completed before
 working seamlessly with your local repository and GitHub.
 
@@ -110,7 +110,7 @@ want to clone your fork to your machine: ::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-You will also need to hook up Travis-CI to your GitHub repository so the suite 
+You will also need to hook up Travis-CI to your GitHub repository so the suite
 is automatically run when a Pull Request is submitted.  Instructions are `here
 <http://about.travis-ci.org/docs/user/getting-started/>`_.
 
@@ -127,27 +127,27 @@ The above can be simplified to::
 
     git checkout -b shiny-new-feature
 
-This changes your working directory to the shiny-new-feature branch.  Keep any 
-changes in this branch specific to one bug or feature so it is clear 
-what the branch brings to *pandas*. You can have many shiny-new-features 
+This changes your working directory to the shiny-new-feature branch.  Keep any
+changes in this branch specific to one bug or feature so it is clear
+what the branch brings to *pandas*. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
 Making changes
 --------------
 
-Before making your code changes, it is often necessary to build the code that was 
-just checked out.  There are two primary methods of doing this. 
+Before making your code changes, it is often necessary to build the code that was
+just checked out.  There are two primary methods of doing this.
 
 #. The best way to develop *pandas* is to build the C extensions in-place by
    running::
-   
+
       python setup.py build_ext --inplace
-      
-   If you startup the Python interpreter in the *pandas* source directory you 
+
+   If you startup the Python interpreter in the *pandas* source directory you
    will call the built C extensions
-    
+
 #. Another very common option is to do a ``develop`` install of *pandas*::
-   
+
       python setup.py develop
 
    This makes a symbolic link that tells the Python interpreter to import *pandas*
@@ -155,7 +155,7 @@ just checked out.  There are two primary methods of doing this.
    version on your system without being inside the clone directory.
 
 Contributing to the documentation
----------------------------------
+=================================
 
 If you're not the developer type, contributing to the documentation is still
 of huge value. You don't even have to be an expert on
@@ -173,7 +173,7 @@ help the next person.
 
 
 About the pandas documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
 in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
@@ -225,10 +225,10 @@ Some other important things to know about the docs:
 
 
 How to build the pandas documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------
 
 Requirements
-""""""""""""
+~~~~~~~~~~~~
 
 To build the *pandas* docs there are some extra requirements: you will need to
 have ``sphinx`` and ``ipython`` installed. `numpydoc
@@ -250,7 +250,7 @@ dependencies.
    Sphinx version >= 1.2.2 or the older 1.1.3 is required.
 
 Building the documentation
-""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local  the folder
 ``pandas/doc/`` directory in the console and run::
@@ -287,8 +287,8 @@ last committed version can always be restored from git.
     python make.py --single indexing
 
 For comparison, a full documentation build may take 10 minutes. a ``-no-api`` build
-may take 3 minutes and a single section may take 15 seconds.  However, subsequent 
-builds only process portions you changed.  Now, open the following file in a web 
+may take 3 minutes and a single section may take 15 seconds.  However, subsequent
+builds only process portions you changed.  Now, open the following file in a web
 browser to see the full documentation you just built::
 
     pandas/docs/build/html/index.html
@@ -297,40 +297,40 @@ And you'll have the satisfaction of seeing your new and improved documentation!
 
 
 Contributing to the code base
------------------------------
+=============================
 
 .. contents:: Code Base:
    :local:
 
 Code Standards
-^^^^^^^^^^^^^^
+--------------
 
-*pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.  
+*pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
 There are several tools to ensure you abide by this standard.
 
-We've written a tool to check that your commits are PEP8 great, `pip install pep8radius <https://github.com/hayd/pep8radius>`_. 
+We've written a tool to check that your commits are PEP8 great, `pip install pep8radius <https://github.com/hayd/pep8radius>`_.
 Look at PEP8 fixes in your branch vs master with::
 
     pep8radius master --diff` and make these changes with `pep8radius master --diff --in-place`
 
-Alternatively, use `flake8 <http://pypi.python.org/pypi/flake8>`_ tool for checking the style of your code.  
+Alternatively, use `flake8 <http://pypi.python.org/pypi/flake8>`_ tool for checking the style of your code.
 Additional standards are outlined on the `code style wiki page <https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions>`_.
 
-Please try to maintain backward-compatibility. *Pandas* has lots of users with lots of existing code, so 
-don't break it if at all possible.  If you think breakage is required clearly state why 
-as part of the Pull Request.  Also, be careful when changing method signatures and add 
+Please try to maintain backward-compatibility. *Pandas* has lots of users with lots of existing code, so
+don't break it if at all possible.  If you think breakage is required clearly state why
+as part of the Pull Request.  Also, be careful when changing method signatures and add
 deprecation warnings where needed.
 
 Test-driven Development/Writing Code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
-*Pandas* is serious about `Test-driven Development (TDD) 
-<http://en.wikipedia.org/wiki/Test-driven_development>`_. 
-This development process "relies on the repetition of a very short development cycle: 
-first the developer writes an (initially failing) automated test case that defines a desired 
-improvement or new function, then produces the minimum amount of code to pass that test." 
-So, before actually writing any code, you should write your tests.  Often the test can be 
-taken from the original GitHub issue.  However, it is always worth considering additional 
+*Pandas* is serious about `Test-driven Development (TDD)
+<http://en.wikipedia.org/wiki/Test-driven_development>`_.
+This development process "relies on the repetition of a very short development cycle:
+first the developer writes an (initially failing) automated test case that defines a desired
+improvement or new function, then produces the minimum amount of code to pass that test."
+So, before actually writing any code, you should write your tests.  Often the test can be
+taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
 
 Adding tests is one of the most common requests after code is pushed to *pandas*.  It is worth getting
@@ -342,10 +342,10 @@ extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 Writing tests
-"""""""""""""
+~~~~~~~~~~~~~
 
 All tests should go into the *tests* subdirectory of the specific package.
-There are probably many examples already there and looking to these for 
+There are probably many examples already there and looking to these for
 inspiration is suggested.  If you test requires working with files or
 network connectivity there is more information on the `testing page
 <https://github.com/pydata/pandas/wiki/Testing>`_ of the wiki.
@@ -376,63 +376,66 @@ the expected correct result:
         assert_frame_equal(pivoted, expected)
 
 Running the test suite
-""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~
 
 The tests can then be run directly inside your git clone (without having to
 install *pandas*) by typing:::
 
     nosetests pandas
 
-The tests suite is exhaustive and takes around 20 minutes to run.  Often it is 
-worth running only a subset of tests first around your changes before running the 
+The tests suite is exhaustive and takes around 20 minutes to run.  Often it is
+worth running only a subset of tests first around your changes before running the
 entire suite.  This is done using one of the following constructs:
 
 ::
-   
+
     nosetests pandas/tests/[test-module].py
     nosetests pandas/tests/[test-module].py:[TestClass]
     nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
 
 
 Running the performance test suite
-""""""""""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Performance matters and it is worth considering that your code has not introduced 
-performance regressions.  Currently *pandas* uses the `vbench library <https://github.com/pydata/vbench>`__ 
+Performance matters and it is worth considering that your code has not introduced
+performance regressions.  Currently *pandas* uses the `vbench library <https://github.com/pydata/vbench>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
-These benchmarks are all found in the ``pandas/vb_suite`` directory.  vbench 
+These benchmarks are all found in the ``pandas/vb_suite`` directory.  vbench
 currently only works on python2.
 
 To install vbench::
 
     pip install git+https://github.com/pydata/vbench
 
-Vbench also requires sqlalchemy, gitpython, and psutil which can all be installed 
+Vbench also requires sqlalchemy, gitpython, and psutil which can all be installed
 using pip.  If you need to run a benchmark, change your directory to the *pandas* root and run::
 
     ./test_perf.sh -b master -t HEAD
 
-This will checkout the master revision and run the suite on both master and 
-your commit.  Running the full test suite can take up to one hour and use up 
-to 3GB of RAM.  Usually it is sufficient to past a subset of the results in 
-to the Pull Request to show that the committed changes do not cause unexpected 
+This will checkout the master revision and run the suite on both master and
+your commit.  Running the full test suite can take up to one hour and use up
+to 3GB of RAM.  Usually it is sufficient to past a subset of the results in
+to the Pull Request to show that the committed changes do not cause unexpected
 performance regressions.
 
 You can run specific benchmarks using the *-r* flag which takes a regular expression.
 
-See the `performance testing wiki <https://github.com/pydata/pandas/wiki/Performance-Testing>`_ for information 
+See the `performance testing wiki <https://github.com/pydata/pandas/wiki/Performance-Testing>`_ for information
 on how to write a benchmark.
 
 Documenting your code
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
-Changes should be reflected in the release notes located in `doc/source/whatsnew/vx.y.z.txt`.  
-This file contains an ongoing change log for each release.  Add an entry to this file to 
-document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the 
+Changes should be reflected in the release notes located in `doc/source/whatsnew/vx.y.z.txt`.
+This file contains an ongoing change log for each release.  Add an entry to this file to
+document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry.
 
-If your code is an enhancement, it is most likely necessary to add usage examples to the 
+If your code is an enhancement, it is most likely necessary to add usage examples to the
 existing documentation.  This can be done following the section regarding documentation.
+
+Contributing your changes to *pandas*
+=====================================
 
 Committing your code
 --------------------
@@ -454,8 +457,8 @@ Doing 'git status' again should give something like ::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message.  An informal 
-commit message format is in effect for the project.  Please try to adhere to it.  Here are 
+Finally, commit your changes to your local repository with an explanatory message.  An informal
+commit message format is in effect for the project.  Please try to adhere to it.  Here are
 some common prefixes along with general guidelines for when to use them:
 
     * ENH: Enhancement, new functionality
@@ -466,8 +469,8 @@ some common prefixes along with general guidelines for when to use them:
     * PERF: Performance improvement
     * CLN: Code cleanup
 
-The following defines how a commit message should be structured.  Please reference the 
-relevant GitHub issues in your commit message using `GH1234` or `#1234`.  Either style 
+The following defines how a commit message should be structured.  Please reference the
+relevant GitHub issues in your commit message using `GH1234` or `#1234`.  Either style
 is fine, but the former is generally preferred:
 
     * a subject line with `< 80` chars.
@@ -478,13 +481,13 @@ Now you can commit your changes in your local repository::
 
     git commit -m
 
-If you have multiple commits, it is common to want to combine them into one commit, often 
-referred to as "squashing" or "rebasing".  This is a common request by package maintainers 
+If you have multiple commits, it is common to want to combine them into one commit, often
+referred to as "squashing" or "rebasing".  This is a common request by package maintainers
 when submitting a Pull Request as it maintains a more compact commit history.  To rebase your commits::
 
     git rebase -i HEAD~#
 
-Where # is the number of commits you want to combine.  Then you can pick the relevant 
+Where # is the number of commits you want to combine.  Then you can pick the relevant
 commit message and discard others.
 
 Pushing your changes
@@ -508,33 +511,30 @@ like ::
     upstream        git://github.com/pydata/pandas.git (fetch)
     upstream        git://github.com/pydata/pandas.git (push)
 
-Now your code is on GitHub, but it is not yet a part of the *pandas* project.  For that to 
+Now your code is on GitHub, but it is not yet a part of the *pandas* project.  For that to
 happen, a Pull Request needs to be submitted on GitHub.
-
-Contributing your changes to *pandas*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Review your code
 ----------------
 
-When you're ready to ask for a code review, you will file a Pull Request. Before you do, 
-again make sure you've followed all the guidelines outlined in this document regarding 
-code style, tests, performance tests, and documentation. You should also double check 
+When you're ready to ask for a code review, you will file a Pull Request. Before you do,
+again make sure you've followed all the guidelines outlined in this document regarding
+code style, tests, performance tests, and documentation. You should also double check
 your branch changes against the branch it was based off of:
 
 #. Navigate to your repository on GitHub--https://github.com/your-user-name/pandas.
 #. Click on `Branches`.
 #. Click on the `Compare` button for your feature branch.
-#. Select the `base` and `compare` branches, if necessary. This will be `master` and 
+#. Select the `base` and `compare` branches, if necessary. This will be `master` and
    `shiny-new-feature`, respectively.
 
 Finally, make the Pull Request
 ------------------------------
 
-If everything looks good you are ready to make a Pull Request.  A Pull Request is how 
-code from a local repository becomes available to the GitHub community and can be looked 
-at and eventually merged into the master version.  This Pull Request and its associated 
-changes will eventually be committed to the master branch and available in the next 
+If everything looks good you are ready to make a Pull Request.  A Pull Request is how
+code from a local repository becomes available to the GitHub community and can be looked
+at and eventually merged into the master version.  This Pull Request and its associated
+changes will eventually be committed to the master branch and available in the next
 release.  To submit a Pull Request:
 
 #. Navigate to your repository on GitHub.
@@ -555,7 +555,7 @@ This will automatically update your Pull Request with the latest code and restar
 Delete your merged branch (optional)
 ------------------------------------
 
-Once your feature branch is accepted into upstream, you'll probably want to get rid of 
+Once your feature branch is accepted into upstream, you'll probably want to get rid of
 the branch. First, merge upstream master into your branch so git knows it is safe to delete your branch ::
 
     git fetch upstream
