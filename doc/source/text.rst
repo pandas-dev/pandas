@@ -42,18 +42,18 @@ Methods like ``split`` return a Series of lists:
    s2 = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
    s2.str.split('_')
 
-Easy to expand this to return a DataFrame
-
-.. ipython:: python
-
-   s2.str.split('_').apply(Series)
-
 Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
 
 .. ipython:: python
 
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
+
+Easy to expand this to return a DataFrame using ``return_type``.
+
+.. ipython:: python
+
+   s2.str.split('_', return_type='frame')
 
 Methods like ``replace`` and ``findall`` take `regular expressions
 <https://docs.python.org/2/library/re.html>`__, too:
