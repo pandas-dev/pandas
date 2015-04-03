@@ -1324,13 +1324,11 @@ class TimeDeltaBlock(IntBlock):
         return value
 
     def _try_coerce_args(self, values, other):
-        """ provide coercion to our input arguments
-            we are going to compare vs i8, so coerce to floats
-            repring NaT with np.nan so nans propagate
-            values is always ndarray like, other may not be """
+        """ Coerce values and other to float64, with null values converted to
+            NaN. values is always ndarray-like, other may not be """
         def masker(v):
             mask = isnull(v)
-            v = v.view('i8').astype('float64')
+            v = v.astype('float64')
             v[mask] = np.nan
             return v
 
@@ -1342,6 +1340,8 @@ class TimeDeltaBlock(IntBlock):
             other = _coerce_scalar_to_timedelta_type(other, unit='s', box=False).item()
             if other == tslib.iNaT:
                 other = np.nan
+        elif lib.isscalar(other):
+            other = np.float64(other)
         else:
             other = masker(other)
 
@@ -1807,16 +1807,20 @@ class DatetimeBlock(Block):
         return values.view('i8')
 
     def _try_coerce_args(self, values, other):
-        """ provide coercion to our input arguments
-            we are going to compare vs i8, so coerce to integer
-            values is always ndarra like, other may not be """
+        """ Coerce values and other to dtype 'i8'. NaN and NaT convert to
+            the smallest i8, and will correctly round-trip to NaT if converted
+            back in _try_coerce_result. values is always ndarray-like, other
+            may not be """
         values = values.view('i8')
+
         if is_null_datelike_scalar(other):
             other = tslib.iNaT
         elif isinstance(other, datetime):
             other = lib.Timestamp(other).asm8.view('i8')
-        else:
+        elif hasattr(other, 'dtype') and com.is_integer_dtype(other):
             other = other.view('i8')
+        else:
+            other = np.array(other, dtype='i8')
 
         return values, other
 

@@ -79,3 +79,4 @@ Bug Fixes
 
 - Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
 - Bug in ``where`` causing incorrect results when upcasting was required (:issue:`9731`)
+- Bug in ``where`` when dtype of self is datetime64 or timedelta64, but dtype of other is not
