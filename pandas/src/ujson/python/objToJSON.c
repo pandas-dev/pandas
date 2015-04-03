@@ -457,7 +457,7 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_
     PyErr_SetString(PyExc_ValueError, "Failed to convert time");
     return NULL;
   }
-  if (PyUnicode_Check(str)) 
+  if (PyUnicode_Check(str))
   {
     tmp = str;
     str = PyUnicode_AsUTF8String(str);
@@ -479,7 +479,7 @@ static int NpyTypeToJSONType(PyObject* obj, JSONTypeContext* tc, int npyType, vo
   {
     PRINTMARK();
     castfunc = PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_DOUBLE);
-    if (!castfunc) 
+    if (!castfunc)
     {
       PyErr_Format (
           PyExc_ValueError,
@@ -501,7 +501,7 @@ static int NpyTypeToJSONType(PyObject* obj, JSONTypeContext* tc, int npyType, vo
   {
     PRINTMARK();
     castfunc = PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_INT64);
-    if (!castfunc) 
+    if (!castfunc)
     {
       PyErr_Format (
           PyExc_ValueError,
@@ -584,7 +584,12 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
     obj = (PyArrayObject *) _obj;
   }
 
-  if (PyArray_SIZE(obj) > 0)
+  if (PyArray_SIZE(obj) < 0)
+  {
+    PRINTMARK();
+    GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+  }
+  else
   {
     PRINTMARK();
     npyarr = PyObject_Malloc(sizeof(NpyArrContext));
@@ -623,11 +628,6 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 
     npyarr->columnLabels = GET_TC(tc)->columnLabels;
     npyarr->rowLabels = GET_TC(tc)->rowLabels;
-  }
-  else
-  {
-    PRINTMARK();
-    GET_TC(tc)->iterNext = NpyArr_iterNextNone;
   }
 }
 
@@ -1054,8 +1054,11 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
         npyarr = GET_TC(tc)->npyarr;
 
         // set the dataptr to our desired column and initialise
-        npyarr->dataptr += npyarr->stride * idx;
-        NpyArr_iterNext(obj, tc);
+        if (npyarr != NULL)
+        {
+            npyarr->dataptr += npyarr->stride * idx;
+            NpyArr_iterNext(obj, tc);
+        }
         GET_TC(tc)->itemValue = NULL;
         ((PyObjectEncoder*) tc->encoder)->npyCtxtPassthru = NULL;
 
@@ -2624,7 +2627,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
 
   if (odefHandler != NULL && odefHandler != Py_None)
   {
-    if (!PyCallable_Check(odefHandler)) 
+    if (!PyCallable_Check(odefHandler))
     {
       PyErr_SetString (PyExc_TypeError, "Default handler is not callable");
       return NULL;
