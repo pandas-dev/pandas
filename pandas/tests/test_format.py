@@ -2987,7 +2987,13 @@ class TestFloatArrayFormatter(tm.TestCase):
         self.assertEqual(result[1], "  0")
 
     def test_output_significant_digits(self):
-        # relevant to issue #9764
+        # Issue #9764
+        
+        # In case default display precision changes:
+        saved_option=pd.get_option('display.precision')
+        pd.set_option('display.precision', 7)
+
+        # DataFrame from issue #9764
         d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
         
         expected_output={
@@ -3000,6 +3006,9 @@ class TestFloatArrayFormatter(tm.TestCase):
 
         for k, v in expected_output.items():
             self.assertEqual(d[k[0]:k[1]].__str__(), v)
+
+        # Restore precision
+        pd.set_option('display.precision', saved_option)
 
 class TestRepr_timedelta64(tm.TestCase):
 
