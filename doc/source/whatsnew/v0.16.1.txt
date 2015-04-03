@@ -66,7 +66,7 @@ Bug Fixes
 
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
 
-
+- Fixed bug in ``StataWriter`` resulting in changes to input ``DataFrame`` upon save (:issue:`9795`).
 
 
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
