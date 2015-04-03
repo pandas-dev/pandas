@@ -1859,6 +1859,48 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([5,11,2,5,11,2],index=[0,1,2,0,1,2])
         assert_series_equal(comb, expected)
 
+    def test_where_datetime(self):
+        s = Series(date_range('20130102', periods=2))
+        expected = Series([10, 10], dtype='datetime64[ns]')
+        mask = np.array([False, False])
+
+        rs = s.where(mask, [10, 10])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10.0)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, 10.0])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, np.nan])
+        expected = Series([10, None], dtype='datetime64[ns]')
+        assert_series_equal(rs, expected)
+
+    def test_where_timedelta(self):
+        s = Series([1, 2], dtype='timedelta64[ns]')
+        expected = Series([10, 10], dtype='timedelta64[ns]')
+        mask = np.array([False, False])
+
+        rs = s.where(mask, [10, 10])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10.0)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, 10.0])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, np.nan])
+        expected = Series([10, None], dtype='timedelta64[ns]')
+        assert_series_equal(rs, expected)
+
     def test_mask(self):
         # compare with tested results in test_where
         s = Series(np.random.randn(5))

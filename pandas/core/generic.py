@@ -3335,7 +3335,8 @@ class NDFrame(PandasObject):
                 except ValueError:
                     new_other = np.array(other)
 
-                if not (new_other == np.array(other)).all():
+                matches = (new_other == np.array(other))
+                if matches is False or not matches.all():
                     other = np.array(other)
 
                     # we can't use our existing dtype
