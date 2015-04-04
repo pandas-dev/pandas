@@ -1821,6 +1821,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                           for i, use_item in enumerate(selection)])
                         assert_series_equal(s, expected)
 
+                        s = Series(data)
+                        result = s.where(~selection, arr)
+                        assert_series_equal(result, expected)
+
     def test_where_inplace(self):
         s = Series(np.random.randn(5))
         cond = s > 0
@@ -1856,11 +1860,69 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(comb, expected)
 
     def test_mask(self):
+        # compare with tested results in test_where
         s = Series(np.random.randn(5))
         cond = s > 0
 
-        rs = s.where(cond, np.nan)
-        assert_series_equal(rs, s.mask(~cond))
+        rs = s.where(~cond, np.nan)
+        assert_series_equal(rs, s.mask(cond))
+
+        rs = s.where(~cond)
+        rs2 = s.mask(cond)
+        assert_series_equal(rs, rs2)
+
+        rs = s.where(~cond, -s)
+        rs2 = s.mask(cond, -s)
+        assert_series_equal(rs, rs2)
+
+        cond = Series([True, False, False, True, False], index=s.index)
+        s2 = -(s.abs())
+        rs = s2.where(~cond[:3])
+        rs2 = s2.mask(cond[:3])
+        assert_series_equal(rs, rs2)
+
+        rs = s2.where(~cond[:3], -s2)
+        rs2 = s2.mask(cond[:3], -s2)
+        assert_series_equal(rs, rs2)
+
+        self.assertRaises(ValueError, s.mask, 1)
+        self.assertRaises(ValueError, s.mask, cond[:3].values, -s)
+
+        # dtype changes
+        s = Series([1,2,3,4])
+        result = s.mask(s>2, np.nan)
+        expected = Series([1, 2, np.nan, np.nan])
+        assert_series_equal(result, expected)
+
+    def test_mask_broadcast(self):
+        # GH 8801
+        # copied from test_where_broadcast
+        for size in range(2, 6):
+            for selection in [np.resize([True, False, False, False, False], size),  # First element should be set
+                              # Set alternating elements]
+                              np.resize([True, False], size),
+                              np.resize([False], size)]:  # No element should be set
+                for item in [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]:
+                    for arr in [np.array([item]), [item], (item,)]:
+                        data = np.arange(size, dtype=float)
+                        s = Series(data)
+                        result = s.mask(selection, arr)
+                        expected = Series([item if use_item else data[i]
+                                          for i, use_item in enumerate(selection)])
+                        assert_series_equal(result, expected)
+
+    def test_mask_inplace(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.copy()
+        rs.mask(cond, inplace=True)
+        assert_series_equal(rs.dropna(), s[~cond])
+        assert_series_equal(rs, s.mask(cond))
+
+        rs = s.copy()
+        rs.mask(cond, -s, inplace=True)
+        assert_series_equal(rs, s.mask(cond, -s))
 
     def test_drop(self):
 
@@ -6845,7 +6907,7 @@ class TestSeriesNonUnique(tm.TestCase):
     def test_unique_data_ownership(self):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
-    
+
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
         self.assertTrue(pd.isnull(Series([],dtype='M8[ns]').quantile(.5)))
