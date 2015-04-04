@@ -9775,6 +9775,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(rs, df.mask(df <= 0))
         assert_frame_equal(rs, df.mask(~cond))
 
+        other = DataFrame(np.random.randn(5, 3))
+        rs = df.where(cond, other)
+        assert_frame_equal(rs, df.mask(df <= 0, other))
+        assert_frame_equal(rs, df.mask(~cond, other))
+
+    def test_mask_inplace(self):
+        # GH8801
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        rdf = df.copy()
+
+        rdf.where(cond, inplace=True)
+        assert_frame_equal(rdf, df.where(cond))
+        assert_frame_equal(rdf, df.mask(~cond))
+
+        rdf = df.copy()
+        rdf.where(cond, -df, inplace=True)
+        assert_frame_equal(rdf, df.where(cond, -df))
+        assert_frame_equal(rdf, df.mask(~cond, -df))
+
     def test_mask_edge_case_1xN_frame(self):
         # GH4071
         df = DataFrame([[1, 2]])

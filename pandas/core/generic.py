@@ -3250,16 +3250,14 @@ class NDFrame(PandasObject):
             return (left_result.__finalize__(self),
                     right_result.__finalize__(other))
 
-    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
-        """
+    _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from other.
+        entries are from self where cond is %(cond)s and otherwise are from other.
 
         Parameters
         ----------
-        cond : boolean NDFrame or array
-        other : scalar or NDFrame
+        cond : boolean %(klass)s or array
+        other : scalar or %(klass)s
         inplace : boolean, default False
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
@@ -3273,7 +3271,11 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh : same type as caller
-        """
+        """)
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
+    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+              try_cast=False, raise_on_error=True):
+
         if isinstance(cond, NDFrame):
             cond = cond.reindex(**self._construct_axes_dict())
         else:
@@ -3400,20 +3402,11 @@ class NDFrame(PandasObject):
 
             return self._constructor(new_data).__finalize__(self)
 
-    def mask(self, cond):
-        """
-        Returns copy whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond : boolean NDFrame or array
-
-        Returns
-        -------
-        wh: same as input
-        """
-        return self.where(~cond, np.nan)
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
+    def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+             try_cast=False, raise_on_error=True):
+        return self.where(~cond, other=other, inplace=inplace, axis=axis,
+            level=level, try_cast=try_cast, raise_on_error=raise_on_error)
 
     def shift(self, periods=1, freq=None, axis=0, **kwargs):
         """
