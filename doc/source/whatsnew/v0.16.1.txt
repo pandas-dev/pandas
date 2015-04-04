@@ -19,7 +19,7 @@ Enhancements
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 
-
+- ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
 
 
