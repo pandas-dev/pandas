@@ -14,7 +14,7 @@ import pandas.core.common as com
 import numpy as np
 
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
-                fill_value=None, margins=False, dropna=True):
+                fill_value=None, margins=False, display_value='normal', dropna=True):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -38,6 +38,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         Value to replace missing values with
     margins : boolean, default False
         Add all row / columns (e.g. for subtotal / grand totals)
+    display_value : string, default 'normal'
+        Type of display. Among 'normal', 'col_ratio', 'row_ratio', 'total_ratio'
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
 
@@ -77,7 +79,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         for func in aggfunc:
             table = pivot_table(data, values=values, index=index, columns=columns,
                                 fill_value=fill_value, aggfunc=func,
-                                margins=margins)
+                                margins=margins, display_value=display_value)
             pieces.append(table)
             keys.append(func.__name__)
         return concat(pieces, keys=keys, axis=1)
@@ -148,6 +150,13 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if len(index) == 0 and len(columns) > 0:
         table = table.T
+
+    if display_value == "col_ratio":
+        table = table.div(table.sum(axis=0), axis=1)
+    elif display_value == "row_ratio":
+        table = table.div(table.sum(axis=1), axis=0)
+    elif display_value == "total_ratio":
+        table = table.div(table.sum().sum())
 
     return table
 
