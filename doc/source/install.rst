@@ -35,6 +35,8 @@ pandas at all.
 Simply create an account, and have access to pandas from within your brower via
 an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
 
+.. _install.anaconda
+
 Installing pandas with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,6 +67,8 @@ An additional advantage of installing with Anaconda is that you don't require
 admin rights to install it, it will install in the user's home directory, and
 this also makes it trivial to delete Anaconda at a later date (just delete
 that folder).
+
+.. _install.miniconda
 
 Installing pandas with Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,47 +177,8 @@ Installing using your Linux distribution's package manager.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
-.. note::
 
-   Installing from the git repository requires a recent installation of `Cython
-   <http://cython.org>`__ as the cythonized C sources are no longer checked
-   into source control. Released source distributions will contain the built C
-   files. I recommend installing the latest Cython via ``easy_install -U
-   Cython``
-
-The source code is hosted at http://github.com/pydata/pandas, it can be checked
-out using git and compiled / installed like so:
-
-::
-
-  git clone git://github.com/pydata/pandas.git
-  cd pandas
-  python setup.py install
-
-Make sure you have Cython installed when installing from the repository,
-rather then a tarball or pypi.
-
-On Windows, I suggest installing the MinGW compiler suite following the
-directions linked to above. Once configured property, run the following on the
-command line:
-
-::
-
-  python setup.py build --compiler=mingw32
-  python setup.py install
-
-Note that you will not be able to import pandas if you open an interpreter in
-the source directory unless you build the C extensions in place:
-
-::
-
-  python setup.py build_ext --inplace
-
-The most recent version of MinGW (any installer dated after 2011-08-03)
-has removed the '-mno-cygwin' option but Distutils has not yet been updated to
-reflect that. Thus, you may run into an error like "unrecognized command line
-option '-mno-cygwin'". Until the bug is fixed in Distutils, you may need to
-install a slightly older version of MinGW (2011-08-02 installer).
+See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a devevlopment environment <contributing-dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -354,4 +319,3 @@ Optional Dependencies
    work. Hence, it is highly recommended that you install these. A packaged
    distribution like `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
-
