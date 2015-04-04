@@ -632,7 +632,8 @@ class Block(PandasObject):
 
         return [self]
 
-    def putmask(self, mask, new, align=True, inplace=False):
+    def putmask(self, mask, new, align=True, inplace=False,
+                axis=0, transpose=False):
         """ putmask the data to the block; it is possible that we may create a
         new dtype of block
 
@@ -644,37 +645,55 @@ class Block(PandasObject):
         new : a ndarray/object
         align : boolean, perform alignment on other/cond, default is True
         inplace : perform inplace modification, default is False
+        axis : int
+        transpose : boolean
+            Set to True if self is stored with axes reversed
 
         Returns
         -------
-        a new block(s), the result of the putmask
+        a list of new blocks, the result of the putmask
         """
 
         new_values = self.values if inplace else self.values.copy()
 
-        # may need to align the new
         if hasattr(new, 'reindex_axis'):
-            new = new.values.T
+            new = new.values
 
-        # may need to align the mask
         if hasattr(mask, 'reindex_axis'):
-            mask = mask.values.T
+            mask = mask.values
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isnull(new) and not self.is_object:
             new = self.fill_value
 
         if self._can_hold_element(new):
+            if transpose:
+                new_values = new_values.T
+
             new = self._try_cast(new)
 
-            # pseudo-broadcast
-            if isinstance(new, np.ndarray) and new.ndim == self.ndim - 1:
-                new = np.repeat(new, self.shape[-1]).reshape(self.shape)
+            # If the default repeat behavior in np.putmask would go in the wrong
+            # direction, then explictly repeat and reshape new instead
+            if getattr(new, 'ndim', 0) >= 1:
+                if self.ndim - 1 == new.ndim and axis == 1:
+                    new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
 
             np.putmask(new_values, mask, new)
 
         # maybe upcast me
         elif mask.any():
+            if transpose:
+                mask = mask.T
+                if isinstance(new, np.ndarray):
+                    new = new.T
+                axis = new_values.ndim - axis - 1
+
+            # Pseudo-broadcast
+            if getattr(new, 'ndim', 0) >= 1:
+                if self.ndim - 1 == new.ndim:
+                    new_shape = list(new.shape)
+                    new_shape.insert(axis, 1)
+                    new = new.reshape(tuple(new_shape))
 
             # need to go column by column
             new_blocks = []
@@ -685,14 +704,15 @@ class Block(PandasObject):
 
                     # need a new block
                     if m.any():
-
-                        n = new[i] if isinstance(
-                            new, np.ndarray) else np.array(new)
+                        if isinstance(new, np.ndarray):
+                            n = np.squeeze(new[i % new.shape[0]])
+                        else:
+                            n = np.array(new)
 
                         # type of the new block
                         dtype, _ = com._maybe_promote(n.dtype)
 
-                        # we need to exiplicty astype here to make a copy
+                        # we need to explicitly astype here to make a copy
                         n = n.astype(dtype)
 
                         nv = _putmask_smart(v, m, n)
@@ -718,8 +738,10 @@ class Block(PandasObject):
         if inplace:
             return [self]
 
-        return [make_block(new_values,
-                           placement=self.mgr_locs, fastpath=True)]
+        if transpose:
+            new_values = new_values.T
+
+        return [make_block(new_values, placement=self.mgr_locs, fastpath=True)]
 
     def interpolate(self, method='pad', axis=0, index=None,
                     values=None, inplace=False, limit=None,
@@ -1003,7 +1025,7 @@ class Block(PandasObject):
                            fastpath=True, placement=self.mgr_locs)]
 
     def where(self, other, cond, align=True, raise_on_error=True,
-              try_cast=False):
+              try_cast=False, axis=0, transpose=False):
         """
         evaluate the block; return result block(s) from the result
 
@@ -1014,6 +1036,9 @@ class Block(PandasObject):
         align : boolean, perform alignment on other/cond
         raise_on_error : if True, raise when I can't perform the function,
             False by default (and just return the data that we had coming in)
+        axis : int
+        transpose : boolean
+            Set to True if self is stored with axes reversed
 
         Returns
         -------
@@ -1021,43 +1046,23 @@ class Block(PandasObject):
         """
 
         values = self.values
+        if transpose:
+            values = values.T
 
-        # see if we can align other
         if hasattr(other, 'reindex_axis'):
             other = other.values
-
-        # make sure that we can broadcast
-        is_transposed = False
-        if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
-            if values.ndim != other.ndim or values.shape == other.shape[::-1]:
-
-                # if its symmetric are ok, no reshaping needed (GH 7506)
-                if (values.shape[0] == np.array(values.shape)).all():
-                    pass
-
-                # pseodo broadcast (its a 2d vs 1d say and where needs it in a
-                # specific direction)
-                elif (other.ndim >= 1 and values.ndim - 1 == other.ndim and
-                        values.shape[0] != other.shape[0]):
-                    other = _block_shape(other).T
-                else:
-                    values = values.T
-                    is_transposed = True
-
-        # see if we can align cond
-        if not hasattr(cond, 'shape'):
-            raise ValueError(
-                "where must have a condition that is ndarray like")
 
         if hasattr(cond, 'reindex_axis'):
             cond = cond.values
 
-        # may need to undo transpose of values
-        if hasattr(values, 'ndim'):
-            if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
+        # If the default broadcasting would go in the wrong direction, then
+        # explictly reshape other instead
+        if getattr(other, 'ndim', 0) >= 1:
+            if values.ndim - 1 == other.ndim and axis == 1:
+                other = other.reshape(tuple(other.shape + (1,)))
 
-                values = values.T
-                is_transposed = not is_transposed
+        if not hasattr(cond, 'shape'):
+            raise ValueError("where must have a condition that is ndarray like")
 
         other = _maybe_convert_string_to_object(other)
 
@@ -1090,15 +1095,14 @@ class Block(PandasObject):
                 raise TypeError('Could not compare [%s] with block values'
                                 % repr(other))
 
-            if is_transposed:
+            if transpose:
                 result = result.T
 
             # try to cast if requested
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return make_block(result,
-                              ndim=self.ndim, placement=self.mgr_locs)
+            return make_block(result, ndim=self.ndim, placement=self.mgr_locs)
 
         # might need to separate out blocks
         axis = cond.ndim - 1
@@ -1744,7 +1748,8 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def putmask(self, mask, new, align=True, inplace=False):
+    def putmask(self, mask, new, align=True, inplace=False,
+                axis=0, transpose=False):
         """ putmask the data to the block; it is possible that we may create a
         new dtype of block
 
@@ -2436,12 +2441,18 @@ class BlockManager(PandasObject):
             else:
                 kwargs['filter'] = filter_locs
 
-        if f == 'where' and kwargs.get('align', True):
+        if f == 'where':
             align_copy = True
-            align_keys = ['other', 'cond']
-        elif f == 'putmask' and kwargs.get('align', True):
+            if kwargs.get('align', True):
+                align_keys = ['other', 'cond']
+            else:
+                align_keys = ['cond']
+        elif f == 'putmask':
             align_copy = False
-            align_keys = ['new', 'mask']
+            if kwargs.get('align', True):
+                align_keys = ['new', 'mask']
+            else:
+                align_keys = ['mask']
         elif f == 'eval':
             align_copy = False
             align_keys = ['other']

@@ -10394,6 +10394,110 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df[df.abs() >= 5] = np.nan
         assert_frame_equal(df,expected)
 
+    def test_where_axis(self):
+        # GH 9736
+        df = DataFrame(np.random.randn(2, 2))
+        mask = DataFrame([[False, False], [False, False]])
+        s = Series([0, 1])
+
+        expected = DataFrame([[0, 0], [1, 1]], dtype='float64')
+        result = df.where(mask, s, axis='index')
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.where(mask, s, axis='index', inplace=True)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame([[0, 1], [0, 1]], dtype='float64')
+        result = df.where(mask, s, axis='columns')
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.where(mask, s, axis='columns', inplace=True)
+        assert_frame_equal(result, expected)
+
+        # Upcast needed
+        df = DataFrame([[1, 2], [3, 4]], dtype='int64')
+        mask = DataFrame([[False, False], [False, False]])
+        s = Series([0, np.nan])
+
+        expected = DataFrame([[0, 0], [np.nan, np.nan]], dtype='float64')
+        result = df.where(mask, s, axis='index')
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.where(mask, s, axis='index', inplace=True)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame([[0, np.nan], [0, np.nan]], dtype='float64')
+        result = df.where(mask, s, axis='columns')
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({0 : np.array([0, 0], dtype='int64'),
+                              1 : np.array([np.nan, np.nan], dtype='float64')})
+        result = df.copy()
+        result.where(mask, s, axis='columns', inplace=True)
+        assert_frame_equal(result, expected)
+
+        # Multiple dtypes (=> multiple Blocks)
+        df = pd.concat([DataFrame(np.random.randn(10, 2)),
+                     DataFrame(np.random.randint(0, 10, size=(10, 2)))],
+                     ignore_index=True, axis=1)
+        mask = DataFrame(False, columns=df.columns, index=df.index)
+        s1 = Series(1, index=df.columns)
+        s2 = Series(2, index=df.index)
+
+        result = df.where(mask, s1, axis='columns')
+        expected = DataFrame(1.0, columns=df.columns, index=df.index)
+        expected[2] = expected[2].astype(int)
+        expected[3] = expected[3].astype(int)
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.where(mask, s1, axis='columns', inplace=True)
+        assert_frame_equal(result, expected)
+
+        result = df.where(mask, s2, axis='index')
+        expected = DataFrame(2.0, columns=df.columns, index=df.index)
+        expected[2] = expected[2].astype(int)
+        expected[3] = expected[3].astype(int)
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.where(mask, s2, axis='index', inplace=True)
+        assert_frame_equal(result, expected)
+
+        # DataFrame vs DataFrame
+        d1 = df.copy().drop(1, axis=0)
+        expected = df.copy()
+        expected.loc[1, :] = np.nan
+
+        result = df.where(mask, d1)
+        assert_frame_equal(result, expected)
+        result = df.where(mask, d1, axis='index')
+        assert_frame_equal(result, expected)
+        result = df.copy()
+        result.where(mask, d1, inplace=True)
+        assert_frame_equal(result, expected)
+        result = df.copy()
+        result.where(mask, d1, inplace=True, axis='index')
+        assert_frame_equal(result, expected)
+
+        d2 = df.copy().drop(1, axis=1)
+        expected = df.copy()
+        expected.loc[:, 1] = np.nan
+
+        result = df.where(mask, d2)
+        assert_frame_equal(result, expected)
+        result = df.where(mask, d2, axis='columns')
+        assert_frame_equal(result, expected)
+        result = df.copy()
+        result.where(mask, d2, inplace=True)
+        assert_frame_equal(result, expected)
+        result = df.copy()
+        result.where(mask, d2, inplace=True, axis='columns')
+        assert_frame_equal(result, expected)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
