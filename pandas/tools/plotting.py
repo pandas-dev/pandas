@@ -926,7 +926,19 @@ class MPLPlot(object):
     def _args_adjust(self):
         pass
 
-    def _maybe_right_yaxis(self, ax):
+    def _has_plotted_object(self, ax):
+        """check whether ax has data"""
+        return (len(ax.lines) != 0 or
+                len(ax.artists) != 0 or
+                len(ax.containers) != 0)
+
+    def _maybe_right_yaxis(self, ax, axes_num):
+        if not self.on_right(axes_num):
+            if hasattr(ax, 'left_ax'):
+                # secondary axes may be passed as axes
+                return ax.left_ax
+            return ax
+
         if hasattr(ax, 'right_ax'):
             return ax.right_ax
         else:
@@ -936,7 +948,7 @@ class MPLPlot(object):
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
             new_ax.right_ax = new_ax
 
-            if len(orig_ax.get_lines()) == 0:  # no data on left y
+            if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
             return new_ax
 
@@ -978,7 +990,15 @@ class MPLPlot(object):
             else:
                 return self.axes
         else:
-            return self.axes[0]
+            sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
+            all_sec = (com.is_list_like(self.secondary_y) and
+                       len(self.secondary_y) == self.nseries)
+            if (sec_true or all_sec):
+                # if all data is plotted on secondary,
+                # return secondary axes
+                return self.axes[0].right_ax
+            else:
+                return self.axes[0]
 
     def _compute_plot_data(self):
         numeric_data = self.data.convert_objects()._get_numeric_data()
@@ -1128,8 +1148,8 @@ class MPLPlot(object):
 
     def _get_ax_legend(self, ax):
         leg = ax.get_legend()
-        other_ax = (getattr(ax, 'right_ax', None) or
-                    getattr(ax, 'left_ax', None))
+        other_ax = (getattr(ax, 'left_ax', None) or
+                    getattr(ax, 'right_ax', None))
         other_leg = None
         if other_ax is not None:
             other_leg = other_ax.get_legend()
@@ -1221,20 +1241,11 @@ class MPLPlot(object):
         if self.subplots:
             ax = self.axes[i]
 
-            if self.on_right(i):
-                ax = self._maybe_right_yaxis(ax)
-                self.axes[i] = ax
+            ax = self._maybe_right_yaxis(ax, i)
+            self.axes[i] = ax
         else:
             ax = self.axes[0]
-
-            if self.on_right(i):
-                ax = self._maybe_right_yaxis(ax)
-
-                sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
-                all_sec = (com.is_list_like(self.secondary_y) and
-                           len(self.secondary_y) == self.nseries)
-                if sec_true or all_sec:
-                    self.axes[0] = ax
+            ax = self._maybe_right_yaxis(ax, i)
 
         ax.get_yaxis().set_visible(True)
         return ax
@@ -1971,7 +1982,7 @@ class HistPlot(LinePlot):
                 kwds['style'] = style
 
             artists = plotf(ax, y, column_num=i, **kwds)
-            self._add_legend_handle(artists[0], label)
+            self._add_legend_handle(artists[0], label, index=i)
 
     def _post_plot_logic(self):
         if self.orientation == 'horizontal':
