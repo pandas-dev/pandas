@@ -2990,25 +2990,21 @@ class TestFloatArrayFormatter(tm.TestCase):
         # Issue #9764
         
         # In case default display precision changes:
-        saved_option=pd.get_option('display.precision')
-        pd.set_option('display.precision', 7)
+        with pd.option_context('display.precision', 7):
+            # DataFrame example from issue #9764
+            d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
+            
+            expected_output={
+                (0,6):'           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                (1,6):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                (1,8):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07\n6  5.000100e-07\n7  6.000000e-07',
+                (8,16):'            col1\n8   9.999000e-07\n9   1.000000e-06\n10  1.000100e-06\n11  2.000000e-06\n12  4.999000e-06\n13  5.000000e-06\n14  5.000100e-06\n15  6.000000e-06',
+                (9,16):'        col1\n9   0.000001\n10  0.000001\n11  0.000002\n12  0.000005\n13  0.000005\n14  0.000005\n15  0.000006'
+            }
 
-        # DataFrame from issue #9764
-        d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
-        
-        expected_output={
-            (0,6):'           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
-            (1,6):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
-            (1,8):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07\n6  5.000100e-07\n7  6.000000e-07',
-            (8,16):'            col1\n8   9.999000e-07\n9   1.000000e-06\n10  1.000100e-06\n11  2.000000e-06\n12  4.999000e-06\n13  5.000000e-06\n14  5.000100e-06\n15  6.000000e-06',
-            (9,16):'        col1\n9   0.000001\n10  0.000001\n11  0.000002\n12  0.000005\n13  0.000005\n14  0.000005\n15  0.000006'
-        }
+            for (start, stop), v in expected_output.items():
+                self.assertEqual(str(d[start:stop]), v)
 
-        for k, v in expected_output.items():
-            self.assertEqual(d[k[0]:k[1]].__str__(), v)
-
-        # Restore precision
-        pd.set_option('display.precision', saved_option)
 
 class TestRepr_timedelta64(tm.TestCase):
 
