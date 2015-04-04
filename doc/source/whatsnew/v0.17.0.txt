@@ -88,6 +88,7 @@ Bug Fixes
 
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 
+- Bug causing ``DataFrame.where`` to not respect the ``axis`` parameter when the frame has a symmetric shape. (:issue:`9736`)
 
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 

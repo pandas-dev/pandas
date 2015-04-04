@@ -3634,19 +3634,31 @@ class NDFrame(PandasObject):
             else:
                 other = self._constructor(other, **self._construct_axes_dict())
 
+        if axis is None:
+            axis = 0
+
+        if self.ndim == getattr(other, 'ndim', 0):
+            align = True
+        else:
+            align = (self._get_axis_number(axis) == 1)
+
+        block_axis = self._get_block_manager_axis(axis)
+
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
             self._check_inplace_setting(other)
-            new_data = self._data.putmask(mask=cond, new=other, align=axis is None,
-                                          inplace=True)
+            new_data = self._data.putmask(mask=cond, new=other, align=align,
+                                          inplace=True, axis=block_axis,
+                                          transpose=self._AXIS_REVERSED)
             self._update_inplace(new_data)
 
         else:
-            new_data = self._data.where(other=other, cond=cond, align=axis is None,
+            new_data = self._data.where(other=other, cond=cond, align=align,
                                         raise_on_error=raise_on_error,
-                                        try_cast=try_cast)
+                                        try_cast=try_cast, axis=block_axis,
+                                        transpose=self._AXIS_REVERSED)
 
             return self._constructor(new_data).__finalize__(self)
 
