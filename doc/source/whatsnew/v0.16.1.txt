@@ -75,7 +75,7 @@ Bug Fixes
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
 
-
+- Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
 
 
 - Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
