@@ -82,3 +82,5 @@ Bug Fixes
 - Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
 - Bug in ``where`` causing incorrect results when upcasting was required (:issue:`9731`)
 - Bug in ``FloatArrayFormatter`` where decision boundary for displaying "small" floats in decimal format is off by one order of magnitude for a given display.precision (:issue:`9764`)
+
+- Fixed bug (:issue:`9671`) where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (this should be allowed).
