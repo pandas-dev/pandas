@@ -137,6 +137,69 @@ clear what the branch brings to *pandas*. You can have many
 shiny-new-features and switch in between them using the git checkout
 command.
 
+### Creating a Development Environment
+
+An easy way to create a *pandas* development environment is as follows.
+
+-   Install either Install Anaconda \<install-anaconda\> or
+    Install miniconda \<install-miniconda\>
+-   Make sure that you have
+    cloned the repository \<contributing-forking\>
+-   `cd` to the pandas source directory
+
+Tell `conda` to create a new environment, named `pandas_dev`, or any
+name you would like for this environment by running:
+
+    conda create -n pandas_dev --file ci/requirements_dev.txt
+
+For a python 3 environment
+
+    conda create -n pandas_dev python=3 --file ci/requirements_dev.txt
+
+If you are on `windows`, then you will need to install the compiler
+linkages:
+
+    conda install -n pandas_dev libpython
+
+This will create the new environment, and not touch any of your existing
+environments, nor any existing python installation. It will install all
+of the basic dependencies of *pandas*, as well as the development and
+testing tools. If you would like to install other dependencies, you can
+install them as follows:
+
+    conda install -n pandas_dev -c pandas pytables scipy
+
+To install *all* pandas dependencies you can do the following:
+
+    conda install -n pandas_dev -c pandas --file ci/requirements_all.txt
+
+To work in this environment, `activate` it as follows:
+
+    activate pandas_dev
+
+At which point, the prompt will change to indicate you are in the new
+development environment.
+
+> **note**
+>
+> The above syntax is for `windows` environments. To work on
+> `macosx/linux`, use:
+>
+>     source activate pandas_dev
+
+To view your environments:
+
+    conda info -e
+
+To return to you home root environment:
+
+    deactivate
+
+See the full `conda` docs [here](http://conda.pydata.org/docs).
+
+At this point you can easily do an *in-place* install, as detailed in
+the next section.
+
 ### Making changes
 
 Before making your code changes, it is often necessary to build the code
@@ -231,13 +294,19 @@ docstrings that follow the Numpy Docstring Standard (see above), but you
 don't need to install this because a local copy of `numpydoc` is
 included in the *pandas* source code.
 
+It is easiest to
+create a development environment \<contributing-dev\_env\>, then
+install:
+
+    conda install -n pandas_dev sphinx ipython
+
 Furthermore, it is recommended to have all [optional
 dependencies](http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies)
-installed. This is not needed, but be aware that you will see some error
-messages. Because all the code in the documentation is executed during
-the doc build, the examples using this optional dependencies will
-generate errors. Run `pd.show_versions()` to get an overview of the
-installed version of all dependencies.
+installed. This is not strictly necessary, but be aware that you will
+see some error messages. Because all the code in the documentation is
+executed during the doc build, the examples using this optional
+dependencies will generate errors. Run `pd.show_versions()` to get an
+overview of the installed version of all dependencies.
 
 > **warning**
 >
