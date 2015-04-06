@@ -12,8 +12,8 @@ navigate to the [GitHub "issues"
 tab](https://github.com/pydata/pandas/issues) and start looking through
 interesting issues. There are a number of issues listed under
 [Docs](https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open)
-and [Good as first
-PR](https://github.com/pydata/pandas/issues?labels=Good+as+first+PR&sort=updated&state=open)
+and [Difficulty
+Novice](https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22)
 where you could start out.
 
 Or maybe through using *pandas* you have an idea of you own or are

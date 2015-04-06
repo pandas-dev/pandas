@@ -17,8 +17,8 @@ If you are simply looking to start working with the *pandas* codebase, navigate 
 `GitHub "issues" tab <https://github.com/pydata/pandas/issues>`_ and start looking through
 interesting issues.  There are a number of issues listed under `Docs
 <https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `Good as first PR
-<https://github.com/pydata/pandas/issues?labels=Good+as+first+PR&sort=updated&state=open>`_
+and `Difficulty Novice
+<https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
 where you could start out.
 
 Or maybe through using *pandas* you have an idea of you own or are looking for something
