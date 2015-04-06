@@ -461,7 +461,7 @@ Inspired by `dplyr's
 <http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
 ``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
 method that allows you to easily create new columns that are potentially
-derived from existing columns. 
+derived from existing columns.
 
 .. ipython:: python
 
@@ -511,7 +511,9 @@ DataFrame is returned, with the new values inserted.
 .. warning::
 
   Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
-  the order of the new columns in the resulting DataFrame cannot be guaranteed.
+  the order of the new columns in the resulting DataFrame cannot be guaranteed
+  to match the order you pass in. To make things predictable, items are inserted
+  alphabetically (by key) at the end of the DataFrame.
 
   All expressions are computed first, and then assigned. So you can't refer
   to another column being assigned in the same call to ``assign``. For example:
