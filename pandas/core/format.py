@@ -1996,7 +1996,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # this is pretty arbitrary for now
             has_large_values = (abs_vals > 1e8).any()
-            has_small_values = ((abs_vals < 10 ** (-self.digits)) &
+            has_small_values = ((abs_vals < 10 ** (-self.digits+1)) &
                                 (abs_vals > 0)).any()
 
             if too_long and has_large_values:
