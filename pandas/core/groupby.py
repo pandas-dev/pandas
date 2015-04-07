@@ -25,7 +25,8 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype, _values_from_object,
-                               is_datetime_or_timedelta_dtype, is_bool_dtype)
+                               is_datetime_or_timedelta_dtype, is_bool_dtype,
+                               is_complex_dtype)
 from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -1495,7 +1496,7 @@ class BaseGrouper(object):
             values = _algos.ensure_float64(values)
         elif com.is_integer_dtype(values):
             values = values.astype('int64', copy=False)
-        elif is_numeric:
+        elif is_numeric and not is_complex_dtype(values.dtype):
             values = _algos.ensure_float64(values)
         else:
             values = values.astype(object)
