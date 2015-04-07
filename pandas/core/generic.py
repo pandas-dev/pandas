@@ -2261,19 +2261,23 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        convert_dates : if True, attempt to soft convert dates, if 'coerce',
-            force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numbers (including
-            strings), non-convertibles get NaN
-        convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
-            force conversion (and non-convertibles get NaT)
-        copy : Boolean, if True, return copy even if no copy is necessary
-            (e.g. no conversion was done), default is True.
-            It is meant for internal use, not to be confused with `inplace` kw.
+        convert_dates : boolean, default True
+            If True, convert to date where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        convert_numeric : boolean, default False
+            If True, attempt to coerce to numbers (including strings), with
+            unconvertible values becoming NaN.
+        convert_timedeltas : boolean, default True
+            If True, convert to timedelta where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        copy : boolean, default True
+            If True, return a copy even if no copy is necessary (e.g. no
+            conversion was done). Note: This is meant for internal use, and
+            should not be confused with inplace.
 
         Returns
         -------
-        converted : asm as input object
+        converted : same as input object
         """
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
