@@ -701,3 +701,5 @@ Bug Fixes
 - Bug in ``iloc`` allowing memory outside bounds of a Series to be accessed with negative integers (:issue:`10779`)
 - Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
+
+- Bug in stat functions (``sum``, ``mean``, etc) returning a python scalar for empty series (:issue:`9733`)
