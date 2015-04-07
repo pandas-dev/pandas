@@ -45,6 +45,10 @@ API changes
 - Add support for separating years and quarters using dashes, for
   example 2014-Q1.  (:issue:`9688`)
 
+- :meth:`~pandas.DataFrame.assign` now inserts new columns in alphabetical order. Previously
+  the order was arbitrary. (:issue:`9777`)
+
+
 .. _whatsnew_0161.performance:
 
 Performance Improvements

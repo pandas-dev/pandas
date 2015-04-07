@@ -14073,12 +14073,21 @@ starting,ending,measure
         assert_frame_equal(result, expected)
 
     def test_assign_multiple(self):
-        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=['A', 'B'])
         result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
-        expected = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9],
-                              'D': [1, 2, 3], 'E': [4, 5, 6]})
-        # column order isn't preserved
-        assert_frame_equal(result.reindex_like(expected), expected)
+        expected = DataFrame([[1, 4, 7, 1, 4], [2, 5, 8, 2, 5],
+                              [3, 6, 9, 3, 6]], columns=list('ABCDE'))
+        assert_frame_equal(result, expected)
+
+    def test_assign_alphabetical(self):
+        # GH 9818
+        df = DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        result = df.assign(D=df.A + df.B, C=df.A - df.B)
+        expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
+        result = df.assign(C=df.A - df.B, D=df.A + df.B)
+        assert_frame_equal(result, expected)
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
