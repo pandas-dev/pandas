@@ -2244,10 +2244,11 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved, and so the order of the
-        new columns is not well defined. Assigning multiple
-        columns within the same ``assign`` is possible, but you cannot
-        reference other columns created within the same ``assign`` call.
+        arguments may not be preserved. The make things predicatable,
+        the columns are inserted in alphabetical order, at the end of
+        your DataFrame. Assigning multiple columns within the same
+        ``assign`` is possible, but you cannot reference other columns
+        created within the same ``assign`` call.
 
         Examples
         --------
@@ -2296,7 +2297,7 @@ class DataFrame(NDFrame):
                 results[k] = v
 
         # ... and then assign
-        for k, v in results.items():
+        for k, v in sorted(results.items()):
             data[k] = v
 
         return data
