@@ -33,7 +33,7 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
                                   compat.iteritems(obj)))
     n_all_nan_cols = all_nan_cols.sum()
-    valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
+    valid_warnings = pd.Series([wng for wng in wngs if wng.category == cls])
     assert_equal(len(valid_warnings), n_all_nan_cols)
     failed_symbols = all_nan_cols[all_nan_cols].index
     msgs = valid_warnings.map(lambda x: x.message)
@@ -79,7 +79,7 @@ class TestGoogle(tm.TestCase):
         for locale in self.locales:
             with tm.set_locale(locale):
                 df = web.get_data_google('GOOG').sort_index()
-            self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
+            self.assertEqual(df.Volume.ix['JAN-02-2015'], 1446662)
 
     @network
     def test_get_multi1(self):
@@ -87,10 +87,10 @@ class TestGoogle(tm.TestCase):
             sl = ['AAPL', 'AMZN', 'GOOG']
             with tm.set_locale(locale):
                 pan = web.get_data_google(sl, '2012')
-            ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+            ts = pan.Close.GOOG.index[pan.Close.AAPL < pan.Close.GOOG]
             if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
                 hasattr(pan.Close, 'AAPL')):
-                self.assertEqual(ts[0].dayofyear, 96)
+                self.assertEqual(ts[0].dayofyear, 3)
             else:
                 self.assertRaises(AttributeError, lambda: pan.Close)
 
@@ -135,7 +135,7 @@ class TestGoogle(tm.TestCase):
     def test_unicode_date(self):
         #GH8967
         data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
-        self.assertEquals(data.index.name, 'Date')
+        self.assertEqual(data.index.name, 'Date')
 
 
 class TestYahoo(tm.TestCase):
