@@ -49,7 +49,7 @@ API changes
     In [3]: cat = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
 
     In [4]: cat
-    Out[4]: 
+    Out[4]:
     [a, b, a]
     Categories (3, object): [a < b < c]
 

@@ -2325,13 +2325,15 @@ class Index(IndexOpsMixin, PandasObject):
             (_self[:loc], item_idx, _self[loc:]))
         return Index(idx, name=self.name)
 
-    def drop(self, labels):
+    def drop(self, labels, errors='raise'):
         """
         Make new Index with passed list of labels deleted
 
         Parameters
         ----------
         labels : array-like
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
 
         Returns
         -------
@@ -2341,7 +2343,9 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
-            raise ValueError('labels %s not contained in axis' % labels[mask])
+            if errors != 'ignore':
+                raise ValueError('labels %s not contained in axis' % labels[mask])
+            indexer = indexer[~mask]
         return self.delete(indexer)
 
     @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
@@ -3847,7 +3851,7 @@ class MultiIndex(Index):
                           sortorder=self.sortorder,
                           verify_integrity=False)
 
-    def drop(self, labels, level=None):
+    def drop(self, labels, level=None, errors='raise'):
         """
         Make new MultiIndex with passed list of labels deleted
 
@@ -3870,19 +3874,24 @@ class MultiIndex(Index):
             indexer = self.get_indexer(labels)
             mask = indexer == -1
             if mask.any():
-                raise ValueError('labels %s not contained in axis'
-                                 % labels[mask])
-            return self.delete(indexer)
+                if errors != 'ignore':
+                    raise ValueError('labels %s not contained in axis'
+                                     % labels[mask])
+                indexer = indexer[~mask]
         except Exception:
             pass
 
         inds = []
         for label in labels:
-            loc = self.get_loc(label)
-            if isinstance(loc, int):
-                inds.append(loc)
-            else:
-                inds.extend(lrange(loc.start, loc.stop))
+            try:
+                loc = self.get_loc(label)
+                if isinstance(loc, int):
+                    inds.append(loc)
+                else:
+                    inds.extend(lrange(loc.start, loc.stop))
+            except KeyError:
+                if errors != 'ignore':
+                    raise
 
         return self.delete(inds)
 
