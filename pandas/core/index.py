@@ -2855,6 +2855,12 @@ class Float64Index(NumericIndex):
         return lib.ismember_nans(self._array_values(), value_set,
                                  isnull(list(value_set)).any())
 
+    def get_indexer(self, values, method=None, limit=None):
+        result = super(Float64Index, self).get_indexer(values, method=method,
+                                                       limit=limit)
+        result[result == -1] = self._nan_idxs
+        return result
+
 
 Float64Index._add_numeric_methods()
 Float64Index._add_logical_methods_disabled()
