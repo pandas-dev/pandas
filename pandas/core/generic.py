@@ -1557,7 +1557,7 @@ class NDFrame(PandasObject):
 
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None, inplace=False):
+    def drop(self, labels, axis=0, level=None, inplace=False, errors='raise'):
         """
         Return new object with labels in requested axis removed
 
@@ -1569,6 +1569,8 @@ class NDFrame(PandasObject):
             For MultiIndex
         inplace : bool, default False
             If True, do operation inplace and return None.
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
 
         Returns
         -------
@@ -1582,9 +1584,9 @@ class NDFrame(PandasObject):
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
-                new_axis = axis.drop(labels, level=level)
+                new_axis = axis.drop(labels, level=level, errors=errors)
             else:
-                new_axis = axis.drop(labels)
+                new_axis = axis.drop(labels, errors=errors)
             dropped = self.reindex(**{axis_name: new_axis})
             try:
                 dropped.axes[axis_].set_names(axis.names, inplace=True)
