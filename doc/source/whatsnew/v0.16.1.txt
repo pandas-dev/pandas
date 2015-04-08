@@ -102,4 +102,8 @@ Bug Fixes
 =======
 
 - Fixed bug where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (:issue:`9671`)
+<<<<<<< HEAD
 >>>>>>> f00d6bb... Fixed bug #9671 where 'DataFrame.plot()' raised an error when both 'color' and 'style' keywords were passed and there was no color symbol in the style strings (this should be allowed)
+=======
+- Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
+>>>>>>> e67893f... BUG: skiprows doesn't handle blank lines properly when engine='c' (GH #9832)
