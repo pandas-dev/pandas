@@ -203,7 +203,10 @@ class Holiday(object):
         end_date = Timestamp(end_date)
 
         year_offset = DateOffset(years=1)
-        base_date = Timestamp(datetime(start_date.year, self.month, self.day))
+        base_date = Timestamp(
+            datetime(start_date.year, self.month, self.day),
+            tz=start_date.tz,
+        )
         dates = DatetimeIndex(start=base_date, end=end_date, freq=year_offset)
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
