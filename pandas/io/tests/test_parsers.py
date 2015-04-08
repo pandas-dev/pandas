@@ -839,6 +839,28 @@ ignore,this,row
         condensed_data = self.read_csv(StringIO(condensed_text))
         tm.assert_frame_equal(data, condensed_data)
 
+    def test_skiprows_blank(self):
+        # GH 9832
+        text = """#foo,a,b,c
+#foo,a,b,c
+
+#foo,a,b,c
+#foo,a,b,c
+
+1/1/2000,1.,2.,3.
+1/2/2000,4,5,6
+1/3/2000,7,8,9
+"""
+        data = self.read_csv(StringIO(text), skiprows=6, header=None,
+                              index_col=0, parse_dates=True)
+
+        expected = DataFrame(np.arange(1., 10.).reshape((3, 3)),
+                             columns=[1, 2, 3],
+                             index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
+                                    datetime(2000, 1, 3)])
+        expected.index.name = 0
+        tm.assert_frame_equal(data, expected)
+
     def test_detect_string_na(self):
         data = """A,B
 foo,bar
