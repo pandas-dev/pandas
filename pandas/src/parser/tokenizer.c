@@ -757,11 +757,9 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
         case START_RECORD:
             // start of record
             if (skip_this_line(self, self->file_lines)) {
+                self->state = SKIP_LINE;
                 if (c == '\n') {
-                    END_LINE()
-                }
-                else {
-                    self->state = SKIP_LINE;
+                    END_LINE();
                 }
                 break;
             }
@@ -1093,11 +1091,9 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
         case START_RECORD:
             // start of record
             if (skip_this_line(self, self->file_lines)) {
+                self->state = SKIP_LINE;
                 if (c == self->lineterminator) {
-                    END_LINE()
-                }
-                else {
-                    self->state = SKIP_LINE;
+                    END_LINE();
                 }
                 break;
             }
@@ -1391,11 +1387,9 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
         case START_RECORD:
             // start of record
             if (skip_this_line(self, self->file_lines)) {
+                self->state = SKIP_LINE;
                 if (c == '\n') {
-                    END_LINE()
-                }
-                else {
-                    self->state = SKIP_LINE;
+                    END_LINE();
                 }
                 break;
             } else  if (c == '\n') {
