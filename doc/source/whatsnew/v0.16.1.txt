@@ -210,8 +210,12 @@ Bug Fixes
 >>>>>>> 39fa180... FIX: timeseries asfreq would drop the name of the index, closes #9854
 - Fixed bug where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (:issue:`9671`)
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> f00d6bb... Fixed bug #9671 where 'DataFrame.plot()' raised an error when both 'color' and 'style' keywords were passed and there was no color symbol in the style strings (this should be allowed)
 =======
+=======
+
+>>>>>>> 2997e70... BUG: read_csv skips lines with initial whitespace + one non-space character (GH9710)
 - Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -256,6 +260,7 @@ Bug Fixes
 
 - Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
 - Bug causing an exception in slice assignments because ``length_of_indexer`` returns wrong results (:issue:`9995`)
+- Bug in csv parser causing lines with initial whitespace plus one non-space character to be skipped. (:issue:`9710`)
 
 
 
