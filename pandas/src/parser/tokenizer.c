@@ -38,7 +38,7 @@ See LICENSE for the license
 *  RESTORE_FINAL   (2):
 *      Put the file position at the next byte after the
 *      data read from the file_buffer.
-* 
+*
 #define RESTORE_NOT     0
 #define RESTORE_INITIAL 1
 #define RESTORE_FINAL   2
@@ -304,7 +304,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
                                         self->stream_len,
                                         &self->stream_cap, nbytes * 2,
                                         sizeof(char), &status);
-    TRACE(("make_stream_space: self->stream=%p, self->stream_len = %zu, self->stream_cap=%zu, status=%zu\n", 
+    TRACE(("make_stream_space: self->stream=%p, self->stream_len = %zu, self->stream_cap=%zu, status=%zu\n",
            self->stream, self->stream_len, self->stream_cap, status))
 
     if (status != 0) {
@@ -334,7 +334,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
                                        self->words_len,
                                        &self->words_cap, nbytes,
                                        sizeof(char*), &status);
-    TRACE(("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, %d)\n", 
+    TRACE(("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, %d)\n",
            self->words_len, self->words_cap, nbytes, status))
     if (status != 0) {
         return PARSER_OUT_OF_MEMORY;
@@ -371,7 +371,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
                                           self->lines + 1,
                                           &self->lines_cap, nbytes,
                                           sizeof(int), &status);
-    TRACE(("make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n", 
+    TRACE(("make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
            self->lines + 1, self->lines_cap, nbytes, status))
     if (status != 0) {
         return PARSER_OUT_OF_MEMORY;
@@ -398,7 +398,7 @@ static int push_char(parser_t *self, char c) {
     /* TRACE(("pushing %c \n", c)) */
     TRACE(("push_char: self->stream[%zu] = %x, stream_cap=%zu\n", self->stream_len+1, c, self->stream_cap))
     if (self->stream_len >= self->stream_cap) {
-        TRACE(("push_char: ERROR!!! self->stream_len(%d) >= self->stream_cap(%d)\n", 
+        TRACE(("push_char: ERROR!!! self->stream_len(%d) >= self->stream_cap(%d)\n",
                self->stream_len, self->stream_cap))
         self->error_msg = (char*) malloc(64);
         sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n");
@@ -463,7 +463,6 @@ static void append_warning(parser_t *self, const char *msg) {
 
 static int end_line(parser_t *self) {
     int fields;
-    khiter_t k;  /* for hash set detection */
     int ex_fields = self->expected_fields;
     char *msg;
 
@@ -483,7 +482,7 @@ static int end_line(parser_t *self) {
         TRACE(("end_line: Skipping row %d\n", self->file_lines));
         // increment file line count
         self->file_lines++;
-        
+
         // skip the tokens from this bad line
         self->line_start[self->lines] += fields;
 
@@ -605,12 +604,11 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
 static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     int status;
     size_t bytes_read;
-    void *src = self->source;
 
     status = 0;
     self->datapos = 0;
     self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
-    TRACE(("parser_buffer_bytes self->cb_io: nbytes=%zu, datalen: %d, status=%d\n", 
+    TRACE(("parser_buffer_bytes self->cb_io: nbytes=%zu, datalen: %d, status=%d\n",
            nbytes, bytes_read, status));
     self->datalen = bytes_read;
 
@@ -704,7 +702,7 @@ typedef int (*parser_op)(parser_t *self, size_t line_limit);
 
 int skip_this_line(parser_t *self, int64_t rownum) {
     if (self->skipset != NULL) {
-        return ( kh_get_int64((kh_int64_t*) self->skipset, self->file_lines) != 
+        return ( kh_get_int64((kh_int64_t*) self->skipset, self->file_lines) !=
                  ((kh_int64_t*)self->skipset)->n_buckets );
     }
     else {
@@ -784,7 +782,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 else
                     self->state = EAT_CRNL;
                 break;
-            } 
+            }
             else if (c == self->commentchar) {
                 self->state = EAT_LINE_COMMENT;
                 break;
@@ -1750,7 +1748,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim stream */
     new_cap = _next_pow2(self->stream_len) + 1;
-    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n", 
+    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
            new_cap, self->stream_cap, self->lines_cap));
     if (new_cap < self->stream_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
@@ -1871,7 +1869,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
             }
         }
 
-        TRACE(("_tokenize_helper: Trying to process %d bytes, datalen=%d, datapos= %d\n", 
+        TRACE(("_tokenize_helper: Trying to process %d bytes, datalen=%d, datapos= %d\n",
                self->datalen - self->datapos, self->datalen, self->datapos));
         /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */
 
@@ -2033,7 +2031,7 @@ int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep)
     return status;
 }*/
 
-int to_boolean(char *item, uint8_t *val) {
+int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
 
@@ -2357,7 +2355,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
             num_digits++;
             num_decimals++;
         }
-        
+
         if (num_digits >= max_digits) // consume extra decimal digits
             while (isdigit(*p))
                 ++p;
