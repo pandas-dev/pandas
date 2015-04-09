@@ -474,10 +474,11 @@ Other API Changes
 - ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
 
-- Due to a bug fix, looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`). Old behavior:
+- Due to a bug fix, looking up a partial string label with ``DatetimeIndex.asof`` now includes values that match the string, even if they are after the start of the partial string label (:issue:`9258`).
 
-  .. ipython:: python
-    :verbatim:
+  Old behavior:
+
+  .. code-block:: python
 
     In [4]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
     Out[4]: Timestamp('2000-01-31 00:00:00')
