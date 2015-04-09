@@ -2273,6 +2273,20 @@ a,b,c
         self.assertRaises(NotImplementedError, self.read_csv, StringIO(data),
                      nrows=10, chunksize=5)
 
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
@@ -3313,6 +3327,25 @@ nan 2
             except Exception as cperr:
                 self.assertIn('Buffer overflow caught - possible malformed input file.', str(cperr))
 
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data), lineterminator='\n',
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
 class TestCParserLowMemory(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -3733,6 +3766,25 @@ No,No,No"""
                 df = self.read_table(StringIO(malf))
             except Exception as cperr:
                 self.assertIn('Buffer overflow caught - possible malformed input file.', str(cperr))
+
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data), lineterminator='\n',
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
 
 class TestMiscellaneous(tm.TestCase):
 
