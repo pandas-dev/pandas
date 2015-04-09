@@ -520,6 +520,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = self.read_csv(StringIO(s_malformed), usecols=cols, index_col=False)
         tm.assert_frame_equal(expected, df)
 
+    def test_index_col_is_True(self):
+        # Issue 9798
+        self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
+                          index_col=True)
+
     def test_converter_index_col_bug(self):
         # 1835
         data = "A;B\n1;2\n3;4"
