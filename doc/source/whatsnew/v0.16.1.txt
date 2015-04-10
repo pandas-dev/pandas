@@ -136,4 +136,8 @@ Bug Fixes
 
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 
+<<<<<<< HEAD
 >>>>>>> 7879205... Fix to allow sparse dataframes to have nan column labels
+=======
+- Bug in unequal comparisons between a ``Series`` of dtype `"category"` and a scalar (e.g. ``Series(Categorical(list("abc"), categories=list("cba"), ordered=True)) > "b"``, which wouldn't use the order of the categories but use the lexicographical order. (:issue:`9848`)
+>>>>>>> f0ac930... Fix: unequal comparisons of categorical and scalar
