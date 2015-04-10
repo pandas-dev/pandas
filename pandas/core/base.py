@@ -10,6 +10,7 @@ import pandas.core.nanops as nanops
 import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly
+from pandas.core.strings import StringMethods
 
 
 _shared_docs = dict()
@@ -496,6 +497,24 @@ class IndexOpsMixin(object):
         #### needs coercion on the key (DatetimeIndex does alreay)
         #### needs tests/doc-string
         return self.values.searchsorted(key, side=side)
+
+    # string methods
+    def _make_str_accessor(self):
+        from pandas.core.series import Series
+        from pandas.core.index import Index
+        if isinstance(self, Series) and not com.is_object_dtype(self.dtype):
+            # this really should exclude all series with any non-string values,
+            # but that isn't practical for performance reasons until we have a
+            # str dtype (GH 9343)
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values, which use np.object_ dtype in "
+                                 "pandas")
+        elif isinstance(self, Index) and self.inferred_type != 'string':
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values (i.e. inferred_type is 'string')")
+        return StringMethods(self)
+
+    str = AccessorProperty(StringMethods, _make_str_accessor)
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed

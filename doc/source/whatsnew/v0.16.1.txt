@@ -18,11 +18,28 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
+- Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+
+  The `.str` accessor is now available for both `Series` and `Index`.
+
+  .. ipython:: python
+
+     idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx.str.strip()
+
+  One special case for the `.str` accessor on `Index` is that if a string method returns `bool`, the `.str` accessor
+  will return a `np.array` instead of a boolean `Index` (:issue:`8875`). This enables the following expression
+  to work naturally:
+
+  .. ipython:: python
+
+     idx = Index(['a1', 'a2', 'b1', 'b2'])
+     s = Series(range(4), index=idx)
+     s
+     idx.str.startswith('a')
+     s[s.index.str.startswith('a')]
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
-
-
-
 - ``drop`` function can now accept ``errors`` keyword to suppress ValueError raised when any of label does not exist in the target data. (:issue:`6736`)
 
   .. ipython:: python
