@@ -4933,6 +4933,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         csv_str = s.to_csv(path=None)
         self.assertIsInstance(csv_str, str)
 
+    def test_str_attribute(self):
+        # GH9068
+        methods = ['strip', 'rstrip', 'lstrip']
+        s = Series([' jack', 'jill ', ' jesse ', 'frank'])
+        for method in methods:
+            expected = Series([getattr(str, method)(x) for x in s.values])
+            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+
+        # str accessor only valid with string values
+        s = Series(range(5))
+        with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+            s.str.repeat(2)
+
     def test_clip(self):
         val = self.ts.median()
 

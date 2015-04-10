@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import isnull, _values_from_object
+from pandas.core.common import isnull, _values_from_object, is_bool_dtype
 import pandas.compat as compat
 from pandas.util.decorators import Appender
 import re
@@ -632,9 +632,10 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
     n : int, default None (all)
-    return_type : {'series', 'frame'}, default 'series
+    return_type : {'series', 'index', 'frame'}, default 'series'
         If frame, returns a DataFrame (elements are strings)
-        If series, returns an Series (elements are lists of strings).
+        If series or index, returns the same type as the original object
+        (elements are lists of strings).
 
     Notes
     -----
@@ -646,9 +647,13 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     """
     from pandas.core.series import Series
     from pandas.core.frame import DataFrame
+    from pandas.core.index import Index
 
-    if return_type not in ('series', 'frame'):
-        raise ValueError("return_type must be {'series', 'frame'}")
+    if return_type not in ('series', 'index', 'frame'):
+        raise ValueError("return_type must be {'series', 'index', 'frame'}")
+    if return_type == 'frame' and isinstance(arr, Index):
+        raise ValueError("return_type='frame' is not supported for string "
+                         "methods on Index")
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -928,9 +933,9 @@ def copy(source):
 class StringMethods(object):
 
     """
-    Vectorized string functions for Series. NAs stay NA unless handled
-    otherwise by a particular method. Patterned after Python's string methods,
-    with some inspiration from R's stringr package.
+    Vectorized string functions for Series and Index. NAs stay NA unless
+    handled otherwise by a particular method. Patterned after Python's string
+    methods, with some inspiration from R's stringr package.
 
     Examples
     --------
@@ -959,11 +964,18 @@ class StringMethods(object):
     def _wrap_result(self, result):
         from pandas.core.series import Series
         from pandas.core.frame import DataFrame
+        from pandas.core.index import Index
 
         if not hasattr(result, 'ndim'):
             return result
         elif result.ndim == 1:
             name = getattr(result, 'name', None)
+            if isinstance(self.series, Index):
+                # if result is a boolean np.array, return the np.array
+                # instead of wrapping it into a boolean Index (GH 8875)
+                if is_bool_dtype(result):
+                    return result
+                return Index(result, name=name or self.series.name)
             return Series(result, index=self.series.index,
                           name=name or self.series.name)
         else:
