@@ -114,6 +114,9 @@ class TestCategorical(tm.TestCase):
             Categorical([1,2], [1,2,np.nan, np.nan])
         self.assertRaises(ValueError, f)
 
+        # The default should be unordered
+        c1 = Categorical(["a", "b", "c", "a"])
+        self.assertFalse(c1.ordered)
 
         # Categorical as input
         c1 = Categorical(["a", "b", "c", "a"])
@@ -366,6 +369,13 @@ class TestCategorical(tm.TestCase):
         if LooseVersion(np.__version__) > "1.7.1" and not compat.PY3_2:
             self.assertRaises(TypeError, lambda: a < cat)
             self.assertRaises(TypeError, lambda: a < cat_rev)
+
+        # Make sure that unequal comparison take the categories order in account
+        cat_rev = pd.Categorical(list("abc"), categories=list("cba"), ordered=True)
+        exp = np.array([True, False, False])
+        res = cat_rev > "b"
+        self.assert_numpy_array_equal(res, exp)
+
 
     def test_na_flags_int_categories(self):
         # #1457
@@ -2390,6 +2400,18 @@ class TestCategoricalAsBlock(tm.TestCase):
             exp = Series([False, False, True])
             tm.assert_series_equal(res, exp)
 
+            scalar = base[1]
+            res = cat > scalar
+            exp = Series([False, False, True])
+            exp2 = cat.values > scalar
+            tm.assert_series_equal(res, exp)
+            tm.assert_numpy_array_equal(res.values, exp2)
+            res_rev = cat_rev > scalar
+            exp_rev = Series([True, False, False])
+            exp_rev2 = cat_rev.values > scalar
+            tm.assert_series_equal(res_rev, exp_rev)
+            tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
+
             # Only categories with same categories can be compared
             def f():
                 cat > cat_rev
@@ -2408,9 +2430,16 @@ class TestCategoricalAsBlock(tm.TestCase):
             self.assertRaises(TypeError, lambda: a < cat)
             self.assertRaises(TypeError, lambda: a < cat_rev)
 
-            # Categoricals can be compared to scalar values
-            res = cat_rev > base[0]
-            tm.assert_series_equal(res, exp)
+        # unequal comparison should raise for unordered cats
+        cat = Series(Categorical(list("abc")))
+        def f():
+            cat > "b"
+        self.assertRaises(TypeError, f)
+        cat = Series(Categorical(list("abc"), ordered=False))
+        def f():
+            cat > "b"
+        self.assertRaises(TypeError, f)
+
 
         # And test NaN handling...
         cat = Series(Categorical(["a","b","c", np.nan]))
