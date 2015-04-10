@@ -4192,6 +4192,30 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
         self.assertRaises(ValueError, df.astype, np.int64)
 
+    def test_astype_str(self):
+        # GH9757
+        a = Series(date_range('2010-01-04', periods=5))
+        b = Series(date_range('3/6/2012 00:00', periods=5, tz='US/Eastern'))
+        c = Series([Timedelta(x, unit='d') for x in range(5)])
+        d = Series(range(5))
+        e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
+
+        df = DataFrame({'a' : a, 'b' : b, 'c' : c, 'd' : d, 'e' : e})
+
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            result = df.astype(tt)
+
+            expected = DataFrame({
+                'a' : list(map(tt, a.values)),
+                'b' : list(map(tt, b.values)),
+                'c' : list(map(tt, c.values)),
+                'd' : list(map(tt, d.values)),
+                'e' : list(map(tt, e.values)),
+                })
+
+            assert_frame_equal(result, expected)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         tm.assert_isinstance(result, type(self.frame))
