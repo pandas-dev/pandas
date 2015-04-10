@@ -5519,6 +5519,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             expected = Series([tt(ts.values[0])])
             assert_series_equal(s, expected)
 
+            ts = Series([Timestamp('2010-01-04 00:00:00', tz='US/Eastern')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
             td = Series([Timedelta(1, unit='d')])
             s = td.astype(tt)
             expected = Series([tt(td.values[0])])
