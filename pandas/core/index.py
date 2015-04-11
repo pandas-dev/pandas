@@ -4023,7 +4023,7 @@ class MultiIndex(Index):
         labels = list(self.labels)
         shape = list(self.levshape)
 
-        if isinstance(level, (str, int)):
+        if isinstance(level, (basestring, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
 
