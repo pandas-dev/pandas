@@ -679,6 +679,18 @@ class TestSeriesPlots(TestPlotBase):
         self.assertEqual(len(ax.patches), 10)
 
     @slow
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
+        df['E'] = ['x', 'y'] * 5
+        ax = df.plot(kind='hist', bins=5)
+        self.assertEqual(len(ax.patches), 20)
+
+        ax = df.plot(kind='hist') # bins=10
+        self.assertEqual(len(ax.patches), 40)
+
+    @slow
     def test_hist_legacy(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
