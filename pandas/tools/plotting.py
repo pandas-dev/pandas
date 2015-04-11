@@ -885,28 +885,16 @@ class MPLPlot(object):
         if fillna is not None:
             data = data.fillna(fillna)
 
-        from pandas.core.frame import DataFrame
-        if isinstance(data, (Series, np.ndarray, Index)):
-            label = self.label if self.label is not None else data.name
+        if self.sort_columns:
+            columns = com._try_sort(data.columns)
+        else:
+            columns = data.columns
+
+        for col in columns:
             if keep_index is True:
-                yield label, data
+                yield col, data[col]
             else:
-                yield label, np.asarray(data)
-        elif isinstance(data, DataFrame):
-            if self.sort_columns:
-                columns = com._try_sort(data.columns)
-            else:
-                columns = data.columns
-
-            for col in columns:
-                # # is this right?
-                # empty = df[col].count() == 0
-                # values = df[col].values if not empty else np.zeros(len(df))
-
-                if keep_index is True:
-                    yield col, data[col]
-                else:
-                    yield col, data[col].values
+                yield col, data[col].values
 
     @property
     def nseries(self):
@@ -1006,7 +994,15 @@ class MPLPlot(object):
                 return self.axes[0]
 
     def _compute_plot_data(self):
-        numeric_data = self.data.convert_objects()._get_numeric_data()
+        data = self.data
+
+        if isinstance(data, Series):
+            label = self.kwds.pop('label', None)
+            if label is None and data.name is None:
+                label = 'None'
+            data = data.to_frame(name=label)
+
+        numeric_data = data.convert_objects()._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1027,12 +1023,7 @@ class MPLPlot(object):
         if self.table is False:
             return
         elif self.table is True:
-            from pandas.core.frame import DataFrame
-            if isinstance(self.data, Series):
-                data = DataFrame(self.data, columns=[self.data.name])
-            elif isinstance(self.data, DataFrame):
-                data = self.data
-            data = data.transpose()
+            data = self.data.transpose()
         else:
             data = self.table
         ax = self._get_ax(0)
@@ -1099,18 +1090,15 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if hasattr(self.data, 'columns'):
-            if not isinstance(self.data.columns, MultiIndex):
-                name = self.data.columns.name
-                if name is not None:
-                    name = com.pprint_thing(name)
-                return name
-            else:
-                stringified = map(com.pprint_thing,
-                                  self.data.columns.names)
-                return ','.join(stringified)
+        if not isinstance(self.data.columns, MultiIndex):
+            name = self.data.columns.name
+            if name is not None:
+                name = com.pprint_thing(name)
+            return name
         else:
-            return None
+            stringified = map(com.pprint_thing,
+                              self.data.columns.names)
+            return ','.join(stringified)
 
     def _add_legend_handle(self, handle, label, index=None):
         if not label is None:
@@ -1256,12 +1244,10 @@ class MPLPlot(object):
         return ax
 
     def on_right(self, i):
-        from pandas.core.frame import DataFrame
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if (isinstance(self.data, DataFrame) and
-                isinstance(self.secondary_y, (tuple, list, np.ndarray, Index))):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
             return self.data.columns[i] in self.secondary_y
 
     def _get_style(self, i, col_name):
@@ -1553,16 +1539,14 @@ class LinePlot(MPLPlot):
             self.x_compat = bool(self.kwds.pop('x_compat'))
 
     def _index_freq(self):
-        from pandas.core.frame import DataFrame
-        if isinstance(self.data, (Series, DataFrame)):
-            freq = getattr(self.data.index, 'freq', None)
-            if freq is None:
-                freq = getattr(self.data.index, 'inferred_freq', None)
-                if freq == 'B':
-                    weekdays = np.unique(self.data.index.dayofweek)
-                    if (5 in weekdays) or (6 in weekdays):
-                        freq = None
-            return freq
+        freq = getattr(self.data.index, 'freq', None)
+        if freq is None:
+            freq = getattr(self.data.index, 'inferred_freq', None)
+            if freq == 'B':
+                weekdays = np.unique(self.data.index.dayofweek)
+                if (5 in weekdays) or (6 in weekdays):
+                    freq = None
+        return freq
 
     def _is_dynamic_freq(self, freq):
         if isinstance(freq, DateOffset):
@@ -1574,9 +1558,7 @@ class LinePlot(MPLPlot):
 
     def _no_base(self, freq):
         # hack this for 0.10.1, creating more technical debt...sigh
-        from pandas.core.frame import DataFrame
-        if (isinstance(self.data, (Series, DataFrame))
-            and isinstance(self.data.index, DatetimeIndex)):
+        if isinstance(self.data.index, DatetimeIndex):
             base = frequencies.get_freq(freq)
             x = self.data.index
             if (base <= frequencies.FreqGroup.FR_DAY):
@@ -1686,17 +1668,13 @@ class LinePlot(MPLPlot):
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
         # over and over for DataFrames
-        from pandas.core.frame import DataFrame
-        if (isinstance(data.index, DatetimeIndex) and
-                isinstance(data, DataFrame)):
+        if isinstance(data.index, DatetimeIndex):
             freq = getattr(data.index, 'freq', None)
 
             if freq is None:
                 freq = getattr(data.index, 'inferred_freq', None)
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
-            freq = frequencies.get_base_alias(freq)
-            freq = frequencies.get_period_alias(freq)
 
             if freq is None:
                 ax = self._get_ax(0)
@@ -1705,9 +1683,10 @@ class LinePlot(MPLPlot):
             if freq is None:
                 raise ValueError('Could not get frequency alias for plotting')
 
-            data = DataFrame(data.values,
-                             index=data.index.to_period(freq=freq),
-                             columns=data.columns)
+            freq = frequencies.get_base_alias(freq)
+            freq = frequencies.get_period_alias(freq)
+
+            data.index = data.index.to_period(freq=freq)
         return data
 
     def _post_plot_logic(self):
@@ -2522,9 +2501,7 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         ax = getattr(ax, 'left_ax', ax)
-    # is there harm in this?
-    if label is None:
-        label = data.name
+
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,
                  grid=grid, legend=legend,
