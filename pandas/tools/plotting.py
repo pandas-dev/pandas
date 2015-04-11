@@ -1948,7 +1948,8 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = np.ravel(self.data.values)
+            values = self.data.convert_objects()._get_numeric_data()
+            values = np.ravel(values)
             values = values[~com.isnull(values)]
 
             hist, self.bins = np.histogram(values, bins=self.bins,
