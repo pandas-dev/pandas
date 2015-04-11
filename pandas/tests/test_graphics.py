@@ -1609,7 +1609,10 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(xmax, lines[0].get_data()[0][-1])
 
         axes = df.plot(secondary_y=True, subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
+            self.assertTrue(hasattr(ax, 'left_ax'))
+            self.assertFalse(hasattr(ax, 'right_ax'))
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
             self.assertEqual(xmin, lines[0].get_data()[0][0])
