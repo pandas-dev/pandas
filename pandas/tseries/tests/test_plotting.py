@@ -528,7 +528,9 @@ class TestTSPlot(tm.TestCase):
 
         ser = Series(np.random.randn(10))
         ser2 = Series(np.random.randn(10))
-        ax = ser.plot(secondary_y=True).right_ax
+        ax = ser.plot(secondary_y=True)
+        self.assertTrue(hasattr(ax, 'left_ax'))
+        self.assertFalse(hasattr(ax, 'right_ax'))
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
@@ -543,8 +545,12 @@ class TestTSPlot(tm.TestCase):
         plt.close(ax2.get_figure())
 
         ax = ser2.plot()
-        ax2 = ser.plot(secondary_y=True).right_ax
+        ax2 = ser.plot(secondary_y=True)
         self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertFalse(hasattr(ax, 'left_ax'))
+        self.assertTrue(hasattr(ax, 'right_ax'))
+        self.assertTrue(hasattr(ax2, 'left_ax'))
+        self.assertFalse(hasattr(ax2, 'right_ax'))
 
     @slow
     def test_secondary_y_ts(self):
@@ -552,7 +558,9 @@ class TestTSPlot(tm.TestCase):
         idx = date_range('1/1/2000', periods=10)
         ser = Series(np.random.randn(10), idx)
         ser2 = Series(np.random.randn(10), idx)
-        ax = ser.plot(secondary_y=True).right_ax
+        ax = ser.plot(secondary_y=True)
+        self.assertTrue(hasattr(ax, 'left_ax'))
+        self.assertFalse(hasattr(ax, 'right_ax'))
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
@@ -577,7 +585,9 @@ class TestTSPlot(tm.TestCase):
 
         import matplotlib.pyplot as plt
         ser = Series(np.random.randn(10))
-        ax = ser.plot(secondary_y=True, kind='density').right_ax
+        ax = ser.plot(secondary_y=True, kind='density')
+        self.assertTrue(hasattr(ax, 'left_ax'))
+        self.assertFalse(hasattr(ax, 'right_ax'))
         fig = ax.get_figure()
         axes = fig.get_axes()
         self.assertEqual(axes[1].get_yaxis().get_ticks_position(), 'right')
@@ -922,7 +932,9 @@ class TestTSPlot(tm.TestCase):
         ax = high.plot(secondary_y=True)
         for l in ax.get_lines():
             self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
-        for l in ax.right_ax.get_lines():
+        self.assertTrue(hasattr(ax, 'left_ax'))
+        self.assertFalse(hasattr(ax, 'right_ax'))
+        for l in ax.left_ax.get_lines():
             self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
 
     @slow
