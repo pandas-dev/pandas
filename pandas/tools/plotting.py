@@ -927,19 +927,21 @@ class MPLPlot(object):
 
     def _maybe_right_yaxis(self, ax, axes_num):
         if not self.on_right(axes_num):
-            if hasattr(ax, 'left_ax'):
-                # secondary axes may be passed as axes
-                return ax.left_ax
-            return ax
+            # secondary axes may be passed via ax kw
+            return self._get_ax_layer(ax)
 
         if hasattr(ax, 'right_ax'):
+            # if it has right_ax proparty, ``ax`` must be left axes
             return ax.right_ax
+        elif hasattr(ax, 'left_ax'):
+            # if it has left_ax proparty, ``ax`` must be right axes
+            return ax
         else:
+            # otherwise, create twin axes
             orig_ax, new_ax = ax, ax.twinx()
             new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
 
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
-            new_ax.right_ax = new_ax
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
@@ -987,9 +989,8 @@ class MPLPlot(object):
             all_sec = (com.is_list_like(self.secondary_y) and
                        len(self.secondary_y) == self.nseries)
             if (sec_true or all_sec):
-                # if all data is plotted on secondary,
-                # return secondary axes
-                return self.axes[0].right_ax
+                # if all data is plotted on secondary, return right axes
+                return self._get_ax_layer(self.axes[0], primary=False)
             else:
                 return self.axes[0]
 
@@ -1229,11 +1230,18 @@ class MPLPlot(object):
 
         return name
 
+    @classmethod
+    def _get_ax_layer(cls, ax, primary=True):
+        """get left (primary) or right (secondary) axes"""
+        if primary:
+            return getattr(ax, 'left_ax', ax)
+        else:
+            return getattr(ax, 'right_ax', ax)
+
     def _get_ax(self, i):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
-
             ax = self._maybe_right_yaxis(ax, i)
             self.axes[i] = ax
         else:
@@ -2500,8 +2508,7 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
     """
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
-        ax = getattr(ax, 'left_ax', ax)
-
+        ax = MPLPlot._get_ax_layer(ax)
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,
                  grid=grid, legend=legend,
@@ -3348,11 +3355,9 @@ def _flatten(axes):
 def _get_all_lines(ax):
     lines = ax.get_lines()
 
-    # check for right_ax, which can oddly sometimes point back to ax
-    if hasattr(ax, 'right_ax') and ax.right_ax != ax:
+    if hasattr(ax, 'right_ax'):
         lines += ax.right_ax.get_lines()
 
-    # no such risk with left_ax
     if hasattr(ax, 'left_ax'):
         lines += ax.left_ax.get_lines()
 
