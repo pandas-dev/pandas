@@ -124,3 +124,5 @@ Bug Fixes
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 
 - Bug in unequal comparisons between a ``Series`` of dtype `"category"` and a scalar (e.g. ``Series(Categorical(list("abc"), categories=list("cba"), ordered=True)) > "b"``, which wouldn't use the order of the categories but use the lexicographical order. (:issue:`9848`)
+
+- Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
