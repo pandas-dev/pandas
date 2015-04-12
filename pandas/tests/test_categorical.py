@@ -1087,6 +1087,20 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(cat > cat[0], [False, True, True])
         self.assert_numpy_array_equal(cat[0] < cat, [False, True, True])
 
+    def test_comparison_with_unknown_scalars(self):
+        # https://github.com/pydata/pandas/issues/9836#issuecomment-92123057 and following
+        # comparisons with scalars not in categories should raise for unequal comps, but not for
+        # equal/not equal
+        cat = pd.Categorical([1, 2, 3], ordered=True)
+
+        self.assertRaises(TypeError, lambda: cat < 4)
+        self.assertRaises(TypeError, lambda: cat > 4)
+        self.assertRaises(TypeError, lambda: 4 < cat)
+        self.assertRaises(TypeError, lambda: 4 > cat)
+
+        self.assert_numpy_array_equal(cat == 4 , [False, False, False])
+        self.assert_numpy_array_equal(cat != 4 , [True, True, True])
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2439,6 +2453,19 @@ class TestCategoricalAsBlock(tm.TestCase):
         def f():
             cat > "b"
         self.assertRaises(TypeError, f)
+
+        # https://github.com/pydata/pandas/issues/9836#issuecomment-92123057 and following
+        # comparisons with scalars not in categories should raise for unequal comps, but not for
+        # equal/not equal
+        cat = Series(Categorical(list("abc"), ordered=True))
+
+        self.assertRaises(TypeError, lambda: cat < "d")
+        self.assertRaises(TypeError, lambda: cat > "d")
+        self.assertRaises(TypeError, lambda: "d" < cat)
+        self.assertRaises(TypeError, lambda: "d" > cat)
+
+        self.assert_series_equal(cat == "d" , Series([False, False, False]))
+        self.assert_series_equal(cat != "d" , Series([True, True, True]))
 
 
         # And test NaN handling...
