@@ -5053,6 +5053,17 @@ class TestGroupBy(tm.TestCase):
                          "C3":[nan,nan,nan,nan, 10,100,nan,nan, nan,nan,200,34]}, index=idx)
         tm.assert_frame_equal(res, exp)
 
+    def test_groupby_apply_all_none(self):
+        # Tests to make sure no errors if apply function returns all None 
+        # values. Issue 9684.
+        test_df = DataFrame({'groups': [0,0,1,1], 'random_vars': [8,7,4,5]})
+        
+        def test_func(x):
+            pass
+        result = test_df.groupby('groups').apply(test_func)
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
