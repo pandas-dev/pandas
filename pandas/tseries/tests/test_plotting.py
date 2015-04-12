@@ -636,6 +636,38 @@ class TestTSPlot(tm.TestCase):
         x2 = lines[1].get_xdata()
         assert_array_equal(x2, s1.index.asobject.values)
 
+    def test_mixed_freq_regular_first_df(self):
+        # GH 9852
+        import matplotlib.pyplot as plt
+        s1 = tm.makeTimeSeries().to_frame()
+        s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
+        ax = s1.plot()
+        ax2 = s2.plot(style='g', ax=ax)
+        lines = ax2.get_lines()
+        idx1 = PeriodIndex(lines[0].get_xdata())
+        idx2 = PeriodIndex(lines[1].get_xdata())
+        self.assertTrue(idx1.equals(s1.index.to_period('B')))
+        self.assertTrue(idx2.equals(s2.index.to_period('B')))
+        left, right = ax2.get_xlim()
+        pidx = s1.index.to_period()
+        self.assertEqual(left, pidx[0].ordinal)
+        self.assertEqual(right, pidx[-1].ordinal)
+
+    @slow
+    def test_mixed_freq_irregular_first_df(self):
+        # GH 9852
+        import matplotlib.pyplot as plt
+        s1 = tm.makeTimeSeries().to_frame()
+        s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
+        ax = s2.plot(style='g')
+        ax = s1.plot(ax=ax)
+        self.assertFalse(hasattr(ax, 'freq'))
+        lines = ax.get_lines()
+        x1 = lines[0].get_xdata()
+        assert_array_equal(x1, s2.index.asobject.values)
+        x2 = lines[1].get_xdata()
+        assert_array_equal(x2, s1.index.asobject.values)
+
     def test_mixed_freq_hf_first(self):
         idxh = date_range('1/1/1999', periods=365, freq='D')
         idxl = date_range('1/1/1999', periods=12, freq='M')
