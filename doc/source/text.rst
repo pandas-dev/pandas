@@ -37,6 +37,32 @@ the equivalent (scalar) built-in string methods:
    idx.str.lstrip()
    idx.str.rstrip()
 
+The string methods on Index are especially useful for cleaning up or
+transforming DataFrame columns. For instance, you may have columns with
+leading or trailing whitespace:
+
+.. ipython:: python
+
+   df = DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
+                  index=range(3))
+   df
+
+Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
+
+.. ipython:: python
+
+   df.columns.str.strip()
+   df.columns.str.lower()
+
+These string methods can then be used to clean up the columns as needed.
+Here we are removing leading and trailing whitespaces, lowercasing all names,
+and replacing any remaining whitespaces with underscores:
+
+.. ipython:: python
+
+   df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+   df
+
 Splitting and Replacing Strings
 -------------------------------
 
