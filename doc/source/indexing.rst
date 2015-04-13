@@ -30,9 +30,9 @@ The axis labeling information in pandas objects serves many purposes:
 In this section, we will focus on the final point: namely, how to slice, dice,
 and generally get and set subsets of pandas objects. The primary focus will be
 on Series and DataFrame as they have received more development attention in
-this area. Expect more work to be invested higher-dimensional data structures
-(including ``Panel``) in the future, especially in label-based advanced
-indexing.
+this area. Expect more work to be invested in higher-dimensional data
+structures (including ``Panel``) in the future, especially in label-based
+advanced indexing.
 
 .. note::
 
@@ -54,7 +54,7 @@ indexing.
 
 .. warning::
 
-   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+   In 0.15.0 ``Index`` has internally been refactored to no longer subclass ``ndarray``
    but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
 
@@ -225,9 +225,9 @@ new column.
 
    sa.a = 5
    sa
-   dfa.A = list(range(len(dfa.index)))       # ok if A already exists
+   dfa.A = list(range(len(dfa.index)))  # ok if A already exists
    dfa
-   dfa['A'] = list(range(len(dfa.index)))    # use this form to create a new column
+   dfa['A'] = list(range(len(dfa.index)))  # use this form to create a new column
    dfa
 
 .. warning::
@@ -314,7 +314,7 @@ Selection By Label
      dfl.loc['20130102':'20130104']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**at least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
@@ -578,9 +578,10 @@ Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
 
+   s = Series(range(-3, 4))
+   s
    s[s > 0]
-   s[(s < 0) & (s > -0.5)]
-   s[(s < -1) | (s > 1 )]
+   s[(s < -1) | (s > 0.5)]
    s[~(s < 0)]
 
 You may select rows from a DataFrame using a boolean vector the same length as
