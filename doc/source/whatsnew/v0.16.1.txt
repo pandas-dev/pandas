@@ -140,3 +140,5 @@ Bug Fixes
 - Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)
 
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
+
+- Bug where dividing a dataframe containing values of type ``Decimal`` by another ``Decimal`` would raise. (:issue:`9787`)
