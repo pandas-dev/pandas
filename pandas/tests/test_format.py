@@ -716,6 +716,35 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>"""
             self.assertEqual(result, expected)
 
+    
+    def test_to_html_with_hyperlinks(self):
+        df = DataFrame([[0,'http://pandas.pydata.org/', 'pydata.org']],columns=['foo', 'bar', None], index=lrange(1))
+        f = lambda x: 'a'[x]
+        result = df.to_html(formatters={'__index__': f})
+        #result = df.to_html()
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+      <th>bar</th>
+      <th>None</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>a</th>
+      <td>0</td>
+      <td>&lt;a href="http://pandas.pydata.org/"&gt;http://pandas.pydata.org/&lt;/a&gt;</td>
+      <td>pydata.org</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
+
+
     def test_to_html_multiindex_sparsify(self):
         index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])

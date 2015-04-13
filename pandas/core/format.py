@@ -6,6 +6,7 @@ import sys
 
 from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, notnull
+from pandas.io.common import _is_url
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
@@ -861,8 +862,13 @@ class HTMLFormatter(TableFormatter):
             self.write('<tr style="text-align: %s;">' % align, indent)
         indent += indent_delta
 
+
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
+            if s and hasattr(s, 'lower'): 
+                s = s.lstrip(' ')
+            if _is_url(s):
+                s = "<a href=\"%s\">%s</a>"%(s, s)    
             if header or (self.bold_rows and i < nindex_levels):
                 self.write_th(s, indent, tags=val_tag)
             else:
