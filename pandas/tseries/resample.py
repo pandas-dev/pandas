@@ -480,6 +480,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
         if len(obj.index) == 0:
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti.name = obj.index.name
         rs = obj.reindex(dti, method=method)
         if normalize:
             rs.index = rs.index.normalize()
