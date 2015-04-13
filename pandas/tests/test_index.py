@@ -1226,7 +1226,6 @@ class TestIndex(Base, tm.TestCase):
             idx.str.split(return_type='frame')
         with self.assertRaisesRegexp(ValueError, 'not supported'):
             idx.str.split(return_type='expand')
-
         # test boolean case, should return np.array instead of boolean Index
         idx = Index(['a1', 'a2', 'b1', 'b2'])
         expected = np.array([True, True, False, False])

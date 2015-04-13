@@ -654,6 +654,9 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     if return_type in ('frame', 'expand')  and isinstance(arr, Index):
         raise ValueError("return_type='frame' is not supported for string "
                          "methods on Index")
+    if return_type in ('series', 'index', 'frame'):
+        warnings.warn(("'series', 'index' and 'frame' are  deprecated. Please use 'same' or 'expand' instead"),
+            FutureWarning)
     if pat is None:
         if n is None or n == 0:
             n = -1
