@@ -14,6 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
+from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
@@ -707,7 +708,7 @@ class TextFileReader(object):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         if nrows is not None:

@@ -39,6 +39,17 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+class AbstractMethodError(NotImplementedError):
+    """Raise this error instead of NotImplementedError for abstract methods
+    while keeping compatibility with Python 2 and Python 3.
+    """
+    def __init__(self, class_instance):
+        self.class_instance = class_instance
+
+    def __str__(self):
+        return "This method must be defined on the concrete class of " \
+               + self.class_instance.__class__.__name__
+
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8',
                                        'uint8', 'int16', 'uint16', 'int32',

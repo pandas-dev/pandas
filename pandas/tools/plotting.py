@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
+from pandas.core.common import AbstractMethodError
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
@@ -131,7 +132,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
 
             colors = lmap(random_color, lrange(num_colors))
         else:
-            raise NotImplementedError
+            raise ValueError("color_type must be either 'default' or 'random'")
 
     if len(colors) != num_colors:
         multiple = num_colors//len(colors) - 1
@@ -1017,7 +1018,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -1821,7 +1822,7 @@ class BarPlot(MPLPlot):
                 start = start + self.left
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
-            raise NotImplementedError
+            raise ValueError("BarPlot kind must be either 'bar' or 'barh'")
 
         return f
 
