@@ -79,6 +79,10 @@ class TestTesting(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             self.assertNotAlmostEquals(1, 2)
 
+    def test_locale(self):
+        #GH9744
+        locales = pandas.util.testing.get_locales()
+        self.assertTrue(len(locales) >= 1)
 
 def test_rands():
     r = tm.rands(10)

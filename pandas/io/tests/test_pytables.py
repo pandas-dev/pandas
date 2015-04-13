@@ -11,7 +11,7 @@ import numpy as np
 import pandas
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
-                    date_range, Index, DatetimeIndex, isnull)
+                    date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
 
 from pandas.io.pytables import _tables
 try:
@@ -4586,7 +4586,33 @@ class TestHDFStore(tm.TestCase):
 
             df.to_hdf(path, 'df', format='table')
             other = read_hdf(path, 'df')
+
             tm.assert_frame_equal(df, other)
+            self.assertTrue(df.equals(other))
+            self.assertTrue(other.equals(df))
+
+    def test_round_trip_equals(self):
+        # GH 9330
+        df = DataFrame({"B": [1,2], "A": ["x","y"]})
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table')
+            other = read_hdf(path, 'df')
+            tm.assert_frame_equal(df, other)
+            self.assertTrue(df.equals(other))
+            self.assertTrue(other.equals(df))
+
+    def test_preserve_timedeltaindex_type(self):
+        # GH9635
+        # Storing TimedeltaIndexed DataFrames in fixed stores did not preserve
+        # the type of the index.
+        df = DataFrame(np.random.normal(size=(10,5)))
+        df.index = timedelta_range(start='0s',periods=10,freq='1s',name='example')
+
+        with ensure_clean_store(self.path) as store:
+
+            store['df'] = df
+            assert_frame_equal(store['df'], df)
 
 
 def _test_sort(obj):

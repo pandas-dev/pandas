@@ -1688,6 +1688,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(s, expected)
             self.assertEqual(s.dtype, expected.dtype)
 
+        # GH 9731
+        s = Series(np.arange(10), dtype='int64')
+        mask = s > 5
+        values = [2.5, 3.5, 4.5, 5.5]
+        s[mask] = values
+        expected = Series(lrange(6) + values, dtype='float64')
+        assert_series_equal(s, expected)
+
         # can't do these as we are forced to change the itemsize of the input
         # to something we cannot
         for dtype in [np.int8, np.int16, np.int32, np.float16, np.float32]:
@@ -1813,6 +1821,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                           for i, use_item in enumerate(selection)])
                         assert_series_equal(s, expected)
 
+                        s = Series(data)
+                        result = s.where(~selection, arr)
+                        assert_series_equal(result, expected)
+
     def test_where_inplace(self):
         s = Series(np.random.randn(5))
         cond = s > 0
@@ -1848,11 +1860,69 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(comb, expected)
 
     def test_mask(self):
+        # compare with tested results in test_where
         s = Series(np.random.randn(5))
         cond = s > 0
 
-        rs = s.where(cond, np.nan)
-        assert_series_equal(rs, s.mask(~cond))
+        rs = s.where(~cond, np.nan)
+        assert_series_equal(rs, s.mask(cond))
+
+        rs = s.where(~cond)
+        rs2 = s.mask(cond)
+        assert_series_equal(rs, rs2)
+
+        rs = s.where(~cond, -s)
+        rs2 = s.mask(cond, -s)
+        assert_series_equal(rs, rs2)
+
+        cond = Series([True, False, False, True, False], index=s.index)
+        s2 = -(s.abs())
+        rs = s2.where(~cond[:3])
+        rs2 = s2.mask(cond[:3])
+        assert_series_equal(rs, rs2)
+
+        rs = s2.where(~cond[:3], -s2)
+        rs2 = s2.mask(cond[:3], -s2)
+        assert_series_equal(rs, rs2)
+
+        self.assertRaises(ValueError, s.mask, 1)
+        self.assertRaises(ValueError, s.mask, cond[:3].values, -s)
+
+        # dtype changes
+        s = Series([1,2,3,4])
+        result = s.mask(s>2, np.nan)
+        expected = Series([1, 2, np.nan, np.nan])
+        assert_series_equal(result, expected)
+
+    def test_mask_broadcast(self):
+        # GH 8801
+        # copied from test_where_broadcast
+        for size in range(2, 6):
+            for selection in [np.resize([True, False, False, False, False], size),  # First element should be set
+                              # Set alternating elements]
+                              np.resize([True, False], size),
+                              np.resize([False], size)]:  # No element should be set
+                for item in [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]:
+                    for arr in [np.array([item]), [item], (item,)]:
+                        data = np.arange(size, dtype=float)
+                        s = Series(data)
+                        result = s.mask(selection, arr)
+                        expected = Series([item if use_item else data[i]
+                                          for i, use_item in enumerate(selection)])
+                        assert_series_equal(result, expected)
+
+    def test_mask_inplace(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.copy()
+        rs.mask(cond, inplace=True)
+        assert_series_equal(rs.dropna(), s[~cond])
+        assert_series_equal(rs, s.mask(cond))
+
+        rs = s.copy()
+        rs.mask(cond, -s, inplace=True)
+        assert_series_equal(rs, s.mask(cond, -s))
 
     def test_drop(self):
 
@@ -1883,6 +1953,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(range(3),index=list('abc'))
         self.assertRaises(ValueError, s.drop, 'bc')
         self.assertRaises(ValueError, s.drop, ('a',))
+
+        # errors='ignore'
+        s = Series(range(3),index=list('abc'))
+        result = s.drop('bc', errors='ignore')
+        assert_series_equal(result, s)
+        result = s.drop(['a', 'd'], errors='ignore')
+        expected = s.ix[1:]
+        assert_series_equal(result, expected)
 
         # bad axis
         self.assertRaises(ValueError, s.drop, 'one', axis='columns')
@@ -4855,6 +4933,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         csv_str = s.to_csv(path=None)
         self.assertIsInstance(csv_str, str)
 
+    def test_str_attribute(self):
+        # GH9068
+        methods = ['strip', 'rstrip', 'lstrip']
+        s = Series([' jack', 'jill ', ' jesse ', 'frank'])
+        for method in methods:
+            expected = Series([getattr(str, method)(x) for x in s.values])
+            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+
+        # str accessor only valid with string values
+        s = Series(range(5))
+        with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+            s.str.repeat(2)
+
     def test_clip(self):
         val = self.ts.median()
 
@@ -5432,6 +5523,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 res = s.astype(typ)
                 expec = s.map(compat.text_type)
                 assert_series_equal(res, expec)
+
+        # GH9757
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            ts = Series([Timestamp('2010-01-04 00:00:00')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
+            ts = Series([Timestamp('2010-01-04 00:00:00', tz='US/Eastern')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
+            td = Series([Timedelta(1, unit='d')])
+            s = td.astype(tt)
+            expected = Series([tt(td.values[0])])
+            assert_series_equal(s, expected)
 
     def test_astype_unicode(self):
 
@@ -6837,7 +6946,7 @@ class TestSeriesNonUnique(tm.TestCase):
     def test_unique_data_ownership(self):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
-    
+
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
         self.assertTrue(pd.isnull(Series([],dtype='M8[ns]').quantile(.5)))

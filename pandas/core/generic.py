@@ -1179,6 +1179,7 @@ class NDFrame(PandasObject):
         """
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
+        result = result.__finalize__(self)
 
         # this could be a view
         # but only in a single-dtyped view slicable case
@@ -1556,7 +1557,7 @@ class NDFrame(PandasObject):
 
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None, inplace=False):
+    def drop(self, labels, axis=0, level=None, inplace=False, errors='raise'):
         """
         Return new object with labels in requested axis removed
 
@@ -1568,6 +1569,8 @@ class NDFrame(PandasObject):
             For MultiIndex
         inplace : bool, default False
             If True, do operation inplace and return None.
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
 
         Returns
         -------
@@ -1581,9 +1584,9 @@ class NDFrame(PandasObject):
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
-                new_axis = axis.drop(labels, level=level)
+                new_axis = axis.drop(labels, level=level, errors=errors)
             else:
-                new_axis = axis.drop(labels)
+                new_axis = axis.drop(labels, errors=errors)
             dropped = self.reindex(**{axis_name: new_axis})
             try:
                 dropped.axes[axis_].set_names(axis.names, inplace=True)
@@ -2260,19 +2263,23 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        convert_dates : if True, attempt to soft convert dates, if 'coerce',
-            force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numbers (including
-            strings), non-convertibles get NaN
-        convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
-            force conversion (and non-convertibles get NaT)
-        copy : Boolean, if True, return copy even if no copy is necessary
-            (e.g. no conversion was done), default is True.
-            It is meant for internal use, not to be confused with `inplace` kw.
+        convert_dates : boolean, default True
+            If True, convert to date where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        convert_numeric : boolean, default False
+            If True, attempt to coerce to numbers (including strings), with
+            unconvertible values becoming NaN.
+        convert_timedeltas : boolean, default True
+            If True, convert to timedelta where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        copy : boolean, default True
+            If True, return a copy even if no copy is necessary (e.g. no
+            conversion was done). Note: This is meant for internal use, and
+            should not be confused with inplace.
 
         Returns
         -------
-        converted : asm as input object
+        converted : same as input object
         """
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
@@ -3250,16 +3257,14 @@ class NDFrame(PandasObject):
             return (left_result.__finalize__(self),
                     right_result.__finalize__(other))
 
-    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
-        """
+    _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from other.
+        entries are from self where cond is %(cond)s and otherwise are from other.
 
         Parameters
         ----------
-        cond : boolean NDFrame or array
-        other : scalar or NDFrame
+        cond : boolean %(klass)s or array
+        other : scalar or %(klass)s
         inplace : boolean, default False
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
@@ -3273,7 +3278,11 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh : same type as caller
-        """
+        """)
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
+    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+              try_cast=False, raise_on_error=True):
+
         if isinstance(cond, NDFrame):
             cond = cond.reindex(**self._construct_axes_dict())
         else:
@@ -3400,20 +3409,11 @@ class NDFrame(PandasObject):
 
             return self._constructor(new_data).__finalize__(self)
 
-    def mask(self, cond):
-        """
-        Returns copy whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond : boolean NDFrame or array
-
-        Returns
-        -------
-        wh: same as input
-        """
-        return self.where(~cond, np.nan)
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
+    def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+             try_cast=False, raise_on_error=True):
+        return self.where(~cond, other=other, inplace=inplace, axis=axis,
+            level=level, try_cast=try_cast, raise_on_error=raise_on_error)
 
     def shift(self, periods=1, freq=None, axis=0, **kwargs):
         """

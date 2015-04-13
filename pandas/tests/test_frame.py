@@ -4192,6 +4192,30 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
         self.assertRaises(ValueError, df.astype, np.int64)
 
+    def test_astype_str(self):
+        # GH9757
+        a = Series(date_range('2010-01-04', periods=5))
+        b = Series(date_range('3/6/2012 00:00', periods=5, tz='US/Eastern'))
+        c = Series([Timedelta(x, unit='d') for x in range(5)])
+        d = Series(range(5))
+        e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
+
+        df = DataFrame({'a' : a, 'b' : b, 'c' : c, 'd' : d, 'e' : e})
+
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            result = df.astype(tt)
+
+            expected = DataFrame({
+                'a' : list(map(tt, a.values)),
+                'b' : list(map(tt, b.values)),
+                'c' : list(map(tt, c.values)),
+                'd' : list(map(tt, d.values)),
+                'e' : list(map(tt, e.values)),
+                })
+
+            assert_frame_equal(result, expected)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         tm.assert_isinstance(result, type(self.frame))
@@ -5944,6 +5968,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, lambda : df == (2,2))
         self.assertRaises(ValueError, lambda : df == [2,2])
 
+    def test_equals_different_blocks(self):
+        # GH 9330
+        df0 = pd.DataFrame({"A": ["x","y"], "B": [1,2], 
+                            "C": ["w","z"]})
+        df1 = df0.reset_index()[["A","B","C"]]
+        # this assert verifies that the above operations have 
+        # induced a block rearrangement
+        self.assertTrue(df0._data.blocks[0].dtype != 
+                        df1._data.blocks[0].dtype)
+        # do the real tests
+        self.assert_frame_equal(df0, df1)
+        self.assertTrue(df0.equals(df1))
+        self.assertTrue(df1.equals(df0))
+        
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'
@@ -7409,6 +7447,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertEqual(obj.columns.name, 'second')
         self.assertEqual(list(df.columns), ['d', 'e', 'f'])
 
+        self.assertRaises(ValueError, df.drop, ['g'])
+        self.assertRaises(ValueError, df.drop, ['g'], 1)
+
+        # errors = 'ignore'
+        dropped = df.drop(['g'], errors='ignore')
+        expected = Index(['a', 'b', 'c'])
+        self.assert_index_equal(dropped.index, expected)
+
+        dropped = df.drop(['b', 'g'], errors='ignore')
+        expected = Index(['a', 'c'])
+        self.assert_index_equal(dropped.index, expected)
+
+        dropped = df.drop(['g'], axis=1, errors='ignore')
+        expected = Index(['d', 'e', 'f'])
+        self.assert_index_equal(dropped.columns, expected)
+
+        dropped = df.drop(['d', 'g'], axis=1, errors='ignore')
+        expected = Index(['e', 'f'])
+        self.assert_index_equal(dropped.columns, expected)
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)
@@ -7786,6 +7844,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                            simple[[]])
         assert_frame_equal(simple.drop([0, 1, 3], axis=0), simple.ix[[2], :])
         assert_frame_equal(simple.drop([0, 3], axis='index'), simple.ix[[1, 2], :])
+
+        self.assertRaises(ValueError, simple.drop, 5)
+        self.assertRaises(ValueError, simple.drop, 'C', 1)
+        self.assertRaises(ValueError, simple.drop, [1, 5])
+        self.assertRaises(ValueError, simple.drop, ['A', 'C'], 1)
+
+        # errors = 'ignore'
+        assert_frame_equal(simple.drop(5, errors='ignore'), simple)
+        assert_frame_equal(simple.drop([0, 5], errors='ignore'),
+                           simple.ix[[1, 2, 3], :])
+        assert_frame_equal(simple.drop('C', axis=1, errors='ignore'), simple)
+        assert_frame_equal(simple.drop(['A', 'C'], axis=1, errors='ignore'),
+                           simple[['B']])
 
         #non-unique - wheee!
         nu_df = DataFrame(lzip(range(3), range(-3, 1), list('abc')),
@@ -9774,6 +9845,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         rs = df.where(cond, np.nan)
         assert_frame_equal(rs, df.mask(df <= 0))
         assert_frame_equal(rs, df.mask(~cond))
+
+        other = DataFrame(np.random.randn(5, 3))
+        rs = df.where(cond, other)
+        assert_frame_equal(rs, df.mask(df <= 0, other))
+        assert_frame_equal(rs, df.mask(~cond, other))
+
+    def test_mask_inplace(self):
+        # GH8801
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        rdf = df.copy()
+
+        rdf.where(cond, inplace=True)
+        assert_frame_equal(rdf, df.where(cond))
+        assert_frame_equal(rdf, df.mask(~cond))
+
+        rdf = df.copy()
+        rdf.where(cond, -df, inplace=True)
+        assert_frame_equal(rdf, df.where(cond, -df))
+        assert_frame_equal(rdf, df.mask(~cond, -df))
 
     def test_mask_edge_case_1xN_frame(self):
         # GH4071
@@ -14038,12 +14130,21 @@ starting,ending,measure
         assert_frame_equal(result, expected)
 
     def test_assign_multiple(self):
-        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=['A', 'B'])
         result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
-        expected = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9],
-                              'D': [1, 2, 3], 'E': [4, 5, 6]})
-        # column order isn't preserved
-        assert_frame_equal(result.reindex_like(expected), expected)
+        expected = DataFrame([[1, 4, 7, 1, 4], [2, 5, 8, 2, 5],
+                              [3, 6, 9, 3, 6]], columns=list('ABCDE'))
+        assert_frame_equal(result, expected)
+
+    def test_assign_alphabetical(self):
+        # GH 9818
+        df = DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        result = df.assign(D=df.A + df.B, C=df.A - df.B)
+        expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
+        result = df.assign(C=df.A - df.B, D=df.A + df.B)
+        assert_frame_equal(result, expected)
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -14056,6 +14157,28 @@ starting,ending,measure
             df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
         with tm.assertRaises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
+
+    def test_dataframe_metadata(self):
+
+        class TestDataFrame(DataFrame):
+            _metadata = ['testattr']
+
+            @property
+            def _constructor(self):
+                return TestDataFrame
+
+
+        df = TestDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
+                           index=['a', 'b', 'c'])
+        df.testattr = 'XXX'
+
+        self.assertEqual(df.testattr, 'XXX')
+        self.assertEqual(df[['X']].testattr, 'XXX')
+        self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
+        self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+        # GH9776
+        self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':

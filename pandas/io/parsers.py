@@ -652,6 +652,8 @@ class TextFileReader(object):
         # really delete this one
         keep_default_na = result.pop('keep_default_na')
 
+        if index_col is True:
+            raise ValueError("The value of index_col couldn't be 'True'")
         if _is_index_col(index_col):
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]

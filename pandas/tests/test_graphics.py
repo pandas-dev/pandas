@@ -679,6 +679,18 @@ class TestSeriesPlots(TestPlotBase):
         self.assertEqual(len(ax.patches), 10)
 
     @slow
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
+        df['E'] = ['x', 'y'] * 5
+        ax = df.plot(kind='hist', bins=5)
+        self.assertEqual(len(ax.patches), 20)
+
+        ax = df.plot(kind='hist') # bins=10
+        self.assertEqual(len(ax.patches), 40)
+
+    @slow
     def test_hist_legacy(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
@@ -754,6 +766,101 @@ class TestSeriesPlots(TestPlotBase):
         fig = gcf()
         axes = fig.get_axes()
         self.assertEqual(len(axes), 2)
+
+    @slow
+    def test_hist_secondary_legend(self):
+        # GH 9610
+        df = DataFrame(np.random.randn(30, 4), columns=list('abcd'))
+
+        # primary -> secondary
+        ax = df['a'].plot(kind='hist', legend=True)
+        df['b'].plot(kind='hist', ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary
+        ax = df['a'].plot(kind='hist', legend=True, secondary_y=True)
+        df['b'].plot(kind='hist', ax=ax, legend=True, secondary_y=True)
+        # both legends are draw on left ax
+        # left axis must be invisible, right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=['a (right)', 'b (right)'])
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> primary
+        ax = df['a'].plot(kind='hist', legend=True, secondary_y=True)
+        # right axes is returned
+        df['b'].plot(kind='hist', ax=ax, legend=True)
+        # both legends are draw on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=['a (right)', 'b'])
+        self.assertTrue(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+    @slow
+    def test_df_series_secondary_legend(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list('abc'))
+        s = Series(np.random.randn(30), name='x')
+
+        # primary -> secondary (without passing ax)
+        ax = df.plot()
+        s.plot(legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # primary -> secondary (with passing ax)
+        ax = df.plot()
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # seconcary -> secondary (without passing ax)
+        ax = df.plot(secondary_y=True)
+        s.plot(legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
+        self._check_legend_labels(ax.left_ax, labels=expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary (with passing ax)
+        ax = df.plot(secondary_y=True)
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
+        self._check_legend_labels(ax.left_ax, expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary (with passing ax)
+        ax = df.plot(secondary_y=True, mark_right=False)
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a', 'b', 'c', 'x (right)']
+        self._check_legend_labels(ax.left_ax, expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
 
     @slow
     def test_plot_fails_with_dupe_color_and_style(self):
@@ -1058,6 +1165,22 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(kind='bar', subplots=True, ax=ax)
         self.assertEqual(len(axes), 1)
         self.assertIs(ax.get_axes(), axes[0])
+
+    def test_color_and_style_arguments(self):
+        df = DataFrame({'x': [1, 2], 'y': [3, 4]})
+        # passing both 'color' and 'style' arguments should be allowed
+        # if there is no color symbol in the style strings:
+        ax = df.plot(color = ['red', 'black'], style = ['-', '--'])
+        # check that the linestyles are correctly set:
+        linestyle = [line.get_linestyle() for line in ax.lines]
+        self.assertEqual(linestyle, ['-', '--'])
+        # check that the colors are correctly set:
+        color = [line.get_color() for line in ax.lines]
+        self.assertEqual(color, ['red', 'black'])
+        # passing both 'color' and 'style' arguments should not be allowed
+        # if there is a color symbol in the style strings:
+        with tm.assertRaises(ValueError):
+            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
