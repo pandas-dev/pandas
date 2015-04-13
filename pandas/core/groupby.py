@@ -3006,7 +3006,7 @@ class NDFrameGroupBy(GroupBy):
         if ((not isinstance(obj.index,MultiIndex) and
              type(result.index) != type(obj.index)) or
             len(result.index) != len(obj.index)):
-            results = obj.values.copy()
+            results = np.empty_like(obj.values, result.values.dtype)
             indices = self.indices
             for (name, group), (i, row) in zip(self, result.iterrows()):
                 indexer = indices[name]
