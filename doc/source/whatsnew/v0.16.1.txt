@@ -164,4 +164,9 @@ Bug Fixes
 =======
 
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
+<<<<<<< HEAD
 >>>>>>> 30580e7... Groupby transform preserves output dtype
+=======
+
+- Bug where dividing a dataframe containing values of type ``Decimal`` by another ``Decimal`` would raise. (:issue:`9787`)
+>>>>>>> bed38f2... FIX: division of Decimal would crash on fill because Decimal does not support type or dtype. (GH9787)

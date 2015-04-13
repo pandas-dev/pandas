@@ -1397,14 +1397,19 @@ def _fill_zeros(result, x, y, name, fill):
 
     mask the nan's from x
     """
-
     if fill is None or is_float_dtype(result):
         return result
 
     if name.startswith(('r', '__r')):
         x,y = y,x
 
-    if np.isscalar(y):
+    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y,'type'))
+    is_scalar = lib.isscalar(y)
+
+    if not is_typed_variable and not is_scalar:
+        return result
+
+    if is_scalar:
         y = np.array(y)
 
     if is_integer_dtype(y):
