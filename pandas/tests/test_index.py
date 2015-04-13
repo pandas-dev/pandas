@@ -4075,6 +4075,19 @@ class TestMultiIndex(Base, tm.TestCase):
         exp = dict((key, [key]) for key in self.index)
         tm.assert_dict_equal(groups, exp)
 
+    def test_index_name_retained(self):
+        # GH9857
+        result = pd.DataFrame({'x': [1, 2, 6],
+                               'y': [2, 2, 8],
+                               'z': [-5, 0, 5]})
+        result = result.set_index('z')
+        result.loc[10] = [9, 10]
+        df_expected = pd.DataFrame({'x': [1, 2, 6, 9],
+                                    'y': [2, 2, 8, 10],
+                                    'z': [-5, 0, 5, 10]})
+        df_expected = df_expected.set_index('z')
+        tm.assert_frame_equal(result, df_expected)
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index

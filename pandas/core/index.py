@@ -976,7 +976,9 @@ class Index(IndexOpsMixin, PandasObject):
             to_concat.append(other)
 
         for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
+            if (isinstance(obj, Index) and
+                obj.name != name and
+                obj.name is not None):
                 name = None
                 break
 
