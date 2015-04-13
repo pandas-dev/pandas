@@ -139,9 +139,13 @@ Bug Fixes
 
 - Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 53f2ea4... BUG: Issue 9798 fixed
 =======
 
+=======
+- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9875`)
+>>>>>>> 07257a0... BUG: Fixing == __eq__ operator for MultiIndex ... closes (GH9785)
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 
 <<<<<<< HEAD

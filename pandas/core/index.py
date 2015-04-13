@@ -49,9 +49,8 @@ def _indexOp(opname):
     Wrapper function for index comparison operations, to avoid
     code duplication.
     """
-
     def wrapper(self, other):
-        func = getattr(self._data.view(np.ndarray), opname)
+        func = getattr(self.values, opname)
         result = func(np.asarray(other))
 
         # technically we could support bool dtyped Index
