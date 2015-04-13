@@ -1244,6 +1244,9 @@ class DataFrame(NDFrame):
         >>> writer.save()
         """
         from pandas.io.excel import ExcelWriter
+        if self.columns.nlevels > 1:
+            raise NotImplementedError("Writing as Excel with a MultiIndex is "
+                                      "not yet implemented.")
 
         need_save = False
         if encoding == None:
