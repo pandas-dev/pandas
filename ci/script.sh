@@ -19,8 +19,12 @@ fi
 pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
 python -c 'import blosc; blosc.print_versions()'
 
-echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
-nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+if [ "$BUILD_TEST" ]; then
+    echo "We are not running nosetests as this is simply a build test."
+else
+    echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+    nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+fi
 
 RET="$?"
 
