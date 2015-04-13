@@ -651,7 +651,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
 
     if return_type not in ('series', 'index', 'frame', 'same', 'expand'):
         raise ValueError("return_type must be {'series', 'index', 'frame', 'same', 'expand'}")
-    if return_type in ['frame', 'expand']  and isinstance(arr, Index):
+    if return_type in ('frame', 'expand')  and isinstance(arr, Index):
         raise ValueError("return_type='frame' is not supported for string "
                          "methods on Index")
     if pat is None:
@@ -668,7 +668,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
                 n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
-    if return_type == 'frame' or return_type == 'expand':
+    if return_type in ('frame', 'expand'):
         res = DataFrame((Series(x) for x in _na_map(f, arr)), index=arr.index)
     else:
         res = _na_map(f, arr)
