@@ -541,7 +541,8 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     if isinstance(frame, Series):
         frame = frame.to_frame()
     elif not isinstance(frame, DataFrame):
-        raise NotImplementedError
+        raise NotImplementedError("'frame' argument should be either a "
+                                  "Series or a DataFrame")
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
@@ -1444,7 +1445,8 @@ class SQLiteDatabase(PandasSQL):
         if flavor is None:
             flavor = 'sqlite'
         if flavor not in ['sqlite', 'mysql']:
-            raise NotImplementedError
+            raise NotImplementedError("flavors other than SQLite and MySQL "
+                                      "are not supported")
         else:
             self.flavor = flavor
 
