@@ -18,7 +18,7 @@ Overview
 pandas has an options system that lets you customize some aspects of its behaviour,
 display-related options being those the user is most likely to adjust.
 
-Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
+Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``).
 You can get/set options directly as attributes of the top-level ``options`` attribute:
 
 .. ipython:: python
@@ -29,7 +29,7 @@ You can get/set options directly as attributes of the top-level ``options`` attr
    pd.options.display.max_rows
 
 There is also an API composed of 5 relevant functions, available directly from the ``pandas``
-namespace, and they are:
+namespace:
 
 - :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
 - :func:`~pandas.reset_option` - reset one or more options to their default value.
@@ -412,7 +412,7 @@ mode.use_inf_as_null       False        True means treat None, NaN, -INF,
 Number Formatting
 ------------------
 
-pandas also allow you to set how numbers are displayed in the console.
+pandas also allows you to set how numbers are displayed in the console.
 This option is not set through the ``set_options`` API.
 
 Use the ``set_eng_float_format`` function
