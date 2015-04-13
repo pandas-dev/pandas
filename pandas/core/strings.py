@@ -632,9 +632,9 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
     n : int, default None (all)
-    return_type : {'series', 'index', 'frame'}, default 'series'
-        If frame, returns a DataFrame (elements are strings)
-        If series or index, returns the same type as the original object
+    return_type : {'series', 'index', 'frame', 'same', 'expand'}, default 'series'
+        If frame or expand, returns a DataFrame (elements are strings)
+        If series, index or same, returns the same type as the original object
         (elements are lists of strings).
 
     Notes
@@ -649,9 +649,9 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     from pandas.core.frame import DataFrame
     from pandas.core.index import Index
 
-    if return_type not in ('series', 'index', 'frame'):
-        raise ValueError("return_type must be {'series', 'index', 'frame'}")
-    if return_type == 'frame' and isinstance(arr, Index):
+    if return_type not in ('series', 'index', 'frame', 'same', 'expand'):
+        raise ValueError("return_type must be {'series', 'index', 'frame', 'same', 'expand'}")
+    if return_type in ('frame', 'expand')  and isinstance(arr, Index):
         raise ValueError("return_type='frame' is not supported for string "
                          "methods on Index")
     if pat is None:
@@ -668,7 +668,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
                 n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
-    if return_type == 'frame':
+    if return_type in ('frame', 'expand'):
         res = DataFrame((Series(x) for x in _na_map(f, arr)), index=arr.index)
     else:
         res = _na_map(f, arr)
