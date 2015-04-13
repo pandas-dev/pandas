@@ -96,7 +96,13 @@ if [ "$IRON_TOKEN" ]; then
     export CC='ccache gcc'
 fi
 
-python setup.py build_ext --inplace && python setup.py develop
+if [ "$BUILD_TEST" ]; then
+    pip uninstall --yes cython
+    pip install cython==0.15.1
+    ( python setup.py build_ext --inplace && python setup.py develop ) || true
+else
+    python setup.py build_ext --inplace && python setup.py develop
+fi
 
 for package in beautifulsoup4; do
     pip uninstall --yes $package

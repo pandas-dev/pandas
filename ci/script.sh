@@ -16,9 +16,12 @@ fi
 "$TRAVIS_BUILD_DIR"/ci/build_docs.sh 2>&1 > /tmp/doc.log &
 # doc build log will be shown after tests
 
-
-echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
-nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+if [ "$BUILD_TEST" ]; then
+    echo "We are not running nosetests as this is simply a build test."
+else
+    echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+    nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+fi
 
 RET="$?"
 
