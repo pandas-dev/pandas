@@ -54,6 +54,8 @@ Enhancements
 - Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
 - Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
 
+- Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
+
 .. _whatsnew_0161.api:
 
 API changes
@@ -183,11 +185,14 @@ Bug Fixes
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 35b20d8... BUG: Fix for comparisons of categorical and an scalar not in categories, xref GH9836
 =======
 
 =======
 
+=======
+>>>>>>> a97113c... ENH: Raise error on trying to write excel file with a MultiIndexed DataFrame. closes #9794
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
 - Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
 >>>>>>> 1f9b699... BUG: where behaves badly when dtype of self is datetime or timedelta, and dtype of other is not (GH9804)
