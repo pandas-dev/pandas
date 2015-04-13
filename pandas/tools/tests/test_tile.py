@@ -153,7 +153,7 @@ class TestCut(tm.TestCase):
         self.assertTrue(factor.equals(expected))
 
     def test_qcut_all_bins_same(self):
-        assertRaisesRegexp(ValueError, "edges.*unique", qcut, [0,0,0,0,0,0,0,0,0,0], 3)
+        assertRaisesRegexp(ValueError, ""The quantiles you selected do not result in unique bins. Try selecting fewer quantiles."", qcut, [0,0,0,0,0,0,0,0,0,0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)
