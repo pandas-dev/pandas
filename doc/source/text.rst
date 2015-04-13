@@ -17,10 +17,10 @@ Working with Text Data
 
 .. _text.string_methods:
 
-Series is equipped with a set of string processing methods
+Series and Index are equipped with a set of string processing methods
 that make it easy to operate on each element of the array. Perhaps most
 importantly, these methods exclude missing/NA values automatically. These are
-accessed via the Series's ``str`` attribute and generally have names matching
+accessed via the ``str`` attribute and generally have names matching
 the equivalent (scalar) built-in string methods:
 
 .. ipython:: python
@@ -29,6 +29,39 @@ the equivalent (scalar) built-in string methods:
    s.str.lower()
    s.str.upper()
    s.str.len()
+
+.. ipython:: python
+
+   idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+   idx.str.strip()
+   idx.str.lstrip()
+   idx.str.rstrip()
+
+The string methods on Index are especially useful for cleaning up or
+transforming DataFrame columns. For instance, you may have columns with
+leading or trailing whitespace:
+
+.. ipython:: python
+
+   df = DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
+                  index=range(3))
+   df
+
+Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
+
+.. ipython:: python
+
+   df.columns.str.strip()
+   df.columns.str.lower()
+
+These string methods can then be used to clean up the columns as needed.
+Here we are removing leading and trailing whitespaces, lowercasing all names,
+and replacing any remaining whitespaces with underscores:
+
+.. ipython:: python
+
+   df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+   df
 
 Splitting and Replacing Strings
 -------------------------------
@@ -42,18 +75,18 @@ Methods like ``split`` return a Series of lists:
    s2 = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
    s2.str.split('_')
 
-Easy to expand this to return a DataFrame
-
-.. ipython:: python
-
-   s2.str.split('_').apply(Series)
-
 Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
 
 .. ipython:: python
 
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
+
+Easy to expand this to return a DataFrame using ``return_type``.
+
+.. ipython:: python
+
+   s2.str.split('_', return_type='frame')
 
 Methods like ``replace`` and ``findall`` take `regular expressions
 <https://docs.python.org/2/library/re.html>`__, too:

@@ -594,20 +594,26 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         mask = isnull(self)
 
-        values = self.get_values()
-        other = _index.convert_scalar(values,_values_from_object(other))
+        if com.is_categorical_dtype(self):
+            # cats are a special case as get_values() would return an ndarray, which would then
+            # not take categories ordering into account
+            # we can go directly to op, as the na_op would just test again and dispatch to it.
+            res = op(self.values, other)
+        else:
+            values = self.get_values()
+            other = _index.convert_scalar(values,_values_from_object(other))
 
-        if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
-            values = values.view('i8')
+            if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+                values = values.view('i8')
 
-        # scalars
-        res = na_op(values, other)
-        if np.isscalar(res):
-            raise TypeError('Could not compare %s type with Series'
-                            % type(other))
+            # scalars
+            res = na_op(values, other)
+            if np.isscalar(res):
+                raise TypeError('Could not compare %s type with Series'
+                                % type(other))
 
-        # always return a full value series here
-        res = _values_from_object(res)
+            # always return a full value series here
+            res = _values_from_object(res)
 
         res = pd.Series(res, index=self.index, name=self.name,
                         dtype='bool')

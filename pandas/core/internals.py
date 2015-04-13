@@ -3310,8 +3310,20 @@ class BlockManager(PandasObject):
             return False
         self._consolidate_inplace()
         other._consolidate_inplace()
+        if len(self.blocks) != len(other.blocks):
+            return False
+
+        # canonicalize block order, using a tuple combining the type
+        # name and then mgr_locs because there might be unconsolidated
+        # blocks (say, Categorical) which can only be distinguished by
+        # the iteration order
+        def canonicalize(block):
+            return (block.dtype.name, block.mgr_locs.as_array.tolist())
+
+        self_blocks = sorted(self.blocks, key=canonicalize)
+        other_blocks = sorted(other.blocks, key=canonicalize)
         return all(block.equals(oblock) for block, oblock in
-                   zip(self.blocks, other.blocks))
+                   zip(self_blocks, other_blocks))
 
 
 class SingleBlockManager(BlockManager):

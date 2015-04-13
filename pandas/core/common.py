@@ -1081,15 +1081,6 @@ def _infer_dtype_from_scalar(val):
     return dtype, val
 
 
-def _maybe_cast_scalar(dtype, value):
-    """ if we a scalar value and are casting to a dtype that needs nan -> NaT
-    conversion
-    """
-    if np.isscalar(value) and dtype in _DATELIKE_DTYPES and isnull(value):
-        return tslib.iNaT
-    return value
-
-
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
@@ -1154,16 +1145,39 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
-    """ a safe version of put mask that (potentially upcasts the result
-    return the result
-    if change is not None, then MUTATE the change (and change the dtype)
-    return a changed flag
+def _maybe_upcast_putmask(result, mask, other):
+    """
+    A safe version of putmask that potentially upcasts the result
+
+    Parameters
+    ----------
+    result : ndarray
+        The destination array. This will be mutated in-place if no upcasting is
+        necessary.
+    mask : boolean ndarray
+    other : ndarray or scalar
+        The source array or value
+
+    Returns
+    -------
+    result : ndarray
+    changed : boolean
+        Set to true if the result array was upcasted
     """
 
     if mask.any():
-
-        other = _maybe_cast_scalar(result.dtype, other)
+        # Two conversions for date-like dtypes that can't be done automatically
+        # in np.place:
+        #   NaN -> NaT
+        #   integer or integer array -> date-like array
+        if result.dtype in _DATELIKE_DTYPES:
+            if lib.isscalar(other):
+                if isnull(other):
+                    other = tslib.iNaT
+                elif is_integer(other):
+                    other = np.array(other, dtype=result.dtype)
+            elif is_integer_dtype(other):
+                other = np.array(other, dtype=result.dtype)
 
         def changeit():
 
@@ -1173,39 +1187,26 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
                 om = other[mask]
                 om_at = om.astype(result.dtype)
                 if (om == om_at).all():
-                    new_other = result.values.copy()
-                    new_other[mask] = om_at
-                    result[:] = new_other
+                    new_result = result.values.copy()
+                    new_result[mask] = om_at
+                    result[:] = new_result
                     return result, False
             except:
                 pass
 
             # we are forced to change the dtype of the result as the input
             # isn't compatible
-            r, fill_value = _maybe_upcast(
-                result, fill_value=other, dtype=dtype, copy=True)
-            np.putmask(r, mask, other)
-
-            # we need to actually change the dtype here
-            if change is not None:
-
-                # if we are trying to do something unsafe
-                # like put a bigger dtype in a smaller one, use the smaller one
-                # pragma: no cover
-                if change.dtype.itemsize < r.dtype.itemsize:
-                    raise AssertionError(
-                        "cannot change dtype of input to smaller size")
-                change.dtype = r.dtype
-                change[:] = r
+            r, _ = _maybe_upcast(result, fill_value=other, copy=True)
+            np.place(r, mask, other)
 
             return r, True
 
-        # we want to decide whether putmask will work
+        # we want to decide whether place will work
         # if we have nans in the False portion of our mask then we need to
-        # upcast (possibily) otherwise we DON't want to upcast (e.g. if we are
-        # have values, say integers in the success portion then its ok to not
+        # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
+        # have values, say integers, in the success portion then it's ok to not
         # upcast)
-        new_dtype, fill_value = _maybe_promote(result.dtype, other)
+        new_dtype, _ = _maybe_promote(result.dtype, other)
         if new_dtype != result.dtype:
 
             # we have a scalar or len 0 ndarray
@@ -1222,7 +1223,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
                     return changeit()
 
         try:
-            np.putmask(result, mask, other)
+            np.place(result, mask, other)
         except:
             return changeit()
 
@@ -2636,7 +2637,12 @@ def _astype_nansafe(arr, dtype, copy=True):
     if not isinstance(dtype, np.dtype):
         dtype = _coerce_to_dtype(dtype)
 
-    if is_datetime64_dtype(arr):
+    if issubclass(dtype.type, compat.text_type):
+        # in Py3 that's str, in Py2 that's unicode
+        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+    elif issubclass(dtype.type, compat.string_types):
+        return lib.astype_str(arr.ravel()).reshape(arr.shape)
+    elif is_datetime64_dtype(arr):
         if dtype == object:
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
@@ -2674,11 +2680,6 @@ def _astype_nansafe(arr, dtype, copy=True):
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
-    elif issubclass(dtype.type, compat.text_type):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
-    elif issubclass(dtype.type, compat.string_types):
-        return lib.astype_str(arr.ravel()).reshape(arr.shape)
 
     if copy:
         return arr.astype(dtype)

@@ -28,7 +28,6 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
-from pandas.core.strings import StringMethods
 from pandas.tseries.common import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
@@ -2493,21 +2492,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
-
-    #------------------------------------------------------------------------------
-    # string methods
-
-    def _make_str_accessor(self):
-        if not com.is_object_dtype(self.dtype):
-            # this really should exclude all series with any non-string values,
-            # but that isn't practical for performance reasons until we have a
-            # str dtype (GH 9343)
-            raise AttributeError("Can only use .str accessor with string "
-                                 "values, which use np.object_ dtype in "
-                                 "pandas")
-        return StringMethods(self)
-
-    str = base.AccessorProperty(StringMethods, _make_str_accessor)
 
     #------------------------------------------------------------------------------
     # Datetimelike delegation methods

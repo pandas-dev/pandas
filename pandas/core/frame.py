@@ -2244,10 +2244,11 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved, and so the order of the
-        new columns is not well defined. Assigning multiple
-        columns within the same ``assign`` is possible, but you cannot
-        reference other columns created within the same ``assign`` call.
+        arguments may not be preserved. The make things predicatable,
+        the columns are inserted in alphabetical order, at the end of
+        your DataFrame. Assigning multiple columns within the same
+        ``assign`` is possible, but you cannot reference other columns
+        created within the same ``assign`` call.
 
         Examples
         --------
@@ -2296,7 +2297,7 @@ class DataFrame(NDFrame):
                 results[k] = v
 
         # ... and then assign
-        for k, v in results.items():
+        for k, v in sorted(results.items()):
             data[k] = v
 
         return data
@@ -4411,9 +4412,15 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False):
         """
-        Gets the mode of each element along the axis selected. Empty if nothing
+        Gets the mode(s) of each element along the axis selected. Empty if nothing
         has 2+ occurrences. Adds a row for each mode per label, fills in gaps
-        with nan.
+        with nan. 
+        
+        Note that there could be multiple values returned for the selected
+        axis (when more than one item share the maximum frequency), which is the 
+        reason why a dataframe is returned. If you want to impute missing values 
+        with the mode in a dataframe ``df``, you can just do this: 
+        ``df.fillna(df.mode().iloc[0])``
 
         Parameters
         ----------
@@ -4426,6 +4433,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         modes : DataFrame (sorted)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df.mode()
+           A
+        0  1
+        1  2
         """
         data = self if not numeric_only else self._get_numeric_data()
         f = lambda s: s.mode()
