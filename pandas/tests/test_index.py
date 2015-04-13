@@ -1220,8 +1220,12 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_index_equal(idx.str.split(return_type='series'), expected)
         # return_type 'index' is an alias for 'series'
         tm.assert_index_equal(idx.str.split(return_type='index'), expected)
+        # return_type 'same' is an alias for 'series' and 'index'
+        tm.assert_index_equal(idx.str.split(return_type='same'), expected)
         with self.assertRaisesRegexp(ValueError, 'not supported'):
             idx.str.split(return_type='frame')
+        with self.assertRaisesRegexp(ValueError, 'not supported'):
+            idx.str.split(return_type='expand')
 
         # test boolean case, should return np.array instead of boolean Index
         idx = Index(['a1', 'a2', 'b1', 'b2'])
