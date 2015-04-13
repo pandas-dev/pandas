@@ -2444,7 +2444,10 @@ def _get_dtype_type(arr_or_dtype):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
-    return arr_or_dtype.dtype.type
+    try:
+        return arr_or_dtype.dtype.type
+    except AttributeError:
+        raise ValueError('%r is not a dtype' % arr_or_dtype)
 
 
 def is_any_int_dtype(arr_or_dtype):
@@ -2515,7 +2518,11 @@ def is_floating_dtype(arr_or_dtype):
 
 
 def is_bool_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except ValueError:
+        # this isn't even a dtype
+        return False
     return issubclass(tipo, np.bool_)
 
 def is_categorical(array):
