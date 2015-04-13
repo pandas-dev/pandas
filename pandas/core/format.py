@@ -608,14 +608,20 @@ class DataFrameFormatter(TableFormatter):
             strcols = self._to_str_columns()
 
         if self.index and isinstance(self.frame.index, MultiIndex):
-            clevels = self.frame.columns.nlevels
             strcols.pop(0)
-            name = any(self.frame.columns.names)
-            for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format(name=name)
-                width = len(lev2[0])
-                lev3 = [' ' * width] * clevels + lev2
-                strcols.insert(i, lev3)
+
+
+            fmt = self._get_formatter('__index__')
+            fmt_index = self.frame.index.format(sparsify=self.sparsify,
+                                                adjoin=False,
+                                                names=True,
+                                                formatter=fmt)
+
+            for i, lev in enumerate(fmt_index):
+                width = len(lev[0])
+                lev2 = [width * ' ' if l == '' else l for l in lev]
+                lev2.insert(0, width * ' ')
+                strcols.insert(i, lev2)
 
         if column_format is None:
             dtypes = self.frame.dtypes.values
