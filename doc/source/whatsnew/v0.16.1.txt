@@ -95,6 +95,7 @@ Bug Fixes
 - Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 - Bug in json serialization when frame has length zero.(:issue:`9805`)
 - Bug in `read_csv` where missing trailing delimiters would cause segfault. (:issue:`5664`)
+- Bug in retaining index name on appending (:issue:`9862`)
 
 
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
