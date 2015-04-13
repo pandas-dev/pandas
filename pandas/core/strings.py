@@ -624,6 +624,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 def str_split(arr, pat=None, n=None, return_type='series'):
     """
+    Deprecated: return_types 'series', 'index', 'frame' are now deprecated 
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
 
@@ -632,8 +633,8 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
     n : int, default None (all)
-    return_type : {'series', 'index', 'frame', 'same', 'expand'}, default 'series'
-        If frame or expand, returns a DataFrame (elements are strings)
+    return_type : {'same', 'expand'}, default 'series'
+        If expand, returns a DataFrame (elements are strings)
         If series, index or same, returns the same type as the original object
         (elements are lists of strings).
 
