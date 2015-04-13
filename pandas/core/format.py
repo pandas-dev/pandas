@@ -6,6 +6,7 @@ import sys
 
 from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, notnull
+from pandas.io.common import _is_url
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
@@ -307,7 +308,8 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
-                 max_cols=None, show_dimensions=False, **kwds):
+                 max_cols=None, show_dimensions=False, urls_as_links=False,
+                 **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -329,6 +331,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows_displayed = min(max_rows or len(self.frame),
                                       len(self.frame))
         self.show_dimensions = show_dimensions
+        self.urls_as_links = urls_as_links
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -821,6 +824,7 @@ class HTMLFormatter(TableFormatter):
         self.max_rows = max_rows or len(self.fmt.frame)
         self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
+        self.urls_as_links = self.fmt.urls_as_links
         self.is_truncated = (self.max_rows < len(self.fmt.frame) or
                              self.max_cols < len(self.fmt.columns))
 
@@ -853,6 +857,11 @@ class HTMLFormatter(TableFormatter):
         else:
             esc = {}
         rs = com.pprint_thing(s, escape_chars=esc).strip()
+        if self.urls_as_links and isinstance(s, compat.string_types):
+            s = s.strip()
+            if _is_url(s):
+                rs = '<a href="{url}">{escaped_url}</a>'.format(url=s,
+                                                                escaped_url=rs)
         self.write(
             '%s%s</%s>' % (start_tag, rs, kind), indent)
 
