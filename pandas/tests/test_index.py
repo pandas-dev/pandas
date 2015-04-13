@@ -4081,6 +4081,15 @@ def test_get_combined_index():
     result = _get_combined_index([])
     assert(result.equals(Index([])))
 
+def test_new_rows_retains_index():
+    #GH 9857
+    df = pd.DataFrame({'x': [1,2,6], 'y': [2,2,8], 'z':[-5,0,5]})
+    df = df.set_index('z')
+    assert(df.index.name == 'z')
+    df.loc[5] = {'x': 9, 'y': 99}
+    df.loc[10] = {'x': 7, 'y': 77}
+    assert(df.index.name == 'z')
+
 
 
 if __name__ == '__main__':
