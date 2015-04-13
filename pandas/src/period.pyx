@@ -710,6 +710,10 @@ cdef class Period(object):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+        elif isinstance(value, np.datetime64):
+            dt = Timestamp(value)
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
         elif isinstance(value, date):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
