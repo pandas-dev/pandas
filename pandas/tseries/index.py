@@ -1655,14 +1655,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         from dateutil.parser import parse
 
         if asof:
-            raise NotImplementedError
+            raise NotImplementedError("'asof' argument is not supported")
 
         if isinstance(time, compat.string_types):
             time = parse(time).time()
 
         if time.tzinfo:
             # TODO
-            raise NotImplementedError
+            raise NotImplementedError("argument 'time' with timezone info is "
+                                      "not supported")
 
         time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
@@ -1694,7 +1695,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             end_time = parse(end_time).time()
 
         if start_time.tzinfo or end_time.tzinfo:
-            raise NotImplementedError
+            raise NotImplementedError("argument 'time' with timezone info is "
+                                      "not supported")
 
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
@@ -1773,7 +1775,8 @@ def _generate_regular_range(start, end, periods, offset):
             b = e - np.int64(periods) * stride
             tz = end.tz
         else:
-            raise NotImplementedError
+            raise ValueError("at least 'start' or 'end' should be specified "
+                             "if a 'period' is given.")
 
         data = np.arange(b, e, stride, dtype=np.int64)
         data = DatetimeIndex._simple_new(data, None, tz=tz)

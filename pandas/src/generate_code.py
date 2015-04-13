@@ -1653,7 +1653,8 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     b = 0
     if K > 1:
-        raise NotImplementedError
+        raise NotImplementedError("Argument 'values' must have only "
+                                  "one dimension")
     else:
         for i in range(N):
             while b < ngroups - 1 and i >= bins[b]:
