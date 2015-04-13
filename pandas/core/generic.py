@@ -21,7 +21,8 @@ from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning)
+                                SettingWithCopyError, SettingWithCopyWarning,
+                                AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
@@ -137,7 +138,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -152,7 +153,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor_sliced(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     #----------------------------------------------------------------------
     # Axis
@@ -1100,7 +1101,7 @@ class NDFrame(PandasObject):
         return lower
 
     def _box_item_values(self, key, values):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """
@@ -3057,7 +3058,8 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("'first' only supports a DatetimeIndex "
+                                      "index")
 
         if len(self.index) == 0:
             return self
@@ -3091,7 +3093,8 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("'last' only supports a DatetimeIndex "
+                                      "index")
 
         if len(self.index) == 0:
             return self

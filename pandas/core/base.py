@@ -11,7 +11,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly
 from pandas.core.strings import StringMethods
-
+from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -32,7 +32,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -566,4 +566,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise NotImplementedError
+        raise AbstractMethodError(self)

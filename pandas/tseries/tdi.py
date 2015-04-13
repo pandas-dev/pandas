@@ -927,7 +927,8 @@ def _generate_regular_range(start, end, periods, offset):
         e = Timedelta(end).value + stride
         b = e - periods * stride
     else:
-        raise NotImplementedError
+        raise ValueError("at least 'start' or 'end' should be specified "
+                         "if a 'period' is given.")
 
     data = np.arange(b, e, stride, dtype=np.int64)
     data = TimedeltaIndex._simple_new(data, None)

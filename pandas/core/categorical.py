@@ -1166,7 +1166,8 @@ class Categorical(PandasObject):
         if fill_value is None:
             fill_value = np.nan
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("specifying a limit for fillna has not "
+                                      "been implemented yet")
 
         values = self._codes
 
