@@ -49,6 +49,7 @@ Enhancements
 
 - Allow conversion of values with dtype ``datetime64`` or ``timedelta64`` to strings using ``astype(str)`` (:issue:`9757`)
 - ``get_dummies`` function now accepts ``sparse`` keyword.  If set to ``True``, the return ``DataFrame`` is sparse, e.g. ``SparseDataFrame``. (:issue:`8823`)
+- ``Period`` now accepts ``datetime64`` as value input. (:issue:`9054`)
 
 - Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
 
