@@ -200,7 +200,6 @@ class _NDFrameIndexer(object):
         return True
 
     def _setitem_with_indexer(self, indexer, value):
-
         self._has_valid_setitem_indexer(indexer)
 
         # also has the side effect of consolidating in-place
@@ -486,8 +485,8 @@ class _NDFrameIndexer(object):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
 
-            if isinstance(value, ABCSeries):
-                value = self._align_series(indexer, value)
+            if isinstance(value, (ABCSeries, dict)):
+                value = self._align_series(indexer, Series(value))
 
             elif isinstance(value, ABCDataFrame):
                 value = self._align_frame(indexer, value)

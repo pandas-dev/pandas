@@ -134,6 +134,8 @@ Bug Fixes
 
 - Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
 
+- Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
+
 - Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
 

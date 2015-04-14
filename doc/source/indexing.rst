@@ -249,6 +249,14 @@ new column.
 If you are using the IPython environment, you may also use tab-completion to
 see these accessible attributes.
 
+You can also assign a ``dict`` to a row of a ``DataFrame``:
+
+.. ipython:: python
+
+   x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
+   x.iloc[1] = dict(x=9, y=99)
+   x
+
 Slicing ranges
 --------------
 
