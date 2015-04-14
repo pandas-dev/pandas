@@ -5970,18 +5970,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_equals_different_blocks(self):
         # GH 9330
-        df0 = pd.DataFrame({"A": ["x","y"], "B": [1,2], 
+        df0 = pd.DataFrame({"A": ["x","y"], "B": [1,2],
                             "C": ["w","z"]})
         df1 = df0.reset_index()[["A","B","C"]]
-        # this assert verifies that the above operations have 
+        # this assert verifies that the above operations have
         # induced a block rearrangement
-        self.assertTrue(df0._data.blocks[0].dtype != 
+        self.assertTrue(df0._data.blocks[0].dtype !=
                         df1._data.blocks[0].dtype)
         # do the real tests
         self.assert_frame_equal(df0, df1)
         self.assertTrue(df0.equals(df1))
         self.assertTrue(df1.equals(df0))
-        
+
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'
@@ -12431,9 +12431,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_unstack_level_binding(self):
         # GH9856
         mi = pd.MultiIndex(
-                levels=[[u'foo', u'bar'], [u'one', u'two'], [u'a', u'b']],
+                levels=[[u('foo'), u('bar')], [u('one'), u('two')],
+                        [u('a'), u('b')]],
                 labels=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
-                names=[u'first', u'second', u'third'])
+                names=[u('first'), u('second'), u('third')])
         s = pd.Series(0, index=mi)
         result = s.unstack([1, 2]).stack(0)
 
