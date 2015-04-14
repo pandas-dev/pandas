@@ -106,6 +106,7 @@ Bug Fixes
 - Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
 - Bug in ``DataFrame.plot(kind="hist")`` results in ``TypeError`` when ``DataFrame`` contains non-numeric columns  (:issue:`9853`)
 - Bug where repeated plotting of ``DataFrame`` with a ``DatetimeIndex`` may raise ``TypeError`` (:issue:`9852`)
+- Bug in plotting ``secondary_y`` incorrectly attaches ``right_ax`` property to secondary axes specifying itself recursively. (:issue:`9861`)
 
 - Bug in plotting ``secondary_y`` incorrectly attaches ``right_ax`` property to secondary axes specifying itself recursively. (:issue:`9861`)
 
