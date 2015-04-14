@@ -86,6 +86,9 @@ conda remove -n pandas pandas
 
 source activate pandas
 
+pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
+python -c 'import blosc; blosc.print_versions()'
+
 # set the compiler cache to work
 if [ "$IRON_TOKEN" ]; then
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
