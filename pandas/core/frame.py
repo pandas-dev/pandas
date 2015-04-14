@@ -3928,6 +3928,7 @@ class DataFrame(NDFrame):
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index, columns=combined_columns).convert_objects()
+            other.index = other.index.rename(self.index.name)
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
