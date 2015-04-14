@@ -1283,6 +1283,14 @@ class TestIndex(Base, tm.TestCase):
         expected = Series(range(2), index=['a1', 'a2'])
         tm.assert_series_equal(s[s.index.str.startswith('a')], expected)
 
+    def test_tab_completion(self):
+        # GH 9910
+        idx = Index(list('abcd'))
+        self.assertTrue('str' in dir(idx))
+
+        idx = Index(range(4))
+        self.assertTrue('str' not in dir(idx))
+
     def test_indexing_doesnt_change_class(self):
         idx = Index([1, 2, 3, 'a', 'b', 'c'])
 

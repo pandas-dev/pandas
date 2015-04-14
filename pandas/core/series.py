@@ -2521,6 +2521,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
 
+    def _dir_deletions(self):
+        return self._accessors
+
+    def _dir_additions(self):
+        rv = set()
+        # these accessors are mutually exclusive, so break loop when one exists
+        for accessor in self._accessors:
+            try:
+                getattr(self, accessor)
+                rv.add(accessor)
+                break
+            except AttributeError:
+                pass
+        return rv
+
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
 Series._add_numeric_operations()

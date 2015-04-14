@@ -86,16 +86,22 @@ class PandasObject(StringMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _local_dir(self):
-        """ provide addtional __dir__ for this object """
-        return []
+    def _dir_additions(self):
+        """ add addtional __dir__ for this object """
+        return set()
+
+    def _dir_deletions(self):
+        """ delete unwanted __dir__ for this object """
+        return set()
 
     def __dir__(self):
         """
         Provide method name lookup and completion
         Only provide 'public' methods
         """
-        return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
+        rv = set(dir(type(self)))
+        rv = (rv - self._dir_deletions()) | self._dir_additions()
+        return sorted(rv)
 
     def _reset_cache(self, key=None):
         """
@@ -517,6 +523,16 @@ class IndexOpsMixin(object):
         return StringMethods(self)
 
     str = AccessorProperty(StringMethods, _make_str_accessor)
+
+    def _dir_additions(self):
+        return set()
+
+    def _dir_deletions(self):
+        try:
+            getattr(self, 'str')
+        except AttributeError:
+            return set(['str'])
+        return set()
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed
