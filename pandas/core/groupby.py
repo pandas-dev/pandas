@@ -498,8 +498,8 @@ class GroupBy(PandasObject):
         result.index = self.obj.index
         return result
 
-    def _local_dir(self):
-        return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
+    def _dir_additions(self):
+        return self.obj._dir_additions() | self._apply_whitelist
 
     def __getattr__(self, attr):
         if attr in self._internal_names_set:
