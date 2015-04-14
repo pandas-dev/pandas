@@ -16,9 +16,6 @@ fi
 "$TRAVIS_BUILD_DIR"/ci/build_docs.sh 2>&1 > /tmp/doc.log &
 # doc build log will be shown after tests
 
-pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
-python -c 'import blosc; blosc.print_versions()'
-
 if [ "$BUILD_TEST" ]; then
     echo "We are not running nosetests as this is simply a build test."
 else
