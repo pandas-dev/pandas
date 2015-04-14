@@ -242,6 +242,26 @@ class CheckNameIntegration(object):
                 s.dt
             self.assertFalse(hasattr(s, 'dt'))
 
+    def test_tab_completion(self):
+        # GH 9910
+        s = Series(list('abcd'))
+        # Series of str values should have .str but not .dt/.cat in __dir__
+        self.assertTrue('str' in dir(s))
+        self.assertTrue('dt' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .dt
+        s = Series(date_range('1/1/2015', periods=5))
+        self.assertTrue('dt' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .cat
+        s = Series(list('abbcd'), dtype="category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' not in dir(s))
+
     def test_binop_maybe_preserve_name(self):
 
         # names match, preserve
