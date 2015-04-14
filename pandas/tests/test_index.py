@@ -120,6 +120,19 @@ class Base(object):
         idx.nbytes
         idx.values.nbytes
 
+    def test_repr_roundtrip(self):
+
+        idx = self.create_index()
+        tm.assert_index_equal(eval(repr(idx)),idx)
+
+    def test_str(self):
+
+        # test the string repr
+        idx = self.create_index()
+        idx.name = 'foo'
+        self.assertTrue("'foo'" in str(idx))
+        self.assertTrue(idx.__class__.__name__ in str(idx))
+
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
@@ -2475,6 +2488,26 @@ class TestInt64Index(Numeric, tm.TestCase):
 
 class DatetimeLike(Base):
 
+    def test_repr_roundtrip(self):
+        raise nose.SkipTest("Short reprs are not supported repr for Datetimelike indexes")
+
+    def test_str(self):
+
+        # test the string repr
+        idx = self.create_index()
+        idx.name = 'foo'
+        self.assertTrue("length=%s" % len(idx) in str(idx))
+        self.assertTrue("u'foo'" in str(idx))
+        self.assertTrue(idx.__class__.__name__ in str(idx))
+
+        if hasattr(idx,'tz'):
+            if idx.tz is not None:
+                self.assertTrue("tz='%s'" % idx.tz in str(idx))
+            else:
+                self.assertTrue("tz=None" in str(idx))
+        if hasattr(idx,'freq'):
+            self.assertTrue("freq='%s'" % idx.freqstr in str(idx))
+
     def test_view(self):
         super(DatetimeLike, self).test_view()
 
@@ -4388,8 +4421,9 @@ class TestMultiIndex(Base, tm.TestCase):
             index = pd.DataFrame(d).set_index(["a", "b"]).index
             self.assertFalse("\\u" in repr(index))  # we don't want unicode-escaped
 
-    def test_repr_roundtrip(self):
-        tm.assert_index_equal(eval(repr(self.index)), self.index)
+    def test_str(self):
+        # tested elsewhere
+        pass
 
     def test_unicode_string_with_unicode(self):
         d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}

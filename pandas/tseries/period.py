@@ -697,10 +697,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
 
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
-
     def take(self, indices, axis=None):
         """
         Analogous to ndarray.take

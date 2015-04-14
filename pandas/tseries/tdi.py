@@ -274,10 +274,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         from pandas.core.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
-
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):

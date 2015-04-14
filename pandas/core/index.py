@@ -392,8 +392,68 @@ class Index(IndexOpsMixin, PandasObject):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        prepr = default_pprint(self)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+        klass = self.__class__.__name__
+        data = self._format_data()
+        attrs = self._format_attrs()
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            space = "\n%s" % (' ' * (len(klass) + 1))
+        else:
+            space = " "
+
+        prepr = (u(",%s") % space).join([u("%s=%s") % (k, v)
+                                          for k, v in attrs])
+        res = u("%s(%s,%s%s)") % (klass,
+                                  data,
+                                  space,
+                                  prepr)
+
+        return res
+
+    @property
+    def _formatter_func(self):
+        """
+        Return the formatted data as a unicode string
+        """
+        return default_pprint
+
+    def _format_data(self):
+        """
+        Return the formatted data as a unicode string
+        """
+
+        max_seq_items = get_option('display.max_seq_items')
+        formatter = self._formatter_func
+        n = len(self)
+        if n == 0:
+            summary = '[]'
+        elif n == 1:
+            first = formatter(self[0])
+            summary = '[%s]' % first
+        elif n == 2:
+            first = formatter(self[0])
+            last = formatter(self[-1])
+            summary = '[%s, %s]' % (first, last)
+        elif n > max_seq_items:
+            n = min(max_seq_items//2,2)
+            head = ', '.join([ formatter(x) for x in self[:n] ])
+            tail = ', '.join([ formatter(x) for x in self[-n:] ])
+            summary = '[%s, ..., %s]' % (head, tail)
+        else:
+            summary = "[%s]" % ', '.join([ formatter(x) for x in self ])
+
+        return summary
+
+
+    def _format_attrs(self):
+        """
+        Return a list of tuples of the (attr,formatted_value)
+        """
+        attrs = []
+        if self.name is not None:
+            attrs.append(('name',default_pprint(self.name)))
+        attrs.append(('dtype',"'%s'" % self.dtype))
+        return attrs
 
     def to_series(self, **kwargs):
         """
