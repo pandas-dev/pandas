@@ -1627,7 +1627,7 @@ class _AssertRaisesContextmanager(object):
     def __init__(self, exception, regexp=None, *args, **kwargs):
         self.exception = exception
         if regexp is not None and not hasattr(regexp, "search"):
-            regexp = re.compile(regexp)
+            regexp = re.compile(regexp, re.DOTALL)
         self.regexp = regexp
 
     def __enter__(self):
