@@ -119,23 +119,41 @@ class TestDatetimeIndexOps(Ops):
         idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
                              tz='US/Eastern')
 
-        exp1 = """<class 'pandas.tseries.index.DatetimeIndex'>
-Length: 0, Freq: D, Timezone: None"""
-        exp2 = """<class 'pandas.tseries.index.DatetimeIndex'>
-[2011-01-01]
-Length: 1, Freq: D, Timezone: None"""
-        exp3 = """<class 'pandas.tseries.index.DatetimeIndex'>
-[2011-01-01, 2011-01-02]
-Length: 2, Freq: D, Timezone: None"""
-        exp4 = """<class 'pandas.tseries.index.DatetimeIndex'>
-[2011-01-01, ..., 2011-01-03]
-Length: 3, Freq: D, Timezone: None"""
-        exp5 = """<class 'pandas.tseries.index.DatetimeIndex'>
-[2011-01-01 09:00:00+09:00, ..., 2011-01-01 11:00:00+09:00]
-Length: 3, Freq: H, Timezone: Asia/Tokyo"""
-        exp6 = """<class 'pandas.tseries.index.DatetimeIndex'>
-[2011-01-01 09:00:00-05:00, ..., NaT]
-Length: 3, Freq: None, Timezone: US/Eastern"""
+        exp1 = """DatetimeIndex([],
+              dtype='datetime64[ns]',
+              length=0,
+              freq='D',
+              tz=None)"""
+
+        exp2 = """DatetimeIndex([2011-01-01],
+              dtype='datetime64[ns]',
+              length=1,
+              freq='D',
+              tz=None)"""
+
+        exp3 = """DatetimeIndex([2011-01-01, 2011-01-02],
+              dtype='datetime64[ns]',
+              length=2,
+              freq='D',
+              tz=None)"""
+
+        exp4 = """DatetimeIndex([2011-01-01, ..., 2011-01-03],
+              dtype='datetime64[ns]',
+              length=3,
+              freq='D',
+              tz=None)"""
+
+        exp5 = """DatetimeIndex([2011-01-01 09:00:00+09:00, ..., 2011-01-01 11:00:00+09:00],
+              dtype='datetime64[ns]',
+              length=3,
+              freq='H',
+              tz='Asia/Tokyo')"""
+
+        exp6 = """DatetimeIndex([2011-01-01 09:00:00-05:00, ..., NaT],
+              dtype='datetime64[ns]',
+              length=3,
+              freq=None,
+              tz='US/Eastern')"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
                                  [exp1, exp2, exp3, exp4, exp5, exp6]):
@@ -372,21 +390,30 @@ class TestTimedeltaIndexOps(Ops):
         idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
         idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
 
+        exp1 = """TimedeltaIndex([],
+               dtype='timedelta64[ns]',
+               length=0,
+               freq='D')"""
 
-        exp1 = """<class 'pandas.tseries.tdi.TimedeltaIndex'>
-Length: 0, Freq: D"""
-        exp2 = """<class 'pandas.tseries.tdi.TimedeltaIndex'>
-['1 days']
-Length: 1, Freq: D"""
-        exp3 = """<class 'pandas.tseries.tdi.TimedeltaIndex'>
-['1 days', '2 days']
-Length: 2, Freq: D"""
-        exp4 = """<class 'pandas.tseries.tdi.TimedeltaIndex'>
-['1 days', ..., '3 days']
-Length: 3, Freq: D"""
-        exp5 = """<class 'pandas.tseries.tdi.TimedeltaIndex'>
-['1 days 00:00:01', ..., '3 days 00:00:00']
-Length: 3, Freq: None"""
+        exp2 = """TimedeltaIndex(['1 days'],
+               dtype='timedelta64[ns]',
+               length=1,
+               freq='D')"""
+
+        exp3 = """TimedeltaIndex(['1 days', '2 days'],
+               dtype='timedelta64[ns]',
+               length=2,
+               freq='D')"""
+
+        exp4 = """TimedeltaIndex(['1 days', ..., '3 days'],
+               dtype='timedelta64[ns]',
+               length=3,
+               freq='D')"""
+
+        exp5 = """TimedeltaIndex(['1 days 00:00:01', ..., '3 days 00:00:00'],
+               dtype='timedelta64[ns]',
+               length=3,
+               freq=None)"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                  [exp1, exp2, exp3, exp4, exp5]):
@@ -842,32 +869,50 @@ class TestPeriodIndexOps(Ops):
         idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
         idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
 
-        exp1 = """<class 'pandas.tseries.period.PeriodIndex'>
-Length: 0, Freq: D"""
-        exp2 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2011-01-01]
-Length: 1, Freq: D"""
-        exp3 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2011-01-01, 2011-01-02]
-Length: 2, Freq: D"""
-        exp4 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2011-01-01, ..., 2011-01-03]
-Length: 3, Freq: D"""
-        exp5 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2011, ..., 2013]
-Length: 3, Freq: A-DEC"""
-        exp6 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2011-01-01 09:00, ..., NaT]
-Length: 3, Freq: H"""
-        exp7 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2013Q1]
-Length: 1, Freq: Q-DEC"""
-        exp8 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2013Q1, 2013Q2]
-Length: 2, Freq: Q-DEC"""
-        exp9 = """<class 'pandas.tseries.period.PeriodIndex'>
-[2013Q1, ..., 2013Q3]
-Length: 3, Freq: Q-DEC"""
+        exp1 = """PeriodIndex([],
+            dtype='int64',
+            length=0,
+            freq='D')"""
+
+        exp2 = """PeriodIndex([2011-01-01],
+            dtype='int64',
+            length=1,
+            freq='D')"""
+
+        exp3 = """PeriodIndex([2011-01-01, 2011-01-02],
+            dtype='int64',
+            length=2,
+            freq='D')"""
+
+        exp4 = """PeriodIndex([2011-01-01, ..., 2011-01-03],
+            dtype='int64',
+            length=3,
+            freq='D')"""
+
+        exp5 = """PeriodIndex([2011, ..., 2013],
+            dtype='int64',
+            length=3,
+            freq='A-DEC')"""
+
+        exp6 = """PeriodIndex([2011-01-01 09:00, ..., NaT],
+            dtype='int64',
+            length=3,
+            freq='H')"""
+
+        exp7 = """PeriodIndex([2013Q1],
+            dtype='int64',
+            length=1,
+            freq='Q-DEC')"""
+
+        exp8 = """PeriodIndex([2013Q1, 2013Q2],
+            dtype='int64',
+            length=2,
+            freq='Q-DEC')"""
+
+        exp9 = """PeriodIndex([2013Q1, ..., 2013Q3],
+            dtype='int64',
+            length=3,
+            freq='Q-DEC')"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
                                  [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9]):
