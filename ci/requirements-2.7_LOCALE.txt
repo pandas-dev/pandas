@@ -1,4 +1,4 @@
-dateutil
+python-dateutil
 pytz=2013b
 xlwt=0.7.5
 openpyxl=1.6.2
