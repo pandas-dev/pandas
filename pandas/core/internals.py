@@ -294,7 +294,8 @@ class Block(PandasObject):
         mask = isnull(self.values)
         if limit is not None:
             if self.ndim > 2:
-                raise NotImplementedError
+                raise NotImplementedError("number of dimensions for 'fillna' "
+                                          "is currently limited to 2")
             mask[mask.cumsum(self.ndim-1)>limit]=False
 
         value = self._try_fill(value)
@@ -1681,7 +1682,8 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("specifying a limit for 'fillna' has "
+                                      "not been implemented yet")
 
         values = self.values if inplace else self.values.copy()
         return [self.make_block_same_class(values=values.fillna(fill_value=value,
@@ -1848,7 +1850,8 @@ class DatetimeBlock(Block):
         value = self._try_fill(value)
         if limit is not None:
             if self.ndim > 2:
-                raise NotImplementedError
+                raise NotImplementedError("number of dimensions for 'fillna' "
+                                          "is currently limited to 2")
             mask[mask.cumsum(self.ndim-1)>limit]=False
 
         np.putmask(values, mask, value)
@@ -2011,7 +2014,8 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("specifying a limit for 'fillna' has "
+                                      "not been implemented yet")
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
         values = self.values if inplace else self.values.copy()

@@ -373,11 +373,11 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         return Series(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, DataFrame):
         if axis == 1:
-            raise NotImplementedError
+            raise NotImplementedError("axis 1 is not supported")
         return DataFrame(obj._data.reindex_indexer(
             new_axis=new_index, indexer=indexer, axis=1))
     else:
-        raise NotImplementedError
+        raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
 def _get_range_edges(first, last, offset, closed='left', base=0):
@@ -467,7 +467,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'method' argument is not supported")
 
         if how is None:
             how = 'E'
@@ -480,6 +480,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
         if len(obj.index) == 0:
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti.name = obj.index.name
         rs = obj.reindex(dti, method=method)
         if normalize:
             rs.index = rs.index.normalize()

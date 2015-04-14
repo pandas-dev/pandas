@@ -64,6 +64,13 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta(123072001000000).value, 123072001000000)
         self.assertTrue('1 days 10:11:12.001' in str(Timedelta(123072001000000)))
 
+        # string conversion with/without leading zero
+        # GH 9570
+        self.assertEqual(Timedelta('0:00:00'), timedelta(hours=0))
+        self.assertEqual(Timedelta('00:00:00'), timedelta(hours=0))
+        self.assertEqual(Timedelta('-1:00:00'), -timedelta(hours=1))
+        self.assertEqual(Timedelta('-01:00:00'), -timedelta(hours=1))
+
         # more strings
         # GH 8190
         self.assertEqual(Timedelta('1 h'), timedelta(hours=1))

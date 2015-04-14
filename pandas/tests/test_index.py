@@ -1320,6 +1320,24 @@ class TestIndex(Base, tm.TestCase):
         exp = {1: [0, 1], 2: [2, 3, 4]}
         tm.assert_dict_equal(groups, exp)
 
+    def test_equals_op(self):
+        # For issue #9785
+        index_a = Index(['foo', 'bar', 'baz'])
+        index_b = Index(['foo', 'bar', 'baz', 'qux'])
+        # Testing Numpy Results Equivelent
+        assert_array_equal(
+            index_a.equals(index_a),
+            index_a == index_a
+        )
+        assert_array_equal(
+            index_a.equals(index_b),
+            index_a == index_b,
+        )
+        assert_array_equal(
+            index_b.equals(index_a),
+            index_b == index_a,
+        )
+
 
 class Numeric(Base):
 
@@ -4074,6 +4092,61 @@ class TestMultiIndex(Base, tm.TestCase):
         groups = self.index.groupby(self.index)
         exp = dict((key, [key]) for key in self.index)
         tm.assert_dict_equal(groups, exp)
+
+    def test_index_name_retained(self):
+        # GH9857
+        result = pd.DataFrame({'x': [1, 2, 6],
+                               'y': [2, 2, 8],
+                               'z': [-5, 0, 5]})
+        result = result.set_index('z')
+        result.loc[10] = [9, 10]
+        df_expected = pd.DataFrame({'x': [1, 2, 6, 9],
+                                    'y': [2, 2, 8, 10],
+                                    'z': [-5, 0, 5, 10]})
+        df_expected = df_expected.set_index('z')
+        tm.assert_frame_equal(result, df_expected)
+
+    def test_equals_operator(self):
+        # For issue #9785
+        self.assertTrue((self.index == self.index).all())
+
+    def test_index_compare(self):
+        # For issue #9785
+        index_unequal = Index(['foo', 'bar', 'baz'])
+        index_equal = Index([
+            ('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
+            ('baz', 'two'), ('qux', 'one'), ('qux', 'two')
+        ], tupleize_cols=False)
+        # Testing Numpy Results Equivelent
+        assert_array_equal(
+            index_unequal.equals(self.index),
+            index_unequal == self.index,
+            err_msg = 'Index compared with MultiIndex failed',
+        )
+        assert_array_equal(
+            self.index.equals(index_unequal),
+            self.index == index_unequal,
+            err_msg = 'MultiIndex compared with Index failed',
+        )
+        assert_array_equal(
+            self.index.equals(index_equal),
+            self.index == index_equal,
+            err_msg = 'MultiIndex compared with Similar Index failed',
+        )
+        assert_array_equal(
+            index_equal.equals(self.index),
+            index_equal == self.index,
+            err_msg = 'Index compared with Similar MultiIndex failed',
+        )
+        # Testing that the result is true for the index_equal case
+        self.assertTrue(
+            (self.index == index_equal).all(),
+            msg='Assert Index compared with Similar MultiIndex match'
+        )
+        self.assertTrue(
+            (index_equal == self.index).all(),
+            msg='Assert MultiIndex compared with Similar Index match'
+        )
 
 
 def test_get_combined_index():

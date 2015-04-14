@@ -446,6 +446,45 @@ class TestSparse(TestPackers):
                               check_panel_type=True)
 
 
+class TestCompression(TestPackers):
+    """See https://github.com/pydata/pandas/pull/9783
+    """
+
+    def setUp(self):
+        super(TestCompression, self).setUp()
+        data = {
+            'A': np.arange(1000, dtype=np.float64),
+            'B': np.arange(1000, dtype=np.int32),
+            'C': list(100 * 'abcdefghij'),
+            'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
+            'E': [datetime.timedelta(days=x) for x in range(1000)],
+        }
+        self.frame = {
+            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
+            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'mixed': DataFrame(data),
+        }
+
+    def test_plain(self):
+        i_rec = self.encode_decode(self.frame)
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+    def test_compression_zlib(self):
+        i_rec = self.encode_decode(self.frame, compress='zlib')
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+    def test_compression_blosc(self):
+        try:
+            import blosc
+        except ImportError:
+            raise nose.SkipTest('no blosc')
+        i_rec = self.encode_decode(self.frame, compress='blosc')
+        for k in self.frame.keys():
+            assert_frame_equal(self.frame[k], i_rec[k])
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

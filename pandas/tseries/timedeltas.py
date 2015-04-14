@@ -119,7 +119,7 @@ def _validate_timedelta_unit(arg):
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
 _full_search = re.compile(
-    "^\s*(?P<neg>-?)\s*(?P<days>\d*\.?\d*)?\s*(days|d|day)?,?\s*\+?(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
+    "^\s*(?P<neg>-?)\s*(?P<days>\d*?\.?\d*?)?\s*(days|d|day)?,?\s*\+?(?P<time>\d{1,2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
 _nat_search = re.compile(
     "^\s*(nat|nan)\s*$",re.IGNORECASE)
 _whitespace = re.compile('^\s*$')
@@ -209,13 +209,12 @@ def _get_string_converter(r, unit='ns'):
             is_neg = gd['neg']
             if gd['days']:
                 days = int((float(gd['days'] or 0) * 86400)*1e9)
-                if gd['neg']:
+                if is_neg:
                     days *= -1
                 value += days
             else:
-                if gd['neg']:
+                if is_neg:
                     value *= -1
-
             return tslib.cast_from_unit(value, 'ns')
         return convert
 

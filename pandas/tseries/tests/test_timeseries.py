@@ -1131,6 +1131,15 @@ class TestTimeSeries(tm.TestCase):
         result = ts[list(ts.index[5:10])]
         tm.assert_series_equal(result, expected)
 
+    def test_asfreq_keep_index_name(self):
+        # GH #9854
+        index_name = 'bar'
+        index = pd.date_range('20130101',periods=20,name=index_name)
+        df = pd.DataFrame([x for x in range(20)],columns=['foo'],index=index)
+
+        tm.assert_equal(index_name, df.index.name)
+        tm.assert_equal(index_name, df.asfreq('10D').index.name)
+
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
         ts = Series(np.random.randn(20), index=rng)

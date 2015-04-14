@@ -39,6 +39,17 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+class AbstractMethodError(NotImplementedError):
+    """Raise this error instead of NotImplementedError for abstract methods
+    while keeping compatibility with Python 2 and Python 3.
+    """
+    def __init__(self, class_instance):
+        self.class_instance = class_instance
+
+    def __str__(self):
+        return "This method must be defined on the concrete class of " \
+               + self.class_instance.__class__.__name__
+
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8',
                                        'uint8', 'int16', 'uint16', 'int32',
@@ -1397,14 +1408,19 @@ def _fill_zeros(result, x, y, name, fill):
 
     mask the nan's from x
     """
-
     if fill is None or is_float_dtype(result):
         return result
 
     if name.startswith(('r', '__r')):
         x,y = y,x
 
-    if np.isscalar(y):
+    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y,'type'))
+    is_scalar = lib.isscalar(y)
+
+    if not is_typed_variable and not is_scalar:
+        return result
+
+    if is_scalar:
         y = np.array(y)
 
     if is_integer_dtype(y):
@@ -2439,7 +2455,10 @@ def _get_dtype_type(arr_or_dtype):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
-    return arr_or_dtype.dtype.type
+    try:
+        return arr_or_dtype.dtype.type
+    except AttributeError:
+        raise ValueError('%r is not a dtype' % arr_or_dtype)
 
 
 def is_any_int_dtype(arr_or_dtype):
@@ -2510,7 +2529,11 @@ def is_floating_dtype(arr_or_dtype):
 
 
 def is_bool_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except ValueError:
+        # this isn't even a dtype
+        return False
     return issubclass(tipo, np.bool_)
 
 def is_categorical(array):
