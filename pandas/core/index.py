@@ -412,7 +412,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                                  quote_strings=True)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+
+        name_attr=''
+        if self.name:
+            name_attr = u(" %s=%r,") % ('name', self.name)
+
+        return "%s(%s,%s dtype='%s')" % (type(self).__name__,
+                prepr, name_attr, self.dtype)
 
     def to_series(self, **kwargs):
         """
