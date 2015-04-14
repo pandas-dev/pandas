@@ -418,7 +418,7 @@ class SparseDataFrame(DataFrame):
         new_index, new_columns = this.index, this.columns
 
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         if self.empty and other.empty:
             return SparseDataFrame(index=new_index).__finalize__(self)
@@ -459,9 +459,9 @@ class SparseDataFrame(DataFrame):
         new_data = {}
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         new_index = self.index.union(other.index)
         this = self
@@ -494,9 +494,9 @@ class SparseDataFrame(DataFrame):
         # possible for this to happen, which is bothersome
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         new_data = {}
 
@@ -567,10 +567,10 @@ class SparseDataFrame(DataFrame):
             raise TypeError('Reindex by level not supported for sparse')
 
         if com.notnull(fill_value):
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:
-            raise NotImplementedError
+            raise NotImplementedError("'limit' argument is not supported")
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)

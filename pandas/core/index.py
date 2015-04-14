@@ -49,9 +49,8 @@ def _indexOp(opname):
     Wrapper function for index comparison operations, to avoid
     code duplication.
     """
-
     def wrapper(self, other):
-        func = getattr(self._data.view(np.ndarray), opname)
+        func = getattr(self.values, opname)
         result = func(np.asarray(other))
 
         # technically we could support bool dtyped Index
@@ -976,7 +975,9 @@ class Index(IndexOpsMixin, PandasObject):
             to_concat.append(other)
 
         for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
+            if (isinstance(obj, Index) and
+                obj.name != name and
+                obj.name is not None):
                 name = None
                 break
 
@@ -4023,7 +4024,7 @@ class MultiIndex(Index):
         labels = list(self.labels)
         shape = list(self.levshape)
 
-        if isinstance(level, (str, int)):
+        if isinstance(level, (compat.string_types, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
 

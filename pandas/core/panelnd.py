@@ -99,7 +99,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter',
               'dropna', 'shift']:
         def func(self, *args, **kwargs):
-            raise NotImplementedError
+            raise NotImplementedError("this operation is not supported")
         setattr(klass, f, func)
 
     # add the aggregate operations

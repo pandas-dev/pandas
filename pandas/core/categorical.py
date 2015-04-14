@@ -61,7 +61,14 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
             else:
-                return np.repeat(False, len(self))
+                if op == '__eq__':
+                    return np.repeat(False, len(self))
+                elif op == '__ne__':
+                    return np.repeat(True, len(self))
+                else:
+                    msg  = "Cannot compare a Categorical for op {op} with a scalar, " \
+                           "which is not a category."
+                    raise TypeError(msg.format(op=op))
         else:
 
             # allow categorical vs object dtype array comparisons for equality
@@ -1159,7 +1166,8 @@ class Categorical(PandasObject):
         if fill_value is None:
             fill_value = np.nan
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("specifying a limit for fillna has not "
+                                      "been implemented yet")
 
         values = self._codes
 

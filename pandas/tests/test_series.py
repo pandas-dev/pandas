@@ -5617,6 +5617,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         self.assertTrue(issubclass(s2.dtype.type, np.integer))
 
+    def test_divide_decimal(self):
+        ''' resolves issue #9787 '''
+        from decimal import Decimal
+
+        expected = Series([Decimal(5)])
+
+        s =  Series([Decimal(10)])
+        s =  s/Decimal(2)
+
+        tm.assert_series_equal(expected, s)
+
+        s =  Series([Decimal(10)])
+        s =  s//Decimal(2)
+
+        tm.assert_series_equal(expected, s)
+
     def test_map_decimal(self):
         from decimal import Decimal
 

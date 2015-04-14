@@ -1003,6 +1003,14 @@ class TestGroupBy(tm.TestCase):
             for idx in gp.index:
                 assert_fp_equal(res.xs(idx), agged[idx])
 
+    def test_transform_dtype(self):
+        # GH 9807
+        # Check transform dtype output is preserved
+        df = DataFrame([[1, 3], [2, 3]])
+        result = df.groupby(1).transform('mean')
+        expected = DataFrame([[1.5], [1.5]])
+        assert_frame_equal(result, expected)
+
     def test_transform_bug(self):
         # GH 5712
         # transforming on a datetime column
