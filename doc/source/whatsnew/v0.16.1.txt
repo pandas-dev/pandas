@@ -52,6 +52,7 @@ Enhancements
 - ``Period`` now accepts ``datetime64`` as value input. (:issue:`9054`)
 
 - Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
+- Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
 
 .. _whatsnew_0161.api:
 
