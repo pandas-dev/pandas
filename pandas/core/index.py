@@ -976,7 +976,9 @@ class Index(IndexOpsMixin, PandasObject):
             to_concat.append(other)
 
         for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
+            if (isinstance(obj, Index) and
+                obj.name != name and
+                obj.name is not None):
                 name = None
                 break
 
@@ -4023,7 +4025,7 @@ class MultiIndex(Index):
         labels = list(self.labels)
         shape = list(self.levshape)
 
-        if isinstance(level, (str, int)):
+        if isinstance(level, (compat.string_types, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
 

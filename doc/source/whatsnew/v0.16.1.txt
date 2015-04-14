@@ -95,6 +95,7 @@ Bug Fixes
 - Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 - Bug in json serialization when frame has length zero.(:issue:`9805`)
 - Bug in `read_csv` where missing trailing delimiters would cause segfault. (:issue:`5664`)
+- Bug in retaining index name on appending (:issue:`9862`)
 
 
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
@@ -105,6 +106,8 @@ Bug Fixes
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
 
 - Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
+
+- Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
 
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
@@ -134,3 +137,5 @@ Bug Fixes
 - Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
 
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
+
+- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)

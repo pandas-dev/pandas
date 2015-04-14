@@ -476,6 +476,10 @@ class TestCompression(TestPackers):
             assert_frame_equal(self.frame[k], i_rec[k])
 
     def test_compression_blosc(self):
+        try:
+            import blosc
+        except ImportError:
+            raise nose.SkipTest('no blosc')
         i_rec = self.encode_decode(self.frame, compress='blosc')
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
