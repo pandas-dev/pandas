@@ -613,8 +613,12 @@ class DataFrameFormatter(TableFormatter):
             name = any(self.frame.columns.names)
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format(name=name)
-                width = len(lev2[0])
-                lev3 = [' ' * width] * clevels + lev2
+                blank = ' ' * len(lev2[0])
+                lev3 = [blank] * clevels
+                for level_idx, group in itertools.groupby(
+                        self.frame.index.labels[i]):
+                    count = len(list(group))
+                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
                 strcols.insert(i, lev3)
 
         if column_format is None:
