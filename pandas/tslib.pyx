@@ -447,6 +447,11 @@ class Timestamp(_Timestamp):
         Returns
         -------
         localized : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If the Timestamp is tz-aware and tz is not None.
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
@@ -471,8 +476,7 @@ class Timestamp(_Timestamp):
 
     def tz_convert(self, tz):
         """
-        Convert Timestamp to another time zone or localize to requested time
-        zone
+        Convert tz-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -483,6 +487,11 @@ class Timestamp(_Timestamp):
         Returns
         -------
         converted : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If Timestamp is tz-naive.
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize

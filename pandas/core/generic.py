@@ -3599,8 +3599,7 @@ class NDFrame(PandasObject):
 
     def tz_convert(self, tz, axis=0, level=None, copy=True):
         """
-        Convert the axis to target time zone. If it is time zone naive, it
-        will be localized to the passed time zone.
+        Convert tz-aware axis to target time zone.
 
         Parameters
         ----------
@@ -3614,6 +3613,11 @@ class NDFrame(PandasObject):
 
         Returns
         -------
+
+        Raises
+        ------
+        TypeError
+            If the axis is tz-naive.
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
@@ -3672,6 +3676,11 @@ class NDFrame(PandasObject):
 
         Returns
         -------
+
+        Raises
+        ------
+        TypeError
+            If the TimeSeries is tz-aware and tz is not None.
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
