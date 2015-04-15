@@ -227,4 +227,9 @@ Bug Fixes
 >>>>>>> 99aabee... What's new and doc
 =======
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
+<<<<<<< HEAD
 >>>>>>> b1e8d9f... Moved caching in `AbstractHolidayCalendar` to the instance level
+=======
+
+- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+>>>>>>> 4d1268e... BUG: Fixed latex output for multi-indexed dataframes - GH9778
