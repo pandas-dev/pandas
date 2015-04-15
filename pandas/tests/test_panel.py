@@ -1696,22 +1696,23 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # major
         idx = self.panel.major_axis[0]
         idx_lag = self.panel.major_axis[1]
-
         shifted = self.panel.shift(1)
-
         assert_frame_equal(self.panel.major_xs(idx),
                            shifted.major_xs(idx_lag))
 
         # minor
         idx = self.panel.minor_axis[0]
         idx_lag = self.panel.minor_axis[1]
-
         shifted = self.panel.shift(1, axis='minor')
-
         assert_frame_equal(self.panel.minor_xs(idx),
                            shifted.minor_xs(idx_lag))
 
-        self.assertRaises(Exception, self.panel.shift, 1, axis='items')
+        # items
+        idx = self.panel.items[0]
+        idx_lag = self.panel.items[1]
+        shifted = self.panel.shift(1, axis='items')
+        assert_frame_equal(self.panel[idx],
+                           shifted[idx_lag])
 
         # negative numbers, #2164
         result = self.panel.shift(-1)
