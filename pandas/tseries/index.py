@@ -1589,6 +1589,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         Returns
         -------
         normalized : DatetimeIndex
+
+        Raises
+        ------
+        TypeError
+            If DatetimeIndex is tz-naive.
         """
         tz = tslib.maybe_get_tz(tz)
 
@@ -1625,6 +1630,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         Returns
         -------
         localized : DatetimeIndex
+
+        Raises
+        ------
+        TypeError
+            If the DatetimeIndex is tz-aware and tz is not None.
         """
         if self.tz is not None:
             if tz is None:
