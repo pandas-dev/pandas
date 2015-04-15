@@ -260,17 +260,13 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def _formatter_func(self):
-        """
-        Format function to convert value to representation
-        """
-        return str
+        raise AbstractMethodError(self)
 
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
         attrs = super(DatetimeIndexOpsMixin, self)._format_attrs()
-        attrs.append(('length',len(self)))
         for attrib in self._attributes:
             if attrib == 'freq':
                 freq = self.freqstr
@@ -504,4 +500,6 @@ class DatetimeIndexOpsMixin(object):
         if self.freq:
             result += '\nFreq: %s' % self.freqstr
 
+        # display as values, not quoted
+        result = result.replace("'","")
         return result
