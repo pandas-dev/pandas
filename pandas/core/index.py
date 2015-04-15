@@ -1163,7 +1163,12 @@ class Index(IndexOpsMixin, PandasObject):
             return self
 
         offset = periods * freq
-        return Index([idx + offset for idx in self], name=self.name)
+        # If this is called from a subclass override, it shouldn't change the
+        # type.
+        return type(self)(
+            [idx + offset for idx in self],
+            **self._get_attributes_dict()
+        )
 
     def argsort(self, *args, **kwargs):
         """
