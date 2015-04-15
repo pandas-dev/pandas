@@ -293,6 +293,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ return an array repr of this object, potentially casting to object """
         return self.asobject.values
 
+    @property
+    def _formatter_func(self):
+        return lambda x: "'%s'" % x
+
     def asof_locs(self, where, mask):
         """
         where : array of timestamps

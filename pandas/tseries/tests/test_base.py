@@ -119,41 +119,17 @@ class TestDatetimeIndexOps(Ops):
         idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
                              tz='US/Eastern')
 
-        exp1 = """DatetimeIndex([],
-              dtype='datetime64[ns]',
-              length=0,
-              freq='D',
-              tz=None)"""
+        exp1 = """DatetimeIndex([], dtype='datetime64[ns]', freq='D', tz=None)"""
 
-        exp2 = """DatetimeIndex([2011-01-01],
-              dtype='datetime64[ns]',
-              length=1,
-              freq='D',
-              tz=None)"""
+        exp2 = """DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', freq='D', tz=None)"""
 
-        exp3 = """DatetimeIndex([2011-01-01, 2011-01-02],
-              dtype='datetime64[ns]',
-              length=2,
-              freq='D',
-              tz=None)"""
+        exp3 = """DatetimeIndex(['2011-01-01', '2011-01-02'], dtype='datetime64[ns]', freq='D', tz=None)"""
 
-        exp4 = """DatetimeIndex([2011-01-01, ..., 2011-01-03],
-              dtype='datetime64[ns]',
-              length=3,
-              freq='D',
-              tz=None)"""
+        exp4 = """DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], dtype='datetime64[ns]', freq='D', tz=None)"""
 
-        exp5 = """DatetimeIndex([2011-01-01 09:00:00+09:00, ..., 2011-01-01 11:00:00+09:00],
-              dtype='datetime64[ns]',
-              length=3,
-              freq='H',
-              tz='Asia/Tokyo')"""
+        exp5 = """DatetimeIndex(['2011-01-01 09:00:00+09:00', '2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00'], dtype='datetime64[ns]', freq='H', tz='Asia/Tokyo')"""
 
-        exp6 = """DatetimeIndex([2011-01-01 09:00:00-05:00, ..., NaT],
-              dtype='datetime64[ns]',
-              length=3,
-              freq=None,
-              tz='US/Eastern')"""
+        exp6 = """DatetimeIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00', 'NaT'], dtype='datetime64[ns]', freq=None, tz='US/Eastern')"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
                                  [exp1, exp2, exp3, exp4, exp5, exp6]):
@@ -390,30 +366,15 @@ class TestTimedeltaIndexOps(Ops):
         idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
         idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
 
-        exp1 = """TimedeltaIndex([],
-               dtype='timedelta64[ns]',
-               length=0,
-               freq='D')"""
+        exp1 = """TimedeltaIndex([], dtype='timedelta64[ns]', freq='D')"""
 
-        exp2 = """TimedeltaIndex(['1 days'],
-               dtype='timedelta64[ns]',
-               length=1,
-               freq='D')"""
+        exp2 = """TimedeltaIndex(['1 days'], dtype='timedelta64[ns]', freq='D')"""
 
-        exp3 = """TimedeltaIndex(['1 days', '2 days'],
-               dtype='timedelta64[ns]',
-               length=2,
-               freq='D')"""
+        exp3 = """TimedeltaIndex(['1 days', '2 days'], dtype='timedelta64[ns]', freq='D')"""
 
-        exp4 = """TimedeltaIndex(['1 days', ..., '3 days'],
-               dtype='timedelta64[ns]',
-               length=3,
-               freq='D')"""
+        exp4 = """TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')"""
 
-        exp5 = """TimedeltaIndex(['1 days 00:00:01', ..., '3 days 00:00:00'],
-               dtype='timedelta64[ns]',
-               length=3,
-               freq=None)"""
+        exp5 = """TimedeltaIndex(['1 days 00:00:01', '2 days 00:00:00', '3 days 00:00:00'], dtype='timedelta64[ns]', freq=None)"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                  [exp1, exp2, exp3, exp4, exp5]):
@@ -431,13 +392,13 @@ class TestTimedeltaIndexOps(Ops):
 
         exp1 = """TimedeltaIndex: 0 entries
 Freq: D"""
-        exp2 = """TimedeltaIndex: 1 entries, '1 days' to '1 days'
+        exp2 = """TimedeltaIndex: 1 entries, 1 days to 1 days
 Freq: D"""
-        exp3 = """TimedeltaIndex: 2 entries, '1 days' to '2 days'
+        exp3 = """TimedeltaIndex: 2 entries, 1 days to 2 days
 Freq: D"""
-        exp4 = """TimedeltaIndex: 3 entries, '1 days' to '3 days'
+        exp4 = """TimedeltaIndex: 3 entries, 1 days to 3 days
 Freq: D"""
-        exp5 = """TimedeltaIndex: 3 entries, '1 days 00:00:01' to '3 days 00:00:00'"""
+        exp5 = """TimedeltaIndex: 3 entries, 1 days 00:00:01 to 3 days 00:00:00"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                  [exp1, exp2, exp3, exp4, exp5]):
@@ -869,50 +830,23 @@ class TestPeriodIndexOps(Ops):
         idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
         idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
 
-        exp1 = """PeriodIndex([],
-            dtype='int64',
-            length=0,
-            freq='D')"""
+        exp1 = """PeriodIndex([], dtype='int64', freq='D')"""
 
-        exp2 = """PeriodIndex([2011-01-01],
-            dtype='int64',
-            length=1,
-            freq='D')"""
+        exp2 = """PeriodIndex(['2011-01-01'], dtype='int64', freq='D')"""
 
-        exp3 = """PeriodIndex([2011-01-01, 2011-01-02],
-            dtype='int64',
-            length=2,
-            freq='D')"""
+        exp3 = """PeriodIndex(['2011-01-01', '2011-01-02'], dtype='int64', freq='D')"""
 
-        exp4 = """PeriodIndex([2011-01-01, ..., 2011-01-03],
-            dtype='int64',
-            length=3,
-            freq='D')"""
+        exp4 = """PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], dtype='int64', freq='D')"""
 
-        exp5 = """PeriodIndex([2011, ..., 2013],
-            dtype='int64',
-            length=3,
-            freq='A-DEC')"""
+        exp5 = """PeriodIndex(['2011', '2012', '2013'], dtype='int64', freq='A-DEC')"""
 
-        exp6 = """PeriodIndex([2011-01-01 09:00, ..., NaT],
-            dtype='int64',
-            length=3,
-            freq='H')"""
+        exp6 = """PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], dtype='int64', freq='H')"""
 
-        exp7 = """PeriodIndex([2013Q1],
-            dtype='int64',
-            length=1,
-            freq='Q-DEC')"""
+        exp7 = """PeriodIndex(['2013Q1'], dtype='int64', freq='Q-DEC')"""
 
-        exp8 = """PeriodIndex([2013Q1, 2013Q2],
-            dtype='int64',
-            length=2,
-            freq='Q-DEC')"""
+        exp8 = """PeriodIndex(['2013Q1', '2013Q2'], dtype='int64', freq='Q-DEC')"""
 
-        exp9 = """PeriodIndex([2013Q1, ..., 2013Q3],
-            dtype='int64',
-            length=3,
-            freq='Q-DEC')"""
+        exp9 = """PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], dtype='int64', freq='Q-DEC')"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
                                  [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9]):
