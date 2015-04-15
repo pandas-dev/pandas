@@ -4870,7 +4870,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
-
     def test_from_csv(self):
 
         with ensure_clean() as path:
@@ -4920,6 +4919,99 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
 
         assert_series_equal(s, s2)
+
+    def test_to_csv_unicode_delimiter_with_encodings(self):
+        # broken bar varies based on encoding
+        sep = b'\xa6'.decode('latin1')
+        # broken bar in latin1 is single byte, so that's okay in Python 3 only
+        encoding = 'latin1'
+        buf = StringIO()
+        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
+        if compat.PY3:
+            buf = StringIO()
+            s.to_csv(buf, encoding=encoding, sep=sep)
+            buf.seek(0)
+            s2 = Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep)
+            assert_series_equal(s, s2)
+            buf.seek(0)
+            # explicit engine fails
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+            # but fallback should work
+            s2 = Series.from_csv(buf, index_col=0, encoding=encoding,
+                                 sep=sep)
+            assert_series_equal(s, s2)
+        else:
+            # can't ever work in Python 2 that works only with single-byte UTF8
+            # seps
+            with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                buf = StringIO()
+                s.to_csv(buf, encoding=encoding, sep=sep)
+            # these two are based on validation before any reads
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                buf = StringIO()
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+            with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                buf = StringIO()
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='python')
+        # and with utf8 encoding we have a similar set of constraints
+        encoding = 'utf8'
+        if compat.PY3:
+            buf = StringIO()
+            s.to_csv(buf, encoding=encoding, sep=sep)
+            buf.seek(0)
+            # explicit engine fails
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                # however fallback doesn't work this time because sep is multibyte
+                Series.from_csv(buf, index_col=0, encoding=encoding, sep=sep)
+        else:
+            # can't ever work in Python 2 that works only with single-byte UTF8
+            # seps
+            with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                buf = StringIO()
+                s.to_csv(buf, encoding=encoding, sep=sep)
+            # these two are based on validation before any reads
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                buf = StringIO()
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+            with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                buf = StringIO()
+                Series.from_csv(buf, index_col=0, encoding=encoding,
+                                sep=sep, engine='python')
+
+        # however, single-byte utf8 characters are fine
+        sep = compat.unichr(255)
+        encoding = 'utf8'
+
+        s.to_csv(buf, encoding=encoding, sep=sep)
+        buf.seek(0)
+
+        s2 = Series.from_csv(buf, index_col=0, encoding=encoding,
+                             sep=sep)
+        assert_series_equal(s, s2)
+
+    def test_to_csv_from_csv_unicode_delimiter_no_encoding(self):
+        with ensure_clean() as path:
+            # works with ascii
+            sep = u(',')
+            self.ts.to_csv(path, sep=sep)
+            recons = Series.from_csv(path, index_col=0, sep=sep)
+            assert_series_equal(self.ts, recons)
+            # fails otherwise
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                sep = compat.unichr(255)
+                self.ts.to_csv(path, sep)
+            with tm.assertRaisesRegexp(ValueError, 'sep'):
+                sep = compat.unichr(255)
+                Series.from_csv(path, sep)
 
     def test_tolist(self):
         rs = self.ts.tolist()

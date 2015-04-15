@@ -6784,6 +6784,114 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
+    def test_to_csv_read_csv_ascii_sep_as_unicode(self):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        sep = u('|')
+        with ensure_clean() as path:
+            df.to_csv(path, encoding='UTF-8', sep=sep)
+            df2 = read_csv(path, index_col=0, encoding='UTF-8', sep=sep)
+            assert_frame_equal(df, df2)
+
+            df.to_csv(path, encoding='UTF-8', index=False, sep=sep)
+            df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                           sep=sep)
+            assert_frame_equal(df, df2)
+            self.frame.to_csv(path, sep=sep)
+            recons = read_csv(path, index_col=0, sep=sep)
+
+            assert_frame_equal(self.frame, recons)
+
+    def test_to_csv_read_csv_non_ascii_unicode_sep(self):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        sep = u('\u2202')
+        with ensure_clean() as path:
+            with tm.assertRaisesRegexp(ValueError, 'separator'):
+                df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                               sep=sep, engine='c')
+            if compat.PY3:
+                # non-ascii separators won't work in Python 2, so can't do this
+                # regardless
+                df.to_csv(path, encoding='UTF-8', index=False, sep=sep)
+                df2 = read_csv(path, index_col=None, encoding='UTF-8',
+                               sep=sep, engine='python')
+    def test_to_csv_unicode_delimiter_with_encodings(self):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        # broken bar varies based on encoding
+        sep = b'\xa6'.decode('latin1')
+        # broken bar in latin1 is single byte, so that's okay in Python 3 only
+        encoding = 'latin1'
+        with ensure_clean() as path:
+            if compat.PY3:
+                df.to_csv(path, encoding=encoding, sep=sep)
+                # explicit engine fails
+                with tm.assertRaisesRegexp(ValueError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+                df2 = pd.read_csv(path, index_col=0, encoding=encoding,
+                                 sep=sep)
+                assert_frame_equal(df, df2)
+            else:
+                # can't ever work in Python 2 that works only with single-byte UTF8
+                # seps
+                with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                    df.to_csv(path, encoding=encoding, sep=sep)
+                # these two are based on validation before any reads
+                with tm.assertRaisesRegexp(ValueError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+                with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='python')
+            # and with utf8 encoding we have a similar set of constraints
+            encoding = 'utf8'
+            if compat.PY3:
+                df.to_csv(path, encoding=encoding, sep=sep)
+                # explicit engine fails
+                with tm.assertRaisesRegexp(ValueError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+                with tm.assertRaisesRegexp(ValueError, 'sep'):
+                    # however fallback doesn't work this time because sep is multibyte
+                    pd.read_csv(path, index_col=0, encoding=encoding, sep=sep)
+            else:
+                # can't ever work in Python 2 that works only with single-byte UTF8
+                # seps
+                with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                    df.to_csv(path, encoding=encoding, sep=sep)
+                # these two are based on validation before any reads
+                with tm.assertRaisesRegexp(ValueError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+                with tm.assertRaisesRegexp(NotImplementedError, 'sep'):
+                    pd.read_csv(path, index_col=0, encoding=encoding,
+                                sep=sep, engine='c')
+
+            # however, single-byte utf8 characters are fine
+            sep = compat.unichr(255)
+            encoding = 'utf8'
+
+            df.to_csv(path, encoding=encoding, sep=sep)
+
+            df2 = pd.read_csv(path, index_col=0, encoding=encoding,
+                              sep=sep)
+            assert_frame_equal(df, df2)
+
+    def test_to_csv_from_csv_unicode_delimiter_no_encoding(self):
+        # works with ascii
+        buf = StringIO()
+        sep = u(',')
+        self.frame.to_csv(buf, sep=sep)
+        buf.seek(0)
+        recons = pd.read_csv(buf, index_col=0, sep=sep)
+        assert_frame_equal(self.frame, recons)
+        # fails otherwise
+        with tm.assertRaisesRegexp(ValueError, 'sep'):
+            sep = compat.unichr(255)
+            self.frame.to_csv(buf, sep)
+        with tm.assertRaisesRegexp(ValueError, 'sep'):
+            sep = compat.unichr(255)
+            pd.read_csv(buf, sep)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

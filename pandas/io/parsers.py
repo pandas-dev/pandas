@@ -26,6 +26,8 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 
+MAX_ORDINAL_FOR_CHAR = 128
+
 class ParserWarning(Warning):
     pass
 
@@ -608,15 +610,37 @@ class TextFileReader(object):
                 fallback_reason = "the 'c' engine does not support"\
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
-        elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+
+        if sep is not None and engine not in ('python', 'python-fwf'):
+            if len(sep) > 1 and sep == '\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
-            elif engine not in ('python', 'python-fwf'):
+            elif len(sep) > 1:
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators"
                 engine = 'python'
+            elif len(sep) == 1 and isinstance(sep, compat.text_type):
+                try:
+                    if options.get('encoding'):
+                        sep_bytes = sep.encode(options['encoding'])
+                    else:
+                        sep_bytes = sep.encode()
+                except UnicodeEncodeError as e:
+                    raise ValueError('sep is not compatible with given'
+                                     ' encoding. (%s)' % e)
+                if len(sep_bytes) == 1:
+                    sep = sep_bytes
+                else:
+                    # python 2 CSV reader always works with bytes, so we can't
+                    # do anything else here but fail.
+                    if not compat.PY3:
+                        raise ValueError('Must specify single byte sep'
+                                         ' character')
+                    fallback_reason = "the 'c' engine does not support"\
+                                      " multi-byte separators"
+                    engine = 'python'
+
 
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
