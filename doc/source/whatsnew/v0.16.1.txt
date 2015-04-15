@@ -268,6 +268,51 @@ API changes
 
 - By default, ``read_csv`` and ``read_table`` will now try to infer the compression type based on the file extension. Set ``compression=None`` to restore the previous behavior (no decompression). (:issue:`9770`)
 
+.. _whatsnew_0161.index_repr:
+
+Index Representation
+~~~~~~~~~~~~~~~~~~~~
+
+The string representation of ``Index`` and its sub-classes have now been unified. These are all uniform in their output
+formats, except for ``MultiIndex``, which has a multi-line repr. The display width responds to the option ``display.max_seq_len``,
+which is now defaulted to 10 (previously was 100). (:issue:`6482`)
+
+Previous Behavior
+
+.. code-block:: python
+
+
+   In [1]: pd.get_option('max_seq_items')
+   Out[1]: 100
+
+   In [2]: pd.Index(range(4),name='foo')
+   Out[2]: Int64Index([0, 1, 2, 3], dtype='int64')
+
+   In [3]: pd.Index(range(104),name='foo')
+   Out[3]: Int64Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, ...], dtype='int64')
+
+   In [4]: pd.date_range('20130101',periods=4,name='foo',tz='US/Eastern')
+   Out[4]:
+   <class 'pandas.tseries.index.DatetimeIndex'>
+   [2013-01-01 00:00:00-05:00, ..., 2013-01-04 00:00:00-05:00]
+   Length: 4, Freq: D, Timezone: US/Eastern
+
+   In [5]: pd.date_range('20130101',periods=104,name='foo',tz='US/Eastern')
+   Out[5]:
+   <class 'pandas.tseries.index.DatetimeIndex'>
+   [2013-01-01 00:00:00-05:00, ..., 2013-04-14 00:00:00-04:00]
+   Length: 104, Freq: D, Timezone: US/Eastern
+
+New Behavior
+
+.. ipython:: python
+
+   pd.get_option('max_seq_items')
+   pd.Index(range(4),name='foo')
+   pd.Index(range(104),name='foo')
+   pd.date_range('20130101',periods=4,name='foo',tz='US/Eastern')
+   pd.date_range('20130101',periods=104,name='foo',tz='US/Eastern')
+
 .. _whatsnew_0161.deprecations:
 
 Deprecations

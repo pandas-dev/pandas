@@ -2488,16 +2488,13 @@ class TestInt64Index(Numeric, tm.TestCase):
 
 class DatetimeLike(Base):
 
-    def test_repr_roundtrip(self):
-        raise nose.SkipTest("Short reprs are not supported repr for Datetimelike indexes")
-
     def test_str(self):
 
         # test the string repr
         idx = self.create_index()
         idx.name = 'foo'
-        self.assertTrue("length=%s" % len(idx) in str(idx))
-        self.assertTrue("u'foo'" in str(idx))
+        self.assertFalse("length=%s" % len(idx) in str(idx))
+        self.assertTrue("'foo'" in str(idx))
         self.assertTrue(idx.__class__.__name__ in str(idx))
 
         if hasattr(idx,'tz'):

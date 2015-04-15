@@ -395,20 +395,32 @@ class Index(IndexOpsMixin, PandasObject):
         klass = self.__class__.__name__
         data = self._format_data()
         attrs = self._format_attrs()
-        max_seq_items = get_option('display.max_seq_items')
-        if len(self) > max_seq_items:
-            space = "\n%s" % (' ' * (len(klass) + 1))
-        else:
-            space = " "
+        space = self._format_space()
 
         prepr = (u(",%s") % space).join([u("%s=%s") % (k, v)
                                           for k, v in attrs])
-        res = u("%s(%s,%s%s)") % (klass,
-                                  data,
-                                  space,
-                                  prepr)
+
+        # no data provided, just attributes
+        if data is None:
+            data = ''
+        else:
+            data = "%s,%s" % (data, space)
+
+        res = u("%s(%s%s)") % (klass,
+                               data,
+                               prepr)
 
         return res
+
+    def _format_space(self):
+
+        # using space here controls if the attributes
+        # are line separated or not (the default)
+
+        #max_seq_items = get_option('display.max_seq_items')
+        #if len(self) > max_seq_items:
+        #    space = "\n%s" % (' ' * (len(klass) + 1))
+        return " "
 
     @property
     def _formatter_func(self):
@@ -421,7 +433,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-
         max_seq_items = get_option('display.max_seq_items')
         formatter = self._formatter_func
         n = len(self)
@@ -450,9 +461,12 @@ class Index(IndexOpsMixin, PandasObject):
         Return a list of tuples of the (attr,formatted_value)
         """
         attrs = []
+        attrs.append(('dtype',"'%s'" % self.dtype))
         if self.name is not None:
             attrs.append(('name',default_pprint(self.name)))
-        attrs.append(('dtype',"'%s'" % self.dtype))
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            attrs.append(('length',len(self)))
         return attrs
 
     def to_series(self, **kwargs):
@@ -3937,40 +3951,24 @@ class MultiIndex(Index):
         names_nbytes = sum(( getsizeof(i) for i in self.names ))
         return level_nbytes + label_nbytes + names_nbytes
 
-    def __repr__(self):
-        encoding = get_option('display.encoding')
+    def _format_attrs(self):
+        """
+        Return a list of tuples of the (attr,formatted_value)
+        """
         attrs = [('levels', default_pprint(self.levels)),
                  ('labels', default_pprint(self.labels))]
         if not all(name is None for name in self.names):
             attrs.append(('names', default_pprint(self.names)))
         if self.sortorder is not None:
             attrs.append(('sortorder', default_pprint(self.sortorder)))
+        return attrs
 
-        space = ' ' * (len(self.__class__.__name__) + 1)
-        prepr = (u(",\n%s") % space).join([u("%s=%s") % (k, v)
-                                          for k, v in attrs])
-        res = u("%s(%s)") % (self.__class__.__name__, prepr)
+    def _format_space(self):
+        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
 
-        if not compat.PY3:
-            # needs to be str in Python 2
-            res = res.encode(encoding)
-        return res
-
-    def __unicode__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        rows = self.format(names=True)
-        max_rows = get_option('display.max_rows')
-        if len(rows) > max_rows:
-            spaces = (len(rows[0]) - 3) // 2
-            centered = ' ' * spaces
-            half = max_rows // 2
-            rows = rows[:half] + [centered + '...' + centered] + rows[-half:]
-        return "\n".join(rows)
+    def _format_data(self):
+        # we are formatting thru the attributes
+        return None
 
     def __len__(self):
         return len(self.labels[0])
