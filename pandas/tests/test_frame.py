@@ -14,7 +14,6 @@ import functools
 import itertools
 from itertools import product, permutations
 from distutils.version import LooseVersion
-from tempfile import NamedTemporaryFile
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
@@ -14205,36 +14204,6 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
-
-def skip_if_no_pytables():
-    try:
-        import tables
-    except ImportError:
-        raise nose.SkipTest("cannot check test results without pytables")
-
-
-class TestToHdfWithIntegerColumnNames(tm.TestCase):
-    # GH9057
-    def setUp(self):
-        N = 2
-        array = np.random.randint(0,8, size=N*N).astype('uint8').reshape(N,-1)
-        df = DataFrame(array, index=pd.date_range('20130206',
-                                                  periods=N,freq='ms'))
-
-        self.filename = NamedTemporaryFile(suffix='.h5', delete=False).name
-        df.to_hdf(self.filename,'df', mode='w', format='table',
-                  data_columns=True)
-
-    def test_file_is_openable(self):
-        skip_if_no_pytables()
-        import tables
-
-        with tables.open_file(self.filename, 'r') as myfile:
-            stuff = myfile.root.df
-            assert stuff
-
-    def tearDown(self):
-        os.remove(self.filename)
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':

@@ -4,6 +4,7 @@ import os
 import warnings
 import tempfile
 from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
 
 import datetime
 import numpy as np
@@ -4622,6 +4623,27 @@ def _test_sort(obj):
         return obj.reindex(major=sorted(obj.major_axis))
     else:
         raise ValueError('type not supported here')
+
+class TestToHdfWithIntegerColumnNames(tm.TestCase):
+    # GH9057
+    def setUp(self):
+        N = 2
+        array = np.random.randint(0,8, size=N*N).astype('uint8').reshape(N,-1)
+        df = DataFrame(array, index=pd.date_range('20130206',
+                                                  periods=N,freq='ms'))
+
+        self.filename = NamedTemporaryFile(suffix='.h5', delete=False).name
+        df.to_hdf(self.filename,'df', mode='w', format='table',
+                  data_columns=True)
+
+    def test_file_is_openable(self):
+
+        with tables.open_file(self.filename, 'r') as myfile:
+            stuff = myfile.root.df
+            assert stuff
+
+    def tearDown(self):
+        os.remove(self.filename)
 
 
 if __name__ == '__main__':
