@@ -297,9 +297,9 @@ class TestGroupBy(tm.TestCase):
         # as it keeps the order in the series (and not the group order)
         # related GH 7287
         expected = s.groupby(g,sort=False).first()
-        expected.index = range(1,10)
-        result = s.groupby(g).nth(0,dropna='all')
-        assert_series_equal(result,expected)
+        expected.index = pd.Index(range(1,10), name=0)
+        result = s.groupby(g).nth(0, dropna='all')
+        assert_series_equal(result, expected)
 
         # doc example
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -807,9 +807,10 @@ class TestGroupBy(tm.TestCase):
         # GH 5789
         # don't auto coerce dates
         df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'])
-        expected = Series(['00:00','02:00','02:00'],index=['2011.05.16','2011.05.17','2011.05.18'])
+        exp_idx = pd.Index(['2011.05.16','2011.05.17','2011.05.18'], dtype=object, name='date')
+        expected = Series(['00:00','02:00','02:00'], index=exp_idx)
         result = df.groupby('date').apply(lambda x: x['time'][x['value'].idxmax()])
-        assert_series_equal(result,expected)
+        assert_series_equal(result, expected)
 
     def test_len(self):
         df = tm.makeTimeDataFrame()
@@ -1700,7 +1701,8 @@ class TestGroupBy(tm.TestCase):
         # apply doesn't maintain the original ordering
         # changed in GH5610 as the as_index=False returns a MI here
         exp_not_as_apply = MultiIndex.from_tuples([(0, 0), (0, 2), (1, 1), (2, 4)])
-        exp_as_apply = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
+        tp = [(1, 0), (1, 2), (2, 1), (3, 4)]
+        exp_as_apply = MultiIndex.from_tuples(tp, names=['user_id', None])
 
         assert_index_equal(res_as_apply, exp_as_apply)
         assert_index_equal(res_not_as_apply, exp_not_as_apply)
@@ -1922,6 +1924,8 @@ class TestGroupBy(tm.TestCase):
             for (cat1, cat2), group in grouped:
                 expd.setdefault(cat1, {})[cat2] = op(group['C'])
             exp = DataFrame(expd).T.stack(dropna=False)
+            exp.index.names = ['A', 'B']
+
             result = op(grouped)['C']
             assert_series_equal(result, exp)
 
@@ -1974,7 +1978,7 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_timedelta_cython_count(self):
         df = DataFrame({'g': list('ab' * 2),
                         'delt': np.arange(4).astype('timedelta64[ns]')})
-        expected = Series([2, 2], index=['a', 'b'], name='delt')
+        expected = Series([2, 2], index=pd.Index(['a', 'b'], name='g'), name='delt')
         result = df.groupby('g').delt.count()
         tm.assert_series_equal(expected, result)
 
@@ -2385,13 +2389,13 @@ class TestGroupBy(tm.TestCase):
         df = pd.DataFrame({'a': ['a'] * 3 + ['b'] * 3,
                            'c': [2] * 3 + [3] * 3})
         result = df.groupby('c').a.count()
-        expected = pd.Series([3, 3], index=[2, 3], name='a')
+        expected = pd.Series([3, 3], index=pd.Index([2, 3], name='c'), name='a')
         tm.assert_series_equal(result, expected)
 
         df = pd.DataFrame({'a': ['a', np.nan, np.nan] + ['b'] * 3,
                            'c': [2] * 3 + [3] * 3})
         result = df.groupby('c').a.count()
-        expected = pd.Series([1, 3], index=[2, 3], name='a')
+        expected = pd.Series([1, 3], index=pd.Index([2, 3], name='c'), name='a')
         tm.assert_series_equal(result, expected)
 
     def test_count_cross_type(self):  # GH8169

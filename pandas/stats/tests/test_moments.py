@@ -1254,7 +1254,8 @@ class TestMomentsConsistency(Base):
 
         actual = panel.ix[:, 1, 5]
         expected = func(self.frame[1], self.frame[5], *args, **kwargs)
-        tm.assert_series_equal(actual, expected)
+        tm.assert_series_equal(actual, expected, check_names=False)
+        self.assertEqual(actual.name, 5)
 
     def test_flex_binary_moment(self):
         # GH3155
