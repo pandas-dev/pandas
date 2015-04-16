@@ -204,8 +204,8 @@ Bug Fixes
 >>>>>>> 30580e7... Groupby transform preserves output dtype
 =======
 
-
-
+- Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
+- Bug in horizontal bar plot ignores ``log=True`` (:issue:`9905`)
 
 
 

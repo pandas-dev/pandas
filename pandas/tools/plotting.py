@@ -1824,11 +1824,12 @@ class BarPlot(MPLPlot):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
                 start = start + self.bottom
-                return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
+                return ax.bar(x, y, w, bottom=start, log=self.log, **kwds)
         elif self.kind == 'barh':
+
             def f(ax, x, y, w, start=None, log=self.log, **kwds):
                 start = start + self.left
-                return ax.barh(x, y, w, left=start, **kwds)
+                return ax.barh(x, y, w, left=start, log=self.log, **kwds)
         else:
             raise ValueError("BarPlot kind must be either 'bar' or 'barh'")
 
@@ -1836,9 +1837,6 @@ class BarPlot(MPLPlot):
 
     def _make_plot(self):
         import matplotlib as mpl
-        # mpl decided to make their version string unicode across all Python
-        # versions for mpl >= 1.3 so we have to call str here for python 2
-        mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
 
         colors = self._get_colors()
         ncolors = len(colors)
@@ -1862,11 +1860,8 @@ class BarPlot(MPLPlot):
                 kwds['ecolor'] = mpl.rcParams['xtick.color']
 
             start = 0
-            if self.log:
+            if self.log and (y >= 1).all():
                 start = 1
-                if any(y < 1):
-                    # GH3254
-                    start = 0 if mpl_le_1_2_1 else None
 
             if self.subplots:
                 w = self.bar_width / 2
