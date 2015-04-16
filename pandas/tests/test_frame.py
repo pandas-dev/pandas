@@ -2395,22 +2395,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                         'B' : ci.values })
         idf = df.set_index('B')
         str(idf)
-        tm.assert_index_equal(idf.index,ci)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
 
         # from a CategoricalIndex
         df = DataFrame({'A' : np.random.randn(10),
                         'B' : ci })
         idf = df.set_index('B')
         str(idf)
-        tm.assert_index_equal(idf.index,ci)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
 
         idf = df.set_index('B').reset_index().set_index('B')
         str(idf)
-        tm.assert_index_equal(idf.index,ci)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
 
         new_df = idf.reset_index()
         new_df.index = df.B
-        tm.assert_index_equal(new_df.index,ci)
+        tm.assert_index_equal(new_df.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
 
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
@@ -7488,19 +7492,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
-        expected = Index(['a', 'b', 'c'])
+        expected = Index(['a', 'b', 'c'], name='first')
         self.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['b', 'g'], errors='ignore')
-        expected = Index(['a', 'c'])
+        expected = Index(['a', 'c'], name='first')
         self.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['g'], axis=1, errors='ignore')
-        expected = Index(['d', 'e', 'f'])
+        expected = Index(['d', 'e', 'f'], name='second')
         self.assert_index_equal(dropped.columns, expected)
 
         dropped = df.drop(['d', 'g'], axis=1, errors='ignore')
-        expected = Index(['e', 'f'])
+        expected = Index(['e', 'f'], name='second')
         self.assert_index_equal(dropped.columns, expected)
 
     def test_dropEmptyRows(self):
