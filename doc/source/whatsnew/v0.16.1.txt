@@ -144,8 +144,8 @@ Bug Fixes
 - Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
 
-
-
+- Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
+- Bug in horizontal bar plot ignores ``log=True`` (:issue:`9905`)
 
 
 
