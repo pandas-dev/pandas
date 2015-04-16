@@ -709,7 +709,9 @@ class TestTimeZoneSupportPytz(tm.TestCase):
             # or not.
             np.testing.assert_array_equal(
                 (result - range_).minute,
-                np.full((len(dr)), 10, dtype='int32'),
+                # This would be marginally more efficient with np.fill, but it
+                # doesn't exist until numpy 1.8.0.
+                np.ones(len(dr), dtype='int32') * 10,
             )
 
     def test_tz_aware_asfreq(self):
