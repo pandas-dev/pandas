@@ -592,6 +592,26 @@ class TestSeriesPlots(TestPlotBase):
 
         ax = Series([200, 500]).plot(log=True, kind='bar')
         assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([200, 500]).plot(log=True, kind='barh')
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
+        tm.close()
+
+        # GH 9905
+        expected = np.array([1.0e-03, 1.0e-02, 1.0e-01, 1.0e+00])
+
+        if not self.mpl_le_1_2_1:
+            expected = np.hstack((1.0e-04, expected, 1.0e+01))
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        assert_array_equal(ax.get_ylim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
+        assert_array_equal(ax.get_xlim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_ignore_index(self):
