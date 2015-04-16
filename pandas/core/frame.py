@@ -794,10 +794,7 @@ class DataFrame(NDFrame):
                 return cls()
 
             try:
-                if compat.PY3:
-                    first_row = next(data)
-                else:
-                    first_row = next(data)
+                first_row = next(data)
             except StopIteration:
                 return cls(index=index, columns=columns)
 
