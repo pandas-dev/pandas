@@ -2197,6 +2197,28 @@ x & y &  a \\
 """
         self.assertEqual(result, expected)
 
+        df = DataFrame.from_dict({
+            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+        }).T
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{llrrrr}
+\toprule
+   &   &  0 &  1 &  2 &  3 \\
+\midrule
+c1 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c2 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c3 & 0 &  0 &  1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
     def test_to_latex_escape(self):
         a = 'a'
         b = 'b'

@@ -157,3 +157,5 @@ Bug Fixes
 - Bug where dividing a dataframe containing values of type ``Decimal`` by another ``Decimal`` would raise. (:issue:`9787`)
 - Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
+
+- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
