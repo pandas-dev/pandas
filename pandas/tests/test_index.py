@@ -2055,10 +2055,10 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.assertEqual(i_view.name, 'Foo')
 
         i_view = i.view('i8')
-        tm.assert_index_equal(i, Int64Index(i_view))
+        tm.assert_index_equal(i, Int64Index(i_view, name='Foo'))
 
         i_view = i.view(Int64Index)
-        tm.assert_index_equal(i, Int64Index(i_view))
+        tm.assert_index_equal(i, Int64Index(i_view, name='Foo'))
 
     def test_coerce_list(self):
         # coerce things
