@@ -174,6 +174,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in `DatetimeIndex.shift` where shifting an empty index would downcast to an `Index` instead of a `DatetimeIndex`.
 - Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 - Bug in json serialization when frame has length zero.(:issue:`9805`)
 - Bug in `read_csv` where missing trailing delimiters would cause segfault. (:issue:`5664`)
