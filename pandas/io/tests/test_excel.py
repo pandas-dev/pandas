@@ -1132,31 +1132,29 @@ class ExcelWriterBase(SharedItems):
 
         nrows = 5
         ncols = 3
+        for use_headers in (True, False):
+            for i in range(1, 4):  # row multindex upto nlevel=3
+                for j in range(1, 4):  # col ""
+                    df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
 
-        for i in range(1, 4):  # row multindex upto nlevel=3
-            for j in range(1, 4):  # col ""
-                df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
-                res = roundtrip(df)
-                # shape
-                self.assertEqual(res.shape, (nrows, ncols + i))
+                    #this if will be removed once multi column excel writing
+                    #is implemented for now fixing #9794
+                    if j>1:
+                        with tm.assertRaises(NotImplementedError):
+                            res = roundtrip(df, use_headers)
+                    else:
+                        res = roundtrip(df, use_headers)
 
-                # no nans
-                for r in range(len(res.index)):
-                    for c in range(len(res.columns)):
-                        self.assertTrue(res.ix[r, c] is not np.nan)
+                    if use_headers:
+                        self.assertEqual(res.shape, (nrows, ncols + i))
+                    else:
+                        # first row taken as columns
+                        self.assertEqual(res.shape, (nrows - 1, ncols + i))
 
-        for i in range(1, 4):  # row multindex upto nlevel=3
-            for j in range(1, 4):  # col ""
-                df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
-                res = roundtrip(df, False)
-                # shape
-                self.assertEqual(res.shape, (
-                    nrows - 1, ncols + i))  # first row taken as columns
-
-                # no nans
-                for r in range(len(res.index)):
-                    for c in range(len(res.columns)):
-                        self.assertTrue(res.ix[r, c] is not np.nan)
+                    # no nans
+                    for r in range(len(res.index)):
+                        for c in range(len(res.columns)):
+                            self.assertTrue(res.ix[r, c] is not np.nan)
 
         res = roundtrip(DataFrame([0]))
         self.assertEqual(res.shape, (1, 1))
@@ -1393,6 +1391,29 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
+
+    def test_excel_raise_not_implemented_error_on_multiindex_columns(self):
+        _skip_if_no_xlwt()
+        #MultiIndex as columns is not yet implemented 9794
+        cols = pd.MultiIndex.from_tuples([('site',''),
+                                          ('2014','height'),
+                                          ('2014','weight')])
+        df = pd.DataFrame(np.random.randn(10,3), columns=cols)
+        with tm.assertRaises(NotImplementedError):
+            with ensure_clean(self.ext) as path:
+                df.to_excel(path, index=False)
+
+    def test_excel_multiindex_index(self):
+        _skip_if_no_xlwt()
+        #MultiIndex as index works so assert no error #9794
+        cols = pd.MultiIndex.from_tuples([('site',''),
+                                          ('2014','height'),
+                                          ('2014','weight')])
+        df = pd.DataFrame(np.random.randn(3,10), index=cols)
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path, index=False)
+
+
 
     def test_to_excel_styleconverter(self):
         _skip_if_no_xlwt()
