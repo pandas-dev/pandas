@@ -22,6 +22,7 @@ matrix:
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - BUILD_TYPE=conda
       - JOB_NAME: "26_nslow_nnet"
+      - INSTALL_TEST=true
     - python: 2.7
       env:
       - NOSE_ARGS="slow and not network and not disabled"
@@ -183,6 +184,7 @@ script:
 # nothing here, or failed tests won't fail travis
 
 after_script:
+  - ci/install_test.sh
   - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
