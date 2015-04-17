@@ -166,9 +166,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     else:
                         index = Index(_try_sort(data))
                 try:
-                    if isinstance(index, DatetimeIndex):
+                    if isinstance(index, DatetimeIndex) and lib.infer_dtype(data) != 'datetime64':
                         # coerce back to datetime objects for lookup
-                        data = lib.fast_multiget(data, index.astype('O'),
+                        data = lib.fast_multiget(data, index.astype('O').values,
                                                  default=np.nan)
                     elif isinstance(index, PeriodIndex):
                         data = [data.get(i, nan) for i in index]
