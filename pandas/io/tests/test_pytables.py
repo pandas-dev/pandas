@@ -4614,6 +4614,14 @@ class TestHDFStore(tm.TestCase):
             store['df'] = df
             assert_frame_equal(store['df'], df)
 
+    def test_all_missing_values(self):
+        # Test corresponding to Issue 9382
+        df_with_missing = DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan, np.nan]})
+        
+        with ensure_clean_path(self.path) as path:
+            df_with_missing.to_hdf(path, 'df_with_missing', format = 't')
+            reloaded = read_hdf(path, 'df_with_missing')
+            tm.assert_frame_equal(df_with_missing, reloaded)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
