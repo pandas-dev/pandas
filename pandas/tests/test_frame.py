@@ -5,6 +5,7 @@ from __future__ import print_function
 from copy import deepcopy
 from datetime import datetime, timedelta, time
 import sys
+import os
 import operator
 import re
 import csv
@@ -14203,7 +14204,6 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
-
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':

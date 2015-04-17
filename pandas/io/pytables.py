@@ -1766,7 +1766,7 @@ class DataCol(IndexCol):
 
             # set my typ if we need
             if self.typ is None:
-                self.typ = getattr(self.description, self.cname, None)
+                self.typ = getattr(self.description, str(self.cname), None)
 
     def set_atom(self, block, block_items, existing_col, min_itemsize,
                  nan_rep, info, encoding=None, **kwargs):
@@ -3018,6 +3018,8 @@ class Table(Fixed):
 
     def read_metadata(self, key):
         """ return the meta data array for this key """
+        if str(key) != key:
+            key = str(key)
         if getattr(getattr(self.group,'meta',None),key,None) is not None:
             return self.parent.select(self._get_metadata_path(key))
         return None
@@ -3157,6 +3159,8 @@ class Table(Fixed):
 
         table = self.table
         for c in columns:
+            if str(c) != c:
+                c = str(c)
             v = getattr(table.cols, c, None)
             if v is not None:
 
@@ -3518,6 +3522,11 @@ class Table(Fixed):
 
         # description from the axes & values
         d['description'] = dict([(a.cname, a.typ) for a in self.axes])
+
+        # keys to pytables columns must be strings
+        for a in self.axes:
+            if str(a.cname) != a.cname:
+                d['description'][str(a.cname)] = d['description'].pop(a.cname)
 
         if complib:
             if complevel is None:
