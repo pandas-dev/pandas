@@ -142,7 +142,7 @@ class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestYahoo, cls).setUpClass()
-        _skip_if_no_lxml()
+        # _skip_if_no_lxml()
 
     @network
     def test_yahoo(self):
@@ -470,6 +470,10 @@ class TestDataReader(tm.TestCase):
         gs = DataReader("GS", "google")
         self.assertIsInstance(gs, DataFrame)
 
+    def test_read_quandl(self):
+        gs = DataReader('GS', 'quandl')
+        self.assertIsInstance(gs, DataFrame)
+
     @network
     def test_read_fred(self):
         vix = DataReader("VIXCLS", "fred")
@@ -483,6 +487,102 @@ class TestDataReader(tm.TestCase):
             ff = DataReader(name, "famafrench")
             self.assertTrue(ff is not None)
             self.assertIsInstance(ff, dict)
+
+
+class TestQuandl(tm.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestQuandl, cls).setUpClass()
+        # _skip_if_no_lxml()
+
+    @network
+    def test_quandl(self):
+        # asserts that quandl is minimally working and that it throws
+        # an exception when DataReader can't get a 200 response from
+        # quandl
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 1, 27)
+
+        self.assertEqual(web.DataReader('F', 'quandl', start, end)['Close'][-1],
+                         13.68)
+
+    @network
+    def test_quandl_fails(self):
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 1, 27)
+        self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
+                          'quandl', start, end)
+
+    @network
+    def test_get_quote_fails(self):
+        self.assertRaises(NotImplementedError, web.get_quote_quandl,
+                          pd.Series(['GOOG', 'AAPL', 'GOOG']))
+
+    @network
+    def test_get_data_single_symbol(self):
+        # single symbol just test that we succeed
+        web.get_data_quandl('GOOG')
+
+    @network
+    def test_get_data_interval(self):
+        # daily interval data
+        pan = web.get_data_quandl('XOM', '2013-01-01', '2013-12-31', interval='daily')
+        self.assertEqual(len(pan), 252)
+
+        # weekly interval data
+        pan = web.get_data_quandl('XOM', '2013-01-01', '2013-12-31', interval='weekly')
+        self.assertEqual(len(pan), 53)
+
+        # monthly interval data
+        pan = web.get_data_quandl('XOM', '2013-01-01', '2013-12-31', interval='monthly')
+        self.assertEqual(len(pan), 12)
+
+        # quarterly interval data
+        pan = web.get_data_quandl('XOM', '2013-01-01', '2013-12-31', interval='quarterly')
+        self.assertEqual(len(pan), 4)
+
+        # yearly interval data
+        pan = web.get_data_quandl('XOM', '2013-01-01', '2013-12-31', interval='annual')
+        self.assertEqual(len(pan), 1)
+
+        # test fail on invalid interval
+        self.assertRaises(ValueError, web.get_data_quandl, 'XOM', interval='NOT VALID')
+
+    @network
+    def test_get_data_multiple_symbols(self):
+        # just test that we succeed
+        sl = ['AAPL', 'AMZN', 'GOOG']
+        web.get_data_quandl(sl, '2012')
+
+    @network
+    def test_get_data_multiple_symbols_two_dates(self):
+        pan = web.get_data_quandl(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
+                                 'JAN-31-12')
+        result = pan.Close.ix['01-18-12']
+        self.assertEqual(len(result), 3)
+
+        # sanity checking
+        self.assertTrue(np.issubdtype(result.dtype, np.floating))
+
+        expected = np.array([[18.99,  28.4, 25.18],
+                             [18.58, 28.31, 25.13],
+                             [19.03, 28.16, 25.52],
+                             [18.81, 28.82, 25.87]])
+        result = pan.Open.ix['Jan-15-12':'Jan-20-12']
+        self.assertEqual(expected.shape, result.shape)
+
+    @network
+    def test_get_date_ret_index(self):
+        pan = web.get_data_quandl(['GE', 'INTC', 'IBM'], '1977', '1987',
+                                 ret_index=True)
+        self.assertTrue(hasattr(pan, 'Ret_Index'))
+        if hasattr(pan, 'Ret_Index') and hasattr(pan.Ret_Index, 'INTC'):
+            tstamp = pan.Ret_Index.INTC.first_valid_index()
+            result = pan.Ret_Index.ix[tstamp]['INTC']
+            self.assertEqual(result, 1.0)
+
+        # sanity checking
+        self.assertTrue(np.issubdtype(pan.values.dtype, np.floating))
 
 
 class TestFred(tm.TestCase):

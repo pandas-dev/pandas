@@ -7,6 +7,7 @@ import warnings
 import tempfile
 import datetime as dt
 import time
+import os
 
 from collections import defaultdict
 
@@ -83,6 +84,10 @@ def DataReader(name, data_source=None, start=None, end=None,
         return get_data_fred(name, start, end)
     elif data_source == "famafrench":
         return get_data_famafrench(name)
+    elif data_source == 'quandl':
+        return get_data_quandl(symbols=name, start=start, end=end,
+                               adjust_price=False, chunksize=25,
+                               retry_count=retry_count, pause=pause)
 
 
 def _sanitize_dates(start, end):
@@ -152,6 +157,10 @@ def get_quote_yahoo(symbols):
 
 def get_quote_google(symbols):
     raise NotImplementedError("Google Finance doesn't have this functionality")
+
+
+def get_quote_quandl(symbols):
+    raise NotImplementedError("Quandl doesn't have this functionality")
 
 
 def _retry_read_url(url, retry_count, pause, name):
@@ -229,6 +238,33 @@ def _get_hist_google(sym, start, end, interval, retry_count, pause):
     return _retry_read_url(url, retry_count, pause, 'Google')
 
 
+_QUANDL_URL = 'https://www.quandl.com/api/v1/datasets/'
+
+
+def _get_hist_quandl(symbol, start, end, interval, retry_count, pause):
+    """
+    Get historical data for the given symbol from quandl.
+
+    Returns a DataFrame
+    """
+    start, end = _sanitize_dates(start, end)
+
+    # if no specific dataset was provided, default to free WIKI dataset
+    if '/' not in symbol:
+        symbol = 'WIKI/' + symbol
+
+    query_params = {'trim_start': start.strftime('%Y-%m-%d'),
+                    'trim_end': end.strftime('%Y-%m-%d'),
+                    'collapse': interval}
+
+    if os.getenv('QUANDL_API_KEY', None):
+        query_params['auth_token'] = os.getenv('QUANDL_API_KEY')
+
+    url = '%s%s.csv?%s' % (_QUANDL_URL, symbol, urlencode(query_params))
+
+    return _retry_read_url(url, retry_count, pause, 'Quandl')
+
+
 def _adjust_prices(hist_data, price_list=None):
     """
     Return modifed DataFrame or Panel with adjusted prices based on
@@ -236,13 +272,22 @@ def _adjust_prices(hist_data, price_list=None):
     """
     if price_list is None:
         price_list = 'Open', 'High', 'Low', 'Close'
+    print(hist_data.keys())
     adj_ratio = hist_data['Adj Close'] / hist_data['Close']
 
     data = hist_data.copy()
     for item in price_list:
         data[item] = hist_data[item] * adj_ratio
     data['Adj_Ratio'] = adj_ratio
-    del data['Adj Close']
+
+    if 'Adj Open' in data:
+        del data['Adj Open']
+    if 'Adj High' in data:
+        del data['Adj High']
+    if 'Adj Low' in data:
+        del data['Adj Low']
+    if 'Adj Close' in data:
+        del data['Adj Close']
     return data
 
 
@@ -352,7 +397,8 @@ def _dl_mult_symbols(symbols, start, end, interval, chunksize, retry_count, paus
         raise RemoteDataError("No data fetched using "
                               "{0!r}".format(method.__name__))
 
-_source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
+_source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo,
+                     'quandl': _get_hist_quandl}
 
 
 def _get_data_from(symbols, start, end, interval, retry_count, pause, adjust_price,
@@ -373,8 +419,22 @@ def _get_data_from(symbols, start, end, interval, retry_count, pause, adjust_pri
     if source.lower() == 'yahoo':
         if ret_index:
             hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
+        if adjust_price and interval is not 'v':
+            hist_data = _adjust_prices(hist_data)
+    elif source.lower() == 'quandl':
+        column_renames = {'Adj. Open': 'Adj Open', 'Adj. High': 'Adj High',
+                          'Adj. Low': 'Adj Low', 'Adj. Close': 'Adj Close',
+                          'Adj. Volume': 'Adj Volume'}
+        if isinstance(hist_data, DataFrame):
+            hist_data.rename(columns=column_renames, inplace=True)
+        elif isinstance(hist_data, Panel):
+            hist_data.rename(items=column_renames, inplace=True)
+
+        if ret_index:
+            hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
         if adjust_price:
             hist_data = _adjust_prices(hist_data)
+
 
     return hist_data
 
@@ -456,6 +516,65 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
     """
     return _get_data_from(symbols, start, end, None, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'google')
+
+
+def get_data_quandl(symbols=None, start=None, end=None, retry_count=3,
+                    pause=0.001, adjust_price=False, ret_index=False,
+                    chunksize=25, interval=None):
+    """
+    Returns DataFrame/Panel of historical stock prices from symbols, over date
+    range, start to end. To avoid being penalized by Quandl servers,
+    pauses between downloading 'chunks' of symbols can be specified, or
+    if you're a registered user, you can set the environment variable
+    QUANDL_API_KEY to your api key.
+
+    Parameters
+    ----------
+    symbols : string, array-like object (list, tuple, Series), or DataFrame
+        Single stock symbol (ticker), array-like object of symbols or
+        DataFrame with index containing stock symbols.
+    start : string, (defaults to '1/1/2010')
+        Starting date, timestamp. Parses many different kind of date
+        representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
+    end : string, (defaults to today)
+        Ending date, timestamp. Same format as starting date.
+    retry_count : int, default 3
+        Number of times to retry query request.
+    pause : int, default 0
+        Time, in seconds, to pause between consecutive queries of chunks. If
+        single value given for symbol, represents the pause between retries.
+    adjust_price : bool, default False
+        If True, adjusts all prices in hist_data ('Open', 'High', 'Low',
+        'Close') based on 'Adj Close' price. Adds 'Adj_Ratio' column and drops
+        'Adj Close'.
+    ret_index : bool, default False
+        If True, includes a simple return index 'Ret_Index' in hist_data.
+    chunksize : int, default 25
+        Number of symbols to download consecutively before intiating pause.
+    interval : string, default 'none' (do not alter data)
+        The frequency of the data to return. Valid values are 'none', 'daily',
+        'weekly', 'monthly', 'quarterly' or 'annual'
+        Note: When you change the frequency of a dataset, Quandl returns the
+        last observation for the given period. So, if you collapse a daily
+        dataset to monthly, you will get a sample of the original dataset
+        where the observation for each month is the last data point available
+        for that month. Thus this transformation does not work well for
+        datasets that measure percentage changes, period averages or period
+        extremes (highs and lows).
+
+    Returns
+    -------
+    hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
+    """
+    interval = interval or 'none'
+
+    valid_intervals = ['none', 'daily', 'weekly', 'monthly', 'quarterly', 'annual']
+    if interval not in valid_intervals:
+        raise ValueError('Invalid interval: valid values are %s' % ', '.join(valid_intervals))
+
+    return _get_data_from(symbols, start, end, interval, retry_count, pause,
+                          adjust_price, ret_index, chunksize, 'quandl')
+
 
 
 _FRED_URL = "http://research.stlouisfed.org/fred2/series/"
