@@ -8,6 +8,7 @@ import os
 import datetime
 import abc
 import numpy as np
+from collections import OrderedDict
 
 from pandas.io.parsers import TextParser
 from pandas.io.common import _is_url, _urlopen
@@ -393,7 +394,7 @@ class ExcelFile(object):
         #handle same-type duplicates.
         sheets = list(set(sheets))
         
-        output = {}
+        output = OrderedDict()
         
         for asheetname in sheets:
             if verbose:
