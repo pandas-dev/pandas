@@ -1040,7 +1040,10 @@ class MPLPlot(object):
         if len(self.axes) > 0:
             all_axes = self._get_axes()
             nrows, ncols = self._get_axes_layout()
-            _handle_shared_axes(all_axes, len(all_axes), len(all_axes), nrows, ncols, self.sharex, self.sharey)
+            _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
+                                naxes=nrows * ncols, nrows=nrows,
+                                ncols=ncols, sharex=self.sharex,
+                                sharey=self.sharey)
 
         for ax in to_adorn:
             if self.yticks is not None:
