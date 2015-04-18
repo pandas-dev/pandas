@@ -582,7 +582,7 @@ class Block(PandasObject):
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-                    return all([ isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer ])
+                    return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
                 return False
 
             # empty indexers
