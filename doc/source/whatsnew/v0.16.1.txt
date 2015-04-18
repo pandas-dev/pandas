@@ -80,6 +80,7 @@ API changes
 - :meth:`~pandas.DataFrame.assign` now inserts new columns in alphabetical order. Previously
   the order was arbitrary. (:issue:`9777`)
 
+- By default, ``read_csv`` and ``read_table`` will now try to infer the compression type based on the file extension. Set ``compression=None`` to restore the previous behavior (no decompression). (:issue:`9770`)
 
 .. _whatsnew_0161.performance:
 
