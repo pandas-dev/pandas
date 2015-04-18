@@ -142,7 +142,7 @@ class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestYahoo, cls).setUpClass()
-        # _skip_if_no_lxml()
+        _skip_if_no_lxml()
 
     @network
     def test_yahoo(self):
@@ -493,7 +493,6 @@ class TestQuandl(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestQuandl, cls).setUpClass()
-        # _skip_if_no_lxml()
 
     @network
     def test_quandl(self):

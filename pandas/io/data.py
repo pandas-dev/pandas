@@ -272,7 +272,6 @@ def _adjust_prices(hist_data, price_list=None):
     """
     if price_list is None:
         price_list = 'Open', 'High', 'Low', 'Close'
-    print(hist_data.keys())
     adj_ratio = hist_data['Adj Close'] / hist_data['Close']
 
     data = hist_data.copy()
@@ -435,7 +434,6 @@ def _get_data_from(symbols, start, end, interval, retry_count, pause, adjust_pri
         if adjust_price:
             hist_data = _adjust_prices(hist_data)
 
-
     return hist_data
 
 
@@ -574,7 +572,6 @@ def get_data_quandl(symbols=None, start=None, end=None, retry_count=3,
 
     return _get_data_from(symbols, start, end, interval, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'quandl')
-
 
 
 _FRED_URL = "http://research.stlouisfed.org/fred2/series/"
