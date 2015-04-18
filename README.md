@@ -1,6 +1,6 @@
 # pandas: powerful Python data analysis toolkit
 
-![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.svg)
+[![Build Status](https://travis-ci.org/pydata/pandas.svg?branch=master)](https://travis-ci.org/pydata/pandas)
 
 ## What is it
 
