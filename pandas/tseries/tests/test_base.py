@@ -634,27 +634,27 @@ Freq: D"""
     def test_dti_tdi_numeric_ops(self):
 
         # These are normally union/diff set-like ops
-        tdi = TimedeltaIndex(['1 days',pd.NaT,'2 days'], name='foo')
-        dti = date_range('20130101',periods=3, name='bar')
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = date_range('20130101', periods=3, name='bar')
         td = Timedelta('1 days')
         dt = Timestamp('20130101')
 
         result = tdi - tdi
         expected = TimedeltaIndex(['0 days', pd.NaT, '0 days'], name='foo')
-        tm.assert_index_equal(result, expected, check_names=False) # must be foo
+        tm.assert_index_equal(result, expected)
 
         result = tdi + tdi
         expected = TimedeltaIndex(['2 days', pd.NaT, '4 days'], name='foo')
-        tm.assert_index_equal(result, expected, check_names=False) # must be foo
+        tm.assert_index_equal(result, expected)
 
-        result = dti - tdi
+        result = dti - tdi   # name will be reset
         expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
         tm.assert_index_equal(result, expected)
 
     def test_addition_ops(self):
 
         # with datetimes/timedelta and tdi/dti
-        tdi = TimedeltaIndex(['1 days',pd.NaT,'2 days'], name='foo')
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         dti = date_range('20130101', periods=3, name='bar')
         td = Timedelta('1 days')
         dt = Timestamp('20130101')
@@ -669,11 +669,11 @@ Freq: D"""
 
         result = td + tdi
         expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
-        tm.assert_index_equal(result, expected, check_names=False) # must be foo
+        tm.assert_index_equal(result, expected)
 
         result = tdi + td
         expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
-        tm.assert_index_equal(result,expected, check_names=False)  # must be foo
+        tm.assert_index_equal(result, expected)
 
         # unequal length
         self.assertRaises(ValueError, lambda : tdi + dti[0:1])
@@ -685,21 +685,21 @@ Freq: D"""
         # this is a union!
         #self.assertRaises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
 
-        result = tdi + dti
+        result = tdi + dti   # name will be reset
         expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
-        tm.assert_index_equal(result,expected)
+        tm.assert_index_equal(result, expected)
 
-        result = dti + tdi
-        expected = DatetimeIndex(['20130102',pd.NaT,'20130105'])
-        tm.assert_index_equal(result,expected)
+        result = dti + tdi   # name will be reset
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
+        tm.assert_index_equal(result, expected)
 
         result = dt + td
         expected = Timestamp('20130102')
-        self.assertEqual(result,expected)
+        self.assertEqual(result, expected)
 
         result = td + dt
         expected = Timestamp('20130102')
-        self.assertEqual(result,expected)
+        self.assertEqual(result, expected)
 
     def test_value_counts_unique(self):
         # GH 7735

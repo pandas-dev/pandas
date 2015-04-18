@@ -3322,10 +3322,17 @@ def save(obj, path):  # TODO remove in 0.13
 
 
 def _maybe_match_name(a, b):
-    a_name = getattr(a, 'name', None)
-    b_name = getattr(b, 'name', None)
-    if a_name == b_name:
-        return a_name
+    a_has = hasattr(a, 'name')
+    b_has = hasattr(b, 'name')
+    if a_has and b_has:
+        if a.name == b.name:
+            return a.name
+        else:
+            return None
+    elif a_has:
+        return a.name
+    elif b_has:
+        return b.name
     return None
 
 def _random_state(state=None):
