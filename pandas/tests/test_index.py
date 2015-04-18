@@ -44,7 +44,7 @@ class Base(object):
     def verify_pickle(self,index):
         unpickled = self.round_trip_pickle(index)
         self.assertTrue(index.equals(unpickled))
-
+        
     def test_pickle_compat_construction(self):
         # this is testing for pickle compat
         if self._holder is None:
@@ -53,6 +53,21 @@ class Base(object):
         # need an object to create with
         self.assertRaises(TypeError, self._holder)
 
+    def test_numpy_bug_triggered_with__eq__(self):
+        # At least three rows are required to trigger the numpy bug:
+        # https://github.com/numpy/numpy/issues/2091.
+        raised = False
+        try:
+            pd.DataFrame([[1],[2],[3]]).index == [1, 2]
+        except NotImplementedError:
+            raised = True
+            
+        if not raised:
+            raise AssertionError('This test no longer covers the try except statement that '\
+                                 'tests result == np.array(NotImplemented) within the _indexOp '\
+                                 'function within core/index.py. That code and this test can '\
+                                 'thus safely be removed.')
+        
     def test_numeric_compat(self):
 
         idx = self.create_index()
