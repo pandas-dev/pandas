@@ -330,4 +330,10 @@ Bug Fixes
 >>>>>>> 4d1268e... BUG: Fixed latex output for multi-indexed dataframes - GH9778
 =======
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+<<<<<<< HEAD
 >>>>>>> a21f2ce... BUG: Exception when setting an empty range using DataFrame.loc
+=======
+
+
+- Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
+>>>>>>> d3ccb70... BUG: hidden ticklabels with sharex and secondary
