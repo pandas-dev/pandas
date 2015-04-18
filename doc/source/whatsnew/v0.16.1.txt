@@ -239,3 +239,6 @@ Bug Fixes
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+
+
+- Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
