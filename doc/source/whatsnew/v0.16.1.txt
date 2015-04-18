@@ -176,7 +176,7 @@ Bug Fixes
 =======
 >>>>>>> ad1abce... DOC: fix incorrect issue numbers in whatsnew
 
-
+- Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
 
 
 
