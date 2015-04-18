@@ -161,3 +161,4 @@ Bug Fixes
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+- Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
