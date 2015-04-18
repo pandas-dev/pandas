@@ -784,6 +784,16 @@ class CheckIndexing(object):
         assert_series_equal(self.frame[None], self.frame['A'])
         repr(self.frame)
 
+    def test_setitem_empty(self):
+        # GH 9596
+        df = pd.DataFrame({'a': ['1', '2', '3'],
+                           'b': ['11', '22', '33'],
+                           'c': ['111', '222', '333']})
+
+        result = df.copy()
+        result.loc[result.b.isnull(), 'a'] = result.a
+        assert_frame_equal(result, df)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']

@@ -238,4 +238,8 @@ Bug Fixes
 =======
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+<<<<<<< HEAD
 >>>>>>> 4d1268e... BUG: Fixed latex output for multi-indexed dataframes - GH9778
+=======
+- Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+>>>>>>> a21f2ce... BUG: Exception when setting an empty range using DataFrame.loc
