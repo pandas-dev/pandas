@@ -6851,6 +6851,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         e = np.array([0, 2])
         tm.assert_array_equal(r, e)
 
+    def test_to_frame_expanddim(self):
+        # GH 9762
+
+        class SubclassedSeries(Series):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedFrame
+
+        class SubclassedFrame(DataFrame):
+            pass
+
+        s = SubclassedSeries([1, 2, 3], name='X')
+        result = s.to_frame()
+        self.assertTrue(isinstance(result, SubclassedFrame))
+        expected = SubclassedFrame({'X': [1, 2, 3]})
+        assert_frame_equal(result, expected)
 
 
 class TestSeriesNonUnique(tm.TestCase):

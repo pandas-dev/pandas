@@ -369,3 +369,4 @@ just a thin layer around the ``QTableView``.
 	    mw = MainWidget()
 	    mw.show()
 	    app.exec_()
+
