@@ -31,7 +31,7 @@ import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas import (DataFrame, Index, Series, notnull, isnull,
+from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
                     read_csv, timedelta_range, Timedelta,
                     option_context)
@@ -14213,6 +14213,26 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
+    def test_to_panel_expanddim(self):
+        # GH 9762
+
+        class SubclassedFrame(DataFrame):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedPanel
+
+        class SubclassedPanel(Panel):
+            pass
+
+        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+        df = SubclassedFrame({'X':[1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+        result = df.to_panel()
+        self.assertTrue(isinstance(result, SubclassedPanel))
+        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                   items=['X', 'Y'], major_axis=[0],
+                                   minor_axis=[0, 1, 2])
+        tm.assert_panel_equal(result, expected)
 
 
 def skip_if_no_ne(engine='numexpr'):
