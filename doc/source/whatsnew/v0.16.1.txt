@@ -230,7 +230,7 @@ Bug Fixes
 - Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
 - Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9856`)
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
-
+- Bug in ``DataFrame`` constructor when ``columns`` parameter is set, and ``data`` is an empty list (:issue:`9939`)
 - Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
 - Bug in horizontal bar plot ignores ``log=True`` (:issue:`9905`)
 
@@ -247,6 +247,8 @@ Bug Fixes
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+
+
 
 
 - Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
