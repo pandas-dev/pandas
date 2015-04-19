@@ -1870,23 +1870,12 @@ class DatetimeBlock(Block):
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        mask = isnull(values)
 
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = 'NaT'
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
-
-        if date_format is None:
-            date_formatter = lambda x: Timestamp(x)._repr_base
-        else:
-            date_formatter = lambda x: Timestamp(x).strftime(date_format)
-
-        rvalues.flat[imask] = np.array([date_formatter(val) for val in
-                                        values.ravel()[imask]], dtype=object)
-
-        return rvalues.tolist()
+        result = tslib.format_array_from_datetime(values.view('i8').ravel(),
+                                                  tz=None,
+                                                  format=date_format,
+                                                  na_rep=na_rep).reshape(values.shape)
+        return result.tolist()
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)

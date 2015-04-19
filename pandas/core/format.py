@@ -14,14 +14,13 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 import pandas.core.common as com
 import pandas.lib as lib
-from pandas.tslib import iNaT, Timestamp, Timedelta
-
+from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 import numpy as np
 
 import itertools
 import csv
-
-from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
 docstring_to_string = """
      Parameters
@@ -2030,15 +2029,49 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
-        formatter = (self.formatter or
-                     _get_format_datetime64_from_values(self.values,
-                                                        nat_rep=self.nat_rep,
-                                                        date_format=self.date_format))
 
-        fmt_values = [formatter(x) for x in self.values]
+        # we may have a tz, if so, then need to process element-by-element
+        # when DatetimeBlockWithTimezones is a reality this could be fixed
+        values = self.values
+        if not isinstance(values, DatetimeIndex):
+            values = DatetimeIndex(values)
+
+        if values.tz is None:
+
+            is_dates_only = _is_dates_only(values)
+            if is_dates_only:
+                formatter = self.date_format or "%Y-%m-%d"
+            else:
+                formatter = None
+
+            fmt_values = format_array_from_datetime(values.asi8.ravel(),
+                                                    format=formatter,
+                                                    na_rep=self.nat_rep).reshape(values.shape)
+            fmt_values = fmt_values.tolist()
+
+        else:
+
+            values = values.asobject
+            is_dates_only = _is_dates_only(values)
+            formatter = (self.formatter or _get_format_datetime64(is_dates_only, values, date_format=self.date_format))
+            fmt_values = [ formatter(x) for x in self.values ]
 
         return fmt_values
 
+
+def _is_dates_only(values):
+    # return a boolean if we are only dates (and don't have a timezone)
+    values = DatetimeIndex(values)
+    if values.tz is not None:
+        return False
+
+    values_int = values.asi8
+    consider_values = values_int != iNaT
+    one_day_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+    if even_days:
+        return True
+    return False
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
     if x is None or lib.checknull(x):
@@ -2062,22 +2095,6 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
     else:
         return x._date_repr
 
-
-def _is_dates_only(values):
-    # return a boolean if we are only dates (and don't have a timezone)
-    from pandas import DatetimeIndex
-    values = DatetimeIndex(values)
-    if values.tz is not None:
-        return False
-
-    values_int = values.asi8
-    consider_values = values_int != iNaT
-    one_day_nanos = (86400 * 1e9)
-    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
-    if even_days:
-        return True
-    return False
-
 def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
     if is_dates_only:
@@ -2086,15 +2103,6 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
                                                               date_format=date_format)
     else:
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
-
-
-def _get_format_datetime64_from_values(values,
-                                       nat_rep='NaT',
-                                       date_format=None):
-    is_dates_only = _is_dates_only(values)
-    return _get_format_datetime64(is_dates_only=is_dates_only,
-                                  nat_rep=nat_rep,
-                                  date_format=date_format)
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
