@@ -3341,10 +3341,18 @@ class NDFrame(PandasObject):
 
                 matches = (new_other == np.array(other))
                 if matches is False or not matches.all():
-                    other = np.array(other)
+                    
+                    # coerce other to a common dtype if we can
+                    if com.needs_i8_conversion(self.dtype):
+                        try:
+                            other = np.array(other, dtype=self.dtype)
+                        except:
+                            other = np.array(other)
+                    else:
+                        other = np.asarray(other)
+                        other = np.asarray(other, dtype=np.common_type(other, new_other))
 
-                    # we can't use our existing dtype
-                    # because of incompatibilities
+                    # we need to use the new dtype
                     try_quick = False
                 else:
                     other = new_other
