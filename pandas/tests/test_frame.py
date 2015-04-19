@@ -14231,7 +14231,8 @@ starting,ending,measure
         self.assertTrue(isinstance(result, SubclassedPanel))
         expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
                                    items=['X', 'Y'], major_axis=[0],
-                                   minor_axis=[0, 1, 2])
+                                   minor_axis=[0, 1, 2],
+                                   dtype='int64')
         tm.assert_panel_equal(result, expected)
 
 
