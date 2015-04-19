@@ -1258,9 +1258,10 @@ class CSVFormatter(object):
             if isinstance(cols, Index):
                 cols = cols.to_native_types(na_rep=na_rep,
                                             float_format=float_format,
-                                            date_format=date_format)
+                                            date_format=date_format,
+                                            quoting=self.quoting)
             else:
-                cols = list(cols)
+                cols = np.asarray(list(cols))
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
@@ -1269,9 +1270,10 @@ class CSVFormatter(object):
         if isinstance(cols, Index):
             cols = cols.to_native_types(na_rep=na_rep,
                                         float_format=float_format,
-                                        date_format=date_format)
+                                        date_format=date_format,
+                                        quoting=self.quoting)
         else:
-            cols = list(cols)
+            cols = np.asarray(list(cols))
 
         # save it
         self.cols = cols
@@ -1370,8 +1372,10 @@ class CSVFormatter(object):
         values = self.obj.copy()
         values.index = data_index
         values.columns = values.columns.to_native_types(
-            na_rep=na_rep, float_format=float_format,
-            date_format=date_format)
+            na_rep=na_rep,
+            float_format=float_format,
+            date_format=date_format,
+            quoting=self.quoting)
         values = values[cols]
 
         series = {}
@@ -1542,18 +1546,22 @@ class CSVFormatter(object):
         slicer = slice(start_i, end_i)
         for i in range(len(self.blocks)):
             b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
+            d = b.to_native_types(slicer=slicer,
+                                  na_rep=self.na_rep,
                                   float_format=self.float_format,
                                   decimal=self.decimal,
-                                  date_format=self.date_format)
+                                  date_format=self.date_format,
+                                  quoting=self.quoting)
 
             for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
 
-        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
+        ix = data_index.to_native_types(slicer=slicer,
+                                        na_rep=self.na_rep,
                                         float_format=self.float_format,
-                                        date_format=self.date_format)
+                                        date_format=self.date_format,
+                                        quoting=self.quoting)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
@@ -2037,15 +2045,8 @@ class Datetime64Formatter(GenericArrayFormatter):
             values = DatetimeIndex(values)
 
         if values.tz is None:
-
-            is_dates_only = _is_dates_only(values)
-            if is_dates_only:
-                formatter = self.date_format or "%Y-%m-%d"
-            else:
-                formatter = None
-
             fmt_values = format_array_from_datetime(values.asi8.ravel(),
-                                                    format=formatter,
+                                                    format=_get_format_datetime64_from_values(values, self.date_format),
                                                     na_rep=self.nat_rep).reshape(values.shape)
             fmt_values = fmt_values.tolist()
 
@@ -2103,6 +2104,14 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
                                                               date_format=date_format)
     else:
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
+
+
+def _get_format_datetime64_from_values(values, date_format):
+    """ given values and a date_format, return a string format """
+    is_dates_only = _is_dates_only(values)
+    if is_dates_only:
+        return date_format or "%Y-%m-%d"
+    return None
 
 
 class Timedelta64Formatter(GenericArrayFormatter):

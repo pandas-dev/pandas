@@ -484,16 +484,21 @@ class Block(PandasObject):
     def _try_fill(self, value):
         return value
 
-    def to_native_types(self, slicer=None, na_rep='', **kwargs):
+    def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
+
+        if not self.is_object and not quoting:
+            values = values.astype(str)
+        else:
+            values = np.array(values, dtype='object')
+
         values[mask] = na_rep
-        return values.tolist()
+        return values
 
     # block actions ####
     def copy(self, deep=True):
@@ -1221,32 +1226,34 @@ class FloatBlock(FloatOrComplexBlock):
             return element
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None, decimal='.',
-                        **kwargs):
+                        quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
-        values[mask] = na_rep
 
-
+        formatter = None
         if float_format and decimal != '.':
             formatter = lambda v : (float_format % v).replace('.',decimal,1)
         elif decimal != '.':
             formatter = lambda v : ('%g' % v).replace('.',decimal,1)
         elif float_format:
             formatter = lambda v : float_format % v
-        else:
-            formatter = None
 
+        if formatter is None and not quoting:
+            values = values.astype(str)
+        else:
+            values = np.array(values, dtype='object')
+
+        values[mask] = na_rep
         if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
                 [formatter(val) for val in values.ravel()[imask]])
 
-        return values.tolist()
+        return values
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -1366,7 +1373,7 @@ class TimeDeltaBlock(IntBlock):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.timedelta64)
 
-    def to_native_types(self, slicer=None, na_rep=None, **kwargs):
+    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
@@ -1387,7 +1394,7 @@ class TimeDeltaBlock(IntBlock):
         rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
                                         for val in values.ravel()[imask]],
                                        dtype=object)
-        return rvalues.tolist()
+        return rvalues
 
 
     def get_values(self, dtype=None):
@@ -1763,18 +1770,19 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                           ndim=self.ndim,
                           placement=self.mgr_locs)
 
-    def to_native_types(self, slicer=None, na_rep='', **kwargs):
+    def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             # Categorical is always one dimension
             values = values[slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
+        values = np.array(values, dtype='object')
         values[mask] = na_rep
-        # Blocks.to_native_type returns list of lists, but we are always only a list
-        return [values.tolist()]
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1,len(values))
 
 class DatetimeBlock(Block):
     __slots__ = ()
@@ -1864,18 +1872,21 @@ class DatetimeBlock(Block):
                            fastpath=True, placement=self.mgr_locs)]
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
-                        **kwargs):
+                        quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
 
+        from pandas.core.format import _get_format_datetime64_from_values
+        format = _get_format_datetime64_from_values(values, date_format)
+
         result = tslib.format_array_from_datetime(values.view('i8').ravel(),
                                                   tz=None,
-                                                  format=date_format,
+                                                  format=format,
                                                   na_rep=na_rep).reshape(values.shape)
-        return result.tolist()
+        return result
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)

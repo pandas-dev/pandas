@@ -1448,7 +1448,16 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
 
           else:
              ts = Timestamp(val, tz=tz)
-             result[i] = ts.strftime(format)
+             if format is None:
+                 result[i] = str(ts)
+             else:
+
+                 # invalid format string
+                 # requires dates > 1900
+                 try:
+                     result[i] = ts.strftime(format)
+                 except ValueError:
+                     result[i] = str(ts)
 
     return result
 
