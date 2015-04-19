@@ -184,6 +184,7 @@ script:
 # nothing here, or failed tests won't fail travis
 
 after_script:
+  - ci/install_test.sh
   - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
