@@ -89,7 +89,8 @@ API changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved csv write performance with mixed dtypes, including datetimes (:issue:`9940`)
+- Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
+- Improved csv write performance generally by 2x (:issue:`9940`)
 
 
 

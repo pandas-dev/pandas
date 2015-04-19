@@ -61,7 +61,7 @@ class DatetimeIndexOpsMixin(object):
         return _algos.groupby_object(objs, f)
 
     def _format_with_header(self, header, **kwargs):
-        return header + self._format_native_types(**kwargs)
+        return header + list(self._format_native_types(**kwargs))
 
     def __contains__(self, key):
         try:
