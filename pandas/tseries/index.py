@@ -673,9 +673,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
-        data = self.asobject
         from pandas.core.format import Datetime64Formatter
-        return Datetime64Formatter(values=data,
+        return Datetime64Formatter(values=self,
                                    nat_rep=na_rep,
                                    date_format=date_format,
                                    justify='all').get_result()

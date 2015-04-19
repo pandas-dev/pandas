@@ -3010,12 +3010,12 @@ class TestFloatArrayFormatter(tm.TestCase):
 
     def test_output_significant_digits(self):
         # Issue #9764
-        
+
         # In case default display precision changes:
         with pd.option_context('display.precision', 7):
             # DataFrame example from issue #9764
             d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
-            
+
             expected_output={
                 (0,6):'           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
                 (1,6):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
