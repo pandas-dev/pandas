@@ -164,3 +164,4 @@ Bug Fixes
 
 - Fixed latex output for multi-indexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+- Bug in ``DataFrame`` constructor when ``columns`` parameter is set, and ``data`` is an empty list
