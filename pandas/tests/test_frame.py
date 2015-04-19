@@ -3135,6 +3135,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame(index=[])
         assert_frame_equal(df, expected)
 
+        # GH 9939
         df = DataFrame([], columns=['A', 'B'])
         expected = DataFrame({}, columns=['A', 'B'])
         assert_frame_equal(df, expected)
