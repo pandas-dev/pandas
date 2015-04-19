@@ -1071,12 +1071,16 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep='', **kwargs):
+    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
         mask = isnull(self)
-        values = np.array(self, dtype=object, copy=True)
+        if not self.is_object() and not quoting:
+            values = np.asarray(self).astype(str)
+        else:
+            values = np.array(self, dtype=object, copy=True)
+
         values[mask] = na_rep
-        return values.tolist()
+        return values
 
     def equals(self, other):
         """
@@ -3298,7 +3302,7 @@ class MultiIndex(Index):
         return np.sum(name == np.asarray(self.names)) > 1
 
     def _format_native_types(self, **kwargs):
-        return self.tolist()
+        return self.values
 
     @property
     def _constructor(self):

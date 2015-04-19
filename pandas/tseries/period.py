@@ -387,7 +387,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     qyear = _field_accessor('qyear', 1)
     days_in_month = _field_accessor('days_in_month', 11, "The number of days in the month")
     daysinmonth = days_in_month
-    
+
     def _get_object_array(self):
         freq = self.freq
         return np.array([ Period._from_ordinal(ordinal=x, freq=freq) for x in self.values], copy=False)
@@ -687,7 +687,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         imask = ~mask
         values[imask] = np.array([u('%s') % dt for dt in values[imask]])
-        return values.tolist()
+        return values
 
     def __array_finalize__(self, obj):
         if not self.ndim:  # pragma: no cover
