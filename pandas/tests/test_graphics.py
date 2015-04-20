@@ -1534,6 +1534,19 @@ class TestDataFramePlots(TestPlotBase):
         for ax in axes[[0, 1, 2], [2]].ravel():
             self._check_visible(ax.get_yticklabels(), visible=False)
 
+    def test_subplots_sharex_axes_existing_axes(self):
+        # GH 9158
+        d = {'A': [1., 2., 3., 4.], 'B': [4., 3., 2., 1.], 'C': [5, 1, 3, 4]}
+        df = DataFrame(d, index=date_range('2014 10 11', '2014 10 14'))
+
+        axes = df[['A', 'B']].plot(subplots=True)
+        df['C'].plot(ax=axes[0], secondary_y=True)
+
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        for ax in axes.ravel():
+            self._check_visible(ax.get_yticklabels(), visible=True)
+
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
                        index=list(string.ascii_letters[:6]),
