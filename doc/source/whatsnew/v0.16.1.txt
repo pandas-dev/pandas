@@ -145,12 +145,16 @@ Bug Fixes
 - Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 53f2ea4... BUG: Issue 9798 fixed
 =======
 
 =======
 - Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9875`)
 >>>>>>> 07257a0... BUG: Fixing == __eq__ operator for MultiIndex ... closes (GH9785)
+=======
+- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9785`)
+>>>>>>> ad1abce... DOC: fix incorrect issue numbers in whatsnew
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -163,11 +167,14 @@ Bug Fixes
 =======
 >>>>>>> 1f9b699... BUG: where behaves badly when dtype of self is datetime or timedelta, and dtype of other is not (GH9804)
 - Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
+<<<<<<< HEAD
 >>>>>>> 39fa180... FIX: timeseries asfreq would drop the name of the index, closes #9854
 - Bug in unequal comparisons between a ``Series`` of dtype `"category"` and a scalar (e.g. ``Series(Categorical(list("abc"), categories=list("cba"), ordered=True)) > "b"``, which wouldn't use the order of the categories but use the lexicographical order. (:issue:`9848`)
 <<<<<<< HEAD
 >>>>>>> f0ac930... Fix: unequal comparisons of categorical and scalar
 =======
+=======
+>>>>>>> ad1abce... DOC: fix incorrect issue numbers in whatsnew
 
 
 
@@ -198,6 +205,7 @@ Bug Fixes
 >>>>>>> a97113c... ENH: Raise error on trying to write excel file with a MultiIndexed DataFrame. closes #9794
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
 - Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
+<<<<<<< HEAD
 >>>>>>> 1f9b699... BUG: where behaves badly when dtype of self is datetime or timedelta, and dtype of other is not (GH9804)
 - Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)
 <<<<<<< HEAD
@@ -207,6 +215,9 @@ Bug Fixes
 
 =======
 >>>>>>> 39fa180... FIX: timeseries asfreq would drop the name of the index, closes #9854
+=======
+- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9856`)
+>>>>>>> ad1abce... DOC: fix incorrect issue numbers in whatsnew
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
 <<<<<<< HEAD
 >>>>>>> 30580e7... Groupby transform preserves output dtype
