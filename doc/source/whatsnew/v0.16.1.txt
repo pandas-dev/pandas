@@ -131,7 +131,6 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
    df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
 
 See the :ref:`documentation <advanced.categoricalindex>` for more. (:issue:`7629`)
->>>>>>> support CategoricalIndex
 
 .. _whatsnew_0161.api:
 
