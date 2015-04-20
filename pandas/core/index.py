@@ -26,8 +26,10 @@ from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
 # simplify
-default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
-                                            quote_strings=True)
+default_pprint = lambda x, max_seq_items=None: com.pprint_thing(x,
+                                                                escape_chars=('\t', '\r', '\n'),
+                                                                quote_strings=True,
+                                                                max_seq_items=max_seq_items)
 
 
 __all__ = ['Index']
@@ -433,6 +435,37 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
+        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
+        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        sep = ',%s' % space1
+        max_seq_items = get_option('display.max_seq_items')
+        formatter = self._formatter_func
+        n = len(self)
+        if n == 0:
+            summary = '[]'
+        elif n == 1:
+            first = formatter(self[0])
+            summary = '[%s]' % first
+        elif n == 2:
+            first = formatter(self[0])
+            last = formatter(self[-1])
+            summary = '[%s%s%s]' % (first, sep, last)
+        elif n > max_seq_items:
+            n = min(max_seq_items//2,10)
+
+            head = sep.join([ formatter(x) for x in self[:n] ])
+            tail = sep.join([ formatter(x) for x in self[-n:] ])
+            summary = '[%s%s...%s%s]' % (head, space1, space1, tail)
+        else:
+            values = sep.join([ formatter(x) for x in self ])
+            summary = '[%s]' % (values)
+
+        return summary
+
+    def _format_data2(self):
+        """
+        Return the formatted data as a unicode string
+        """
         max_seq_items = get_option('display.max_seq_items')
         formatter = self._formatter_func
         n = len(self)
@@ -446,7 +479,7 @@ class Index(IndexOpsMixin, PandasObject):
             last = formatter(self[-1])
             summary = '[%s, %s]' % (first, last)
         elif n > max_seq_items:
-            n = min(max_seq_items//2,2)
+            n = min(max_seq_items//2,5)
             head = ', '.join([ formatter(x) for x in self[:n] ])
             tail = ', '.join([ formatter(x) for x in self[-n:] ])
             summary = '[%s, ..., %s]' % (head, tail)
@@ -2874,32 +2907,19 @@ class CategoricalIndex(Index, PandasDelegate):
 
         return False
 
-    def __unicode__(self):
+    def _format_attrs(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a list of tuples of the (attr,formatted_value)
         """
-
-        # currently doesn't use the display.max_categories, or display.max_seq_len
-        # for head/tail printing
-        values = default_pprint(self.values.get_values())
-        cats = default_pprint(self.categories.get_values())
-        space = ' ' * (len(self.__class__.__name__) + 1)
-        name = self.name
-        if name is not None:
-            name = default_pprint(name)
-
-        result = u("{klass}({values},\n{space}categories={categories},\n{space}ordered={ordered},\n{space}name={name})").format(
-            klass=self.__class__.__name__,
-            values=values,
-            categories=cats,
-            ordered=self.ordered,
-            name=name,
-            space=space)
-
-        return result
+        attrs = [('categories', default_pprint(self.categories)),
+                 ('ordered',self.ordered)]
+        if self.name is not None:
+            attrs.append(('name',default_pprint(self.name)))
+        attrs.append(('dtype',"'%s'" % self.dtype))
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            attrs.append(('length',len(self)))
+        return attrs
 
     @property
     def inferred_type(self):
@@ -3955,8 +3975,8 @@ class MultiIndex(Index):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        attrs = [('levels', default_pprint(self.levels)),
-                 ('labels', default_pprint(self.labels))]
+        attrs = [('levels', default_pprint(self._levels, max_seq_items=False)),
+                 ('labels', default_pprint(self._labels, max_seq_items=False))]
         if not all(name is None for name in self.names):
             attrs.append(('names', default_pprint(self.names)))
         if self.sortorder is not None:

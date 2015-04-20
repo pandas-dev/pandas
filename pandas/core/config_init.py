@@ -269,7 +269,7 @@ with cf.config_prefix('display'):
     cf.register_option('show_dimensions', 'truncate', pc_show_dimensions_doc,
                        validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
-    cf.register_option('max_seq_items', 10, pc_max_seq_items)
+    cf.register_option('max_seq_items', 20, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
