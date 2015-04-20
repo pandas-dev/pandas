@@ -3,6 +3,7 @@ import warnings
 
 import nose
 
+import sys
 import pandas.util
 from pandas.util.decorators import deprecate_kwarg
 import pandas.util.testing as tm
@@ -80,6 +81,9 @@ class TestTesting(tm.TestCase):
             self.assertNotAlmostEquals(1, 2)
 
     def test_locale(self):
+        if sys.platform == 'win32':
+            raise nose.SkipTest("skipping on win platforms as locale not available")
+
         #GH9744
         locales = pandas.util.testing.get_locales()
         self.assertTrue(len(locales) >= 1)
