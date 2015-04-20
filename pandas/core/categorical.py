@@ -708,7 +708,7 @@ class Categorical(PandasObject):
         if len(already_included) != 0:
             msg = "new categories must not include old categories: %s" % str(already_included)
             raise ValueError(msg)
-        new_categories = list(self._categories) + (new_categories)
+        new_categories = list(self._categories) + list(new_categories)
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = new_categories
