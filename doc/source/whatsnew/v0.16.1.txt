@@ -122,10 +122,9 @@ Bug Fixes
 - Fixed bug where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (:issue:`9671`)
 - Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
 - Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
-- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9875`)
+- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9785`)
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 - Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
-- Bug in unequal comparisons between a ``Series`` of dtype `"category"` and a scalar (e.g. ``Series(Categorical(list("abc"), categories=list("cba"), ordered=True)) > "b"``, which wouldn't use the order of the categories but use the lexicographical order. (:issue:`9848`)
 
 
 
@@ -145,7 +144,7 @@ Bug Fixes
 - Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
 - Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
 - Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
-- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9875`)
+- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9856`)
 - Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
 
 - Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
