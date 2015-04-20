@@ -273,14 +273,12 @@ API changes
 Index Representation
 ~~~~~~~~~~~~~~~~~~~~
 
-The string representation of ``Index`` and its sub-classes have now been unified. These are all uniform in their output
-formats, except for ``MultiIndex``, which has a multi-line repr. The display width responds to the option ``display.max_seq_len``,
-which is now defaulted to 10 (previously was 100). (:issue:`6482`)
+The string representation of ``Index`` and its sub-classes have now been unified. ``Index, Int64Index, Float64Index, CategoricalIndex`` are single-line display. The datetimelikes ``DatetimeIndex, PeriodIndex, TimedeltaIndex`` & ``MultiIndex`` will display in a multi-line format showing much more of the index values. The display width responds to the option ``display.max_seq_items``,
+which is now defaulted to 20 (previously was 100). (:issue:`6482`)
 
 Previous Behavior
 
 .. code-block:: python
-
 
    In [1]: pd.get_option('max_seq_items')
    Out[1]: 100
