@@ -240,14 +240,14 @@ way to summarize a boolean result.
 
 .. ipython:: python
 
-   (df>0).all()
-   (df>0).any()
+   (df > 0).all()
+   (df > 0).any()
 
 You can reduce to a final boolean value.
 
 .. ipython:: python
 
-   (df>0).any().any()
+   (df > 0).any().any()
 
 You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` property.
 
@@ -330,6 +330,48 @@ equality to be True:
    df1.equals(df2)
    df1.equals(df2.sort())
 
+Comparing array-like objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can conveniently do element-wise comparisons when comparing a pandas
+data structure with a scalar value:
+
+.. ipython:: python
+
+   pd.Series(['foo', 'bar', 'baz']) == 'foo'
+   pd.Index(['foo', 'bar', 'baz']) == 'foo'
+
+Pandas also handles element-wise comparisons between different array-like
+objects of the same length:
+
+.. ipython:: python
+
+    pd.Series(['foo', 'bar', 'baz']) == pd.Index(['foo', 'bar', 'qux'])
+    pd.Series(['foo', 'bar', 'baz']) == np.array(['foo', 'bar', 'qux'])
+
+Trying to compare ``Index`` or ``Series`` objects of different lengths will
+raise a ValueError:
+
+.. code-block:: python
+
+    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
+    ValueError: Series lengths must match to compare
+
+    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
+    ValueError: Series lengths must match to compare
+
+Note that this is different from the numpy behavior where a comparison can
+be broadcast:
+
+.. ipython:: python
+
+    np.array([1, 2, 3]) == np.array([2])
+
+or it can return False if broadcasting can not be done:
+
+.. ipython:: python
+
+    np.array([1, 2, 3]) == np.array([1, 2])
 
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
