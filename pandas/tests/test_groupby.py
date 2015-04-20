@@ -8,7 +8,7 @@ from datetime import datetime
 from numpy import nan
 
 from pandas import date_range,bdate_range, Timestamp
-from pandas.core.index import Index, MultiIndex, Int64Index
+from pandas.core.index import Index, MultiIndex, Int64Index, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
@@ -3378,12 +3378,11 @@ class TestGroupBy(tm.TestCase):
         cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
-
         result = data.groupby(cats).mean()
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
-        expected.index.name = 'myfactor'
+        expected.index = CategoricalIndex(expected.index,categories=expected.index,name='myfactor',ordered=True)
 
         assert_frame_equal(result, expected)
         self.assertEqual(result.index.name, cats.name)
@@ -3397,6 +3396,26 @@ class TestGroupBy(tm.TestCase):
         expected = ord_data.groupby(ord_labels, sort=False).describe()
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
+
+    def test_groupby_categorical_index(self):
+
+        levels = ['foo', 'bar', 'baz', 'qux']
+        codes = np.random.randint(0, 4, size=20)
+        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        df = DataFrame(np.repeat(np.arange(20),4).reshape(-1,4), columns=list('abcd'))
+        df['cats'] = cats
+
+        # with a cat index
+        result = df.set_index('cats').groupby(level=0).sum()
+        expected = df[list('abcd')].groupby(cats.codes).sum()
+        expected.index = CategoricalIndex(Categorical.from_codes([0,1,2,3], levels, ordered=True),name='cats')
+        assert_frame_equal(result, expected)
+
+        # with a cat column, should produce a cat index
+        result = df.groupby('cats').sum()
+        expected = df[list('abcd')].groupby(cats.codes).sum()
+        expected.index = CategoricalIndex(Categorical.from_codes([0,1,2,3], levels, ordered=True),name='cats')
+        assert_frame_equal(result, expected)
 
     def test_groupby_groups_datetimeindex(self):
         # #1430
@@ -3526,6 +3545,8 @@ class TestGroupBy(tm.TestCase):
 
         result = data.groupby(cats).mean()
         exp = data.groupby(codes).mean()
+
+        exp.index = CategoricalIndex(exp.index,categories=cats.categories,ordered=cats.ordered)
         assert_series_equal(result, exp)
 
         codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
@@ -3533,6 +3554,7 @@ class TestGroupBy(tm.TestCase):
 
         result = data.groupby(cats).mean()
         exp = data.groupby(codes).mean().reindex(cats.categories)
+        exp.index = CategoricalIndex(exp.index,categories=cats.categories,ordered=cats.ordered)
         assert_series_equal(result, exp)
 
         cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
