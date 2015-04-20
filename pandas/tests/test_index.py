@@ -769,7 +769,7 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(result.name, first.name)
 
         # non-iterable input
-        assertRaisesRegexp(TypeError, "iterable", first.diff, 0.5)
+        assertRaisesRegexp(TypeError, "iterable", first.difference, 0.5)
 
     def test_symmetric_diff(self):
         # smoke
