@@ -3161,6 +3161,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame(index=[])
         assert_frame_equal(df, expected)
 
+        # GH 9939
+        df = DataFrame([], columns=['A', 'B'])
+        expected = DataFrame({}, columns=['A', 'B'])
+        assert_frame_equal(df, expected)
+
+        # Empty generator: list(empty_gen()) == []
+        def empty_gen():
+            return
+            yield
+
+        df = DataFrame(empty_gen(), columns=['A', 'B'])
+        assert_frame_equal(df, expected)
+
     def test_constructor_list_of_lists(self):
         # GH #484
         l = [[1, 'a'], [2, 'b']]
