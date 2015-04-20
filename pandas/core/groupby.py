@@ -14,7 +14,7 @@ from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, _ensure_index, _union_indexes
+from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index, _union_indexes
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
@@ -1928,7 +1928,7 @@ class Grouping(object):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
-            elif isinstance(self.grouper, Categorical):
+            elif is_categorical_dtype(self.grouper):
 
                 # must have an ordered categorical
                 if self.sort:
@@ -1942,8 +1942,15 @@ class Grouping(object):
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
                 else:
                     self.grouper = self.grouper.reorder_categories(self.grouper.unique())
+
+                # we make a CategoricalIndex out of the cat grouper
+                # preserving the categories / ordered attributes
                 self._labels = self.grouper.codes
-                self._group_index = self.grouper.categories
+
+                c = self.grouper.categories
+                self._group_index = CategoricalIndex(Categorical.from_codes(np.arange(len(c)),
+                                                     categories=c,
+                                                     ordered=self.grouper.ordered))
                 if self.name is None:
                     self.name = self.grouper.name
 
@@ -2131,8 +2138,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
         else:
             in_axis, name = False, None
 
-        if isinstance(gpr, Categorical) and len(gpr) != len(obj):
-            raise ValueError("Categorical grouper must have len(grouper) == len(data)")
+        if is_categorical_dtype(gpr) and len(gpr) != len(obj):
+            raise ValueError("Categorical dtype grouper must have len(grouper) == len(data)")
 
         ping = Grouping(group_axis, gpr, obj=obj, name=name,
                         level=level, sort=sort, in_axis=in_axis)
@@ -3252,7 +3259,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return result
         elif len(groupings) == 1:
             return result
-        elif not any([isinstance(ping.grouper, Categorical)
+        elif not any([isinstance(ping.grouper, (Categorical, CategoricalIndex))
                       for ping in groupings]):
             return result
 

@@ -3134,7 +3134,6 @@ class BlockManager(PandasObject):
 
         pandas-indexer with -1's only.
         """
-
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
                 return self
@@ -3146,10 +3145,9 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
-        # trying to reindex on an axis with duplicates
-        if (not allow_dups and not self.axes[axis].is_unique
-            and len(indexer)):
-            raise ValueError("cannot reindex from a duplicate axis")
+        # some axes don't allow reindexing with dups
+        if not allow_dups:
+            self.axes[axis]._can_reindex(indexer)
 
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")

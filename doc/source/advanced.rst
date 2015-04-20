@@ -594,6 +594,95 @@ faster than fancy indexing.
    timeit ser.ix[indexer]
    timeit ser.take(indexer)
 
+.. _indexing.categoricalindex:
+
+CategoricalIndex
+----------------
+
+.. versionadded:: 0.16.1
+
+We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
+and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
+setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+
+.. ipython:: python
+
+   df = DataFrame({'A' : np.arange(6),
+                   'B' : Series(list('aabbca')).astype('category',
+                                                       categories=list('cab'))
+                  })
+   df
+   df.dtypes
+   df.B.cat.categories
+
+Setting the index, will create create a ``CategoricalIndex``
+
+.. ipython:: python
+
+   df2 = df.set_index('B')
+   df2.index
+
+Indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an ``Index`` with duplicates.
+The indexers MUST be in the category or the operation will raise.
+
+.. ipython:: python
+
+   df2.loc['a']
+
+These PRESERVE the ``CategoricalIndex``
+
+.. ipython:: python
+
+   df2.loc['a'].index
+
+Sorting will order by the order of the categories
+
+.. ipython:: python
+
+   df2.sort_index()
+
+Groupby operations on the index will preserve the index nature as well
+
+.. ipython:: python
+
+   df2.groupby(level=0).sum()
+   df2.groupby(level=0).sum().index
+
+Reindexing operations, will return a resulting index based on the type of the passed
+indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+values NOT in the categories, similarly to how you can reindex ANY pandas index.
+
+.. ipython :: python
+
+   df2.reindex(['a','e'])
+   df2.reindex(['a','e']).index
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+
+.. warning::
+
+   Reshaping and Comparision operations on a ``CategoricalIndex`` must have the same categories
+   or a ``TypeError`` will be raised.
+
+   .. code-block:: python
+
+      In [10]: df3 = DataFrame({'A' : np.arange(6),
+                                'B' : Series(list('aabbca')).astype('category',
+                                                                    categories=list('abc'))
+                               }).set_index('B')
+
+      In [11]: df3.index
+      Out[11]:
+      CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'],
+                       categories=[u'a', u'b', u'c'],
+                       ordered=False)
+
+      In [12]: pd.concat([df2,df3]
+      TypeError: categories must match existing categories when appending
+
 .. _indexing.float64index:
 
 Float64Index
@@ -706,4 +795,3 @@ Of course if you need integer based selection, then use ``iloc``
 .. ipython:: python
 
    dfir.iloc[0:5]
-
