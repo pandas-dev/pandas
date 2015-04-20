@@ -727,6 +727,19 @@ class TestCategorical(tm.TestCase):
             cat.add_categories(["d"])
         self.assertRaises(ValueError, f)
 
+        # GH 9927
+        cat = Categorical(list("abc"), ordered=True)
+        expected = Categorical(list("abc"), categories=list("abcde"), ordered=True)
+        # test with Series, np.array, index, list
+        res = cat.add_categories(Series(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(np.array(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(Index(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(["d", "e"])
+        self.assert_categorical_equal(res, expected)
+
     def test_remove_categories(self):
         cat = Categorical(["a","b","c","a"], ordered=True)
         old = cat.copy()
