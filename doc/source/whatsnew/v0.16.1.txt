@@ -126,7 +126,7 @@ Bug Fixes
 - Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
 - Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
 
-
+- Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
 
 
 
