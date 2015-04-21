@@ -62,6 +62,8 @@ Enhancements
 
 - Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
 
+- Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
+
 - ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
 
 .. _whatsnew_0161.enhancements.categoricalindex:
