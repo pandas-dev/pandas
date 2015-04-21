@@ -61,6 +61,7 @@ Enhancements
 - Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
 
 - Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
+- Allow ``Categorical.add_categories`` to accept `Series` or `np.array`. (:issue:`9927`)
 
 - Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
 
