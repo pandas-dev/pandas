@@ -1370,14 +1370,17 @@ class Index(IndexOpsMixin, PandasObject):
         if len(other) == 0 or self.equals(other):
             return self
 
+        other = _ensure_index(other)
+
         if len(self) == 0:
-            return _ensure_index(other)
+            return other
 
         self._assert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype,other.dtype):
             this = self.astype('O')
             other = other.astype('O')
+
             return this.union(other)
 
         if self.is_monotonic and other.is_monotonic:
@@ -1423,7 +1426,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_union_result(other, result)
 
     def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+        name = self.name if other.name == self.name or other.name==None else None
         return self.__class__(data=result, name=name)
 
     def intersection(self, other):
@@ -1457,6 +1460,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(self.values, other.values)[0]
+
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
@@ -1470,8 +1474,9 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = self.take(indexer)
-        if self.name != other.name:
+        if self.name != other.name and not other.name == None:
             taken.name = None
+
         return taken
 
     def difference(self, other):
@@ -5464,7 +5469,9 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self
 
-        result_names = self.names if self.names == other.names else None
+        result_names =  None
+        if self.names == other.names or other.names is None:
+            result_names = self.names
 
         uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
@@ -5487,7 +5494,9 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        result_names = self.names if self.names == other.names else None
+        result_names = None
+        if self.names == other.names or other.name is None:
+            result_names = self.names
 
         self_tuples = self.values
         other_tuples = other.values
@@ -5520,7 +5529,9 @@ class MultiIndex(Index):
                                 ' tuples')
             result_names = self.names
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = None
+            if self.names == other.names or other.names == None:
+                result_names = self.names
 
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
@@ -5615,7 +5626,9 @@ class MultiIndex(Index):
         return self.__bounds
 
     def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
+        names = None
+        if self.names == other.names or other.names == None:
+            names = self.names
         return MultiIndex.from_tuples(joined, names=names)
 
     @Appender(Index.isin.__doc__)

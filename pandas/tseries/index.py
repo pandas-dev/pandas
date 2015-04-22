@@ -870,7 +870,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             to_concat.append(other)
 
         for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
+            if (isinstance(obj, Index) and
+                obj.name != name and
+                obj.name is not None):
+
                 name = None
                 break
 
@@ -1017,7 +1020,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 yield v
 
     def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+        name = self.name if self.name == other.name or other.name == None else None
         if self.tz != other.tz:
             raise ValueError('Passed item and index have different timezone')
         return self._simple_new(result, name=name, freq=None, tz=self.tz)

@@ -17,7 +17,7 @@ from pandas import (period_range, date_range, Categorical, Series,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex)
 from pandas.core.index import InvalidIndexError, NumericIndex
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
-                                 assert_copy)
+                                 assert_copy, assert_frame_equal)
 from pandas import compat
 from pandas.compat import long
 
@@ -616,6 +616,157 @@ class TestIndex(Base, tm.TestCase):
         shifted.name = 'shifted'
         self.assertEqual(shifted.name, shifted.shift(1, 'D').name)
 
+    def test_union_naming_behavior(self):
+        #9965
+        idx_name_a = pd.Index([1,2,3], name='a')
+        idx_name_b = pd.Index([4,5,6], name='b')
+        idx2_name_a = pd.Index([2,9,8], name='a')
+
+        stridx_name_stra = pd.Index(['1','2'], name='stra')
+        stridx_name_a = pd.Index(['1','2'], name='a')
+
+        idx_name_none = pd.Index(['1','2'], name=None)
+
+        dateindex_name_a = pd.DatetimeIndex([datetime.today()], name='a')
+        dateindex_name_b = pd.DatetimeIndex([datetime.today()], name='b')
+        dateindex_name_None = pd.DatetimeIndex([datetime.today()], name=None)
+
+        python_array = [1,2,3]
+        numpy_array = np.array([1,2,3])
+
+        #index union index naming behavior
+        self.assertEqual(idx_name_a.union(idx_name_b).name, None)
+        self.assertEqual(idx_name_a.union(idx2_name_a).name, 'a')
+
+        #index union array
+        self.assertEqual(idx_name_a.union(python_array).name, 'a')
+        self.assertEqual(idx_name_a.union(numpy_array).name, 'a')
+
+        #index union index different dtype
+        self.assertEqual(idx_name_a.union(stridx_name_a).name, 'a')
+        self.assertEqual(idx_name_a.union(stridx_name_stra).name, None)
+
+        #index union index with no name
+        self.assertEqual(idx_name_a.union(idx_name_none).name, 'a')
+
+        #index union dateindex
+        self.assertEqual(idx_name_a.union(dateindex_name_a).name, 'a')
+        self.assertEqual(idx_name_a.union(dateindex_name_b).name, None)
+        self.assertEqual(idx_name_a.union(dateindex_name_None).name, 'a')
+
+        #dateindex union
+        self.assertEqual(dateindex_name_a.union(python_array).name, 'a')
+        self.assertEqual(dateindex_name_a.union(numpy_array).name, 'a')
+
+        self.assertEqual(dateindex_name_a.union(idx_name_none).name, 'a')
+        self.assertEqual(dateindex_name_a.union(dateindex_name_b).name, None)
+        self.assertEqual(dateindex_name_a.union(dateindex_name_None).name, 'a')
+        self.assertEqual(dateindex_name_a.union(idx_name_a).name, 'a')
+
+    def test_intersection_naming_behavior(self):
+        #9965
+        idx_name_a = pd.Index([1,2,3], name='a')
+        idx_name_b = pd.Index([4,5,6], name='b')
+        idx2_name_a = pd.Index([2,9,8], name='a')
+
+        stridx_name_stra = pd.Index(['1','2'], name='stra')
+        stridx_name_a = pd.Index(['1','2'], name='a')
+
+        idx_name_none = pd.Index(['1','2'], name=None)
+
+        dateindex_name_a = pd.DatetimeIndex([datetime.today()], name='a')
+        dateindex_name_b = pd.DatetimeIndex([datetime.today()], name='b')
+        dateindex_name_None = pd.DatetimeIndex([datetime.today()], name=None)
+
+        python_array = [1,2,3]
+        numpy_array = np.array([1,2,3])
+
+        #index intersection index naming behavior
+        self.assertEqual(idx_name_a.intersection(idx_name_b).name, None)
+        self.assertEqual(idx_name_a.intersection(idx2_name_a).name, 'a')
+
+        #index intersection array
+        self.assertEqual(idx_name_a.intersection(python_array).name, 'a')
+        self.assertEqual(idx_name_a.intersection(numpy_array).name, 'a')
+
+        #index intersection index different dtype
+        self.assertEqual(idx_name_a.intersection(stridx_name_a).name, 'a')
+        self.assertEqual(idx_name_a.intersection(stridx_name_stra).name, None)
+
+        #index intersection index with no name
+        self.assertEqual(idx_name_a.intersection(idx_name_none).name, 'a')
+
+        #index intersection dateindex
+        self.assertEqual(idx_name_a.intersection(dateindex_name_a).name, 'a')
+        self.assertEqual(idx_name_a.intersection(dateindex_name_b).name, None)
+        self.assertEqual(idx_name_a.intersection(dateindex_name_None).name, 'a')
+
+        #dateindex intersection
+        self.assertEqual(dateindex_name_a.intersection(python_array).name, 'a')
+        self.assertEqual(dateindex_name_a.intersection(numpy_array).name, 'a')
+
+        self.assertEqual(dateindex_name_a.intersection(idx_name_none).name, 'a')
+        self.assertEqual(dateindex_name_a.intersection(dateindex_name_b).name, None)
+        self.assertEqual(dateindex_name_a.intersection(dateindex_name_None).name, 'a')
+        self.assertEqual(dateindex_name_a.intersection(idx_name_a).name, 'a')
+
+    def test_append_naming_behavior(self):
+        #9965
+        idx_name_a = pd.Index([1,2,3], name='a')
+        idx_name_b = pd.Index([4,5,6], name='b')
+        idx2_name_a = pd.Index([2,9,8], name='a')
+
+        stridx_name_stra = pd.Index(['1','2'], name='stra')
+        stridx_name_a = pd.Index(['1','2'], name='a')
+
+        idx_name_none = pd.Index(['1','2'], name=None)
+
+        dateindex_name_a = pd.DatetimeIndex([datetime.today()], name='a')
+        dateindex_name_b = pd.DatetimeIndex([datetime.today()], name='b')
+        dateindex_name_None = pd.DatetimeIndex([datetime.today()], name=None)
+
+        python_array = [1,2,3]
+        python_array_transposed = [[1],[2],[3]]
+        numpy_array = np.array([1,2,3])
+
+        #index append index naming behavior
+        self.assertEqual(idx_name_a.append(idx_name_b).name, None)
+        self.assertEqual(idx_name_a.append(idx2_name_a).name, 'a')
+
+        #index append array
+        self.assertEqual(idx_name_a.append(python_array_transposed).name, 'a')
+        self.assertEqual(idx_name_a.append(numpy_array.T).name, 'a')
+
+        #index append index different dtype
+        self.assertEqual(idx_name_a.append(stridx_name_a).name, 'a')
+        self.assertEqual(idx_name_a.append(stridx_name_stra).name, None)
+
+        #index append index with no name
+        self.assertEqual(idx_name_a.append(idx_name_none).name, 'a')
+
+        #index append dateindex
+        self.assertEqual(idx_name_a.append(dateindex_name_a).name, 'a')
+        self.assertEqual(idx_name_a.append(dateindex_name_b).name, None)
+        self.assertEqual(idx_name_a.append(dateindex_name_None).name, 'a')
+
+        #dateindex append
+        self.assertEqual(dateindex_name_a.append(python_array_transposed).name, 'a')
+        self.assertEqual(dateindex_name_a.append(numpy_array.T).name, 'a')
+
+        self.assertEqual(dateindex_name_a.append(idx_name_none).name, 'a')
+        self.assertEqual(dateindex_name_a.append(dateindex_name_b).name, None)
+        self.assertEqual(dateindex_name_a.append(dateindex_name_None).name, 'a')
+        self.assertEqual(dateindex_name_a.append(idx_name_a).name, 'a')
+
+    def test_intersection_preserves_name(self):
+        #GH 9943
+        df = pd.DataFrame([np.nan, np.nan], columns = ['tags'], index=pd.Int64Index([4815961, 4815962], dtype='int64', name='id'))
+        self.assertEqual(str(df), '         tags\nid           \n4815961   NaN\n4815962   NaN')
+        L = [4815962]
+        self.assertEqual(list(L), list(df.index.intersection(L)))
+        self.assertEqual( df.ix[L].tags.index.name, df.ix[df.index.intersection(L)].tags.index.name)
+        assert_frame_equal(df.ix[L], df.ix[df.index.intersection(L)])
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -693,6 +844,10 @@ class TestIndex(Base, tm.TestCase):
         second.name = 'B'
         union = first.union(second)
         self.assertIsNone(union.name)
+
+        #union array-like
+        union = first.union([1234])
+        self.assertEqual('A', union.name)
 
     def test_add(self):
 
