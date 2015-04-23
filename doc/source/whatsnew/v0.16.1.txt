@@ -9,7 +9,7 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
-- Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161`.enhancements.categoricalindex>`
+- Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
 
 .. contents:: What's new in v0.16.1
     :local:
@@ -24,15 +24,15 @@ Enhancements
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
 
-  The `.str` accessor is now available for both `Series` and `Index`.
+  The ``.str`` accessor is now available for both ``Series`` and ``Index``.
 
   .. ipython:: python
 
      idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
      idx.str.strip()
 
-  One special case for the `.str` accessor on `Index` is that if a string method returns `bool`, the `.str` accessor
-  will return a `np.array` instead of a boolean `Index` (:issue:`8875`). This enables the following expression
+  One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
+  will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
   to work naturally:
 
 
@@ -46,7 +46,7 @@ Enhancements
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
-- ``drop`` function can now accept ``errors`` keyword to suppress ValueError raised when any of label does not exist in the target data. (:issue:`6736`)
+- ``drop`` function can now accept ``errors`` keyword to suppress ``ValueError`` raised when any of label does not exist in the target data. (:issue:`6736`)
 
   .. ipython:: python
 
@@ -61,6 +61,7 @@ Enhancements
 - Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
 
 - Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
+- Allow ``Categorical.add_categories`` to accept ``Series`` or ``np.array``. (:issue:`9927`)
 
 - Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
 
@@ -86,7 +87,7 @@ setting the index of a ``DataFrame/Series`` with a ``category`` dtype would conv
    df.dtypes
    df.B.cat.categories
 
-setting the index, will create create a CategoricalIndex
+setting the index, will create create a ``CategoricalIndex``
 
 .. ipython :: python
 
@@ -178,7 +179,7 @@ Bug Fixes
 
 - Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 - Bug in json serialization when frame has length zero.(:issue:`9805`)
-- Bug in `read_csv` where missing trailing delimiters would cause segfault. (:issue:`5664`)
+- Bug in ``read_csv`` where missing trailing delimiters would cause segfault. (:issue:`5664`)
 - Bug in retaining index name on appending (:issue:`9862`)
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
 - Fixed bug in ``StataWriter`` resulting in changes to input ``DataFrame`` upon save (:issue:`9795`).
