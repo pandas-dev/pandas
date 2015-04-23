@@ -961,6 +961,20 @@ class StringMethods(object):
             i += 1
             g = self.get(i)
 
+    def __mod__(self, other):
+        return _na_map(lambda s: s % other, self.series)
+
+    def __rmod__(self, other):
+        return _na_map(lambda s: other % s, self.series)
+
+    def __add__(self, other):
+        return _na_map(lambda s: s + other, self.series)
+    __radd__ = __add__
+
+    def __mul__(self, other):
+        return _na_map(lambda s: s * other, self.series)
+    __rmul__ = __mul__
+
     def _wrap_result(self, result):
         from pandas.core.series import Series
         from pandas.core.frame import DataFrame
