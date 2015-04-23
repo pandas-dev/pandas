@@ -1909,6 +1909,19 @@ class TestFloat64Index(Numeric, tm.TestCase):
         self.assertTrue(i.equals(result))
         self.check_is_index(result)
 
+    def test_promote_type(self):
+        # GH-9966
+        index_int = Int64Index(np.arange(5))
+        operators = (operator.add,
+                     operator.sub,
+                     operator.mul,
+                     operator.truediv,
+                     operator.floordiv)
+        for op in operators:
+            index_promoted = op(index_int, np.pi)
+            self.assertEqual(index_promoted.dtype, np.float64)
+            self.assertIsInstance(index_promoted, Float64Index)
+
     def test_equals(self):
 
         i = Float64Index([1.0,2.0])
