@@ -5008,6 +5008,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
             s.str.repeat(2)
 
+    def test_str_mod(self):
+        s = Series(['%s', '%s'])
+        self.assertTrue(all((s.str % 1) == Series(['1', '1'])))
+
+    def test_str_add(self):
+        s = Series(['a', 'b'])
+        self.assertTrue(all((s.str + 'c') == Series(['ac', 'bc'])))
+
+    def test_str_mul(self):
+        s = Series(['a', 'b'])
+        self.assertTrue(all((s.str * 2) == Series(['aa', 'bb'])))
+
     def test_clip(self):
         val = self.ts.median()
 
