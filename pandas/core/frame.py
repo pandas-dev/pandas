@@ -1264,6 +1264,7 @@ class DataFrame(NDFrame):
         elif override_header_style != None:
             header_style = override_header_style
         else:
+            # The following is the old "global" style.  
             header_style = {"font": {"bold": True},
                             "borders": {"top": "thin",
                                         "right": "thin",
