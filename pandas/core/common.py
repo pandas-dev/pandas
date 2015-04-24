@@ -84,6 +84,8 @@ def create_pandas_abc_type(name, attr, comp):
 ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index", ))
 ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ",
                                        ("int64index", ))
+ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ",
+                                       ("rangeindex", ))
 ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ",
                                          ("float64index", ))
 ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ",
@@ -97,7 +99,8 @@ ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ",
 ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ",
                                              ("categoricalindex", ))
 ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
-                                       ("index", "int64index", "float64index",
+                                       ("index", "int64index", "rangeindex",
+                                        "float64index",
                                         "multiindex", "datetimeindex",
                                         "timedeltaindex", "periodindex",
                                         "categoricalindex"))
@@ -1796,10 +1799,8 @@ def is_bool_indexer(key):
 
 
 def _default_index(n):
-    from pandas.core.index import Int64Index
-    values = np.arange(n, dtype=np.int64)
-    result = Int64Index(values, name=None)
-    result.is_unique = True
+    from pandas.core.index import RangeIndex
+    result = RangeIndex(0, int(n), name=None)
     return result
 
 
