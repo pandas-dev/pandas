@@ -3349,7 +3349,7 @@ class RangeIndex(Int64Index):
 
         # RangeIndex() constructor
         if start is None and stop is None and step is None:
-            start, stop, step = (0, 0, 1)
+            return cls._simple_new(0, 0, 1, name=name)
 
         # sort the arguments depending on which are provided
         if step is None:
@@ -3359,11 +3359,10 @@ class RangeIndex(Int64Index):
             start = 0
 
         # check validity of inputs
-        if (not isinstance(start, int) or 
-                not isinstance(stop, int) or 
-                not isinstance(step, int)):
-            raise TypeError("Need to pass integral values")
-        elif step == 0:
+        start = cls._ensure_int(start)
+        stop = cls._ensure_int(stop)
+        step = cls._ensure_int(step)
+        if step == 0:
             raise ValueError("Step must not be zero")
 
         return cls._simple_new(start, stop, step, name)
@@ -3371,15 +3370,53 @@ class RangeIndex(Int64Index):
     @classmethod
     def _simple_new(cls, start, stop, step, name=None):
         result = object.__new__(cls)
-        result.start = start
-        result.stop = stop
-        result.step = step
+        result._start = start
+        result._stop = stop
+        result._step = step
         result.name = name
         return result
+
+    @classmethod
+    def _ensure_int(cls, value):
+        try:
+            int_value = int(value)
+            if int_value != value:
+                raise Exception
+        except Exception:
+            raise TypeError("Need to pass integral values")
+        return int_value
 
     @property
     def _data(self):
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+
+    @property
+    def dtype(self):
+        return np.dtype(np.int64)
+
+    @property
+    def start(self):
+        return self._start
+
+    @start.setter
+    def start(self, value):
+        self._start = self._ensure_int(value)
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @stop.setter
+    def stop(self, value):
+        self._stop = self._ensure_int(value)
+
+    @property
+    def step(self):
+        return self._step
+
+    @step.setter
+    def step(self, value):
+        self._step = self._ensure_int(value)
 
     @cache_readonly(allow_setting=True)
     def is_unique(self):
@@ -3397,7 +3434,8 @@ class RangeIndex(Int64Index):
         """ create a new Index, don't copy the data, use the same object attributes
             with passed in attributes taking precedence """
         if values is None:
-            return RangeIndex(self.start, self.stop, self.step, self.name)
+            return RangeIndex(self.start, self.stop, self.step, 
+                              name=self.name, fastpath=True)
         else:
             name = kwargs.get('name', self.name)
             return Int64Index(self.values, name=name, copy=False)._shallow_copy(values, **kwargs)
@@ -3426,7 +3464,7 @@ class RangeIndex(Int64Index):
 
         if name is None:
             name = self.name
-        return RangeIndex(self.start, self.stop, self.step, name)
+        return RangeIndex(self.start, self.stop, self.step, name, fastpath=True)
 
     def argsort(self, *args, **kwargs):
         """
@@ -3546,8 +3584,7 @@ class RangeIndex(Int64Index):
         # disregarding the lower bounds
         tmp_start = self.start + (other.start-self.start)*self.step//gcd*s
         new_step = self.step * other.step // gcd
-        assert new_step == int(new_step)
-        new_index = RangeIndex(tmp_start, int_high, new_step)
+        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
 
         # adjust index to limiting interval
         new_index.start = new_index._min_fitting_element(int_low)
@@ -3631,9 +3668,64 @@ class RangeIndex(Int64Index):
             int_input = False
 
         if int_input == True and other != 0:
-            return RangeIndex(self.start*other, self.stop*other, self.step*other)
+            return RangeIndex(self.start*other, self.stop*other, self.step*other,
+                              fastpath=True)
         else:
             return super(RangeIndex, self).__mul__(other)
+
+    def __len__(self):
+        """
+        return the length of the RangeIndex
+        """
+        return (self.stop-self.start) // self.step
+
+    @property
+    def size(self):
+        return len(self)
+
+    def __getitem__(self, key):
+        """
+        Conserve RangeIndex type for scalar and slice keys.
+        """
+        super_getitem = super(RangeIndex, self).__getitem__
+
+        if np.isscalar(key):
+            n = int(key)
+            if n != key:
+                return super_getitem(key)
+            if n < 0:
+                n = len(self) + key
+            if n < 0 or n > len(self)-1:
+                raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
+            return self.start + n * self.step
+
+        if isinstance(key, slice):
+            # complete missing slice information
+            n_start = 0 if key.start is None else key.start
+            n_stop = len(self)+1 if key.stop is None else key.stop
+            n_step = 1 if key.step is None else key.step
+
+            # delegate non-integer slices
+            if (n_start != int(n_start) and
+                    n_stop != int(n_stop) and
+                    n_step != int(n_step)):
+                return super_getitem(key)
+
+            # deal with index wrap-around
+            n_start = len(self)+n_start if n_start < 0 else n_start
+            n_stop = len(self)+n_stop if n_stop < 0 else n_stop
+
+            
+            # convert indexes to values
+            start = self.start + self.step * n_start
+            stop = self.start + self.step * n_stop + 1
+            step = self.step * n_step
+
+            stop = min(stop, self.stop)
+            return RangeIndex(start, stop, step, self.name, fastpath=True)
+
+        # fall back to Int64Index
+        return super_getitem(key)
 
 RangeIndex._add_numeric_methods()
 RangeIndex.__mul__ = RangeIndex.__rmul__ = RangeIndex._mul

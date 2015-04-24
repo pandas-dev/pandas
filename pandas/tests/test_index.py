@@ -2485,7 +2485,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         # non-int raise Exception
         self.assertRaises(TypeError, RangeIndex, '1', '10', '1')
-        self.assertRaises(TypeError, RangeIndex, 1.0, 10.0, 1.0)
+        self.assertRaises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
 
         # iterable raise Exception
         self.assertRaises(TypeError, RangeIndex, iter([-5, 0, 1, 2]))
@@ -2961,6 +2961,47 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_pickle_compat_construction(self):
         # RangeIndex() is a valid constructor
+        pass
+
+    def test_slice_specialised(self):
+        # scalar indexing
+        res = self.index[1]
+        expected = 2
+        self.assertEqual(res, expected)
+
+        res = self.index[-1]
+        expected = 18
+        self.assertEqual(res, expected)
+
+        ### slicing
+        # slice value completion
+        index = self.index[:]
+        expected = self.index
+        self.assert_numpy_array_equal(index, expected)
+
+        # positive slice values
+        index = self.index[7:10:2]
+        expected = np.array([14, 18])
+        self.assert_numpy_array_equal(index, expected)
+
+        # negative slice values
+        index = self.index[-1:-5:-2]
+        expected = np.array([18, 14])
+        self.assert_numpy_array_equal(index, expected)
+
+        # stop overshoot
+        index = self.index[2:100:4]
+        expected = np.array([4, 12])
+        self.assert_numpy_array_equal(index, expected)
+
+    def test_len_specialised(self):
+        # TODO: How to test that len is specialised rather than calling
+        #       the parent classes __len__() (which is slow)?
+        pass
+
+    def test_size_specialised(self):
+        # TODO: How to test that size is specialised rather than calling
+        #       the parent classes size property (which is slow)?
         pass
 
 class DatetimeLike(Base):
