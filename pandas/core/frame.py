@@ -5325,7 +5325,7 @@ def extract_index(data):
                            (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
-                index = Index(np.arange(lengths[0]))
+                index = _default_index(lengths[0])
 
     return _ensure_index(index)
 
@@ -5538,11 +5538,11 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    index = lrange(len(data))
     has_some_name = any([getattr(s, 'name', None) is not None for s in data])
     if not has_some_name:
-        return index
+        return _default_index(len(data))
 
+    index = lrange(len(data))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, 'name', None)
