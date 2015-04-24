@@ -553,6 +553,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.swapcase
    Series.str.title
    Series.str.upper
+   Series.str.wrap
    Series.str.zfill
    Series.str.isalnum
    Series.str.isalpha
