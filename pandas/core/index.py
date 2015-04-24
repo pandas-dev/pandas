@@ -108,6 +108,10 @@ class Index(IndexOpsMixin, PandasObject):
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
 
+        # no class inference!
+        if fastpath:
+            return cls._simple_new(data, name)
+
         # RangeIndex pass-through
         # Index(start, stop, ...) --> RangeIndex(start, stop, ...)
         if isinstance(data, int):
@@ -122,14 +126,9 @@ class Index(IndexOpsMixin, PandasObject):
                     range_constructor = True
                 else:
                     range_constructor = False
-            
+
             if range_constructor:
                 return RangeIndex(data, dtype, copy, name)
-
-
-        # no class inference!
-        if fastpath:
-            return cls._simple_new(data, name)
 
         from pandas.tseries.period import PeriodIndex
         if isinstance(data, (np.ndarray, Index, ABCSeries)):
