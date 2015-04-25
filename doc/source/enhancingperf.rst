@@ -66,7 +66,7 @@ Here's the function in pure python:
            s += f(a + i * dx)
        return s * dx
 
-We achieve our result by by using ``apply`` (row-wise):
+We achieve our result by using ``apply`` (row-wise):
 
 .. ipython:: python
 
@@ -86,7 +86,7 @@ hence we'll concentrate our efforts cythonizing these two functions.
 .. note::
 
   In python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In python 3 range is already a generator.
+  would mean the ``range`` line would vanish. In python 3 ``range`` is already a generator.
 
 .. _enhancingperf.plain:
 
@@ -248,7 +248,7 @@ efforts here.
 More advanced techniques
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-There is still scope for improvement, here's an example of using some more
+There is still hope for improvement. Here's an example of using some more
 advanced cython techniques:
 
 .. ipython::
@@ -373,7 +373,7 @@ This Python syntax is **not** allowed:
 :func:`~pandas.eval` Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:func:`pandas.eval` works well with expressions containing large arrays
+:func:`pandas.eval` works well with expressions containing large arrays.
 
 First let's create a few decent-sized arrays to play with:
 
