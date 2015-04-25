@@ -1728,6 +1728,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
         empty_not_as = DataFrame(columns=df.columns)
+        empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
         assert_frame_equal(empty_not_as, g_not_as.head(0))
         assert_frame_equal(empty_not_as, g_not_as.tail(0))
         assert_frame_equal(empty_not_as, g_not_as.head(-1))
@@ -1743,6 +1745,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
 
         empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
+        empty_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_as['B'] = empty_not_as['B'].astype(df.B.dtype)
         assert_frame_equal(empty_as, g_as.head(0))
         assert_frame_equal(empty_as, g_as.tail(0))
         assert_frame_equal(empty_as, g_as.head(-1))

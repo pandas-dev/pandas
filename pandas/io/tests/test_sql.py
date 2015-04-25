@@ -1256,10 +1256,14 @@ class _TestSQLAlchemy(PandasSQLTest):
         self._transaction_test()
 
     def test_get_schema_create_table(self):
-        self._load_test2_data()
+        # Use a dataframe without a bool column, since MySQL converts bool to 
+        # TINYINT (which read_sql_table returns as an int and causes a dtype
+        # mismatch)
+
+        self._load_test3_data()
         tbl = 'test_get_schema_create_table'
-        create_sql = sql.get_schema(self.test_frame2, tbl, con=self.conn)
-        blank_test_df = self.test_frame2.iloc[:0]
+        create_sql = sql.get_schema(self.test_frame3, tbl, con=self.conn)
+        blank_test_df = self.test_frame3.iloc[:0]
 
         self.drop_table(tbl)
         self.conn.execute(create_sql)

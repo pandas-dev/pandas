@@ -1063,6 +1063,7 @@ class TestIndexing(tm.TestCase):
 
         # empty (essentially noops)
         expected = DataFrame(columns=['x', 'y'])
+        expected['x'] = expected['x'].astype(np.int64)
         df = DataFrame(columns=['x', 'y'])
         df.loc[:, 'x'] = 1
         assert_frame_equal(df,expected)
@@ -3376,7 +3377,7 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame(columns=['foo'])
         def f():
             df = DataFrame()
-            df['foo'] = Series([])
+            df['foo'] = Series([], dtype='object')
             return df
         assert_frame_equal(f(), expected)
         def f():
@@ -3386,9 +3387,12 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(f(), expected)
         def f():
             df = DataFrame()
-            df['foo'] = Series(range(len(df)))
+            df['foo'] = df.index
             return df
         assert_frame_equal(f(), expected)
+
+        expected = DataFrame(columns=['foo'])
+        expected['foo'] = expected['foo'].astype('float64')
         def f():
             df = DataFrame()
             df['foo'] = []
@@ -3396,7 +3400,7 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(f(), expected)
         def f():
             df = DataFrame()
-            df['foo'] = df.index
+            df['foo'] = Series(range(len(df)))
             return df
         assert_frame_equal(f(), expected)
         def f():
@@ -3429,14 +3433,21 @@ class TestIndexing(tm.TestCase):
 
         # GH5720, GH5744
         # don't create rows when empty
+        expected = DataFrame(columns=['A','B','New'])
+        expected['A'] = expected['A'].astype('int64')
+        expected['B'] = expected['B'].astype('float64')
+        expected['New'] = expected['New'].astype('float64')
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
         y['New'] = np.nan
-        assert_frame_equal(y,DataFrame(columns=['A','B','New']))
+        assert_frame_equal(y,expected)
+        #assert_frame_equal(y,expected)
 
+        expected = DataFrame(columns=['a','b','c c','d'])
+        expected['d'] = expected['d'].astype('int64')
         df = DataFrame(columns=['a', 'b', 'c c'])
         df['d'] = 3
-        assert_frame_equal(df,DataFrame(columns=['a','b','c c','d']))
+        assert_frame_equal(df,expected)
         assert_series_equal(df['c c'],Series(name='c c',dtype=object))
 
         # reindex columns is ok
@@ -3444,6 +3455,9 @@ class TestIndexing(tm.TestCase):
         y = df[df.A > 5]
         result = y.reindex(columns=['A','B','C'])
         expected = DataFrame(columns=['A','B','C'])
+        expected['A'] = expected['A'].astype('int64')
+        expected['B'] = expected['B'].astype('float64')
+        expected['C'] = expected['C'].astype('float64')
         assert_frame_equal(result,expected)
 
         # GH 5756
@@ -4428,6 +4442,15 @@ class TestIndexing(tm.TestCase):
         df.loc[5] = rhs
         expected.loc[5] = [9, 99]
         tm.assert_frame_equal(df, expected)
+
+    def test_indexing_dtypes_on_empty(self):
+        # Check that .iloc and .ix return correct dtypes GH9983
+        df = DataFrame({'a':[1,2,3],'b':['b','b2','b3']})
+        df2 = df.ix[[],:]
+
+        self.assertEqual(df2.loc[:,'a'].dtype, int)
+        assert_series_equal(df2.loc[:,'a'], df2.iloc[:,0])
+        assert_series_equal(df2.loc[:,'a'], df2.ix[:,0])
 
 
 
