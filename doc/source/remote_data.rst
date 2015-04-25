@@ -49,7 +49,7 @@ Yahoo! Finance
     import datetime
     start = datetime.datetime(2010, 1, 1)
     end = datetime.datetime(2013, 1, 27)
-    f=web.DataReader("F", 'yahoo', start, end)
+    f = web.DataReader("F", 'yahoo', start, end)
     f.ix['2010-01-04']
 
 .. _remote_data.yahoo_options:
@@ -58,10 +58,10 @@ Yahoo! Finance Options
 ----------------------
 ***Experimental***
 
-The Options class allows the download of options data from Yahoo! Finance.
+The ``Options`` class allows the download of options data from Yahoo! Finance.
 
 The ``get_all_data`` method downloads and caches option data for all expiry months
-and provides a formatted ``DataFrame`` with a hierarchical index, so its easy to get
+and provides a formatted ``DataFrame`` with a hierarchical index, so it is easy to get
 to the specific option you want.
 
 .. ipython:: python
@@ -71,10 +71,10 @@ to the specific option you want.
       data = aapl.get_all_data()
       data.iloc[0:5, 0:5]
 
-      #Show the $100 strike puts at all expiry dates:
+      # Show the $100 strike puts at all expiry dates:
       data.loc[(100, slice(None), 'put'),:].iloc[0:5, 0:5]
 
-      #Show the volume traded of $100 strike puts at all expiry dates:
+      # Show the volume traded of $100 strike puts at all expiry dates:
       data.loc[(100, slice(None), 'put'),'Vol'].head()
 
 If you don't want to download all the data, more specific requests can be made.
@@ -121,7 +121,7 @@ Google Finance
     import datetime
     start = datetime.datetime(2010, 1, 1)
     end = datetime.datetime(2013, 1, 27)
-    f=web.DataReader("F", 'google', start, end)
+    f = web.DataReader("F", 'google', start, end)
     f.ix['2010-01-04']
 
 .. _remote_data.fred:
@@ -152,7 +152,7 @@ Dataset names are listed at `Fama/French Data Library
 .. ipython:: python
 
     import pandas.io.data as web
-    ip=web.DataReader("5_Industry_Portfolios", "famafrench")
+    ip = web.DataReader("5_Industry_Portfolios", "famafrench")
     ip[4].ix[192607]
 
 .. _remote_data.wb:
@@ -302,9 +302,8 @@ Problematic Country Codes & Indicators
    :func:`wb.download()` is more flexible.  To achieve this, the warning
    and exception logic changed.
    
-The world bank converts some country codes,
-in their response, which makes error checking by pandas difficult.
-Retired indicators still persist in the search.
+The world bank converts some country codes in their response, which makes error
+checking by pandas difficult. Retired indicators still persist in the search.
 
 Given the new flexibility of 0.15.1, improved error handling by the user
 may be necessary for fringe cases.
@@ -377,13 +376,13 @@ The following will fetch users and pageviews (metrics) data per day of the week,
         filters     = "pagePath=~aboutus;ga:country==France",
     )
 
-The only mandatory arguments are ``metrics,`` ``dimensions`` and ``start_date``. We can only strongly recommend you to always specify the ``account_id``, ``profile_id`` and ``property_id`` to avoid accessing the wrong data bucket in Google Analytics.
+The only mandatory arguments are ``metrics,`` ``dimensions`` and ``start_date``. We strongly recommend that you always specify the ``account_id``, ``profile_id`` and ``property_id`` to avoid accessing the wrong data bucket in Google Analytics.
 
 The ``index_col`` argument indicates which dimension(s) has to be taken as index.
 
-The ``filters`` argument indicates the filtering to apply to the query. In the above example, the page has URL has to contain ``aboutus`` AND the visitors country has to be France.
+The ``filters`` argument indicates the filtering to apply to the query. In the above example, the page URL has to contain ``aboutus`` AND the visitors country has to be France.
 
-Detailed informations in the followings:
+Detailed information in the following:
 
 * `pandas & google analytics, by yhat <http://blog.yhathq.com/posts/pandas-google-analytics.html>`__
 * `Google Analytics integration in pandas, by Chang She <http://quantabee.wordpress.com/2012/12/17/google-analytics-pandas/>`__
