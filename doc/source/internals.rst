@@ -94,6 +94,73 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
+.. _ref-composition-pandas:
+
+Define Original Data Structures using pandas
+--------------------------------------------
+
+.. warning:: If you simply want to add some functionality to ``pandas``, the easiest
+   way is monkey-patching. See :ref:`Adding Features to your pandas Installation <ref-monkey-patching>`.
+
+This section describes how to define your original data structure which extends ``pandas`` functionality using `composition <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+
+Below example shows an original class which is mostly compatible with ``Series``.
+The class have a ``_series`` property to hold standard ``Series`` (composition), and defining ``__getattr__`` to delegate all the undefined properties / methods to it.
+
+.. code-block:: python
+
+   class CompositedSeries(object):
+
+       def __init__(self, arr, *args, **kwargs):
+           self._series = Series(arr, *args, **kwargs)
+
+       def __getattr__(self, key):
+           return getattr(self._series, key)
+
+       def __getitem__(self, key):
+           # should results in the same class
+           return CompositedSeries(self._series[key])
+
+       def __repr__(self):
+           return repr(self._series)
+
+       def original_method(self):
+           return 'result'
+
+The class can behave almost the same as standard ``Series``.
+Note that some operations (such as arithmetic / set operations) will fail because
+these are undefined in above example.
+
+.. code-block:: python
+
+   >>> s = CompositedSeries([1, 2, 3], index=['A', 'B', 'C'])
+   >>> s
+   A    1
+   B    2
+   C    3
+   dtype: int64
+
+   >>> type(s)
+   <class '__main__.CompositedSeries'>
+
+   >>> s.dtype
+   int64
+
+   >>> sliced = s[1:3]
+   >>> sliced
+   B    2
+   C    3
+   dtype: int64
+
+   >>> type(sliced)
+   <class '__main__.CompositedSeries'>
+
+   >>> sliced.original_method()
+   result
+
+   >>> sliced + 2
+   TypeError: unsupported operand type(s) for +: 'CompositedSeries' and 'int'
+
 .. _ref-subclassing-pandas:
 
 Subclassing pandas Data Structures
@@ -103,7 +170,7 @@ Subclassing pandas Data Structures
 
   1. Monkey-patching: See :ref:`Adding Features to your pandas Installation <ref-monkey-patching>`.
 
-  2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+  2. Use *composition*. See :ref:`Define Original Data Structures using pandas <ref-composition-pandas>`.
 
 This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
 
