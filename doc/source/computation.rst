@@ -1,23 +1,22 @@
 .. currentmodule:: pandas
-.. _computation:
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
-   import pandas.util.testing as tm
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   import pandas as pd
    import matplotlib
    try:
       matplotlib.style.use('ggplot')
    except AttributeError:
-      options.display.mpl_style = 'default'
+      pd.options.display.mpl_style = 'default'
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.max_rows=15
+   pd.options.display.max_rows=15
+
+.. _computation:
 
 Computational tools
 ===================
@@ -36,13 +35,13 @@ NA/null values *before* computing the percent change).
 
 .. ipython:: python
 
-   ser = Series(randn(8))
+   ser = pd.Series(np.random.randn(8))
 
    ser.pct_change()
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 4))
+   df = pd.DataFrame(np.random.randn(10, 4))
 
    df.pct_change(periods=3)
 
@@ -56,8 +55,8 @@ The ``Series`` object has a method ``cov`` to compute covariance between series
 
 .. ipython:: python
 
-   s1 = Series(randn(1000))
-   s2 = Series(randn(1000))
+   s1 = pd.Series(np.random.randn(1000))
+   s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
 Analogously, ``DataFrame`` has a method ``cov`` to compute pairwise covariances
@@ -78,7 +77,7 @@ among the series in the DataFrame, also excluding NA/null values.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.cov()
 
 ``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
@@ -87,7 +86,7 @@ in order to have a valid result.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
    frame.ix[:5, 'a'] = np.nan
    frame.ix[5:10, 'b'] = np.nan
 
@@ -123,7 +122,7 @@ All of these are currently computed using pairwise complete observations.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.ix[::2] = np.nan
 
    # Series with Series
@@ -140,7 +139,7 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
 
 .. ipython:: python
 
-   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
    frame.ix[:5, 'a'] = np.nan
    frame.ix[5:10, 'b'] = np.nan
 
@@ -157,8 +156,8 @@ objects.
 
    index = ['a', 'b', 'c', 'd', 'e']
    columns = ['one', 'two', 'three', 'four']
-   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+   df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
+   df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
    df1.corrwith(df2)
    df2.corrwith(df1, axis=1)
 
@@ -172,7 +171,7 @@ of the ranks (by default) for the group:
 
 .. ipython:: python
 
-   s = Series(np.random.randn(5), index=list('abcde'))
+   s = pd.Series(np.random.np.random.randn(5), index=list('abcde'))
    s['d'] = s['b'] # so there's a tie
    s.rank()
 
@@ -181,7 +180,7 @@ or the columns (``axis=1``). ``NaN`` values are excluded from the ranking.
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(10, 6))
+   df = pd.DataFrame(np.random.np.random.randn(10, 6))
    df[4] = df[2][:5] # some ties
    df
    df.rank(1)
@@ -253,7 +252,7 @@ These functions can be applied to ndarrays or Series objects:
 
 .. ipython:: python
 
-   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    ts.plot(style='k--')
@@ -271,7 +270,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. ipython:: python
 
-   df = DataFrame(randn(1000, 4), index=ts.index,
+   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
                   columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
@@ -310,7 +309,7 @@ keyword. The list of recognized types are:
 
 .. ipython:: python
 
-   ser = Series(randn(10), index=date_range('1/1/2000', periods=10))
+   ser = pd.Series(np.random.randn(10), index=pd.date_range('1/1/2000', periods=10))
 
    rolling_window(ser, 5, 'triang')
 
