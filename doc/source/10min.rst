@@ -45,21 +45,22 @@ Object Creation
 
 See the :ref:`Data Structure Intro section <dsintro>`
 
-Creating a ``Series`` by passing a list of values, letting pandas create a default
-integer index
+Creating a :class:`Series` by passing a list of values, letting pandas create
+a default integer index:
 
 .. ipython:: python
 
    s = pd.Series([1,3,5,np.nan,6,8])
    s
 
-Creating a ``DataFrame`` by passing a numpy array, with a datetime index and labeled columns.
+Creating a :class:`DataFrame` by passing a numpy array, with a datetime index
+and labeled columns:
 
 .. ipython:: python
 
-   dates = pd.date_range('20130101',periods=6)
+   dates = pd.date_range('20130101', periods=6)
    dates
-   df = pd.DataFrame(np.random.randn(6,4),index=dates,columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(6,4), index=dates, columns=list('ABCD'))
    df
 
 Creating a ``DataFrame`` by passing a dict of objects that can be converted to series-like.
@@ -128,7 +129,7 @@ See the top & bottom rows of the frame
    df.head()
    df.tail(3)
 
-Display the index,columns, and the underlying numpy data
+Display the index, columns, and the underlying numpy data
 
 .. ipython:: python
 
@@ -462,7 +463,7 @@ operations.
 
 See the :ref:`Merging section <merging>`
 
-Concatenating pandas objects together
+Concatenating pandas objects together with :func:`concat`:
 
 .. ipython:: python
 
@@ -555,7 +556,8 @@ Stack
    df2 = df[:4]
    df2
 
-The ``stack`` function "compresses" a level in the DataFrame's columns.
+The :meth:`~DataFrame.stack` method "compresses" a level in the DataFrame's
+columns.
 
 .. ipython:: python
 
@@ -563,8 +565,8 @@ The ``stack`` function "compresses" a level in the DataFrame's columns.
    stacked
 
 With a "stacked" DataFrame or Series (having a ``MultiIndex`` as the
-``index``), the inverse operation of ``stack`` is ``unstack``, which by default
-unstacks the **last level**:
+``index``), the inverse operation of :meth:`~DataFrame.stack` is
+:meth:`~DataFrame.unstack`, which by default unstacks the **last level**:
 
 .. ipython:: python
 
@@ -708,7 +710,8 @@ Plotting
    @savefig series_plot_basic.png
    ts.plot()
 
-On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
+On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the
+columns with labels:
 
 .. ipython:: python
 
