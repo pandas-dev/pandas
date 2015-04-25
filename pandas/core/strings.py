@@ -466,6 +466,7 @@ def str_extract(arr, pat, flags=0):
     """
     from pandas.core.series import Series
     from pandas.core.frame import DataFrame
+    from pandas.core.index import Index
 
     regex = re.compile(pat, flags=flags)
     # just to be safe, check this
@@ -481,11 +482,14 @@ def str_extract(arr, pat, flags=0):
             return [np.nan if item is None else item for item in m.groups()]
         else:
             return empty_row
+
     if regex.groups == 1:
-        result = Series([f(val)[0] for val in arr],
-                        name=_get_single_group_name(regex),
-                        index=arr.index, dtype=object)
+        result = np.array([f(val)[0] for val in arr], dtype=object)
+        name = _get_single_group_name(regex)
     else:
+        if isinstance(arr, Index):
+            raise ValueError("only one regex group is supported with Index")
+        name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.empty:
@@ -495,7 +499,7 @@ def str_extract(arr, pat, flags=0):
                                columns=columns,
                                index=arr.index,
                                dtype=object)
-    return result
+    return result, name
 
 
 def str_get_dummies(arr, sep='|'):
@@ -531,6 +535,11 @@ def str_get_dummies(arr, sep='|'):
     pandas.get_dummies
     """
     from pandas.core.frame import DataFrame
+    from pandas.core.index import Index
+
+    # GH9980, Index.str does not support get_dummies() as it returns a frame
+    if isinstance(arr, Index):
+        raise TypeError("get_dummies is not supported for string methods on Index")
 
     # TODO remove this hack?
     arr = arr.fillna('')
@@ -991,7 +1000,7 @@ class StringMethods(object):
             i += 1
             g = self.get(i)
 
-    def _wrap_result(self, result):
+    def _wrap_result(self, result, **kwargs):
         # leave as it is to keep extract and get_dummies results
         # can be merged to _wrap_result_expand in v0.17
         from pandas.core.series import Series
@@ -1000,16 +1009,16 @@ class StringMethods(object):
 
         if not hasattr(result, 'ndim'):
             return result
-        elif result.ndim == 1:
-            name = getattr(result, 'name', None)
+        name = kwargs.get('name') or getattr(result, 'name', None) or self.series.name
+
+        if result.ndim == 1:
             if isinstance(self.series, Index):
                 # if result is a boolean np.array, return the np.array
                 # instead of wrapping it into a boolean Index (GH 8875)
                 if is_bool_dtype(result):
                     return result
-                return Index(result, name=name or self.series.name)
-            return Series(result, index=self.series.index,
-                          name=name or self.series.name)
+                return Index(result, name=name)
+            return Series(result, index=self.series.index, name=name)
         else:
             assert result.ndim < 3
             return DataFrame(result, index=self.series.index)
@@ -1257,7 +1266,11 @@ class StringMethods(object):
     startswith = _pat_wrapper(str_startswith, na=True)
     endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
-    extract = _pat_wrapper(str_extract, flags=True)
+
+    @copy(str_extract)
+    def extract(self, pat, flags=0):
+        result, name = str_extract(self.series, pat, flags=flags)
+        return self._wrap_result(result, name=name)
 
     _shared_docs['find'] = ("""
     Return %(side)s indexes in each strings in the Series/Index

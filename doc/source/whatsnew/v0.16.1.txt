@@ -40,6 +40,7 @@ Enhancements
      Timestamp('2014-08-01 16:30') + BusinessHour()
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
+
 - Allow clip, clip_lower, and clip_upper to accept array-like arguments as thresholds (:issue:`6966`). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s).
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
@@ -215,6 +216,8 @@ enhancements are performed to make string operation easier.
      s
      idx.str.startswith('a')
      s[s.index.str.startswith('a')]
+
+- Improved ``extract`` and ``get_dummies`` methods for ``Index.str`` (:issue:`9980`)
 
 .. _whatsnew_0161.api:
 
