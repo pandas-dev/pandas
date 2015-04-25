@@ -266,7 +266,7 @@ Method Summary
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
     :meth:`~Series.str.find`,Equivalent to ``str.find``
     :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
-    :meth:`~Series.str.capicalize`,Equivalent to ``str.capitalize``
+    :meth:`~Series.str.capitalize`,Equivalent to ``str.capitalize``
     :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
@@ -276,4 +276,4 @@ Method Summary
     :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
     :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``
     :meth:`~Series.str.isnumeric`,Equivalent to ``str.isnumeric``
-    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isdecimal``
+    :meth:`~Series.str.isdecimal`,Equivalent to ``str.isdecimal``
