@@ -11864,12 +11864,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                            "E": [8, 8, 1, 1, 3, 3]})
         assert_frame_equal(df[["A"]].mode(),
                            pd.DataFrame({"A": [12]}))
-        assert_frame_equal(df[["D"]].mode(),
-                           pd.DataFrame(pd.Series([], dtype="int64"),
-                                        columns=["D"]))
-        assert_frame_equal(df[["E"]].mode(),
-                           pd.DataFrame(pd.Series([1, 3, 8], dtype="int64"),
-                                        columns=["E"]))
+        expected = pd.Series([], dtype='int64', name='D').to_frame()
+        assert_frame_equal(df[["D"]].mode(), expected)
+        expected = pd.Series([1, 3, 8], dtype='int64', name='E').to_frame()
+        assert_frame_equal(df[["E"]].mode(), expected)
         assert_frame_equal(df[["A", "B"]].mode(),
                            pd.DataFrame({"A": [12], "B": [10.]}))
         assert_frame_equal(df.mode(),
