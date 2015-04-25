@@ -2118,6 +2118,7 @@ class TestPeriodIndex(tm.TestCase):
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
             empty = DataFrame(index=idx.__class__([], freq='D'), columns=['units'])
+            empty['units'] = empty['units'].astype('int64')
 
             tm.assert_frame_equal(df['2013/09/01':'2013/09/30'], empty)
             tm.assert_frame_equal(df['2013/09/30':'2013/10/02'], df.iloc[:2])
