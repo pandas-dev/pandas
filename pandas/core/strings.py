@@ -466,6 +466,7 @@ def str_extract(arr, pat, flags=0):
     """
     from pandas.core.series import Series
     from pandas.core.frame import DataFrame
+    from pandas.core.index import Index
 
     regex = re.compile(pat, flags=flags)
     # just to be safe, check this
@@ -481,11 +482,19 @@ def str_extract(arr, pat, flags=0):
             return [np.nan if item is None else item for item in m.groups()]
         else:
             return empty_row
+
     if regex.groups == 1:
-        result = Series([f(val)[0] for val in arr],
-                        name=_get_single_group_name(regex),
-                        index=arr.index, dtype=object)
+        if isinstance(arr, Index):
+            result = Index([f(val)[0] for val in arr],
+                           name=_get_single_group_name(regex),
+                           dtype=object)
+        else:
+            result = Series([f(val)[0] for val in arr],
+                            name=_get_single_group_name(regex),
+                            index=arr.index, dtype=object)
     else:
+        if isinstance(arr, Index):
+            raise ValueError("only one regex group is supported with Index")
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.empty:
@@ -531,6 +540,11 @@ def str_get_dummies(arr, sep='|'):
     pandas.get_dummies
     """
     from pandas.core.frame import DataFrame
+    from pandas.core.index import Index
+
+    # GH9980, Index.str does not support get_dummies() as it returns a frame
+    if isinstance(arr, Index):
+        raise TypeError("get_dummies is not supported for string methods on Index")
 
     # TODO remove this hack?
     arr = arr.fillna('')

@@ -516,7 +516,6 @@ class TestStringMethods(tm.TestCase):
 
     def test_extract(self):
         # Contains tests like those in test_match and some others.
-
         values = Series(['fooBAD__barBAD', NA, 'foo'])
         er = [NA, NA]  # empty row
 
@@ -540,15 +539,31 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([[u('BAD__'), u('BAD')], er, er])
         tm.assert_frame_equal(result, exp)
 
-        # no groups
+        # GH9980
+        # Index only works with one regex group since
+        # multi-group would expand to a frame
+        idx = Index(['A1', 'A2', 'A3', 'A4', 'B5'])
+        with tm.assertRaisesRegexp(ValueError, "supported"):
+            idx.str.extract('([AB])([123])')
+
+        # these should work for both Series and Index
+        for klass in [Series, Index]:
+            # no groups
+            s_or_idx = klass(['A1', 'B2', 'C3'])
+            f = lambda: s_or_idx.str.extract('[ABC][123]')
+            self.assertRaises(ValueError, f)
+
+            # only non-capturing groups
+            f = lambda: s_or_idx.str.extract('(?:[AB]).*')
+            self.assertRaises(ValueError, f)
+
+            # single group renames series/index properly
+            s_or_idx = klass(['A1', 'A2'])
+            result = s_or_idx.str.extract(r'(?P<uno>A)\d')
+            tm.assert_equal(result.name, 'uno')
+            tm.assert_array_equal(result, klass(['A', 'A']))
+
         s = Series(['A1', 'B2', 'C3'])
-        f = lambda: s.str.extract('[ABC][123]')
-        self.assertRaises(ValueError, f)
-
-        # only non-capturing groups
-        f = lambda: s.str.extract('(?:[AB]).*')
-        self.assertRaises(ValueError, f)
-
         # one group, no matches
         result = s.str.extract('(_)')
         exp = Series([NA, NA, NA], dtype=object)
@@ -569,13 +584,15 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]])
         tm.assert_frame_equal(result, exp)
 
-        # named group/groups
-        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
-        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=['letter', 'number'])
-        tm.assert_frame_equal(result, exp)
+        # one named group
         result = s.str.extract('(?P<letter>[AB])')
         exp = Series(['A', 'B', NA], name='letter')
         tm.assert_series_equal(result, exp)
+
+        # two named groups
+        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=['letter', 'number'])
+        tm.assert_frame_equal(result, exp)
 
         # mix named and unnamed groups
         result = s.str.extract('([AB])(?P<number>[123])')
@@ -601,11 +618,6 @@ class TestStringMethods(tm.TestCase):
         result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
-
-        # single group renames series properly
-        s = Series(['A1', 'A2'])
-        result = s.str.extract(r'(?P<uno>A)\d')
-        tm.assert_equal(result.name, 'uno')
 
         # GH6348
         # not passing index to the extractor
@@ -760,6 +772,12 @@ class TestStringMethods(tm.TestCase):
         expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]],
                              columns=list('7ab'))
         tm.assert_frame_equal(result, expected)
+
+        # GH9980
+        # Index.str does not support get_dummies() as it returns a frame
+        with tm.assertRaisesRegexp(TypeError, "not supported"):
+            idx = Index(['a|b', 'a|c', 'b|c'])
+            idx.str.get_dummies('|')
 
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
