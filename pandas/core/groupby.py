@@ -25,8 +25,8 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype, _values_from_object,
-                               is_datetime_or_timedelta_dtype, is_bool_dtype,
-                               AbstractMethodError)
+                               is_datetime_or_timedelta_dtype, is_bool,
+                               is_bool_dtype, AbstractMethodError)
 from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -491,7 +491,7 @@ class GroupBy(PandasObject):
 
         # shortcut of we have an already ordered grouper
         if not self.grouper.is_monotonic:
-            index = Index(np.concatenate([ indices[v] for v in self.grouper.result_index ]))
+            index = Index(np.concatenate([ indices.get(v, []) for v in self.grouper.result_index]))
             result.index = index
             result = result.sort_index()
 
@@ -2436,6 +2436,8 @@ class SeriesGroupBy(GroupBy):
 
         wrapper = lambda x: func(x, *args, **kwargs)
         for i, (name, group) in enumerate(self):
+            if name not in self.indices:
+                continue
 
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
@@ -2451,7 +2453,7 @@ class SeriesGroupBy(GroupBy):
             except:
                 pass
 
-            indexer = self._get_index(name)
+            indexer = self.indices[name]
             result[indexer] = res
 
         result = _possibly_downcast_to_dtype(result, dtype)
@@ -2465,9 +2467,12 @@ class SeriesGroupBy(GroupBy):
         """
         if isinstance(func, compat.string_types):
             func = getattr(self,func)
+
         values = func().values
-        counts = self.size().values
+        counts = self.size().fillna(0).values
         values = np.repeat(values, com._ensure_platform_int(counts))
+        if any(counts == 0):
+            values = self._try_cast(values, self._selected_obj)
 
         return self._set_result_index_ordered(Series(values))
 
@@ -2502,8 +2507,11 @@ class SeriesGroupBy(GroupBy):
             return b and notnull(b)
 
         try:
-            indices = [self._get_index(name) if true_and_notnull(group) else []
-                       for name, group in self]
+            indices = []
+            for name, group in self:
+                if true_and_notnull(group) and name in self.indices:
+                    indices.append(self.indices[name])
+
         except ValueError:
             raise TypeError("the filter must return a boolean result")
         except TypeError:
@@ -3020,24 +3028,18 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        # a grouped that doesn't preserve the index, remap index based on the grouper
-        # and broadcast it
-        if ((not isinstance(obj.index,MultiIndex) and
-             type(result.index) != type(obj.index)) or
-            len(result.index) != len(obj.index)):
-            results = np.empty_like(obj.values, result.values.dtype)
-            indices = self.indices
-            for (name, group), (i, row) in zip(self, result.iterrows()):
+        results = np.empty_like(obj.values, result.values.dtype)
+        indices = self.indices
+        for (name, group), (i, row) in zip(self, result.iterrows()):
+            if name in indices:
                 indexer = indices[name]
                 results[indexer] = np.tile(row.values,len(indexer)).reshape(len(indexer),-1)
-            return DataFrame(results,columns=result.columns,index=obj.index).convert_objects()
 
-        # we can merge the result in
-        # GH 7383
-        names = result.columns
-        result = obj.merge(result, how='outer', left_index=True, right_index=True).iloc[:,-result.shape[1]:]
-        result.columns = names
-        return result
+        counts = self.size().fillna(0).values
+        if any(counts == 0):
+            results = self._try_cast(results, obj[result.columns])
+
+        return DataFrame(results,columns=result.columns,index=obj.index).convert_objects()
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):
@@ -3129,10 +3131,9 @@ class NDFrameGroupBy(GroupBy):
                 pass
 
             # interpret the result of the filter
-            if (isinstance(res, (bool, np.bool_)) or
-                np.isscalar(res) and isnull(res)):
-                if res and notnull(res):
-                    indices.append(self._get_index(name))
+            if is_bool(res) or (lib.isscalar(res) and isnull(res)):
+                if res and notnull(res) and name in self.indices:
+                    indices.append(self.indices[name])
             else:
                 # non scalars aren't allowed
                 raise TypeError("filter function returned a %s, "
