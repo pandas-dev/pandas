@@ -1591,8 +1591,8 @@ def length_of_indexer(indexer, target=None):
         if step is None:
             step = 1
         elif step < 0:
-            step = abs(step)
-        return (stop - start) / step
+            step = -step
+        return (stop - start + step-1) // step
     elif isinstance(indexer, (ABCSeries, Index, np.ndarray, list)):
         return len(indexer)
     elif not is_list_like_indexer(indexer):
