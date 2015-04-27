@@ -245,7 +245,7 @@ class Index(IndexOpsMixin, PandasObject):
         True if both have same underlying data, False otherwise : bool
         """
         # use something other than None to be clearer
-        return self._id is getattr(other, '_id', Ellipsis)
+        return self._id is getattr(other, '_id', Ellipsis) and self._id is not None
 
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
@@ -3622,20 +3622,20 @@ class RangeIndex(Int64Index):
     #        old_t, t = t, old_t - quotient * t
     #    return old_r, old_s, old_t
 
-    #def union(self, other):
-    #    """
-    #    Form the union of two Index objects and sorts if possible
+    def union(self, other):
+        """
+        Form the union of two Index objects and sorts if possible
 
-    #    Parameters
-    #    ----------
-    #    other : Index or array-like
+        Parameters
+        ----------
+        other : Index or array-like
 
-    #    Returns
-    #    -------
-    #    union : Index
-    #    """
-    #    # note: could return a RangeIndex in some circumstances
-    #    return self._int64index.union(other)
+        Returns
+        -------
+        union : Index
+        """
+        # note: could return a RangeIndex in some circumstances
+        return self._int64index.union(other)
 
     #def join(self, other, how='left', level=None, return_indexers=False):
     #    """
