@@ -267,7 +267,7 @@ You can pass other keywords supported by matplotlib ``hist``. For example, horiz
    plt.close('all')
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
-`matplotlib hist documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
+`matplotlib hist documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
 
 
 The existing interface ``DataFrame.hist`` to plot histogram still can be used.

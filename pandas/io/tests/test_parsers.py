@@ -520,6 +520,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = self.read_csv(StringIO(s_malformed), usecols=cols, index_col=False)
         tm.assert_frame_equal(expected, df)
 
+    def test_index_col_is_True(self):
+        # Issue 9798
+        self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
+                          index_col=True)
+
     def test_converter_index_col_bug(self):
         # 1835
         data = "A;B\n1;2\n3;4"
@@ -1092,6 +1097,21 @@ baz,7,8,9
         self.assertIsInstance(df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
+
+    def test_read_csv_infer_compression(self):
+        # GH 9770
+        expected = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+
+        inputs = [self.csv1, self.csv1 + '.gz',
+                  self.csv1 + '.bz2', open(self.csv1)]
+
+        for f in inputs:
+            df = self.read_csv(f, index_col=0, parse_dates=True,
+                compression='infer')
+
+            tm.assert_frame_equal(expected, df)
+
+        inputs[3].close()
 
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))

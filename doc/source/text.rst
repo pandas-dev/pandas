@@ -17,10 +17,10 @@ Working with Text Data
 
 .. _text.string_methods:
 
-Series is equipped with a set of string processing methods
+Series and Index are equipped with a set of string processing methods
 that make it easy to operate on each element of the array. Perhaps most
 importantly, these methods exclude missing/NA values automatically. These are
-accessed via the Series's ``str`` attribute and generally have names matching
+accessed via the ``str`` attribute and generally have names matching
 the equivalent (scalar) built-in string methods:
 
 .. ipython:: python
@@ -29,6 +29,39 @@ the equivalent (scalar) built-in string methods:
    s.str.lower()
    s.str.upper()
    s.str.len()
+
+.. ipython:: python
+
+   idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+   idx.str.strip()
+   idx.str.lstrip()
+   idx.str.rstrip()
+
+The string methods on Index are especially useful for cleaning up or
+transforming DataFrame columns. For instance, you may have columns with
+leading or trailing whitespace:
+
+.. ipython:: python
+
+   df = DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
+                  index=range(3))
+   df
+
+Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
+
+.. ipython:: python
+
+   df.columns.str.strip()
+   df.columns.str.lower()
+
+These string methods can then be used to clean up the columns as needed.
+Here we are removing leading and trailing whitespaces, lowercasing all names,
+and replacing any remaining whitespaces with underscores:
+
+.. ipython:: python
+
+   df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+   df
 
 Splitting and Replacing Strings
 -------------------------------
@@ -233,7 +266,7 @@ Method Summary
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
     :meth:`~Series.str.find`,Equivalent to ``str.find``
     :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
-    :meth:`~Series.str.capicalize`,Equivalent to ``str.capitalize``
+    :meth:`~Series.str.capitalize`,Equivalent to ``str.capitalize``
     :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
@@ -243,4 +276,4 @@ Method Summary
     :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
     :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``
     :meth:`~Series.str.isnumeric`,Equivalent to ``str.isnumeric``
-    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isdecimal``
+    :meth:`~Series.str.isdecimal`,Equivalent to ``str.isdecimal``

@@ -19,6 +19,7 @@ from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas.core import common as com
 from pandas import Series
+from pandas.core.common import AbstractMethodError
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -229,7 +230,7 @@ class _HtmlFrameParser(object):
         text : str or unicode
             The text from an individual DOM node.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_td(self, obj):
         """Return the td elements from a row element.
@@ -243,7 +244,7 @@ class _HtmlFrameParser(object):
         columns : list of node-like
             These are the elements of each row, i.e., the columns.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_tables(self, doc, match, attrs):
         """Return all tables from the parsed DOM.
@@ -270,7 +271,7 @@ class _HtmlFrameParser(object):
         tables : list of node-like
             A list of <table> elements to be parsed into raw data.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_tr(self, table):
         """Return the list of row elements from the parsed table element.
@@ -285,7 +286,7 @@ class _HtmlFrameParser(object):
         rows : list of node-like
             A list row elements of a table, usually <tr> or <th> elements.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_thead(self, table):
         """Return the header of a table.
@@ -300,7 +301,7 @@ class _HtmlFrameParser(object):
         thead : node-like
             A <thead>...</thead> element.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_tbody(self, table):
         """Return the body of the table.
@@ -315,7 +316,7 @@ class _HtmlFrameParser(object):
         tbody : node-like
             A <tbody>...</tbody> element.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _parse_tfoot(self, table):
         """Return the footer of the table if any.
@@ -330,7 +331,7 @@ class _HtmlFrameParser(object):
         tfoot : node-like
             A <tfoot>...</tfoot> element.
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _build_doc(self):
         """Return a tree-like object that can be used to iterate over the DOM.
@@ -339,7 +340,7 @@ class _HtmlFrameParser(object):
         -------
         obj : tree-like
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _build_table(self, table):
         header = self._parse_raw_thead(table)

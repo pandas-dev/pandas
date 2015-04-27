@@ -11,6 +11,7 @@ from pandas.compat import long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
+from pandas.core.common import AbstractMethodError
 import pandas.core.common as com
 
 loads = _json.loads
@@ -33,7 +34,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=double_precision, ensure_ascii=force_ascii,
             date_unit=date_unit, default_handler=default_handler).write()
     else:
-        raise NotImplementedError
+        raise NotImplementedError("'obj' should be a Series or a DataFrame")
 
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, 'w') as fh:
@@ -64,7 +65,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def write(self):
         return dumps(
@@ -282,7 +283,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -395,7 +396,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

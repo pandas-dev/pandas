@@ -242,6 +242,26 @@ class CheckNameIntegration(object):
                 s.dt
             self.assertFalse(hasattr(s, 'dt'))
 
+    def test_tab_completion(self):
+        # GH 9910
+        s = Series(list('abcd'))
+        # Series of str values should have .str but not .dt/.cat in __dir__
+        self.assertTrue('str' in dir(s))
+        self.assertTrue('dt' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .dt
+        s = Series(date_range('1/1/2015', periods=5))
+        self.assertTrue('dt' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .cat
+        s = Series(list('abbcd'), dtype="category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' not in dir(s))
+
     def test_binop_maybe_preserve_name(self):
 
         # names match, preserve
@@ -1858,6 +1878,48 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         comb[comb<2] += 10
         expected = Series([5,11,2,5,11,2],index=[0,1,2,0,1,2])
         assert_series_equal(comb, expected)
+
+    def test_where_datetime(self):
+        s = Series(date_range('20130102', periods=2))
+        expected = Series([10, 10], dtype='datetime64[ns]')
+        mask = np.array([False, False])
+
+        rs = s.where(mask, [10, 10])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10.0)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, 10.0])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, np.nan])
+        expected = Series([10, None], dtype='datetime64[ns]')
+        assert_series_equal(rs, expected)
+
+    def test_where_timedelta(self):
+        s = Series([1, 2], dtype='timedelta64[ns]')
+        expected = Series([10, 10], dtype='timedelta64[ns]')
+        mask = np.array([False, False])
+
+        rs = s.where(mask, [10, 10])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, 10.0)
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, 10.0])
+        assert_series_equal(rs, expected)
+
+        rs = s.where(mask, [10.0, np.nan])
+        expected = Series([10, None], dtype='timedelta64[ns]')
+        assert_series_equal(rs, expected)
 
     def test_mask(self):
         # compare with tested results in test_where
@@ -4933,6 +4995,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         csv_str = s.to_csv(path=None)
         self.assertIsInstance(csv_str, str)
 
+    def test_str_attribute(self):
+        # GH9068
+        methods = ['strip', 'rstrip', 'lstrip']
+        s = Series([' jack', 'jill ', ' jesse ', 'frank'])
+        for method in methods:
+            expected = Series([getattr(str, method)(x) for x in s.values])
+            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+
+        # str accessor only valid with string values
+        s = Series(range(5))
+        with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+            s.str.repeat(2)
+
     def test_clip(self):
         val = self.ts.median()
 
@@ -5511,6 +5586,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 expec = s.map(compat.text_type)
                 assert_series_equal(res, expec)
 
+        # GH9757
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            ts = Series([Timestamp('2010-01-04 00:00:00')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
+            ts = Series([Timestamp('2010-01-04 00:00:00', tz='US/Eastern')])
+            s = ts.astype(tt)
+            expected = Series([tt(ts.values[0])])
+            assert_series_equal(s, expected)
+
+            td = Series([Timedelta(1, unit='d')])
+            s = td.astype(tt)
+            expected = Series([tt(td.values[0])])
+            assert_series_equal(s, expected)
+
     def test_astype_unicode(self):
 
         # GH7758
@@ -5585,6 +5678,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(lrange(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         self.assertTrue(issubclass(s2.dtype.type, np.integer))
+
+    def test_divide_decimal(self):
+        ''' resolves issue #9787 '''
+        from decimal import Decimal
+
+        expected = Series([Decimal(5)])
+
+        s =  Series([Decimal(10)])
+        s =  s/Decimal(2)
+
+        tm.assert_series_equal(expected, s)
+
+        s =  Series([Decimal(10)])
+        s =  s//Decimal(2)
+
+        tm.assert_series_equal(expected, s)
 
     def test_map_decimal(self):
         from decimal import Decimal
@@ -6762,6 +6871,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         e = np.array([0, 2])
         tm.assert_array_equal(r, e)
 
+    def test_to_frame_expanddim(self):
+        # GH 9762
+
+        class SubclassedSeries(Series):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedFrame
+
+        class SubclassedFrame(DataFrame):
+            pass
+
+        s = SubclassedSeries([1, 2, 3], name='X')
+        result = s.to_frame()
+        self.assertTrue(isinstance(result, SubclassedFrame))
+        expected = SubclassedFrame({'X': [1, 2, 3]})
+        assert_frame_equal(result, expected)
 
 
 class TestSeriesNonUnique(tm.TestCase):

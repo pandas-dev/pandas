@@ -39,6 +39,17 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+class AbstractMethodError(NotImplementedError):
+    """Raise this error instead of NotImplementedError for abstract methods
+    while keeping compatibility with Python 2 and Python 3.
+    """
+    def __init__(self, class_instance):
+        self.class_instance = class_instance
+
+    def __str__(self):
+        return "This method must be defined on the concrete class of " \
+               + self.class_instance.__class__.__name__
+
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8',
                                        'uint8', 'int16', 'uint16', 'int32',
@@ -72,6 +83,16 @@ ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
 ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",))
 ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",))
 ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
+ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",))
+ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ", ("index",
+                                                                 "int64index",
+                                                                 "float64index",
+                                                                 "multiindex",
+                                                                 "datetimeindex",
+                                                                 "timedeltaindex",
+                                                                 "periodindex",
+                                                                 "categoricalindex"))
+
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
@@ -1397,14 +1418,19 @@ def _fill_zeros(result, x, y, name, fill):
 
     mask the nan's from x
     """
-
     if fill is None or is_float_dtype(result):
         return result
 
     if name.startswith(('r', '__r')):
         x,y = y,x
 
-    if np.isscalar(y):
+    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y,'type'))
+    is_scalar = lib.isscalar(y)
+
+    if not is_typed_variable and not is_scalar:
+        return result
+
+    if is_scalar:
         y = np.array(y)
 
     if is_integer_dtype(y):
@@ -2439,8 +2465,27 @@ def _get_dtype_type(arr_or_dtype):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
-    return arr_or_dtype.dtype.type
+    elif isinstance(arr_or_dtype, compat.string_types):
+        if is_categorical_dtype(arr_or_dtype):
+            return CategoricalDtypeType
+        return _get_dtype_type(np.dtype(arr_or_dtype))
+    try:
+        return arr_or_dtype.dtype.type
+    except AttributeError:
+        raise ValueError('%r is not a dtype' % arr_or_dtype)
 
+def is_dtype_equal(source, target):
+    """ return a boolean if the dtypes are equal """
+    source = _get_dtype_type(source)
+    target = _get_dtype_type(target)
+
+    try:
+        return source == target
+    except TypeError:
+
+        # invalid comparison
+        # object == category will hit this
+        return False
 
 def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2510,7 +2555,11 @@ def is_floating_dtype(arr_or_dtype):
 
 
 def is_bool_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except ValueError:
+        # this isn't even a dtype
+        return False
     return issubclass(tipo, np.bool_)
 
 def is_categorical(array):
@@ -2637,7 +2686,12 @@ def _astype_nansafe(arr, dtype, copy=True):
     if not isinstance(dtype, np.dtype):
         dtype = _coerce_to_dtype(dtype)
 
-    if is_datetime64_dtype(arr):
+    if issubclass(dtype.type, compat.text_type):
+        # in Py3 that's str, in Py2 that's unicode
+        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+    elif issubclass(dtype.type, compat.string_types):
+        return lib.astype_str(arr.ravel()).reshape(arr.shape)
+    elif is_datetime64_dtype(arr):
         if dtype == object:
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
@@ -2675,11 +2729,6 @@ def _astype_nansafe(arr, dtype, copy=True):
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
-    elif issubclass(dtype.type, compat.text_type):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
-    elif issubclass(dtype.type, compat.string_types):
-        return lib.astype_str(arr.ravel()).reshape(arr.shape)
 
     if copy:
         return arr.astype(dtype)

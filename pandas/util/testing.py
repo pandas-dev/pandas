@@ -25,11 +25,6 @@ from numpy.testing import assert_array_equal
 
 import pandas as pd
 from pandas.core.common import is_sequence, array_equivalent, is_list_like
-import pandas.core.index as index
-import pandas.core.series as series
-import pandas.core.frame as frame
-import pandas.core.panel as panel
-import pandas.core.panel4d as panel4d
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
@@ -38,23 +33,11 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import bdate_range
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.period import PeriodIndex
+from pandas import (bdate_range, CategoricalIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+                    Index, MultiIndex, Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
-
 from pandas import _testing
-
-
 from pandas.io.common import urlopen
-
-Index = index.Index
-MultiIndex = index.MultiIndex
-Series = series.Series
-DataFrame = frame.DataFrame
-Panel = panel.Panel
-Panel4D = panel4d.Panel4D
 
 N = 30
 K = 4
@@ -331,19 +314,21 @@ def get_locales(prefix=None, normalize=True,
         # raw_locales is "\n" seperated list of locales
         # it may contain non-decodable parts, so split
         # extract what we can and then rejoin.
-        raw_locales = []
+        raw_locales = raw_locales.split(b'\n')
+        out_locales = []
         for x in raw_locales:
-            try:
-                raw_locales.append(str(x, encoding=pd.options.display.encoding))
-            except:
-                pass
+            if compat.PY3:
+                out_locales.append(str(x, encoding=pd.options.display.encoding))
+            else:
+                out_locales.append(str(x))
+
     except TypeError:
         pass
 
     if prefix is None:
-        return _valid_locales(raw_locales, normalize)
+        return _valid_locales(out_locales, normalize)
 
-    found = re.compile('%s.*' % prefix).findall('\n'.join(raw_locales))
+    found = re.compile('%s.*' % prefix).findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -548,16 +533,14 @@ def assert_equal(a, b, msg=""):
     assert a == b, "%s: %r != %r" % (msg.format(a,b), a, b)
 
 
-def assert_index_equal(left, right):
+def assert_index_equal(left, right, exact=False):
     assert_isinstance(left, Index, '[index] ')
     assert_isinstance(right, Index, '[index] ')
-    if not left.equals(right):
+    if not left.equals(right) or (exact and type(left) != type(right)):
         raise AssertionError("[index] left [{0} {1}], right [{2} {3}]".format(left.dtype,
                                                                               left,
                                                                               right,
                                                                               right.dtype))
-
-
 def assert_attr_equal(attr, left, right):
     """checks attributes are equal. Both objects must have attribute."""
     left_attr = getattr(left, attr)
@@ -625,6 +608,7 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(res, exp):
+
     if not array_equivalent(res.categories, exp.categories):
         raise AssertionError(
             'categories not equivalent: {0} vs {1}.'.format(res.categories,
@@ -824,6 +808,11 @@ def makeStringIndex(k=10):
 
 def makeUnicodeIndex(k=10):
     return Index(randu_array(nchars=10, size=k))
+
+def makeCategoricalIndex(k=10, n=3):
+    """ make a length k index or n categories """
+    x = rands_array(nchars=4, size=n)
+    return CategoricalIndex(np.random.choice(x,k))
 
 def makeBoolIndex(k=10):
     if k == 1:

@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
+from pandas.core.common import AbstractMethodError
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
@@ -131,7 +132,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
 
             colors = lmap(random_color, lrange(num_colors))
         else:
-            raise NotImplementedError
+            raise ValueError("color_type must be either 'default' or 'random'")
 
     if len(colors) != num_colors:
         multiple = num_colors//len(colors) - 1
@@ -885,28 +886,16 @@ class MPLPlot(object):
         if fillna is not None:
             data = data.fillna(fillna)
 
-        from pandas.core.frame import DataFrame
-        if isinstance(data, (Series, np.ndarray, Index)):
-            label = self.label if self.label is not None else data.name
+        if self.sort_columns:
+            columns = com._try_sort(data.columns)
+        else:
+            columns = data.columns
+
+        for col in columns:
             if keep_index is True:
-                yield label, data
+                yield col, data[col]
             else:
-                yield label, np.asarray(data)
-        elif isinstance(data, DataFrame):
-            if self.sort_columns:
-                columns = com._try_sort(data.columns)
-            else:
-                columns = data.columns
-
-            for col in columns:
-                # # is this right?
-                # empty = df[col].count() == 0
-                # values = df[col].values if not empty else np.zeros(len(df))
-
-                if keep_index is True:
-                    yield col, data[col]
-                else:
-                    yield col, data[col].values
+                yield col, data[col].values
 
     @property
     def nseries(self):
@@ -939,19 +928,21 @@ class MPLPlot(object):
 
     def _maybe_right_yaxis(self, ax, axes_num):
         if not self.on_right(axes_num):
-            if hasattr(ax, 'left_ax'):
-                # secondary axes may be passed as axes
-                return ax.left_ax
-            return ax
+            # secondary axes may be passed via ax kw
+            return self._get_ax_layer(ax)
 
         if hasattr(ax, 'right_ax'):
+            # if it has right_ax proparty, ``ax`` must be left axes
             return ax.right_ax
+        elif hasattr(ax, 'left_ax'):
+            # if it has left_ax proparty, ``ax`` must be right axes
+            return ax
         else:
+            # otherwise, create twin axes
             orig_ax, new_ax = ax, ax.twinx()
             new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
 
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
-            new_ax.right_ax = new_ax
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
@@ -999,14 +990,21 @@ class MPLPlot(object):
             all_sec = (com.is_list_like(self.secondary_y) and
                        len(self.secondary_y) == self.nseries)
             if (sec_true or all_sec):
-                # if all data is plotted on secondary,
-                # return secondary axes
-                return self.axes[0].right_ax
+                # if all data is plotted on secondary, return right axes
+                return self._get_ax_layer(self.axes[0], primary=False)
             else:
                 return self.axes[0]
 
     def _compute_plot_data(self):
-        numeric_data = self.data.convert_objects()._get_numeric_data()
+        data = self.data
+
+        if isinstance(data, Series):
+            label = self.kwds.pop('label', None)
+            if label is None and data.name is None:
+                label = 'None'
+            data = data.to_frame(name=label)
+
+        numeric_data = data.convert_objects()._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1021,18 +1019,13 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
             return
         elif self.table is True:
-            from pandas.core.frame import DataFrame
-            if isinstance(self.data, Series):
-                data = DataFrame(self.data, columns=[self.data.name])
-            elif isinstance(self.data, DataFrame):
-                data = self.data
-            data = data.transpose()
+            data = self.data.transpose()
         else:
             data = self.table
         ax = self._get_ax(0)
@@ -1047,7 +1040,10 @@ class MPLPlot(object):
         if len(self.axes) > 0:
             all_axes = self._get_axes()
             nrows, ncols = self._get_axes_layout()
-            _handle_shared_axes(all_axes, len(all_axes), len(all_axes), nrows, ncols, self.sharex, self.sharey)
+            _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
+                                naxes=nrows * ncols, nrows=nrows,
+                                ncols=ncols, sharex=self.sharex,
+                                sharey=self.sharey)
 
         for ax in to_adorn:
             if self.yticks is not None:
@@ -1099,18 +1095,15 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if hasattr(self.data, 'columns'):
-            if not isinstance(self.data.columns, MultiIndex):
-                name = self.data.columns.name
-                if name is not None:
-                    name = com.pprint_thing(name)
-                return name
-            else:
-                stringified = map(com.pprint_thing,
-                                  self.data.columns.names)
-                return ','.join(stringified)
+        if not isinstance(self.data.columns, MultiIndex):
+            name = self.data.columns.name
+            if name is not None:
+                name = com.pprint_thing(name)
+            return name
         else:
-            return None
+            stringified = map(com.pprint_thing,
+                              self.data.columns.names)
+            return ','.join(stringified)
 
     def _add_legend_handle(self, handle, label, index=None):
         if not label is None:
@@ -1241,11 +1234,18 @@ class MPLPlot(object):
 
         return name
 
+    @classmethod
+    def _get_ax_layer(cls, ax, primary=True):
+        """get left (primary) or right (secondary) axes"""
+        if primary:
+            return getattr(ax, 'left_ax', ax)
+        else:
+            return getattr(ax, 'right_ax', ax)
+
     def _get_ax(self, i):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
-
             ax = self._maybe_right_yaxis(ax, i)
             self.axes[i] = ax
         else:
@@ -1256,12 +1256,10 @@ class MPLPlot(object):
         return ax
 
     def on_right(self, i):
-        from pandas.core.frame import DataFrame
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if (isinstance(self.data, DataFrame) and
-                isinstance(self.secondary_y, (tuple, list, np.ndarray, Index))):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
             return self.data.columns[i] in self.secondary_y
 
     def _get_style(self, i, col_name):
@@ -1553,16 +1551,14 @@ class LinePlot(MPLPlot):
             self.x_compat = bool(self.kwds.pop('x_compat'))
 
     def _index_freq(self):
-        from pandas.core.frame import DataFrame
-        if isinstance(self.data, (Series, DataFrame)):
-            freq = getattr(self.data.index, 'freq', None)
-            if freq is None:
-                freq = getattr(self.data.index, 'inferred_freq', None)
-                if freq == 'B':
-                    weekdays = np.unique(self.data.index.dayofweek)
-                    if (5 in weekdays) or (6 in weekdays):
-                        freq = None
-            return freq
+        freq = getattr(self.data.index, 'freq', None)
+        if freq is None:
+            freq = getattr(self.data.index, 'inferred_freq', None)
+            if freq == 'B':
+                weekdays = np.unique(self.data.index.dayofweek)
+                if (5 in weekdays) or (6 in weekdays):
+                    freq = None
+        return freq
 
     def _is_dynamic_freq(self, freq):
         if isinstance(freq, DateOffset):
@@ -1574,9 +1570,7 @@ class LinePlot(MPLPlot):
 
     def _no_base(self, freq):
         # hack this for 0.10.1, creating more technical debt...sigh
-        from pandas.core.frame import DataFrame
-        if (isinstance(self.data, (Series, DataFrame))
-            and isinstance(self.data.index, DatetimeIndex)):
+        if isinstance(self.data.index, DatetimeIndex):
             base = frequencies.get_freq(freq)
             x = self.data.index
             if (base <= frequencies.FreqGroup.FR_DAY):
@@ -1686,17 +1680,13 @@ class LinePlot(MPLPlot):
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
         # over and over for DataFrames
-        from pandas.core.frame import DataFrame
-        if (isinstance(data.index, DatetimeIndex) and
-                isinstance(data, DataFrame)):
+        if isinstance(data.index, DatetimeIndex):
             freq = getattr(data.index, 'freq', None)
 
             if freq is None:
                 freq = getattr(data.index, 'inferred_freq', None)
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
-            freq = frequencies.get_base_alias(freq)
-            freq = frequencies.get_period_alias(freq)
 
             if freq is None:
                 ax = self._get_ax(0)
@@ -1705,9 +1695,10 @@ class LinePlot(MPLPlot):
             if freq is None:
                 raise ValueError('Could not get frequency alias for plotting')
 
-            data = DataFrame(data.values,
-                             index=data.index.to_period(freq=freq),
-                             columns=data.columns)
+            freq = frequencies.get_base_alias(freq)
+            freq = frequencies.get_period_alias(freq)
+
+            data.index = data.index.to_period(freq=freq)
         return data
 
     def _post_plot_logic(self):
@@ -1836,21 +1827,19 @@ class BarPlot(MPLPlot):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
                 start = start + self.bottom
-                return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
+                return ax.bar(x, y, w, bottom=start, log=self.log, **kwds)
         elif self.kind == 'barh':
+
             def f(ax, x, y, w, start=None, log=self.log, **kwds):
                 start = start + self.left
-                return ax.barh(x, y, w, left=start, **kwds)
+                return ax.barh(x, y, w, left=start, log=self.log, **kwds)
         else:
-            raise NotImplementedError
+            raise ValueError("BarPlot kind must be either 'bar' or 'barh'")
 
         return f
 
     def _make_plot(self):
         import matplotlib as mpl
-        # mpl decided to make their version string unicode across all Python
-        # versions for mpl >= 1.3 so we have to call str here for python 2
-        mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
 
         colors = self._get_colors()
         ncolors = len(colors)
@@ -1874,11 +1863,8 @@ class BarPlot(MPLPlot):
                 kwds['ecolor'] = mpl.rcParams['xtick.color']
 
             start = 0
-            if self.log:
+            if self.log and (y >= 1).all():
                 start = 1
-                if any(y < 1):
-                    # GH3254
-                    start = 0 if mpl_le_1_2_1 else None
 
             if self.subplots:
                 w = self.bar_width / 2
@@ -1948,7 +1934,8 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = np.ravel(self.data.values)
+            values = self.data.convert_objects()._get_numeric_data()
+            values = np.ravel(values)
             values = values[~com.isnull(values)]
 
             hist, self.bins = np.histogram(values, bins=self.bins,
@@ -2520,10 +2507,7 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
     """
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
-        ax = getattr(ax, 'left_ax', ax)
-    # is there harm in this?
-    if label is None:
-        label = data.name
+        ax = MPLPlot._get_ax_layer(ax)
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,
                  grid=grid, legend=legend,
@@ -3370,11 +3354,9 @@ def _flatten(axes):
 def _get_all_lines(ax):
     lines = ax.get_lines()
 
-    # check for right_ax, which can oddly sometimes point back to ax
-    if hasattr(ax, 'right_ax') and ax.right_ax != ax:
+    if hasattr(ax, 'right_ax'):
         lines += ax.right_ax.get_lines()
 
-    # no such risk with left_ax
     if hasattr(ax, 'left_ax'):
         lines += ax.left_ax.get_lines()
 

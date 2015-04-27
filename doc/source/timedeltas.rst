@@ -29,13 +29,13 @@ Time Deltas
    Starting in v0.15.0, we introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
    but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation, parsing, and attributes.
 
-Timedeltas are differences in times, expressed in difference units, e.g. days,hours,minutes,seconds.
+Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes, seconds.
 They can be both positive and negative.
 
 Parsing
 -------
 
-You can construct a ``Timedelta`` scalar thru various arguments:
+You can construct a ``Timedelta`` scalar through various arguments:
 
 .. ipython:: python
 
@@ -46,7 +46,7 @@ You can construct a ``Timedelta`` scalar thru various arguments:
    Timedelta('-1 days 2 min 3us')
 
    # like datetime.timedelta
-   # note: these MUST be specified as keyword argments
+   # note: these MUST be specified as keyword arguments
    Timedelta(days=1,seconds=1)
 
    # integers with a unit
@@ -100,7 +100,7 @@ It will construct Series if the input is a Series, a scalar if the input is scal
 Operations
 ----------
 
-You can operate on Series/DataFrames and construct ``timedelta64[ns]`` Series thru
+You can operate on Series/DataFrames and construct ``timedelta64[ns]`` Series through
 subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
 
 .. ipython:: python
@@ -290,7 +290,7 @@ TimedeltaIndex
 
 .. versionadded:: 0.15.0
 
-To generate an index with time delta, you can use either the TimedeltaIndex or
+To generate an index with time delta, you can use either the ``TimedeltaIndex`` or
 the ``timedelta_range`` constructor.
 
 Using ``TimedeltaIndex`` you can pass string-like, ``Timedelta``, ``timedelta``,

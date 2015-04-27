@@ -447,6 +447,11 @@ class Timestamp(_Timestamp):
         Returns
         -------
         localized : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If the Timestamp is tz-aware and tz is not None.
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
@@ -471,8 +476,7 @@ class Timestamp(_Timestamp):
 
     def tz_convert(self, tz):
         """
-        Convert Timestamp to another time zone or localize to requested time
-        zone
+        Convert tz-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -483,6 +487,11 @@ class Timestamp(_Timestamp):
         Returns
         -------
         converted : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If Timestamp is tz-naive.
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -1388,6 +1397,69 @@ def parse_datetime_string(date_string, **kwargs):
 
     dt = parse_date(date_string, **kwargs)
     return dt
+
+def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object format=None, object na_rep=None):
+    """
+    return a np object array of the string formatted values
+
+    Parameters
+    ----------
+    values : a 1-d i8 array
+    tz : the timezone (or None)
+    format : optional, default is None
+          a strftime capable string
+    na_rep : optional, default is None
+          a nat format
+
+    """
+    cdef:
+        int64_t val, ns, N = len(values)
+        ndarray[object] result = np.empty(N, dtype=object)
+        object ts, res
+        pandas_datetimestruct dts
+
+    if na_rep is None:
+       na_rep = 'NaT'
+
+    for i in range(N):
+       val = values[i]
+
+       if val == iNaT:
+          result[i] = na_rep
+       else:
+          if format is None and tz is None:
+
+            pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
+            res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
+                                                   dts.month,
+                                                   dts.day,
+                                                   dts.hour,
+                                                   dts.min,
+                                                   dts.sec)
+
+            ns = dts.ps / 1000
+
+            if ns != 0:
+               res += '.%.9d' % (ns + 1000 * dts.us)
+            elif dts.us != 0:
+               res += '.%.6d' % dts.us
+
+            result[i] = res
+
+          else:
+             ts = Timestamp(val, tz=tz)
+             if format is None:
+                 result[i] = str(ts)
+             else:
+
+                 # invalid format string
+                 # requires dates > 1900
+                 try:
+                     result[i] = ts.strftime(format)
+                 except ValueError:
+                     result[i] = str(ts)
+
+    return result
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                       format=None, utc=None, coerce=False, unit=None):

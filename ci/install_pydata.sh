@@ -137,8 +137,15 @@ if [ "$IRON_TOKEN" ]; then
 fi
 
 # build pandas
-python setup.py build_ext --inplace
-python setup.py develop
+if [ "$BUILD_TEST" ]; then
+    pip uninstall --yes cython
+    pip install cython==0.15.1
+    ( python setup.py build_ext --inplace ) || true
+    ( python setup.py develop ) || true
+else
+    python setup.py build_ext --inplace
+    python setup.py develop
+fi
 
 # restore cython (if not numpy building)
 if [ -z "$NUMPY_BUILD" ]; then

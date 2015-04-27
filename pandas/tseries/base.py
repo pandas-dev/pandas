@@ -8,7 +8,7 @@ from datetime import datetime, time, timedelta
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
-from pandas.core.common import is_integer, is_float
+from pandas.core.common import is_integer, is_float, AbstractMethodError
 import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
@@ -48,7 +48,7 @@ class DatetimeIndexOpsMixin(object):
         """
         box function to get object from internal representation
         """
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -61,7 +61,7 @@ class DatetimeIndexOpsMixin(object):
         return _algos.groupby_object(objs, f)
 
     def _format_with_header(self, header, **kwargs):
-        return header + self._format_native_types(**kwargs)
+        return header + list(self._format_native_types(**kwargs))
 
     def __contains__(self, key):
         try:
@@ -261,7 +261,7 @@ class DatetimeIndexOpsMixin(object):
         return str
 
     def _format_footer(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def __unicode__(self):
         formatter = self._formatter_func
@@ -314,10 +314,10 @@ class DatetimeIndexOpsMixin(object):
         return super(DatetimeIndexOpsMixin, self)._convert_scalar_indexer(key, kind=kind)
 
     def _add_datelike(self, other):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _sub_datelike(self, other):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     @classmethod
     def _add_datetimelike_methods(cls):

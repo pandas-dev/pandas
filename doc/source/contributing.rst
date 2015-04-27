@@ -381,6 +381,13 @@ browser to see the full documentation you just built::
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
+.. _contributing.dev_docs:
+
+Built Master Branch Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When pull-requests are merged into the pandas *master* branch, the main parts of the documentation are
+also built by Travis-CI. These docs are then hosted `here <http://pandas-docs.github.io/pandas-docs-travis>`_.
 
 Contributing to the code base
 =============================

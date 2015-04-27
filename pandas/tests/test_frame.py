@@ -16,7 +16,7 @@ from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
-    OrderedDict, u, StringIO
+    OrderedDict, u, StringIO, string_types
 )
 from pandas import compat
 
@@ -31,9 +31,9 @@ import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas import (DataFrame, Index, Series, notnull, isnull,
+from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
-                    read_csv, timedelta_range, Timedelta,
+                    read_csv, timedelta_range, Timedelta, CategoricalIndex,
                     option_context)
 import pandas as pd
 from pandas.parser import CParserError
@@ -783,6 +783,16 @@ class CheckIndexing(object):
         assert_series_equal(self.frame.loc[:,None], self.frame['A'])
         assert_series_equal(self.frame[None], self.frame['A'])
         repr(self.frame)
+
+    def test_setitem_empty(self):
+        # GH 9596
+        df = pd.DataFrame({'a': ['1', '2', '3'],
+                           'b': ['11', '22', '33'],
+                           'c': ['111', '222', '333']})
+
+        result = df.copy()
+        result.loc[result.b.isnull(), 'a'] = result.a
+        assert_frame_equal(result, df)
 
     def test_delitem_corner(self):
         f = self.frame.copy()
@@ -2375,6 +2385,32 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.set_index(['A', df['B'].values], drop=False)
         expected = df.set_index(['A', 'B'], drop=False)
         assert_frame_equal(result, expected, check_names=False) # TODO should set_index check_names ?
+
+    def test_construction_with_categorical_index(self):
+
+        ci = tm.makeCategoricalIndex(10)
+
+        # with Categorical
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci.values })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        # from a CategoricalIndex
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        idf = df.set_index('B').reset_index().set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index,ci)
+
+        new_df = idf.reset_index()
+        new_df.index = df.B
+        tm.assert_index_equal(new_df.index,ci)
 
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
@@ -4192,6 +4228,30 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
         self.assertRaises(ValueError, df.astype, np.int64)
 
+    def test_astype_str(self):
+        # GH9757
+        a = Series(date_range('2010-01-04', periods=5))
+        b = Series(date_range('3/6/2012 00:00', periods=5, tz='US/Eastern'))
+        c = Series([Timedelta(x, unit='d') for x in range(5)])
+        d = Series(range(5))
+        e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
+
+        df = DataFrame({'a' : a, 'b' : b, 'c' : c, 'd' : d, 'e' : e})
+
+        # Test str and unicode on python 2.x and just str on python 3.x
+        for tt in set([str, compat.text_type]):
+            result = df.astype(tt)
+
+            expected = DataFrame({
+                'a' : list(map(tt, a.values)),
+                'b' : list(map(tt, b.values)),
+                'c' : list(map(tt, c.values)),
+                'd' : list(map(tt, d.values)),
+                'e' : list(map(tt, e.values)),
+                })
+
+            assert_frame_equal(result, expected)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         tm.assert_isinstance(result, type(self.frame))
@@ -5946,18 +6006,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_equals_different_blocks(self):
         # GH 9330
-        df0 = pd.DataFrame({"A": ["x","y"], "B": [1,2], 
+        df0 = pd.DataFrame({"A": ["x","y"], "B": [1,2],
                             "C": ["w","z"]})
         df1 = df0.reset_index()[["A","B","C"]]
-        # this assert verifies that the above operations have 
+        # this assert verifies that the above operations have
         # induced a block rearrangement
-        self.assertTrue(df0._data.blocks[0].dtype != 
+        self.assertTrue(df0._data.blocks[0].dtype !=
                         df1._data.blocks[0].dtype)
         # do the real tests
         self.assert_frame_equal(df0, df1)
         self.assertTrue(df0.equals(df1))
         self.assertTrue(df1.equals(df0))
-        
+
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'
@@ -10710,6 +10770,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_index(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
+    def test_sort_index_categorical_index(self):
+
+        df = DataFrame({'A' : np.arange(6,dtype='int64'),
+                        'B' : Series(list('aabbca')).astype('category',categories=list('cab')) }).set_index('B')
+
+        result = df.sort_index()
+        expected = df.iloc[[4,0,1,5,2,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(ascending=False)
+        expected = df.iloc[[3,2,5,1,0,4]]
+        assert_frame_equal(result, expected)
+
     def test_sort_nan(self):
         # GH3917
         nan = np.nan
@@ -12403,6 +12476,31 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                        columns=MultiIndex.from_arrays([['col', 'col'],
                                                        ['c', 'l']]))
         assert_frame_equal(rs, xp)
+
+    def test_unstack_level_binding(self):
+        # GH9856
+        mi = pd.MultiIndex(
+                levels=[[u('foo'), u('bar')], [u('one'), u('two')],
+                        [u('a'), u('b')]],
+                labels=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
+                names=[u('first'), u('second'), u('third')])
+        s = pd.Series(0, index=mi)
+        result = s.unstack([1, 2]).stack(0)
+
+        expected_mi = pd.MultiIndex(
+                        levels=[['foo', 'bar'], ['one', 'two']],
+                        labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                        names=['first', 'second'])
+
+        expected = pd.DataFrame(np.array([[np.nan, 0],
+                                          [0, np.nan],
+                                          [np.nan, 0],
+                                          [0, np.nan]],
+                                         dtype=np.float64),
+                                index=expected_mi,
+                                columns=pd.Index(['a', 'b'], name='third'))
+
+        self.assert_frame_equal(result, expected)
 
     def test_unstack_to_series(self):
         # check reversibility
@@ -14154,6 +14252,27 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
+    def test_to_panel_expanddim(self):
+        # GH 9762
+
+        class SubclassedFrame(DataFrame):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedPanel
+
+        class SubclassedPanel(Panel):
+            pass
+
+        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+        df = SubclassedFrame({'X':[1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+        result = df.to_panel()
+        self.assertTrue(isinstance(result, SubclassedPanel))
+        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                   items=['X', 'Y'], major_axis=[0],
+                                   minor_axis=[0, 1, 2],
+                                   dtype='int64')
+        tm.assert_panel_equal(result, expected)
 
 
 def skip_if_no_ne(engine='numexpr'):

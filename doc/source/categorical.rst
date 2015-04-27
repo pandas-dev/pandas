@@ -23,11 +23,11 @@ Categorical Data
 .. versionadded:: 0.15
 
 .. note::
-    While there was in `pandas.Categorical` in earlier versions, the ability to use
+    While there was `pandas.Categorical` in earlier versions, the ability to use
     categorical data in `Series` and `DataFrame` is new.
 
 
-This is a introduction to pandas categorical data type, including a short comparison
+This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
 `Categoricals` are a pandas data type, which correspond to categorical variables in
@@ -276,7 +276,7 @@ Sorting and Order
 
 .. warning::
 
-   The default for construction has change in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
+   The default for construction has changed in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a `TypeError`.
@@ -347,15 +347,15 @@ Multi Column Sorting
 ~~~~~~~~~~~~~~~~~~~~
 
 A categorical dtyped column will partcipate in a multi-column sort in a similar manner to other columns.
-The ordering of the categorical is determined by the ``categories`` of that columns.
+The ordering of the categorical is determined by the ``categories`` of that column.
 
 .. ipython:: python
 
-   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'),categories=['e','a','b'],ordered=True),
+   dfs = DataFrame({'A' : Categorical(list('bbeebbaa'), categories=['e','a','b'], ordered=True),
                     'B' : [1,2,1,2,2,1,2,1] })
-   dfs.sort(['A','B'])
+   dfs.sort(['A', 'B'])
 
-Reordering the ``categories``, changes a future sort.
+Reordering the ``categories`` changes a future sort.
 
 .. ipython:: python
 
@@ -380,7 +380,7 @@ categories or a categorical with any list-like object, will raise a TypeError.
 
     Any "non-equality" comparisons of categorical data with a `Series`, `np.array`, `list` or
     categorical data with different categories or ordering will raise an `TypeError` because custom
-    categories ordering could be interpreted in two ways: one with taking in account the
+    categories ordering could be interpreted in two ways: one with taking into account the
     ordering and one without.
 
 .. ipython:: python
@@ -471,7 +471,7 @@ Data munging
 ------------
 
 The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.ix`` ``.at``, and ``.iat``,
-work as normal, the only difference is the return type (for getting) and
+work as normal. The only difference is the return type (for getting) and
 that only values already in `categories` can be assigned.
 
 Getting
@@ -707,8 +707,8 @@ an ``object`` dtype is a constant times the length of the data.
 
 .. note::
 
-   If the number of categories approaches the length of the data, the ``Categorical`` will use nearly (or more) memory than an
-   equivalent ``object`` dtype representation.
+   If the number of categories approaches the length of the data, the ``Categorical`` will use nearly the same or
+   more memory than an equivalent ``object`` dtype representation.
 
    .. ipython:: python
 

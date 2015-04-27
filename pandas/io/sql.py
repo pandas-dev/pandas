@@ -83,14 +83,14 @@ def _handle_date_column(col, format=None):
         return to_datetime(col, **format)
     else:
         if format in ['D', 's', 'ms', 'us', 'ns']:
-            return to_datetime(col, coerce=True, unit=format)
+            return to_datetime(col, coerce=True, unit=format, utc=True)
         elif (issubclass(col.dtype.type, np.floating)
                 or issubclass(col.dtype.type, np.integer)):
             # parse dates as timestamp
             format = 's' if format is None else format
-            return to_datetime(col, coerce=True, unit=format)
+            return to_datetime(col, coerce=True, unit=format, utc=True)
         else:
-            return to_datetime(col, coerce=True, format=format)
+            return to_datetime(col, coerce=True, format=format, utc=True)
 
 
 def _parse_date_columns(data_frame, parse_dates):
@@ -318,6 +318,10 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -------
     DataFrame
 
+    Notes
+    -----
+    Any datetime values with time zone information will be converted to UTC
+
     See also
     --------
     read_sql_query : Read SQL query into a DataFrame.
@@ -390,6 +394,11 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
+    Notes
+    -----
+    Any datetime values with time zone information parsed via the `parse_dates`
+    parameter will be converted to UTC
+
     See also
     --------
     read_sql_table : Read SQL database table into a DataFrame
@@ -451,7 +460,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     This function is a convenience wrapper around ``read_sql_table`` and
     ``read_sql_query`` (and for backward compatibility) and will delegate
     to the specific function depending on the provided input (database
-    table name or sql query).
+    table name or sql query).  The delegated function might have more specific
+    notes about their functionality not listed here.
 
     See also
     --------
@@ -531,7 +541,8 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     if isinstance(frame, Series):
         frame = frame.to_frame()
     elif not isinstance(frame, DataFrame):
-        raise NotImplementedError
+        raise NotImplementedError("'frame' argument should be either a "
+                                  "Series or a DataFrame")
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
@@ -1434,7 +1445,8 @@ class SQLiteDatabase(PandasSQL):
         if flavor is None:
             flavor = 'sqlite'
         if flavor not in ['sqlite', 'mysql']:
-            raise NotImplementedError
+            raise NotImplementedError("flavors other than SQLite and MySQL "
+                                      "are not supported")
         else:
             self.flavor = flavor
 

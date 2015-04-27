@@ -592,6 +592,26 @@ class TestSeriesPlots(TestPlotBase):
 
         ax = Series([200, 500]).plot(log=True, kind='bar')
         assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([200, 500]).plot(log=True, kind='barh')
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
+        tm.close()
+
+        # GH 9905
+        expected = np.array([1.0e-03, 1.0e-02, 1.0e-01, 1.0e+00])
+
+        if not self.mpl_le_1_2_1:
+            expected = np.hstack((1.0e-04, expected, 1.0e+01))
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        assert_array_equal(ax.get_ylim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
+        assert_array_equal(ax.get_xlim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_ignore_index(self):
@@ -677,6 +697,18 @@ class TestSeriesPlots(TestPlotBase):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.plot(kind='hist', bins=5)
         self.assertEqual(len(ax.patches), 10)
+
+    @slow
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
+        df['E'] = ['x', 'y'] * 5
+        ax = df.plot(kind='hist', bins=5)
+        self.assertEqual(len(ax.patches), 20)
+
+        ax = df.plot(kind='hist') # bins=10
+        self.assertEqual(len(ax.patches), 40)
 
     @slow
     def test_hist_legacy(self):
@@ -1502,6 +1534,19 @@ class TestDataFramePlots(TestPlotBase):
         for ax in axes[[0, 1, 2], [2]].ravel():
             self._check_visible(ax.get_yticklabels(), visible=False)
 
+    def test_subplots_sharex_axes_existing_axes(self):
+        # GH 9158
+        d = {'A': [1., 2., 3., 4.], 'B': [4., 3., 2., 1.], 'C': [5, 1, 3, 4]}
+        df = DataFrame(d, index=date_range('2014 10 11', '2014 10 14'))
+
+        axes = df[['A', 'B']].plot(subplots=True)
+        df['C'].plot(ax=axes[0], secondary_y=True)
+
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        for ax in axes.ravel():
+            self._check_visible(ax.get_yticklabels(), visible=True)
+
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -1597,7 +1642,10 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(xmax, lines[0].get_data()[0][-1])
 
         axes = df.plot(secondary_y=True, subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
+            self.assertTrue(hasattr(ax, 'left_ax'))
+            self.assertFalse(hasattr(ax, 'right_ax'))
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
             self.assertEqual(xmin, lines[0].get_data()[0][0])

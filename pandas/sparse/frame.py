@@ -100,7 +100,7 @@ class SparseDataFrame(DataFrame):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif data is None:
-            data = {}
+            data = DataFrame()
 
             if index is None:
                 index = Index([])
@@ -115,7 +115,7 @@ class SparseDataFrame(DataFrame):
                                           index=index,
                                           kind=self._default_kind,
                                           fill_value=self._default_fill_value)
-            mgr = dict_to_manager(data, columns, index)
+            mgr = df_to_manager(data, columns, index)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
 
@@ -155,7 +155,7 @@ class SparseDataFrame(DataFrame):
                                          kind=self._default_kind,
                                          fill_value=self._default_fill_value,
                                          copy=True)
-        sdict = {}
+        sdict = DataFrame()
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
                 # Force alignment, no copy necessary
@@ -181,7 +181,7 @@ class SparseDataFrame(DataFrame):
             if c not in sdict:
                 sdict[c] = sp_maker(nan_vec)
 
-        return dict_to_manager(sdict, columns, index)
+        return df_to_manager(sdict, columns, index)
 
     def _init_matrix(self, data, index, columns, dtype=None):
         data = _prep_ndarray(data, copy=False)
@@ -228,12 +228,12 @@ class SparseDataFrame(DataFrame):
         else:
             index = idx
 
-        series_dict = {}
+        series_dict = DataFrame()
         for col, (sp_index, sp_values) in compat.iteritems(series):
             series_dict[col] = SparseSeries(sp_values, sparse_index=sp_index,
                                             fill_value=fv)
 
-        self._data = dict_to_manager(series_dict, columns, index)
+        self._data = df_to_manager(series_dict, columns, index)
         self._default_fill_value = fv
         self._default_kind = kind
 
@@ -418,7 +418,7 @@ class SparseDataFrame(DataFrame):
         new_index, new_columns = this.index, this.columns
 
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         if self.empty and other.empty:
             return SparseDataFrame(index=new_index).__finalize__(self)
@@ -459,9 +459,9 @@ class SparseDataFrame(DataFrame):
         new_data = {}
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         new_index = self.index.union(other.index)
         this = self
@@ -494,9 +494,9 @@ class SparseDataFrame(DataFrame):
         # possible for this to happen, which is bothersome
 
         if fill_value is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
-            raise NotImplementedError
+            raise NotImplementedError("'level' argument is not supported")
 
         new_data = {}
 
@@ -567,10 +567,10 @@ class SparseDataFrame(DataFrame):
             raise TypeError('Reindex by level not supported for sparse')
 
         if com.notnull(fill_value):
-            raise NotImplementedError
+            raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:
-            raise NotImplementedError
+            raise NotImplementedError("'limit' argument is not supported")
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)
@@ -737,13 +737,13 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: lmap(func, x))
 
-def dict_to_manager(sdict, columns, index):
-    """ create and return the block manager from a dict of series, columns, index """
+def df_to_manager(sdf, columns, index):
+    """ create and return the block manager from a dataframe of series, columns, index """
 
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    return create_block_manager_from_arrays([sdict[c] for c in columns], columns, axes)
+    return create_block_manager_from_arrays([sdf[c] for c in columns], columns, axes)
 
 
 def stack_sparse_frame(frame):

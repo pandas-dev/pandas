@@ -32,7 +32,7 @@ class SparsePanelAxis(object):
         value = _ensure_index(value)
 
         if isinstance(value, MultiIndex):
-            raise NotImplementedError
+            raise NotImplementedError("value cannot be a MultiIndex")
 
         for v in compat.itervalues(obj._frames):
             setattr(v, self.frame_attr, value)
@@ -159,7 +159,7 @@ class SparsePanel(Panel):
     def _set_items(self, new_items):
         new_items = _ensure_index(new_items)
         if isinstance(new_items, MultiIndex):
-            raise NotImplementedError
+            raise NotImplementedError("itemps cannot be a MultiIndex")
 
         # need to create new frames dict
 

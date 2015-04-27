@@ -89,6 +89,8 @@ They can take a number of arguments:
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
+    Set to  ``'infer'`` (the default) to guess a format based on the file
+    extension.
   - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not

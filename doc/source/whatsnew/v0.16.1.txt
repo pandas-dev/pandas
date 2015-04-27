@@ -7,6 +7,10 @@ This is a minor bug-fix release from 0.16.0 and includes a a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
+Highlights include:
+
+- Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
@@ -18,18 +22,118 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
+- Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+
+  The ``.str`` accessor is now available for both ``Series`` and ``Index``.
+
+  .. ipython:: python
+
+     idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx.str.strip()
+
+  One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
+  will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
+  to work naturally:
+
+
+  .. ipython:: python
+
+     idx = Index(['a1', 'a2', 'b1', 'b2'])
+     s = Series(range(4), index=idx)
+     s
+     idx.str.startswith('a')
+     s[s.index.str.startswith('a')]
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
-
-
-- ``drop`` function can now accept ``errors`` keyword to suppress ValueError raised when any of label does not exist in the target data. (:issue:`6736`)
+- ``drop`` function can now accept ``errors`` keyword to suppress ``ValueError`` raised when any of label does not exist in the target data. (:issue:`6736`)
 
   .. ipython:: python
 
     df = DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
     df.drop(['A', 'X'], axis=1, errors='ignore')
 
+- Allow conversion of values with dtype ``datetime64`` or ``timedelta64`` to strings using ``astype(str)`` (:issue:`9757`)
+- ``get_dummies`` function now accepts ``sparse`` keyword.  If set to ``True``, the return ``DataFrame`` is sparse, e.g. ``SparseDataFrame``. (:issue:`8823`)
+- ``Period`` now accepts ``datetime64`` as value input. (:issue:`9054`)
+
+- Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
+- Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
+
+- Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
+- Allow ``Categorical.add_categories`` to accept ``Series`` or ``np.array``. (:issue:`9927`)
+
+- Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
+
+- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
+
+.. _whatsnew_0161.enhancements.categoricalindex:
+
+CategoricalIndex
+^^^^^^^^^^^^^^^^
+
+We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
+and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
+setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+
+.. ipython :: python
+
+   df = DataFrame({'A' : np.arange(6),
+                   'B' : Series(list('aabbca')).astype('category',
+                                                       categories=list('cab'))
+                  })
+   df
+   df.dtypes
+   df.B.cat.categories
+
+setting the index, will create create a ``CategoricalIndex``
+
+.. ipython :: python
+
+   df2 = df.set_index('B')
+   df2.index
+
+indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an Index with duplicates.
+The indexers MUST be in the category or the operation will raise.
+
+.. ipython :: python
+
+   df2.loc['a']
+
+and preserves the ``CategoricalIndex``
+
+.. ipython :: python
+
+   df2.loc['a'].index
+
+sorting will order by the order of the categories
+
+.. ipython :: python
+
+   df2.sort_index()
+
+groupby operations on the index will preserve the index nature as well
+
+.. ipython :: python
+
+   df2.groupby(level=0).sum()
+   df2.groupby(level=0).sum().index
+
+reindexing operations, will return a resulting index based on the type of the passed
+indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+values NOT in the categories, similarly to how you can reindex ANY pandas index.
+
+.. ipython :: python
+
+   df2.reindex(['a','e'])
+   df2.reindex(['a','e']).index
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+
+See the :ref:`documentation <advanced.categoricalindex>` for more. (:issue:`7629`)
 
 .. _whatsnew_0161.api:
 
@@ -55,13 +159,15 @@ API changes
 - :meth:`~pandas.DataFrame.assign` now inserts new columns in alphabetical order. Previously
   the order was arbitrary. (:issue:`9777`)
 
+- By default, ``read_csv`` and ``read_table`` will now try to infer the compression type based on the file extension. Set ``compression=None`` to restore the previous behavior (no decompression). (:issue:`9770`)
 
 .. _whatsnew_0161.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+- Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
+- Improved csv write performance generally by 2x (:issue:`9940`)
 
 
 
@@ -73,26 +179,68 @@ Bug Fixes
 
 - Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
 - Bug in json serialization when frame has length zero.(:issue:`9805`)
-
-
+- Bug in ``read_csv`` where missing trailing delimiters would cause segfault. (:issue:`5664`)
+- Bug in retaining index name on appending (:issue:`9862`)
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
-
 - Fixed bug in ``StataWriter`` resulting in changes to input ``DataFrame`` upon save (:issue:`9795`).
-
-
 - Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
-
 - Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
-
+- Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
-
 - Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
-
+- Bug in ``DataFrame.plot(kind="hist")`` results in ``TypeError`` when ``DataFrame`` contains non-numeric columns  (:issue:`9853`)
+- Bug where repeated plotting of ``DataFrame`` with a ``DatetimeIndex`` may raise ``TypeError`` (:issue:`9852`)
+- Bug in ``setup.py`` that would allow an incompat cython version to build (:issue:`9827`)
+- Bug in plotting ``secondary_y`` incorrectly attaches ``right_ax`` property to secondary axes specifying itself recursively. (:issue:`9861`)
 
 - Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
 - Bug in ``where`` causing incorrect results when upcasting was required (:issue:`9731`)
 - Bug in ``FloatArrayFormatter`` where decision boundary for displaying "small" floats in decimal format is off by one order of magnitude for a given display.precision (:issue:`9764`)
-
 - Fixed bug where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (:issue:`9671`)
 - Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
+- Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
+- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9785`)
+- Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
+- Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
+
+- Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
+- Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
+- Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
+- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9856`)
+- Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
+
+- Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
+- Bug in horizontal bar plot ignores ``log=True`` (:issue:`9905`)
+
+
+
+
+
+
+
+
+- Bug where dividing a dataframe containing values of type ``Decimal`` by another ``Decimal`` would raise. (:issue:`9787`)
+- Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
+- Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
+
+- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+- Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+
+
+- Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)

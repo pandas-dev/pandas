@@ -21,7 +21,8 @@ from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning)
+                                SettingWithCopyError, SettingWithCopyWarning,
+                                AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
@@ -137,7 +138,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -145,13 +146,17 @@ class NDFrame(PandasObject):
         prepr = '[%s]' % ','.join(map(com.pprint_thing, self))
         return '%s(%s)' % (self.__class__.__name__, prepr)
 
-    def _local_dir(self):
+    def _dir_additions(self):
         """ add the string-like attributes from the info_axis """
-        return [c for c in self._info_axis
-                if isinstance(c, string_types) and isidentifier(c)]
+        return set([c for c in self._info_axis
+                if isinstance(c, string_types) and isidentifier(c)])
 
     @property
     def _constructor_sliced(self):
+        raise AbstractMethodError(self)
+
+    @property
+    def _constructor_expanddim(self):
         raise NotImplementedError
 
     #----------------------------------------------------------------------
@@ -1100,7 +1105,7 @@ class NDFrame(PandasObject):
         return lower
 
     def _box_item_values(self, key, values):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """
@@ -3057,7 +3062,8 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("'first' only supports a DatetimeIndex "
+                                      "index")
 
         if len(self.index) == 0:
             return self
@@ -3091,7 +3097,8 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError
+            raise NotImplementedError("'last' only supports a DatetimeIndex "
+                                      "index")
 
         if len(self.index) == 0:
             return self
@@ -3332,11 +3339,20 @@ class NDFrame(PandasObject):
                 except ValueError:
                     new_other = np.array(other)
 
-                if not (new_other == np.array(other)).all():
-                    other = np.array(other)
+                matches = (new_other == np.array(other))
+                if matches is False or not matches.all():
+                    
+                    # coerce other to a common dtype if we can
+                    if com.needs_i8_conversion(self.dtype):
+                        try:
+                            other = np.array(other, dtype=self.dtype)
+                        except:
+                            other = np.array(other)
+                    else:
+                        other = np.asarray(other)
+                        other = np.asarray(other, dtype=np.common_type(other, new_other))
 
-                    # we can't use our existing dtype
-                    # because of incompatibilities
+                    # we need to use the new dtype
                     try_quick = False
                 else:
                     other = new_other
@@ -3595,8 +3611,7 @@ class NDFrame(PandasObject):
 
     def tz_convert(self, tz, axis=0, level=None, copy=True):
         """
-        Convert the axis to target time zone. If it is time zone naive, it
-        will be localized to the passed time zone.
+        Convert tz-aware axis to target time zone.
 
         Parameters
         ----------
@@ -3610,6 +3625,11 @@ class NDFrame(PandasObject):
 
         Returns
         -------
+
+        Raises
+        ------
+        TypeError
+            If the axis is tz-naive.
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
@@ -3668,6 +3688,11 @@ class NDFrame(PandasObject):
 
         Returns
         -------
+
+        Raises
+        ------
+        TypeError
+            If the TimeSeries is tz-aware and tz is not None.
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)

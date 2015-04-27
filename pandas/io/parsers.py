@@ -14,6 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
+from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
@@ -55,8 +56,11 @@ escapechar : string (length 1), default None
 dtype : Type name or dict of column -> type
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     (Unsupported with engine='python')
-compression : {'gzip', 'bz2', None}, default None
-    For on-the-fly decompression of on-disk data
+compression : {'gzip', 'bz2', 'infer', None}, default 'infer'
+    For on-the-fly decompression of on-disk data. If 'infer', then use gzip or
+    bz2 if filepath_or_buffer is a string ending in '.gz' or '.bz2',
+    respectively, and no decompression otherwise. Set to None for no
+    decompression.
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
@@ -294,7 +298,7 @@ _parser_defaults = {
     'verbose': False,
     'encoding': None,
     'squeeze': False,
-    'compression': None,
+    'compression': 'infer',
     'mangle_dupe_cols': True,
     'tupleize_cols': False,
     'infer_datetime_format': False,
@@ -334,7 +338,7 @@ def _make_parser_function(name, sep=','):
     def parser_f(filepath_or_buffer,
                  sep=sep,
                  dialect=None,
-                 compression=None,
+                 compression='infer',
 
                  doublequote=True,
                  escapechar=None,
@@ -652,6 +656,8 @@ class TextFileReader(object):
         # really delete this one
         keep_default_na = result.pop('keep_default_na')
 
+        if index_col is True:
+            raise ValueError("The value of index_col couldn't be 'True'")
         if _is_index_col(index_col):
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]
@@ -705,7 +711,7 @@ class TextFileReader(object):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise NotImplementedError
+        raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         if nrows is not None:
@@ -1314,6 +1320,7 @@ def _wrap_compressed(f, compression, encoding=None):
     """
     compression = compression.lower()
     encoding = encoding or get_option('display.encoding')
+
     if compression == 'gzip':
         import gzip
 
@@ -1385,6 +1392,17 @@ class PythonParser(ParserBase):
         self.thousands = kwds['thousands']
         self.comment = kwds['comment']
         self._comment_lines = []
+
+        if self.compression == 'infer':
+            if isinstance(f, compat.string_types):
+                if f.endswith('.gz'):
+                    self.compression = 'gzip'
+                elif f.endswith('.bz2'):
+                    self.compression = 'bz2'
+                else:
+                    self.compression = None
+            else:
+                self.compression = None
 
         if isinstance(f, compat.string_types):
             f = com._get_handle(f, 'r', encoding=self.encoding,

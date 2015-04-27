@@ -14,14 +14,13 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 import pandas.core.common as com
 import pandas.lib as lib
-from pandas.tslib import iNaT, Timestamp, Timedelta
-
+from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 import numpy as np
 
 import itertools
 import csv
-
-from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
 docstring_to_string = """
      Parameters
@@ -613,8 +612,12 @@ class DataFrameFormatter(TableFormatter):
             name = any(self.frame.columns.names)
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format(name=name)
-                width = len(lev2[0])
-                lev3 = [' ' * width] * clevels + lev2
+                blank = ' ' * len(lev2[0])
+                lev3 = [blank] * clevels
+                for level_idx, group in itertools.groupby(
+                        self.frame.index.labels[i]):
+                    count = len(list(group))
+                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
                 strcols.insert(i, lev3)
 
         if column_format is None:
@@ -1255,9 +1258,10 @@ class CSVFormatter(object):
             if isinstance(cols, Index):
                 cols = cols.to_native_types(na_rep=na_rep,
                                             float_format=float_format,
-                                            date_format=date_format)
+                                            date_format=date_format,
+                                            quoting=self.quoting)
             else:
-                cols = list(cols)
+                cols = np.asarray(list(cols))
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
@@ -1266,9 +1270,10 @@ class CSVFormatter(object):
         if isinstance(cols, Index):
             cols = cols.to_native_types(na_rep=na_rep,
                                         float_format=float_format,
-                                        date_format=date_format)
+                                        date_format=date_format,
+                                        quoting=self.quoting)
         else:
-            cols = list(cols)
+            cols = np.asarray(list(cols))
 
         # save it
         self.cols = cols
@@ -1367,8 +1372,10 @@ class CSVFormatter(object):
         values = self.obj.copy()
         values.index = data_index
         values.columns = values.columns.to_native_types(
-            na_rep=na_rep, float_format=float_format,
-            date_format=date_format)
+            na_rep=na_rep,
+            float_format=float_format,
+            date_format=date_format,
+            quoting=self.quoting)
         values = values[cols]
 
         series = {}
@@ -1539,18 +1546,22 @@ class CSVFormatter(object):
         slicer = slice(start_i, end_i)
         for i in range(len(self.blocks)):
             b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
+            d = b.to_native_types(slicer=slicer,
+                                  na_rep=self.na_rep,
                                   float_format=self.float_format,
                                   decimal=self.decimal,
-                                  date_format=self.date_format)
+                                  date_format=self.date_format,
+                                  quoting=self.quoting)
 
             for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
 
-        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
+        ix = data_index.to_native_types(slicer=slicer,
+                                        na_rep=self.na_rep,
                                         float_format=self.float_format,
-                                        date_format=self.date_format)
+                                        date_format=self.date_format,
+                                        quoting=self.quoting)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
@@ -2026,15 +2037,42 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
-        formatter = (self.formatter or
-                     _get_format_datetime64_from_values(self.values,
-                                                        nat_rep=self.nat_rep,
-                                                        date_format=self.date_format))
 
-        fmt_values = [formatter(x) for x in self.values]
+        # we may have a tz, if so, then need to process element-by-element
+        # when DatetimeBlockWithTimezones is a reality this could be fixed
+        values = self.values
+        if not isinstance(values, DatetimeIndex):
+            values = DatetimeIndex(values)
+
+        if values.tz is None:
+            fmt_values = format_array_from_datetime(values.asi8.ravel(),
+                                                    format=_get_format_datetime64_from_values(values, self.date_format),
+                                                    na_rep=self.nat_rep).reshape(values.shape)
+            fmt_values = fmt_values.tolist()
+
+        else:
+
+            values = values.asobject
+            is_dates_only = _is_dates_only(values)
+            formatter = (self.formatter or _get_format_datetime64(is_dates_only, values, date_format=self.date_format))
+            fmt_values = [ formatter(x) for x in self.values ]
 
         return fmt_values
 
+
+def _is_dates_only(values):
+    # return a boolean if we are only dates (and don't have a timezone)
+    values = DatetimeIndex(values)
+    if values.tz is not None:
+        return False
+
+    values_int = values.asi8
+    consider_values = values_int != iNaT
+    one_day_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+    if even_days:
+        return True
+    return False
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
     if x is None or lib.checknull(x):
@@ -2058,22 +2096,6 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
     else:
         return x._date_repr
 
-
-def _is_dates_only(values):
-    # return a boolean if we are only dates (and don't have a timezone)
-    from pandas import DatetimeIndex
-    values = DatetimeIndex(values)
-    if values.tz is not None:
-        return False
-
-    values_int = values.asi8
-    consider_values = values_int != iNaT
-    one_day_nanos = (86400 * 1e9)
-    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
-    if even_days:
-        return True
-    return False
-
 def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
     if is_dates_only:
@@ -2084,13 +2106,12 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(values,
-                                       nat_rep='NaT',
-                                       date_format=None):
+def _get_format_datetime64_from_values(values, date_format):
+    """ given values and a date_format, return a string format """
     is_dates_only = _is_dates_only(values)
-    return _get_format_datetime64(is_dates_only=is_dates_only,
-                                  nat_rep=nat_rep,
-                                  date_format=date_format)
+    if is_dates_only:
+        return date_format or "%Y-%m-%d"
+    return None
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
