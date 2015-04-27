@@ -3344,27 +3344,32 @@ class RangeIndex(Int64Index):
         if start is None and stop is None and step is None:
             return cls._simple_new(0, 0, 1, name=name)
 
+        new_start, new_stop, new_step = None, None, None
         # sort the arguments depending on which are provided
         if step is None:
-            step = 1
+            new_step = 1
         if stop is None:
-            stop = start
-            start = 0
+            new_stop = start
+            new_start = 0
 
         try:
             # check validity of inputs
-            start = cls._ensure_int(start)
-            stop = cls._ensure_int(stop)
-            step = cls._ensure_int(step)
-            if step == 0:
+            new_start = start if new_start is None else new_start
+            new_stop = stop if new_stop is None else new_stop
+            new_step = step if new_step is None else new_step
+            new_start = cls._ensure_int(new_start)
+            new_stop = cls._ensure_int(new_stop)
+            new_step = cls._ensure_int(new_step)
+            if new_step == 0:
                 raise ValueError("Step must not be zero")
             #assert len(kwargs) == 0
-            return cls._simple_new(start, stop, step, name)
+            return cls._simple_new(new_start, new_stop, new_step, name)
         except TypeError:
             # pass all invalid inputs to Int64Index to handle
             if step is None:
                 step = False
-            return super(RangeIndex, cls).__new__(data=start,
+            return super(RangeIndex, cls).__new__(cls.__bases__[0],
+                                                  data=start,
                                                   dtype=stop,
                                                   copy=step,
                                                   name=name,
