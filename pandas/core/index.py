@@ -1750,7 +1750,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
         target = _ensure_has_len(target)  # target may be an iterator
-        if not isinstance(target, Index) and len(target) == 0:
+        if isinstance(self, RangeIndex) and len(target) == 0:
+            target = self._simple_new(0, 0, 1, name=self.name)
+        elif not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
             target = self._simple_new(np.empty(0, dtype=self.dtype), **attrs)
@@ -3334,7 +3336,7 @@ class RangeIndex(Int64Index):
     _engine_type = _index.Int64Engine
     _attributes = ['name', 'start', 'stop', 'step']
 
-    def __new__(cls, start=None, stop=None, step=None, name=None, fastpath=False):
+    def __new__(cls, start=None, stop=None, step=None, name=None, fastpath=False, **kwargs):
         if fastpath:
             return cls._simple_new(start, stop, step, name=name)
 
@@ -3349,14 +3351,25 @@ class RangeIndex(Int64Index):
             stop = start
             start = 0
 
-        # check validity of inputs
-        start = cls._ensure_int(start)
-        stop = cls._ensure_int(stop)
-        step = cls._ensure_int(step)
-        if step == 0:
-            raise ValueError("Step must not be zero")
-
-        return cls._simple_new(start, stop, step, name)
+        try:
+            # check validity of inputs
+            start = cls._ensure_int(start)
+            stop = cls._ensure_int(stop)
+            step = cls._ensure_int(step)
+            if step == 0:
+                raise ValueError("Step must not be zero")
+            #assert len(kwargs) == 0
+            return cls._simple_new(start, stop, step, name)
+        except TypeError:
+            # pass all invalid inputs to Int64Index to handle
+            if step is None:
+                step = False
+            return super(RangeIndex, cls).__new__(data=start,
+                                                  dtype=stop,
+                                                  copy=step,
+                                                  name=name,
+                                                  fastpath=fastpath,
+                                                  **kwargs)
 
     @classmethod
     def _simple_new(cls, start, stop, step, name=None):
@@ -3372,7 +3385,8 @@ class RangeIndex(Int64Index):
     def _ensure_int(cls, value):
         try:
             int_value = int(value)
-            if int_value != value:
+            # don't allow casting 1-element arrays to int!
+            if int_value != value or hasattr(value, '__len__'):
                 raise Exception
         except Exception:
             raise TypeError("Need to pass integral values")
