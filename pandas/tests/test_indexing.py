@@ -1438,6 +1438,13 @@ class TestIndexing(tm.TestCase):
         result = s.iloc[:4]
         assert_series_equal(result, expected)
 
+        s= Series([-1]*6)
+        s.iloc[0::2]= [0,2,4]
+        s.iloc[1::2]= [1,3,5]
+        result  = s
+        expected= Series([0,1,2,3,4,5])
+        assert_series_equal(result, expected)
+
     def test_iloc_setitem_list_of_lists(self):
 
         # GH 7551
