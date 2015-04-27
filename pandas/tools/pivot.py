@@ -53,7 +53,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     5  bar one large  4
     6  bar one small  5
     7  bar two small  6
-    8  bar two large  7
+    8  ba*r two large  7
 
     >>> table = pivot_table(df, values='D', index=['A', 'B'],
     ...                     columns=['C'], aggfunc=np.sum)
@@ -70,6 +70,9 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     """
     index = _convert_by(index)
     columns = _convert_by(columns)
+
+    if margins and "All" in index or "All" in columns or "All" in data:
+        raise ValueError('All is a protected word used for aggregating data, table must be modified')
 
     if isinstance(aggfunc, list):
         pieces = []
