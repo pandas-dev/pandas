@@ -68,6 +68,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     -------
     table : DataFrame
     """
+    
     index = _convert_by(index)
     columns = _convert_by(columns)
 
