@@ -4826,7 +4826,7 @@ def extract_index(data):
                            % (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
-                index = Index(np.arange(lengths[0]))
+                index = _default_index(lengths[0])
 
     return _ensure_index(index)
 
