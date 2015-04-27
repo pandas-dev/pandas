@@ -112,20 +112,12 @@ class Index(IndexOpsMixin, PandasObject):
         if fastpath:
             return cls._simple_new(data, name)
 
-        # RangeIndex pass-through
-        # Index(start, stop, ...) --> RangeIndex(start, stop, ...)
-        if isinstance(data, int):
-            if dtype is None and copy == False:
+        if isinstance(data, int) and isinstance(dtype, int):
+            if copy == False:
                 copy = None
                 range_constructor = True
-            elif isinstance(dtype, int):
+            elif isinstance(copy, int):
                 range_constructor = True
-                if copy == False:
-                    copy = None
-                elif isinstance(copy, int):
-                    range_constructor = True
-                else:
-                    range_constructor = False
 
             if range_constructor:
                 return RangeIndex(data, dtype, copy, name)
@@ -3373,6 +3365,7 @@ class RangeIndex(Int64Index):
         result._stop = stop
         result._step = step
         result.name = name
+        result.is_unique = True
         return result
 
     @classmethod
@@ -3385,9 +3378,13 @@ class RangeIndex(Int64Index):
             raise TypeError("Need to pass integral values")
         return int_value
 
-    @property
+    @cache_readonly
     def _data(self):
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+
+    @cache_readonly
+    def _int64index(self):
+        return Int64Index(self._data, name=self.name, fastpath=True)
 
     @property
     def dtype(self):
@@ -3397,25 +3394,13 @@ class RangeIndex(Int64Index):
     def start(self):
         return self._start
 
-    @start.setter
-    def start(self, value):
-        self._start = self._ensure_int(value)
-
     @property
     def stop(self):
         return self._stop
 
-    @stop.setter
-    def stop(self, value):
-        self._stop = self._ensure_int(value)
-
     @property
     def step(self):
         return self._step
-
-    @step.setter
-    def step(self, value):
-        self._step = self._ensure_int(value)
 
     @cache_readonly(allow_setting=True)
     def is_unique(self):
@@ -3437,7 +3422,7 @@ class RangeIndex(Int64Index):
                               name=self.name, fastpath=True)
         else:
             name = kwargs.get('name', self.name)
-            return Int64Index(self.values, name=name, copy=False)._shallow_copy(values, **kwargs)
+            return self._int64index._shallow_copy(values, **kwargs)
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
         """
@@ -3586,7 +3571,7 @@ class RangeIndex(Int64Index):
         new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
 
         # adjust index to limiting interval
-        new_index.start = new_index._min_fitting_element(int_low)
+        new_index._start = new_index._min_fitting_element(int_low)
         return new_index
 
     def _min_fitting_element(self, lower_limit):
@@ -3631,7 +3616,7 @@ class RangeIndex(Int64Index):
         union : Index
         """
         # note: could return a RangeIndex in some circumstances
-        return Int64Index(self.values, copy=False).union(other)
+        return self._int64index.union(other)
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -3653,7 +3638,7 @@ class RangeIndex(Int64Index):
         """
         if how == 'outer' and self is not other:
             # note: could return RangeIndex in more circumstances
-            return Int64Index(self.values, copy=False).join(other, how, level, return_indexers)
+            return self._int64index.join(other, how, level, return_indexers)
 
         return super(RangeIndex, self).join(other, how, level, return_indexers)
 

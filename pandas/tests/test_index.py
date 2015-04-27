@@ -297,6 +297,10 @@ class TestIndex(Base, tm.TestCase):
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
 
+    def test_constructor_corner(self):
+        # corner case
+        self.assertRaises(TypeError, Index, 0)
+
     def test_constructor_from_series(self):
 
         expected = DatetimeIndex([Timestamp('20110101'),Timestamp('20120101'),Timestamp('20130101')])
@@ -2463,19 +2467,36 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_constructor(self):
         index = RangeIndex(5)
         expected = np.arange(5, dtype=np.int64)
+        tm.assert_isinstance(index, RangeIndex)
+        self.assertEqual(index.start, 0)
+        self.assertEqual(index.stop, 5)
+        self.assertEqual(index.step, 1)
+        self.assertEqual(index.name, None)
         self.assert_numpy_array_equal(index, expected)
 
         index = RangeIndex(1, 5)
         expected = np.arange(1, 5, dtype=np.int64)
+        tm.assert_isinstance(index, RangeIndex)
+        self.assertEqual(index.start, 1)
         self.assert_numpy_array_equal(index, expected)
 
         index = RangeIndex(1, 5, 2)
         expected = np.arange(1, 5, 2, dtype=np.int64)
+        tm.assert_isinstance(index, RangeIndex)
+        self.assertEqual(index.step, 2)
         self.assert_numpy_array_equal(index, expected)
 
         index = RangeIndex()
         expected = np.empty(0, dtype=np.int64)
+        tm.assert_isinstance(index, RangeIndex)
+        self.assertEqual(index.start, 0)
+        self.assertEqual(index.stop, 0)
+        self.assertEqual(index.step, 1)
         self.assert_numpy_array_equal(index, expected)
+
+        index = RangeIndex(name='Foo')
+        tm.assert_isinstance(index, RangeIndex)
+        self.assertEqual(index.name, 'Foo')
 
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
@@ -2493,6 +2514,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
+        self.assertTrue(i_copy is not i)
+        self.assertTrue(i_copy.identical(i))
         self.assertEqual(i_copy.start, 0)
         self.assertEqual(i_copy.stop, 5)
         self.assertEqual(i_copy.step, 1)
@@ -2512,7 +2535,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(i, i_view)
 
     def test_index_constructor(self):
-        arr = Index(5)
+        arr = Index(0, 5)
         tm.assert_isinstance(arr, RangeIndex)
 
     def test_dtype(self):
@@ -2816,7 +2839,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_int_name_format(self):
         from pandas import Series, DataFrame
-        index = Index(3, name=0)
+        index = Index(0, 3, name=0)
         s = Series(lrange(3), index)
         df = DataFrame(lrange(3), index=index)
         repr(s)
@@ -2831,7 +2854,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(eval(repr(self.index)), self.index)
 
     def test_unicode_string_with_unicode(self):
-        idx = Index(1000)
+        idx = Index(0, 1000)
 
         if compat.PY3:
             str(idx)
@@ -2839,7 +2862,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
             compat.text_type(idx)
 
     def test_bytestring_with_unicode(self):
-        idx = Index(1000)
+        idx = Index(0, 1000)
         if compat.PY3:
             bytes(idx)
         else:
@@ -2915,8 +2938,12 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(result,expected)
 
     def test_duplicates(self):
-        # RangeIndex has no duplicates by definition
-        pass
+        for ind in self.indices:
+            if not len(ind):
+                continue
+            idx = self.indices[ind]
+            self.assertTrue(idx.is_unique)
+            self.assertFalse(idx.has_duplicates)
 
     def test_ufunc_compat(self):
         idx = RangeIndex(5)
