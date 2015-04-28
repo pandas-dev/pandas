@@ -324,7 +324,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_attributes_dict(self):
         """ return an attributes dict for my class """
-        return dict([ (k,getattr(self,k,None)) for k in self._attributes])
+        return dict((k, getattr(self, k, None)) for k in self._attributes)
 
     def view(self, cls=None):
 
@@ -1163,7 +1163,13 @@ class Index(IndexOpsMixin, PandasObject):
             return self
 
         offset = periods * freq
-        return Index([idx + offset for idx in self], name=self.name)
+        return self._shallow_copy(
+            np.array(
+                [val + offset for val in self],
+                dtype=self.dtype,
+                copy=False,
+            )
+        )
 
     def argsort(self, *args, **kwargs):
         """

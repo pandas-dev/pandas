@@ -302,6 +302,12 @@ Freq: H"""
                                        ['2015', '2015', '2016'], ['2015', '2015', '2014'])):
             tm.assertIn(idx[0], idx)
 
+    def test_shift_empty_index(self):
+        # GH 9903
+        idx = DatetimeIndex([], tz='UTC')
+        shifted = idx.shift(1, freq='10T')
+        tm.assert_index_equal(idx, shifted)
+
 
 class TestTimedeltaIndexOps(Ops):
 

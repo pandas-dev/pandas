@@ -203,7 +203,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
         dayfirst = kwargs.pop('dayfirst', None)
         yearfirst = kwargs.pop('yearfirst', None)
-
         freq_infer = False
         if not isinstance(freq, DateOffset):
 
@@ -254,7 +253,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                         data.name = name
 
                     if tz is not None:
-                        return data.tz_localize(tz, ambiguous=ambiguous)
+                        if data.tz is None:
+                            return data.tz_localize(tz, ambiguous=ambiguous)
+                        else:
+                            return data.tz_convert(tz)
 
                     return data
 

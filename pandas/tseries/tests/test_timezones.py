@@ -701,8 +701,18 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize(self.tzstr('US/Eastern'))
 
-        result = dr_tz.shift(1, '10T')
-        self.assertEqual(result.tz, dr_tz.tz)
+        for range_ in (dr, dr_tz):
+            result = range_.shift(1, '10T')
+            self.assertEqual(result.tz, range_.tz)
+
+            # Results should be 10 minutes apart whether the range is localized
+            # or not.
+            np.testing.assert_array_equal(
+                (result - range_).minute,
+                # This would be marginally more efficient with np.fill, but it
+                # doesn't exist until numpy 1.8.0.
+                np.ones(len(dr), dtype='int32') * 10,
+            )
 
     def test_tz_aware_asfreq(self):
         dr = date_range(
