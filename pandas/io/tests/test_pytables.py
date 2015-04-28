@@ -1593,9 +1593,10 @@ class TestHDFStore(tm.TestCase):
 
             # series
             _maybe_remove(store, 's')
-            s = Series(np.zeros(12), index=make_index(['date',None,None]))
+            s = Series(np.zeros(12), index=make_index(['date', None, None]))
             store.append('s',s)
-            tm.assert_series_equal(store.select('s'),s)
+            xp = Series(np.zeros(12), index=make_index(['date', 'level_1', 'level_2']))
+            tm.assert_series_equal(store.select('s'), xp)
 
             # dup with column
             _maybe_remove(store, 'df')

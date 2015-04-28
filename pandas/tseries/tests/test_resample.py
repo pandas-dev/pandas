@@ -82,15 +82,17 @@ class TestResample(tm.TestCase):
                          name='index')
         s = Series(np.random.randn(14), index=rng)
         result = s.resample('5min', how='mean', closed='right', label='right')
+
+        exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
-                          index=date_range('1/1/2000', periods=4, freq='5min'))
+                          index=exp_idx)
         assert_series_equal(result, expected)
         self.assertEqual(result.index.name, 'index')
 
         result = s.resample('5min', how='mean', closed='left', label='right')
-        expected = Series([s[:5].mean(), s[5:10].mean(), s[10:].mean()],
-                          index=date_range('1/1/2000 00:05', periods=3,
-                                           freq='5min'))
+
+        exp_idx = date_range('1/1/2000 00:05', periods=3, freq='5min', name='index')
+        expected = Series([s[:5].mean(), s[5:10].mean(), s[10:].mean()], index=exp_idx)
         assert_series_equal(result, expected)
 
         s = self.series
@@ -115,7 +117,7 @@ class TestResample(tm.TestCase):
             if isnull(group).all():
                 return np.repeat(np.nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
-        inds = date_range('1/1/2000', periods=4, freq='5min')
+        inds = date_range('1/1/2000', periods=4, freq='5min', name='index')
 
         for arg in args:
             if arg == 'ohlc':

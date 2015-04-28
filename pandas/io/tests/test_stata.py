@@ -875,8 +875,8 @@ class TestStata(tm.TestCase):
         parsed_117.index = np.arange(parsed_117.shape[0])
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
-        expected = pd.Series(pd.Categorical.from_codes(codes=codes,
-                                                       categories=categories))
+        cat = pd.Categorical.from_codes(codes=codes, categories=categories)
+        expected = pd.Series(cat, name='srh')
         tm.assert_series_equal(expected, parsed_115["srh"])
         tm.assert_series_equal(expected, parsed_117["srh"])
 

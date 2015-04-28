@@ -426,8 +426,15 @@ class TestMultiLevel(tm.TestCase):
         # it broadcasts
         df['B', '1'] = [1, 2, 3]
         df['A'] = df['B', '1']
-        assert_series_equal(df['A', '1'], df['B', '1'])
-        assert_series_equal(df['A', '2'], df['B', '1'])
+
+        sliced_a1 = df['A', '1']
+        sliced_a2 = df['A', '2']
+        sliced_b1 = df['B', '1']
+        assert_series_equal(sliced_a1, sliced_b1, check_names=False)
+        assert_series_equal(sliced_a2, sliced_b1, check_names=False)
+        self.assertEqual(sliced_a1.name, ('A', '1'))
+        self.assertEqual(sliced_a2.name, ('A', '2'))
+        self.assertEqual(sliced_b1.name, ('B', '1'))
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
@@ -461,7 +468,9 @@ class TestMultiLevel(tm.TestCase):
         df = df.set_index(index_columns)
         query_index = df.index[:1]
         rs = df.ix[query_index, "data"]
-        xp = Series(['x'], index=MultiIndex.from_tuples([(0, 1, 0)]))
+
+        xp_idx = MultiIndex.from_tuples([(0, 1, 0)], names=['a', 'b', 'c'])
+        xp = Series(['x'], index=xp_idx, name='data')
         assert_series_equal(rs, xp)
 
     def test_xs(self):
@@ -865,7 +874,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_count_level_corner(self):
         s = self.frame['A'][:0]
         result = s.count(level=0)
-        expected = Series(0, index=s.index.levels[0])
+        expected = Series(0, index=s.index.levels[0], name='A')
         assert_series_equal(result, expected)
 
         df = self.frame[:0]
@@ -982,7 +991,9 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.sortlevel(1, axis=1)
 
         stacked = df.stack()
-        assert_series_equal(stacked['foo'], df['foo'].stack())
+        result = df['foo'].stack()
+        assert_series_equal(stacked['foo'], result, check_names=False)
+        self.assertIs(result.name, None)
         self.assertEqual(stacked['bar'].dtype, np.float_)
 
     def test_unstack_bug(self):
@@ -1430,11 +1441,13 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = series.count(level='b')
         expect = self.series.count(level=1)
-        assert_series_equal(result, expect)
+        assert_series_equal(result, expect, check_names=False)
+        self.assertEqual(result.index.name, 'b')
 
         result = series.count(level='a')
         expect = self.series.count(level=0)
-        assert_series_equal(result, expect)
+        assert_series_equal(result, expect, check_names=False)
+        self.assertEqual(result.index.name, 'a')
 
         self.assertRaises(KeyError, series.count, 'x')
         self.assertRaises(KeyError, frame.count, level='x')
@@ -1738,12 +1751,12 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = df['a']
         expected = df['a', '', '']
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
         self.assertEqual(result.name, 'a')
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
         self.assertEqual(result.name, ('routine1', 'result1'))
 
     def test_mixed_depth_insert(self):
@@ -1825,7 +1838,7 @@ Thur,Lunch,Yes,51.51,17"""
         df2 = df.copy()
         result = df1.pop('a')
         expected = df2.pop(('a', '', ''))
-        assert_series_equal(expected, result)
+        assert_series_equal(expected, result, check_names=False)
         assert_frame_equal(df1, df2)
         self.assertEqual(result.name, 'a')
 
