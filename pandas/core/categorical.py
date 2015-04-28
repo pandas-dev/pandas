@@ -1180,7 +1180,13 @@ class Categorical(PandasObject):
         value : scalar
             Value to use to fill holes (e.g. 0)
         limit : int, default None
-            Maximum size gap to forward or backward fill (not implemented yet!)
+            (Not implemented yet for Categorical!)
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
 
         Returns
         -------
