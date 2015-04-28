@@ -533,7 +533,7 @@ def assert_equal(a, b, msg=""):
     assert a == b, "%s: %r != %r" % (msg.format(a,b), a, b)
 
 
-def assert_index_equal(left, right, exact=False):
+def assert_index_equal(left, right, exact=False, check_names=True):
     assert_isinstance(left, Index, '[index] ')
     assert_isinstance(right, Index, '[index] ')
     if not left.equals(right) or (exact and type(left) != type(right)):
@@ -541,6 +541,10 @@ def assert_index_equal(left, right, exact=False):
                                                                               left,
                                                                               right,
                                                                               right.dtype))
+    if check_names:
+        assert_attr_equal('names', left, right)
+
+
 def assert_attr_equal(attr, left, right):
     """checks attributes are equal. Both objects must have attribute."""
     left_attr = getattr(left, attr)
@@ -663,7 +667,8 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
                         check_series_type=False,
                         check_less_precise=False,
-                        check_exact=False):
+                        check_exact=False,
+                        check_names=True):
     if check_series_type:
         assert_isinstance(left, type(right))
     if check_dtype:
@@ -678,7 +683,7 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_almost_equal(
             left.index.values, right.index.values, check_less_precise)
     else:
-        assert_index_equal(left.index, right.index)
+        assert_index_equal(left.index, right.index, check_names=check_names)
     if check_index_type:
         for level in range(left.index.nlevels):
             lindex = left.index.get_level_values(level)
@@ -686,6 +691,7 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_isinstance(lindex, type(rindex))
             assert_attr_equal('dtype', lindex, rindex)
             assert_attr_equal('inferred_type', lindex, rindex)
+
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
@@ -707,8 +713,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert_almost_equal(left.index, right.index)
     else:
         if not by_blocks:
-            assert_index_equal(left.columns, right.columns)
-        assert_index_equal(left.index, right.index)
+            assert_index_equal(left.columns, right.columns, check_names=check_names)
 
     # compare by blocks
     if by_blocks:
@@ -717,7 +722,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
-            assert_frame_equal(lblocks[dtype],rblocks[dtype],check_dtype=check_dtype)
+            assert_frame_equal(lblocks[dtype],rblocks[dtype], check_dtype=check_dtype)
 
     # compare by columns
     else:
@@ -729,7 +734,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                                 check_dtype=check_dtype,
                                 check_index_type=check_index_type,
                                 check_less_precise=check_less_precise,
-                                check_exact=check_exact)
+                                check_exact=check_exact,
+                                check_names=check_names)
 
     if check_index_type:
         for level in range(left.index.nlevels):
@@ -750,14 +756,15 @@ def assert_frame_equal(left, right, check_dtype=True,
 def assert_panelnd_equal(left, right,
                          check_panel_type=False,
                          check_less_precise=False,
-                         assert_func=assert_frame_equal):
+                         assert_func=assert_frame_equal,
+                         check_names=False):
     if check_panel_type:
         assert_isinstance(left, type(right))
 
     for axis in ['items', 'major_axis', 'minor_axis']:
         left_ind = getattr(left, axis)
         right_ind = getattr(right, axis)
-        assert_index_equal(left_ind, right_ind)
+        assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     for i, item in enumerate(left._get_axis(0)):
         assert item in right, "non-matching item (right) '%s'" % item
