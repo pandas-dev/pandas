@@ -1841,6 +1841,13 @@ class TestCategoricalAsBlock(tm.TestCase):
         tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
         tm.assert_frame_equal(df.groupby(c).transform(lambda xs: np.sum(xs)), df[['a']])
 
+        # GH 9603
+        df = pd.DataFrame({'a': [1, 0, 0, 0]})
+        c = pd.cut(df.a, [0, 1, 2, 3, 4])
+        result = df.groupby(c).apply(len)
+        expected = pd.Series([1, 0, 0, 0], index=c.values.categories)
+        tm.assert_series_equal(result, expected)
+
     def test_pivot_table(self):
 
         raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"], ordered=True)
