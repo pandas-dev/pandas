@@ -1357,7 +1357,7 @@ class Index(IndexOpsMixin, PandasObject):
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
 
-    diff = deprecate('diff',difference)
+    diff = deprecate('diff', difference)
 
     def sym_diff(self, other, result_name=None):
         """
