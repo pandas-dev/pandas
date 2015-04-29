@@ -960,6 +960,12 @@ class TestGroupBy(tm.TestCase):
         g = df.groupby(pd.TimeGrouper('M'))
         g.transform(lambda x: x-1)
 
+        # GH 9700
+        df = DataFrame({'a' : range(5, 10), 'b' : range(5)})
+        result = df.groupby('a').transform(max)
+        expected = DataFrame({'b' : range(5)})
+        tm.assert_frame_equal(result, expected)
+
     def test_transform_fast(self):
 
         df = DataFrame( { 'id' : np.arange( 100000 ) / 3,

@@ -1820,6 +1820,27 @@ class TestCategoricalAsBlock(tm.TestCase):
         expected['person_name'] = expected['person_name'].astype('object')
         tm.assert_frame_equal(result, expected)
 
+        # GH 9921
+        # Monotonic
+        df = DataFrame({"a": [5, 15, 25]})
+        c = pd.cut(df.a, bins=[0,10,20,30,40])
+        tm.assert_series_equal(df.a.groupby(c).transform(sum), df['a'])
+        tm.assert_series_equal(df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(df.groupby(c).transform(lambda xs: np.max(xs)), df[['a']])
+
+        # Filter
+        tm.assert_series_equal(df.a.groupby(c).filter(np.all), df['a'])
+        tm.assert_frame_equal(df.groupby(c).filter(np.all), df)
+
+        # Non-monotonic
+        df = DataFrame({"a": [5, 15, 25, -5]})
+        c = pd.cut(df.a, bins=[-10, 0,10,20,30,40])
+        tm.assert_series_equal(df.a.groupby(c).transform(sum), df['a'])
+        tm.assert_series_equal(df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(df.groupby(c).transform(lambda xs: np.sum(xs)), df[['a']])
+
     def test_pivot_table(self):
 
         raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"], ordered=True)
