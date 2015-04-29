@@ -10100,6 +10100,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xp = self.tsframe.diff(1)
         assert_frame_equal(rs, xp)
 
+    def test_diff_axis(self):
+        # GH 9727
+        df = DataFrame([[1., 2.], [3., 4.]])
+        assert_frame_equal(df.diff(axis=1), DataFrame([[np.nan, 1.], [np.nan, 1.]]))
+        assert_frame_equal(df.diff(axis=0), DataFrame([[np.nan, np.nan], [2., 2.]]))
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
