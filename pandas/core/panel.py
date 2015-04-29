@@ -34,7 +34,7 @@ from pandas import lib
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
     klass="Panel",
-    axes_single_arg="{0,1,2,'items','major_axis','minor_axis'}")
+    axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}")
 _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
                                         "of\n        %s" %
                                         _shared_doc_kwargs['axes_single_arg'])
@@ -1160,6 +1160,14 @@ class Panel(NDFrame):
     @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
     def transpose(self, *args, **kwargs):
         return super(Panel, self).transpose(*args, **kwargs)
+
+    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        return super(Panel, self).fillna(value=value, method=method,
+                                         axis=axis, inplace=inplace,
+                                         limit=limit, downcast=downcast,
+                                         **kwargs)
 
     def count(self, axis='major'):
         """

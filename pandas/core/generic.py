@@ -2295,8 +2295,7 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None):
+    _shared_docs['fillna'] = (
         """
         Fill NA/NaN values using the specified method
 
@@ -2311,9 +2310,7 @@ class NDFrame(PandasObject):
             values specifying which value to use for each index (for a Series) or
             column (for a DataFrame). (values not in the dict/Series/DataFrame will not be
             filled). This value cannot be a list.
-        axis : {0, 1}, default 0
-            * 0: fill column-by-column
-            * 1: fill row-by-row
+        axis : %(axes_single_arg)s
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
@@ -2336,8 +2333,13 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        filled : same type as caller
+        filled : %(klass)s
         """
+    )
+
+    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None):
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
                             'you passed a "{0}"'.format(type(value).__name__))
