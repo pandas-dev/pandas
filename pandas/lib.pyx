@@ -18,7 +18,10 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyBytes_Check,
                       PyTuple_SetItem,
                       PyTuple_New,
-                      PyObject_SetAttrString)
+                      PyObject_SetAttrString,
+                      PyString_GET_SIZE,
+                      PyBytes_GET_SIZE,
+                      PyUnicode_GET_SIZE)
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -901,18 +904,20 @@ def clean_index_list(list obj):
 def max_len_string_array(ndarray arr):
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
-        int i, m, l
-        int length = arr.shape[0]
+        Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
         object v
 
-    m = 0
-    for i from 0 <= i < length:
+    for i in range(length):
         v = arr[i]
-        if PyString_Check(v) or PyBytes_Check(v) or PyUnicode_Check(v):
-            l = len(v)
+        if PyString_Check(v):
+            l = PyString_GET_SIZE(v)
+        elif PyBytes_Check(v):
+            l = PyBytes_GET_SIZE(v)
+        elif PyUnicode_Check(v):
+            l = PyUnicode_GET_SIZE(v)
 
-            if l > m:
-                m = l
+        if l > m:
+            m = l
 
     return m
 
