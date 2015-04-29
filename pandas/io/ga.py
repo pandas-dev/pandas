@@ -267,7 +267,7 @@ class GDataReader(OAuthDataReader):
         if index_col is None and dimensions is not None:
             if isinstance(dimensions, compat.string_types):
                 dimensions = [dimensions]
-            index_col = _clean_index(list(dimensions), parse_dates)
+            index_col = _clean_index(list(dimensions), parse_dates).tolist()
 
         def _read(start, result_size):
             query = self.create_query(profile_id, metrics, start_date,
