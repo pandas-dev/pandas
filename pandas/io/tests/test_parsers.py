@@ -2287,6 +2287,12 @@ MyColumn
         result = self.read_csv(StringIO(data), skipinitialspace=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_chunk_begins_with_newline_whitespace(self):
+        # GH 10022
+        data = '\n hello\nworld\n'
+        result = self.read_csv(StringIO(data), header=None)
+        self.assertEqual(len(result), 2)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
