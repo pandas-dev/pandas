@@ -218,7 +218,7 @@ Bug Fixes
 - Bug in csv parser causing lines with initial whitespace plus one non-space character to be skipped. (:issue:`9710`)
 
 
-
+- Bug causing elements with a null group to spill into the final group when grouping by a ``Categorical`` (:issue:`9603`)
 
 
 - Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)

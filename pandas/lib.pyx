@@ -1306,9 +1306,10 @@ def duplicated(ndarray[object] values, take_last=False):
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     cdef:
-        Py_ssize_t i, group_size, n, lab, start
+        Py_ssize_t i, group_size, n, start
+        int64_t lab
         object slobj
-        ndarray[int64_t] starts
+        ndarray[int64_t] starts, ends
 
     n = len(labels)
 
@@ -1318,13 +1319,16 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     start = 0
     group_size = 0
     for i in range(n):
-        group_size += 1
         lab = labels[i]
-        if i == n - 1 or lab != labels[i + 1]:
-            starts[lab] = start
-            ends[lab] = start + group_size
-            start += group_size
-            group_size = 0
+        if lab < 0:
+            start += 1
+        else:
+            group_size += 1
+            if i == n - 1 or lab != labels[i + 1]:
+                starts[lab] = start
+                ends[lab] = start + group_size
+                start += group_size
+                group_size = 0
 
     return starts, ends
 
