@@ -105,6 +105,7 @@ class TestGoogle(tm.TestCase):
         sl = ['INVALID', 'INVALID2', 'INVALID3']
         self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
 
+    @network
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
             for locale in self.locales:
