@@ -1846,6 +1846,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         c = pd.cut(df.a, [0, 1, 2, 3, 4])
         result = df.groupby(c).apply(len)
         expected = pd.Series([1, 0, 0, 0], index=c.values.categories)
+        expected.index.name = 'a'
         tm.assert_series_equal(result, expected)
 
     def test_pivot_table(self):
