@@ -901,7 +901,7 @@ def clean_index_list(list obj):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def max_len_string_array(ndarray arr):
+def max_len_string_array(ndarray[object] arr):
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
