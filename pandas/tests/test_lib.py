@@ -19,6 +19,10 @@ class TestMisc(tm.TestCase):
         arr = arr.astype('U').astype(object)
         self.assertTrue(max_len_string_array(arr),3)
 
+        # raises
+        tm.assertRaises(TypeError,
+                        lambda: max_len_string_array(arr.astype('U')))
+
 class TestIsscalar(tm.TestCase):
     def test_isscalar_builtin_scalars(self):
         self.assertTrue(isscalar(None))
