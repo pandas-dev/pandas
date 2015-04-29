@@ -26,6 +26,8 @@ Enhancements
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 - Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+- Added ``StringMethods.normalize()`` which behaves the same as standard :func:`unicodedata.normalizes` (:issue:`10031`)
+
 - Allow clip, clip_lower, and clip_upper to accept array-like arguments as thresholds (:issue:`6966`). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s).
 
   The ``.str`` accessor is now available for both ``Series`` and ``Index``.
