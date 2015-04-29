@@ -1693,7 +1693,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                                       "not been implemented yet")
 
         values = self.values if inplace else self.values.copy()
-        return [self.make_block_same_class(values=values.fillna(fill_value=value,
+        return [self.make_block_same_class(values=values.fillna(value=value,
                                                                 limit=limit),
                                            placement=self.mgr_locs)]
 
