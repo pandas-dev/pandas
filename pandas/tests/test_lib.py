@@ -16,7 +16,7 @@ class TestMisc(tm.TestCase):
         self.assertTrue(max_len_string_array(arr),3)
 
         # unicode
-        arr = arr.astype('U')
+        arr = arr.astype('U').astype(object)
         self.assertTrue(max_len_string_array(arr),3)
 
 class TestIsscalar(tm.TestCase):
