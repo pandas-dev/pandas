@@ -296,7 +296,7 @@ class Block(PandasObject):
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
-            mask[mask.cumsum(self.ndim-1)>limit]=False
+            mask[mask.cumsum(self.ndim-1) > limit] = False
 
         value = self._try_fill(value)
         blocks = self.putmask(mask, value, inplace=inplace)
