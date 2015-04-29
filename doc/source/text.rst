@@ -268,6 +268,7 @@ Method Summary
     :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
     :meth:`~Series.str.capitalize`,Equivalent to ``str.capitalize``
     :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
+    :meth:`~Series.str.normalize`,Return Unicode normal form. Equivalent to ``unicodedata.normalize``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
     :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``
