@@ -343,14 +343,14 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
                  max_results=10000, **kwargs):
     if isinstance(metrics, compat.string_types):
         metrics = [metrics]
-    met = ','.join(['ga:%s' % x for x in metrics])
+    met = ','.join([_maybe_add_prefix('ga', x) for x in metrics])
 
     start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
     if end_date is None:
         end_date = datetime.today()
     end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
 
-    qry = dict(ids='ga:%s' % str(ids),
+    qry = dict(ids=_maybe_add_prefix('ga', ids),
                metrics=met,
                start_date=start_date,
                end_date=end_date)
@@ -383,8 +383,15 @@ def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
         if isinstance(data, (compat.string_types, int)):
             data = [data]
-        data = ','.join(['%s:%s' % (prefix, x) for x in data])
+        data = ','.join([_maybe_add_prefix(prefix, x) for x in data])
         query[field] = data
+
+
+def _maybe_add_prefix(prefix, value):
+    if value.startswith("%s:" % prefix):
+        return value
+    else:
+        return "%s:%s" % (prefix, value)
 
 
 def _get_match(obj_store, name, id, **kwargs):
