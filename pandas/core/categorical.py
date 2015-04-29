@@ -10,7 +10,7 @@ from pandas.compat import u
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
 import pandas.core.common as com
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
 from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
                                 isnull, notnull, is_dtype_equal,
@@ -1168,7 +1168,8 @@ class Categorical(PandasObject):
         """
         return np.asarray(self)
 
-    def fillna(self, fill_value=None, method=None, limit=None):
+    @deprecate_kwarg(old_arg_name='fill_value', new_arg_name='value')
+    def fillna(self, value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
         Parameters
@@ -1187,8 +1188,8 @@ class Categorical(PandasObject):
         filled : Categorical with NA/NaN filled
         """
 
-        if fill_value is None:
-            fill_value = np.nan
+        if value is None:
+            value = np.nan
         if limit is not None:
             raise NotImplementedError("specifying a limit for fillna has not "
                                       "been implemented yet")
@@ -1203,24 +1204,23 @@ class Categorical(PandasObject):
                 # we only have one NA in categories
                 values[values == nan_pos] = -1
 
-
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1,len(self))
+            values = self.to_dense().reshape(-1, len(self))
             values = com.interpolate_2d(
-                values, method, 0, None, fill_value).astype(self.categories.dtype)[0]
+                values, method, 0, None, value).astype(self.categories.dtype)[0]
             values = _get_codes_for_values(values, self.categories)
 
         else:
 
-            if not isnull(fill_value) and fill_value not in self.categories:
+            if not isnull(value) and value not in self.categories:
                 raise ValueError("fill value must be in categories")
 
             mask = values==-1
             if mask.any():
                 values = values.copy()
-                values[mask] = self.categories.get_loc(fill_value)
+                values[mask] = self.categories.get_loc(value)
 
         return Categorical(values, categories=self.categories, ordered=self.ordered,
                            name=self.name, fastpath=True)
