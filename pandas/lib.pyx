@@ -905,7 +905,7 @@ def clean_index_list(list obj):
     return maybe_convert_objects(converted), 0
 
 
-ctypedef fused pandas_t:
+ctypedef fused pandas_string:
     str
     unicode
     bytes
@@ -913,11 +913,11 @@ ctypedef fused pandas_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Py_ssize_t max_len_string_array(pandas_t[:] arr):
+cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
-        pandas_t v
+        pandas_string v
 
     for i in range(length):
         v = arr[i]
