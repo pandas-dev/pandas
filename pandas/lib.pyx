@@ -1,6 +1,7 @@
 cimport numpy as np
 cimport cython
 import numpy as np
+import sys
 
 from numpy cimport *
 
@@ -9,6 +10,7 @@ np.import_array()
 cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
         NPY_intp "NPY_INTP"
+
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -19,9 +21,13 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyTuple_SetItem,
                       PyTuple_New,
                       PyObject_SetAttrString,
-                      PyString_GET_SIZE,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE)
+
+try:
+    from cpython cimport PyString_GET_SIZE
+except ImportError:
+    from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -33,7 +39,6 @@ cdef extern from "Python.h":
         PySliceObject* s, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength) except -1
-
 
 
 cimport cpython
@@ -903,6 +908,7 @@ def clean_index_list(list obj):
 ctypedef fused pandas_t:
     str
     unicode
+    bytes
 
 
 @cython.boundscheck(False)
