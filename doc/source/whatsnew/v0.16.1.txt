@@ -402,4 +402,9 @@ Bug Fixes
 =======
 - Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)
 - Bug in ``transform`` when groups are equal in number and dtype to the input index (:issue:`9700`)
+<<<<<<< HEAD
 >>>>>>> 3d73550... BUG: transform and filter misbehave when grouping on categorical data (GH 9921)
+=======
+- Google BigQuery connector now imports dependencies on a per-method basis.(:issue:`9713`)
+- Updated BigQuery connector to no longer use deprecated ``oauth2client.tools.run()`` (:issue:`8327`)
+>>>>>>> 2cf4132... Updates to Google BigQuery connector (#9713, #8327)
