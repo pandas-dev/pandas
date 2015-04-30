@@ -12,6 +12,9 @@ from time import sleep
 
 import numpy as np
 
+from distutils.version import LooseVersion
+from pandas import compat
+
 from pandas import NaT
 from pandas.compat import u
 from pandas.core.frame import DataFrame
@@ -22,6 +25,12 @@ PROJECT_ID = None
 
 VERSION = platform.python_version()
 
+_IMPORTS = False
+_GOOGLE_API_CLIENT_INSTALLED = False
+_GOOGLE_API_CLIENT_VALID_VERSION = False
+_HTTPLIB2_INSTALLED = False
+_SETUPTOOLS_INSTALLED = False
+
 def missing_bq():
     try:
         subprocess.call('bq')
@@ -29,9 +38,64 @@ def missing_bq():
     except OSError:
         return True
 
+def _test_imports():
+    if not compat.PY3:
+
+        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
+               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
+
+        try:
+            import pkg_resources
+            _SETUPTOOLS_INSTALLED = True
+        except ImportError:
+            _SETUPTOOLS_INSTALLED = False
+
+        if _SETUPTOOLS_INSTALLED:
+            try:
+                from apiclient.discovery import build
+                from apiclient.errors import HttpError
+
+                from oauth2client.client import OAuth2WebServerFlow
+                from oauth2client.client import AccessTokenRefreshError
+
+                from oauth2client.file import Storage
+                from oauth2client.tools import run_flow
+                _GOOGLE_API_CLIENT_INSTALLED=True
+                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+                if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+                    _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+            except ImportError:
+                _GOOGLE_API_CLIENT_INSTALLED = False
+
+
+            try:
+                import httplib2
+                _HTTPLIB2_INSTALLED = True
+            except ImportError:
+                _HTTPLIB2_INSTALLED = False
+    
+
+    if compat.PY3:
+        raise NotImplementedError("Google's libraries do not support Python 3 yet")
+
+    if not _SETUPTOOLS_INSTALLED:
+        raise ImportError('Could not import pkg_resources (setuptools).')
+
+    if not _GOOGLE_API_CLIENT_INSTALLED:
+        raise ImportError('Could not import Google API Client.')
+
+    if not _GOOGLE_API_CLIENT_VALID_VERSION:
+        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
+                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
+
+    if not _HTTPLIB2_INSTALLED:
+        raise ImportError("pandas requires httplib2 for Google BigQuery support")
+
 def test_requirements():
     try:
-        gbq._test_imports()
+        _test_imports()
     except (ImportError, NotImplementedError) as import_exception:
         raise nose.SkipTest(import_exception)
 
