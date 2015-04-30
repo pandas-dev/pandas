@@ -171,7 +171,7 @@ Performance Improvements
 
 - Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
 - Improved csv write performance generally by 2x (:issue:`9940`)
-
+- Improved the performance of ``pd.lib.max_len_string_array`` by 5-7x (:issue:`10024`)
 
 
 
