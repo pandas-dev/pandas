@@ -3996,6 +3996,24 @@ whether imported ``Categorical`` variables are ordered.
     a ``Categorial`` with string categories for the values that are labeled and
     numeric categories for values with no label.
 
+.. _io.other:
+
+Other file formats
+------------------
+
+pandas itself only supports IO with a limited set of file formats that map
+cleanly to its tabular data model. For reading and writing other file formats
+into and from pandas, we recommend these packages from the broader community.
+
+netCDF
+~~~~~~
+
+xray_ provides data structures inspired by the pandas DataFrame for working
+with multi-dimensional datasets, with a focus on the netCDF file format and
+easy conversion to and from pandas.
+
+.. _xray: http://xray.readthedocs.org/
+
 .. _io.perf:
 
 Performance Considerations
