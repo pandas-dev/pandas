@@ -8,22 +8,29 @@ from pandas.lib import isscalar, item_from_zerodim, max_len_string_array
 import pandas.util.testing as tm
 from pandas.compat import u
 
+
 class TestMisc(tm.TestCase):
 
     def test_max_len_string_array(self):
 
-        arr = np.array(['foo','b',np.nan],dtype='object')
-        self.assertTrue(max_len_string_array(arr),3)
+        arr = a = np.array(['foo', 'b', np.nan], dtype='object')
+        self.assertTrue(max_len_string_array(arr), 3)
 
         # unicode
-        arr = arr.astype('U').astype(object)
-        self.assertTrue(max_len_string_array(arr),3)
+        arr = a.astype('U').astype(object)
+        self.assertTrue(max_len_string_array(arr), 3)
+
+        # bytes for python3
+        arr = a.astype('S').astype(object)
+        self.assertTrue(max_len_string_array(arr), 3)
 
         # raises
         tm.assertRaises(TypeError,
                         lambda: max_len_string_array(arr.astype('U')))
 
+
 class TestIsscalar(tm.TestCase):
+
     def test_isscalar_builtin_scalars(self):
         self.assertTrue(isscalar(None))
         self.assertTrue(isscalar(True))
