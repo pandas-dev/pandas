@@ -1626,7 +1626,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype.type == np.object_:  # try to coerce it to the biggest string
                                     # not memory efficient, what else could we
                                     # do?
-        itemsize = max_len_string_array(column.values)
+        itemsize = max_len_string_array(com._ensure_object(column.values))
         return chr(max(itemsize, 1))
     elif dtype == np.float64:
         return chr(255)
@@ -1664,7 +1664,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         if not (inferred_dtype in ('string', 'unicode')
                 or len(column) == 0):
             raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(column.values)
+        itemsize = max_len_string_array(com._ensure_object(column.values))
         if itemsize > 244:
             raise ValueError(excessive_string_length_error % column.name)
         return "%" + str(max(itemsize, 1)) + "s"

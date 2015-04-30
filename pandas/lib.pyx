@@ -1,6 +1,7 @@
 cimport numpy as np
 cimport cython
 import numpy as np
+import sys
 
 from numpy cimport *
 
@@ -10,6 +11,7 @@ cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
         NPY_intp "NPY_INTP"
 
+
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
                       Py_INCREF, PyTuple_SET_ITEM,
@@ -18,7 +20,14 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyBytes_Check,
                       PyTuple_SetItem,
                       PyTuple_New,
-                      PyObject_SetAttrString)
+                      PyObject_SetAttrString,
+                      PyBytes_GET_SIZE,
+                      PyUnicode_GET_SIZE)
+
+try:
+    from cpython cimport PyString_GET_SIZE
+except ImportError:
+    from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -30,7 +39,6 @@ cdef extern from "Python.h":
         PySliceObject* s, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength) except -1
-
 
 
 cimport cpython
@@ -896,23 +904,32 @@ def clean_index_list(list obj):
 
     return maybe_convert_objects(converted), 0
 
+
+ctypedef fused pandas_string:
+    str
+    unicode
+    bytes
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def max_len_string_array(ndarray arr):
+cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
-        int i, m, l
-        int length = arr.shape[0]
-        object v
+        Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
+        pandas_string v
 
-    m = 0
-    for i from 0 <= i < length:
+    for i in range(length):
         v = arr[i]
-        if PyString_Check(v) or PyBytes_Check(v) or PyUnicode_Check(v):
-            l = len(v)
+        if PyString_Check(v):
+            l = PyString_GET_SIZE(v)
+        elif PyBytes_Check(v):
+            l = PyBytes_GET_SIZE(v)
+        elif PyUnicode_Check(v):
+            l = PyUnicode_GET_SIZE(v)
 
-            if l > m:
-                m = l
+        if l > m:
+            m = l
 
     return m
 
