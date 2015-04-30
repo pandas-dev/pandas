@@ -524,6 +524,26 @@ def test_is_recompilable():
     for f in fails:
         assert not com.is_re_compilable(f)
 
+def test_random_state():
+    import numpy.random as npr
+    # Check with seed
+    state = com._random_state(5)
+    assert_equal(state.uniform(), npr.RandomState(5).uniform())
+    
+    # Check with random state object
+    state2 = npr.RandomState(10)
+    assert_equal(com._random_state(state2).uniform(), npr.RandomState(10).uniform())    
+    
+    # check with no arg random state
+    assert isinstance(com._random_state(), npr.RandomState)
+    
+    # Error for floats or strings
+    with tm.assertRaises(ValueError):
+        com._random_state('test')
+
+    with tm.assertRaises(ValueError):
+        com._random_state(5.5)
+
 
 class TestTake(tm.TestCase):
     # standard incompatible fill error
