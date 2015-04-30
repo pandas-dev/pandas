@@ -13,75 +13,22 @@ from pandas.core.api import DataFrame
 from pandas.tools.merge import concat
 from pandas.core.common import PandasError
 
-_IMPORTS = False
-_GOOGLE_API_CLIENT_INSTALLED = False
-_GOOGLE_API_CLIENT_VALID_VERSION = False
-_GOOGLE_FLAGS_INSTALLED = False
-_GOOGLE_FLAGS_VALID_VERSION = False
-_HTTPLIB2_INSTALLED = False
-_SETUPTOOLS_INSTALLED = False
 
-def _importers():
-    # import things we need
-    # but make this done on a first use basis
+def _check_google_client_version():
+    if compat.PY3:
+        raise NotImplementedError("Google's libraries do not support Python 3 yet")
 
-    global _IMPORTS
-    if  _IMPORTS:
-        return
+    try:
+        import pkg_resources
 
-    _IMPORTS = True
+    except ImportError:
+        raise ImportError('Could not import pkg_resources (setuptools).')
 
-    if not compat.PY3:
+    _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
-               _GOOGLE_FLAGS_INSTALLED, _GOOGLE_FLAGS_VALID_VERSION, \
-               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
-
-        try:
-            import pkg_resources
-            _SETUPTOOLS_INSTALLED = True
-        except ImportError:
-            _SETUPTOOLS_INSTALLED = False
-
-        if _SETUPTOOLS_INSTALLED:
-            try:
-                from apiclient.discovery import build
-                from apiclient.http import MediaFileUpload
-                from apiclient.errors import HttpError
-
-                from oauth2client.client import OAuth2WebServerFlow
-                from oauth2client.client import AccessTokenRefreshError
-                from oauth2client.client import flow_from_clientsecrets
-                from oauth2client.file import Storage
-                from oauth2client.tools import run
-                _GOOGLE_API_CLIENT_INSTALLED=True
-                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
-
-                if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
-                    _GOOGLE_API_CLIENT_VALID_VERSION = True
-
-            except ImportError:
-                _GOOGLE_API_CLIENT_INSTALLED = False
-
-
-            try:
-                import gflags as flags
-                _GOOGLE_FLAGS_INSTALLED = True
-
-                _GOOGLE_FLAGS_VERSION = pkg_resources.get_distribution('python-gflags').version
-
-                if LooseVersion(_GOOGLE_FLAGS_VERSION) >= '2.0':
-                    _GOOGLE_FLAGS_VALID_VERSION = True
-
-            except ImportError:
-                _GOOGLE_FLAGS_INSTALLED = False
-
-            try:
-                import httplib2
-                _HTTPLIB2_INSTALLED = True
-            except ImportError:
-                _HTTPLIB2_INSTALLED = False
-
+    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2.0':
+        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
+                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
@@ -142,6 +89,16 @@ class GbqConnector(object):
         self.service        = self.get_service(self.credentials)
 
     def get_credentials(self):
+        try:
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.file import Storage
+            from oauth2client.tools import run_flow, argparser
+
+        except ImportError:
+            raise ImportError('Could not import Google API Client.')
+
+        _check_google_client_version()
+
         flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
                                    client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
                                    scope='https://www.googleapis.com/auth/bigquery',
@@ -151,11 +108,25 @@ class GbqConnector(object):
         credentials = storage.get()
 
         if credentials is None or credentials.invalid or self.reauth:
-            credentials = run(flow, storage)
+            credentials = run_flow(flow, storage, argparser.parse_args([]))
 
         return credentials
 
     def get_service(self, credentials):
+        try:
+            import httplib2
+
+        except ImportError:
+            raise ImportError("pandas requires httplib2 for Google BigQuery support")
+
+        try:
+            from apiclient.discovery import build
+        
+        except ImportError:
+            raise ImportError('Could not import Google API Client.')
+
+        _check_google_client_version()
+
         http = httplib2.Http()
         http = credentials.authorize(http)
         bigquery_service = build('bigquery', 'v2', http=http)
@@ -163,6 +134,15 @@ class GbqConnector(object):
         return bigquery_service
 
     def run_query(self, query):
+        try:
+            from apiclient.errors import HttpError
+            from oauth2client.client import AccessTokenRefreshError
+
+        except ImportError:
+            raise ImportError('Could not import Google API Client.')
+
+        _check_google_client_version()
+
         job_collection = self.service.jobs()
         job_data = {
             'configuration': {
@@ -313,38 +293,6 @@ def _parse_entry(field_value, field_type):
         return field_value == 'true'
     return field_value
 
-def _test_imports():
-
-    _importers()
-    _GOOGLE_API_CLIENT_INSTALLED
-    _GOOGLE_API_CLIENT_VALID_VERSION
-    _GOOGLE_FLAGS_INSTALLED
-    _GOOGLE_FLAGS_VALID_VERSION
-    _HTTPLIB2_INSTALLED
-    _SETUPTOOLS_INSTALLED
-
-    if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
-
-    if not _SETUPTOOLS_INSTALLED:
-        raise ImportError('Could not import pkg_resources (setuptools).')
-
-    if not _GOOGLE_API_CLIENT_INSTALLED:
-        raise ImportError('Could not import Google API Client.')
-
-    if not _GOOGLE_FLAGS_INSTALLED:
-        raise ImportError('Could not import Google Command Line Flags Module.')
-
-    if not _GOOGLE_API_CLIENT_VALID_VERSION:
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
-                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
-
-    if not _GOOGLE_FLAGS_VALID_VERSION:
-        raise ImportError("pandas requires python-gflags >= 2.0.0 for Google "
-                          "BigQuery support, current version " + _GOOGLE_FLAGS_VERSION)
-
-    if not _HTTPLIB2_INSTALLED:
-        raise ImportError("pandas requires httplib2 for Google BigQuery support")
 
 def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=False):
     """Load data from Google BigQuery.
@@ -379,7 +327,6 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
 
     """
 
-    _test_imports()
 
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
@@ -450,7 +397,6 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
         if multiple accounts are used.
 
     """
-    _test_imports()
 
     if not project_id:
         raise TypeError("Missing required parameter: project_id")

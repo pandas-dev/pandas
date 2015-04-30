@@ -297,3 +297,5 @@ Bug Fixes
 - Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
 - Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)
 - Bug in ``transform`` when groups are equal in number and dtype to the input index (:issue:`9700`)
+- Google BigQuery connector now imports dependencies on a per-method basis.(:issue:`9713`)
+- Updated BigQuery connector to no longer use deprecated ``oauth2client.tools.run()`` (:issue:`8327`)
