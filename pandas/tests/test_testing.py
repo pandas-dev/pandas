@@ -215,6 +215,14 @@ class TestAssertFrameEqual(unittest.TestCase):
                 {'a':[1.0,2.0],'b':[2.1,1.5],'c':['l1','l2']}, index=['a','b'])
         self._assert_not_equal(df1, df2, check_index_type=True)
 
+    def test_empty_dtypes(self):
+        df1=pd.DataFrame(columns=["col1","col2"])
+        df1["col1"] = df1["col1"].astype('int64')
+        df2=pd.DataFrame(columns=["col1","col2"])
+        self._assert_equal(df1, df2, check_dtype=False)
+        self._assert_not_equal(df1, df2, check_dtype=True)
+        
+
 class TestRNGContext(unittest.TestCase):
 
     def test_RNGContext(self):
