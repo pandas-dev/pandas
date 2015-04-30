@@ -217,9 +217,8 @@ Bug Fixes
 - Bug causing an exception in slice assignments because ``length_of_indexer`` returns wrong results (:issue:`9995`)
 - Bug in csv parser causing lines with initial whitespace plus one non-space character to be skipped. (:issue:`9710`)
 
-
 - Bug causing elements with a null group to spill into the final group when grouping by a ``Categorical`` (:issue:`9603`)
-
+- Bug where .iloc and .loc behavior is not consistent on empty dataframes (:issue:`9964`)
 
 - Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)
 
