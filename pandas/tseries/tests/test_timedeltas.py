@@ -949,6 +949,10 @@ class TestTimedeltaIndex(tm.TestCase):
                             name='TEST')
         self.assertEqual(idx.name, 'TEST')
 
+        # GH10025
+        idx2 = TimedeltaIndex(idx, name='something else')
+        self.assertEqual(idx2.name, 'something else')
+
     def test_freq_conversion(self):
 
         # doc example
