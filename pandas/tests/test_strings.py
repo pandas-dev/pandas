@@ -908,6 +908,53 @@ class TestStringMethods(tm.TestCase):
         result = values.str.rfind('EF', 3, 6)
         tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
 
+    def test_index(self):
+        for klass in [Series, Index]:
+            s = klass(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF'])
+
+            result = s.str.index('EF')
+            tm.assert_array_equal(result, klass([4, 3, 1, 0]))
+            expected = np.array([v.index('EF') for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('EF')
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.rindex('EF') for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.index('EF', 3)
+            tm.assert_array_equal(result, klass([4, 3, 7, 4]))
+            expected = np.array([v.index('EF', 3) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('EF', 3)
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.rindex('EF', 3) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.index('E', 4, 8)
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.index('E', 4, 8) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('E', 0, 5)
+            tm.assert_array_equal(result, klass([4, 3, 1, 4]))
+            expected = np.array([v.rindex('E', 0, 5) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            with tm.assertRaisesRegexp(ValueError, "substring not found"):
+                result = s.str.index('DE')
+
+            with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+                result = s.str.index(0)
+
+        # test with nan
+        s = Series(['abcb', 'ab', 'bcbe', np.nan])
+        result = s.str.index('b')
+        tm.assert_array_equal(result, Series([1, 1, 0, np.nan]))
+        result = s.str.rindex('b')
+        tm.assert_array_equal(result, Series([3, 1, 2, np.nan]))
+
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
 
