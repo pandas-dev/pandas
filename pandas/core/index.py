@@ -3440,8 +3440,8 @@ class RangeIndex(Int64Index):
             return RangeIndex(self.start, self.stop, self.step, 
                               name=self.name, fastpath=True)
         else:
-            name = kwargs.get('name', self.name)
-            return self._int64index._shallow_copy(values, **kwargs)
+            name = kwargs.pop('name', self.name)
+            return self._int64index._shallow_copy(values, name=name, **kwargs)
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
         """
