@@ -989,7 +989,7 @@ def is_subperiod(source, target):
         return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_quarterly(target):
         return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
-    elif target == 'M':
+    elif _is_monthly(target):
         return source in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_weekly(target):
         return source in [target, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
@@ -1048,7 +1048,7 @@ def is_superperiod(source, target):
         return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_quarterly(source):
         return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
-    elif source == 'M':
+    elif _is_monthly(source):
         return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_weekly(source):
         return target in [source, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
@@ -1093,7 +1093,12 @@ def _quarter_months_conform(source, target):
 
 def _is_quarterly(rule):
     rule = rule.upper()
-    return rule == 'Q' or rule.startswith('Q-')
+    return rule == 'Q' or rule.startswith('Q-') or rule.startswith('BQ')
+
+
+def _is_monthly(rule):
+    rule = rule.upper()
+    return rule == 'M' or rule == 'BM'
 
 
 def _is_weekly(rule):

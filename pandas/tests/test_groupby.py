@@ -966,6 +966,16 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame({'b' : range(5)})
         tm.assert_frame_equal(result, expected)
 
+    def test_resample_extra_index_point(self):
+        # GH 9756
+        expected_i = pd.DatetimeIndex(start='20150101', end='20150331', freq='BM')
+        expected = pd.DataFrame(index=expected_i, data=len(expected_i)*[0])
+
+        index = pd.DatetimeIndex(start='20150101', end='20150331', freq='B')
+        df = pd.DataFrame(index=index, data=len(index)*[0])
+        result = df.resample('BM', how='last')
+        assert_frame_equal(result, expected)
+
     def test_transform_fast(self):
 
         df = DataFrame( { 'id' : np.arange( 100000 ) / 3,
