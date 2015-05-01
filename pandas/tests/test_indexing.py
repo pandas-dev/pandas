@@ -4448,7 +4448,7 @@ class TestIndexing(tm.TestCase):
         df = DataFrame({'a':[1,2,3],'b':['b','b2','b3']})
         df2 = df.ix[[],:]
 
-        self.assertEqual(df2.loc[:,'a'].dtype, int)
+        self.assertEqual(df2.loc[:,'a'].dtype, np.int64)
         assert_series_equal(df2.loc[:,'a'], df2.iloc[:,0])
         assert_series_equal(df2.loc[:,'a'], df2.ix[:,0])
 

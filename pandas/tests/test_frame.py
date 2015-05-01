@@ -11860,7 +11860,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
                            "B": [10, 10, 10, np.nan, 3, 4],
                            "C": [8, 8, 8, 9, 9, 9],
-                           "D": range(6),
+                           "D": np.arange(6,dtype='int64'),
                            "E": [8, 8, 1, 1, 3, 3]})
         assert_frame_equal(df[["A"]].mode(),
                            pd.DataFrame({"A": [12]}))
@@ -11889,7 +11889,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         com.pprint_thing(b)
         assert_frame_equal(a, b)
         # should work with heterogeneous types
-        df = pd.DataFrame({"A": range(6),
+        df = pd.DataFrame({"A": np.arange(6,dtype='int64'),
                            "B": pd.date_range('2011', periods=6),
                            "C": list('abcdef')})
         exp = pd.DataFrame({"A": pd.Series([], dtype=df["A"].dtype),
