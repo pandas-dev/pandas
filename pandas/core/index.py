@@ -3421,14 +3421,15 @@ class RangeIndex(Int64Index):
     def step(self):
         return self._step
 
-    #@cache_readonly(allow_setting=True)
-    #def is_unique(self):
-    #    """ return if the index has unique values """
-    #    return True
+    # TODO: make read-only
+    @cache_readonly(allow_setting=True)
+    def is_unique(self):
+        """ return if the index has unique values """
+        return True
 
-    #@property
-    #def has_duplicates(self):
-    #    return not self.is_unique
+    @property
+    def has_duplicates(self):
+        return not self.is_unique
 
     def tolist(self):
         return list(range(self.start, self.stop, self.step))
@@ -3441,6 +3442,7 @@ class RangeIndex(Int64Index):
                               name=self.name, fastpath=True)
         else:
             name = kwargs.pop('name', self.name)
+            # TODO: check a test exists which checks for name preservation
             return self._int64index._shallow_copy(values, name=name, **kwargs)
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
@@ -3469,15 +3471,16 @@ class RangeIndex(Int64Index):
             name = self.name
         return RangeIndex(self.start, self.stop, self.step, name, fastpath=True)
 
-    #def argsort(self, *args, **kwargs):
-    #    """
-    #    return an ndarray indexer of the underlying data
+    # TODO: return arange instead of sorting
+    def argsort(self, *args, **kwargs):
+        """
+        return an ndarray indexer of the underlying data
 
-    #    See also
-    #    --------
-    #    numpy.ndarray.argsort
-    #    """
-    #    return self._data.argsort(*args, **kwargs)
+        See also
+        --------
+        numpy.ndarray.argsort
+        """
+        return self._data.argsort(*args, **kwargs)
 
     def __repr__(self):
         attrs = [('start', default_pprint(self.start)),
@@ -3517,29 +3520,32 @@ class RangeIndex(Int64Index):
                                    start, stop, step, name)
         return res
 
-    #def equals(self, other):
-    #    """
-    #    Determines if two Index objects contain the same elements.
-    #    """
-    #    if self.is_(other):
-    #        return True
+    # TODO: re-arrange case checking & delegation
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self.is_(other):
+            return True
 
-    #    elif isinstance(other, RangeIndex):
-    #        return (self.start == other.start and
-    #                self.stop == other.stop and
-    #                self.step == other.step)
+        elif isinstance(other, RangeIndex):
+            return (self.start == other.start and
+                    self.stop == other.stop and
+                    self.step == other.step)
 
-    #    try:
-    #        return array_equivalent(_values_from_object(self),
-    #                                _values_from_object(other))
-    #    except TypeError:
-    #        # e.g. fails in numpy 1.6 with DatetimeIndex #1681
-    #        return False
+        try:
+            return array_equivalent(_values_from_object(self),
+                                    _values_from_object(other))
+        except TypeError:
+            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
+            return False
 
-    #def __reduce__(self):
-    #    d = self._get_attributes_dict()
-    #    return _new_Index, (self.__class__, d), None
+    def __reduce__(self):
+        d = self._get_attributes_dict()
+        return _new_Index, (self.__class__, d), None
 
+    # @jreback: Is this ok? Not sure what a "view" of a non-materialised array 
+    #           should mean.
     #def view(self, cls=None):
     #    if cls is None or is_int64_dtype(cls):
     #        return self
@@ -3549,78 +3555,78 @@ class RangeIndex(Int64Index):
     #        result._id = self._id
     #    return result
 
-    #def intersection(self, other):
-    #    """
-    #    Form the intersection of two Index objects. Sortedness of the result is
-    #    not guaranteed
+    def intersection(self, other):
+        """
+        Form the intersection of two Index objects. Sortedness of the result is
+        not guaranteed
 
-    #    Parameters
-    #    ----------
-    #    other : Index or array-like
+        Parameters
+        ----------
+        other : Index or array-like
 
-    #    Returns
-    #    -------
-    #    intersection : Index
-    #    """
-    #    if not isinstance(other, RangeIndex):
-    #        return super(RangeIndex, self).intersection(other)
+        Returns
+        -------
+        intersection : Index
+        """
+        if not isinstance(other, RangeIndex):
+            return super(RangeIndex, self).intersection(other)
 
-    #    # check whether intervals intersect
-    #    # deals with in- and decreasing ranges
-    #    int_low = max(min(self.start, self.stop+1), 
-    #                  min(other.start, other.stop+1))
-    #    int_high = min(max(self.stop, self.start+1), 
-    #                   max(other.stop, other.start+1))
-    #    if int_high <= int_low:
-    #        return RangeIndex()
+        # check whether intervals intersect
+        # deals with in- and decreasing ranges
+        int_low = max(min(self.start, self.stop+1), 
+                      min(other.start, other.stop+1))
+        int_high = min(max(self.stop, self.start+1), 
+                       max(other.stop, other.start+1))
+        if int_high <= int_low:
+            return RangeIndex()
 
-    #    ### Method hint: linear Diophantine equation
-    #    # solve intersection
-    #    # perf: for identical step sizes, could use cheaper alternative
-    #    gcd, s, t = self._extended_gcd(self.step, other.step)
+        ### Method hint: linear Diophantine equation
+        # solve intersection problem
+        # performance hint: for identical step sizes, could use cheaper alternative
+        gcd, s, t = self._extended_gcd(self.step, other.step)
         
-    #    # check whether element sets intersect
-    #    if (self.start - other.start) % gcd:
-    #        return RangeIndex()
+        # check whether element sets intersect
+        if (self.start - other.start) % gcd:
+            return RangeIndex()
         
-    #    # calculate parameters for the RangeIndex describing the intersection
-    #    # disregarding the lower bounds
-    #    tmp_start = self.start + (other.start-self.start)*self.step//gcd*s
-    #    new_step = self.step * other.step // gcd
-    #    new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
+        # calculate parameters for the RangeIndex describing the intersection
+        # disregarding the lower bounds
+        tmp_start = self.start + (other.start-self.start)*self.step//gcd*s
+        new_step = self.step * other.step // gcd
+        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
 
-    #    # adjust index to limiting interval
-    #    new_index._start = new_index._min_fitting_element(int_low)
-    #    return new_index
+        # adjust index to limiting interval
+        new_index._start = new_index._min_fitting_element(int_low)
+        return new_index
 
-    #def _min_fitting_element(self, lower_limit):
-    #    """Returns the value of the smallest element greater than the limit"""
-    #    round = ceil if self.step > 0 else floor
-    #    no_steps = round( (float(lower_limit)-self.start) / self.step )
-    #    return self.start + self.step * no_steps
+    def _min_fitting_element(self, lower_limit):
+        """Returns the value of the smallest element greater than the limit"""
+        round = ceil if self.step > 0 else floor
+        no_steps = round( (float(lower_limit)-self.start) / self.step )
+        return self.start + self.step * no_steps
 
-    #def _max_fitting_element(self, upper_limit):
-    #    """Returns the value of the largest element smaller than the limit"""
-    #    round = floor if self.step > 0 else ceil
-    #    no_steps = round( (float(upper_limit)-self.start) / self.step )
-    #    return self.start + self.step * no_steps
+    def _max_fitting_element(self, upper_limit):
+        """Returns the value of the largest element smaller than the limit"""
+        round = floor if self.step > 0 else ceil
+        no_steps = round( (float(upper_limit)-self.start) / self.step )
+        return self.start + self.step * no_steps
 
-    #def _extended_gcd(self, a, b):
-    #    """
-    #    Extended Euclidean algorithms to solve Bezout's identity:
-    #       a*x + b*y = gcd(x, y)
-    #    Finds one particular solution for x, y: s, t
-    #    Returns: gcd, s, t
-    #    """
-    #    s, old_s = 0, 1
-    #    t, old_t = 1, 0
-    #    r, old_r = b, a
-    #    while r:
-    #        quotient = old_r // r
-    #        old_r, r = r, old_r - quotient * r
-    #        old_s, s = s, old_s - quotient * s
-    #        old_t, t = t, old_t - quotient * t
-    #    return old_r, old_s, old_t
+    def _extended_gcd(self, a, b):
+        """
+        Extended Euclidean algorithms to solve Bezout's identity:
+           a*x + b*y = gcd(x, y)
+        Finds one particular solution for x, y: s, t
+        Returns: gcd, s, t
+        """
+        s, old_s = 0, 1
+        t, old_t = 1, 0
+        r, old_r = b, a
+        while r:
+            quotient = old_r // r
+            old_r, r = r, old_r - quotient * r
+            old_s, s = s, old_s - quotient * s
+            old_t, t = t, old_t - quotient * t
+        return old_r, old_s, old_t
 
     def union(self, other):
         """
@@ -3637,86 +3643,86 @@ class RangeIndex(Int64Index):
         # note: could return a RangeIndex in some circumstances
         return self._int64index.union(other)
 
-    #def join(self, other, how='left', level=None, return_indexers=False):
-    #    """
-    #    *this is an internal non-public method*
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        *this is an internal non-public method*
 
-    #    Compute join_index and indexers to conform data
-    #    structures to the new index.
+        Compute join_index and indexers to conform data
+        structures to the new index.
 
-    #    Parameters
-    #    ----------
-    #    other : Index
-    #    how : {'left', 'right', 'inner', 'outer'}
-    #    level : int or level name, default None
-    #    return_indexers : boolean, default False
+        Parameters
+        ----------
+        other : Index
+        how : {'left', 'right', 'inner', 'outer'}
+        level : int or level name, default None
+        return_indexers : boolean, default False
 
-    #    Returns
-    #    -------
-    #    join_index, (left_indexer, right_indexer)
-    #    """
-    #    if how == 'outer' and self is not other:
-    #        # note: could return RangeIndex in more circumstances
-    #        return self._int64index.join(other, how, level, return_indexers)
+        Returns
+        -------
+        join_index, (left_indexer, right_indexer)
+        """
+        if how == 'outer' and self is not other:
+            # note: could return RangeIndex in more circumstances
+            return self._int64index.join(other, how, level, return_indexers)
 
-    #    return super(RangeIndex, self).join(other, how, level, return_indexers)
+        return super(RangeIndex, self).join(other, how, level, return_indexers)
 
-    #def _mul(self, other):
-    #    "__mul__() implementation"
-    #    try:
-    #        int_input = other == int(other)
-    #        if int_input:
-    #            other = int(other)
-    #    except Exception:
-    #        int_input = False
+    def _mul(self, other):
+        "__mul__() implementation"
+        try:
+            int_input = other == int(other)
+            if int_input:
+                other = int(other)
+        except Exception:
+            int_input = False
 
-    #    if int_input == True and other != 0:
-    #        return RangeIndex(self.start*other, self.stop*other, self.step*other,
-    #                          fastpath=True)
-    #    else:
-    #        return super(RangeIndex, self).__mul__(other)
+        if int_input == True and other != 0:
+            return RangeIndex(self.start*other, self.stop*other, self.step*other,
+                              fastpath=True)
+        else:
+            return super(RangeIndex, self).__mul__(other)
 
-    #def __len__(self):
-    #    """
-    #    return the length of the RangeIndex
-    #    """
-    #    return (self.stop-self.start) // self.step
+    def __len__(self):
+        """
+        return the length of the RangeIndex
+        """
+        return (self.stop-self.start) // self.step
 
-    #@property
-    #def size(self):
-    #    return len(self)
+    @property
+    def size(self):
+        return len(self)
 
-    #def __getitem__(self, key):
-    #    """
-    #    Conserve RangeIndex type for scalar and slice keys.
-    #    """
-    #    super_getitem = super(RangeIndex, self).__getitem__
+    def __getitem__(self, key):
+        """
+        Conserve RangeIndex type for scalar and slice keys.
+        """
+        super_getitem = super(RangeIndex, self).__getitem__
 
-    #    if np.isscalar(key):
-    #        n = int(key)
-    #        if n != key:
-    #            return super_getitem(key)
-    #        if n < 0:
-    #            n = len(self) + key
-    #        if n < 0 or n > len(self)-1:
-    #            raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
-    #        return self.start + n * self.step
+        if np.isscalar(key):
+            n = int(key)
+            if n != key:
+                return super_getitem(key)
+            if n < 0:
+                n = len(self) + key
+            if n < 0 or n > len(self)-1:
+                raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
+            return self.start + n * self.step
 
-    #    if isinstance(key, slice):
-    #        # complete missing slice information
-    #        n_start = 0 if key.start is None else key.start
-    #        n_stop = len(self)+1 if key.stop is None else key.stop
-    #        n_step = 1 if key.step is None else key.step
+        if isinstance(key, slice):
+            # complete missing slice information
+            n_start = 0 if key.start is None else key.start
+            n_stop = len(self) if key.stop is None else key.stop
+            n_step = 1 if key.step is None else key.step
 
-    #        # delegate non-integer slices
-    #        if (n_start != int(n_start) and
-    #                n_stop != int(n_stop) and
-    #                n_step != int(n_step)):
-    #            return super_getitem(key)
+            # delegate non-integer slices
+            if (n_start != int(n_start) and
+                    n_stop != int(n_stop) and
+                    n_step != int(n_step)):
+                return super_getitem(key)
 
-    #        # deal with index wrap-around
-    #        n_start = len(self)+n_start if n_start < 0 else n_start
-    #        n_stop = len(self)+n_stop if n_stop < 0 else n_stop
+            # deal with index wrap-around
+            n_start = len(self)+n_start if n_start < 0 else n_start
+            n_stop = len(self)+n_stop if n_stop < 0 else n_stop
 
             
     #        # convert indexes to values
@@ -3731,7 +3737,7 @@ class RangeIndex(Int64Index):
     #    return super_getitem(key)
 
 RangeIndex._add_numeric_methods()
-#RangeIndex.__mul__ = RangeIndex.__rmul__ = RangeIndex._mul
+RangeIndex.__mul__ = RangeIndex.__rmul__ = RangeIndex._mul
 RangeIndex._add_logical_methods()
 
 
