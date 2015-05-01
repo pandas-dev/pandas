@@ -1488,6 +1488,19 @@ class TestCategoricalIndex(Base, tm.TestCase):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_disallow_set_ops(self):
+
+        # GH 10039
+        # set ops (+/-) raise TypeError
+        idx = pd.Index(pd.Categorical(['a', 'b']))
+
+        self.assertRaises(TypeError, lambda : idx - idx)
+        self.assertRaises(TypeError, lambda : idx + idx)
+        self.assertRaises(TypeError, lambda : idx - ['a','b'])
+        self.assertRaises(TypeError, lambda : idx + ['a','b'])
+        self.assertRaises(TypeError, lambda : ['a','b'] - idx)
+        self.assertRaises(TypeError, lambda : ['a','b'] + idx)
+
     def test_method_delegation(self):
 
         ci = CategoricalIndex(list('aabbca'), categories=list('cabdef'))
@@ -3882,6 +3895,12 @@ class TestMultiIndex(Base, tm.TestCase):
         # - API change GH 8226
         with tm.assert_produces_warning():
             first - self.index[-3:]
+        with tm.assert_produces_warning():
+            self.index[-3:] - first
+        with tm.assert_produces_warning():
+            self.index[-3:] - first.tolist()
+        with tm.assert_produces_warning():
+            first.tolist() - self.index[-3:]
 
         expected = MultiIndex.from_tuples(sorted(self.index[:-3].values),
                                           sortorder=0,

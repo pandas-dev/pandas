@@ -2470,6 +2470,21 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__ge__ = _make_compare('__ge__')
 
     @classmethod
+    def _add_numericlike_set_methods_disabled(cls):
+        """ add in the numeric set-like methods to disable """
+
+        def _make_invalid_op(name):
+
+            def invalid_op(self, other=None):
+                raise TypeError("cannot perform {name} with this index type: {typ}".format(name=name,
+                                                                                           typ=type(self)))
+            invalid_op.__name__ = name
+            return invalid_op
+
+        cls.__add__ = cls.__add__ = __iadd__ = _make_invalid_op('__add__')
+        cls.__sub__ = cls.__sub__ = __isub__ = _make_invalid_op('__sub__')
+
+    @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable """
 
@@ -3148,6 +3163,7 @@ class CategoricalIndex(Index, PandasDelegate):
                                                  overwrite=True)
 
 
+CategoricalIndex._add_numericlike_set_methods_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()
