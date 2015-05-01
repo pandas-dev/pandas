@@ -3360,6 +3360,9 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def _simple_new(cls, start, stop, step, name=None):
+        # canonise empty RangeIndex objects
+        if (stop-start)//step <= 0:
+            start, stop, step = 0, 0, 1
         result = object.__new__(cls)
         result._start = start
         result._stop = stop
@@ -3684,28 +3687,13 @@ class RangeIndex(Int64Index):
             return self.start + n * self.step
 
         if isinstance(key, slice):
-            # complete missing slice information
-            n_start = 0 if key.start is None else key.start
-            n_stop = len(self)+1 if key.stop is None else key.stop
-            n_step = 1 if key.step is None else key.step
-
-            # delegate non-integer slices
-            if (n_start != int(n_start) and
-                    n_stop != int(n_stop) and
-                    n_step != int(n_step)):
-                return super_getitem(key)
-
-            # deal with index wrap-around
-            n_start = len(self)+n_start if n_start < 0 else n_start
-            n_stop = len(self)+n_stop if n_stop < 0 else n_stop
-
+            start, stop, step = key.indices(len(self))
             
             # convert indexes to values
-            start = self.start + self.step * n_start
-            stop = self.start + self.step * n_stop + 1
-            step = self.step * n_step
+            start = self.start + self.step * start
+            stop = self.start + self.step * stop
+            step = self.step * step
 
-            stop = min(stop, self.stop)
             return RangeIndex(start, stop, step, self.name, fastpath=True)
 
         # fall back to Int64Index
