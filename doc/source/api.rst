@@ -536,6 +536,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.find
    Series.str.findall
    Series.str.get
+   Series.str.index
    Series.str.join
    Series.str.len
    Series.str.ljust
@@ -548,6 +549,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.repeat
    Series.str.replace
    Series.str.rfind
+   Series.str.rindex
    Series.str.rjust
    Series.str.rpartition
    Series.str.rstrip
