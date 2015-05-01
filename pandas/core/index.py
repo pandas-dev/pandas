@@ -1179,17 +1179,18 @@ class Index(IndexOpsMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
-        if isinstance(other, Index):
+        if com.is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
                           "use '|' or .union()",FutureWarning)
+        if isinstance(other, Index):
             return self.union(other)
         return Index(np.array(self) + other)
     __iadd__ = __add__
+    __radd__ = __add__
 
     def __sub__(self, other):
-        if isinstance(other, Index):
-            warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
-                          "use .difference()",FutureWarning)
+        warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
+                      "use .difference()",FutureWarning)
         return self.difference(other)
 
     def __and__(self, other):
@@ -2481,8 +2482,8 @@ class Index(IndexOpsMixin, PandasObject):
             invalid_op.__name__ = name
             return invalid_op
 
-        cls.__add__ = cls.__add__ = __iadd__ = _make_invalid_op('__add__')
-        cls.__sub__ = cls.__sub__ = __isub__ = _make_invalid_op('__sub__')
+        cls.__add__ = cls.__radd__ = __iadd__ = _make_invalid_op('__add__')
+        cls.__sub__ = __isub__ = _make_invalid_op('__sub__')
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
