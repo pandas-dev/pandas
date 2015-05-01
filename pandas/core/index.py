@@ -4534,9 +4534,13 @@ class MultiIndex(Index):
         unique = self.levels[num]  # .values
         labels = self.labels[num]
         filled = com.take_1d(unique.values, labels, fill_value=unique._na_value)
-        values = type(unique)(filled, self.names[num],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        if isinstance(unique, RangeIndex):
+            _simple_new = Int64Index._simple_new
+        else:
+            _simple_new = unique._simple_new
+        values = _simple_new(filled, self.names[num],
+                             freq=getattr(unique, 'freq', None),
+                             tz=getattr(unique, 'tz', None))
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
