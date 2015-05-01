@@ -3692,37 +3692,37 @@ class RangeIndex(Int64Index):
     def size(self):
         return len(self)
 
-    def __getitem__(self, key):
-        """
-        Conserve RangeIndex type for scalar and slice keys.
-        """
-        super_getitem = super(RangeIndex, self).__getitem__
+    #def __getitem__(self, key):
+    #    """
+    #    Conserve RangeIndex type for scalar and slice keys.
+    #    """
+    #    super_getitem = super(RangeIndex, self).__getitem__
 
-        if np.isscalar(key):
-            n = int(key)
-            if n != key:
-                return super_getitem(key)
-            if n < 0:
-                n = len(self) + key
-            if n < 0 or n > len(self)-1:
-                raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
-            return self.start + n * self.step
+    #    if np.isscalar(key):
+    #        n = int(key)
+    #        if n != key:
+    #            return super_getitem(key)
+    #        if n < 0:
+    #            n = len(self) + key
+    #        if n < 0 or n > len(self)-1:
+    #            raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
+    #        return self.start + n * self.step
 
-        if isinstance(key, slice):
-            # complete missing slice information
-            n_start = 0 if key.start is None else key.start
-            n_stop = len(self) if key.stop is None else key.stop
-            n_step = 1 if key.step is None else key.step
+    #    if isinstance(key, slice):
+    #        # complete missing slice information
+    #        n_start = 0 if key.start is None else key.start
+    #        n_stop = len(self) if key.stop is None else key.stop
+    #        n_step = 1 if key.step is None else key.step
 
-            # delegate non-integer slices
-            if (n_start != int(n_start) and
-                    n_stop != int(n_stop) and
-                    n_step != int(n_step)):
-                return super_getitem(key)
+    #        # delegate non-integer slices
+    #        if (n_start != int(n_start) and
+    #                n_stop != int(n_stop) and
+    #                n_step != int(n_step)):
+    #            return super_getitem(key)
 
-            # deal with index wrap-around
-            n_start = len(self)+n_start if n_start < 0 else n_start
-            n_stop = len(self)+n_stop if n_stop < 0 else n_stop
+    #        # deal with index wrap-around
+    #        n_start = len(self)+n_start if n_start < 0 else n_start
+    #        n_stop = len(self)+n_stop if n_stop < 0 else n_stop
 
             
     #        # convert indexes to values
