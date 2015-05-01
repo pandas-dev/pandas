@@ -245,7 +245,7 @@ class Index(IndexOpsMixin, PandasObject):
         True if both have same underlying data, False otherwise : bool
         """
         # use something other than None to be clearer
-        return self._id is getattr(other, '_id', Ellipsis)
+        return self._id is getattr(other, '_id', Ellipsis) and self._id is not None
 
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
@@ -1750,7 +1750,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
         target = _ensure_has_len(target)  # target may be an iterator
-        if not isinstance(target, Index) and len(target) == 0:
+        if isinstance(self, RangeIndex) and len(target) == 0:
+            target = self._simple_new(0, 0, 1, name=self.name)
+        elif not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
             target = self._simple_new(np.empty(0, dtype=self.dtype), **attrs)
@@ -3334,48 +3336,69 @@ class RangeIndex(Int64Index):
     _engine_type = _index.Int64Engine
     _attributes = ['name', 'start', 'stop', 'step']
 
-    def __new__(cls, start=None, stop=None, step=None, name=None, fastpath=False):
+    def __new__(cls, start=None, stop=None, step=None, name=None, fastpath=False, **kwargs):
         if fastpath:
             return cls._simple_new(start, stop, step, name=name)
+
+        # cheap check for array input
+        if len(kwargs) > 0:
+            return cls._data_passthrough(start, stop, step, name, fastpath, **kwargs)
 
         # RangeIndex() constructor
         if start is None and stop is None and step is None:
             return cls._simple_new(0, 0, 1, name=name)
 
+        new_start, new_stop, new_step = None, None, None
         # sort the arguments depending on which are provided
         if step is None:
-            step = 1
+            new_step = 1
         if stop is None:
-            stop = start
-            start = 0
+            new_stop = start
+            new_start = 0
 
-        # check validity of inputs
-        start = cls._ensure_int(start)
-        stop = cls._ensure_int(stop)
-        step = cls._ensure_int(step)
-        if step == 0:
-            raise ValueError("Step must not be zero")
-
-        return cls._simple_new(start, stop, step, name)
+        try:
+            # check validity of inputs
+            new_start = start if new_start is None else new_start
+            new_stop = stop if new_stop is None else new_stop
+            new_step = step if new_step is None else new_step
+            new_start = cls._ensure_int(new_start)
+            new_stop = cls._ensure_int(new_stop)
+            new_step = cls._ensure_int(new_step)
+            if new_step == 0:
+                raise ValueError("Step must not be zero")
+            return cls._simple_new(new_start, new_stop, new_step, name)
+        except TypeError:
+            # pass all invalid inputs to Int64Index to handle
+            return cls._data_passthrough(start, stop, step, name, fastpath, **kwargs)
 
     @classmethod
     def _simple_new(cls, start, stop, step, name=None):
         # canonise empty RangeIndex objects
-        if (stop-start)//step <= 0:
-            start, stop, step = 0, 0, 1
+        #if (stop-start)//step <= 0:
+        #    start, stop, step = 0, 0, 1
         result = object.__new__(cls)
         result._start = start
         result._stop = stop
         result._step = step
         result.name = name
-        result.is_unique = True
         return result
+
+    @classmethod
+    def _data_passthrough(cls, data, dtype, copy, name, fastpath, **kwargs):
+        kwargs.setdefault('data', data)
+        kwargs.setdefault('dtype', dtype)
+        if copy is not None:
+            kwargs.setdefault('copy', copy)
+        kwargs.setdefault('name', name)
+        kwargs.setdefault('fastpath', fastpath)
+        return Int64Index(**kwargs)
 
     @classmethod
     def _ensure_int(cls, value):
         try:
             int_value = int(value)
-            if int_value != value:
+            # don't allow casting 1-element arrays to int!
+            if int_value != value or hasattr(value, '__len__'):
                 raise Exception
         except Exception:
             raise TypeError("Need to pass integral values")
@@ -3405,14 +3428,14 @@ class RangeIndex(Int64Index):
     def step(self):
         return self._step
 
-    @cache_readonly(allow_setting=True)
+    @property
     def is_unique(self):
         """ return if the index has unique values """
         return True
 
     @property
     def has_duplicates(self):
-        return not self.is_unique
+        return False
 
     def tolist(self):
         return list(range(self.start, self.stop, self.step))
@@ -3424,7 +3447,7 @@ class RangeIndex(Int64Index):
             return RangeIndex(self.start, self.stop, self.step, 
                               name=self.name, fastpath=True)
         else:
-            name = kwargs.get('name', self.name)
+            kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
@@ -3453,6 +3476,7 @@ class RangeIndex(Int64Index):
             name = self.name
         return RangeIndex(self.start, self.stop, self.step, name, fastpath=True)
 
+    # TODO: return arange instead of sorting
     def argsort(self, *args, **kwargs):
         """
         return an ndarray indexer of the underlying data
@@ -3505,20 +3529,14 @@ class RangeIndex(Int64Index):
         """
         Determines if two Index objects contain the same elements.
         """
-        if self.is_(other):
-            return True
+        if isinstance(other, RangeIndex):
+            return (len(self) == len(other) == 0
+                    or (self.start == other.start and
+                        self.stop == other.stop and
+                        self.step == other.step)
+                    )
 
-        elif isinstance(other, RangeIndex):
-            return (self.start == other.start and
-                    self.stop == other.stop and
-                    self.step == other.step)
-
-        try:
-            return array_equivalent(_values_from_object(self),
-                                    _values_from_object(other))
-        except TypeError:
-            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
-            return False
+        return super(RangeIndex, self).equals(other)
 
     def __reduce__(self):
         d = self._get_attributes_dict()
@@ -3559,8 +3577,8 @@ class RangeIndex(Int64Index):
             return RangeIndex()
 
         ### Method hint: linear Diophantine equation
-        # solve intersection
-        # perf: for identical step sizes, could use cheaper alternative
+        # solve intersection problem
+        # performance hint: for identical step sizes, could use cheaper alternative
         gcd, s, t = self._extended_gcd(self.step, other.step)
         
         # check whether element sets intersect
@@ -3664,7 +3682,7 @@ class RangeIndex(Int64Index):
         """
         return the length of the RangeIndex
         """
-        return (self.stop-self.start) // self.step
+        return max(0, (self.stop-self.start) // self.step)
 
     @property
     def size(self):
@@ -4503,9 +4521,13 @@ class MultiIndex(Index):
         unique = self.levels[num]  # .values
         labels = self.labels[num]
         filled = com.take_1d(unique.values, labels, fill_value=unique._na_value)
-        values = unique._simple_new(filled, self.names[num],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        if isinstance(unique, RangeIndex):
+            _simple_new = Int64Index._simple_new
+        else:
+            _simple_new = unique._simple_new
+        values = _simple_new(filled, self.names[num],
+                             freq=getattr(unique, 'freq', None),
+                             tz=getattr(unique, 'tz', None))
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,

@@ -2508,9 +2508,6 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertRaises(TypeError, RangeIndex, '1', '10', '1')
         self.assertRaises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
 
-        # iterable raise Exception
-        self.assertRaises(TypeError, RangeIndex, iter([-5, 0, 1, 2]))
-
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
