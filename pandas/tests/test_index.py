@@ -686,6 +686,10 @@ class TestIndex(Base, tm.TestCase):
         # - API change GH 8226
         with tm.assert_produces_warning():
             self.strIndex + self.strIndex
+        with tm.assert_produces_warning():
+            self.strIndex + self.strIndex.tolist()
+        with tm.assert_produces_warning():
+            self.strIndex.tolist() + self.strIndex
 
         firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
@@ -772,6 +776,7 @@ class TestIndex(Base, tm.TestCase):
         assertRaisesRegexp(TypeError, "iterable", first.difference, 0.5)
 
     def test_symmetric_diff(self):
+
         # smoke
         idx1 = Index([1, 2, 3, 4], name='idx1')
         idx2 = Index([2, 3, 4, 5])
@@ -819,7 +824,7 @@ class TestIndex(Base, tm.TestCase):
 
         # other isn't iterable
         with tm.assertRaises(TypeError):
-            Index(idx1,dtype='object') - 1
+            Index(idx1,dtype='object').difference(1)
 
     def test_is_numeric(self):
         self.assertFalse(self.dateIndex.is_numeric())
@@ -3899,8 +3904,8 @@ class TestMultiIndex(Base, tm.TestCase):
             self.index[-3:] - first
         with tm.assert_produces_warning():
             self.index[-3:] - first.tolist()
-        with tm.assert_produces_warning():
-            first.tolist() - self.index[-3:]
+
+        self.assertRaises(TypeError, lambda : first.tolist() - self.index[-3:])
 
         expected = MultiIndex.from_tuples(sorted(self.index[:-3].values),
                                           sortorder=0,
