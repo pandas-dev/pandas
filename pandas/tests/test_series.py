@@ -83,7 +83,7 @@ class CheckNameIntegration(object):
         ok_for_period = ok_for_base + ['qyear']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
         ok_for_td_methods = ['components','to_pytimedelta']
 
@@ -165,6 +165,7 @@ class CheckNameIntegration(object):
         tm.assert_series_equal(s.dt.year,Series(np.array([2014,2014,2014],dtype='int64'),index=index))
         tm.assert_series_equal(s.dt.month,Series(np.array([2,2,2],dtype='int64'),index=index))
         tm.assert_series_equal(s.dt.second,Series(np.array([0,1,2],dtype='int64'),index=index))
+        tm.assert_series_equal(s.dt.normalize(), pd.Series([s[0]] * 3, index=index))
 
         # periodindex
         for s in [Series(period_range('20130101',periods=5,freq='D'))]:
