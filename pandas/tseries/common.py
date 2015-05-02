@@ -125,7 +125,7 @@ DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
                                            accessors=DatetimeIndex._datetimelike_ops,
                                            typ='property')
 DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
-                                           accessors=["to_period","tz_localize","tz_convert"],
+                                           accessors=["to_period","tz_localize","tz_convert","normalize"],
                                            typ='method')
 
 class TimedeltaProperties(Properties):

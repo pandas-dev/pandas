@@ -68,6 +68,7 @@ Enhancements
 - Allow ``Categorical.add_categories`` to accept ``Series`` or ``np.array``. (:issue:`9927`)
 
 - Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
+- Add ``normalize`` as a ``dt`` accessor method.
 
 - ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
 
