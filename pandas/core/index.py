@@ -3525,10 +3525,10 @@ class RangeIndex(Int64Index):
         return _new_Index, (self.__class__, d), None
 
     def view(self, cls=None):
-        if cls is None or is_int64_dtype(cls):
-            return self
-        else:
+        if cls is None or hasattr(cls,'_typ') or is_int64_dtype(cls):
             result = self._shallow_copy()
+        else:
+            result = self._data.view(cls)
         if isinstance(result, Index):
             result._id = self._id
         return result
