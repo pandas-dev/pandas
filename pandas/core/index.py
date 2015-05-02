@@ -3373,9 +3373,6 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def _simple_new(cls, start, stop, step, name=None):
-        # canonise empty RangeIndex objects
-        #if (stop-start)//step <= 0:
-        #    start, stop, step = 0, 0, 1
         result = object.__new__(cls)
         result._start = start
         result._stop = stop
@@ -3438,7 +3435,7 @@ class RangeIndex(Int64Index):
         return False
 
     def tolist(self):
-        return list(range(self.start, self.stop, self.step))
+        return lrange(self.start, self.stop, self.step)
 
     def _shallow_copy(self, values=None, **kwargs):
         """ create a new Index, don't copy the data, use the same object attributes
@@ -3476,7 +3473,6 @@ class RangeIndex(Int64Index):
             name = self.name
         return RangeIndex(self.start, self.stop, self.step, name, fastpath=True)
 
-    # TODO: return arange instead of sorting
     def argsort(self, *args, **kwargs):
         """
         return an ndarray indexer of the underlying data
@@ -3485,7 +3481,10 @@ class RangeIndex(Int64Index):
         --------
         numpy.ndarray.argsort
         """
-        return self._data.argsort(*args, **kwargs)
+        if self.step > 0:
+            return np.arange(len(self))
+        else:
+            return np.arange(len(self)-1, -1, -1)
 
     def __repr__(self):
         attrs = [('start', default_pprint(self.start)),
