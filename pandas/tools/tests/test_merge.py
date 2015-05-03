@@ -946,6 +946,85 @@ class TestMerge(tm.TestCase):
         df2.columns = ['key1', 'foo', 'foo']
         self.assertRaises(ValueError, merge, df, df2)
 
+    def test_indicator(self):
+        # PR #10054. xref #7412 and closes #8790.
+        df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b'], 'col_conflict':[1,2]})
+        df1_copy = df1.copy()
+
+        df2 = pd.DataFrame({'col1':[1,2,3,4,5],'col_right':[2,2,2,2,2], 
+                            'col_conflict':[1,2,3,4,5]})
+        df2_copy = df2.copy()
+        
+        df_result = pd.DataFrame({'col1':[0,1,2,3,4,5], 
+                'col_conflict_x':[1,2,np.nan,np.nan,np.nan,np.nan],
+                'col_left':['a','b', np.nan,np.nan,np.nan,np.nan], 
+                'col_conflict_y':[np.nan,1,2,3,4,5], 
+                'col_right':[np.nan, 2,2,2,2,2]},
+                dtype='float64')
+        df_result['_merge'] = pd.Categorical(['left_only','both','right_only',
+            'right_only','right_only','right_only']
+            , categories=['left_only', 'right_only', 'both'])
+
+        df_result = df_result[['col1', 'col_conflict_x', 'col_left', 
+                               'col_conflict_y', 'col_right', '_merge' ]]
+
+        test = pd.merge(df1, df2, on='col1', how='outer', indicator=True)
+        assert_frame_equal(test, df_result)
+
+        # No side effects
+        assert_frame_equal(df1, df1_copy)
+        assert_frame_equal(df2, df2_copy)
+
+        # Check with custom name
+        df_result_custom_name = df_result
+        df_result_custom_name = df_result_custom_name.rename(columns={'_merge':'custom_name'})
+
+        test_custom_name = pd.merge(df1, df2, on='col1', how='outer', indicator='custom_name')
+        assert_frame_equal(test_custom_name, df_result_custom_name)
+
+        # Check only accepts strings and booleans
+        with tm.assertRaises(ValueError):
+            pd.merge(df1, df2, on='col1', how='outer', indicator=5)
+
+        # Check result integrity
+    
+        test2 = pd.merge(df1, df2, on='col1', how='left', indicator=True)
+        self.assertTrue((test2._merge != 'right_only').all())
+
+        test3 = pd.merge(df1, df2, on='col1', how='right', indicator=True)
+        self.assertTrue((test3._merge != 'left_only').all())
+
+        test4 = pd.merge(df1, df2, on='col1', how='inner', indicator=True)
+        self.assertTrue((test4._merge == 'both').all())
+
+        # Check if working name in df
+        for i in ['_right_indicator', '_left_indicator', '_merge']:
+            df_badcolumn = pd.DataFrame({'col1':[1,2], i:[2,2]})
+        
+            with tm.assertRaises(ValueError):
+                pd.merge(df1, df_badcolumn, on='col1', how='outer', indicator=True)
+
+        # Check for name conflict with custom name
+        df_badcolumn = pd.DataFrame({'col1':[1,2], 'custom_column_name':[2,2]})
+        
+        with tm.assertRaises(ValueError):
+            pd.merge(df1, df_badcolumn, on='col1', how='outer', indicator='custom_column_name')
+
+        # Merge on multiple columns
+        df3 = pd.DataFrame({'col1':[0,1], 'col2':['a','b']})
+
+        df4 = pd.DataFrame({'col1':[1,1,3], 'col2':['b','x','y']})
+
+        hand_coded_result = pd.DataFrame({'col1':[0,1,1,3.0], 
+                                         'col2':['a','b','x','y']})
+        hand_coded_result['_merge'] = pd.Categorical(
+            ['left_only','both','right_only','right_only']
+            , categories=['left_only', 'right_only', 'both'])
+ 
+        test5 = pd.merge(df3, df4, on=['col1', 'col2'], how='outer', indicator=True)
+        assert_frame_equal(test5, hand_coded_result)
+    
+
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
