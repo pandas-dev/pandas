@@ -671,11 +671,11 @@ def _period_str_to_code(freqstr):
 def infer_freq(index, warn=True):
     """
     Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed
+    uncertain, a warning will be printed. 
 
     Parameters
     ----------
-    index : DatetimeIndex
+    index : DatetimeIndex or TimedeltaIndex
             if passed a Series will use the values of the series (NOT THE INDEX)
     warn : boolean, default True
 
@@ -684,6 +684,7 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
+        ValueError if there are less than three values.
     """
     import pandas as pd
 
