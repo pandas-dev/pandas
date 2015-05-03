@@ -27,11 +27,11 @@ import pandas.hashtable as _hash
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False,
-          suffixes=('_x', '_y'), copy=True):
+          suffixes=('_x', '_y'), copy=True, indicator=False):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
-                         copy=copy)
+                         copy=copy, indicator=indicator)
     return op.get_result()
 if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
@@ -157,7 +157,7 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('_x', '_y'), copy=True):
+                 suffixes=('_x', '_y'), copy=True, indicator=False):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -174,12 +174,25 @@ class _MergeOperation(object):
         self.left_index = left_index
         self.right_index = right_index
 
+        self.indicator = indicator
+
+        if isinstance(self.indicator, compat.string_types):
+            self.indicator_name = self.indicator
+        elif isinstance(self.indicator, bool):
+            self.indicator_name = '_merge' if self.indicator else None
+        else:
+            raise ValueError('indicator option can only accept boolean or string arguments')
+
+
         # note this function has side effects
         (self.left_join_keys,
          self.right_join_keys,
          self.join_names) = self._get_merge_keys()
 
     def get_result(self):
+        if self.indicator:
+            self.left, self.right = self._indicator_pre_merge(self.left, self.right)
+
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         ldata, rdata = self.left._data, self.right._data
@@ -199,7 +212,43 @@ class _MergeOperation(object):
         typ = self.left._constructor
         result = typ(result_data).__finalize__(self, method='merge')
 
+        if self.indicator:
+            result = self._indicator_post_merge(result)
+
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
+
+        return result
+
+    def _indicator_pre_merge(self, left, right):
+                
+        columns = left.columns.union(right.columns)  
+
+        for i in ['_left_indicator', '_right_indicator']:
+            if i in columns:
+                raise ValueError("Cannot use `indicator=True` option when data contains a column named {}".format(i))
+        if self.indicator_name in columns:
+            raise ValueError("Cannot use name of an existing column for indicator column")
+
+        left = left.copy()
+        right = right.copy()
+
+        left['_left_indicator'] = 1  
+        left['_left_indicator'] = left['_left_indicator'].astype('int8')  
+        
+        right['_right_indicator'] = 2     
+        right['_right_indicator'] = right['_right_indicator'].astype('int8') 
+        
+        return left, right
+
+    def _indicator_post_merge(self, result):
+
+        result['_left_indicator'] = result['_left_indicator'].fillna(0)
+        result['_right_indicator'] = result['_right_indicator'].fillna(0)
+
+        result[self.indicator_name] = Categorical((result['_left_indicator'] + result['_right_indicator']), categories=[1,2,3])
+        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(['left_only', 'right_only', 'both'])        
+ 
+        result = result.drop(labels=['_left_indicator', '_right_indicator'], axis=1)
 
         return result
 

@@ -115,6 +115,17 @@ suffixes : 2-length sequence (tuple, list, ...)
     side, respectively
 copy : boolean, default True
     If False, do not copy data unnecessarily
+indicator : boolean or string, default False
+    If True, adds a column to output DataFrame called "_merge" with 
+    information on the source of each row. 
+    If string, column with information on source of each row will be added to 
+    output DataFrame, and column will be named value of string. 
+    Information column is Categorical-type and takes on a value of "left_only" 
+    for observations whose merge key only appears in 'left' DataFrame, 
+    "right_only" for observations whose merge key only appears in 'right' 
+    DataFrame, and "both" if the observation's merge key is found in both. 
+
+    .. versionadded:: 0.17.0
 
 Examples
 --------
