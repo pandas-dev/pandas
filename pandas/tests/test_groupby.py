@@ -966,16 +966,6 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame({'b' : range(5)})
         tm.assert_frame_equal(result, expected)
 
-    def test_resample_extra_index_point(self):
-        # GH 9756
-        expected_i = pd.DatetimeIndex(start='20150101', end='20150331', freq='BM')
-        expected = pd.DataFrame(index=expected_i, data=len(expected_i)*[0])
-
-        index = pd.DatetimeIndex(start='20150101', end='20150331', freq='B')
-        df = pd.DataFrame(index=index, data=len(index)*[0])
-        result = df.resample('BM', how='last')
-        assert_frame_equal(result, expected)
-
     def test_transform_fast(self):
 
         df = DataFrame( { 'id' : np.arange( 100000 ) / 3,
@@ -5108,10 +5098,10 @@ class TestGroupBy(tm.TestCase):
         tm.assert_frame_equal(res, exp)
 
     def test_groupby_apply_all_none(self):
-        # Tests to make sure no errors if apply function returns all None 
+        # Tests to make sure no errors if apply function returns all None
         # values. Issue 9684.
         test_df = DataFrame({'groups': [0,0,1,1], 'random_vars': [8,7,4,5]})
-        
+
         def test_func(x):
             pass
         result = test_df.groupby('groups').apply(test_func)

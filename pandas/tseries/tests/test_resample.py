@@ -378,6 +378,16 @@ class TestResample(tm.TestCase):
 
         self.assertEqual(result.index.name, 'index')
 
+    def test_resample_extra_index_point(self):
+        # GH 9756
+        index = DatetimeIndex(start='20150101', end='20150331', freq='BM')
+        expected = DataFrame({'A' : Series([21,41,63], index=index)})
+
+        index = DatetimeIndex(start='20150101', end='20150331', freq='B')
+        df = DataFrame({'A' : Series(range(len(index)),index=index)})
+        result = df.resample('BM', how='last')
+        assert_frame_equal(result, expected)
+
     def test_upsample_with_limit(self):
         rng = date_range('1/1/2000', periods=3, freq='5t')
         ts = Series(np.random.randn(len(rng)), rng)
