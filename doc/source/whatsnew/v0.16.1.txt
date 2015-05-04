@@ -235,6 +235,7 @@ Bug Fixes
 - Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
 - Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
+- Bug with ``TimedeltaIndex`` constructor ignoring ``name`` when given another ``TimedeltaIndex`` as data (:issue:`10025`).
 - Bug in ``DataFrameFormatter._get_formatted_index`` with not applying ``max_colwidth`` to the ``DataFrame`` index (:issue:`7856`)
 
 - Bug in ``groupby.apply()`` that would raise if a passed user defined function either returned only ``None`` (for all input). (:issue:`9685`)

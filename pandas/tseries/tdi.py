@@ -140,7 +140,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 copy=False, name=None,
                 closed=None, verify_integrity=True, **kwargs):
 
-        if isinstance(data, TimedeltaIndex) and freq is None:
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
                 data = data.copy()
             return data
