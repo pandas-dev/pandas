@@ -1496,6 +1496,8 @@ class BaseGrouper(object):
 
         if is_datetime_or_timedelta_dtype(values.dtype):
             values = values.view('int64')
+            # GH 7754
+            is_numeric = True
         elif is_bool_dtype(values.dtype):
             values = _algos.ensure_float64(values)
         elif com.is_integer_dtype(values):
