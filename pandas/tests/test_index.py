@@ -705,6 +705,13 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
 
+        # test add and radd
+        idx = Index(list('abc'))
+        expected = Index(['a1', 'b1', 'c1'])
+        self.assert_index_equal(idx + '1', expected)
+        expected = Index(['1a', '1b', '1c'])
+        self.assert_index_equal('1' + idx, expected)
+
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
 
