@@ -970,7 +970,7 @@ cdef build_count_table_object(ndarray[object] values,
 cpdef value_count_object(ndarray[object] values,
                        ndarray[uint8_t, cast=True] mask):
     cdef:
-        Py_ssize_t i = len(values)
+        Py_ssize_t i
         kh_pymap_t *table
         int k
 
