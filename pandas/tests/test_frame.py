@@ -2791,6 +2791,59 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
+    def test_frame_subclassing_and_slicing(self):
+        # Subclass frame and ensure it returns the right class on slicing it
+        # In reference to PR 9632
+
+        class CustomSeries(Series):
+            @property
+            def _constructor(self):
+                return CustomSeries
+
+            def custom_series_function(self):
+                return 'OK'
+
+        class CustomDataFrame(DataFrame):
+            "Subclasses pandas DF, fills DF with simulation results, adds some custom plotting functions."
+
+            def __init__(self, *args, **kw):
+                super(CustomDataFrame, self).__init__(*args, **kw)
+
+            @property
+            def _constructor(self):
+                return CustomDataFrame
+
+            _constructor_sliced = CustomSeries
+
+            def custom_frame_function(self):
+                return 'OK'
+
+        data = {'col1': range(10),
+                'col2': range(10)}
+        cdf = CustomDataFrame(data)
+        
+        # Did we get back our own DF class?
+        self.assertTrue(isinstance(cdf, CustomDataFrame))
+
+        # Do we get back our own Series class after selecting a column?
+        cdf_series = cdf.col1
+        self.assertTrue(isinstance(cdf_series, CustomSeries))
+        self.assertEqual(cdf_series.custom_series_function(), 'OK')
+
+        # Do we get back our own DF class after slicing row-wise?
+        cdf_rows = cdf[1:5]
+        self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
+        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')        
+
+        # Make sure sliced part of multi-index frame is custom class
+        mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
+        cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
+        self.assertTrue(isinstance(cdf_multi['A'], CustomDataFrame))
+
+        mcol = pd.MultiIndex.from_tuples([('A', ''), ('B', '')])
+        cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
+        self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
+
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
