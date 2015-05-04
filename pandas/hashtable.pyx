@@ -906,7 +906,7 @@ cdef class Int64Factorizer:
 
 cdef build_count_table_int64(ndarray[int64_t] values, kh_int64_t *table):
     cdef:
-        int k
+        khiter_t k
         Py_ssize_t i, n = len(values)
         int ret = 0
 
@@ -948,7 +948,7 @@ cdef build_count_table_object(ndarray[object] values,
                               ndarray[uint8_t, cast=True] mask,
                               kh_pymap_t *table):
     cdef:
-        int k
+        khiter_t k
         Py_ssize_t i, n = len(values)
         int ret = 0
 
