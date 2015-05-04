@@ -59,7 +59,7 @@ __all__ = ['Series']
 _shared_doc_kwargs = dict(
     axes='index',
     klass='Series',
-    axes_single_arg="{0,'index'}",
+    axes_single_arg="{0, 'index'}",
     inplace="""inplace : boolean, default False
             If True, performs operation inplace and returns None.""",
     duplicated='Series'
@@ -2142,6 +2142,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)
+
+    @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        return super(Series, self).fillna(value=value, method=method,
+                                          axis=axis, inplace=inplace,
+                                          limit=limit, downcast=downcast,
+                                          **kwargs)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
