@@ -1021,7 +1021,7 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
 
 def mode_int64(ndarray[int64_t] values):
     cdef:
-        int val, max_val = 2
+        int count, max_count = 2
         int j = -1 # so you can do +=
         int k
         kh_int64_t *table
@@ -1033,12 +1033,12 @@ def mode_int64(ndarray[int64_t] values):
     modes = np.empty(table.n_buckets, dtype=np.int64)
     for k in range(table.n_buckets):
         if kh_exist_int64(table, k):
-            val = table.vals[k]
+            count = table.vals[k]
 
-            if val == max_val:
+            if count == max_count:
                 j += 1
-            elif val > max_val:
-                max_val = val
+            elif count > max_count:
+                max_count = count
                 j = 0
             else:
                 continue
