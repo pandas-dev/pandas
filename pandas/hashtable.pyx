@@ -222,7 +222,7 @@ cdef class StringHashTable(HashTable):
             buf = util.get_c_string(val)
             k = kh_get_str(self.table, buf)
             if k == self.table.n_buckets:
-                k = kh_put_str(self.table, buf, &ret)
+                kh_put_str(self.table, buf, &ret)
                 # print 'putting %s, %s' % (val, count)
                 uniques.append(val)
 
@@ -525,7 +525,7 @@ cdef class Int64HashTable: #(HashTable):
             val = values[i]
             k = kh_get_int64(self.table, val)
             if k == self.table.n_buckets:
-                k = kh_put_int64(self.table, val, &ret)
+                kh_put_int64(self.table, val, &ret)
                 uniques.append(val)
 
         result = uniques.to_array()
@@ -651,7 +651,7 @@ cdef class Float64HashTable(HashTable):
             if val == val:
                 k = kh_get_float64(self.table, val)
                 if k == self.table.n_buckets:
-                    k = kh_put_float64(self.table, val, &ret)
+                    kh_put_float64(self.table, val, &ret)
                     uniques.append(val)
             elif not seen_na:
                 seen_na = 1
@@ -792,7 +792,7 @@ cdef class PyObjectHashTable(HashTable):
             if not _checknan(val):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
-                    k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                    kh_put_pymap(self.table, <PyObject*>val, &ret)
                     uniques.append(val)
             elif not seen_na:
                 seen_na = 1
