@@ -223,10 +223,8 @@ cdef class StringHashTable(HashTable):
             k = kh_get_str(self.table, buf)
             if k == self.table.n_buckets:
                 kh_put_str(self.table, buf, &ret)
-                # print 'putting %s, %s' % (val, count)
                 uniques.append(val)
 
-        # return None
         return uniques.to_array()
 
     def factorize(self, ndarray[object] values):
@@ -256,7 +254,6 @@ cdef class StringHashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        # return None
         return reverse, labels
 
 cdef class Int32HashTable(HashTable):
@@ -354,7 +351,6 @@ cdef class Int32HashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        # return None
         return reverse, labels
 
 cdef class Int64HashTable: #(HashTable):
