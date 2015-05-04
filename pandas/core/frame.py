@@ -66,7 +66,7 @@ from pandas.core.config import get_option
 # Docstring templates
 
 _shared_doc_kwargs = dict(axes='index, columns', klass='DataFrame',
-                          axes_single_arg="{0,1,'index','columns'}")
+                          axes_single_arg="{0, 1, 'index', 'columns'}")
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -2515,6 +2515,14 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, index=None, columns=None, **kwargs):
         return super(DataFrame, self).rename(index=index, columns=columns,
+                                             **kwargs)
+
+    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        return super(DataFrame, self).fillna(value=value, method=method,
+                                             axis=axis, inplace=inplace,
+                                             limit=limit, downcast=downcast,
                                              **kwargs)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
