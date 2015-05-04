@@ -4,17 +4,13 @@
 __docformat__ = 'restructuredtext'
 
 try:
-    from . import hashtable, tslib, lib
-except Exception:  # pragma: no cover
-    import sys
-    e = sys.exc_info()[1]  # Py25 and Py3 current exception syntax conflict
-    print(e)
-    if 'No module named lib' in str(e):
-        raise ImportError('C extensions not built: if you installed already '
-                          'verify that you are not importing from the source '
-                          'directory')
-    else:
-        raise
+    from pandas import hashtable, tslib, lib
+except ImportError as e:  # pragma: no cover
+    module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
+    raise ImportError("C extension: {0} not built. If you want to import "
+                      "pandas from the source directory, you may need to run "
+                      "'python setup.py build_ext --inplace' to build the C "
+                      "extensions first.".format(module))
 
 from datetime import datetime
 import numpy as np
