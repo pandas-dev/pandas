@@ -3613,7 +3613,7 @@ class TestHDFStore(tm.TestCase):
 
             # invert ok for filters
             result = store.select('df', "~(columns=['A','B'])")
-            expected = df.loc[:,df.columns-['A','B']]
+            expected = df.loc[:,df.columns.difference(['A','B'])]
             tm.assert_frame_equal(result, expected)
 
             # in
