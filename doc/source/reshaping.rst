@@ -6,14 +6,9 @@
 
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
-   from pandas.core.reshape import *
-   import pandas.util.testing as tm
-   randn = np.random.randn
+   import pandas as pd
+   pd.options.display.max_rows=15
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.tools.tile import *
-   from pandas.compat import zip
 
 **************************
 Reshaping and Pivot Tables
@@ -56,7 +51,7 @@ For the curious here is how the above DataFrame was created:
        data = {'value' : frame.values.ravel('F'),
                'variable' : np.asarray(frame.columns).repeat(N),
                'date' : np.tile(np.asarray(frame.index), K)}
-       return DataFrame(data, columns=['date', 'variable', 'value'])
+       return pd.DataFrame(data, columns=['date', 'variable', 'value'])
    df = unpivot(tm.makeTimeDataFrame())
 
 To select out everything for variable ``A`` we could do:
@@ -119,11 +114,11 @@ from the hierarchical indexing section:
 .. ipython:: python
 
    tuples = list(zip(*[['bar', 'bar', 'baz', 'baz',
-                   'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two',
-                   'one', 'two', 'one', 'two']]))
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   df = DataFrame(randn(8, 2), index=index, columns=['A', 'B'])
+                        'foo', 'foo', 'qux', 'qux'],
+                       ['one', 'two', 'one', 'two',
+                        'one', 'two', 'one', 'two']]))
+   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]
    df2
 
@@ -166,8 +161,8 @@ will result in a **sorted** copy of the original DataFrame or Series:
 
 .. ipython:: python
 
-   index = MultiIndex.from_product([[2,1], ['a', 'b']])
-   df = DataFrame(randn(4), index=index, columns=['A'])
+   index = pd.MultiIndex.from_product([[2,1], ['a', 'b']])
+   df = pd.DataFrame(np.random.randn(4), index=index, columns=['A'])
    df
    all(df.unstack().stack() == df.sort())
 
@@ -185,13 +180,13 @@ processed individually.
 
 .. ipython:: python
 
-    columns = MultiIndex.from_tuples([
+    columns = pd.MultiIndex.from_tuples([
             ('A', 'cat', 'long'), ('B', 'cat', 'long'),
             ('A', 'dog', 'short'), ('B', 'dog', 'short')
         ],
         names=['exp', 'animal', 'hair_length']
     )
-    df = DataFrame(randn(4, 4), columns=columns)
+    df = pd.DataFrame(np.random.randn(4, 4), columns=columns)
     df
 
     df.stack(level=['animal', 'hair_length'])
@@ -215,12 +210,13 @@ calling ``sortlevel``, of course). Here is a more complex example:
 
 .. ipython:: python
 
-   columns = MultiIndex.from_tuples([('A', 'cat'), ('B', 'dog'),
-                                     ('B', 'cat'), ('A', 'dog')],
-                                    names=['exp', 'animal'])
-   index = MultiIndex.from_product([('bar', 'baz', 'foo', 'qux'), ('one', 'two')],
-                                   names=['first', 'second'])
-   df = DataFrame(randn(8, 4), index=index, columns=columns)
+   columns = pd.MultiIndex.from_tuples([('A', 'cat'), ('B', 'dog'),
+                                        ('B', 'cat'), ('A', 'dog')],
+                                       names=['exp', 'animal'])
+   index = pd.MultiIndex.from_product([('bar', 'baz', 'foo', 'qux'),
+                                       ('one', 'two')],
+                                      names=['first', 'second'])
+   df = pd.DataFrame(np.random.randn(8, 4), index=index, columns=columns)
    df2 = df.ix[[0, 1, 2, 4, 5, 7]]
    df2
 
@@ -259,13 +255,13 @@ For instance,
 
 .. ipython:: python
 
-   cheese = DataFrame({'first' : ['John', 'Mary'],
-                       'last' : ['Doe', 'Bo'],
-                       'height' : [5.5, 6.0],
-                       'weight' : [130, 150]})
+   cheese = pd.DataFrame({'first' : ['John', 'Mary'],
+                          'last' : ['Doe', 'Bo'],
+                          'height' : [5.5, 6.0],
+                          'weight' : [130, 150]})
    cheese
-   melt(cheese, id_vars=['first', 'last'])
-   melt(cheese, id_vars=['first', 'last'], var_name='quantity')
+   pd.melt(cheese, id_vars=['first', 'last'])
+   pd.melt(cheese, id_vars=['first', 'last'], var_name='quantity')
 
 Another way to transform is to use the ``wide_to_long`` panel data convenience function.
 
@@ -324,22 +320,22 @@ Consider a data set like this:
 .. ipython:: python
 
    import datetime
-   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 6,
-                   'B' : ['A', 'B', 'C'] * 8,
-                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
-                   'D' : np.random.randn(24),
-                   'E' : np.random.randn(24),
-                   'F' : [datetime.datetime(2013, i, 1) for i in range(1, 13)] +
-                         [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
+   df = pd.DataFrame({'A': ['one', 'one', 'two', 'three'] * 6,
+                      'B': ['A', 'B', 'C'] * 8,
+                      'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
+                      'D': np.random.randn(24),
+                      'E': np.random.randn(24),
+                      'F': [datetime.datetime(2013, i, 1) for i in range(1, 13)] +
+                           [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
    df
 
 We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
-   pivot_table(df, values='D', index=['B'], columns=['A', 'C'], aggfunc=np.sum)
-   pivot_table(df, values=['D','E'], index=['B'], columns=['A', 'C'], aggfunc=np.sum)
+   pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
+   pd.pivot_table(df, values='D', index=['B'], columns=['A', 'C'], aggfunc=np.sum)
+   pd.pivot_table(df, values=['D','E'], index=['B'], columns=['A', 'C'], aggfunc=np.sum)
 
 The result object is a DataFrame having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
@@ -348,20 +344,20 @@ hierarchy in the columns:
 
 .. ipython:: python
 
-   pivot_table(df, index=['A', 'B'], columns=['C'])
+   pd.pivot_table(df, index=['A', 'B'], columns=['C'])
 
 Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail of ``Grouper``, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
 
 .. ipython:: python
 
-   pivot_table(df, values='D', index=Grouper(freq='M', key='F'), columns='C')
+   pd.pivot_table(df, values='D', index=Grouper(freq='M', key='F'), columns='C')
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
 
 .. ipython:: python
 
-   table = pivot_table(df, index=['A', 'B'], columns=['C'])
+   table = pd.pivot_table(df, index=['A', 'B'], columns=['C'])
    print(table.to_string(na_rep=''))
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
@@ -397,7 +393,7 @@ For example:
     a = np.array([foo, foo, bar, bar, foo, foo], dtype=object)
     b = np.array([one, one, two, one, two, one], dtype=object)
     c = np.array([dull, dull, shiny, dull, dull, shiny], dtype=object)
-    crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
 
 .. _reshaping.pivot.margins:
 
@@ -428,14 +424,14 @@ variables:
    ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
 
 
-   cut(ages, bins=3)
+   pd.cut(ages, bins=3)
 
 If the ``bins`` keyword is an integer, then equal-width bins are formed.
 Alternatively we can specify custom bin-edges:
 
 .. ipython:: python
 
-   cut(ages, bins=[0, 18, 35, 70])
+   pd.cut(ages, bins=[0, 18, 35, 70])
 
 
 .. _reshaping.dummies:
@@ -449,17 +445,16 @@ containing ``k`` columns of 1s and 0s:
 
 .. ipython:: python
 
-   df = DataFrame({'key': list('bbacab'), 'data1': range(6)})
+   df = pd.DataFrame({'key': list('bbacab'), 'data1': range(6)})
 
-
-   get_dummies(df['key'])
+   pd.get_dummies(df['key'])
 
 Sometimes it's useful to prefix the column names, for example when merging the result
 with the original DataFrame:
 
 .. ipython:: python
 
-   dummies = get_dummies(df['key'], prefix='key')
+   dummies = pd.get_dummies(df['key'], prefix='key')
    dummies
 
 
@@ -469,14 +464,14 @@ This function is often used along with discretization functions like ``cut``:
 
 .. ipython:: python
 
-   values = randn(10)
+   values = np.random.randn(10)
    values
 
 
    bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
 
-   get_dummies(cut(values, bins))
+   pd.get_dummies(pd.cut(values, bins))
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
