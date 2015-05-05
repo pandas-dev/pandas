@@ -921,8 +921,8 @@ class TestSeries(tm.TestCase, Generic):
     def test_describe_none(self):
         noneSeries = Series([None])
         noneSeries.name = 'None'
-        assert_series_equal(noneSeries.describe(),
-                            Series([0, 0], index=['count', 'unique']))
+        expected = Series([0, 0], index=['count', 'unique'], name='None')
+        assert_series_equal(noneSeries.describe(), expected)
 
 
 class TestDataFrame(tm.TestCase, Generic):
@@ -980,11 +980,11 @@ class TestDataFrame(tm.TestCase, Generic):
                         'C': [1, 2, 3, 5], 'D': list('abcd')})
 
         result = df['A'].interpolate()
-        expected = Series([1., 2., 3., 4.])
+        expected = Series([1., 2., 3., 4.], name='A')
         assert_series_equal(result, expected)
 
         result = df['A'].interpolate(downcast='infer')
-        expected = Series([1, 2, 3, 4])
+        expected = Series([1, 2, 3, 4], name='A')
         assert_series_equal(result, expected)
 
     def test_interp_nan_idx(self):
@@ -1519,7 +1519,7 @@ class TestDataFrame(tm.TestCase, Generic):
         df.y = 5
 
         assert_equal(df.y, 5)
-        assert_series_equal(df['y'], Series([2, 4, 6]))
+        assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
 
 class TestPanel(tm.TestCase, Generic):

@@ -1256,7 +1256,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         self._transaction_test()
 
     def test_get_schema_create_table(self):
-        # Use a dataframe without a bool column, since MySQL converts bool to 
+        # Use a dataframe without a bool column, since MySQL converts bool to
         # TINYINT (which read_sql_table returns as an int and causes a dtype
         # mismatch)
 
@@ -2025,7 +2025,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         sql.write_frame(frame, name='test_table', con=self.db)
         result = sql.tquery("select A from test_table", self.db)
-        expected = Series(frame.A, frame.index) # not to have name
+        expected = Series(frame.A.values, frame.index) # not to have name
         result = Series(result, frame.index)
         tm.assert_series_equal(result, expected)
 
@@ -2370,7 +2370,7 @@ class TestXMySQL(tm.TestCase):
         cur.execute(drop_sql)
         sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
         result = sql.tquery("select A from test_table", self.db)
-        expected = Series(frame.A, frame.index) # not to have name
+        expected = Series(frame.A.values, frame.index) # not to have name
         result = Series(result, frame.index)
         tm.assert_series_equal(result, expected)
 

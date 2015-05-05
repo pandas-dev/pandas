@@ -1700,7 +1700,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         compounded = self.panel.compound()
 
         assert_series_equal(compounded['ItemA'],
-                            (1 + self.panel['ItemA']).product(0) - 1)
+                            (1 + self.panel['ItemA']).product(0) - 1,
+                            check_names=False)
 
     def test_shift(self):
         # major
@@ -2186,7 +2187,7 @@ class TestLongPanel(tm.TestCase):
         # careful, mutation
         self.panel['foo'] = lp2['ItemA']
         assert_series_equal(self.panel['foo'].reindex(lp2.index),
-                            lp2['ItemA'])
+                            lp2['ItemA'], check_names=False)
 
     def test_ops_scalar(self):
         result = self.panel.mul(2)

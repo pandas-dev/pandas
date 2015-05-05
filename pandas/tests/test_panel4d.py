@@ -471,7 +471,7 @@ class CheckIndexing(object):
         idx = self.panel4d.major_axis[5]
         xs = self.panel4d.major_xs(idx)
 
-        assert_series_equal(xs['l1'].T['ItemA'], ref.xs(idx))
+        assert_series_equal(xs['l1'].T['ItemA'], ref.xs(idx), check_names=False)
 
         # not contained
         idx = self.panel4d.major_axis[0] - bday
@@ -489,7 +489,7 @@ class CheckIndexing(object):
         idx = self.panel4d.minor_axis[1]
         xs = self.panel4d.minor_xs(idx)
 
-        assert_series_equal(xs['l1'].T['ItemA'], ref[idx])
+        assert_series_equal(xs['l1'].T['ItemA'], ref[idx], check_names=False)
 
         # not contained
         self.assertRaises(Exception, self.panel4d.minor_xs, 'E')
@@ -1099,6 +1099,5 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure',
-                         '--with-timer'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
