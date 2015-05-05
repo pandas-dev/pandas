@@ -25,6 +25,24 @@
 Remote Data Access
 ******************
 
+.. _remote_data.pandas_datareader:
+
+.. warning::
+
+   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable `pandas-datareader package <https://github.com/pydata/pandas-datareader>`_. This will allow the data modules to be independently updated to your pandas installation. The API for ``pandas-datareader v0.1.1`` is the same as in ``pandas v0.16.1``. (:issue:`8961`)
+
+   You should replace the imports of the following:
+
+   .. code-block:: python
+
+      from pandas.io import data, wb
+
+   With:
+
+   .. code-block:: python
+
+      from pandas_datareader import data, wb
+
 .. _remote_data.data_reader:
 
 Functions from :mod:`pandas.io.data` and :mod:`pandas.io.ga` extract data from various Internet sources into a DataFrame. Currently the following sources are supported:
@@ -168,7 +186,7 @@ Indicators
 ~~~~~~~~~~
 
 Either from exploring the World Bank site, or using the search function included,
-every world bank indicator is accessible.  
+every world bank indicator is accessible.
 
 For example, if you wanted to compare the Gross Domestic Products per capita in
 constant dollars in North America, you would use the ``search`` function:
@@ -287,7 +305,7 @@ Country Codes
 
 .. versionadded:: 0.15.1
 
-The ``country`` argument accepts a string or list of mixed 
+The ``country`` argument accepts a string or list of mixed
 `two <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>`__ or `three <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`__ character
 ISO country codes, as well as dynamic `World Bank exceptions <http://data.worldbank.org/node/18>`__ to the ISO standards.
 
@@ -298,10 +316,10 @@ Problematic Country Codes & Indicators
 
 .. note::
 
-   The World Bank's country list and indicators are dynamic. As of 0.15.1, 
+   The World Bank's country list and indicators are dynamic. As of 0.15.1,
    :func:`wb.download()` is more flexible.  To achieve this, the warning
    and exception logic changed.
-   
+
 The world bank converts some country codes in their response, which makes error
 checking by pandas difficult. Retired indicators still persist in the search.
 
@@ -320,12 +338,12 @@ There are at least 4 kinds of country codes:
 There are at least 3 kinds of indicators:
 
 1. Current - Returns data.
-2. Retired - Appears in search results, yet won't return data. 
+2. Retired - Appears in search results, yet won't return data.
 3. Bad - Will not return data.
 
 Use the ``errors`` argument to control warnings and exceptions.  Setting
 errors to ignore or warn, won't stop failed responses.  (ie, 100% bad
-indicators, or a single "bad" (#4 above) country code).  
+indicators, or a single "bad" (#4 above) country code).
 
 See docstrings for more info.
 
@@ -387,4 +405,3 @@ Detailed information in the following:
 * `pandas & google analytics, by yhat <http://blog.yhathq.com/posts/pandas-google-analytics.html>`__
 * `Google Analytics integration in pandas, by Chang She <http://quantabee.wordpress.com/2012/12/17/google-analytics-pandas/>`__
 * `Google Analytics Dimensions and Metrics Reference <https://developers.google.com/analytics/devguides/reporting/core/dimsmets>`_
-
