@@ -158,6 +158,7 @@ Top-level dealing with datetimelike
    bdate_range
    period_range
    timedelta_range
+   infer_freq
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -1364,6 +1365,7 @@ Time/Date Components
    DatetimeIndex.is_quarter_end
    DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
+   DatetimeIndex.inferred_freq
 
 Selecting
 ~~~~~~~~~
@@ -1414,6 +1416,7 @@ Components
    TimedeltaIndex.microseconds
    TimedeltaIndex.nanoseconds
    TimedeltaIndex.components
+   TimedeltaIndex.inferred_freq
 
 Conversion
 ~~~~~~~~~~
