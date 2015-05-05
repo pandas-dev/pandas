@@ -243,7 +243,7 @@ variety of frequency aliases. The default frequency for ``date_range`` is a
    rng = bdate_range(start, end)
    rng
 
-``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
+``date_range`` and ``bdate_range`` make it easy to generate a range of dates
 using various combinations of parameters like ``start``, ``end``,
 ``periods``, and ``freq``:
 
@@ -353,7 +353,7 @@ This specifies an **exact** stop time (and is not the same as the above)
 
    dft['2013-1':'2013-2-28 00:00:00']
 
-We are stopping on the included end-point as its part of the index
+We are stopping on the included end-point as it is part of the index
 
 .. ipython:: python
 
@@ -540,7 +540,7 @@ The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
 It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
-These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when create offset instance. If ``normalize=True``, result is normalized after the function is applied.
+These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when creating the offset instance. If ``normalize=True``, result is normalized after the function is applied.
 
 
   .. ipython:: python
@@ -563,7 +563,7 @@ Parametric offsets
 ~~~~~~~~~~~~~~~~~~
 
 Some of the offsets can be "parameterized" when created to result in different
-behavior. For example, the ``Week`` offset for generating weekly data accepts a
+behaviors. For example, the ``Week`` offset for generating weekly data accepts a
 ``weekday`` parameter which results in the generated dates always lying on a
 particular day of the week:
 
@@ -806,7 +806,7 @@ strongly recommended that you switch to using the new offset aliases.
     "ms", "L"
     "us", "U"
 
-As you can see, legacy quarterly and annual frequencies are business quarter
+As you can see, legacy quarterly and annual frequencies are business quarters
 and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
@@ -1060,8 +1060,8 @@ frequency periods.
 Note that 0.8 marks a watershed in the timeseries functionality in pandas. In
 previous versions, resampling had to be done using a combination of
 ``date_range``, ``groupby`` with ``asof``, and then calling an aggregation
-function on the grouped object. This was not nearly convenient or performant as
-the new pandas timeseries API.
+function on the grouped object. This was not nearly as convenient or performant
+as the new pandas timeseries API.
 
 .. _timeseries.periods:
 
@@ -1099,7 +1099,7 @@ frequency.
 
    p - 3
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have same freq. Otherise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherise, ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -1160,7 +1160,7 @@ objects:
    ps = Series(randn(len(prng)), prng)
    ps
 
-``PeriodIndex`` supports addition and subtraction as the same rule as ``Period``.
+``PeriodIndex`` supports addition and subtraction with the same rule as ``Period``.
 
 .. ipython:: python
 
@@ -1175,7 +1175,7 @@ objects:
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can pass in dates and strings to `Series` and `DataFrame` with `PeriodIndex`, as the same manner as `DatetimeIndex`. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
+You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
 
@@ -1185,7 +1185,7 @@ You can pass in dates and strings to `Series` and `DataFrame` with `PeriodIndex`
 
    ps['10/31/2011':'12/31/2011']
 
-Passing string represents lower frequency than `PeriodIndex` returns partial sliced data.
+Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
 
@@ -1196,7 +1196,7 @@ Passing string represents lower frequency than `PeriodIndex` returns partial sli
    dfp
    dfp['2013-01-01 10H']
 
-As the same as `DatetimeIndex`, the endpoints will be included in the result. Below example slices data starting from 10:00 to 11:59.
+As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
 
@@ -1204,7 +1204,7 @@ As the same as `DatetimeIndex`, the endpoints will be included in the result. Be
 
 Frequency Conversion and Resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The frequency of Periods and PeriodIndex can be converted via the ``asfreq``
+The frequency of ``Period`` and ``PeriodIndex`` can be converted via the ``asfreq``
 method. Let's start with the fiscal year 2011, ending in December:
 
 .. ipython:: python
@@ -1247,8 +1247,8 @@ period.
 Period conversions with anchored frequencies are particularly useful for
 working with various quarterly data common to economics, business, and other
 fields. Many organizations define quarters relative to the month in which their
-fiscal year start and ends. Thus, first quarter of 2011 could start in 2010 or
-a few months into 2011. Via anchored frequencies, pandas works all quarterly
+fiscal year starts and ends. Thus, first quarter of 2011 could start in 2010 or
+a few months into 2011. Via anchored frequencies, pandas works for all quarterly
 frequencies ``Q-JAN`` through ``Q-DEC``.
 
 ``Q-DEC`` define regular calendar quarters:
@@ -1354,7 +1354,7 @@ Time Zone Handling
 ------------------
 
 Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
-``dateutil`` support is new [in 0.14.1] and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
+``dateutil`` support is new in 0.14.1 and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
 
 Working with Time Zones
