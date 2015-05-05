@@ -280,7 +280,10 @@ class Grouper(object):
         return self.grouper
 
     def _get_binner_for_grouping(self, obj):
-        raise AbstractMethodError(self)
+        """ default to the standard binner here """
+        group_axis = obj._get_axis(self.axis)
+        return Grouping(group_axis, None, obj=obj, name=self.key,
+                        level=self.level, sort=self.sort, in_axis=False)
 
     @property
     def groups(self):
@@ -1964,8 +1967,12 @@ class Grouping(object):
                 if self.name is None:
                     self.name = grouper.name
 
+            # we are done
+            if isinstance(self.grouper, Grouping):
+                self.grouper = self.grouper.grouper
+
             # no level passed
-            if not isinstance(self.grouper, (Series, Index, Categorical, np.ndarray)):
+            elif not isinstance(self.grouper, (Series, Index, Categorical, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)
@@ -2834,7 +2841,7 @@ class NDFrameGroupBy(GroupBy):
                     v = next(v for v in values if v is not None)
                 except StopIteration:
                     # If all values are None, then this will throw an error.
-                    # We'd prefer it return an empty dataframe. 
+                    # We'd prefer it return an empty dataframe.
                     return DataFrame()
                 if v is None:
                     return DataFrame()
