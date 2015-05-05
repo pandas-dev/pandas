@@ -962,6 +962,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
             panel = Panel(np.random.randn(2,10,5),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
 
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'object']:
+            df1 = DataFrame(np.random.randn(2, 5), index=lrange(2), columns=lrange(5))
+            df2 = DataFrame(np.random.randn(2, 5), index=lrange(2), columns=lrange(5))
+            panel = Panel.from_dict({'a': df1, 'b': df2}, dtype=dtype)
+            _check_dtype(panel, dtype)
+
     def test_constructor_fails_with_not_3d_input(self):
         with tm.assertRaisesRegexp(ValueError,
                                    "The number of dimensions required is 3"):
