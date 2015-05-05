@@ -1004,7 +1004,7 @@ Note that the following also works, but is a bit less obvious / clean:
 
 .. ipython:: python
 
-   df.reindex(df.index - ['a', 'd'])
+   df.reindex(df.index.difference(['a', 'd']))
 
 .. _basics.rename:
 
