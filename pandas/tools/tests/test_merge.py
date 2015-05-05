@@ -922,8 +922,10 @@ class TestMergeMulti(tm.TestCase):
                 self.assertFalse(res['4th'].isnull().any())
                 self.assertFalse(res['5th'].isnull().any())
 
-                tm.assert_series_equal(res['4th'], - res['5th'])
-                tm.assert_series_equal(res['4th'], bind_cols(res.iloc[:, :-2]))
+                tm.assert_series_equal(res['4th'], - res['5th'], check_names=False)
+                result = bind_cols(res.iloc[:, :-2])
+                tm.assert_series_equal(res['4th'], result, check_names=False)
+                self.assertTrue(result.name is None)
 
                 if sort:
                     tm.assert_frame_equal(res,
@@ -1250,8 +1252,10 @@ class TestMergeMulti(tm.TestCase):
 
         out = merge(left, right, how='outer')
         self.assertEqual(len(out), len(left))
-        assert_series_equal(out['left'], - out['right'])
-        assert_series_equal(out['left'], out.iloc[:, :-2].sum(axis=1))
+        assert_series_equal(out['left'], - out['right'], check_names=False)
+        result = out.iloc[:, :-2].sum(axis=1)
+        assert_series_equal(out['left'], result, check_names=False)
+        self.assertTrue(result.name is None)
 
         out.sort(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))

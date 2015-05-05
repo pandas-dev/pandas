@@ -286,7 +286,9 @@ class TestGroupBy(tm.TestCase):
         g = df[0]
         expected = s.groupby(g).first()
         expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
-        assert_series_equal(expected2,expected)
+        assert_series_equal(expected2, expected, check_names=False)
+        self.assertTrue(expected.name, 0)
+        self.assertEqual(expected.name, 1)
 
         # validate first
         v = s[g==1].iloc[0]
@@ -1098,7 +1100,7 @@ class TestGroupBy(tm.TestCase):
                    df.groupby('col1').transform(nsum)['col2'],
                    df.groupby('col1')['col2'].transform(nsum)]
         for result in results:
-            assert_series_equal(result, expected)
+            assert_series_equal(result, expected, check_names=False)
 
     def test_with_na(self):
         index = Index(np.arange(10))
@@ -1251,9 +1253,9 @@ class TestGroupBy(tm.TestCase):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.describe().unstack()
-        assert_series_equal(result['mean'], grouped.mean())
-        assert_series_equal(result['std'], grouped.std())
-        assert_series_equal(result['min'], grouped.min())
+        assert_series_equal(result['mean'], grouped.mean(), check_names=False)
+        assert_series_equal(result['std'], grouped.std(), check_names=False)
+        assert_series_equal(result['min'], grouped.min(), check_names=False)
 
     def test_series_describe_single(self):
         ts = tm.makeTimeSeries()
@@ -1304,7 +1306,7 @@ class TestGroupBy(tm.TestCase):
 
         for col in self.tsframe:
             expected = grouped[col].describe()
-            assert_series_equal(result[col], expected)
+            assert_series_equal(result[col], expected, check_names=False)
 
         groupedT = self.tsframe.groupby({'A': 0, 'B': 0,
                                          'C': 1, 'D': 1}, axis=1)
@@ -1901,7 +1903,6 @@ class TestGroupBy(tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
                           columns=['jim', 'joe'])
         df['jolie'] = np.random.randn(1000)
-        print(df.head())
 
         for keys in ['jim', ['jim', 'joe']]:  # single key & multi-key
             if keys == 'jim': continue
@@ -1949,6 +1950,7 @@ class TestGroupBy(tm.TestCase):
                 expd.setdefault(cat1, {})[cat2] = op(group['C'])
             exp = DataFrame(expd).T.stack(dropna=False)
             exp.index.names = ['A', 'B']
+            exp.name = 'C'
 
             result = op(grouped)['C']
             assert_series_equal(result, exp)
@@ -2207,7 +2209,8 @@ class TestGroupBy(tm.TestCase):
 
         result = df.groupby('A').apply(trans)
         exp = df.groupby('A')['C'].apply(trans2)
-        assert_series_equal(result, exp)
+        assert_series_equal(result, exp, check_names=False)
+        self.assertEqual(result.name, 'C')
 
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
@@ -3106,7 +3109,8 @@ class TestGroupBy(tm.TestCase):
             expected.append(piece.value.rank())
         expected = concat(expected, axis=0)
         expected = expected.reindex(result.index)
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
+        self.assertTrue(result.name is None)
 
         result = df.groupby(['key1', 'key2']).value.rank(pct=True)
 
@@ -3115,7 +3119,8 @@ class TestGroupBy(tm.TestCase):
             expected.append(piece.value.rank(pct=True))
         expected = concat(expected, axis=0)
         expected = expected.reindex(result.index)
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
+        self.assertTrue(result.name is None)
 
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
@@ -3147,7 +3152,8 @@ class TestGroupBy(tm.TestCase):
             pieces.append(group.order()[:3])
 
         expected = concat(pieces)
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
+        self.assertTrue(result.name is None)
 
     def test_no_nonsense_name(self):
         # GH #995
@@ -4328,7 +4334,7 @@ class TestGroupBy(tm.TestCase):
         s = df['B']
         grouped = s.groupby(s)
         actual = grouped.filter(lambda x: len(x) > 2)
-        expected = Series(4*['b'], index=np.arange(2, 6))
+        expected = Series(4*['b'], index=np.arange(2, 6), name='B')
         assert_series_equal(actual, expected)
 
         actual = grouped.filter(lambda x: len(x) > 4)
@@ -4410,7 +4416,7 @@ class TestGroupBy(tm.TestCase):
 
         # Transform Series
         actual = grouped_ser.transform(len)
-        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
+        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index, name='pid')
         assert_series_equal(actual, expected)
 
         # Transform (a column from) DataFrameGroupBy
@@ -4450,7 +4456,7 @@ class TestGroupBy(tm.TestCase):
 
         # Transform Series
         actual = grouped_ser.transform(len)
-        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
+        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index, name='pid')
         assert_series_equal(actual, expected)
 
         # Transform (a column from) DataFrameGroupBy
@@ -4530,7 +4536,7 @@ class TestGroupBy(tm.TestCase):
 
         # Transform Series
         actual = grouped_ser.transform(len)
-        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
+        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index, name='pid')
         assert_series_equal(actual, expected)
 
         # Transform (a column from) DataFrameGroupBy
@@ -4573,7 +4579,7 @@ class TestGroupBy(tm.TestCase):
 
         # Transform Series
         actual = grouped_ser.transform(len)
-        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
+        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index, name='pid')
         assert_series_equal(actual, expected)
 
         # Transform (a column from) DataFrameGroupBy
@@ -4613,7 +4619,7 @@ class TestGroupBy(tm.TestCase):
 
         # Transform Series
         actual = grouped_ser.transform(len)
-        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
+        expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index, name='pid')
         assert_series_equal(actual, expected)
 
         # Transform (a column from) DataFrameGroupBy

@@ -815,7 +815,9 @@ class TestResample(tm.TestCase):
         result = ts.resample('M', how={'foo': lambda x: x.mean(),
                                        'bar': lambda x: x.std(ddof=1)})
         foo_exp = ts.resample('M', how='mean')
+        foo_exp.name = 'foo'
         bar_exp = ts.resample('M', how='std')
+        bar_exp.name = 'bar'
 
         tm.assert_series_equal(result['foo'], foo_exp)
         tm.assert_series_equal(result['bar'], bar_exp)

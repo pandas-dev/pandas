@@ -373,8 +373,8 @@ class TestIndexing(tm.TestCase):
 
         df = s.to_frame()
         result = df.iloc[2]
-        expected = Series(2,index=[0])
-        assert_series_equal(result,expected)
+        expected = Series(2, index=[0], name=2)
+        assert_series_equal(result, expected)
 
         result = df.iat[2,0]
         expected = 2
@@ -512,7 +512,7 @@ class TestIndexing(tm.TestCase):
         self.assertTrue(isnull(result))
 
         result = df.iloc[0,:]
-        expected = Series([np.nan,1,3,3],index=['A','B','A','B'])
+        expected = Series([np.nan, 1, 3, 3], index=['A','B','A','B'], name=0)
         assert_series_equal(result,expected)
 
     def test_iloc_getitem_array(self):
@@ -1021,8 +1021,8 @@ class TestIndexing(tm.TestCase):
 
         # mixed type
         result = DataFrame({ 'a' : [Timestamp('20130101')], 'b' : [1] }).iloc[0]
-        expected = Series([ Timestamp('20130101'), 1],index=['a','b'])
-        assert_series_equal(result,expected)
+        expected = Series([ Timestamp('20130101'), 1], index=['a','b'], name=0)
+        assert_series_equal(result, expected)
         self.assertEqual(result.dtype, object)
 
     def test_loc_setitem_consistency(self):
@@ -1126,12 +1126,12 @@ class TestIndexing(tm.TestCase):
         # setting with mixed labels
         df = DataFrame({1:[1,2],2:[3,4],'a':['a','b']})
 
-        result = df.loc[0,[1,2]]
-        expected = Series([1,3],index=[1,2],dtype=object)
-        assert_series_equal(result,expected)
+        result = df.loc[0, [1,2]]
+        expected = Series([1,3],index=[1,2],dtype=object, name=0)
+        assert_series_equal(result, expected)
 
         expected = DataFrame({1:[5,2],2:[6,4],'a':['a','b']})
-        df.loc[0,[1,2]] = [5,6]
+        df.loc[0, [1,2]] = [5,6]
         assert_frame_equal(df, expected)
 
     def test_loc_setitem_frame_multiples(self):
@@ -1404,8 +1404,8 @@ class TestIndexing(tm.TestCase):
         df.ix[2:5, 'bar'] = np.array([2.33j, 1.23+0.1j, 2.2, 1.0])
 
         result = df.ix[2:5, 'bar']
-        expected = Series([2.33j, 1.23+0.1j, 2.2, 1.0],index=[2,3,4,5])
-        assert_series_equal(result,expected)
+        expected = Series([2.33j, 1.23+0.1j, 2.2, 1.0], index=[2,3,4,5], name='bar')
+        assert_series_equal(result, expected)
 
         # dtype getting changed?
         df = DataFrame(index=Index(lrange(1,11)))
@@ -1473,7 +1473,9 @@ class TestIndexing(tm.TestCase):
         # the first row
         rs = mi_int.iloc[0]
         xp = mi_int.ix[4].ix[8]
-        assert_series_equal(rs, xp)
+        assert_series_equal(rs, xp, check_names=False)
+        self.assertEqual(rs.name, (4, 8))
+        self.assertEqual(xp.name, 8)
 
         # 2nd (last) columns
         rs = mi_int.iloc[:,2]
@@ -2955,14 +2957,14 @@ class TestIndexing(tm.TestCase):
         # GH 4146, not returning a block manager when selecting a unique index
         # from a duplicate index
         # as of 4879, this returns a Series (which is similar to what happens with a non-unique)
-        expected = Series(['a',1,1],index=['h1','h3','h5'])
+        expected = Series(['a',1,1], index=['h1','h3','h5'], name='A1')
         result = df2['A']['A1']
-        assert_series_equal(result,expected)
+        assert_series_equal(result, expected)
 
         # selecting a non_unique from the 2nd level
         expected = DataFrame([['d',4,4],['e',5,5]],index=Index(['B2','B2'],name='sub'),columns=['h1','h3','h5'],).T
         result = df2['A']['B2']
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
     def test_non_unique_loc_memory_error(self):
 
@@ -3057,15 +3059,16 @@ class TestIndexing(tm.TestCase):
 
         # GH4726
         # dup indexing with iloc/loc
-        df = DataFrame([[1,2,'foo','bar',Timestamp('20130101')]],
-                       columns=['a','a','a','a','a'],index=[1])
-        expected = Series([1,2,'foo','bar',Timestamp('20130101')],index=['a','a','a','a','a'])
+        df = DataFrame([[1, 2, 'foo', 'bar', Timestamp('20130101')]],
+                       columns=['a','a','a','a','a'], index=[1])
+        expected = Series([1, 2, 'foo', 'bar', Timestamp('20130101')],
+                          index=['a','a','a','a','a'], name=1)
 
         result = df.iloc[0]
-        assert_series_equal(result,expected)
+        assert_series_equal(result, expected)
 
         result = df.loc[1]
-        assert_series_equal(result,expected)
+        assert_series_equal(result, expected)
 
     def test_partial_setting(self):
 

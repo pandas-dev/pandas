@@ -166,8 +166,8 @@ class TestPivotTable(tm.TestCase):
         result = df.pivot('a','b','c')
         expected = DataFrame([[nan,nan,17,nan],[10,nan,nan,nan],
                               [nan,15,nan,nan],[nan,nan,nan,20]],
-                             index = Index([nan,'R1','R2','R4'],name='a'),
-                             columns = Index(['C1','C2','C3','C4'],name='b'))
+                             index = Index([nan,'R1','R2','R4'], name='a'),
+                             columns = Index(['C1','C2','C3','C4'], name='b'))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df.pivot('b', 'a', 'c'), expected.T)
 
@@ -227,12 +227,14 @@ class TestPivotTable(tm.TestCase):
         def _check_output(res, col, index=['A', 'B'], columns=['C']):
             cmarg = res['All'][:-1]
             exp = self.data.groupby(index)[col].mean()
-            tm.assert_series_equal(cmarg, exp)
+            tm.assert_series_equal(cmarg, exp, check_names=False)
+            self.assertEqual(cmarg.name, 'All')
 
             res = res.sortlevel()
             rmarg = res.xs(('All', ''))[:-1]
             exp = self.data.groupby(columns)[col].mean()
-            tm.assert_series_equal(rmarg, exp)
+            tm.assert_series_equal(rmarg, exp, check_names=False)
+            self.assertEqual(rmarg.name, ('All', ''))
 
             gmarg = res['All']['All', '']
             exp = self.data[col].mean()
@@ -679,12 +681,14 @@ class TestCrosstab(tm.TestCase):
         all_cols = result['All', '']
         exp_cols = df.groupby(['a']).size().astype('i8')
         exp_cols = exp_cols.append(Series([len(df)], index=['All']))
+        exp_cols.name = ('All', '')
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.ix['All']
         exp_rows = df.groupby(['b', 'c']).size().astype('i8')
         exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
+        exp_rows.name = 'All'
 
         exp_rows = exp_rows.reindex(all_rows.index)
         exp_rows = exp_rows.fillna(0).astype(np.int64)
