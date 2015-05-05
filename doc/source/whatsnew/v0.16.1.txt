@@ -14,6 +14,8 @@ Highlights include:
 
 - New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enchancements.sample>`
 
+- ``BusinessHour`` offset is supported, see :ref:`here <timeseries.businesshour>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
@@ -26,6 +28,14 @@ Highlights include:
 
 Enhancements
 ~~~~~~~~~~~~
+
+- ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
+
+  .. ipython:: python
+
+     Timestamp('2014-08-01 09:00') + BusinessHour()
+     Timestamp('2014-08-01 07:00') + BusinessHour()
+     Timestamp('2014-08-01 16:30') + BusinessHour()
 
 - Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
