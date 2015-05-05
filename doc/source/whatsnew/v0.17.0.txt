@@ -73,9 +73,14 @@ Bug Fixes
 - Bug in display datetimes with mixed frequencies uniformly; display 'ms' datetimes to the proper precision. (:issue:`10170`)
 
 
+
 - Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
 
 - Bug in `Series.plot(label="LABEL")` not correctly setting the label (:issue:`10119`)
+
 - Bug in `plot` not defaulting to matplotlib `axes.grid` setting (:issue:`9792`)
+
+- Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)
+
 
 
