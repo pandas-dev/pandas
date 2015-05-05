@@ -700,6 +700,12 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
         tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
+        if compat.PY3:
+            table = str.maketrans('a', 'b')
+        else:
+            import string
+            table = string.maketrans('a', 'b')
+        tm.assert_series_equal(empty_str, empty.str.translate(table))
 
     def test_empty_str_methods_to_frame(self):
         empty_str = empty = Series(dtype=str)
@@ -1038,6 +1044,37 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
             result = values.str.pad(5, fillchar=5)
+
+    def test_translate(self):
+        for klass in [Series, Index]:
+            s = klass(['abcdefg', 'abcc', 'cdddfg', 'cdefggg'])
+            if not compat.PY3:
+                import string
+                table = string.maketrans('abc', 'cde')
+            else:
+                table = str.maketrans('abc', 'cde')
+            result = s.str.translate(table)
+            expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
+            tm.assert_array_equal(result, expected)
+
+            # use of deletechars is python 2 only
+            if not compat.PY3:
+                result = s.str.translate(table, deletechars='fg')
+                expected = klass(['cdede', 'cdee', 'eddd', 'ede'])
+                tm.assert_array_equal(result, expected)
+
+                result = s.str.translate(None, deletechars='fg')
+                expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
+                tm.assert_array_equal(result, expected)
+            else:
+                with tm.assertRaisesRegexp(ValueError, "deletechars is not a valid argument"):
+                    result = s.str.translate(table, deletechars='fg')
+
+        # Series with non-string values
+        s = Series(['a', 'b', 'c', 1.2])
+        expected = Series(['c', 'd', 'e', np.nan])
+        result = s.str.translate(table)
+        tm.assert_array_equal(result, expected)
 
     def test_center_ljust_rjust(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
