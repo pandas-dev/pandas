@@ -3365,11 +3365,10 @@ class NDFrame(PandasObject):
                                                          level=level,
                                                          return_indexers=True)
 
-            left_result = self._reindex_indexer(join_index, lidx, copy)
-            right_result = other._reindex_indexer(join_index, ridx, copy)
+            left = self._reindex_indexer(join_index, lidx, copy)
+            right = other._reindex_indexer(join_index, ridx, copy)
 
         else:
-
             # one has > 1 ndim
             fdata = self._data
             if axis == 0:
@@ -3399,23 +3398,19 @@ class NDFrame(PandasObject):
             if copy and fdata is self._data:
                 fdata = fdata.copy()
 
-            left_result = DataFrame(fdata)
+            left = DataFrame(fdata)
 
             if ridx is None:
-                right_result = other
+                right = other
             else:
-                right_result = other.reindex(join_index, level=level)
+                right = other.reindex(join_index, level=level)
 
         # fill
         fill_na = notnull(fill_value) or (method is not None)
         if fill_na:
-            return (left_result.fillna(fill_value, method=method, limit=limit,
-                                       axis=fill_axis),
-                    right_result.fillna(fill_value, method=method,
-                                        limit=limit))
-        else:
-            return (left_result.__finalize__(self),
-                    right_result.__finalize__(other))
+            left = left.fillna(fill_value, method=method, limit=limit, axis=fill_axis)
+            right = right.fillna(fill_value, method=method, limit=limit)
+        return (left.__finalize__(self), right.__finalize__(other))
 
     _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
