@@ -492,6 +492,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.to_pydatetime
    Series.dt.tz_localize
    Series.dt.tz_convert
+   Series.dt.normalize
 
 **Timedelta Properties**
 
