@@ -139,7 +139,7 @@ take_2d_axis0_template = """\
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_%(name)s_%(dest)s_memview(%(c_type_in)s[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     %(c_type_out)s[:, :] out,
                                                     fill_value=np.nan):
 """ + inner_take_2d_axis0_template + """
@@ -188,7 +188,7 @@ take_2d_axis1_template = """\
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_%(name)s_%(dest)s_memview(%(c_type_in)s[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     %(c_type_out)s[:, :] out,
                                                     fill_value=np.nan):
 """ + inner_take_2d_axis1_template + """
