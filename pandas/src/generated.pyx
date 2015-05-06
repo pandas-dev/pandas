@@ -2705,7 +2705,7 @@ def take_1d_object_object(ndarray[object] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_bool_bool_memview(uint8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     uint8_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -2806,7 +2806,7 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_bool_object_memview(uint8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     object[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -2907,7 +2907,7 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int8_int8_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int8_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3008,7 +3008,7 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int8_int32_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3109,7 +3109,7 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int8_int64_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3210,7 +3210,7 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int8_float64_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3311,7 +3311,7 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int16_int16_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int16_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3412,7 +3412,7 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int16_int32_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3513,7 +3513,7 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int16_int64_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3614,7 +3614,7 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int16_float64_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3715,7 +3715,7 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int32_int32_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3816,7 +3816,7 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int32_int64_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -3917,7 +3917,7 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int32_float64_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4018,7 +4018,7 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int64_int64_memview(int64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4119,7 +4119,7 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_int64_float64_memview(int64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4220,7 +4220,7 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_float32_float32_memview(float32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4321,7 +4321,7 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_float32_float64_memview(float32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4422,7 +4422,7 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_float64_float64_memview(float64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4523,7 +4523,7 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_object_object_memview(object[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     object[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4625,7 +4625,7 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_bool_bool_memview(uint8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     uint8_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4687,7 +4687,7 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_bool_object_memview(uint8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     object[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4749,7 +4749,7 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int8_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int8_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4811,7 +4811,7 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int32_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4873,7 +4873,7 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int64_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4935,7 +4935,7 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_float64_memview(int8_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -4997,7 +4997,7 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int16_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int16_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5059,7 +5059,7 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int32_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5121,7 +5121,7 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int64_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5183,7 +5183,7 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_float64_memview(int16_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5245,7 +5245,7 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_int32_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5307,7 +5307,7 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_int64_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5369,7 +5369,7 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_float64_memview(int32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5431,7 +5431,7 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int64_int64_memview(int64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     int64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5493,7 +5493,7 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int64_float64_memview(int64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5555,7 +5555,7 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float32_float32_memview(float32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float32_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5617,7 +5617,7 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float32_float64_memview(float32_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5679,7 +5679,7 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float64_float64_memview(float64_t[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     float64_t[:, :] out,
                                                     fill_value=np.nan):
     cdef:
@@ -5741,7 +5741,7 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_object_object_memview(object[:, :] values,
-                                                    ndarray[int64_t] indexer,
+                                                    int64_t[:] indexer,
                                                     object[:, :] out,
                                                     fill_value=np.nan):
     cdef:

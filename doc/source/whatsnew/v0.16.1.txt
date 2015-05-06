@@ -272,7 +272,7 @@ Bug Fixes
 - Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
 - Bug with ``TimedeltaIndex`` constructor ignoring ``name`` when given another ``TimedeltaIndex`` as data (:issue:`10025`).
 - Bug in ``DataFrameFormatter._get_formatted_index`` with not applying ``max_colwidth`` to the ``DataFrame`` index (:issue:`7856`)
-
+- Bug in ``.loc`` with a read-only ndarray data source (:issue:`10043`)
 - Bug in ``groupby.apply()`` that would raise if a passed user defined function either returned only ``None`` (for all input). (:issue:`9685`)
 
 - Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
