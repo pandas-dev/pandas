@@ -685,6 +685,7 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.isdecimal())
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
+        tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
 
     def test_ismethods(self):
         values = ['A', 'b', 'Xy', '4', '3A', '', 'TT', '55', '-', '  ']
@@ -1549,6 +1550,51 @@ class TestStringMethods(tm.TestCase):
 
         tm.assert_series_equal(result, exp)
 
+    def test_normalize(self):
+        def unistr(codes):
+            # build unicode string from unichr
+            # we cannot use six.u() here because it escapes unicode
+            return ''.join([unichr(c) for c in codes])
+
+        values = ['ABC', # ASCII
+                  unistr([0xFF21, 0xFF22, 0xFF23]), # ＡＢＣ
+                  unistr([0xFF11, 0xFF12, 0xFF13]), # １２３
+                  np.nan,
+                  unistr([0xFF71, 0xFF72, 0xFF74])] # ｱｲｴ
+        s = Series(values, index=['a', 'b', 'c', 'd', 'e'])
+
+        normed = [compat.u_safe('ABC'),
+                  compat.u_safe('ABC'),
+                  compat.u_safe('123'),
+                  np.nan,
+                  unistr([0x30A2, 0x30A4, 0x30A8])] # アイエ
+        expected = Series(normed, index=['a', 'b', 'c', 'd', 'e'])
+
+        result = s.str.normalize('NFKC')
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([compat.u_safe('ABC'),
+                           unistr([0xFF21, 0xFF22, 0xFF23]), # ＡＢＣ
+                           unistr([0xFF11, 0xFF12, 0xFF13]), # １２３
+                           np.nan,
+                           unistr([0xFF71, 0xFF72, 0xFF74])], # ｱｲｴ
+                          index=['a', 'b', 'c', 'd', 'e'])
+
+        result = s.str.normalize('NFC')
+        tm.assert_series_equal(result, expected)
+
+        with tm.assertRaisesRegexp(ValueError, "invalid normalization form"):
+            s.str.normalize('xxx')
+
+        s = Index([unistr([0xFF21, 0xFF22, 0xFF23]),  # ＡＢＣ
+                   unistr([0xFF11, 0xFF12, 0xFF13]),  # １２３
+                   unistr([0xFF71, 0xFF72, 0xFF74])]) # ｱｲｴ
+        expected = Index([compat.u_safe('ABC'),
+                          compat.u_safe('123'),
+                          unistr([0x30A2, 0x30A4, 0x30A8])])
+        result = s.str.normalize('NFKC')
+        tm.assert_index_equal(result, expected)
+
     def test_cat_on_filtered_index(self):
         df = DataFrame(index=MultiIndex.from_product([[2011, 2012], [1,2,3]],
                                                      names=['year', 'month']))
@@ -1565,6 +1611,57 @@ class TestStringMethods(tm.TestCase):
         str_multiple = str_year.str.cat([str_month, str_month], sep=' ')
 
         self.assertEqual(str_multiple.loc[1], '2011 2 2')
+
+
+    def test_index_str_accessor_visibility(self):
+        from pandas.core.strings import StringMethods
+
+        if not compat.PY3:
+            cases = [(['a', 'b'], 'string'),
+                     (['a', u('b')], 'mixed'),
+                     ([u('a'), u('b')], 'unicode'),
+                     (['a', 'b', 1], 'mixed-integer'),
+                     (['a', 'b', 1.3], 'mixed'),
+                     (['a', 'b', 1.3, 1], 'mixed-integer'),
+                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        else:
+            cases = [(['a', 'b'], 'string'),
+                     (['a', u('b')], 'string'),
+                     ([u('a'), u('b')], 'string'),
+                     (['a', 'b', 1], 'mixed-integer'),
+                     (['a', 'b', 1.3], 'mixed'),
+                     (['a', 'b', 1.3, 1], 'mixed-integer'),
+                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        for values, tp in cases:
+            idx = Index(values)
+            self.assertTrue(isinstance(Series(values).str, StringMethods))
+            self.assertTrue(isinstance(idx.str, StringMethods))
+            self.assertEqual(idx.inferred_type, tp)
+
+        for values, tp in cases:
+            idx = Index(values)
+            self.assertTrue(isinstance(Series(values).str, StringMethods))
+            self.assertTrue(isinstance(idx.str, StringMethods))
+            self.assertEqual(idx.inferred_type, tp)
+
+        cases = [([1, np.nan], 'floating'),
+                 ([datetime(2011, 1, 1)], 'datetime64'),
+                 ([timedelta(1)], 'timedelta64')]
+        for values, tp in cases:
+            idx = Index(values)
+            message = 'Can only use .str accessor with string values'
+            with self.assertRaisesRegexp(AttributeError, message):
+                Series(values).str
+            with self.assertRaisesRegexp(AttributeError, message):
+                idx.str
+            self.assertEqual(idx.inferred_type, tp)
+
+        # MultiIndex has mixed dtype, but not allow to use accessor
+        idx = MultiIndex.from_tuples([('a', 'b'), ('a', 'b')])
+        self.assertEqual(idx.inferred_type, 'mixed')
+        message = 'Can only use .str accessor with Index, not MultiIndex'
+        with self.assertRaisesRegexp(AttributeError, message):
+            idx.str
 
 
 if __name__ == '__main__':
