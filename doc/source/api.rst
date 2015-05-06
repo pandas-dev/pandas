@@ -542,6 +542,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.lower
    Series.str.lstrip
    Series.str.match
+   Series.str.normalize
    Series.str.pad
    Series.str.repeat
    Series.str.replace
