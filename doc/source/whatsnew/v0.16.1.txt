@@ -380,7 +380,7 @@ Bug Fixes
 
 
 
-
+- Bug in PyTables queries that did not return proper results using the index (:issue:`8265`, :issue:`9676`)
 
 
 
