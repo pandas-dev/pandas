@@ -2464,7 +2464,7 @@ class TestInt64Index(Numeric, tm.TestCase):
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
             r = repr(pd.Index(np.arange(1000)))
-            self.assertTrue(len(r) < 100)
+            self.assertTrue(len(r) < 200)
             self.assertTrue("..." in r)
 
     def test_repr_roundtrip(self):

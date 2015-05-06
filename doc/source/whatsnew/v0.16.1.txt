@@ -13,7 +13,10 @@ Highlights include:
 - New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
 - Revised "Merge, join, and concatenate" documentation, including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
 - New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enhancements.sample>`
-- ``BusinessHour`` date-offset is now supported, see :ref:`here <timeseries.businesshour>`
+- The default ``Index`` printing has changed to a more uniform format, see :ref:`here <whatsnew_0161.index_repr>`
+- ``BusinessHour`` datetime-offset is now supported, see :ref:`here <timeseries.businesshour>`
+
+>>>>>>> more fixes
 -  Further enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0161.enhancements.string>`
 
 .. contents:: What's new in v0.16.1
@@ -273,8 +276,7 @@ API changes
 Index Representation
 ~~~~~~~~~~~~~~~~~~~~
 
-The string representation of ``Index`` and its sub-classes have now been unified. ``Index, Int64Index, Float64Index, CategoricalIndex`` are single-line display. The datetimelikes ``DatetimeIndex, PeriodIndex, TimedeltaIndex`` & ``MultiIndex`` will display in a multi-line format showing much more of the index values. The display width responds to the option ``display.max_seq_items``,
-which is now defaulted to 20 (previously was 100). (:issue:`6482`)
+The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanges (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
 Previous Behavior
 
@@ -307,8 +309,15 @@ New Behavior
 
    pd.get_option('max_seq_items')
    pd.Index(range(4),name='foo')
+   pd.Index(range(25),name='foo')
    pd.Index(range(104),name='foo')
+   pd.CategoricalIndex(['a','bb','ccc','dddd'],ordered=True,name='foobar')
+   pd.CategoricalIndex(['a','bb','ccc','dddd']*10,ordered=True,name='foobar')
+   pd.CategoricalIndex(['a','bb','ccc','dddd']*100,ordered=True,name='foobar')
+   pd.CategoricalIndex(np.arange(1000),ordered=True,name='foobar')
+   pd.Index(['a','bb','ccc','dddd']*100)
    pd.date_range('20130101',periods=4,name='foo',tz='US/Eastern')
+   pd.date_range('20130101',periods=25,name='foo',tz='US/Eastern')
    pd.date_range('20130101',periods=104,name='foo',tz='US/Eastern')
 
 .. _whatsnew_0161.deprecations:

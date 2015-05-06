@@ -8,6 +8,7 @@ from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
 
+from math import ceil
 from sys import getsizeof
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -405,8 +406,6 @@ class Index(IndexOpsMixin, PandasObject):
         # no data provided, just attributes
         if data is None:
             data = ''
-        else:
-            data = "%s,%s" % (data, space)
 
         res = u("%s(%s%s)") % (klass,
                                data,
@@ -435,59 +434,97 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
-        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
-        sep = ',%s' % space1
+        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
+
+        sep = ','
         max_seq_items = get_option('display.max_seq_items')
         formatter = self._formatter_func
+        needs_justify = self.inferred_type in ['string','categorical']
+
+        def best_len(values):
+            return max([len(x) for x in values]) + 2
+
+        def best_rows(values, max_len):
+            from pandas.core.format import get_console_size
+            display_width, _ = get_console_size()
+            if display_width is None:
+                display_width = get_option('display.width')
+            n_per_row = (display_width - len(self.__class__.__name__) - 2) // max_len
+            n_rows = int(ceil(len(values) / float(n_per_row)))
+            return n_per_row, n_rows
+
+        def best_fit(values, max_len, n_rows=None, justify=False):
+
+            # number of rows to generate
+            if n_rows is None:
+                n_per_row, n_rows = best_rows(values, max_len)
+            else:
+                n_per_row = len(values)
+
+            # adjust all values to max length if we have multi-lines
+            if justify:
+                values = [values[0].rjust(max_len-2)] + [x.rjust(max_len-1) for x in values[1:]]
+                multi_line_space = space1
+            else:
+                multi_line_space = space2
+
+            sep_elements = sep + ' '
+            summary = ''
+            for i in range(n_rows - 1):
+                summary += sep_elements.join(values[i*n_per_row:(i+1)*n_per_row])
+                summary += sep
+                summary += multi_line_space
+            summary += sep_elements.join(values[(n_rows - 1)*n_per_row:n_rows*n_per_row])
+
+            return summary
+
         n = len(self)
         if n == 0:
-            summary = '[]'
+            summary = '[], '
         elif n == 1:
             first = formatter(self[0])
-            summary = '[%s]' % first
+            summary = '[%s], ' % first
         elif n == 2:
             first = formatter(self[0])
             last = formatter(self[-1])
-            summary = '[%s%s%s]' % (first, sep, last)
+            summary = '[%s, %s], ' % (first, last)
         elif n > max_seq_items:
             n = min(max_seq_items//2,10)
 
-            head = sep.join([ formatter(x) for x in self[:n] ])
-            tail = sep.join([ formatter(x) for x in self[-n:] ])
-            summary = '[%s%s...%s%s]' % (head, space1, space1, tail)
+            head = [ formatter(x) for x in self[:n] ]
+            tail = [ formatter(x) for x in self[-n:] ]
+            max_len = max(best_len(head),best_len(tail))
+
+            if needs_justify:
+                n_rows = 1
+                justify = False
+            else:
+                n_rows = None
+                justify = True
+
+            summary = '['
+            summary += best_fit(head, max_len, n_rows=n_rows, justify=justify)
+            summary += ',' + space1 + ' ...' + space2
+            summary += best_fit(tail, max_len, n_rows=n_rows, justify=justify)
+            summary += '],'
+            summary += space1
+
         else:
-            values = sep.join([ formatter(x) for x in self ])
-            summary = '[%s]' % (values)
+            values = [ formatter(x) for x in self ]
+
+            max_len = best_len(values)
+            n_per_row, n_rows = best_rows(values, max_len)
+
+            summary = '['
+            summary += best_fit(values, max_len)
+            summary += '],'
+            if n_rows > 1:
+                summary += space1
+            else:
+                summary += ' '
 
         return summary
-
-    def _format_data2(self):
-        """
-        Return the formatted data as a unicode string
-        """
-        max_seq_items = get_option('display.max_seq_items')
-        formatter = self._formatter_func
-        n = len(self)
-        if n == 0:
-            summary = '[]'
-        elif n == 1:
-            first = formatter(self[0])
-            summary = '[%s]' % first
-        elif n == 2:
-            first = formatter(self[0])
-            last = formatter(self[-1])
-            summary = '[%s, %s]' % (first, last)
-        elif n > max_seq_items:
-            n = min(max_seq_items//2,5)
-            head = ', '.join([ formatter(x) for x in self[:n] ])
-            tail = ', '.join([ formatter(x) for x in self[-n:] ])
-            summary = '[%s, ..., %s]' % (head, tail)
-        else:
-            summary = "[%s]" % ', '.join([ formatter(x) for x in self ])
-
-        return summary
-
 
     def _format_attrs(self):
         """
@@ -2911,7 +2948,9 @@ class CategoricalIndex(Index, PandasDelegate):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        attrs = [('categories', default_pprint(self.categories)),
+        max_categories = (10 if get_option("display.max_categories") == 0
+                    else get_option("display.max_categories"))
+        attrs = [('categories', default_pprint(self.categories, max_seq_items=max_categories)),
                  ('ordered',self.ordered)]
         if self.name is not None:
             attrs.append(('name',default_pprint(self.name)))
