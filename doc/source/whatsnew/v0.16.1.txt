@@ -10,7 +10,7 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
-- New section on how-to-contribute to *pandas*, see :ref`here <contributing>`
+- New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
 
 - New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enchancements.sample>`
 
