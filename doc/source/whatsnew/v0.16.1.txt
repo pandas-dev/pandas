@@ -320,3 +320,4 @@ Bug Fixes
 - Google BigQuery connector now imports dependencies on a per-method basis.(:issue:`9713`)
 - Updated BigQuery connector to no longer use deprecated ``oauth2client.tools.run()`` (:issue:`8327`)
 - Bug in subclassed ``DataFrame``. It may not return the correct class, when slicing or subsetting it. (:issue:`9632`)
+- BUG in median() where non-float null values are not handled correctly (:issue:`10040`)
