@@ -115,6 +115,7 @@ See the package overview for more detail about what's in the library.
     {%if not single -%}
     whatsnew
     install
+    contributing
     faq
     overview
     10min
@@ -149,7 +150,6 @@ See the package overview for more detail about what's in the library.
     api
     {% endif -%}
     {%if not single -%}
-    contributing
     internals
     release
     {% endif -%}
