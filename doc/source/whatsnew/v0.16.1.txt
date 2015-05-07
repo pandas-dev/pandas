@@ -278,7 +278,7 @@ Bug Fixes
 - Bug in ``DataFrameFormatter._get_formatted_index`` with not applying ``max_colwidth`` to the ``DataFrame`` index (:issue:`7856`)
 - Bug in ``.loc`` with a read-only ndarray data source (:issue:`10043`)
 - Bug in ``groupby.apply()`` that would raise if a passed user defined function either returned only ``None`` (for all input). (:issue:`9685`)
-
+- Always use temporary files in pytables tests (:issue:`9992`)
 - Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
 - Bug in ``DataFrame.plot(kind="hist")`` results in ``TypeError`` when ``DataFrame`` contains non-numeric columns  (:issue:`9853`)
 - Bug where repeated plotting of ``DataFrame`` with a ``DatetimeIndex`` may raise ``TypeError`` (:issue:`9852`)
