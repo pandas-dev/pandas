@@ -1001,6 +1001,7 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result, **kwargs):
+
         # leave as it is to keep extract and get_dummies results
         # can be merged to _wrap_result_expand in v0.17
         from pandas.core.series import Series

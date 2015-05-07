@@ -156,50 +156,51 @@ class TestHDFStore(tm.TestCase):
         pass
 
     def test_factory_fun(self):
+        path = create_tempfile(self.path)
         try:
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 raise ValueError('blah')
         except ValueError:
             pass
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
         try:
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 tbl['a'] = tm.makeDataFrame()
 
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 self.assertEqual(len(tbl), 1)
                 self.assertEqual(type(tbl['a']), DataFrame)
         finally:
             safe_remove(self.path)
 
     def test_context(self):
+        path = create_tempfile(self.path)
         try:
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 raise ValueError('blah')
         except ValueError:
             pass
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
         try:
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 tbl['a'] = tm.makeDataFrame()
 
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 self.assertEqual(len(tbl), 1)
                 self.assertEqual(type(tbl['a']), DataFrame)
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_conv_read_write(self):
-
+        path = create_tempfile(self.path)
         try:
-
             def roundtrip(key, obj,**kwargs):
-                obj.to_hdf(self.path, key,**kwargs)
-                return read_hdf(self.path, key)
+                obj.to_hdf(path, key,**kwargs)
+                return read_hdf(path, key)
 
             o = tm.makeTimeSeries()
             assert_series_equal(o, roundtrip('series',o))
@@ -215,12 +216,12 @@ class TestHDFStore(tm.TestCase):
 
             # table
             df = DataFrame(dict(A=lrange(5), B=lrange(5)))
-            df.to_hdf(self.path,'table',append=True)
-            result = read_hdf(self.path, 'table', where = ['index>2'])
+            df.to_hdf(path,'table',append=True)
+            result = read_hdf(path, 'table', where = ['index>2'])
             assert_frame_equal(df[df.index>2],result)
 
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_long_strings(self):
 
@@ -4329,13 +4330,14 @@ class TestHDFStore(tm.TestCase):
         df = tm.makeDataFrame()
 
         try:
-            st = HDFStore(self.path)
+            path = create_tempfile(self.path)
+            st = HDFStore(path)
             st.append('df', df, data_columns = ['A'])
             st.close()
-            do_copy(f = self.path)
-            do_copy(f = self.path, propindexes = False)
+            do_copy(f = path)
+            do_copy(f = path, propindexes = False)
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_legacy_table_write(self):
         raise nose.SkipTest("cannot write legacy tables")
