@@ -285,6 +285,7 @@ def nanmedian(values, axis=None, skipna=True):
 
     if values.dtype != np.float64:
         values = values.astype('f8')
+        values[mask] = np.nan
 
     if axis is None:
         values = values.ravel()
