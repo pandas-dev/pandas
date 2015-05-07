@@ -614,7 +614,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(result, expected)
 
         result = td.median()
-        expected = to_timedelta('00:00:08')
+        expected = to_timedelta('00:00:09')
         self.assertEqual(result, expected)
 
         result = td.to_frame().median()
@@ -640,6 +640,14 @@ class TestTimedeltas(tm.TestCase):
         # invalid ops
         for op in ['skew','kurt','sem','var','prod']:
             self.assertRaises(TypeError, lambda : getattr(td,op)())
+
+        # GH 10040
+        # make sure NaT is properly handled by median()
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07')])
+        self.assertEqual(s.diff().median(), timedelta(days=4))
+
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'), Timestamp('2015-02-15')])
+        self.assertEqual(s.diff().median(), timedelta(days=6))
 
     def test_timedelta_ops_scalar(self):
         # GH 6808
