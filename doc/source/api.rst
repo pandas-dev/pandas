@@ -544,10 +544,12 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.match
    Series.str.normalize
    Series.str.pad
+   Series.str.partition
    Series.str.repeat
    Series.str.replace
    Series.str.rfind
    Series.str.rjust
+   Series.str.rpartition
    Series.str.rstrip
    Series.str.slice
    Series.str.slice_replace
