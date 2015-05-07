@@ -434,4 +434,8 @@ Bug Fixes
 >>>>>>> 2cf4132... Updates to Google BigQuery connector (#9713, #8327)
 =======
 - Bug in subclassed ``DataFrame``. It may not return the correct class, when slicing or subsetting it. (:issue:`9632`)
+<<<<<<< HEAD
 >>>>>>> 5805889... Return correct subclass when slicing DataFrame.
+=======
+- BUG in median() where non-float null values are not handled correctly (:issue:`10040`)
+>>>>>>> df730a3... BUG: median() not correctly handling non-float null values (fixes #10040)
