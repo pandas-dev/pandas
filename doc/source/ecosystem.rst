@@ -57,7 +57,7 @@ large data to thin clients.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
-Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
+Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for python users has long been missing. Although still young
