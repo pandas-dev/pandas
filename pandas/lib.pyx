@@ -1641,11 +1641,20 @@ cdef class BlockPlacement:
 
     cdef bint _has_slice, _has_array, _is_known_slice_like
 
-    def __init__(self, val):
+    def __init__(self, val, fastpath=False):
         cdef slice slc
 
         self._has_slice = False
         self._has_array = False
+
+        if fastpath:
+            if isinstance(val, slice):
+                self._as_slice = val
+                self._has_slice = True
+            else:
+                self._as_array = val
+                self._has_array = True
+            return
 
         if isinstance(val, slice):
             slc = slice_canonize(val)
@@ -1783,12 +1792,11 @@ cdef class BlockPlacement:
 
         return self
 
-    cdef BlockPlacement copy(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return BlockPlacement(s)
+    cpdef BlockPlacement copy(self):
+        if self._as_slice is not None:
+            return BlockPlacement(self._as_slice, fastpath=True)
         else:
-            return BlockPlacement(self._as_array)
+            return BlockPlacement(self._as_array, fastpath=True)
 
     def add(self, other):
         return self.copy().iadd(other)
