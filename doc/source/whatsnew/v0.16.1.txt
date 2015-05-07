@@ -16,6 +16,8 @@ Highlights include:
 
 - ``BusinessHour`` offset is supported, see :ref:`here <timeseries.businesshour>`
 
+-  Further enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0161.enhancements.string>`
+
 .. contents:: What's new in v0.16.1
     :local:
     :backlinks: none
@@ -37,33 +39,8 @@ Enhancements
      Timestamp('2014-08-01 07:00') + BusinessHour()
      Timestamp('2014-08-01 16:30') + BusinessHour()
 
-- Added ``StringMethods.capitalize()`` and ``swapcase`` which behave as the same as standard ``str`` (:issue:`9766`)
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
-- Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
-- Added ``StringMethods.normalize()`` which behaves the same as standard :func:`unicodedata.normalizes` (:issue:`10031`)
-
-- Added ``StringMethods.partition()`` and ``rpartition()`` which behave as the same as standard ``str`` (:issue:`9773`)
 - Allow clip, clip_lower, and clip_upper to accept array-like arguments as thresholds (:issue:`6966`). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s).
-
-  The ``.str`` accessor is now available for both ``Series`` and ``Index``.
-
-  .. ipython:: python
-
-     idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
-     idx.str.strip()
-
-  One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
-  will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
-  to work naturally:
-
-
-  .. ipython:: python
-
-     idx = Index(['a1', 'a2', 'b1', 'b2'])
-     s = Series(range(4), index=idx)
-     s
-     idx.str.startswith('a')
-     s[s.index.str.startswith('a')]
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
@@ -198,6 +175,46 @@ when sampling from rows.
 
    df = DataFrame({'col1':[9,8,7,6], 'weight_column':[0.5, 0.4, 0.1, 0]})
    df.sample(n=3, weights='weight_column')
+
+
+.. _whatsnew_0161.enhancements.string:
+
+String Methods Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, following
+enhancements are performed to make string operation easier.
+
+- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9766`, :issue:`9773`, :issue:`10031`)
+
+  ================  ===============  ===============  ===============  ================
+  ..                ..               Methods          ..               ..
+  ================  ===============  ===============  ===============  ================
+  ``capitalize()``  ``swapcase()``   ``normalize()``  ``partition()``  ``rpartition()``
+  ================  ===============  ===============  ===============  ================
+
+
+
+- Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+
+  The ``.str`` accessor is now available for both ``Series`` and ``Index``.
+
+  .. ipython:: python
+
+     idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx.str.strip()
+
+  One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
+  will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
+  to work naturally:
+
+  .. ipython:: python
+
+     idx = Index(['a1', 'a2', 'b1', 'b2'])
+     s = Series(range(4), index=idx)
+     s
+     idx.str.startswith('a')
+     s[s.index.str.startswith('a')]
 
 .. _whatsnew_0161.api:
 
