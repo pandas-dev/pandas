@@ -384,7 +384,7 @@ class TestResample(tm.TestCase):
         expected = DataFrame({'A' : Series([21,41,63], index=index)})
 
         index = DatetimeIndex(start='20150101', end='20150331', freq='B')
-        df = DataFrame({'A' : Series(range(len(index)),index=index)})
+        df = DataFrame({'A' : Series(range(len(index)),index=index)},dtype='int64')
         result = df.resample('BM', how='last')
         assert_frame_equal(result, expected)
 
