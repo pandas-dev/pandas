@@ -1280,11 +1280,12 @@ class TestIndex(Base, tm.TestCase):
         idx = Index(['a b c', 'd e', 'f'])
         expected = Index([['a', 'b', 'c'], ['d', 'e'], ['f']])
         tm.assert_index_equal(idx.str.split(), expected)
-        tm.assert_index_equal(idx.str.split(return_type='series'), expected)
-        # return_type 'index' is an alias for 'series'
-        tm.assert_index_equal(idx.str.split(return_type='index'), expected)
-        with self.assertRaisesRegexp(ValueError, 'not supported'):
-            idx.str.split(return_type='frame')
+        tm.assert_index_equal(idx.str.split(expand=False), expected)
+
+        expected = MultiIndex.from_tuples([('a', 'b', 'c'),
+                                           ('d', 'e', np.nan),
+                                           ('f', np.nan, np.nan)])
+        tm.assert_index_equal(idx.str.split(expand=True), expected)
 
         # test boolean case, should return np.array instead of boolean Index
         idx = Index(['a1', 'a2', 'b1', 'b2'])
