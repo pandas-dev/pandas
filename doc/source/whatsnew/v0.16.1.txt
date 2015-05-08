@@ -189,13 +189,13 @@ String Methods Enhancements
 :ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, following
 enhancements are performed to make string operation easier.
 
-- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`)
+- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
   ================  ===============  ===============  ===============  ================
   ..                ..               Methods          ..               ..
   ================  ===============  ===============  ===============  ================
   ``capitalize()``  ``swapcase()``   ``normalize()``  ``partition()``  ``rpartition()``
-  ``index()``       ``rindex()``
+  ``index()``       ``rindex()``     ``translate()``
   ================  ===============  ===============  ===============  ================
 
 
