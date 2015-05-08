@@ -1802,6 +1802,17 @@ class TestStringMethods(tm.TestCase):
         with self.assertRaisesRegexp(AttributeError, message):
             idx.str
 
+    def test_method_on_bytes(self):
+        lhs = Series(np.array(list('abc'), 'S1').astype(object))
+        rhs = Series(np.array(list('def'), 'S1').astype(object))
+        if compat.PY3:
+            self.assertRaises(TypeError, lhs.str.cat, rhs)
+        else:
+            result = lhs.str.cat(rhs)
+            expected = Series(np.array(['ad', 'be', 'cf'],
+                                       'S2').astype(object))
+            tm.assert_series_equal(result, expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
