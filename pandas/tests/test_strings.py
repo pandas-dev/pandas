@@ -522,14 +522,23 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([['BAD__', 'BAD'], er, er])
         tm.assert_frame_equal(result, exp)
 
+        result = values.str.extract('.*(BAD[_]+).*(BAD)', expand=False)
+        exp = Series([['BAD__', 'BAD'], er, er], name=[0, 1])
+        tm.assert_series_equal(result, exp)
+
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
 
-        rs = Series(mixed).str.extract('.*(BAD[_]+).*(BAD)')
+        rs = mixed.str.extract('.*(BAD[_]+).*(BAD)')
         exp = DataFrame([['BAD_', 'BAD'], er, ['BAD_', 'BAD'], er, er,
                          er, er, er, er])
         tm.assert_frame_equal(rs, exp)
+
+        rs = mixed.str.extract('.*(BAD[_]+).*(BAD)', expand=False)
+        exp = Series([['BAD_', 'BAD'], er, ['BAD_', 'BAD'], er, er,
+                         er, er, er, er], name=[0, 1])
+        tm.assert_series_equal(rs, exp)
 
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
@@ -538,12 +547,25 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([[u('BAD__'), u('BAD')], er, er])
         tm.assert_frame_equal(result, exp)
 
-        # GH9980
-        # Index only works with one regex group since
-        # multi-group would expand to a frame
+        result = values.str.extract('.*(BAD[_]+).*(BAD)', expand=False)
+        exp = Series([[u('BAD__'), u('BAD')], er, er], name=[0, 1])
+        tm.assert_series_equal(result, exp)
+
         idx = Index(['A1', 'A2', 'A3', 'A4', 'B5'])
-        with tm.assertRaisesRegexp(ValueError, "supported"):
-            idx.str.extract('([AB])([123])')
+        result = idx.str.extract('([AB])([123])')
+        exp = MultiIndex.from_tuples([('A', '1'), ('A', '2'), ('A', '3'),
+                                      (NA, NA), (NA, NA)], names=[0, 1])
+        tm.assert_index_equal(result, exp)
+
+        # check warning to return single Series
+        s = Series(['A1', 'A2'])
+        result = s.str.extract(r'(A)\d')
+        tm.assert_series_equal(result, Series(['A', 'A']))
+
+        # expand=True results in DataFrame
+        s = Series(['A1', 'A2'])
+        result = s.str.extract(r'(A)\d', expand=True)
+        tm.assert_frame_equal(result, DataFrame(['A', 'A']))
 
         # these should work for both Series and Index
         for klass in [Series, Index]:
@@ -634,6 +656,110 @@ class TestStringMethods(tm.TestCase):
         for index in [ tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
                        tm.makeDateIndex, tm.makePeriodIndex ]:
             check_index(index())
+
+    def test_extract_index(self):
+        values = Index(['fooBAD__barBAD', NA, 'foo'])
+        er = [NA, NA]  # empty row
+
+        result = values.str.extract('.*(BAD[_]+).*(BAD)')
+        exp = MultiIndex.from_tuples([['BAD__', 'BAD'], er, er], names=[0, 1])
+        tm.assert_index_equal(result, exp)
+
+        # mixed
+        mixed = Index(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
+                       'foo', None, 1, 2.])
+
+        rs = mixed.str.extract('.*(BAD[_]+).*(BAD)')
+        exp = MultiIndex.from_tuples([['BAD_', 'BAD'], er, ['BAD_', 'BAD'], er, er,
+                                     er, er, er, er], names=[0, 1])
+        tm.assert_index_equal(rs, exp)
+
+        # unicode
+        values = Index([u('fooBAD__barBAD'), NA, u('foo')])
+
+        result = values.str.extract('.*(BAD[_]+).*(BAD)')
+        exp = MultiIndex.from_tuples([[u('BAD__'), u('BAD')], er, er], names=[0, 1])
+        tm.assert_index_equal(result, exp)
+
+        s = Index(['A1', 'B2', 'C3'])
+        # one group, no matches
+        result = s.str.extract('(_)')
+        exp = Index([NA, NA, NA], dtype=object)
+        tm.assert_index_equal(result, exp)
+
+        # two groups, no matches
+        result = s.str.extract('(_)(_)')
+        exp = MultiIndex.from_tuples([[NA, NA], [NA, NA], [NA, NA]],
+                                     names=[0, 1])
+        tm.assert_index_equal(result, exp)
+
+        # one group, some matches
+        result = s.str.extract('([AB])[123]')
+        exp = Index(['A', 'B', NA])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 1)
+
+        # two groups, some matches
+        result = s.str.extract('([AB])([123])')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], [NA, NA]], names=[0, 1])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 2)
+
+        result = s.str.extract('([ABC])([123])', expand=False)
+        exp = Index(np.array([['A', '1'], ['B', '2'], ['C', '3']]),
+                             dtype=object, name=[0, 1])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 1)
+
+        # one named group
+        result = s.str.extract('(?P<letter>[AB])')
+        exp = Index(['A', 'B', NA], name='letter')
+        tm.assert_index_equal(result, exp)
+
+        # two named groups
+        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], [NA, NA]],
+                                     names=['letter', 'number'])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 2)
+
+        result = s.str.extract('(?P<letter>[ABC])(?P<number>[123])', expand=False)
+        exp = Index(np.array([['A', '1'], ['B', '2'], ['C', '3']]),
+                             dtype=object, name=['letter', 'number'])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 1)
+
+        # mix named and unnamed groups
+        result = s.str.extract('([AB])(?P<number>[123])')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], [NA, NA]],
+                                     names=[0, 'number'])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 2)
+
+        # one normal group, one non-capturing group
+        result = s.str.extract('([AB])(?:[123])')
+        exp = Index(['A', 'B', NA])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 1)
+
+        # two normal groups, one non-capturing group
+        result = Index(['A11', 'B22', 'C33']).str.extract('([AB])([123])(?:[123])')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], [NA, NA]], names=[0, 1])
+        tm.assert_index_equal(result, exp)
+
+        # one optional group followed by one normal group
+        result = Index(['A1', 'B2', '3']).str.extract('(?P<letter>[AB])?(?P<number>[123])')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], [NA, '3']],
+                                     names=['letter', 'number'])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 2)
+
+        # one normal group followed by one optional group
+        result = Index(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
+        exp = MultiIndex.from_tuples([['A', '1'], ['B', '2'], ['C', NA]],
+                                     names=['letter', 'number'])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(result.nlevels, 2)
 
     def test_extract_single_series_name_is_preserved(self):
         s = Series(['a3', 'b3', 'c2'], name='bob')
@@ -777,11 +903,30 @@ class TestStringMethods(tm.TestCase):
                              columns=list('7ab'))
         tm.assert_frame_equal(result, expected)
 
-        # GH9980
-        # Index.str does not support get_dummies() as it returns a frame
-        with tm.assertRaisesRegexp(TypeError, "not supported"):
-            idx = Index(['a|b', 'a|c', 'b|c'])
-            idx.str.get_dummies('|')
+        idx = Index(['a|b', 'a|c', 'b|c'])
+        result = idx.str.get_dummies('|')
+        expected = MultiIndex.from_tuples([(1, 1, 0), (1, 0, 1), (0, 1, 1)],
+                                          names=['a', 'b', 'c'])
+        tm.assert_index_equal(result, expected)
+
+    def test_get_dummies_without_expand(self):
+        s = Series(['a|b', 'a|c', np.nan])
+        result = s.str.get_dummies('|', expand=False)
+        expected = Series([[1, 1, 0], [1, 0, 1], [0, 0, 0]], name=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(['a;b', 'a', 7])
+        result = s.str.get_dummies(';', expand=False)
+        expected = Series([[0, 1, 1], [0, 1, 0], [1, 0, 0]],
+                          name=list('7ab'))
+        tm.assert_series_equal(result, expected)
+
+        idx = Index(['a|b', 'a|c', 'b|c'])
+        result = idx.str.get_dummies('|', expand=False)
+        expected = Index(np.array([(1, 1, 0), (1, 0, 1), (0, 1, 1)]),
+                         name=['a', 'b', 'c'])
+        tm.assert_index_equal(result, expected)
+        self.assertEqual(result.nlevels, 1)
 
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
