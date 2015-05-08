@@ -3009,7 +3009,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]
-        columns = data._get_numeric_data().columns - by
+        columns = data._get_numeric_data().columns.difference(by)
     naxes = len(columns)
     fig, axes = _subplots(naxes=naxes, sharex=True, sharey=True,
                           figsize=figsize, ax=ax, layout=layout)
