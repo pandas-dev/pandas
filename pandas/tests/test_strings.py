@@ -1206,14 +1206,19 @@ class TestStringMethods(tm.TestCase):
         result = values.str.split('__')
         tm.assert_series_equal(result, exp)
 
+        result = values.str.split('__', expand=False)
+        tm.assert_series_equal(result, exp)
+
         # mixed
         mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
                         None, 1, 2.])
-
-        rs = Series(mixed).str.split('_')
+        rs = mixed.str.split('_')
         xp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
                      NA, NA, NA])
+        tm.assert_isinstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
 
+        rs = mixed.str.split('_', expand=False)
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
@@ -1224,6 +1229,9 @@ class TestStringMethods(tm.TestCase):
         exp = Series([[u('a'), u('b'), u('c')],
                       [u('c'), u('d'), u('e')], NA,
                       [u('f'), u('g'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.split('_', expand=False)
         tm.assert_series_equal(result, exp)
 
     def test_split_noargs(self):
@@ -1259,7 +1267,10 @@ class TestStringMethods(tm.TestCase):
 
     def test_split_to_dataframe(self):
         s = Series(['nosplit', 'alsonosplit'])
-        result = s.str.split('_', return_type='frame')
+
+        with tm.assert_produces_warning():
+            result = s.str.split('_', return_type='frame')
+
         exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
         tm.assert_frame_equal(result, exp)
 
@@ -1282,8 +1293,60 @@ class TestStringMethods(tm.TestCase):
                         index=['preserve', 'me'])
         tm.assert_frame_equal(result, exp)
 
-        with tm.assertRaisesRegexp(ValueError, "return_type must be"):
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
             s.str.split('_', return_type="some_invalid_type")
+
+    def test_split_to_dataframe_expand(self):
+        s = Series(['nosplit', 'alsonosplit'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_equal_splits', 'with_no_nans'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
+                         2: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_unequal_splits', 'one_of_these_things_is_not'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'one'], 1: ['unequal', 'of'],
+                         2: ['splits', 'these'], 3: [NA, 'things'],
+                         4: [NA, 'is'], 5: [NA, 'not']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
+                        index=['preserve', 'me'])
+        tm.assert_frame_equal(result, exp)
+
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+            s.str.split('_', return_type="some_invalid_type")
+
+    def test_split_to_multiindex_expand(self):
+        idx = Index(['nosplit', 'alsonosplit'])
+        result = idx.str.split('_', expand=True)
+        exp = Index([np.array(['nosplit']), np.array(['alsonosplit'])])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        idx = Index(['some_equal_splits', 'with_no_nans'])
+        result = idx.str.split('_', expand=True)
+        exp = MultiIndex.from_tuples([('some', 'equal', 'splits'),
+                                      ('with', 'no', 'nans')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 3)
+
+        idx = Index(['some_unequal_splits', 'one_of_these_things_is_not'])
+        result = idx.str.split('_', expand=True)
+        exp = MultiIndex.from_tuples([('some', 'unequal', 'splits', NA, NA, NA),
+                                      ('one', 'of', 'these', 'things', 'is', 'not')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 6)
+
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+            idx.str.split('_', return_type="some_invalid_type")
 
     def test_partition_series(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])

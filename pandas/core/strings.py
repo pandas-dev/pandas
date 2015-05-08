@@ -3,7 +3,7 @@ import numpy as np
 from pandas.compat import zip
 from pandas.core.common import isnull, _values_from_object, is_bool_dtype
 import pandas.compat as compat
-from pandas.util.decorators import Appender
+from pandas.util.decorators import Appender, deprecate_kwarg
 import re
 import pandas.lib as lib
 import warnings
@@ -696,7 +696,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     return _na_map(f, arr)
 
 
-def str_split(arr, pat=None, n=None, return_type='series'):
+def str_split(arr, pat=None, n=None):
     """
     Split each string (a la re.split) in the Series/Index by given
     pattern, propagating NA values. Equivalent to :meth:`str.split`.
@@ -705,29 +705,17 @@ def str_split(arr, pat=None, n=None, return_type='series'):
     ----------
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
-    n : int, default None (all)
-    return_type : {'series', 'index', 'frame'}, default 'series'
-        If frame, returns a DataFrame (elements are strings)
-        If series or index, returns the same type as the original object
-        (elements are lists of strings).
-
-    Notes
-    -----
-    Both 0 and -1 will be interpreted as return all splits
+    n : int, default -1 (all)
+        None, 0 and -1 will be interpreted as return all splits
+    expand : bool, default False
+        * If True, return DataFrame/MultiIndex expanding dimensionality.
+        * If False, return Series/Index.
+    return_type : deprecated, use `expand`
 
     Returns
     -------
-    split : Series/Index of objects or DataFrame
+    split : Series/Index or DataFrame/MultiIndex of objects
     """
-    from pandas.core.series import Series
-    from pandas.core.frame import DataFrame
-    from pandas.core.index import Index
-
-    if return_type not in ('series', 'index', 'frame'):
-        raise ValueError("return_type must be {'series', 'index', 'frame'}")
-    if return_type == 'frame' and isinstance(arr, Index):
-        raise ValueError("return_type='frame' is not supported for string "
-                         "methods on Index")
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -742,10 +730,7 @@ def str_split(arr, pat=None, n=None, return_type='series'):
                 n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
-    if return_type == 'frame':
-        res = DataFrame((Series(x) for x in _na_map(f, arr)), index=arr.index)
-    else:
-        res = _na_map(f, arr)
+    res = _na_map(f, arr)
     return res
 
 
@@ -1083,7 +1068,10 @@ class StringMethods(object):
             return DataFrame(result, index=self.series.index)
 
     def _wrap_result_expand(self, result, expand=False):
-        from pandas.core.index import Index
+        if not isinstance(expand, bool):
+            raise ValueError("expand must be True or False")
+
+        from pandas.core.index import Index, MultiIndex
         if not hasattr(result, 'ndim'):
             return result
 
@@ -1096,7 +1084,9 @@ class StringMethods(object):
 
             if expand:
                 result = list(result)
-            return Index(result, name=name)
+                return MultiIndex.from_tuples(result, names=name)
+            else:
+                return Index(result, name=name)
         else:
             index = self.series.index
             if expand:
@@ -1114,10 +1104,12 @@ class StringMethods(object):
         result = str_cat(self.series, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result)
 
+    @deprecate_kwarg('return_type', 'expand',
+                     mapping={'series': False, 'frame': True})
     @copy(str_split)
-    def split(self, pat=None, n=-1, return_type='series'):
-        result = str_split(self.series, pat, n=n, return_type=return_type)
-        return self._wrap_result(result)
+    def split(self, pat=None, n=-1, expand=False):
+        result = str_split(self.series, pat, n=n)
+        return self._wrap_result_expand(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
     Split the string at the %(side)s occurrence of `sep`, and return 3 elements
@@ -1131,7 +1123,7 @@ class StringMethods(object):
         String to split on.
     expand : bool, default True
         * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index
+        * If False, return Series/Index.
 
     Returns
     -------

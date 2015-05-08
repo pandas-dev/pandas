@@ -221,6 +221,28 @@ enhancements are performed to make string operation easier.
      idx.str.startswith('a')
      s[s.index.str.startswith('a')]
 
+
+- ``split`` now takes ``expand`` keyword to specify whether to expand dimensionality. ``return_type`` is deprecated. (:issue:`9847`)
+
+  .. ipython:: python
+
+     s = Series(['a,b', 'a,c', 'b,c'])
+
+     # return Series
+     s.str.split(',')
+
+     # return DataFrame
+     s.str.split(',', expand=True)
+
+     idx = Index(['a,b', 'a,c', 'b,c'])
+
+     # return Index
+     idx.str.split(',')
+
+     # return MultiIndex
+     idx.str.split(',', expand=True)
+
+
 - Improved ``extract`` and ``get_dummies`` methods for ``Index.str`` (:issue:`9980`)
 
 .. _whatsnew_0161.api:
@@ -248,6 +270,13 @@ API changes
   the order was arbitrary. (:issue:`9777`)
 
 - By default, ``read_csv`` and ``read_table`` will now try to infer the compression type based on the file extension. Set ``compression=None`` to restore the previous behavior (no decompression). (:issue:`9770`)
+
+.. _whatsnew_0161.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+- ``Series.str.split``'s ``return_type`` keyword was removed in favor of ``expand`` (:issue:`9847`)
 
 .. _whatsnew_0161.performance:
 
