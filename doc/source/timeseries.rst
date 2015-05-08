@@ -1010,8 +1010,7 @@ Shifting / lagging
 
 One may want to *shift* or *lag* the values in a TimeSeries back and forward in
 time. The method for this is ``shift``, which is available on all of the pandas
-objects. In DataFrame, ``shift`` will currently only shift along the ``index``
-and in Panel along the ``major_axis``.
+objects.
 
 .. ipython:: python
 
