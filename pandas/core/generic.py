@@ -3584,8 +3584,7 @@ class NDFrame(PandasObject):
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
             level=level, try_cast=try_cast, raise_on_error=raise_on_error)
 
-    def shift(self, periods=1, freq=None, axis=0, **kwargs):
-        """
+    _shared_docs['shift'] = ("""
         Shift index by desired number of periods with an optional time freq
 
         Parameters
@@ -3595,6 +3594,7 @@ class NDFrame(PandasObject):
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM').
             See Notes.
+        axis : %(axes_single_arg)s
 
         Notes
         -----
@@ -3604,8 +3604,10 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        shifted : same type as caller
-        """
+        shifted : %(klass)s
+    """)
+    @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
+    def shift(self, periods=1, freq=None, axis=0, **kwargs):
         if periods == 0:
             return self
 
