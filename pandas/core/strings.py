@@ -638,6 +638,26 @@ def str_find(arr, sub, start=0, end=None, side='left'):
     return _na_map(f, arr, dtype=int)
 
 
+def str_index(arr, sub, start=0, end=None, side='left'):
+    if not isinstance(sub, compat.string_types):
+        msg = 'expected a string object, not {0}'
+        raise TypeError(msg.format(type(sub).__name__))
+
+    if side == 'left':
+        method = 'index'
+    elif side == 'right':
+        method = 'rindex'
+    else:  # pragma: no cover
+        raise ValueError('Invalid side')
+
+    if end is None:
+        f = lambda x: getattr(x, method)(sub, start)
+    else:
+        f = lambda x: getattr(x, method)(sub, start, end)
+
+    return _na_map(f, arr, dtype=int)
+
+
 def str_pad(arr, width, side='left', fillchar=' '):
     """
     Pad strings in the Series/Index with an additional character to
@@ -1325,6 +1345,42 @@ class StringMethods(object):
         import unicodedata
         f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
         result = _na_map(f, self.series)
+        return self._wrap_result(result)
+
+    _shared_docs['index'] = ("""
+    Return %(side)s indexes in each strings where the substring is
+    fully contained between [start:end]. This is the same as ``str.%(similar)s``
+    except instead of returning -1, it raises a ValueError when the substring
+    is not found. Equivalent to standard ``str.%(method)s``.
+
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+
+    Returns
+    -------
+    found : Series/Index of objects
+
+    See Also
+    --------
+    %(also)s
+    """)
+
+    @Appender(_shared_docs['index'] % dict(side='lowest', similar='find', method='index',
+              also='rindex : Return highest indexes in each strings'))
+    def index(self, sub, start=0, end=None):
+        result = str_index(self.series, sub, start=start, end=end, side='left')
+        return self._wrap_result(result)
+
+    @Appender(_shared_docs['index'] % dict(side='highest', similar='rfind', method='rindex',
+              also='index : Return lowest indexes in each strings'))
+    def rindex(self, sub, start=0, end=None):
+        result = str_index(self.series, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
