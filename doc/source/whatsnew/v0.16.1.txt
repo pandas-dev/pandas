@@ -68,6 +68,8 @@ Enhancements
 
 - ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
 
+- ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate :issue:`10032`.
+
 .. _whatsnew_0161.enhancements.categoricalindex:
 
 CategoricalIndex
