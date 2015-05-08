@@ -854,7 +854,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                     --i;
                 } while (i + 1 > self->datapos && *buf != '\n');
 
-                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                if (*buf == '\n') // reached a newline rather than the beginning
                 {
                     ++buf; // move pointer to first char after newline
                     ++i;
@@ -1172,7 +1172,7 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
                     --i;
                 } while (i + 1 > self->datapos && *buf != self->lineterminator);
 
-                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                if (*buf == self->lineterminator) // reached a newline rather than the beginning
                 {
                     ++buf; // move pointer to first char after newline
                     ++i;
