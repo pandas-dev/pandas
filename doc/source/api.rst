@@ -560,6 +560,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.strip
    Series.str.swapcase
    Series.str.title
+   Series.str.translate
    Series.str.upper
    Series.str.wrap
    Series.str.zfill
