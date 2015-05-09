@@ -16,7 +16,6 @@ Highlights include:
 - The default ``Index`` printing has changed to a more uniform format, see :ref:`here <whatsnew_0161.index_repr>`
 - ``BusinessHour`` datetime-offset is now supported, see :ref:`here <timeseries.businesshour>`
 
->>>>>>> more fixes
 -  Further enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0161.enhancements.string>`
 
 .. contents:: What's new in v0.16.1
