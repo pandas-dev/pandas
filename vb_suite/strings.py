@@ -35,6 +35,7 @@ strings_repeat = Benchmark(
 strings_match = Benchmark("many.str.match(r'mat..this')", setup)
 strings_extract = Benchmark("many.str.extract(r'(\w*)matchthis(\w*)')", setup)
 strings_join_split = Benchmark("many.str.join(r'--').str.split('--')", setup)
+strings_join_split_expand = Benchmark("many.str.join(r'--').str.split('--',expand=True)", setup)
 strings_len = Benchmark("many.str.len()", setup)
 strings_findall = Benchmark("many.str.findall(r'[A-Z]+')", setup)
 strings_pad = Benchmark("many.str.pad(100, side='both')", setup)
