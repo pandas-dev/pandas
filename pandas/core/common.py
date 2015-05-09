@@ -242,6 +242,8 @@ def _isnull_new(obj):
         return obj._constructor(obj._data.isnull(func=isnull))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
+    elif isinstance(obj, pd.Period):
+        return obj.ordinal == tslib.iNaT
     else:
         return obj is None
 
@@ -312,7 +314,6 @@ def _isnull_ndarraylike(obj):
                 values = values.values
             result = values.isnull()
         else:
-
             # Working around NumPy ticket 1542
             shape = values.shape
 
@@ -323,7 +324,7 @@ def _isnull_ndarraylike(obj):
                 vec = lib.isnullobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
-    elif is_datetimelike(obj):
+    elif dtype in _DATELIKE_DTYPES or isinstance(obj, pd.PeriodIndex):
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
     else:

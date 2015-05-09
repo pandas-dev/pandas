@@ -8,8 +8,8 @@ common_setup = """from pandas_vb_common import *
 # shift
 
 setup = common_setup + """
-index = date_range(start="2000", freq="D", periods=1000)
-panel = Panel(np.random.randn(100, len(index), 1000))
+index = date_range(start="2000", freq="D", periods=100)
+panel = Panel(np.random.randn(100, len(index), 100))
 """
 
 panel_shift = Benchmark('panel.shift(1)', setup,

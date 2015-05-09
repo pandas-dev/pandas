@@ -226,6 +226,8 @@ cpdef checknull(object val):
         return get_timedelta64_value(val) == NPY_NAT
     elif is_array(val):
         return False
+    # elif is_periodnat(val):
+    #     return True
     else:
         return _checknull(val)
 
@@ -286,6 +288,8 @@ def item_from_zerodim(object val):
     """
     return util.unbox_if_zerodim(val)
 
+cdef is_periodnat(object val):
+    return hasattr(val, 'freq') and getattr(val, 'ordinal', None) == iNaT
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -298,7 +302,7 @@ def isnullobj(ndarray[object] arr):
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
         val = arr[i]
-        result[i] = val is NaT or _checknull(val)
+        result[i] = val is NaT or _checknull(val) or is_periodnat(val)
     return result.view(np.bool_)
 
 @cython.wraparound(False)
