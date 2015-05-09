@@ -1,0 +1,59 @@
+.. _whatsnew_0170:
+
+v0.17.0 (July ??, 2015)
+-----------------------
+
+This is a major release from 0.16.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+
+Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
+
+.. contents:: What's new in v0.17.0
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0170.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0170.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.api:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0170.api_breaking:
+
+.. _whatsnew_0170.api_breaking.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+.. _whatsnew_0170.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0170.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
