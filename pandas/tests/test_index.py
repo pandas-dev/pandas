@@ -120,6 +120,19 @@ class Base(object):
         idx.nbytes
         idx.values.nbytes
 
+    def test_repr_roundtrip(self):
+
+        idx = self.create_index()
+        tm.assert_index_equal(eval(repr(idx)),idx)
+
+    def test_str(self):
+
+        # test the string repr
+        idx = self.create_index()
+        idx.name = 'foo'
+        self.assertTrue("'foo'" in str(idx))
+        self.assertTrue(idx.__class__.__name__ in str(idx))
+
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
@@ -1699,7 +1712,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertRaises(NotImplementedError, lambda : idx2.get_indexer(idx1, method='backfill'))
         self.assertRaises(NotImplementedError, lambda : idx2.get_indexer(idx1, method='nearest'))
 
-    def test_repr(self):
+    def test_repr_roundtrip(self):
 
         ci = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         str(ci)
@@ -1712,9 +1725,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
             compat.text_type(ci)
 
         # long format
+        # this is not reprable
         ci = CategoricalIndex(np.random.randint(0,5,size=100))
-        result = str(ci)
-        tm.assert_index_equal(eval(repr(ci)),ci,exact=True)
+        if compat.PY3:
+            str(ci)
+        else:
+            compat.text_type(ci)
 
     def test_isin(self):
 
@@ -2448,7 +2464,7 @@ class TestInt64Index(Numeric, tm.TestCase):
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
             r = repr(pd.Index(np.arange(1000)))
-            self.assertTrue(len(r) < 100)
+            self.assertTrue(len(r) < 200)
             self.assertTrue("..." in r)
 
     def test_repr_roundtrip(self):
@@ -2474,6 +2490,23 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.assertEqual(idx.name, idx[1:].name)
 
 class DatetimeLike(Base):
+
+    def test_str(self):
+
+        # test the string repr
+        idx = self.create_index()
+        idx.name = 'foo'
+        self.assertFalse("length=%s" % len(idx) in str(idx))
+        self.assertTrue("'foo'" in str(idx))
+        self.assertTrue(idx.__class__.__name__ in str(idx))
+
+        if hasattr(idx,'tz'):
+            if idx.tz is not None:
+                self.assertTrue("tz='%s'" % idx.tz in str(idx))
+            else:
+                self.assertTrue("tz=None" in str(idx))
+        if hasattr(idx,'freq'):
+            self.assertTrue("freq='%s'" % idx.freqstr in str(idx))
 
     def test_view(self):
         super(DatetimeLike, self).test_view()
@@ -4389,7 +4422,25 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertFalse("\\u" in repr(index))  # we don't want unicode-escaped
 
     def test_repr_roundtrip(self):
-        tm.assert_index_equal(eval(repr(self.index)), self.index)
+
+        mi = MultiIndex.from_product([list('ab'),range(3)],names=['first','second'])
+        str(mi)
+        tm.assert_index_equal(eval(repr(mi)),mi,exact=True)
+
+        # formatting
+        if compat.PY3:
+            str(mi)
+        else:
+            compat.text_type(mi)
+
+        # long format
+        mi = MultiIndex.from_product([list('abcdefg'),range(10)],names=['first','second'])
+        result = str(mi)
+        tm.assert_index_equal(eval(repr(mi)),mi,exact=True)
+
+    def test_str(self):
+        # tested elsewhere
+        pass
 
     def test_unicode_string_with_unicode(self):
         d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
