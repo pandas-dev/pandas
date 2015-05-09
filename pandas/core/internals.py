@@ -4021,7 +4021,7 @@ def _putmask_smart(v, m, n):
             nv = v.copy()
             nv[m] = nn_at
             return nv
-    except (ValueError, IndexError, TypeError):
+    except (ValueError, IndexError, TypeError, AttributeError):
         pass
 
     # change the dtype
