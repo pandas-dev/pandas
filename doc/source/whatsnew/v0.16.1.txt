@@ -1,7 +1,7 @@
 .. _whatsnew_0161:
 
-v0.16.1 (April ??, 2015)
-------------------------
+v0.16.1 (May 11, 2015)
+----------------------
 
 This is a minor bug-fix release from 0.16.0 and includes a a large number of
 bug fixes along several new features, enhancements, and performance improvements.
@@ -11,12 +11,9 @@ Highlights include:
 
 - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
 - New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
-- Revised "Merge, join, and concatenate" documentation including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
-
-- New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enchancements.sample>`
-
-- ``BusinessHour`` offset is supported, see :ref:`here <timeseries.businesshour>`
-
+- Revised "Merge, join, and concatenate" documentation, including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
+- New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enhancements.sample>`
+- ``BusinessHour`` date-offset is now supported, see :ref:`here <timeseries.businesshour>`
 -  Further enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0161.enhancements.string>`
 
 .. contents:: What's new in v0.16.1
@@ -42,7 +39,7 @@ Enhancements
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 
-- Allow clip, clip_lower, and clip_upper to accept array-like arguments as thresholds (:issue:`6966`). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s).
+- Allow ``clip``, ``clip_lower``, and ``clip_upper`` to accept array-like arguments as thresholds (This is a regression from 0.11.0). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s). (:issue:`6966`)
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
@@ -58,7 +55,7 @@ Enhancements
 - ``Period`` now accepts ``datetime64`` as value input. (:issue:`9054`)
 
 - Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
-- Allow Panel.shift with ``axis='items'`` (:issue:`9890`)
+- Allow ``Panel.shift`` with ``axis='items'`` (:issue:`9890`)
 
 - Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
 - Allow ``Categorical.add_categories`` to accept ``Series`` or ``np.array``. (:issue:`9927`)
@@ -68,7 +65,7 @@ Enhancements
 
 - ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
 
-- ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate :issue:`10032`.
+- ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate. (:issue:`10032`)
 
 .. _whatsnew_0161.enhancements.categoricalindex:
 
@@ -186,10 +183,10 @@ when sampling from rows.
 String Methods Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, following
-enhancements are performed to make string operation easier.
+:ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, the following
+enhancements make string operations easier and more consistent with standard python string operations.
 
-- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
+- The following new methods are accesible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
   ================  ===============  ===============  ===============  ================
   ..                ..               Methods          ..               ..
@@ -200,7 +197,7 @@ enhancements are performed to make string operation easier.
 
 
 
-- Added ``StringMethods`` (.str accessor) to ``Index`` (:issue:`9068`)
+- Added ``StringMethods`` (``.str`` accessor) to ``Index`` (:issue:`9068`)
 
   The ``.str`` accessor is now available for both ``Series`` and ``Index``.
 
@@ -294,8 +291,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixed bug (:issue:`9542`) where labels did not appear properly in legend of ``DataFrame.plot()``. Passing ``label=`` args also now works, and series indices are no longer mutated.
-- Bug in json serialization when frame has length zero.(:issue:`9805`)
+- Bug where labels did not appear properly in the legend of ``DataFrame.plot()``, passing ``label=`` arguments works, and Series indices are no longer mutated. (:issue:`9542`)
+- Bug in json serialization causing a segfault when a frame had zero length. (:issue:`9805`)
 - Bug in ``read_csv`` where missing trailing delimiters would cause segfault. (:issue:`5664`)
 - Bug in retaining index name on appending (:issue:`9862`)
 - Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
@@ -493,7 +490,11 @@ Bug Fixes
 =======
 - Bug in subclassed ``DataFrame``. It may not return the correct class, when slicing or subsetting it. (:issue:`9632`)
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5805889... Return correct subclass when slicing DataFrame.
 =======
 - BUG in median() where non-float null values are not handled correctly (:issue:`10040`)
 >>>>>>> df730a3... BUG: median() not correctly handling non-float null values (fixes #10040)
+=======
+- Bug in ``.median()`` where non-float null values are not handled correctly (:issue:`10040`)
+>>>>>>> 6c80f68... DOC: prepare for 0.16.1 release
