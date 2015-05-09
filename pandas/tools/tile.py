@@ -186,7 +186,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     ids = bins.searchsorted(x, side=side)
 
     if len(algos.unique(bins)) < len(bins):
-        raise ValueError('Bin edges must be unique: %s' % repr(bins))
+        raise ValueError('The quantiles you selected do not result in unique bins. Try selecting fewer quantiles.')
 
     if include_lowest:
         ids[x == bins[0]] = 1
