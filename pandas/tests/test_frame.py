@@ -8076,6 +8076,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = df.fillna(v)
             assert_frame_equal(result, expected)
 
+    def test_fillna_interpolation(self):
+        interp_methods = ['linear', 'time', 'index', 'values', 'nearest',
+                          'zero', 'slinear', 'quadratic', 'cubic',
+                          'barycentric', 'krogh', 'pchip']
+        x = np.linspace(0, 1, 10)
+        y = np.sin(x)
+        y[[3, 4, 7]] = np.NaN
+        df = DataFrame({'y': y}, index=x)
+        dft = DataFrame({'y': y},
+                        index=DatetimeIndex(
+                            ["2015-01-%02d" % (i + 1) for i in range(len(x))]))
+        for method in interp_methods:
+            dfl = df
+            if method == "time":
+                dfl = dft
+                continue
+            dff = dfl.fillna(method=method)
+            dfi = dfl.interpolate(method=method)
+            assert_frame_equal(dff, dfi)
+
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan

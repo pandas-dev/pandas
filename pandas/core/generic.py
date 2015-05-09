@@ -2398,10 +2398,17 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+        method : {'backfill', 'bfill', 'pad', 'ffill', None,
+                  'linear', 'time', 'index', 'values', 'nearest',
+                  'zero', 'slinear', 'quadratic', 'cubic',
+                  'barycentric', 'krogh', 'spline', 'polynomial',
+                  'pchip'}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+            linear, time, index, values, nearest, zero, slinear, quadratic,
+                cubic, barycentric, krogh, spline, polynomial, pchip:
+                    supported via the interpolate() function.
         value : scalar, dict, Series, or DataFrame
             Value to use to fill holes (e.g. 0), alternately a dict/Series/DataFrame of
             values specifying which value to use for each index (for a Series) or
@@ -2442,12 +2449,24 @@ class NDFrame(PandasObject):
                             'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
+        interp_methods = ['linear', 'time', 'index', 'values', 'nearest',
+                          'zero', 'slinear', 'quadratic', 'cubic',
+                          'barycentric', 'krogh', 'spline', 'polynomial',
+                          'pchip']
+
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
-            axis = 0
+            if method is None or method in ['backfill', 'bfill', 'pad',
+                                            'ffill']:
+                axis = 0
+            elif method in interp_methods:
+                axis = 1
+            else:
+                axis = 0
         axis = self._get_axis_number(axis)
-        method = com._clean_fill_method(method)
+        method = com._clean_fill_method(method, allow_nearest=True,
+                                        allow_interp_methods=True)
 
         from pandas import DataFrame
         if value is None:
@@ -2478,13 +2497,23 @@ class NDFrame(PandasObject):
                 return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
-            method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method=method,
-                                              axis=axis,
-                                              limit=limit,
-                                              inplace=inplace,
-                                              coerce=True,
-                                              downcast=downcast)
+            new_data = None
+            if method in interp_methods:
+                new_data = self._data.interpolate(method=method,
+                                                  index=self.index,
+                                                  values=self,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
+            else:
+                new_data = self._data.interpolate(method=method,
+                                                  axis=axis,
+                                                  limit=limit,
+                                                  inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
