@@ -6,18 +6,16 @@
    :suppress:
 
    import numpy as np
-   import random
+   import pandas as pd
    import os
    np.random.seed(123456)
-   from pandas import options
-   import pandas as pd
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib
    try:
       matplotlib.style.use('ggplot')
    except AttributeError:
-      options.display.mpl_style = 'default'
-   options.display.max_rows=15
+      pd.options.display.mpl_style = 'default'
+   pd.options.display.max_rows = 15
 
    #### portions of this were borrowed from the
    #### Pandas cheatsheet
@@ -298,7 +296,7 @@ Using the :func:`~Series.isin` method for filtering:
 .. ipython:: python
 
    df2 = df.copy()
-   df2['E']=['one', 'one','two','three','four','three']
+   df2['E'] = ['one', 'one','two','three','four','three']
    df2
    df2[df2['E'].isin(['two','four'])]
 
@@ -310,7 +308,7 @@ by the indexes
 
 .. ipython:: python
 
-   s1 = pd.Series([1,2,3,4,5,6],index=pd.date_range('20130102',periods=6))
+   s1 = pd.Series([1,2,3,4,5,6], index=pd.date_range('20130102', periods=6))
    s1
    df['F'] = s1
 
@@ -359,7 +357,7 @@ returns a copy of the data.
 
 .. ipython:: python
 
-   df1 = df.reindex(index=dates[0:4],columns=list(df.columns) + ['E'])
+   df1 = df.reindex(index=dates[0:4], columns=list(df.columns) + ['E'])
    df1.loc[dates[0]:dates[1],'E'] = 1
    df1
 
@@ -409,9 +407,9 @@ In addition, pandas automatically broadcasts along the specified dimension.
 
 .. ipython:: python
 
-   s = pd.Series([1,3,5,np.nan,6,8],index=dates).shift(2)
+   s = pd.Series([1,3,5,np.nan,6,8], index=dates).shift(2)
    s
-   df.sub(s,axis='index')
+   df.sub(s, axis='index')
 
 
 Apply
@@ -431,7 +429,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randint(0,7,size=10))
+   s = pd.Series(np.random.randint(0, 7, size=10))
    s
    s.value_counts()
 
@@ -516,9 +514,9 @@ See the :ref:`Grouping section <groupby>`
 .. ipython:: python
 
    df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                            'foo', 'bar', 'foo', 'foo'],
+                             'foo', 'bar', 'foo', 'foo'],
                       'B' : ['one', 'one', 'two', 'three',
-                            'two', 'two', 'one', 'three'],
+                             'two', 'two', 'one', 'three'],
                       'C' : np.random.randn(8),
                       'D' : np.random.randn(8)})
    df

@@ -258,7 +258,7 @@ These functions can be applied to ndarrays or Series objects:
    ts.plot(style='k--')
 
    @savefig rolling_mean_ex.png
-   rolling_mean(ts, 60).plot(style='k')
+   pd.rolling_mean(ts, 60).plot(style='k')
 
 They can also be applied to DataFrame objects. This is really just syntactic
 sugar for applying the moving window operator to all of the DataFrame's columns:
@@ -275,7 +275,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
    df = df.cumsum()
 
    @savefig rolling_mean_frame.png
-   rolling_sum(df, 60).plot(subplots=True)
+   pd.rolling_sum(df, 60).plot(subplots=True)
 
 The ``rolling_apply`` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
@@ -286,7 +286,7 @@ compute the mean absolute deviation on a rolling basis:
 
    mad = lambda x: np.fabs(x - x.mean()).mean()
    @savefig rolling_apply_ex.png
-   rolling_apply(ts, 60, mad).plot(style='k')
+   pd.rolling_apply(ts, 60, mad).plot(style='k')
 
 The ``rolling_window`` function performs a generic rolling window computation
 on the input data. The weights used in the window are specified by the ``win_type``
@@ -311,21 +311,21 @@ keyword. The list of recognized types are:
 
    ser = pd.Series(np.random.randn(10), index=pd.date_range('1/1/2000', periods=10))
 
-   rolling_window(ser, 5, 'triang')
+   pd.rolling_window(ser, 5, 'triang')
 
 Note that the ``boxcar`` window is equivalent to ``rolling_mean``.
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'boxcar')
+   pd.rolling_window(ser, 5, 'boxcar')
 
-   rolling_mean(ser, 5)
+   pd.rolling_mean(ser, 5)
 
 For some windowing functions, additional parameters must be specified:
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'gaussian', std=0.1)
+   pd.rolling_window(ser, 5, 'gaussian', std=0.1)
 
 By default the labels are set to the right edge of the window, but a
 ``center`` keyword is available so the labels can be set at the center.
@@ -333,11 +333,11 @@ This keyword is available in other rolling functions as well.
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'boxcar')
+   pd.rolling_window(ser, 5, 'boxcar')
 
-   rolling_window(ser, 5, 'boxcar', center=True)
+   pd.rolling_window(ser, 5, 'boxcar', center=True)
 
-   rolling_mean(ser, 5, center=True)
+   pd.rolling_mean(ser, 5, center=True)
 
 .. _stats.moments.normalization:
 
@@ -376,7 +376,7 @@ For example:
 .. ipython:: python
 
    df2 = df[:20]
-   rolling_corr(df2, df2['B'], window=5)
+   pd.rolling_corr(df2, df2['B'], window=5)
 
 .. _stats.moments.corr_pairwise:
 
@@ -401,12 +401,12 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = rolling_cov(df[['B','C','D']], df[['A','B','C']], 50, pairwise=True)
+   covs = pd.rolling_cov(df[['B','C','D']], df[['A','B','C']], 50, pairwise=True)
    covs[df.index[-50]]
 
 .. ipython:: python
 
-   correls = rolling_corr(df, 50)
+   correls = pd.rolling_corr(df, 50)
    correls[df.index[-50]]
 
 .. note::
@@ -440,9 +440,9 @@ they are implemented in pandas such that the following two calls are equivalent:
 
 .. ipython:: python
 
-   rolling_mean(df, window=len(df), min_periods=1)[:5]
+   pd.rolling_mean(df, window=len(df), min_periods=1)[:5]
 
-   expanding_mean(df)[:5]
+   pd.expanding_mean(df)[:5]
 
 Like the ``rolling_`` functions, the following methods are included in the
 ``pandas`` namespace or can be located in ``pandas.stats.moments``.
@@ -501,7 +501,7 @@ relative impact of an individual data point. As an example, here is the
    ts.plot(style='k--')
 
    @savefig expanding_mean_frame.png
-   expanding_mean(ts).plot(style='k')
+   pd.expanding_mean(ts).plot(style='k')
 
 .. _stats.moments.exponentially_weighted:
 
@@ -583,7 +583,7 @@ Here is an example for a univariate time series:
    ts.plot(style='k--')
 
    @savefig ewma_ex.png
-   ewma(ts, span=20).plot(style='k')
+   pd.ewma(ts, span=20).plot(style='k')
 
 All the EW functions have a ``min_periods`` argument, which has the same
 meaning it does for all the ``expanding_`` and ``rolling_`` functions:

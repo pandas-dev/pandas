@@ -1,16 +1,14 @@
 .. currentmodule:: pandas
-.. _basics:
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
-   from pandas import *
-   randn = np.random.randn
+   import pandas as pd
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import lrange
-   options.display.max_rows=15
+   pd.options.display.max_rows = 15
 
+.. _basics:
 
 ==============================
  Essential Basic Functionality
@@ -22,13 +20,13 @@ the previous section:
 
 .. ipython:: python
 
-   index = date_range('1/1/2000', periods=8)
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   df = DataFrame(randn(8, 3), index=index,
-                  columns=['A', 'B', 'C'])
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
+   index = pd.date_range('1/1/2000', periods=8)
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   df = pd.DataFrame(np.random.randn(8, 3), index=index,
+                     columns=['A', 'B', 'C'])
+   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
 
 .. _basics.head_tail:
 
@@ -41,7 +39,7 @@ of elements to display is five, but you may pass a custom number.
 
 .. ipython:: python
 
-   long_series = Series(randn(1000))
+   long_series = pd.Series(np.random.randn(1000))
    long_series.head()
    long_series.tail(3)
 
@@ -143,9 +141,9 @@ either match on the *index* or *columns* via the **axis** keyword:
 
 .. ipython:: python
 
-   df = DataFrame({'one' : Series(randn(3), index=['a', 'b', 'c']),
-                   'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
-                   'three' : Series(randn(3), index=['b', 'c', 'd'])})
+   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
    df
    row = df.ix[1]
    column = df['two']
@@ -166,8 +164,8 @@ Furthermore you can align a level of a multi-indexed DataFrame with a Series.
 .. ipython:: python
 
    dfmi = df.copy()
-   dfmi.index = MultiIndex.from_tuples([(1,'a'),(1,'b'),(1,'c'),(2,'a')],
-                                       names=['first','second'])
+   dfmi.index = pd.MultiIndex.from_tuples([(1,'a'),(1,'b'),(1,'c'),(2,'a')],
+                                          names=['first','second'])
    dfmi.sub(column, axis=0, level='second')
 
 With Panel, describing the matching behavior is a bit more difficult, so
@@ -256,17 +254,17 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
 .. ipython:: python
 
    df.empty
-   DataFrame(columns=list('ABC')).empty
+   pd.DataFrame(columns=list('ABC')).empty
 
 To evaluate single-element pandas objects in a boolean context, use the method
 :meth:`~DataFrame.bool`:
 
 .. ipython:: python
 
-   Series([True]).bool()
-   Series([False]).bool()
-   DataFrame([[True]]).bool()
-   DataFrame([[False]]).bool()
+   pd.Series([True]).bool()
+   pd.Series([False]).bool()
+   pd.DataFrame([[True]]).bool()
+   pd.DataFrame([[False]]).bool()
 
 .. warning::
 
@@ -327,8 +325,8 @@ equality to be True:
 
 .. ipython:: python
 
-   df1 = DataFrame({'col':['foo', 0, np.nan]})
-   df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+   df1 = pd.DataFrame({'col':['foo', 0, np.nan]})
+   df2 = pd.DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
    df1.equals(df2)
    df1.equals(df2.sort())
 
@@ -348,10 +346,10 @@ which we illustrate:
 
 .. ipython:: python
 
-   df1 = DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
-                    'B' : [np.nan, 2., 3., np.nan, 6.]})
-   df2 = DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
-                    'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   df1 = pd.DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
+                       'B' : [np.nan, 2., 3., np.nan, 6.]})
+   df2 = pd.DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
+                       'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
    df1
    df2
    df1.combine_first(df2)
@@ -368,7 +366,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 
 .. ipython:: python
 
-   combiner = lambda x, y: np.where(isnull(x), y, x)
+   combiner = lambda x, y: np.where(pd.isnull(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
@@ -467,7 +465,7 @@ number of unique non-null values:
 
 .. ipython:: python
 
-   series = Series(randn(500))
+   series = pd.Series(np.random.randn(500))
    series[20:500] = np.nan
    series[10:20]  = 5
    series.nunique()
@@ -483,10 +481,10 @@ course):
 
 .. ipython:: python
 
-    series = Series(randn(1000))
+    series = pd.Series(np.random.randn(1000))
     series[::2] = np.nan
     series.describe()
-    frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+    frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
     frame.ix[::2] = np.nan
     frame.describe()
 
@@ -503,7 +501,7 @@ summary of the number of unique values and most frequently occurring values:
 
 .. ipython:: python
 
-   s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
+   s = pd.Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
 
 Note that on a mixed-type DataFrame object, :meth:`~DataFrame.describe` will
@@ -512,7 +510,7 @@ categorical columns:
 
 .. ipython:: python
 
-    frame = DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
+    frame = pd.DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
     frame.describe()
 
 This behaviour can be controlled by providing a list of types as ``include``/``exclude``
@@ -538,11 +536,11 @@ corresponding values:
 
 .. ipython:: python
 
-   s1 = Series(randn(5))
+   s1 = pd.Series(np.random.randn(5))
    s1
    s1.idxmin(), s1.idxmax()
 
-   df1 = DataFrame(randn(5,3), columns=['A','B','C'])
+   df1 = pd.DataFrame(np.random.randn(5,3), columns=['A','B','C'])
    df1
    df1.idxmin(axis=0)
    df1.idxmax(axis=1)
@@ -553,7 +551,7 @@ matching index:
 
 .. ipython:: python
 
-   df3 = DataFrame([2, 1, 1, 3, np.nan], columns=['A'], index=list('edcba'))
+   df3 = pd.DataFrame([2, 1, 1, 3, np.nan], columns=['A'], index=list('edcba'))
    df3
    df3['A'].idxmin()
 
@@ -573,18 +571,18 @@ of a 1D array of values. It can also be used as a function on regular arrays:
 
    data = np.random.randint(0, 7, size=50)
    data
-   s = Series(data)
+   s = pd.Series(data)
    s.value_counts()
-   value_counts(data)
+   pd.value_counts(data)
 
 Similarly, you can get the most frequently occurring value(s) (the mode) of the values in a Series or DataFrame:
 
 .. ipython:: python
 
-    s5 = Series([1, 1, 3, 3, 3, 5, 5, 7, 7, 7])
+    s5 = pd.Series([1, 1, 3, 3, 3, 5, 5, 7, 7, 7])
     s5.mode()
-    df5 = DataFrame({"A": np.random.randint(0, 7, size=50),
-                     "B": np.random.randint(-10, 15, size=50)})
+    df5 = pd.DataFrame({"A": np.random.randint(0, 7, size=50),
+                        "B": np.random.randint(-10, 15, size=50)})
     df5.mode()
 
 
@@ -597,10 +595,10 @@ and :func:`qcut` (bins based on sample quantiles) functions:
 .. ipython:: python
 
    arr = np.random.randn(20)
-   factor = cut(arr, 4)
+   factor = pd.cut(arr, 4)
    factor
 
-   factor = cut(arr, [-5, -1, 0, 1, 5])
+   factor = pd.cut(arr, [-5, -1, 0, 1, 5])
    factor
 
 :func:`qcut` computes sample quantiles. For example, we could slice up some
@@ -609,16 +607,16 @@ normally distributed data into equal-size quartiles like so:
 .. ipython:: python
 
    arr = np.random.randn(30)
-   factor = qcut(arr, [0, .25, .5, .75, 1])
+   factor = pd.qcut(arr, [0, .25, .5, .75, 1])
    factor
-   value_counts(factor)
+   pd.value_counts(factor)
 
 We can also pass infinite values to define the bins:
 
 .. ipython:: python
 
    arr = np.random.randn(20)
-   factor = cut(arr, [-np.inf, 0, np.inf])
+   factor = pd.cut(arr, [-np.inf, 0, np.inf])
    factor
 
 .. _basics.apply:
@@ -647,8 +645,8 @@ maximum value for each column occurred:
 
 .. ipython:: python
 
-   tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
-                    index=date_range('1/1/2000', periods=1000))
+   tsdf = pd.DataFrame(np.random.randn(1000, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=1000))
    tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
@@ -671,14 +669,14 @@ Series operation on each column or row:
 .. ipython:: python
    :suppress:
 
-   tsdf = DataFrame(randn(10, 3), columns=['A', 'B', 'C'],
-                    index=date_range('1/1/2000', periods=10))
+   tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=10))
    tsdf.values[3:7] = np.nan
 
 .. ipython:: python
 
    tsdf
-   tsdf.apply(Series.interpolate)
+   tsdf.apply(pd.Series.interpolate)
 
 Finally, :meth:`~DataFrame.apply` takes an argument ``raw`` which is False by default, which
 converts each row or column into a Series before applying the function. When
@@ -718,9 +716,9 @@ to :ref:`merging/joining functionality <merging>`:
 
 .. ipython:: python
 
-   s = Series(['six', 'seven', 'six', 'seven', 'six'],
-              index=['a', 'b', 'c', 'd', 'e'])
-   t = Series({'six' : 6., 'seven' : 7.})
+   s = pd.Series(['six', 'seven', 'six', 'seven', 'six'],
+                 index=['a', 'b', 'c', 'd', 'e'])
+   t = pd.Series({'six' : 6., 'seven' : 7.})
    s
    s.map(t)
 
@@ -797,7 +795,7 @@ This is equivalent to the following
 
 .. ipython:: python
 
-   result = Panel(dict([ (ax,f(panel.loc[:,:,ax]))
+   result = pd.Panel(dict([ (ax, f(panel.loc[:,:,ax]))
                            for ax in panel.minor_axis ]))
    result
    result.loc[:,:,'ItemA']
@@ -823,7 +821,7 @@ Here is a simple example:
 
 .. ipython:: python
 
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    s
    s.reindex(['e', 'b', 'f', 'd'])
 
@@ -909,7 +907,7 @@ It returns a tuple with both of the reindexed Series:
 
 .. ipython:: python
 
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    s1 = s[:4]
    s2 = s[1:]
    s1.align(s2)
@@ -960,8 +958,8 @@ We illustrate these fill methods on a simple Series:
 
 .. ipython:: python
 
-   rng = date_range('1/3/2000', periods=8)
-   ts = Series(randn(8), index=rng)
+   rng = pd.date_range('1/3/2000', periods=8)
+   ts = pd.Series(np.random.randn(8), index=rng)
    ts2 = ts[[0, 3, 6]]
    ts
    ts2
@@ -1095,11 +1093,11 @@ For instance, a contrived way to transpose the DataFrame would be:
 
 .. ipython:: python
 
-   df2 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+   df2 = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
    print(df2)
    print(df2.T)
 
-   df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
+   df2_t = pd.DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print(df2_t)
 
 .. note::
@@ -1109,7 +1107,7 @@ For instance, a contrived way to transpose the DataFrame would be:
 
     .. ipython:: python
 
-      df_iter = DataFrame([[1, 1.0]], columns=['x', 'y'])
+      df_iter = pd.DataFrame([[1, 1.0]], columns=['x', 'y'])
       row = next(df_iter.iterrows())[1]
       print(row['x'].dtype)
       print(df_iter['x'].dtype)
@@ -1140,7 +1138,7 @@ This will return a Series, indexed like the existing Series.
 .. ipython:: python
 
    # datetime
-   s = Series(date_range('20130101 09:10:12',periods=4))
+   s = pd.Series(pd.date_range('20130101 09:10:12',periods=4))
    s
    s.dt.hour
    s.dt.second
@@ -1171,7 +1169,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101',periods=4,freq='D'))
+   s = pd.Series(pd.period_range('20130101', periods=4,freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -1179,7 +1177,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # timedelta
-   s = Series(timedelta_range('1 day 00:00:05',periods=4,freq='s'))
+   s = pd.Series(pd.timedelta_range('1 day 00:00:05',periods=4,freq='s'))
    s
    s.dt.days
    s.dt.seconds
@@ -1200,7 +1198,7 @@ built-in string methods. For example:
 
  .. ipython:: python
 
-  s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+  s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
   s.str.lower()
 
 Powerful pattern-matching methods are provided as well, but note that
@@ -1234,7 +1232,7 @@ determine the sort order:
 
 .. ipython:: python
 
-   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1.sort_index(by='two')
 
 The ``by`` argument can take a list of column names, e.g.:
@@ -1265,12 +1263,12 @@ Series has the :meth:`~Series.searchsorted` method, which works similar to
 
 .. ipython:: python
 
-   ser = Series([1, 2, 3])
+   ser = pd.Series([1, 2, 3])
    ser.searchsorted([0, 3])
    ser.searchsorted([0, 4])
    ser.searchsorted([1, 3], side='right')
    ser.searchsorted([1, 3], side='left')
-   ser = Series([3, 1, 2])
+   ser = pd.Series([3, 1, 2])
    ser.searchsorted([0, 3], sorter=np.argsort(ser))
 
 .. _basics.nsorted:
@@ -1286,7 +1284,7 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
 
 .. ipython:: python
 
-   s = Series(np.random.permutation(10))
+   s = pd.Series(np.random.permutation(10))
    s
    s.order()
    s.nsmallest(3)
@@ -1303,7 +1301,7 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = MultiIndex.from_tuples([('a','one'),('a','two'),('b','three')])
+   df1.columns = pd.MultiIndex.from_tuples([('a','one'),('a','two'),('b','three')])
    df1.sort_index(by=('a','two'))
 
 
@@ -1336,13 +1334,13 @@ attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
-   dft = DataFrame(dict( A = np.random.rand(3),
-                         B = 1,
-                         C = 'foo',
-                         D = Timestamp('20010102'),
-                         E = Series([1.0]*3).astype('float32'),
-			 F = False,
-			 G = Series([1]*3,dtype='int8')))
+   dft = pd.DataFrame(dict(A = np.random.rand(3),
+                           B = 1,
+                           C = 'foo',
+                           D = pd.Timestamp('20010102'),
+                           E = pd.Series([1.0]*3).astype('float32'),
+			               F = False,
+			               G = pd.Series([1]*3,dtype='int8')))
    dft
    dft.dtypes
 
@@ -1359,10 +1357,10 @@ general).
 .. ipython:: python
 
    # these ints are coerced to floats
-   Series([1, 2, 3, 4, 5, 6.])
+   pd.Series([1, 2, 3, 4, 5, 6.])
 
    # string data forces an ``object`` dtype
-   Series([1, 2, 3, 6., 'foo'])
+   pd.Series([1, 2, 3, 6., 'foo'])
 
 The method :meth:`~DataFrame.get_dtype_counts` will return the number of columns of
 each type in a ``DataFrame``:
@@ -1378,12 +1376,12 @@ different numeric dtypes will **NOT** be combined. The following example will gi
 
 .. ipython:: python
 
-   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
+   df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
    df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
-                         B = Series(randn(8)),
-                         C = Series(np.array(randn(8),dtype='uint8')) ))
+   df2 = pd.DataFrame(dict( A = pd.Series(np.random.randn(8), dtype='float16'),
+                           B = pd.Series(np.random.randn(8)),
+                           C = pd.Series(np.array(np.random.randn(8), dtype='uint8')) ))
    df2
    df2.dtypes
 
@@ -1395,16 +1393,16 @@ By default integer types are ``int64`` and float types are ``float64``,
 
 .. ipython:: python
 
-   DataFrame([1, 2], columns=['a']).dtypes
-   DataFrame({'a': [1, 2]}).dtypes
-   DataFrame({'a': 1 }, index=list(range(2))).dtypes
+   pd.DataFrame([1, 2], columns=['a']).dtypes
+   pd.DataFrame({'a': [1, 2]}).dtypes
+   pd.DataFrame({'a': 1 }, index=list(range(2))).dtypes
 
 Numpy, however will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
 
 .. ipython:: python
 
-   frame = DataFrame(np.array([1, 2]))
+   frame = pd.DataFrame(np.array([1, 2]))
 
 
 upcasting
@@ -1473,9 +1471,10 @@ but occasionally has non-dates intermixed and you want to represent as missing.
 
 .. ipython:: python
 
-   s = Series([datetime(2001,1,1,0,0),
-              'foo', 1.0, 1, Timestamp('20010104'),
-              '20010105'],dtype='O')
+   import datetime
+   s = pd.Series([datetime.datetime(2001,1,1,0,0),
+                 'foo', 1.0, 1, pd.Timestamp('20010104'),
+                 '20010105'], dtype='O')
    s
    s.convert_objects(convert_dates='coerce')
 
@@ -1527,14 +1526,14 @@ dtypes:
 
 .. ipython:: python
 
-   df = DataFrame({'string': list('abc'),
-                   'int64': list(range(1, 4)),
-                   'uint8': np.arange(3, 6).astype('u1'),
-                   'float64': np.arange(4.0, 7.0),
-                   'bool1': [True, False, True],
-                   'bool2': [False, True, False],
-                   'dates': pd.date_range('now', periods=3).values,
-                   'category': pd.Categorical(list("ABC"))})
+   df = pd.DataFrame({'string': list('abc'),
+                      'int64': list(range(1, 4)),
+                      'uint8': np.arange(3, 6).astype('u1'),
+                      'float64': np.arange(4.0, 7.0),
+                      'bool1': [True, False, True],
+                      'bool2': [False, True, False],
+                      'dates': pd.date_range('now', periods=3).values,
+                      'category': pd.Series(list("ABC")).astype('category')})
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
    df['other_dates'] = pd.date_range('20130101', periods=3).values
