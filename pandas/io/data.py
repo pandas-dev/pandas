@@ -7,6 +7,7 @@ import warnings
 import tempfile
 import datetime as dt
 import time
+import csv
 
 from collections import defaultdict
 
@@ -45,7 +46,7 @@ def DataReader(name, data_source=None, start=None, end=None,
         the name of the dataset. Some data sources (yahoo, google, fred) will
         accept a list of names.
     data_source: str
-        the data source ("yahoo", "google", "fred", or "ff")
+        the data source ("yahoo", "yahoo-actions", "google", "fred", or "ff")
     start : {datetime, None}
         left boundary for range (defaults to 1/1/2010)
     end : {datetime, None}
@@ -56,6 +57,9 @@ def DataReader(name, data_source=None, start=None, end=None,
 
     # Data from Yahoo! Finance
     gs = DataReader("GS", "yahoo")
+
+    # Corporate Actions (Dividend and Split Data) from Yahoo! Finance
+    gs = DataReader("GS", "yahoo-actions")
 
     # Data from Google Finance
     aapl = DataReader("AAPL", "google")
@@ -75,6 +79,9 @@ def DataReader(name, data_source=None, start=None, end=None,
         return get_data_yahoo(symbols=name, start=start, end=end,
                               adjust_price=False, chunksize=25,
                               retry_count=retry_count, pause=pause)
+    elif data_source == "yahoo-actions":
+        return get_data_yahoo_actions(symbol=name, start=start, end=end,
+                                      retry_count=retry_count, pause=pause)
     elif data_source == "google":
         return get_data_google(symbols=name, start=start, end=end,
                                adjust_price=False, chunksize=25,
@@ -422,6 +429,80 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
         raise ValueError("Invalid interval: valid values are 'd', 'w', 'm' and 'v'")
     return _get_data_from(symbols, start, end, interval, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'yahoo')
+
+_HISTORICAL_YAHOO_ACTIONS_URL = 'http://ichart.finance.yahoo.com/x?'
+
+def get_data_yahoo_actions(symbol, start=None, end=None, retry_count=3,
+                   pause=0.001):
+  """
+  Returns DataFrame of historical corporate actions (dividends and stock
+  splits) from symbols, over date range, start to end.
+
+  Parameters
+  ----------
+    sym : string with a single Single stock symbol (ticker).
+    start : string, (defaults to '1/1/2010')
+        Starting date, timestamp. Parses many different kind of date
+        representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
+    end : string, (defaults to today)
+        Ending date, timestamp. Same format as starting date.
+    retry_count : int, default 3
+        Number of times to retry query request.
+    pause : int, default 0
+        Time, in seconds, of the pause between retries.
+  """
+
+  start, end = _sanitize_dates(start, end)
+  url = (_HISTORICAL_YAHOO_ACTIONS_URL + 's=%s' % symbol +
+           '&a=%s' % (start.month - 1) +
+           '&b=%s' % start.day +
+           '&c=%s' % start.year +
+           '&d=%s' % (end.month - 1) +
+           '&e=%s' % end.day +
+           '&f=%s' % end.year +
+           '&g=v')
+
+  for _ in range(retry_count):
+      time.sleep(pause)
+
+      try:
+          with urlopen(url) as resp:
+              lines = resp.read()
+      except _network_error_classes:
+          pass
+      else:
+        actions_index = []
+        actions_entries = []
+
+        for line in csv.reader(StringIO(bytes_to_str(lines))):
+          # Ignore lines that aren't dividends or splits (Yahoo
+          # add a bunch of irrelevant fields.)
+          if len(line) != 3 or line[0] not in ('DIVIDEND', 'SPLIT'):
+            continue
+
+          action, date, value = line
+          if action == 'DIVIDEND':
+            actions_index.append(to_datetime(date))
+            actions_entries.append({
+              'action': action,
+              'value': float(value)
+            })
+          elif action == 'SPLIT' and ':' in value:
+            # Convert the split ratio to a fraction. For example a
+            # 4:1 split expressed as a fraction is 1/4 = 0.25.
+            denominator, numerator = value.split(':', 1)
+            split_fraction = float(numerator) / float(denominator)
+
+            actions_index.append(to_datetime(date))
+            actions_entries.append({
+              'action': action,
+              'value': split_fraction
+            })
+
+        return DataFrame(actions_entries, index=actions_index)
+
+  raise IOError("after %d tries, Yahoo! did not "
+                "return a 200 for url %r" % (retry_count, url))
 
 
 def get_data_google(symbols=None, start=None, end=None, retry_count=3,
