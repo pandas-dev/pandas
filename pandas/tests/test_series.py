@@ -677,6 +677,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = Series(m, index=lrange(10, 20))
         exp.index = lrange(10, 20)
         assert_series_equal(result, exp)
+        
+    def test_constructor_unhashable_name(self):
+        def set_to_unhashable(s_):
+            s_.name = {}
+        s = Series([1,3], name = 'test')
+        self.assertRaises(TypeError, set_to_unhashable, s)
+        self.assertEqual(s.name, 'test')
 
     def test_constructor_categorical(self):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'], fastpath=True)
@@ -2180,7 +2187,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assertIn("Name: 0", rep_str)
 
-        ser = Series(["a\n\r\tb"], name=["a\n\r\td"], index=["a\n\r\tf"])
+        ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))
         self.assertFalse("\r" in repr(ser))
         self.assertFalse("a\n" in repr(ser))
