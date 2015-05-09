@@ -3379,6 +3379,40 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = DataFrame(data)
         assert_frame_equal(result, result_custom)
 
+    def test_constructor_nested_dict(self):
+        names = 'abcdef'
+        # create a nested dictionary
+        data = OrderedDict((key, list(range(len(names)))) for key in names)
+        data['self'] = OrderedDict(data)
+        result = DataFrame.from_dict(data)
+
+        # mimick the keys for checking
+        keys = [(n, '') for n in names]
+        keys.extend(('self', n) for n in names)
+        data_custom = list(list(range(len(names))) for _ in range(len(names) * 2))
+        expected = DataFrame(data_custom).T
+        expected.columns = MultiIndex.from_tuples(keys)
+
+        assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_nested_dict(self):
+        names = 'abcdef'
+        data = []
+        for i in range(len(names)):
+            d = OrderedDict((key, i) for key in names)
+            d['self'] = OrderedDict(d)
+            data.append(d)
+        result = DataFrame.from_dict(data)
+
+        # mimick the keys for checking
+        keys = [(n, '') for n in names]
+        keys.extend(('self', n) for n in names)
+        data_custom = list(list(range(len(names))) for _ in
+                           range(len(names) * 2))
+        expected = DataFrame(data_custom).T
+        expected.columns = MultiIndex.from_tuples(keys)
+
+        assert_frame_equal(result, expected)
     def test_constructor_ragged(self):
         data = {'A': randn(10),
                 'B': randn(8)}
