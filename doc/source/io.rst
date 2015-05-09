@@ -2410,6 +2410,10 @@ for some advanced strategies
 
    There is a ``PyTables`` indexing bug which may appear when querying stores using an index.  If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.  Stores created previously will need to be rewritten using the updated version.
 
+.. warning::
+
+   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk. 
+
 .. ipython:: python
    :suppress:
    :okexcept:
@@ -2486,6 +2490,8 @@ Closing a Store, Context Manager
    import os
    os.remove('store.h5')
 
+
+
 Read/Write API
 ~~~~~~~~~~~~~~
 
@@ -2503,6 +2509,65 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
    :okexcept:
 
    os.remove('store_tl.h5')
+
+
+As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.  
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+.. ipython:: python
+
+   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 
+                                   'col2':[1, np.nan, np.nan]})
+   df_with_missing
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', 
+                           format = 'table', mode='w')
+   
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', 
+                           format = 'table', mode='w', dropna=True)
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+This is also true for the major axis of a ``Panel``:
+
+.. ipython:: python
+
+   matrix = [[[np.nan, np.nan, np.nan],[1,np.nan,np.nan]],
+          [[np.nan, np.nan, np.nan], [np.nan,5,6]],
+          [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
+
+   panel_with_major_axis_all_missing = Panel(matrix, 
+           items=['Item1', 'Item2','Item3'],
+           major_axis=[1,2],
+           minor_axis=['A', 'B', 'C'])
+
+   panel_with_major_axis_all_missing
+
+   panel_with_major_axis_all_missing.to_hdf('file.h5', 'panel',
+                                           dropna = True, 
+                                           format='table', 
+                                           mode='w')
+   reloaded = read_hdf('file.h5', 'panel')
+   reloaded
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+
 
 .. _io.hdf5-fixed:
 
