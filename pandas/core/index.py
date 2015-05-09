@@ -434,6 +434,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
+        from pandas.core.format import get_console_size
+        display_width, _ = get_console_size()
+        if display_width is None:
+            display_width = get_option('display.width')
+
         space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
         space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
 
@@ -442,42 +447,18 @@ class Index(IndexOpsMixin, PandasObject):
         formatter = self._formatter_func
         needs_justify = self.inferred_type in ['string','categorical']
 
+        def _extend_line(s, line, value, display_width, next_line_prefix):
+            if len(line.rstrip()) + len(value.rstrip()) >= display_width:
+                s += line.rstrip()
+                line = next_line_prefix
+            line += value
+            return s, line
+
         def best_len(values):
-            return max([len(x) for x in values]) + 2
-
-        def best_rows(values, max_len):
-            from pandas.core.format import get_console_size
-            display_width, _ = get_console_size()
-            if display_width is None:
-                display_width = get_option('display.width')
-            n_per_row = (display_width - len(self.__class__.__name__) - 2) // max_len
-            n_rows = int(ceil(len(values) / float(n_per_row)))
-            return n_per_row, n_rows
-
-        def best_fit(values, max_len, n_rows=None, justify=False):
-
-            # number of rows to generate
-            if n_rows is None:
-                n_per_row, n_rows = best_rows(values, max_len)
+            if values:
+                return max([len(x) for x in values])
             else:
-                n_per_row = len(values)
-
-            # adjust all values to max length if we have multi-lines
-            if justify:
-                values = [values[0].rjust(max_len-2)] + [x.rjust(max_len-1) for x in values[1:]]
-                multi_line_space = space1
-            else:
-                multi_line_space = space2
-
-            sep_elements = sep + ' '
-            summary = ''
-            for i in range(n_rows - 1):
-                summary += sep_elements.join(values[i*n_per_row:(i+1)*n_per_row])
-                summary += sep
-                summary += multi_line_space
-            summary += sep_elements.join(values[(n_rows - 1)*n_per_row:n_rows*n_per_row])
-
-            return summary
+                return 0
 
         n = len(self)
         if n == 0:
@@ -489,40 +470,57 @@ class Index(IndexOpsMixin, PandasObject):
             first = formatter(self[0])
             last = formatter(self[-1])
             summary = '[%s, %s], ' % (first, last)
-        elif n > max_seq_items:
-            n = min(max_seq_items//2,10)
-
-            head = [ formatter(x) for x in self[:n] ]
-            tail = [ formatter(x) for x in self[-n:] ]
-            max_len = max(best_len(head),best_len(tail))
+        else:
+            if n > max_seq_items:
+                n = min(max_seq_items//2,10)
+                head = [ formatter(x) for x in self[:n] ]
+                tail = [ formatter(x) for x in self[-n:] ]
+                summary_insert = True
+            else:
+                head = []
+                tail = [ formatter(x) for x in self ]
+                summary_insert = False
 
             if needs_justify:
-                n_rows = 1
                 justify = False
             else:
-                n_rows = None
                 justify = True
 
-            summary = '['
-            summary += best_fit(head, max_len, n_rows=n_rows, justify=justify)
-            summary += ',' + space1 + ' ...' + space2
-            summary += best_fit(tail, max_len, n_rows=n_rows, justify=justify)
+            # adjust all values to max length if needed
+            if justify:
+                max_len = max(best_len(head), best_len(tail))
+                head = [x.rjust(max_len) for x in head]
+                tail = [x.rjust(max_len) for x in tail]
+
+            summary = ""
+            line = space2
+
+            for i in range(len(head)):
+                word = head[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space2)
+            if summary_insert:
+                summary += line + space2 + '...'
+                line = space2
+
+            for i in range(len(tail)-1):
+                word = tail[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space2)
+
+            # last value: no sep added + 1 space of width used for trailing ','
+            summary, line = _extend_line(summary, line, tail[-1],
+                                         display_width - 2, space2)
+            summary += line
             summary += '],'
-            summary += space1
 
-        else:
-            values = [ formatter(x) for x in self ]
-
-            max_len = best_len(values)
-            n_per_row, n_rows = best_rows(values, max_len)
-
-            summary = '['
-            summary += best_fit(values, max_len)
-            summary += '],'
-            if n_rows > 1:
+            if len(summary) > (display_width):
                 summary += space1
-            else:
+            else:  # one row
                 summary += ' '
+
+            # remove initial space
+            summary = '[' + summary[len(space2):]
 
         return summary
 
