@@ -47,6 +47,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved ``Series.resample`` performance with dtype=datetime64[ns] (:issue:`7754`)
+- Increase performance of ``str.split`` when ``expand=True`` (:issue:`10081`)
 
 .. _whatsnew_0162.bug_fixes:
 

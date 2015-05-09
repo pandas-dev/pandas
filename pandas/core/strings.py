@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import isnull, _values_from_object, is_bool_dtype
+from pandas.core.common import isnull, _values_from_object, is_bool_dtype, is_list_like
 import pandas.compat as compat
 from pandas.util.decorators import Appender, deprecate_kwarg
 import re
@@ -1090,7 +1090,11 @@ class StringMethods(object):
         else:
             index = self.series.index
             if expand:
-                cons_row = self.series._constructor
+                def cons_row(x):
+                    if is_list_like(x):
+                        return x
+                    else:
+                        return [ x ]
                 cons = self.series._constructor_expanddim
                 data = [cons_row(x) for x in result]
                 return cons(data, index=index)
