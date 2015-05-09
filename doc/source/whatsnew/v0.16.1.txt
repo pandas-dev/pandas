@@ -282,9 +282,6 @@ Previous Behavior
 
 .. code-block:: python
 
-   In [1]: pd.get_option('max_seq_items')
-   Out[1]: 100
-
    In [2]: pd.Index(range(4),name='foo')
    Out[2]: Int64Index([0, 1, 2, 3], dtype='int64')
 
@@ -307,15 +304,15 @@ New Behavior
 
 .. ipython:: python
 
-   pd.get_option('max_seq_items')
+   pd.set_option('display.width',100)
    pd.Index(range(4),name='foo')
    pd.Index(range(25),name='foo')
    pd.Index(range(104),name='foo')
+   pd.Index(['datetime', 'sA', 'sB', 'sC', 'flow', 'error', 'temp', 'ref', 'a_bit_a_longer_one']*2)
    pd.CategoricalIndex(['a','bb','ccc','dddd'],ordered=True,name='foobar')
    pd.CategoricalIndex(['a','bb','ccc','dddd']*10,ordered=True,name='foobar')
    pd.CategoricalIndex(['a','bb','ccc','dddd']*100,ordered=True,name='foobar')
    pd.CategoricalIndex(np.arange(1000),ordered=True,name='foobar')
-   pd.Index(['a','bb','ccc','dddd']*100)
    pd.date_range('20130101',periods=4,name='foo',tz='US/Eastern')
    pd.date_range('20130101',periods=25,name='foo',tz='US/Eastern')
    pd.date_range('20130101',periods=104,name='foo',tz='US/Eastern')

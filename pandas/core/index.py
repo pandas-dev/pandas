@@ -437,17 +437,24 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.format import get_console_size
         display_width, _ = get_console_size()
         if display_width is None:
-            display_width = get_option('display.width')
+            display_width = get_option('display.width') or 80
 
         space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
         space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
 
+        n = len(self)
         sep = ','
         max_seq_items = get_option('display.max_seq_items')
         formatter = self._formatter_func
-        needs_justify = self.inferred_type in ['string','categorical']
+
+        # do we want to justify (only do so for non-objects)
+        is_justify = not (self.inferred_type == 'string' or self.inferred_type == 'categorical' and is_object_dtype(self.categories))
+
+        # are we a truncated display
+        is_truncated = n > max_seq_items
 
         def _extend_line(s, line, value, display_width, next_line_prefix):
+
             if len(line.rstrip()) + len(value.rstrip()) >= display_width:
                 s += line.rstrip()
                 line = next_line_prefix
@@ -460,7 +467,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return 0
 
-        n = len(self)
         if n == 0:
             summary = '[], '
         elif n == 1:
@@ -471,26 +477,23 @@ class Index(IndexOpsMixin, PandasObject):
             last = formatter(self[-1])
             summary = '[%s, %s], ' % (first, last)
         else:
+
             if n > max_seq_items:
                 n = min(max_seq_items//2,10)
                 head = [ formatter(x) for x in self[:n] ]
                 tail = [ formatter(x) for x in self[-n:] ]
-                summary_insert = True
             else:
                 head = []
                 tail = [ formatter(x) for x in self ]
-                summary_insert = False
-
-            if needs_justify:
-                justify = False
-            else:
-                justify = True
 
             # adjust all values to max length if needed
-            if justify:
-                max_len = max(best_len(head), best_len(tail))
-                head = [x.rjust(max_len) for x in head]
-                tail = [x.rjust(max_len) for x in tail]
+            if is_justify:
+
+                # however, if we are not truncated and we are only a single line, then don't justify
+                if is_truncated or not (len(', '.join(head)) < display_width and len(', '.join(tail)) < display_width):
+                    max_len = max(best_len(head), best_len(tail))
+                    head = [x.rjust(max_len) for x in head]
+                    tail = [x.rjust(max_len) for x in tail]
 
             summary = ""
             line = space2
@@ -499,7 +502,7 @@ class Index(IndexOpsMixin, PandasObject):
                 word = head[i] + sep + ' '
                 summary, line = _extend_line(summary, line, word,
                                              display_width, space2)
-            if summary_insert:
+            if is_truncated:
                 summary += line + space2 + '...'
                 line = space2
 
