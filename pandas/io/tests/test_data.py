@@ -283,6 +283,29 @@ class TestYahoo(tm.TestCase):
         # sanity checking
         self.assertTrue(np.issubdtype(pan.values.dtype, np.floating))
 
+    @network
+    def test_get_data_yahoo_actions(self):
+        start = datetime(1990, 1, 1)
+        end = datetime(2000, 4, 5)
+
+        actions = web.get_data_yahoo_actions('BHP.AX', start, end)
+
+        self.assertEqual(sum(actions['action'] == 'DIVIDEND'), 20)
+        self.assertEqual(sum(actions['action'] == 'SPLIT'), 1)
+
+        self.assertEqual(actions.ix['1995-05-11']['action'][0], 'SPLIT')
+        self.assertEqual(actions.ix['1995-05-11']['value'][0], 1/1.1)
+
+        self.assertEqual(actions.ix['1993-05-10']['action'][0], 'DIVIDEND')
+        self.assertEqual(actions.ix['1993-05-10']['value'][0], 0.3)
+
+    @network
+    def test_get_data_yahoo_actions_invalid_symbol(self):
+        start = datetime(1990, 1, 1)
+        end = datetime(2000, 4, 5)
+
+        self.assertRaises(IOError, web.get_data_yahoo_actions, 'UNKNOWN TICKER', start, end)
+
 
 class TestYahooOptions(tm.TestCase):
     @classmethod
