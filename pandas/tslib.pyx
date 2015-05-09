@@ -627,7 +627,7 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month']
+          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -952,7 +952,7 @@ cdef class _Timestamp(datetime):
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
-        return out[0]
+        return int(out[0])
 
     cpdef _get_start_end_field(self, field):
         month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12

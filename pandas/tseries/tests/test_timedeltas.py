@@ -311,49 +311,64 @@ class TestTimedeltas(tm.TestCase):
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
-        self.assertEqual(rng.days,1)
-        self.assertEqual(rng.seconds,10*3600+11*60+12)
-        self.assertEqual(rng.microseconds,0)
-        self.assertEqual(rng.nanoseconds,0)
+        self.assertEqual(rng.days, 1)
+        self.assertEqual(rng.seconds, 10*3600+11*60+12)
+        self.assertEqual(rng.microseconds, 0)
+        self.assertEqual(rng.nanoseconds, 0)
 
         self.assertRaises(AttributeError, lambda : rng.hours)
         self.assertRaises(AttributeError, lambda : rng.minutes)
         self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
+        # GH 10050
+        self.assertTrue(isinstance(rng.days, int))
+        self.assertTrue(isinstance(rng.seconds, int))
+        self.assertTrue(isinstance(rng.microseconds, int))
+        self.assertTrue(isinstance(rng.nanoseconds, int))
+
         td = Timedelta('-1 days, 10:11:12')
-        self.assertEqual(abs(td),Timedelta('13:48:48'))
+        self.assertEqual(abs(td), Timedelta('13:48:48'))
         self.assertTrue(str(td) == "-1 days +10:11:12")
-        self.assertEqual(-td,Timedelta('0 days 13:48:48'))
-        self.assertEqual(-Timedelta('-1 days, 10:11:12').value,49728000000000)
-        self.assertEqual(Timedelta('-1 days, 10:11:12').value,-49728000000000)
+        self.assertEqual(-td, Timedelta('0 days 13:48:48'))
+        self.assertEqual(-Timedelta('-1 days, 10:11:12').value, 49728000000000)
+        self.assertEqual(Timedelta('-1 days, 10:11:12').value, -49728000000000)
 
         rng = to_timedelta('-1 days, 10:11:12.100123456')
-        self.assertEqual(rng.days,-1)
-        self.assertEqual(rng.seconds,10*3600+11*60+12)
-        self.assertEqual(rng.microseconds,100*1000+123)
-        self.assertEqual(rng.nanoseconds,456)
+        self.assertEqual(rng.days, -1)
+        self.assertEqual(rng.seconds, 10*3600+11*60+12)
+        self.assertEqual(rng.microseconds, 100*1000+123)
+        self.assertEqual(rng.nanoseconds, 456)
         self.assertRaises(AttributeError, lambda : rng.hours)
         self.assertRaises(AttributeError, lambda : rng.minutes)
         self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
         # components
         tup = pd.to_timedelta(-1, 'us').components
-        self.assertEqual(tup.days,-1)
-        self.assertEqual(tup.hours,23)
-        self.assertEqual(tup.minutes,59)
-        self.assertEqual(tup.seconds,59)
-        self.assertEqual(tup.milliseconds,999)
-        self.assertEqual(tup.microseconds,999)
-        self.assertEqual(tup.nanoseconds,0)
+        self.assertEqual(tup.days, -1)
+        self.assertEqual(tup.hours, 23)
+        self.assertEqual(tup.minutes, 59)
+        self.assertEqual(tup.seconds, 59)
+        self.assertEqual(tup.milliseconds, 999)
+        self.assertEqual(tup.microseconds, 999)
+        self.assertEqual(tup.nanoseconds, 0)
+
+        # GH 10050
+        self.assertTrue(isinstance(tup.days, int))
+        self.assertTrue(isinstance(tup.hours, int))
+        self.assertTrue(isinstance(tup.minutes, int))
+        self.assertTrue(isinstance(tup.seconds, int))
+        self.assertTrue(isinstance(tup.milliseconds, int))
+        self.assertTrue(isinstance(tup.microseconds, int))
+        self.assertTrue(isinstance(tup.nanoseconds, int))
 
         tup = Timedelta('-1 days 1 us').components
-        self.assertEqual(tup.days,-2)
-        self.assertEqual(tup.hours,23)
-        self.assertEqual(tup.minutes,59)
-        self.assertEqual(tup.seconds,59)
-        self.assertEqual(tup.milliseconds,999)
-        self.assertEqual(tup.microseconds,999)
-        self.assertEqual(tup.nanoseconds,0)
+        self.assertEqual(tup.days, -2)
+        self.assertEqual(tup.hours, 23)
+        self.assertEqual(tup.minutes, 59)
+        self.assertEqual(tup.seconds, 59)
+        self.assertEqual(tup.milliseconds, 999)
+        self.assertEqual(tup.microseconds, 999)
+        self.assertEqual(tup.nanoseconds, 0)
 
     def test_timedelta_range(self):
 
