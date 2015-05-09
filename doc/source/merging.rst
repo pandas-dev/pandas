@@ -490,7 +490,7 @@ standard database join operations between DataFrame objects:
 
 ::
 
-    merge(left, right, how='left', on=None, left_on=None, right_on=None,
+    merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('_x', '_y'), copy=True)
 
