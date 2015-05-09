@@ -545,4 +545,8 @@ Bug Fixes
 >>>>>>> df730a3... BUG: median() not correctly handling non-float null values (fixes #10040)
 =======
 - Bug in ``.median()`` where non-float null values are not handled correctly (:issue:`10040`)
+<<<<<<< HEAD
 >>>>>>> 6c80f68... DOC: prepare for 0.16.1 release
+=======
+- Bug in Series.fillna() where it raises if a numerically convertible string is given (:issue:`10092`)
+>>>>>>> 8ccc9b3... BUG: Series.fillna() raises if given a numerically convertible string
