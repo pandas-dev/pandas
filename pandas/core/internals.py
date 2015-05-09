@@ -3980,6 +3980,31 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
                 _transform_index(right, rrenamer))
 
 
+def items_overlap_with_suffix_and_prefix(
+        left, lsuffix, lprefix, right, rsuffix, rprefix):
+    to_rename = left.intersection(right)
+    if len(to_rename) == 0:
+        return left, right
+    else:
+        if not lsuffix and not rsuffix and not lprefix and not rprefix:
+            raise ValueError('columns overlap but no suffix or prefix specified: %s' %
+                             to_rename)
+
+        def lrenamer(x):
+            if x in to_rename:
+                return '%s%s%s' % (lprefix, x, lsuffix)
+            return x
+
+        def rrenamer(x):
+            if x in to_rename:
+                return '%s%s%s' % (rprefix, x, rsuffix)
+            return x
+
+        return (_transform_index(left, lrenamer),
+                _transform_index(right, rrenamer))
+
+
+
 def _transform_index(index, func):
     """
     Apply function to all values found in index.

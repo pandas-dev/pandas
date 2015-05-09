@@ -14,6 +14,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.internals import (items_overlap_with_suffix,
+                                   items_overlap_with_suffix_and_prefix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
 from pandas.core.common import ABCSeries
@@ -30,10 +31,11 @@ import pandas.hashtable as _hash
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False,
-          suffixes=('_x', '_y'), copy=True):
+          suffixes=('_x', '_y'), prefixes=('', ''), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
+                         prefixes=prefixes,
                          copy=copy)
     return op.get_result()
 if __debug__:
@@ -160,7 +162,7 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('_x', '_y'), copy=True):
+                 suffixes=('_x', '_y'), prefixes=('', ''), copy=True):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -172,6 +174,7 @@ class _MergeOperation(object):
 
         self.copy = copy
         self.suffixes = suffixes
+        self.prefixes = prefixes
         self.sort = sort
 
         self.left_index = left_index
@@ -187,9 +190,12 @@ class _MergeOperation(object):
 
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
+        lpre, rpre = self.prefixes
 
-        llabels, rlabels = items_overlap_with_suffix(ldata.items, lsuf,
-                                                     rdata.items, rsuf)
+        llabels, rlabels = items_overlap_with_suffix_and_prefix(
+            ldata.items, lsuf, lpre,
+            rdata.items, rsuf, rpre
+        )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
