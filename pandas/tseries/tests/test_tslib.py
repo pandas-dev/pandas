@@ -369,6 +369,58 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
                             - ts_from_method_tz.tz_localize(None)) < delta)
 
+    def test_fields(self):
+        # GH 10050
+        ts = Timestamp('2015-05-10 09:06:03.000100001')
+        self.assertEqual(ts.year, 2015)
+        self.assertTrue(isinstance(ts.year, int))
+        self.assertEqual(ts.month, 5)
+        self.assertTrue(isinstance(ts.month, int))
+        self.assertEqual(ts.day, 10)
+        self.assertTrue(isinstance(ts.day, int))
+        self.assertEqual(ts.hour, 9)
+        self.assertTrue(isinstance(ts.hour, int))
+        self.assertEqual(ts.minute, 6)
+        self.assertTrue(isinstance(ts.minute, int))
+        self.assertEqual(ts.second, 3)
+        self.assertTrue(isinstance(ts.second, int))
+        self.assertRaises(AttributeError, lambda : ts.millisecond)
+        self.assertEqual(ts.microsecond, 100)
+        self.assertTrue(isinstance(ts.microsecond, int))
+        self.assertEqual(ts.nanosecond, 1)
+        self.assertTrue(isinstance(ts.nanosecond, int))
+        self.assertEqual(ts.dayofweek, 6)
+        self.assertTrue(isinstance(ts.dayofweek, int))
+        self.assertEqual(ts.quarter, 2)
+        self.assertTrue(isinstance(ts.quarter, int))
+        self.assertEqual(ts.dayofyear, 130)
+        self.assertTrue(isinstance(ts.dayofyear, int))
+        self.assertEqual(ts.week, 19)
+        self.assertTrue(isinstance(ts.week, int))
+        self.assertEqual(ts.daysinmonth, 31)
+        self.assertTrue(isinstance(ts.days_in_month, int))
+        self.assertEqual(ts.daysinmonth, 31)
+        self.assertTrue(isinstance(ts.daysinmonth, int))
+
+    def test_nat_fields(self):
+        # GH 10050
+        ts = Timestamp('NaT')
+        self.assertTrue(np.isnan(ts.year))
+        self.assertTrue(np.isnan(ts.month))
+        self.assertTrue(np.isnan(ts.day))
+        self.assertTrue(np.isnan(ts.hour))
+        self.assertTrue(np.isnan(ts.minute))
+        self.assertTrue(np.isnan(ts.second))
+        self.assertTrue(np.isnan(ts.microsecond))
+        self.assertTrue(np.isnan(ts.nanosecond))
+        self.assertTrue(np.isnan(ts.dayofweek))
+        self.assertTrue(np.isnan(ts.quarter))
+        self.assertTrue(np.isnan(ts.dayofyear))
+        self.assertTrue(np.isnan(ts.week))
+        self.assertTrue(np.isnan(ts.daysinmonth))
+        self.assertTrue(np.isnan(ts.days_in_month))
+
+
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = (
