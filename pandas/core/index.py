@@ -8,6 +8,7 @@ from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
 
+from math import ceil
 from sys import getsizeof
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -26,8 +27,10 @@ from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
 # simplify
-default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
-                                            quote_strings=True)
+default_pprint = lambda x, max_seq_items=None: com.pprint_thing(x,
+                                                                escape_chars=('\t', '\r', '\n'),
+                                                                quote_strings=True,
+                                                                max_seq_items=max_seq_items)
 
 
 __all__ = ['Index']
@@ -392,8 +395,150 @@ class Index(IndexOpsMixin, PandasObject):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        prepr = default_pprint(self)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+        klass = self.__class__.__name__
+        data = self._format_data()
+        attrs = self._format_attrs()
+        space = self._format_space()
+
+        prepr = (u(",%s") % space).join([u("%s=%s") % (k, v)
+                                          for k, v in attrs])
+
+        # no data provided, just attributes
+        if data is None:
+            data = ''
+
+        res = u("%s(%s%s)") % (klass,
+                               data,
+                               prepr)
+
+        return res
+
+    def _format_space(self):
+
+        # using space here controls if the attributes
+        # are line separated or not (the default)
+
+        #max_seq_items = get_option('display.max_seq_items')
+        #if len(self) > max_seq_items:
+        #    space = "\n%s" % (' ' * (len(klass) + 1))
+        return " "
+
+    @property
+    def _formatter_func(self):
+        """
+        Return the formatted data as a unicode string
+        """
+        return default_pprint
+
+    def _format_data(self):
+        """
+        Return the formatted data as a unicode string
+        """
+        from pandas.core.format import get_console_size
+        display_width, _ = get_console_size()
+        if display_width is None:
+            display_width = get_option('display.width') or 80
+
+        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
+
+        n = len(self)
+        sep = ','
+        max_seq_items = get_option('display.max_seq_items')
+        formatter = self._formatter_func
+
+        # do we want to justify (only do so for non-objects)
+        is_justify = not (self.inferred_type == 'string' or self.inferred_type == 'categorical' and is_object_dtype(self.categories))
+
+        # are we a truncated display
+        is_truncated = n > max_seq_items
+
+        def _extend_line(s, line, value, display_width, next_line_prefix):
+
+            if len(line.rstrip()) + len(value.rstrip()) >= display_width:
+                s += line.rstrip()
+                line = next_line_prefix
+            line += value
+            return s, line
+
+        def best_len(values):
+            if values:
+                return max([len(x) for x in values])
+            else:
+                return 0
+
+        if n == 0:
+            summary = '[], '
+        elif n == 1:
+            first = formatter(self[0])
+            summary = '[%s], ' % first
+        elif n == 2:
+            first = formatter(self[0])
+            last = formatter(self[-1])
+            summary = '[%s, %s], ' % (first, last)
+        else:
+
+            if n > max_seq_items:
+                n = min(max_seq_items//2,10)
+                head = [ formatter(x) for x in self[:n] ]
+                tail = [ formatter(x) for x in self[-n:] ]
+            else:
+                head = []
+                tail = [ formatter(x) for x in self ]
+
+            # adjust all values to max length if needed
+            if is_justify:
+
+                # however, if we are not truncated and we are only a single line, then don't justify
+                if is_truncated or not (len(', '.join(head)) < display_width and len(', '.join(tail)) < display_width):
+                    max_len = max(best_len(head), best_len(tail))
+                    head = [x.rjust(max_len) for x in head]
+                    tail = [x.rjust(max_len) for x in tail]
+
+            summary = ""
+            line = space2
+
+            for i in range(len(head)):
+                word = head[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space2)
+            if is_truncated:
+                summary += line + space2 + '...'
+                line = space2
+
+            for i in range(len(tail)-1):
+                word = tail[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space2)
+
+            # last value: no sep added + 1 space of width used for trailing ','
+            summary, line = _extend_line(summary, line, tail[-1],
+                                         display_width - 2, space2)
+            summary += line
+            summary += '],'
+
+            if len(summary) > (display_width):
+                summary += space1
+            else:  # one row
+                summary += ' '
+
+            # remove initial space
+            summary = '[' + summary[len(space2):]
+
+        return summary
+
+    def _format_attrs(self):
+        """
+        Return a list of tuples of the (attr,formatted_value)
+        """
+        attrs = []
+        attrs.append(('dtype',"'%s'" % self.dtype))
+        if self.name is not None:
+            attrs.append(('name',default_pprint(self.name)))
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            attrs.append(('length',len(self)))
+        return attrs
 
     def to_series(self, **kwargs):
         """
@@ -2800,32 +2945,21 @@ class CategoricalIndex(Index, PandasDelegate):
 
         return False
 
-    def __unicode__(self):
+    def _format_attrs(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a list of tuples of the (attr,formatted_value)
         """
-
-        # currently doesn't use the display.max_categories, or display.max_seq_len
-        # for head/tail printing
-        values = default_pprint(self.values.get_values())
-        cats = default_pprint(self.categories.get_values())
-        space = ' ' * (len(self.__class__.__name__) + 1)
-        name = self.name
-        if name is not None:
-            name = default_pprint(name)
-
-        result = u("{klass}({values},\n{space}categories={categories},\n{space}ordered={ordered},\n{space}name={name})").format(
-            klass=self.__class__.__name__,
-            values=values,
-            categories=cats,
-            ordered=self.ordered,
-            name=name,
-            space=space)
-
-        return result
+        max_categories = (10 if get_option("display.max_categories") == 0
+                    else get_option("display.max_categories"))
+        attrs = [('categories', default_pprint(self.categories, max_seq_items=max_categories)),
+                 ('ordered',self.ordered)]
+        if self.name is not None:
+            attrs.append(('name',default_pprint(self.name)))
+        attrs.append(('dtype',"'%s'" % self.dtype))
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            attrs.append(('length',len(self)))
+        return attrs
 
     @property
     def inferred_type(self):
@@ -3877,40 +4011,24 @@ class MultiIndex(Index):
         names_nbytes = sum(( getsizeof(i) for i in self.names ))
         return level_nbytes + label_nbytes + names_nbytes
 
-    def __repr__(self):
-        encoding = get_option('display.encoding')
-        attrs = [('levels', default_pprint(self.levels)),
-                 ('labels', default_pprint(self.labels))]
+    def _format_attrs(self):
+        """
+        Return a list of tuples of the (attr,formatted_value)
+        """
+        attrs = [('levels', default_pprint(self._levels, max_seq_items=False)),
+                 ('labels', default_pprint(self._labels, max_seq_items=False))]
         if not all(name is None for name in self.names):
             attrs.append(('names', default_pprint(self.names)))
         if self.sortorder is not None:
             attrs.append(('sortorder', default_pprint(self.sortorder)))
+        return attrs
 
-        space = ' ' * (len(self.__class__.__name__) + 1)
-        prepr = (u(",\n%s") % space).join([u("%s=%s") % (k, v)
-                                          for k, v in attrs])
-        res = u("%s(%s)") % (self.__class__.__name__, prepr)
+    def _format_space(self):
+        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
 
-        if not compat.PY3:
-            # needs to be str in Python 2
-            res = res.encode(encoding)
-        return res
-
-    def __unicode__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        rows = self.format(names=True)
-        max_rows = get_option('display.max_rows')
-        if len(rows) > max_rows:
-            spaces = (len(rows[0]) - 3) // 2
-            centered = ' ' * spaces
-            half = max_rows // 2
-            rows = rows[:half] + [centered + '...' + centered] + rows[-half:]
-        return "\n".join(rows)
+    def _format_data(self):
+        # we are formatting thru the attributes
+        return None
 
     def __len__(self):
         return len(self.labels[0])

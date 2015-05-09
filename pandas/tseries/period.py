@@ -293,6 +293,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ return an array repr of this object, potentially casting to object """
         return self.asobject.values
 
+    @property
+    def _formatter_func(self):
+        return lambda x: "'%s'" % x
+
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
@@ -734,10 +738,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
-
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
 
     def take(self, indices, axis=None):
         """
