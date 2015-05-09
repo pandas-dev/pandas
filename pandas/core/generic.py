@@ -922,6 +922,8 @@ class NDFrame(PandasObject):
             in the store wherever possible
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
+        dropna : boolean, default False. 
+            If true, ALL nan rows will not be written to store.
 
         """
 
