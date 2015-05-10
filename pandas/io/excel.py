@@ -13,7 +13,7 @@ from pandas.io.parsers import TextParser
 from pandas.io.common import _is_url, _urlopen
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
+from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass, OrderedDict
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
@@ -393,7 +393,7 @@ class ExcelFile(object):
         #handle same-type duplicates.
         sheets = list(set(sheets))
         
-        output = {}
+        output = OrderedDict()
         
         for asheetname in sheets:
             if verbose:
