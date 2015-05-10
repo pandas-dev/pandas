@@ -8,7 +8,6 @@ from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
 
-from math import ceil
 from sys import getsizeof
 import pandas.tslib as tslib
 import pandas.lib as lib
