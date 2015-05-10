@@ -14,7 +14,7 @@ from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index, _union_indexes
+from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel

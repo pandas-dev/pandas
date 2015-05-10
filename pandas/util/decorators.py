@@ -26,7 +26,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None):
         Name of prefered argument in function
     mapping : dict or callable
         If mapping is present, use it to translate old arguments to
-        new arguments.  A callable must do its own value checking;
+        new arguments. A callable must do its own value checking;
         values not found in a dict will be forwarded unchanged.
 
     Examples
@@ -45,7 +45,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None):
     should raise warning
     >>> f(cols='should error', columns="can't pass do both")
     TypeError: Can only specify 'cols' or 'columns', not both
-    >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no', False})
+    >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
     ... def f(new=False):
     ...     print('yes!' if new else 'no!')
     ...

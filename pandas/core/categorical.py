@@ -18,7 +18,7 @@ from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCP
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
                                 is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
-                                _coerce_indexer_dtype, _values_from_object, take_1d)
+                                _coerce_indexer_dtype, take_1d)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 

@@ -1,6 +1,5 @@
 """ Factory methods to create N-D panels """
 
-import pandas.lib as lib
 from pandas.compat import zip
 import pandas.compat as compat
 
