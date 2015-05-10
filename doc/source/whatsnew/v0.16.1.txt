@@ -420,3 +420,4 @@ Bug Fixes
 - Updated BigQuery connector to no longer use deprecated ``oauth2client.tools.run()`` (:issue:`8327`)
 - Bug in subclassed ``DataFrame``. It may not return the correct class, when slicing or subsetting it. (:issue:`9632`)
 - Bug in ``.median()`` where non-float null values are not handled correctly (:issue:`10040`)
+- Bug in Series.fillna() where it raises if a numerically convertible string is given (:issue:`10092`)

@@ -3654,6 +3654,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([999,999,np.nan],index=[0,1,2])
         assert_series_equal(result,expected)
 
+        # GH 9043
+        # make sure a string representation of int/float values can be filled
+        # correctly without raising errors or being converted
+        vals = ['0', '1.5', '-0.3']
+        for val in vals:
+            s = Series([0, 1, np.nan, np.nan, 4], dtype='float64')
+            result = s.fillna(val)
+            expected = Series([0, 1, val, val, 4], dtype='object')
+            assert_series_equal(result, expected)
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         filled = x.fillna(method='ffill')

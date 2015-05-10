@@ -4017,7 +4017,8 @@ def _putmask_smart(v, m, n):
     try:
         nn = n[m]
         nn_at = nn.astype(v.dtype)
-        if (nn == nn_at).all():
+        comp = (nn == nn_at)
+        if is_list_like(comp) and comp.all():
             nv = v.copy()
             nv[m] = nn_at
             return nv
