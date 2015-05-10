@@ -19,8 +19,8 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
-                                ABCSparseArray, _maybe_match_name, _coerce_to_dtype,
-                                _ensure_object, SettingWithCopyError,
+                                ABCSparseArray, _maybe_match_name,
+                                _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)

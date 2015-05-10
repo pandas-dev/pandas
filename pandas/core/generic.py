@@ -17,7 +17,7 @@ from pandas.core.internals import BlockManager
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 from pandas import compat
-from pandas.compat import map, zip, lrange, string_types, isidentifier, lmap
+from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
