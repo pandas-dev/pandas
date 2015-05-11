@@ -113,10 +113,10 @@ This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
 The testing suite will run automatically on Travis-CI once your Pull Request is
-submitted.  However, if you wish to run the test suite on a branch prior to 
+submitted.  However, if you wish to run the test suite on a branch prior to
 submitting the Pull Request, then Travis-CI needs to be hooked up to your
 GitHub repository.  Instructions are for doing so are `here
-<http://about.travis-ci.org/docs/user/getting-started/>`_.
+<http://about.travis-ci.org/docs/user/getting-started/>`__.
 
 Creating a Branch
 -----------------
@@ -219,7 +219,7 @@ To return to you home root environment:
       deactivate
 
 See the full ``conda`` docs `here
-<http://conda.pydata.org/docs>`_.
+<http://conda.pydata.org/docs>`__.
 
 At this point you can easily do an *in-place* install, as detailed in the next section.
 
@@ -372,7 +372,7 @@ If you want to do a full clean build, do::
 Starting with 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
 You will be prompted to delete `.rst` files that aren't required.  This is okay
-since the prior version can be checked out from git, but make sure to 
+since the prior version can be checked out from git, but make sure to
 not commit the file deletions.
 
 ::
@@ -401,7 +401,7 @@ Built Master Branch Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When pull-requests are merged into the pandas *master* branch, the main parts of the documentation are
-also built by Travis-CI. These docs are then hosted `here <http://pandas-docs.github.io/pandas-docs-travis>`_.
+also built by Travis-CI. These docs are then hosted `here <http://pandas-docs.github.io/pandas-docs-travis>`__.
 
 Contributing to the code base
 =============================
