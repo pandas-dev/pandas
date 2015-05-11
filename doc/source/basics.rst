@@ -236,7 +236,7 @@ see :ref:`here<indexing.boolean>`
 Boolean Reductions
 ~~~~~~~~~~~~~~~~~~
 
-    You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
+You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
 :meth:`~DataFrame.all`, and :meth:`~DataFrame.bool` to provide a
 way to summarize a boolean result.
 

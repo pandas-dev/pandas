@@ -813,7 +813,7 @@ def str_strip(arr, to_strip=None, side='both'):
 
 
 def str_wrap(arr, width, **kwargs):
-    """
+    r"""
     Wrap long strings in the Series/Index to be formatted in
     paragraphs with length less than a given width.
 
