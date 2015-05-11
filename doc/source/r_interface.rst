@@ -15,7 +15,69 @@ rpy2 / R interface
 
 .. warning::
 
-   In v0.16.0, the ``pandas.rpy`` interface has been **deprecated and will be removed in a future version**. Similar functionaility can be accessed thru the `rpy2 <http://rpy.sourceforge.net/>`_ project.
+   In v0.16.0, the ``pandas.rpy`` interface has been **deprecated and will be
+   removed in a future version**. Similar functionality can be accessed
+   through the `rpy2 <http://rpy.sourceforge.net/>`_ project.
+   See the :ref:`updating <rpy.updating>` section for a guide to port your
+   code from the ``pandas.rpy`` to ``rpy2`` functions.
+
+
+.. _rpy.updating:
+
+Updating your code to use rpy2 functions
+----------------------------------------
+
+In v0.16.0, the ``pandas.rpy`` module has been **deprecated** and users are
+pointed to the similar functionality in ``rpy2`` itself (rpy2 >= 2.4).
+
+Instead of importing ``import pandas.rpy.common as com``, the following imports
+should be done to activate the pandas conversion support in rpy2::
+
+    from rpy2.robjects import pandas2ri
+    pandas2ri.activate()
+
+Converting data frames back and forth between rpy2 and pandas should be largely
+automated (no need to convert explicitly, it will be done on the fly in most
+rpy2 functions).
+
+To convert explicitly, the functions are ``pandas2ri.py2ri()`` and
+``pandas2ri.ri2py()``. So these functions can be used to replace the existing
+functions in pandas:
+
+- ``com.convert_to_r_dataframe(df)`` should be replaced with ``pandas2ri.py2ri(df)``
+- ``com.convert_robj(rdf)`` should be replaced with ``pandas2ri.ri2py(rdf)``
+
+Note: these functions are for the latest version (rpy2 2.5.x) and were called
+``pandas2ri.pandas2ri()`` and ``pandas2ri.ri2pandas()`` previously.
+
+Some of the other functionality in `pandas.rpy` can be replaced easily as well.
+For example to load R data as done with the ``load_data`` function, the
+current method::
+
+    df_iris = com.load_data('iris')
+
+can be replaced with::
+
+    from rpy2.robjects import r
+    r.data('iris')
+    df_iris = pandas2ri.ri2py(r[name])
+
+The ``convert_to_r_matrix`` function can be replaced by the normal
+``pandas2ri.py2ri`` to convert dataframes, with a subsequent call to R
+``as.matrix`` function.
+
+.. warning::
+
+    Not all conversion functions in rpy2 are working exactly the same as the
+    current methods in pandas. If you experience problems or limitations in
+    comparison to the ones in pandas, please report this at the
+    `issue tracker <https://github.com/pydata/pandas/issues>`_.
+
+See also the documentation of the `rpy2 <http://rpy.sourceforge.net/>`_ project.
+
+
+R interface with rpy2
+---------------------
 
 If your computer has R and rpy2 (> 2.2) installed (which will be left to the
 reader), you will be able to leverage the below functionality. On Windows,
