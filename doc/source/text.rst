@@ -82,11 +82,11 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-Easy to expand this to return a DataFrame using ``return_type``.
+Easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
-   s2.str.split('_', return_type='frame')
+   s2.str.split('_', expand=True)
 
 Methods like ``replace`` and ``findall`` take `regular expressions
 <https://docs.python.org/2/library/re.html>`__, too:
