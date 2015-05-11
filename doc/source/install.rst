@@ -35,7 +35,7 @@ pandas at all.
 Simply create an account, and have access to pandas from within your brower via
 an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
 
-.. _install.anaconda
+.. _install.anaconda:
 
 Installing pandas with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +68,7 @@ admin rights to install it, it will install in the user's home directory, and
 this also makes it trivial to delete Anaconda at a later date (just delete
 that folder).
 
-.. _install.miniconda
+.. _install.miniconda:
 
 Installing pandas with Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
