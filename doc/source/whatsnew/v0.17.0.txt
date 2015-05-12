@@ -390,7 +390,7 @@ Bug Fixes
 - Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
 - Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 
-
+- Bug in ``filter`` (regression from 0.16.0) and ``transform`` when grouping on multiple keys, one of which is datetime-like (:issue:`10114`)
 
 
 
