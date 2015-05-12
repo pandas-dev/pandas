@@ -817,43 +817,43 @@ def getArangeMat():
 
 
 # make index
-def makeStringIndex(k=10):
-    return Index(rands_array(nchars=10, size=k))
+def makeStringIndex(k=10, name=None):
+    return Index(rands_array(nchars=10, size=k), name=name)
 
 
-def makeUnicodeIndex(k=10):
+def makeUnicodeIndex(k=10, name=None):
     return Index(randu_array(nchars=10, size=k))
 
-def makeCategoricalIndex(k=10, n=3):
+def makeCategoricalIndex(k=10, n=3, name=None):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x,k))
+    return CategoricalIndex(np.random.choice(x,k), name=name)
 
-def makeBoolIndex(k=10):
+def makeBoolIndex(k=10, name=None):
     if k == 1:
-        return Index([True])
+        return Index([True], name=name)
     elif k == 2:
-        return Index([False,True])
-    return Index([False,True] + [False]*(k-2))
+        return Index([False,True], name=name)
+    return Index([False,True] + [False]*(k-2), name=name)
 
-def makeIntIndex(k=10):
-    return Index(lrange(k))
+def makeIntIndex(k=10, name=None):
+    return Index(lrange(k), name=name)
 
-def makeFloatIndex(k=10):
+def makeFloatIndex(k=10, name=None):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
-    return Index(values * (10 ** np.random.randint(0, 9)))
+    return Index(values * (10 ** np.random.randint(0, 9)), name=name)
 
-def makeDateIndex(k=10, freq='B'):
+def makeDateIndex(k=10, freq='B', name=None):
     dt = datetime(2000, 1, 1)
-    dr = bdate_range(dt, periods=k, freq=freq)
-    return DatetimeIndex(dr)
+    dr = bdate_range(dt, periods=k, freq=freq, name=name)
+    return DatetimeIndex(dr, name=name)
 
-def makeTimedeltaIndex(k=10, freq='D'):
-    return TimedeltaIndex(start='1 day',periods=k,freq=freq)
+def makeTimedeltaIndex(k=10, freq='D', name=None):
+    return TimedeltaIndex(start='1 day', periods=k, freq=freq, name=name)
 
-def makePeriodIndex(k=10):
+def makePeriodIndex(k=10, name=None):
     dt = datetime(2000, 1, 1)
-    dr = PeriodIndex(start=dt, periods=k, freq='B')
+    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name)
     return dr
 
 def all_index_generator(k=10):
@@ -885,21 +885,21 @@ def all_timeseries_index_generator(k=10):
 
 
 # make series
-def makeFloatSeries():
+def makeFloatSeries(name=None):
     index = makeStringIndex(N)
-    return Series(randn(N), index=index)
+    return Series(randn(N), index=index, name=name)
 
 
-def makeStringSeries():
+def makeStringSeries(name=None):
     index = makeStringIndex(N)
-    return Series(randn(N), index=index)
+    return Series(randn(N), index=index, name=name)
 
 
-def makeObjectSeries():
+def makeObjectSeries(name=None):
     dateIndex = makeDateIndex(N)
     dateIndex = Index(dateIndex, dtype=object)
     index = makeStringIndex(N)
-    return Series(dateIndex, index=index)
+    return Series(dateIndex, index=index, name=name)
 
 
 def getSeriesData():
@@ -907,16 +907,16 @@ def getSeriesData():
     return dict((c, Series(randn(N), index=index)) for c in getCols(K))
 
 
-def makeTimeSeries(nper=None, freq='B'):
+def makeTimeSeries(nper=None, freq='B', name=None):
     if nper is None:
         nper = N
-    return Series(randn(nper), index=makeDateIndex(nper, freq=freq))
+    return Series(randn(nper), index=makeDateIndex(nper, freq=freq), name=name)
 
 
-def makePeriodSeries(nper=None):
+def makePeriodSeries(nper=None, name=None):
     if nper is None:
         nper = N
-    return Series(randn(nper), index=makePeriodIndex(nper))
+    return Series(randn(nper), index=makePeriodIndex(nper), name=name)
 
 
 def getTimeSeriesData(nper=None, freq='B'):

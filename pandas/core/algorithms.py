@@ -202,6 +202,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.tools.tile import cut
     from pandas.tseries.period import PeriodIndex
 
+    name = getattr(values, 'name', None)
     values = Series(values).values
 
     if bins is not None:
@@ -222,7 +223,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
 
             if is_period:
-                values = PeriodIndex(values)
+                values = PeriodIndex(values, name=name)
 
             values = values.view(np.int64)
             keys, counts = htable.value_count_int64(values)
@@ -247,7 +248,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
                 keys = np.insert(keys, 0, np.NaN)
                 counts = np.insert(counts, 0, mask.sum())
 
-        result = Series(counts, index=com._values_from_object(keys))
+        result = Series(counts, index=com._values_from_object(keys), name=name)
 
         if bins is not None:
             # TODO: This next line should be more efficient
