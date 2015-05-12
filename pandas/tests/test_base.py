@@ -181,23 +181,24 @@ class TestPandasDelegate(tm.TestCase):
 
 class Ops(tm.TestCase):
     def setUp(self):
-        self.bool_index    = tm.makeBoolIndex(10)
-        self.int_index     = tm.makeIntIndex(10)
-        self.float_index   = tm.makeFloatIndex(10)
-        self.dt_index      = tm.makeDateIndex(10)
-        self.dt_tz_index   = tm.makeDateIndex(10).tz_localize(tz='US/Eastern')
-        self.period_index  = tm.makePeriodIndex(10)
-        self.string_index  = tm.makeStringIndex(10)
+        self.bool_index    = tm.makeBoolIndex(10, name='a')
+        self.int_index     = tm.makeIntIndex(10, name='a')
+        self.float_index   = tm.makeFloatIndex(10, name='a')
+        self.dt_index      = tm.makeDateIndex(10, name='a')
+        self.dt_tz_index   = tm.makeDateIndex(10, name='a').tz_localize(tz='US/Eastern')
+        self.period_index  = tm.makePeriodIndex(10, name='a')
+        self.string_index  = tm.makeStringIndex(10, name='a')
+        self.unicode_index  = tm.makeUnicodeIndex(10, name='a')
 
         arr = np.random.randn(10)
-        self.int_series    = Series(arr, index=self.int_index)
-        self.float_series  = Series(arr, index=self.float_index)
-        self.dt_series     = Series(arr, index=self.dt_index)
+        self.int_series    = Series(arr, index=self.int_index, name='a')
+        self.float_series  = Series(arr, index=self.float_index, name='a')
+        self.dt_series     = Series(arr, index=self.dt_index, name='a')
         self.dt_tz_series  = self.dt_tz_index.to_series(keep_tz=True)
-        self.period_series = Series(arr, index=self.period_index)
-        self.string_series = Series(arr, index=self.string_index)
+        self.period_series = Series(arr, index=self.period_index, name='a')
+        self.string_series = Series(arr, index=self.string_index, name='a')
 
-        types = ['bool','int','float','dt', 'dt_tz', 'period','string']
+        types = ['bool','int','float','dt', 'dt_tz', 'period','string', 'unicode']
         fmts = [ "{0}_{1}".format(t,f) for t in types for f in ['index','series'] ]
         self.objs = [ getattr(self,f) for f in fmts if getattr(self,f,None) is not None ]
 
@@ -213,9 +214,9 @@ class Ops(tm.TestCase):
 
                 try:
                     if isinstance(o, Series):
-                        expected = Series(getattr(o.index,op),index=o.index)
+                        expected = Series(getattr(o.index,op), index=o.index, name='a')
                     else:
-                        expected = getattr(o,op)
+                        expected = getattr(o, op)
                 except (AttributeError):
                     if ignore_failures:
                         continue
@@ -361,21 +362,28 @@ class TestIndexOps(Ops):
             # create repeated values, 'n'th element is repeated by n+1 times
             if isinstance(o, PeriodIndex):
                 # freq must be specified because repeat makes freq ambiguous
-                expected_index = o[::-1]
-                o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
+
+                # resets name from Index
+                expected_index = pd.Index(o[::-1], name=None)
+
+                # attach name to klass
+                o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq, name='a')
             # don't test boolean
             elif isinstance(o,Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
-                expected_index = values[::-1]
-                o = klass(np.repeat(values, range(1, len(o) + 1)))
+                expected_index = pd.Index(values[::-1], name=None)
+                o = klass(np.repeat(values, range(1, len(o) + 1)), name='a')
             else:
-                expected_index = values[::-1]
+                expected_index = pd.Index(values[::-1], name=None)
                 idx = np.repeat(o.index.values, range(1, len(o) + 1))
-                o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx)
+                o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx, name='a')
 
-            expected_s = Series(range(10, 0, -1), index=expected_index, dtype='int64')
-            tm.assert_series_equal(o.value_counts(), expected_s)
+            expected_s = Series(range(10, 0, -1), index=expected_index, dtype='int64', name='a')
+            result = o.value_counts()
+            tm.assert_series_equal(result, expected_s)
+            self.assertTrue(result.index.name is None)
+            self.assertEqual(result.name, 'a')
 
             result = o.unique()
             if isinstance(o, (DatetimeIndex, PeriodIndex)):
@@ -410,21 +418,34 @@ class TestIndexOps(Ops):
                 # create repeated values, 'n'th element is repeated by n+1 times
                 if isinstance(o, PeriodIndex):
                     # freq must be specified because repeat makes freq ambiguous
-                    expected_index = o
-                    o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq)
+
+                    # resets name from Index
+                    expected_index = pd.Index(o, name=None)
+                    # attach name to klass
+                    o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq, name='a')
                 elif isinstance(o, Index):
-                    expected_index = values
-                    o = klass(np.repeat(values, range(1, len(o) + 1)))
+                    expected_index = pd.Index(values, name=None)
+                    o = klass(np.repeat(values, range(1, len(o) + 1)), name='a')
                 else:
-                    expected_index = values
+                    expected_index = pd.Index(values, name=None)
                     idx = np.repeat(o.index.values, range(1, len(o) + 1))
-                    o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx)
+                    o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx, name='a')
 
-                expected_s_na = Series(list(range(10, 2, -1)) +[3], index=expected_index[9:0:-1], dtype='int64')
-                expected_s = Series(list(range(10, 2, -1)), index=expected_index[9:1:-1], dtype='int64')
+                expected_s_na = Series(list(range(10, 2, -1)) +[3],
+                                       index=expected_index[9:0:-1],
+                                       dtype='int64', name='a')
+                expected_s = Series(list(range(10, 2, -1)),
+                                    index=expected_index[9:1:-1],
+                                    dtype='int64', name='a')
 
-                tm.assert_series_equal(o.value_counts(dropna=False), expected_s_na)
+                result_s_na = o.value_counts(dropna=False)
+                tm.assert_series_equal(result_s_na, expected_s_na)
+                self.assertTrue(result_s_na.index.name is None)
+                self.assertEqual(result_s_na.name, 'a')
+                result_s = o.value_counts()
                 tm.assert_series_equal(o.value_counts(), expected_s)
+                self.assertTrue(result_s.index.name is None)
+                self.assertEqual(result_s.name, 'a')
 
                 # numpy_array_equal cannot compare arrays includes nan
                 result = o.unique()
@@ -508,14 +529,15 @@ class TestIndexOps(Ops):
             df = pd.read_fwf(f, widths=[6, 8, 3], names=["person_id", "dt", "food"],
                              parse_dates=["dt"])
 
-            s = klass(df['dt'].copy())
+            s = klass(df['dt'].copy(), name='dt')
 
-            idx = pd.to_datetime(['2010-01-01 00:00:00Z', '2008-09-09 00:00:00Z', '2009-01-01 00:00:00X'])
-            expected_s = Series([3, 2, 1], index=idx)
+            idx = pd.to_datetime(['2010-01-01 00:00:00Z', '2008-09-09 00:00:00Z',
+                                  '2009-01-01 00:00:00X'])
+            expected_s = Series([3, 2, 1], index=idx, name='dt')
             tm.assert_series_equal(s.value_counts(), expected_s)
 
-            expected = np.array(['2010-01-01 00:00:00Z', '2009-01-01 00:00:00Z', '2008-09-09 00:00:00Z'],
-                                dtype='datetime64[ns]')
+            expected = np.array(['2010-01-01 00:00:00Z', '2009-01-01 00:00:00Z',
+                                 '2008-09-09 00:00:00Z'], dtype='datetime64[ns]')
             if isinstance(s, DatetimeIndex):
                 expected = DatetimeIndex(expected)
                 self.assertTrue(s.unique().equals(expected))
@@ -526,7 +548,7 @@ class TestIndexOps(Ops):
 
             # with NaT
             s = df['dt'].copy()
-            s = klass([v for v in s.values] + [pd.NaT])
+            s = klass([v for v in s.values] + [pd.NaT], name='dt')
 
             result = s.value_counts()
             self.assertEqual(result.index.dtype, 'datetime64[ns]')
@@ -547,10 +569,10 @@ class TestIndexOps(Ops):
 
             # timedelta64[ns]
             td = df.dt - df.dt + timedelta(1)
-            td = klass(td)
+            td = klass(td, name='dt')
 
             result = td.value_counts()
-            expected_s = Series([6], index=[Timedelta('1day')])
+            expected_s = Series([6], index=[Timedelta('1day')], name='dt')
             tm.assert_series_equal(result, expected_s)
 
             expected = TimedeltaIndex(['1 days'])
@@ -560,9 +582,8 @@ class TestIndexOps(Ops):
                 self.assert_numpy_array_equal(td.unique(), expected.values)
 
             td2 = timedelta(1) + (df.dt - df.dt)
-            td2 = klass(td2)
+            td2 = klass(td2, name='dt')
             result2 = td2.value_counts()
-
             tm.assert_series_equal(result2, expected_s)
 
     def test_factorize(self):
@@ -629,7 +650,7 @@ class TestIndexOps(Ops):
                 # special case
                 if original.is_boolean():
                     result = original.drop_duplicates()
-                    expected = Index([False,True])
+                    expected = Index([False,True], name='a')
                     tm.assert_index_equal(result, expected)
                     continue
 
@@ -668,7 +689,8 @@ class TestIndexOps(Ops):
                     idx.drop_duplicates(inplace=True)
 
             else:
-                expected = Series([False] * len(original), index=original.index)
+                expected = Series([False] * len(original),
+                                  index=original.index, name='a')
                 tm.assert_series_equal(original.duplicated(), expected)
                 result = original.drop_duplicates()
                 tm.assert_series_equal(result, original)
@@ -676,17 +698,17 @@ class TestIndexOps(Ops):
 
                 idx = original.index[list(range(len(original))) + [5, 3]]
                 values = original.values[list(range(len(original))) + [5, 3]]
-                s = Series(values, index=idx)
+                s = Series(values, index=idx, name='a')
 
-                expected = Series([False] * len(original) + [True, True], index=idx)
+                expected = Series([False] * len(original) + [True, True],
+                                  index=idx, name='a')
                 tm.assert_series_equal(s.duplicated(), expected)
                 tm.assert_series_equal(s.drop_duplicates(), original)
 
                 last_base = [False] * len(idx)
                 last_base[3] = True
                 last_base[5] = True
-                expected = Series(last_base, index=idx)
-                expected
+                expected = Series(last_base, index=idx, name='a')
                 tm.assert_series_equal(s.duplicated(take_last=True), expected)
                 tm.assert_series_equal(s.drop_duplicates(take_last=True),
                                        s[~np.array(last_base)])
