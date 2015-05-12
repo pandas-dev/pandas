@@ -1368,11 +1368,18 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError('Input must be iterable.')
 
         if len(other) == 0 or self.equals(other):
+            if (len(other) and
+                 hasattr(other, 'name') and not
+                 other.name == self.name and not
+                 other.name is None):
+                self.name = None
             return self
 
         other = _ensure_index(other)
 
         if len(self) == 0:
+            if not other.name == self.name:
+                other.name = None
             return other
 
         self._assert_can_do_setop(other)
@@ -1426,7 +1433,10 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_union_result(other, result)
 
     def _wrap_union_result(self, other, result):
-        name = self.name if other.name == self.name or other.name==None else None
+        name = None
+        if self.name == other.name or other.name is None:
+            name = self.name
+
         return self.__class__(data=result, name=name)
 
     def intersection(self, other):
@@ -1450,6 +1460,10 @@ class Index(IndexOpsMixin, PandasObject):
         other = _ensure_index(other)
 
         if self.equals(other):
+            if (hasattr(other, 'name')
+                 and not other.name is None
+                 and not other.name == self.name):
+                self.name = None
             return self
 
         if not is_dtype_equal(self.dtype,other.dtype):
@@ -1474,7 +1488,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = self.take(indexer)
-        if self.name != other.name and not other.name == None:
+        if self.name != other.name and not other.name is None:
             taken.name = None
 
         return taken
@@ -5530,7 +5544,7 @@ class MultiIndex(Index):
             result_names = self.names
         else:
             result_names = None
-            if self.names == other.names or other.names == None:
+            if self.names == other.names or other.names is None:
                 result_names = self.names
 
         if self.equals(other):
@@ -5627,7 +5641,7 @@ class MultiIndex(Index):
 
     def _wrap_joined_index(self, joined, other):
         names = None
-        if self.names == other.names or other.names == None:
+        if self.names == other.names or other.names is None:
             names = self.names
         return MultiIndex.from_tuples(joined, names=names)
 
