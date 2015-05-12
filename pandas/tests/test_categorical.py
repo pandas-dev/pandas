@@ -521,6 +521,15 @@ class TestCategorical(tm.TestCase):
         expected = ("[], Categories (0, object): []")
         self.assertEqual(expected, repr(factor))
 
+    def test_print_none_width(self):
+        # GH10087
+        a = pd.Series(pd.Categorical([1,2,3,4], name="a"))
+        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+              "Name: a, dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+
+        with option_context("display.width", None):
+            self.assertEqual(exp, repr(a))
+
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                             '2014-03', '2014-03'], freq='M')

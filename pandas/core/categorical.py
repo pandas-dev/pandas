@@ -1310,8 +1310,7 @@ class Categorical(PandasObject):
         levheader = "Categories (%d, %s): " % (len(self.categories),
                                                self.categories.dtype)
         width, height = get_terminal_size()
-        max_width = (width if get_option("display.width") == 0
-                    else get_option("display.width"))
+        max_width = get_option("display.width") or width
         if com.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
