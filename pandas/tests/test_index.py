@@ -4151,6 +4151,17 @@ class TestMultiIndex(Base, tm.TestCase):
         expected = index[:2].droplevel(2).droplevel(0)
         self.assertTrue(dropped.equals(expected))
 
+    def test_drop_duplicates_names(self):
+        # GH 10115
+        for idx in [Index([3, 4, 5, 3]),
+                    Index([3, 4, 5, 3], name='Num'),
+                    MultiIndex.from_tuples([('A', 1), ('A', 2)]),
+                    MultiIndex.from_tuples([('A', 1), ('A', 2)], names=[None, None]),
+                    MultiIndex.from_tuples([('A', 1), ('A', 2)], names=[None, 'Num']),
+                    MultiIndex.from_tuples([('A', 1), ('A', 2)], names=['Upper', 'Num']),
+                   ]:
+            self.assertEqual(idx.drop_duplicates().names, idx.names)
+
     def test_insert(self):
         # key contained in all levels
         new_index = self.index.insert(0, ('bar', 'two'))
