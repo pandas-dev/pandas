@@ -18,6 +18,7 @@ Highlights include:
     previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
   - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
     if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
+  - Support .strftime for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
   - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
@@ -59,6 +60,29 @@ Releasing of the GIL could benefit an application that uses threads for user int
 
 .. _dask: https://dask.readthedocs.org/en/latest/
 .. _QT: https://wiki.python.org/moin/PyQt
+
+.. _whatsnew_0170.strftime:
+
+Support strftime for Datetimelikes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We are now supporting a ``.strftime`` method for datetime-likes (:issue:`10110`). Examples:
+
+  .. ipython:: python
+
+     # DatetimeIndex
+     s = pd.Series(pd.date_range('20130101', periods=4))
+     s
+     s.dt.strftime('%Y/%m/%d')
+
+  .. ipython:: python
+
+     # PeriodIndex
+     s = pd.Series(pd.period_range('20130101', periods=4))
+     s
+     s.dt.strftime('%Y/%m/%d')
+
+The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
 .. _whatsnew_0170.enhancements.other:
 

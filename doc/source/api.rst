@@ -509,6 +509,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.tz_localize
    Series.dt.tz_convert
    Series.dt.normalize
+   Series.dt.strftime
 
 **Timedelta Properties**
 
