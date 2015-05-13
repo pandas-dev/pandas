@@ -211,7 +211,6 @@ cdef class StringHashTable(HashTable):
     def unique(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = 0
             int ret = 0
             object val
             char *buf
@@ -223,12 +222,9 @@ cdef class StringHashTable(HashTable):
             buf = util.get_c_string(val)
             k = kh_get_str(self.table, buf)
             if k == self.table.n_buckets:
-                k = kh_put_str(self.table, buf, &ret)
-                # print 'putting %s, %s' % (val, count)
-                count += 1
+                kh_put_str(self.table, buf, &ret)
                 uniques.append(val)
 
-        # return None
         return uniques.to_array()
 
     def factorize(self, ndarray[object] values):
@@ -258,7 +254,6 @@ cdef class StringHashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        # return None
         return reverse, labels
 
 cdef class Int32HashTable(HashTable):
@@ -319,7 +314,6 @@ cdef class Int32HashTable(HashTable):
     def lookup(self, ndarray[int32_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret = 0
             int32_t val
             khiter_t k
             ndarray[int32_t] locs = np.empty(n, dtype=np.int64)
@@ -357,7 +351,6 @@ cdef class Int32HashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        # return None
         return reverse, labels
 
 cdef class Int64HashTable: #(HashTable):
@@ -518,7 +511,6 @@ cdef class Int64HashTable: #(HashTable):
     def unique(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = 0
             int ret = 0
             ndarray result
             int64_t val
@@ -529,9 +521,8 @@ cdef class Int64HashTable: #(HashTable):
             val = values[i]
             k = kh_get_int64(self.table, val)
             if k == self.table.n_buckets:
-                k = kh_put_int64(self.table, val, &ret)
+                kh_put_int64(self.table, val, &ret)
                 uniques.append(val)
-                count += 1
 
         result = uniques.to_array()
 
@@ -644,7 +635,6 @@ cdef class Float64HashTable(HashTable):
     def unique(self, ndarray[float64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = 0
             int ret = 0
             float64_t val
             khiter_t k
@@ -657,9 +647,8 @@ cdef class Float64HashTable(HashTable):
             if val == val:
                 k = kh_get_float64(self.table, val)
                 if k == self.table.n_buckets:
-                    k = kh_put_float64(self.table, val, &ret)
+                    kh_put_float64(self.table, val, &ret)
                     uniques.append(val)
-                    count += 1
             elif not seen_na:
                 seen_na = 1
                 uniques.append(ONAN)
@@ -786,7 +775,6 @@ cdef class PyObjectHashTable(HashTable):
     def unique(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = 0
             int ret = 0
             object val
             ndarray result
@@ -800,7 +788,7 @@ cdef class PyObjectHashTable(HashTable):
             if not _checknan(val):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
-                    k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                    kh_put_pymap(self.table, <PyObject*>val, &ret)
                     uniques.append(val)
             elif not seen_na:
                 seen_na = 1
@@ -918,7 +906,7 @@ cdef class Int64Factorizer:
 
 cdef build_count_table_int64(ndarray[int64_t] values, kh_int64_t *table):
     cdef:
-        int k
+        khiter_t k
         Py_ssize_t i, n = len(values)
         int ret = 0
 
@@ -938,7 +926,6 @@ cpdef value_count_int64(ndarray[int64_t] values):
     cdef:
         Py_ssize_t i
         kh_int64_t *table
-        int ret = 0
         int k
 
     table = kh_init_int64()
@@ -961,7 +948,7 @@ cdef build_count_table_object(ndarray[object] values,
                               ndarray[uint8_t, cast=True] mask,
                               kh_pymap_t *table):
     cdef:
-        int k
+        khiter_t k
         Py_ssize_t i, n = len(values)
         int ret = 0
 
@@ -983,7 +970,7 @@ cdef build_count_table_object(ndarray[object] values,
 cpdef value_count_object(ndarray[object] values,
                        ndarray[uint8_t, cast=True] mask):
     cdef:
-        Py_ssize_t i = len(values)
+        Py_ssize_t i
         kh_pymap_t *table
         int k
 
@@ -1008,9 +995,7 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
         int count, max_count = 2
         int j = -1 # so you can do +=
         int k
-        Py_ssize_t i, n = len(values)
         kh_pymap_t *table
-        int ret = 0
 
     table = kh_init_pymap()
     build_count_table_object(values, mask, table)
@@ -1036,11 +1021,10 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
 
 def mode_int64(ndarray[int64_t] values):
     cdef:
-        int val, max_val = 2
+        int count, max_count = 2
         int j = -1 # so you can do +=
         int k
         kh_int64_t *table
-        list uniques = []
 
     table = kh_init_int64()
 
@@ -1049,12 +1033,12 @@ def mode_int64(ndarray[int64_t] values):
     modes = np.empty(table.n_buckets, dtype=np.int64)
     for k in range(table.n_buckets):
         if kh_exist_int64(table, k):
-            val = table.vals[k]
+            count = table.vals[k]
 
-            if val == max_val:
+            if count == max_count:
                 j += 1
-            elif val > max_val:
-                max_val = val
+            elif count > max_count:
+                max_count = count
                 j = 0
             else:
                 continue
