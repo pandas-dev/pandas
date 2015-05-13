@@ -125,7 +125,7 @@ DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
                                            accessors=DatetimeIndex._datetimelike_ops,
                                            typ='property')
 DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
-                                           accessors=["to_period","tz_localize","tz_convert","normalize"],
+                                           accessors=["to_period","tz_localize","tz_convert","normalize","strftime"],
                                            typ='method')
 
 class TimedeltaProperties(Properties):
@@ -181,6 +181,9 @@ class PeriodProperties(Properties):
 PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
                                          accessors=PeriodIndex._datetimelike_ops,
                                          typ='property')
+PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
+                                         accessors=["strftime"],
+                                         typ='method')
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):

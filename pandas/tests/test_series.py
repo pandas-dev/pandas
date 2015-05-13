@@ -83,9 +83,10 @@ class CheckNameIntegration(object):
 
         ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq','days_in_month','daysinmonth']
         ok_for_period = ok_for_base + ['qyear']
+        ok_for_period_methods = ['strftime']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
         ok_for_td_methods = ['components','to_pytimedelta']
 
@@ -111,13 +112,12 @@ class CheckNameIntegration(object):
                   Series(date_range('20130101',periods=5,freq='s')),
                   Series(date_range('20130101 00:00:00',periods=5,freq='ms'))]:
             for prop in ok_for_dt:
-
                 # we test freq below
                 if prop != 'freq':
                     compare(s, prop)
 
             for prop in ok_for_dt_methods:
-                getattr(s.dt,prop)
+                getattr(s.dt, prop)
 
             result = s.dt.to_pydatetime()
             self.assertIsInstance(result,np.ndarray)
@@ -142,13 +142,12 @@ class CheckNameIntegration(object):
                   Series(timedelta_range('1 day 01:23:45',periods=5,freq='s')),
                   Series(timedelta_range('2 days 01:23:45.012345',periods=5,freq='ms'))]:
             for prop in ok_for_td:
-
                 # we test freq below
                 if prop != 'freq':
                     compare(s, prop)
 
             for prop in ok_for_td_methods:
-                getattr(s.dt,prop)
+                getattr(s.dt, prop)
 
             result = s.dt.components
             self.assertIsInstance(result,DataFrame)
@@ -171,12 +170,13 @@ class CheckNameIntegration(object):
 
         # periodindex
         for s in [Series(period_range('20130101',periods=5,freq='D'))]:
-
             for prop in ok_for_period:
-
                 # we test freq below
                 if prop != 'freq':
                     compare(s, prop)
+
+            for prop in ok_for_period_methods:
+                getattr(s.dt, prop)
 
             freq_result = s.dt.freq
             self.assertEqual(freq_result, PeriodIndex(s.values).freq)
@@ -192,7 +192,7 @@ class CheckNameIntegration(object):
 
         s = Series(period_range('20130101',periods=5,freq='D').asobject)
         results = get_dir(s)
-        tm.assert_almost_equal(results,list(sorted(set(ok_for_period))))
+        tm.assert_almost_equal(results, list(sorted(set(ok_for_period + ok_for_period_methods))))
 
         # no setting allowed
         s = Series(date_range('20130101',periods=5,freq='D'))
@@ -204,6 +204,62 @@ class CheckNameIntegration(object):
             def f():
                 s.dt.hour[0] = 5
             self.assertRaises(com.SettingWithCopyError, f)
+
+    def test_strftime(self):
+        # GH 10086
+        s = Series(date_range('20130101', periods=5))
+        result = s.dt.strftime('%Y/%m/%d')
+        expected = Series(['2013/01/01', '2013/01/02', '2013/01/03', '2013/01/04', '2013/01/05'])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(date_range('2015-02-03 11:22:33.4567', periods=5))
+        result = s.dt.strftime('%Y/%m/%d %H-%M-%S')
+        expected = Series(['2015/02/03 11-22-33', '2015/02/04 11-22-33', '2015/02/05 11-22-33',
+                           '2015/02/06 11-22-33', '2015/02/07 11-22-33'])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(period_range('20130101', periods=5))
+        result = s.dt.strftime('%Y/%m/%d')
+        expected = Series(['2013/01/01', '2013/01/02', '2013/01/03', '2013/01/04', '2013/01/05'])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(period_range('2015-02-03 11:22:33.4567', periods=5, freq='s'))
+        result = s.dt.strftime('%Y/%m/%d %H-%M-%S')
+        expected = Series(['2015/02/03 11-22-33', '2015/02/03 11-22-34', '2015/02/03 11-22-35',
+                           '2015/02/03 11-22-36', '2015/02/03 11-22-37'])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(date_range('20130101', periods=5))
+        s.iloc[0] = pd.NaT
+        result = s.dt.strftime('%Y/%m/%d')
+        expected = Series(['NaT', '2013/01/02', '2013/01/03', '2013/01/04', '2013/01/05'])
+        tm.assert_series_equal(result, expected)
+
+        datetime_index = date_range('20150301', periods=5)
+        result = datetime_index.strftime("%Y/%m/%d")
+        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03', '2015/03/04', '2015/03/05'], dtype=object)
+        self.assert_numpy_array_equal(result, expected)
+
+        period_index = period_range('20150301', periods=5)
+        result = period_index.strftime("%Y/%m/%d")
+        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03', '2015/03/04', '2015/03/05'], dtype=object)
+        self.assert_numpy_array_equal(result, expected)
+
+        s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
+        result = s.dt.strftime('%Y-%m-%d %H:%M:%S')
+        expected = Series(["2013-01-01 02:32:59", "2013-01-02 14:32:01"])
+        tm.assert_series_equal(result, expected)
+
+        s = Series(period_range('20130101', periods=4, freq='H'))
+        result = s.dt.strftime('%Y/%m/%d %H:%M:%S')
+        expected = Series(["2013/01/01 00:00:00", "2013/01/01 01:00:00",
+                           "2013/01/01 02:00:00", "2013/01/01 03:00:00"])
+
+        s = Series(period_range('20130101', periods=4, freq='L'))
+        result = s.dt.strftime('%Y/%m/%d %H:%M:%S.%l')
+        expected = Series(["2013/01/01 00:00:00.000", "2013/01/01 00:00:00.001",
+                           "2013/01/01 00:00:00.002", "2013/01/01 00:00:00.003"])
+        tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
 

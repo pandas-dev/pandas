@@ -4,7 +4,7 @@ import numpy as np
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -92,7 +92,7 @@ def _period_index_cmp(opname, nat_result=False):
     return wrapper
 
 
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
+class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc. A value of 1 is the
@@ -737,14 +737,18 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def _format_native_types(self, na_rep=u('NaT'), **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'), date_format=None, **kwargs):
 
         values = np.array(list(self), dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
-
         imask = ~mask
-        values[imask] = np.array([u('%s') % dt for dt in values[imask]])
+
+        if date_format:
+            formatter = lambda dt: dt.strftime(date_format)
+        else:
+            formatter = lambda dt: u('%s') % dt
+        values[imask] = np.array([formatter(dt) for dt in values[imask]])
         return values
 
     def __array_finalize__(self, obj):
