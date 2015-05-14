@@ -1,7 +1,5 @@
-import sys
 import itertools
 import functools
-
 import numpy as np
 
 try:
@@ -10,7 +8,6 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-import pandas.core.common as com
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
 from pandas.compat import builtins

@@ -6,7 +6,6 @@ from __future__ import division
 from pandas.compat import (map, zip, range, lrange, lmap, u, OrderedDict,
                            OrderedDefaultdict)
 from pandas import compat
-import sys
 import warnings
 import numpy as np
 from pandas.core.common import (PandasError, _try_sort, _default_index,
@@ -27,7 +26,6 @@ from pandas.util.decorators import (deprecate, Appender, Substitution,
                                     deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas.core.nanops as nanops
 import pandas.computation.expressions as expressions
 from pandas import lib
 

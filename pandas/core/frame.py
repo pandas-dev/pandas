@@ -26,8 +26,9 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                is_list_like, _get_dtype, _maybe_box_datetimelike,
-                                is_categorical_dtype, is_object_dtype, _possibly_infer_to_datetimelike)
+                                is_list_like, _maybe_box_datetimelike,
+                                is_categorical_dtype, is_object_dtype,
+                                _possibly_infer_to_datetimelike)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels,

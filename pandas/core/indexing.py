@@ -1,7 +1,6 @@
 # pylint: disable=W0223
 
-from datetime import datetime
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
@@ -10,8 +9,6 @@ from pandas.core.common import (is_bool_indexer, is_integer_dtype,
                                 is_null_slice,
                                 ABCSeries, ABCDataFrame, ABCPanel, is_float,
                                 _values_from_object, _infer_fill_value, is_integer)
-import pandas.lib as lib
-
 import numpy as np
 
 # the supported indexers

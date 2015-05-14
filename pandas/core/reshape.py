@@ -14,8 +14,7 @@ from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
 from pandas.core.categorical import Categorical
-from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
-                                isnull)
+from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
