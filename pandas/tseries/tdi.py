@@ -1,17 +1,13 @@
 """ implement the TimedeltaIndex """
 
-import operator
-import datetime
 from datetime import timedelta
 import numpy as np
-
 from pandas.core.common import (ABCSeries, _TD_DTYPE, _INT64_DTYPE,
                                 is_timedelta64_dtype, _maybe_box,
                                 _values_from_object, isnull, is_integer, is_float)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
-from pandas.core.base import PandasObject
 from pandas.util.decorators import cache_readonly
 from pandas.tseries.frequencies import to_offset
 import pandas.core.common as com

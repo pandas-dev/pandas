@@ -3,14 +3,12 @@ timedelta support tools
 """
 
 import re
-from datetime import timedelta
-
 import numpy as np
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype,
-                                is_timedelta64_dtype, _values_from_object,
-                                is_list_like, isnull, _ensure_object)
+from pandas.core.common import (ABCSeries, is_integer_dtype,
+                                is_timedelta64_dtype, is_list_like,
+                                isnull, _ensure_object)
 
 def to_timedelta(arg, unit='ns', box=True, coerce=False):
     """
