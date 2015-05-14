@@ -553,6 +553,29 @@ class TestSeriesPlots(TestPlotBase):
         self.assertEqual(xmin, line[0])
         self.assertEqual(xmax, line[-1])
 
+    def test_label(self):
+        s = Series([1, 2])
+        ax = s.plot(label='LABEL', legend=True)
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['None'])
+        self.plt.close()
+        # get name from index
+        s.name = 'NAME'
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['NAME'])
+        self.plt.close()
+        # override the default
+        ax = s.plot(legend=True, label='LABEL')
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        # Add lebel info, but don't draw
+        ax = s.plot(legend=False, label='LABEL')
+        self.assertEqual(ax.get_legend(), None)  # Hasn't been drawn
+        ax.legend()  # draw it
+        self._check_legend_labels(ax, labels=['LABEL'])
+
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
         s = Series(values)

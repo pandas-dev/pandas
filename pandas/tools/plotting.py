@@ -999,7 +999,7 @@ class MPLPlot(object):
         data = self.data
 
         if isinstance(data, Series):
-            label = self.kwds.pop('label', None)
+            label = self.label
             if label is None and data.name is None:
                 label = 'None'
             data = data.to_frame(name=label)
