@@ -514,11 +514,10 @@ def is_period_array(ndarray[object] values):
 
 
 cdef extern from "parse_helper.h":
-    inline int floatify(object, double *result) except -1
+    inline int floatify(object, double *result, int *maybe_int) except -1
 
-cdef double fINT64_MAX = <double> INT64_MAX
-cdef double fINT64_MIN = <double> INT64_MIN
-
+cdef int64_t iINT64_MAX = <int64_t> INT64_MAX
+cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
 
 def maybe_convert_numeric(object[:] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
@@ -527,7 +526,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
     convert to proper dtype array
     '''
     cdef:
-        int status
+        int status, maybe_int
         Py_ssize_t i, n = values.size
         ndarray[float64_t] floats = np.empty(n, dtype='f8')
         ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
@@ -569,18 +568,16 @@ def maybe_convert_numeric(object[:] values, set na_values,
             seen_complex = True
         else:
             try:
-                status = floatify(val, &fval)
+                status = floatify(val, &fval, &maybe_int)
                 floats[i] = fval
                 if not seen_float:
-                    if '.' in val or fval == INF or fval == NEGINF:
-                        seen_float = True
-                    elif 'inf' in val:  # special case to handle +/-inf
-                        seen_float = True
-                    elif fval < fINT64_MAX and fval > fINT64_MIN:
-                        try:
-                            ints[i] = int(val)
-                        except ValueError:
-                            ints[i] = <int64_t> fval
+                    if maybe_int:
+                        as_int = int(val)
+
+                        if as_int <= iINT64_MAX and as_int >= iINT64_MIN:
+                            ints[i] = as_int
+                        else:
+                            raise ValueError('integer out of range')
                     else:
                         seen_float = True
             except:

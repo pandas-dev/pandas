@@ -2,13 +2,13 @@
 #include <float.h>
 
 static double xstrtod(const char *p, char **q, char decimal, char sci,
-                      int skip_trailing);
+                      int skip_trailing, int *maybe_int);
 
-int to_double(char *item, double *p_value, char sci, char decimal)
+int to_double(char *item, double *p_value, char sci, char decimal, int *maybe_int)
 {
     char *p_end;
 
-    *p_value = xstrtod(item, &p_end, decimal, sci, 1);
+    *p_value = xstrtod(item, &p_end, decimal, sci, 1, maybe_int);
 
     return (errno == 0) && (!*p_end);
 }
@@ -18,7 +18,7 @@ int to_double(char *item, double *p_value, char sci, char decimal)
   #define PyBytes_AS_STRING            PyString_AS_STRING
 #endif
 
-int floatify(PyObject* str, double *result) {
+int floatify(PyObject* str, double *result, int *maybe_int) {
     int status;
     char *data;
     PyObject* tmp = NULL;
@@ -35,14 +35,16 @@ int floatify(PyObject* str, double *result) {
         return -1;
     }
 
-    status = to_double(data, result, sci, dec);
+    status = to_double(data, result, sci, dec, maybe_int);
 
     if (!status) {
         /* handle inf/-inf */
         if (0 == strcmp(data, "-inf")) {
             *result = -HUGE_VAL;
+            *maybe_int = 0;
         } else if (0 == strcmp(data, "inf")) {
             *result = HUGE_VAL;
+            *maybe_int = 0;
         } else {
             PyErr_SetString(PyExc_ValueError, "Unable to parse string");
             Py_XDECREF(tmp);
@@ -117,7 +119,7 @@ PANDAS_INLINE void uppercase(char *p) {
 
 
 static double xstrtod(const char *str, char **endptr, char decimal,
-                      char sci, int skip_trailing)
+                      char sci, int skip_trailing, int *maybe_int)
 {
   double number;
   int exponent;
@@ -129,6 +131,7 @@ static double xstrtod(const char *str, char **endptr, char decimal,
   int num_decimals;
 
   errno = 0;
+  *maybe_int = 1;
 
   // Skip leading whitespace
   while (isspace(*p)) p++;
@@ -157,6 +160,7 @@ static double xstrtod(const char *str, char **endptr, char decimal,
   // Process decimal part
   if (*p == decimal)
   {
+    *maybe_int = 0;
     p++;
 
     while (isdigit(*p))
@@ -182,6 +186,8 @@ static double xstrtod(const char *str, char **endptr, char decimal,
   // Process an exponent string
   if (toupper(*p) == toupper(sci))
   {
+    *maybe_int = 0;
+
     // Handle optional sign
     negative = 0;
     switch (*++p)
