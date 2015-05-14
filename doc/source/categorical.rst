@@ -813,12 +813,16 @@ basic type) and applying along columns will also convert to object.
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
 
-No Categorical Index
-~~~~~~~~~~~~~~~~~~~~
+Categorical Index
+~~~~~~~~~~~~~~~~~
 
-There is currently no index of type ``category``, so setting the index to categorical column will
-convert the categorical data to a "normal" dtype first and therefore remove any custom
-ordering of the categories:
+.. versionadded:: 0.16.1
+
+A new ``CategoricalIndex`` index type is introduced in version 0.16.1. See the
+:ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+explanation.
+
+Setting the index, will create create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -827,13 +831,12 @@ ordering of the categories:
     values = [4,2,3,1]
     df = DataFrame({"strings":strings, "values":values}, index=cats)
     df.index
-    # This should sort by categories but does not as there is no CategoricalIndex!
+    # This now sorts by the categories order
     df.sort_index()
 
-.. note::
-    This could change if a `CategoricalIndex` is implemented (see
-    https://github.com/pydata/pandas/issues/7629)
-
+In previous versions (<0.16.1) there is no index of type ``category``, so
+setting the index to categorical column will convert the categorical data to a
+"normal" dtype first and therefore remove any custom ordering of the categories.
 
 Side Effects
 ~~~~~~~~~~~~
