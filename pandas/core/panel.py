@@ -28,6 +28,8 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.computation.expressions as expressions
 from pandas import lib
+from pandas.core.ops import _op_descriptions
+
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -1435,7 +1437,7 @@ Parameters
 ----------
 other : %s or %s""" % (cls._constructor_sliced.__name__, cls.__name__) + """
 axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
-Axis to broadcast over
+    Axis to broadcast over
 
 Returns
 -------
@@ -1457,8 +1459,36 @@ Returns
                 result = com._fill_zeros(result, x, y, name, fill_zeros)
                 return result
 
-            @Substitution(name)
-            @Appender(_agg_doc)
+            if name in _op_descriptions:
+                op_name = name.replace('__', '')
+                op_desc = _op_descriptions[op_name]
+                if op_desc['reversed']:
+                    equiv = 'other ' + op_desc['op'] + ' panel'
+                else:
+                    equiv = 'panel ' + op_desc['op'] + ' other'
+
+                _op_doc = """
+                %%s of series and other, element-wise (binary operator `%%s`).
+                Equivalent to ``%%s``.
+
+                Parameters
+                ----------
+                other : %s or %s""" % (cls._constructor_sliced.__name__, cls.__name__) + """
+                axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
+                    Axis to broadcast over
+
+                Returns
+                -------
+                """ + cls.__name__ + """
+
+                See also
+                --------
+                """ + cls.__name__ + ".%s\n"
+                doc = _op_doc % (op_desc['desc'], op_name, equiv, op_desc['reverse'])
+            else:
+                doc = _agg_doc % name
+
+            @Appender(doc)
             def f(self, other, axis=0):
                 return self._combine(other, na_op, axis=axis)
             f.__name__ = name
