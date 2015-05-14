@@ -151,6 +151,8 @@ Bug Fixes
 
 - Bug in `plot` not defaulting to matplotlib `axes.grid` setting (:issue:`9792`)
 
+- Bug causing strings containing an exponent but no decimal to be parsed as ints instead of floats in python csv parser. (:issue:`9565`)
+
 - Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)
 - Bug in ``read_csv`` causing index name not to be set on an empty DataFrame (:issue:`10184`)
 - Bug in ``SparseSeries.abs`` resets ``name`` (:issue:`10241`)
