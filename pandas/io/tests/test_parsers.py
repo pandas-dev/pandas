@@ -35,7 +35,7 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 from numpy.testing import assert_array_equal
 
-from pandas.parser import OverflowError, CParserError
+import pandas.parser
 
 
 class ParserTests(object):
@@ -1648,7 +1648,7 @@ c,4,5,01/03/2009
         # Temporarily copied to TestPythonParser.
         # Here test that CParserError is raised:
 
-        with tm.assertRaises(CParserError):
+        with tm.assertRaises(pandas.parser.CParserError):
             text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -2292,6 +2292,46 @@ MyColumn
         data = '\n hello\nworld\n'
         result = self.read_csv(StringIO(data), header=None)
         self.assertEqual(len(result), 2)
+
+    def test_float_parser(self):
+        # GH 9565
+        data = '45e-1,4.5,45.,inf,-inf'
+        result = self.read_csv(StringIO(data), header=None)
+        expected = pd.DataFrame([[float(s) for s in data.split(',')]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_int64_overflow(self):
+        data = """ID
+00013007854817840016671868
+00013007854817840016749251
+00013007854817840016754630
+00013007854817840016781876
+00013007854817840017028824
+00013007854817840017963235
+00013007854817840018860166"""
+
+        result = self.read_csv(StringIO(data))
+        self.assertTrue(result['ID'].dtype == object)
+
+        self.assertRaises((OverflowError, pandas.parser.OverflowError),
+            self.read_csv, StringIO(data),
+            converters={'ID' : np.int64})
+
+        # Just inside int64 range: parse as integer
+        i_max = np.iinfo(np.int64).max
+        i_min = np.iinfo(np.int64).min
+        for x in [i_max, i_min]:
+            result = pd.read_csv(StringIO(str(x)), header=None)
+            expected = pd.DataFrame([x])
+            tm.assert_frame_equal(result, expected)
+
+        # Just outside int64 range: parse as string
+        too_big = i_max + 1
+        too_small = i_min - 1
+        for x in [too_big, too_small]:
+            result = pd.read_csv(StringIO(str(x)), header=None)
+            expected = pd.DataFrame([str(x)])
+            tm.assert_frame_equal(result, expected)
 
 
 class TestPythonParser(ParserTests, tm.TestCase):
@@ -3566,22 +3606,6 @@ No,No,No"""
 
         result = read_csv(StringIO(data), dtype=object, na_filter=False)
         self.assertEqual(result['B'][2], '')
-
-    def test_int64_overflow(self):
-        data = """ID
-00013007854817840016671868
-00013007854817840016749251
-00013007854817840016754630
-00013007854817840016781876
-00013007854817840017028824
-00013007854817840017963235
-00013007854817840018860166"""
-
-        result = read_csv(StringIO(data))
-        self.assertTrue(result['ID'].dtype == object)
-
-        self.assertRaises(OverflowError, read_csv, StringIO(data),
-                          dtype='i8')
 
     def test_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
