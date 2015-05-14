@@ -220,8 +220,8 @@ Histogram can be drawn specifying ``kind='hist'``.
 
 .. ipython:: python
 
-   df4 = pd.DataFrame({'a': randn(1000) + 1, 'b': randn(1000),
-                       'c': randn(1000) - 1}, columns=['a', 'b', 'c'])
+   df4 = pd.DataFrame({'a': np.random.randn(1000) + 1, 'b': np.random.randn(1000),
+                       'c': np.random.randn(1000) - 1}, columns=['a', 'b', 'c'])
 
    plt.figure();
 
