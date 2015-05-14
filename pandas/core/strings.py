@@ -116,12 +116,12 @@ def _length_check(others):
     return n
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
+def _na_map(f, arr, na_result=np.nan, dtype=object, np_f=None):
     # should really _check_ for NA
-    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
+    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype, np_f=np_f)
 
 
-def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object, np_f=None):
     from pandas.core.series import Series
 
     if not len(arr):
@@ -131,6 +131,14 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = arr.values
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
+
+    # short path for all-string array
+    if np_f is not None and lib.is_string_array(arr):
+        try:
+            return np_f(arr.astype(unicode))
+        except Exception:
+            pass
+
     if na_mask:
         mask = isnull(arr)
         try:
@@ -686,14 +694,17 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     if side == 'left':
         f = lambda x: x.rjust(width, fillchar)
+        np_f = lambda x: np.core.defchararray.ljust(x, width, fillchar)
     elif side == 'right':
         f = lambda x: x.ljust(width, fillchar)
+        np_f = lambda x: np.core.defchararray.rjust(x, width, fillchar)
     elif side == 'both':
         f = lambda x: x.center(width, fillchar)
+        np_f = lambda x: np.core.defchararray.lower(x, width, fillchar)
     else:  # pragma: no cover
         raise ValueError('Invalid side')
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, np_f=np_f)
 
 
 def str_split(arr, pat=None, n=None):
@@ -720,17 +731,21 @@ def str_split(arr, pat=None, n=None):
         if n is None or n == 0:
             n = -1
         f = lambda x: x.split(pat, n)
+        np_f = lambda x: np.core.defchararray.split(x, pat, n)
     else:
         if len(pat) == 1:
             if n is None or n == 0:
                 n = -1
             f = lambda x: x.split(pat, n)
+            np_f = lambda x: np.core.defchararray.split(x, pat, n)
         else:
             if n is None or n == -1:
                 n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
-    res = _na_map(f, arr)
+            # numpy doesn't support regex
+            np_f = None
+    res = _na_map(f, arr, np_f=np_f)
     return res
 
 
@@ -946,7 +961,8 @@ def str_decode(arr, encoding, errors="strict"):
     decoded : Series/Index of objects
     """
     f = lambda x: x.decode(encoding, errors)
-    return _na_map(f, arr)
+    np_f = lambda x: np.core.defchararray.decode(x, errors)
+    return _na_map(f, arr, np_f=np_f)
 
 
 def str_encode(arr, encoding, errors="strict"):
@@ -964,12 +980,13 @@ def str_encode(arr, encoding, errors="strict"):
     encoded : Series/Index of objects
     """
     f = lambda x: x.encode(encoding, errors)
-    return _na_map(f, arr)
+    np_f = lambda x: np.core.defchararray.encode(x, errors)
+    return _na_map(f, arr, np_f=np_f)
 
 
-def _noarg_wrapper(f, docstring=None, **kargs):
+def _noarg_wrapper(f, docstring=None, np_f=None, **kargs):
     def wrapper(self):
-        result = _na_map(f, self.series, **kargs)
+        result = _na_map(f, self.series, np_f=np_f, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
@@ -1443,7 +1460,8 @@ class StringMethods(object):
     _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['lower'])
+                           _shared_docs['lower'],
+                           np_f=np.core.defchararray.lower)
     upper = _noarg_wrapper(lambda x: x.upper(),
                            docstring=_shared_docs['casemethods'] %
                            _shared_docs['upper'])
@@ -1452,7 +1470,8 @@ class StringMethods(object):
                            _shared_docs['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
                                 docstring=_shared_docs['casemethods'] %
-                                _shared_docs['capitalize'])
+                                _shared_docs['capitalize'],
+                                np_f=np.core.defchararray.capitalize)
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
                               _shared_docs['swapcase'])
