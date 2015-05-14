@@ -68,7 +68,9 @@ Bug Fixes
 - Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
 - Bug in display datetimes with mixed frequencies uniformly; display 'ms' datetimes to the proper precision. (:issue:`10170`)
 
-- Bung in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
+- Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
+
+- Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)
 
 - Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
 
