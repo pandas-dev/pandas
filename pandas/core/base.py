@@ -1,13 +1,10 @@
 """
 Base and utility classes for pandas objects.
 """
-import datetime
-
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
-import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly
 from pandas.core.strings import StringMethods
