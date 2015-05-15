@@ -580,7 +580,17 @@ class Index(IndexOpsMixin, PandasObject):
             return DatetimeIndex(self.values)
 
     def _assert_can_do_setop(self, other):
+        if not com.is_list_like(other):
+            raise TypeError('Input must be Index or array-like')
         return True
+
+    def _convert_can_do_setop(self, other):
+        if not isinstance(other, Index):
+            other = Index(other, name=self.name)
+            result_name = self.name
+        else:
+            result_name = self.name if self.name == other.name else None
+        return other, result_name
 
     @property
     def nlevels(self):
@@ -1364,16 +1374,14 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         union : Index
         """
-        if not hasattr(other, '__iter__'):
-            raise TypeError('Input must be iterable.')
+        self._assert_can_do_setop(other)
+        other = _ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
             return self
 
         if len(self) == 0:
-            return _ensure_index(other)
-
-        self._assert_can_do_setop(other)
+            return other
 
         if not is_dtype_equal(self.dtype,other.dtype):
             this = self.astype('O')
@@ -1439,11 +1447,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         intersection : Index
         """
-        if not hasattr(other, '__iter__'):
-            raise TypeError('Input must be iterable!')
-
         self._assert_can_do_setop(other)
-
         other = _ensure_index(other)
 
         if self.equals(other):
@@ -1492,18 +1496,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> index.difference(index2)
         """
-
-        if not hasattr(other, '__iter__'):
-            raise TypeError('Input must be iterable!')
+        self._assert_can_do_setop(other)
 
         if self.equals(other):
             return Index([], name=self.name)
 
-        if not isinstance(other, Index):
-            other = np.asarray(other)
-            result_name = self.name
-        else:
-            result_name = self.name if self.name == other.name else None
+        other, result_name = self._convert_can_do_setop(other)
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
@@ -1517,7 +1515,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
 
-        other : array-like
+        other : Index or array-like
         result_name : str
 
         Returns
@@ -1545,13 +1543,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
-        if not hasattr(other, '__iter__'):
-            raise TypeError('Input must be iterable!')
-
-        if not isinstance(other, Index):
-            other = Index(other)
-            result_name = result_name or self.name
-
+        self._assert_can_do_setop(other)
+        other, result_name_update = self._convert_can_do_setop(other)
+        if result_name is None:
+            result_name = result_name_update
         the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
         return Index(the_diff, name=result_name)
 
@@ -5460,11 +5455,10 @@ class MultiIndex(Index):
         >>> index.union(index2)
         """
         self._assert_can_do_setop(other)
+        other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
             return self
-
-        result_names = self.names if self.names == other.names else None
 
         uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
@@ -5483,11 +5477,10 @@ class MultiIndex(Index):
         Index
         """
         self._assert_can_do_setop(other)
+        other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self
-
-        result_names = self.names if self.names == other.names else None
 
         self_tuples = self.values
         other_tuples = other.values
@@ -5509,18 +5502,10 @@ class MultiIndex(Index):
         diff : MultiIndex
         """
         self._assert_can_do_setop(other)
+        other, result_names = self._convert_can_do_setop(other)
 
-        if not isinstance(other, MultiIndex):
-            if len(other) == 0:
+        if len(other) == 0:
                 return self
-            try:
-                other = MultiIndex.from_tuples(other)
-            except:
-                raise TypeError('other must be a MultiIndex or a list of'
-                                ' tuples')
-            result_names = self.names
-        else:
-            result_names = self.names if self.names == other.names else None
 
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
@@ -5537,14 +5522,29 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(difference, sortorder=0,
                                           names=result_names)
 
-    def _assert_can_do_setop(self, other):
-        pass
-
     def astype(self, dtype):
         if not is_object_dtype(np.dtype(dtype)):
             raise TypeError('Setting %s dtype to anything other than object '
                             'is not supported' % self.__class__)
         return self._shallow_copy()
+
+    def _convert_can_do_setop(self, other):
+        result_names = self.names
+
+        if not hasattr(other, 'names'):
+            if len(other) == 0:
+                other = MultiIndex(levels=[[]] * self.nlevels,
+                                   labels=[[]] * self.nlevels,
+                                   verify_integrity=False)
+            else:
+                msg = 'other must be a MultiIndex or a list of tuples'
+                try:
+                    other = MultiIndex.from_tuples(other)
+                except:
+                    raise TypeError(msg)
+        else:
+            result_names = self.names if self.names == other.names else None
+        return other, result_names
 
     def insert(self, loc, item):
         """
