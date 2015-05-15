@@ -26,26 +26,6 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Add helper functions to check for OS running on
-
-  from pandas.compat import is_platform_windows
-  if is_platform_window():
-      pass
-
-- Use dateutil.tz.gettz() after upstream recommandations
-
-  python-dateutil provides two implementations of gettz().
-  "dateutil.tz.gettz()" tries to load zone information from system provided data and fals back to 
-  an included tarball, where as "dateutil.zoneinfo.gettz() loads directly from the tarball. Using the later on systems
-  which aren't providing included zone informations (e.g. Fedora or Gentoo) breaks (#9059, #8639, #9663 and #10121)
-  As stated by upstream in https://github.com/dateutil/dateutil/issues/11#issuecomment-70769019 only the former should be
-  used by library consumers.
-
-  For compatibility in pandas following code should be used
-
-  from pandas.tslib import _dateutil_gettz as gettz
-  tz = gettz('Europe/Brussels')
-
 .. _whatsnew_0170.api:
 
 Backwards incompatible API changes
@@ -86,4 +66,4 @@ Bug Fixes
 - Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
 - Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
 
-- Bug in dateutil.tz.gettz() vs. dateutil.zoneinfo.gettz() usage which creates problems on systems solely rely on systems timezone data (:issue:`9123`, :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
+- Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
