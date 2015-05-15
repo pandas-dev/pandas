@@ -370,37 +370,29 @@ class TestTimestamp(tm.TestCase):
                             - ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_fields(self):
+
+        def check(value, equal):
+            # that we are int/long like
+            self.assertTrue(isinstance(value, (int, long)))
+            self.assertEqual(value, equal)
+
         # GH 10050
         ts = Timestamp('2015-05-10 09:06:03.000100001')
-        self.assertEqual(ts.year, 2015)
-        self.assertTrue(isinstance(ts.year, int))
-        self.assertEqual(ts.month, 5)
-        self.assertTrue(isinstance(ts.month, int))
-        self.assertEqual(ts.day, 10)
-        self.assertTrue(isinstance(ts.day, int))
-        self.assertEqual(ts.hour, 9)
-        self.assertTrue(isinstance(ts.hour, int))
-        self.assertEqual(ts.minute, 6)
-        self.assertTrue(isinstance(ts.minute, int))
-        self.assertEqual(ts.second, 3)
-        self.assertTrue(isinstance(ts.second, int))
+        check(ts.year, 2015)
+        check(ts.month, 5)
+        check(ts.day, 10)
+        check(ts.hour, 9)
+        check(ts.minute, 6)
+        check(ts.second, 3)
         self.assertRaises(AttributeError, lambda : ts.millisecond)
-        self.assertEqual(ts.microsecond, 100)
-        self.assertTrue(isinstance(ts.microsecond, int))
-        self.assertEqual(ts.nanosecond, 1)
-        self.assertTrue(isinstance(ts.nanosecond, int))
-        self.assertEqual(ts.dayofweek, 6)
-        self.assertTrue(isinstance(ts.dayofweek, int))
-        self.assertEqual(ts.quarter, 2)
-        self.assertTrue(isinstance(ts.quarter, int))
-        self.assertEqual(ts.dayofyear, 130)
-        self.assertTrue(isinstance(ts.dayofyear, int))
-        self.assertEqual(ts.week, 19)
-        self.assertTrue(isinstance(ts.week, int))
-        self.assertEqual(ts.daysinmonth, 31)
-        self.assertTrue(isinstance(ts.days_in_month, int))
-        self.assertEqual(ts.daysinmonth, 31)
-        self.assertTrue(isinstance(ts.daysinmonth, int))
+        check(ts.microsecond, 100)
+        check(ts.nanosecond, 1)
+        check(ts.dayofweek, 6)
+        check(ts.quarter, 2)
+        check(ts.dayofyear, 130)
+        check(ts.week, 19)
+        check(ts.daysinmonth, 31)
+        check(ts.daysinmonth, 31)
 
     def test_nat_fields(self):
         # GH 10050
