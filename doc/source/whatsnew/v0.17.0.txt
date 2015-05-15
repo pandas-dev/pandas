@@ -67,6 +67,7 @@ Bug Fixes
 
 - Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
 - Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
+- Bug in ``Index.union`` raises ``AttributeError`` when passing array-likes. (:issue:`10149`)
 - Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
 - Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
 
@@ -91,3 +92,4 @@ Bug Fixes
 
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
+

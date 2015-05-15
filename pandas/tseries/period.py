@@ -679,6 +679,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self._apply_meta(result)
 
     def _assert_can_do_setop(self, other):
+        super(PeriodIndex, self)._assert_can_do_setop(other)
+
         if not isinstance(other, PeriodIndex):
             raise ValueError('can only call with other PeriodIndex-ed objects')
 
