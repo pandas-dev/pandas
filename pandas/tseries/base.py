@@ -3,7 +3,7 @@ Base and utility classes for tseries type pandas objects.
 """
 
 import warnings
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 
 from pandas import compat
 import numpy as np
@@ -13,11 +13,9 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
 from pandas.util.decorators import Appender, cache_readonly
-from pandas.tseries.frequencies import (
-    infer_freq, to_offset, get_period_alias,
-    Resolution)
+from pandas.tseries.frequencies import infer_freq, to_offset, Resolution
 import pandas.algos as _algos
-from pandas.core.config import get_option
+
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
