@@ -1,10 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
-import operator
-
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 import numpy as np
-from pandas.core.base import PandasObject
-
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index

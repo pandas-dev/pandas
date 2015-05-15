@@ -1,4 +1,3 @@
-import numpy as np
 
 from pandas.core.index import Index
 
