@@ -309,6 +309,10 @@ class TestTimedeltas(tm.TestCase):
 
     def test_fields(self):
 
+        def check(value):
+            # that we are int/long like
+            self.assertTrue(isinstance(value, (int, long)))
+
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
         self.assertEqual(rng.days, 1)
@@ -321,10 +325,10 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(AttributeError, lambda : rng.milliseconds)
 
         # GH 10050
-        self.assertTrue(isinstance(rng.days, int))
-        self.assertTrue(isinstance(rng.seconds, int))
-        self.assertTrue(isinstance(rng.microseconds, int))
-        self.assertTrue(isinstance(rng.nanoseconds, int))
+        check(rng.days)
+        check(rng.seconds)
+        check(rng.microseconds)
+        check(rng.nanoseconds)
 
         td = Timedelta('-1 days, 10:11:12')
         self.assertEqual(abs(td), Timedelta('13:48:48'))
@@ -353,13 +357,13 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(tup.nanoseconds, 0)
 
         # GH 10050
-        self.assertTrue(isinstance(tup.days, int))
-        self.assertTrue(isinstance(tup.hours, int))
-        self.assertTrue(isinstance(tup.minutes, int))
-        self.assertTrue(isinstance(tup.seconds, int))
-        self.assertTrue(isinstance(tup.milliseconds, int))
-        self.assertTrue(isinstance(tup.microseconds, int))
-        self.assertTrue(isinstance(tup.nanoseconds, int))
+        check(tup.days)
+        check(tup.hours)
+        check(tup.minutes)
+        check(tup.seconds)
+        check(tup.milliseconds)
+        check(tup.microseconds)
+        check(tup.nanoseconds)
 
         tup = Timedelta('-1 days 1 us').components
         self.assertEqual(tup.days, -2)
