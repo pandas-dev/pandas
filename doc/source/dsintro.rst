@@ -577,10 +577,8 @@ row-wise. For example:
 
    df - df.iloc[0]
 
-In the special case of working with time series data, if the Series is a
-TimeSeries (which it will be automatically if the index contains datetime
-objects), and the DataFrame index also contains dates, the broadcasting will be
-column-wise:
+In the special case of working with time series data, and the DataFrame index
+also contains dates, the broadcasting will be column-wise:
 
 .. ipython:: python
    :okwarning:

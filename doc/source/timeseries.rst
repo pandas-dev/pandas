@@ -1008,7 +1008,7 @@ Time series-related instance methods
 Shifting / lagging
 ~~~~~~~~~~~~~~~~~~
 
-One may want to *shift* or *lag* the values in a TimeSeries back and forward in
+One may want to *shift* or *lag* the values in a time series back and forward in
 time. The method for this is ``shift``, which is available on all of the pandas
 objects.
 
@@ -1026,7 +1026,7 @@ The shift method accepts an ``freq`` argument which can accept a
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``TimeSeries`` objects also have a ``tshift`` convenience method that changes
+``Series`` objects also have a ``tshift`` convenience method that changes
 all the dates in the index by a specified number of offsets:
 
 .. ipython:: python
@@ -1569,7 +1569,7 @@ time zones using ``tz_convert``:
    rng_berlin[5]
    rng_eastern[5].tz_convert('Europe/Berlin')
 
-Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
+Localization of Timestamps functions just like DatetimeIndex and Series:
 
 .. ipython:: python
 
@@ -1577,8 +1577,8 @@ Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
    rng[5].tz_localize('Asia/Shanghai')
 
 
-Operations between TimeSeries in different time zones will yield UTC
-TimeSeries, aligning the data on the UTC timestamps:
+Operations between Series in different time zones will yield UTC
+Series, aligning the data on the UTC timestamps:
 
 .. ipython:: python
 
