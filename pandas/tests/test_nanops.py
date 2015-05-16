@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -322,6 +322,32 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_funs(nanops.nanmean, np.mean,
                         allow_complex=False, allow_obj=False,
                         allow_str=False, allow_date=False, allow_tdelta=True)
+
+    def test_nanmean_overflow(self):
+        # GH 10155
+        # In the previous implementation mean can overflow for int dtypes, it
+        # is now consistent with numpy
+        from pandas import Series
+
+        # numpy < 1.9.0 is not computing this correctly
+        from distutils.version import LooseVersion
+        if LooseVersion(np.__version__) >= '1.9.0':
+            for a in [2 ** 55, -2 ** 55, 20150515061816532]:
+                s = Series(a, index=range(500), dtype=np.int64)
+                result = s.mean()
+                np_result = s.values.mean()
+                self.assertEqual(result, a)
+                self.assertEqual(result, np_result)
+                self.assertTrue(result.dtype == np.float64)
+
+        # check returned dtype
+        for dtype in [np.int16, np.int32, np.int64, np.float16, np.float32, np.float64]:
+            s = Series(range(10), dtype=dtype)
+            result = s.mean()
+            if is_integer_dtype(dtype):
+                self.assertTrue(result.dtype == np.float64)
+            else:
+                self.assertTrue(result.dtype == dtype)
 
     def test_nanmedian(self):
         self.check_funs(nanops.nanmedian, np.median,
