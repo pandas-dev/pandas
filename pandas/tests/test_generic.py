@@ -1649,6 +1649,48 @@ class TestNDFrame(tm.TestCase):
         with tm.assertRaises(NotImplementedError):
             tm.makePanel().describe()
 
+    def test_pipe(self):
+        df = DataFrame({'A': [1, 2, 3]})
+        f = lambda x, y: x ** y
+        result = df.pipe(f, 2)
+        expected = DataFrame({'A': [1, 4, 9]})
+        self.assert_frame_equal(result, expected)
+
+        result = df.A.pipe(f, 2)
+        self.assert_series_equal(result, expected.A)
+
+    def test_pipe_tuple(self):
+        df = DataFrame({'A': [1, 2, 3]})
+        f = lambda x, y: y
+        result = df.pipe((f, 'y'), 0)
+        self.assert_frame_equal(result, df)
+
+        result = df.A.pipe((f, 'y'), 0)
+        self.assert_series_equal(result, df.A)
+
+    def test_pipe_tuple_error(self):
+        df = DataFrame({"A": [1, 2, 3]})
+        f = lambda x, y: y
+        with tm.assertRaises(ValueError):
+            result = df.pipe((f, 'y'), x=1, y=0)
+
+        with tm.assertRaises(ValueError):
+            result = df.A.pipe((f, 'y'), x=1, y=0)
+
+    def test_pipe_panel(self):
+        wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
+        f = lambda x, y: x + y
+        result = wp.pipe(f, 2)
+        expected = wp + 2
+        assert_panel_equal(result, expected)
+
+        result = wp.pipe((f, 'y'), x=1)
+        expected = wp + 1
+        assert_panel_equal(result, expected)
+
+        with tm.assertRaises(ValueError):
+            result = wp.pipe((f, 'y'), x=1, y=1)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

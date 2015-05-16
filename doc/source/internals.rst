@@ -101,7 +101,7 @@ Subclassing pandas Data Structures
 
 .. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
 
-  1. Monkey-patching: See :ref:`Adding Features to your pandas Installation <ref-monkey-patching>`.
+  1. Extensible method chains with :ref:`pipe <basics.pipe>`
 
   2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
 
