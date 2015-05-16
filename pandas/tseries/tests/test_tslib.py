@@ -14,6 +14,8 @@ from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
+import pandas.compat as compat
+
 
 class TestTimestamp(tm.TestCase):
 
@@ -373,7 +375,7 @@ class TestTimestamp(tm.TestCase):
 
         def check(value, equal):
             # that we are int/long like
-            self.assertTrue(isinstance(value, (int, long)))
+            self.assertTrue(isinstance(value, (int, compat.long)))
             self.assertEqual(value, equal)
 
         # GH 10050

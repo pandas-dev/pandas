@@ -23,6 +23,8 @@ from pandas.tseries.offsets import Day, Second, Hour
 import pandas.util.testing as tm
 from numpy.random import rand, randn
 from pandas import _np_version_under1p8
+import pandas.compat as compat
+
 
 iNaT = tslib.iNaT
 
@@ -311,7 +313,7 @@ class TestTimedeltas(tm.TestCase):
 
         def check(value):
             # that we are int/long like
-            self.assertTrue(isinstance(value, (int, long)))
+            self.assertTrue(isinstance(value, (int, compat.long)))
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
