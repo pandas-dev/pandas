@@ -180,7 +180,6 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : constructor from tuples, also record arrays
     DataFrame.from_dict : from dicts of Series, arrays, or dicts
-    DataFrame.from_csv : from CSV files
     DataFrame.from_items : from sequence of (key, value) pairs
     pandas.read_csv, pandas.read_table, pandas.read_clipboard
     """
@@ -1052,13 +1051,29 @@ class DataFrame(NDFrame):
                  parse_dates=True, encoding=None, tupleize_cols=False,
                  infer_datetime_format=False):
         """
-        Read delimited file into DataFrame
+        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv` instead).
+
+        It is preferable to use the more powerful :func:`pandas.read_csv`
+        for most general purposes, but ``from_csv`` makes for an easy
+        roundtrip to and from a file (the exact counterpart of
+        ``to_csv``), especially with a DataFrame of time series data.
+
+        This method only differs from the preferred :func:`pandas.read_csv`
+        in some defaults:
+
+        - `index_col` is ``0`` instead of ``None`` (take first column as index
+          by default)
+        - `parse_dates` is ``True`` instead of ``False`` (try parsing the index
+          as datetime by default)
+
+        So a ``pd.DataFrame.from_csv(path)`` can be replaced by
+        ``pd.read_csv(path, index_col=0, parse_dates=True)``.
 
         Parameters
         ----------
         path : string file path or file handle / StringIO
         header : int, default 0
-            Row to use at header (skip prior rows)
+            Row to use as header (skip prior rows)
         sep : string, default ','
             Field delimiter
         index_col : int or sequence, default 0
@@ -1074,15 +1089,14 @@ class DataFrame(NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        Notes
-        -----
-        Preferable to use read_table for most general purposes but from_csv
-        makes for an easy roundtrip to and from file, especially with a
-        DataFrame of time series data
+        See also
+        --------
+        pandas.read_csv
 
         Returns
         -------
         y : DataFrame
+
         """
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
