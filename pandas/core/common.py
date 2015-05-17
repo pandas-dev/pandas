@@ -3323,7 +3323,7 @@ def save(obj, path):  # TODO remove in 0.13
 
 def _maybe_match_name(a, b):
     a_name = getattr(a, 'name', None)
-    b_name = getattr(b, 'name', None)
+    b_name = getattr(b, 'name', a_name)
     if a_name == b_name:
         return a_name
     return None
