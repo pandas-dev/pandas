@@ -5,7 +5,7 @@ from datetime import timedelta
 import numpy as np
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
-                                ABCSeries, is_integer, is_float)
+                                ABCSeries, is_integer, is_float, _maybe_match_name)
 from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -809,7 +809,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            result = this._fast_union(other)
+            result.name = _maybe_match_name(self, other)
+            return result
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
@@ -825,6 +827,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         this = self
 
         for other in others:
+            result_name = _maybe_match_name(this, other)
+
             if not isinstance(this, DatetimeIndex):
                 this = Index.union(this, other)
                 continue
@@ -845,6 +849,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 if isinstance(this, DatetimeIndex):
                     this.tz = tz
 
+            this.name = result_name
+
         if this.freq is None:
             this.offset = to_offset(this.inferred_freq)
         return this
@@ -861,7 +867,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         appended : Index
         """
-        name = self.name
         to_concat = [self]
 
         if isinstance(other, (list, tuple)):
@@ -869,17 +874,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         else:
             to_concat.append(other)
 
-        for obj in to_concat:
-            if (isinstance(obj, Index) and
-                obj.name != name and
-                obj.name is not None):
-
-                name = None
-                break
-
         to_concat = self._ensure_compat_concat(to_concat)
-        to_concat, factory = _process_concat_data(to_concat, name)
 
+        for element in to_concat:
+            result_name = _maybe_match_name(self, element)
+
+        to_concat, factory = _process_concat_data(to_concat, result_name)
         return factory(to_concat)
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -1059,9 +1059,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     result.offset = to_offset(result.inferred_freq)
             return result
 
+        result_name = _maybe_match_name(self, other)
         if len(self) == 0:
+            self.name = result_name
             return self
         if len(other) == 0:
+            #FIXME shouldn't we copy this?
             return other
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -1073,11 +1076,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[])
+            return type(self)(data=[], name=result_name)
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+            result = self._shallow_copy(left_chunk, name=result_name)
+            return result
 
     def _parsed_string_to_bounds(self, reso, parsed):
         """
