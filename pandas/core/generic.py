@@ -2398,15 +2398,15 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series, or DataFrame
             Value to use to fill holes (e.g. 0), alternately a dict/Series/DataFrame of
             values specifying which value to use for each index (for a Series) or
             column (for a DataFrame). (values not in the dict/Series/DataFrame will not be
             filled). This value cannot be a list.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         axis : %(axes_single_arg)s
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
