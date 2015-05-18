@@ -545,6 +545,27 @@ def test_random_state():
         com._random_state(5.5)
 
 
+def test_maybe_match_name():
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='x'))
+    assert(matched == 'x')
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='y'))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), [2])
+    assert(matched == 'x')
+
+    matched = com._maybe_match_name([1], Series([2], name='y'))
+    assert(matched == 'y')
+
+
 class TestTake(tm.TestCase):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
