@@ -239,7 +239,8 @@ class Panel(NDFrame):
             (default). Otherwise if the columns of the values of the passed
             DataFrame objects should be the items (which in the case of
             mixed-dtype data you should do), instead pass 'minor'
-
+        dtype : dtype, default None
+            Data type to force, otherwise infer
 
         Returns
         -------
@@ -1383,6 +1384,7 @@ class Panel(NDFrame):
                 result[key] = None
 
         axes_dict['data'] = result
+        axes_dict['dtype'] = dtype
         return axes_dict
 
     @staticmethod

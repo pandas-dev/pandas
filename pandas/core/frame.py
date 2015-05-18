@@ -662,6 +662,8 @@ class DataFrame(NDFrame):
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
+        dtype : dtype, default None
+            Data type to force, otherwise infer
 
         Returns
         -------
