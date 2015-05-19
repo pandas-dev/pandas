@@ -255,7 +255,7 @@ Optional Dependencies
    * Alternative Excel writer.
 * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
   access.
-* `blosc <https://pypi.python.org/pypi/blosc`__: for msgpack compression using ``blosc``
+* `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
 * One of `PyQt4
   <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
   <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
