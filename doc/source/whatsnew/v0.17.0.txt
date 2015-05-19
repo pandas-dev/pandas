@@ -72,3 +72,7 @@ Bug Fixes
 
 
 - Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+
+- Bug in `Series.plot(label="LABEL")` not correctly setting the label (:issue:`10119`)
+
+
