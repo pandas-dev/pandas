@@ -14,7 +14,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, Timestamp, MultiIndex
+from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -2495,7 +2495,7 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
-                   index=pd.date_range('1/1/2000', periods=10), name=0)
+                   index=date_range('1/1/2000', periods=10), name=0)
 
         result = repr(s)
         self.assertTrue('Freq: D, Name: 0' in result)
@@ -2556,7 +2556,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_datetimeindex(self):
 
-        from pandas import date_range, NaT
         index = date_range('20130102',periods=6)
         s = Series(1,index=index)
         result = s.to_string()
@@ -2574,7 +2573,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_timedelta64(self):
 
-        from pandas import date_range
         from datetime import datetime, timedelta
 
         Series(np.array([1100, 20], dtype='timedelta64[ns]')).to_string()
@@ -3179,6 +3177,44 @@ class TestDatetime64Formatter(tm.TestCase):
         result = fmt.Datetime64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "1970-01-01 00:00:00.000000200")
 
+    def test_dates_display(self):
+
+        # 10170
+        # make sure that we are consistently display date formatting
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='D'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-05 09:00:00")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='s'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:04")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='ms'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='us'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='N'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
 
 class TestNaTFormatting(tm.TestCase):
     def test_repr(self):
