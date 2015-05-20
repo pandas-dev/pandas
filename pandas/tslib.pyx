@@ -1418,6 +1418,8 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
     """
     cdef:
         int64_t val, ns, N = len(values)
+        ndarray[int64_t] consider_values
+        bint show_ms = 0, show_us = 0, show_ns = 0, basic_format = 0
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         pandas_datetimestruct dts
@@ -1425,13 +1427,27 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
     if na_rep is None:
        na_rep = 'NaT'
 
-    for i in range(N):
-       val = values[i]
+    # if we don't have a format nor tz, then choose
+    # a format based on precision
+    basic_format = format is None and tz is None
+    if basic_format:
+        consider_values = values[values != iNaT]
+        show_ns = (consider_values%1000).any()
 
-       if val == iNaT:
-          result[i] = na_rep
-       else:
-          if format is None and tz is None:
+        if not show_ns:
+            consider_values //= 1000
+            show_us = (consider_values%1000).any()
+
+            if not show_ms:
+                consider_values //= 1000
+                show_ms = (consider_values%1000).any()
+
+    for i in range(N):
+        val = values[i]
+
+        if val == iNaT:
+            result[i] = na_rep
+        elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
             res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
@@ -1441,27 +1457,29 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
                                                    dts.min,
                                                    dts.sec)
 
-            ns = dts.ps / 1000
-
-            if ns != 0:
-               res += '.%.9d' % (ns + 1000 * dts.us)
-            elif dts.us != 0:
-               res += '.%.6d' % dts.us
+            if show_ns:
+                ns = dts.ps / 1000
+                res += '.%.9d' % (ns + 1000 * dts.us)
+            elif show_us:
+                res += '.%.6d' % dts.us
+            elif show_ms:
+                res += '.%.3d' % (dts.us/1000)
 
             result[i] = res
 
-          else:
-             ts = Timestamp(val, tz=tz)
-             if format is None:
-                 result[i] = str(ts)
-             else:
+        else:
 
-                 # invalid format string
-                 # requires dates > 1900
-                 try:
-                     result[i] = ts.strftime(format)
-                 except ValueError:
-                     result[i] = str(ts)
+            ts = Timestamp(val, tz=tz)
+            if format is None:
+                result[i] = str(ts)
+            else:
+
+                # invalid format string
+                # requires dates > 1900
+                try:
+                    result[i] = ts.strftime(format)
+                except ValueError:
+                    result[i] = str(ts)
 
     return result
 
