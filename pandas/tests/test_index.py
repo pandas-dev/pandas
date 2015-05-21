@@ -2857,6 +2857,14 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         with self.assertRaisesRegexp(ValueError, 'different freq'):
             idx.asfreq('D').get_indexer(idx)
 
+    def test_repeat(self):
+        # GH10183
+        idx = pd.period_range('2000-01-01', periods=3, freq='D')
+        res = idx.repeat(3)
+        exp = PeriodIndex(idx.values.repeat(3), freq='D')
+        self.assert_index_equal(res, exp)
+        self.assertEqual(res.freqstr, 'D')
+
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
