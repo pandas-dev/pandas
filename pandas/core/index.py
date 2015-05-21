@@ -443,7 +443,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         n = len(self)
         sep = ','
-        max_seq_items = get_option('display.max_seq_items')
+        max_seq_items = get_option('display.max_seq_items') or n
         formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
@@ -534,7 +534,7 @@ class Index(IndexOpsMixin, PandasObject):
         attrs.append(('dtype',"'%s'" % self.dtype))
         if self.name is not None:
             attrs.append(('name',default_pprint(self.name)))
-        max_seq_items = get_option('display.max_seq_items')
+        max_seq_items = get_option('display.max_seq_items') or len(self)
         if len(self) > max_seq_items:
             attrs.append(('length',len(self)))
         return attrs
@@ -2950,7 +2950,7 @@ class CategoricalIndex(Index, PandasDelegate):
         if self.name is not None:
             attrs.append(('name',default_pprint(self.name)))
         attrs.append(('dtype',"'%s'" % self.dtype))
-        max_seq_items = get_option('display.max_seq_items')
+        max_seq_items = get_option('display.max_seq_items') or len(self)
         if len(self) > max_seq_items:
             attrs.append(('length',len(self)))
         return attrs
