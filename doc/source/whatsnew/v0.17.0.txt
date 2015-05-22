@@ -13,6 +13,7 @@ users upgrade to this version.
 
 Highlights include:
 
+  - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
 
@@ -56,7 +57,31 @@ Deprecations
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. _dask: https://dask.readthedocs.org/en/latest/
+
+.. _whatsnew_0170.gil:
+
+Releasing the GIL
+~~~~~~~~~~~~~~~~~
+
+We are releasing the global-interpreter-lock (GIL) on some cython operations.
+This will allow other threads to run simultaneously during computation, potentially allowing performance improvements
+from multi-threading. Notably ``groupby`` and some indexing operations are a benefit from this. (:issue:`8882`)
+
+For example the groupby expression in the following code will have the GIL released during the factorization step, e.g. ``df.groupby('key')``
+as well as the ``.sum()`` operation.
+
+.. code-block:: python
+
+   N = 1e6
+   df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
+                   'data' : np.random.randn(N) })
+   df.groupby('key')['data'].sum()
+
+Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. ``QT``), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
+
 .. _whatsnew_0170.performance:
+
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
