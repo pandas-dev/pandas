@@ -1439,6 +1439,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = self.series.append(Series([1],index=['foobar']))
         assert_series_equal(s,expected)
 
+        # Test for issue #10193
+        series = pd.TimeSeries()
+        series[pd.datetime(2012, 1, 1)] = 47
+        expected = pd.TimeSeries(47, [pd.datetime(2012, 1, 1)])
+        assert_series_equal(series, expected)
+
+        series = pd.TimeSeries(0, pd.date_range('2011-01-01', '2011-01-01'))[:0]
+        series[pd.datetime(2012, 1, 1)] = 47
+        assert_series_equal(series, expected)
+
     def test_setitem_dtypes(self):
 
         # change dtypes
