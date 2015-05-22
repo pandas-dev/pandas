@@ -73,3 +73,26 @@ for f in ['sum','prod','var','count','min','max','mean','last']:
     globals()[name] = bmark
 
 del bmark
+
+
+#### test take_1d ####
+setup = basic + """
+from pandas.core import common as com
+
+N = 1e7
+df = DataFrame({'int64' : np.arange(N,dtype='int64'),
+                'float64' : np.arange(N,dtype='float64')})
+indexer = np.arange(100,len(df)-100)
+
+@test_parallel(num_threads=2)
+def take_1d_pg2_int64():
+    com.take_1d(df.int64.values,indexer)
+
+@test_parallel(num_threads=2)
+def take_1d_pg2_float64():
+    com.take_1d(df.float64.values,indexer)
+
+"""
+
+nogil_take1d_float64 = Benchmark('take_1d_pg2()_int64', setup, start_date=datetime(2015, 1, 1))
+nogil_take1d_int64 = Benchmark('take_1d_pg2()_float64', setup, start_date=datetime(2015, 1, 1))

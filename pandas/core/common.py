@@ -839,7 +839,6 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
                                  axis=axis, mask_info=mask_info)
-
     indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
