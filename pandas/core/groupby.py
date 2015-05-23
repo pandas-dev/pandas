@@ -187,7 +187,7 @@ class Grouper(object):
 
     Examples
     --------
-    >>> df.groupby(Grouper(key='A')) : syntatic sugar for df.groupby('A')
+    >>> df.groupby(Grouper(key='A')) : syntactic sugar for df.groupby('A')
     >>> df.groupby(Grouper(key='date',freq='60s')) : specify a resample on the column 'date'
     >>> df.groupby(Grouper(level='date',freq='60s',axis=1)) :
         specify a resample on the level 'date' on the columns axis with a frequency of 60s
