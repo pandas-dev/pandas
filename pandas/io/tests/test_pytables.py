@@ -4617,6 +4617,29 @@ class TestHDFStore(tm.TestCase):
             store['df'] = df
             assert_frame_equal(store['df'], df)
 
+    def test_colums_multiindex_modified(self):
+        # BUG: 7212
+        # read_hdf store.select modified the passed columns parameters
+        # when multi-indexed.
+
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        df.index.name = 'letters'
+        df = df.set_index(keys='E', append=True)
+
+        data_columns = df.index.names+df.columns.tolist()
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df',
+                      mode='a',
+                      append=True,
+                      data_columns=data_columns,
+                      index=False)
+            cols2load = list('BCD')
+            cols2load_original = list(cols2load)
+            df_loaded = read_hdf(path, 'df', columns=cols2load)
+            self.assertTrue(cols2load_original == cols2load)
+
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
