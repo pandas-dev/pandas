@@ -1262,8 +1262,6 @@ Modifying and Computations
    Index.argmax
    Index.copy
    Index.delete
-   Index.diff
-   Index.sym_diff
    Index.drop
    Index.drop_duplicates
    Index.duplicated
@@ -1309,15 +1307,17 @@ Time-specific operations
 
    Index.shift
 
-Combining / joining / merging
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Combining / joining / set operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    Index.append
-   Index.intersection
    Index.join
+   Index.intersection
    Index.union
+   Index.difference
+   Index.sym_diff
 
 Selecting
 ~~~~~~~~~
