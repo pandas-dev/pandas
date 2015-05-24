@@ -19,8 +19,9 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range, NaT,
-                    date_range, period_range, timedelta_range, _np_version_under1p8)
+from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
+                    NaT, date_range, period_range, timedelta_range,
+                    _np_version_under1p8, _np_version_under1p9)
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.period import PeriodIndex
@@ -3080,8 +3081,49 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         result = self.ts.quantile([])
-        expected = pd.Series([], name=self.ts.name, index=Index([], dtype=float))
+        expected = pd.Series([], name=self.ts.name,
+                             index=Index([], dtype=float))
         assert_series_equal(result, expected)
+
+    def test_quantile_interpolation(self):
+        # GH #10174
+        if _np_version_under1p9:
+            raise nose.SkipTest("Numpy version is under 1.9")
+
+        from numpy import percentile
+
+        # interpolation = linear (default case)
+        q = self.ts.quantile(0.1, interpolation='linear')
+        self.assertEqual(q, percentile(self.ts.valid(), 10))
+        q1 = self.ts.quantile(0.1)
+        self.assertEqual(q1, percentile(self.ts.valid(), 10))
+
+        # test with and without interpolation keyword
+        self.assertEqual(q, q1)
+
+    def test_quantile_interpolation_np_lt_1p9(self):
+        # GH #10174
+        if not _np_version_under1p9:
+            raise nose.SkipTest("Numpy version is greater than 1.9")
+
+        from numpy import percentile
+
+        # interpolation = linear (default case)
+        q = self.ts.quantile(0.1, interpolation='linear')
+        self.assertEqual(q, percentile(self.ts.valid(), 10))
+        q1 = self.ts.quantile(0.1)
+        self.assertEqual(q1, percentile(self.ts.valid(), 10))
+
+        # interpolation other than linear
+        expErrMsg = "Interpolation methods other than " \
+                    "linear not supported in numpy < 1.9"
+        with tm.assertRaisesRegexp(ValueError, expErrMsg):
+            self.ts.quantile(0.9, interpolation='nearest')
+
+        # object dtype
+        with tm.assertRaisesRegexp(ValueError, expErrMsg):
+            q = Series(self.ts, dtype=object).quantile(0.7,
+                                                       interpolation='higher')
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
