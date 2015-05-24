@@ -64,6 +64,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option
+from pandas import _np_version_under1p9
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -4874,7 +4875,7 @@ class DataFrame(NDFrame):
         f = lambda s: s.mode()
         return data.apply(f, axis=axis)
 
-    def quantile(self, q=0.5, axis=0, numeric_only=True):
+    def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation='linear'):
         """
         Return values at the given quantile over requested axis, a la
         numpy.percentile.
@@ -4885,7 +4886,16 @@ class DataFrame(NDFrame):
             0 <= q <= 1, the quantile(s) to compute
         axis : {0, 1, 'index', 'columns'} (default 0)
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
-
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+            .. versionadded:: 0.18.0
+            This optional parameter specifies the interpolation method to use,
+            when the desired quantile lies between two data points `i` and `j`:
+                * linear: `i + (j - i) * fraction`, where `fraction` is the
+                  fractional part of the index surrounded by `i` and `j`.
+                * lower: `i`.
+                * higher: `j`.
+                * nearest: `i` or `j` whichever is nearest.
+                * midpoint: (`i` + `j`) / 2.
 
         Returns
         -------
@@ -4920,7 +4930,12 @@ class DataFrame(NDFrame):
         else:
             squeeze = False
 
-        def f(arr, per):
+        if _np_version_under1p9:
+            if interpolation != 'linear':
+                raise ValueError("Interpolation methods"
+                    " other than linear not supported in numpy < 1.9")
+
+        def f(arr, per,interpolation):
             if arr._is_datelike_mixed_type:
                 values = _values_from_object(arr).view('i8')
             else:
@@ -4929,7 +4944,10 @@ class DataFrame(NDFrame):
             if len(values) == 0:
                 return NA
             else:
-                return _quantile(values, per)
+                if _np_version_under1p9:
+                    return _quantile(values, per)
+                else:
+                    return _quantile(values, per, interpolation=interpolation)
 
         data = self._get_numeric_data() if numeric_only else self
 
@@ -4943,7 +4961,7 @@ class DataFrame(NDFrame):
         is_dt_col = data.dtypes.map(com.is_datetime64_dtype)
         is_dt_col = is_dt_col[is_dt_col].index
 
-        quantiles = [[f(vals, x) for x in per]
+        quantiles = [[f(vals, x, interpolation) for x in per]
                      for (_, vals) in data.iteritems()]
 
         result = self._constructor(quantiles, index=data._info_axis,
