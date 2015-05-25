@@ -358,6 +358,8 @@ Computations / Descriptive Stats
    Series.median
    Series.min
    Series.mode
+   Series.nlargest
+   Series.nsmallest
    Series.pct_change
    Series.prod
    Series.quantile
