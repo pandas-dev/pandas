@@ -1442,7 +1442,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def append(self, to_append, verify_integrity=False):
         """
-        Concatenate two or more Series. The indexes must not overlap
+        Concatenate two or more Series.
 
         Parameters
         ----------
