@@ -166,6 +166,11 @@ class _MergeOperation(object):
         self.how = how
         self.axis = axis
 
+        if on is Index:
+            on = None
+            left_index = True
+            right_index = True
+
         self.on = com._maybe_make_list(on)
         self.left_on = com._maybe_make_list(left_on)
         self.right_on = com._maybe_make_list(right_on)
