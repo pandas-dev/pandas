@@ -1286,23 +1286,25 @@ class NDFrame(PandasObject):
             elif t == 'referant':
                 t = ("\n"
                      "A value is trying to be set on a copy of a slice from a "
-                     "{}\n\n"
+                     "{name}\n\n"
                      "See the the caveats in the documentation: "
                      "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
 
             else:
                 t = ("\n"
                      "A value is trying to be set on a copy of a slice from a "
-                     "{}.\n"
+                     "{name}.\n"
                      "Try using .loc[row_indexer,col_indexer] = value instead\n\n"
                      "See the the caveats in the documentation: "
                      "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
-            t = t.format(type(self).__name__)
+
+            t = t.format(name=type(self).__name__)
+
             if value == 'raise':
                 raise SettingWithCopyError(t)
             elif value == 'warn':
                 warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
-
+        
     def __delitem__(self, key):
         """
         Delete item
