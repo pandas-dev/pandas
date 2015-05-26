@@ -439,6 +439,38 @@ class TestPlotBase(tm.TestCase):
                 else:
                     raise AssertionError
 
+    def _check_grid_settings(self, obj, kinds, kws={}):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+
+        import matplotlib as mpl
+
+        def is_grid_on():
+            xoff = all(not g.gridOn for g in self.plt.gca().xaxis.get_major_ticks())
+            yoff = all(not g.gridOn for g in self.plt.gca().yaxis.get_major_ticks())
+            return not(xoff and yoff)
+
+        spndx=1
+        for kind in kinds:
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=False)
+            obj.plot(kind=kind, **kws)
+            self.assertFalse(is_grid_on())    
+
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=True)
+            obj.plot(kind=kind, grid=False, **kws)
+            self.assertFalse(is_grid_on())    
+
+            if kind != 'pie':
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=True)
+                obj.plot(kind=kind, **kws)
+                self.assertTrue(is_grid_on())
+
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=False)
+                obj.plot(kind=kind, grid=True, **kws)
+                self.assertTrue(is_grid_on())
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
@@ -1107,6 +1139,12 @@ class TestSeriesPlots(TestPlotBase):
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)
+
+    @slow
+    def test_series_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(Series([1,2,3]), 
+            plotting._series_kinds + plotting._common_kinds)
 
 
 @tm.mplskip
@@ -3426,6 +3464,12 @@ class TestDataFramePlots(TestPlotBase):
                              "y label is invisible but shouldn't")
 
 
+    @slow
+    def test_df_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(DataFrame({'a':[1,2,3],'b':[2,3,4]}), 
+            plotting._dataframe_kinds, kws={'x':'a','y':'b'})
+        
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
