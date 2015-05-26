@@ -254,6 +254,7 @@ Optional Dependencies
    * Needed for Excel I/O
 * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
    * Alternative Excel writer
+* `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
   access.
 * `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
