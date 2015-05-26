@@ -810,7 +810,7 @@ class MPLPlot(object):
                 self.rot = self._default_rot
 
         if grid is None:
-            grid = False if secondary_y else True
+            grid = False if secondary_y else self.plt.rcParams['axes.grid']
 
         self.grid = grid
         self.legend = legend
