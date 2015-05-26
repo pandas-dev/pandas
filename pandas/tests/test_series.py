@@ -569,7 +569,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.ts = _ts.copy()
         self.ts.name = 'ts'
-
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
@@ -1360,11 +1359,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assertTrue(tm.equalContents(numSliceEnd,
                                          np.array(self.series)[-10:]))
-
-        # test return view
-        sl = self.series[10:20]
-        sl[:] = 0
-        self.assertTrue((self.series[10:20] == 0).all())
+        # After fix for #10193, this is needed
+        with pd.option_context('chained_assignment', 'warn'):
+            # test return view
+            sl = self.series[10:20]
+            sl[:] = 0
+            self.assertTrue((self.series[10:20] == 0).all())
 
     def test_slice_can_reorder_not_uniquely_indexed(self):
         s = Series(1, index=['a', 'a', 'b', 'b', 'c'])
@@ -1440,14 +1440,34 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(s,expected)
 
         # Test for issue #10193
-        series = pd.TimeSeries()
-        series[pd.datetime(2012, 1, 1)] = 47
-        expected = pd.TimeSeries(47, [pd.datetime(2012, 1, 1)])
+        key = datetime(2012, 1, 1)
+        series = pd.Series()
+        series[key] = 47
+        expected = pd.Series(47, [key])
         assert_series_equal(series, expected)
 
-        series = pd.TimeSeries(0, pd.date_range('2011-01-01', '2011-01-01'))[:0]
-        series[pd.datetime(2012, 1, 1)] = 47
-        assert_series_equal(series, expected)
+        test_values = [
+            (pd.date_range('2011-01-01', '2011-01-01'), datetime(2012, 1, 1)),
+            (pd.Int64Index([1, 2, 3]), 5)
+        ]
+        for idx, key in test_values:
+                
+            series = pd.Series(0, idx)
+            series2 = series[:0]
+            
+            def f():
+                series2[key] = 47
+
+            expected = pd.Series(47, [key])
+
+            with pd.option_context('chained_assignment', 'raise'):
+                self.assertRaises(com.SettingWithCopyError, f)
+
+            with pd.option_context('chained_assignment', 'warn'):
+                f()
+                assert_series_equal(series2, expected)
+                # also check that original series remains unchanged.
+                assert_series_equal(series, pd.Series(0, idx))
 
     def test_setitem_dtypes(self):
 
@@ -4281,15 +4301,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # GH 3970
         # these are chained assignments as well
-        pd.set_option('chained_assignment',None)
-        df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
-        df["cc"] = 0.0
-        ck = [True]*len(df)
-        df["bb"].iloc[0] = .13
-        df_tmp = df.iloc[ck]
-        df["bb"].iloc[0] = .15
-        self.assertEqual(df['bb'].iloc[0], 0.15)
-        pd.set_option('chained_assignment','raise')
+        with pd.option_context('chained_assignment',None):
+            df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
+            df["cc"] = 0.0
+            ck = [True]*len(df)
+            df["bb"].iloc[0] = .13
+            df_tmp = df.iloc[ck]
+            df["bb"].iloc[0] = .15
+            self.assertEqual(df['bb'].iloc[0], 0.15)
 
         # GH 3217
         df = DataFrame(dict(a = [1,3], b = [np.nan, 2]))
@@ -4826,9 +4845,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
-        self.ts[::2] = np.nan
-        self.ts[:10][::3] = 4.
-
+        # After fix for #10193, this is needed
+        with pd.option_context('chained_assignment',None):
+            self.ts[::2] = np.nan
+            self.ts[:10][::3] = 4.
+        
         ranks = self.ts.rank()
         oranks = self.ts.astype('O').rank()
 
