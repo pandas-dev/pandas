@@ -1578,7 +1578,18 @@ def skip_if_no_package(*args, **kwargs):
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
 
-#
+def skip_if_no_package_deco(pkg_name, version=None, app='pandas'):
+    from nose import SkipTest
+
+    def deco(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            package_check(pkg_name, version=version, app=app,
+                        exc_failed_import=SkipTest, exc_failed_check=SkipTest)
+            return func(*args, **kwargs)
+        return wrapper
+    return deco
+ #
 # Additional tags decorators for nose
 #
 
