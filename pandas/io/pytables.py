@@ -3453,6 +3453,10 @@ class Table(Fixed):
     def process_axes(self, obj, columns=None):
         """ process axes filters """
 
+        # make a copy to avoid side effects
+        if columns is not None:
+            columns = list(columns)
+
         # make sure to include levels if we have them
         if columns is not None and self.is_multi_index:
             for n in self.levels:
