@@ -562,7 +562,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind='getitem')
-            return self._get_values(indexer)
+            values = self._get_values(indexer)
+            is_copy = values._is_view
+            values._set_is_copy(self, copy=is_copy)
+            return values
         elif isinstance(key, ABCDataFrame):
             raise TypeError('Indexing a Series with DataFrame is not supported, '\
                             'use the appropriate DataFrame column')
@@ -684,6 +687,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # do the setitem
         cacher_needs_updating = self._check_is_chained_assignment_possible()
         setitem(key, value)
+        self._check_setitem_copy()
         if cacher_needs_updating:
             self._maybe_update_cacher()
 
