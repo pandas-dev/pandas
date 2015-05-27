@@ -2,7 +2,7 @@
 import nose
 from numpy import nan
 import numpy as np
-from pandas import Index, isnull, Timestamp
+from pandas import Index, isnull, Timestamp, to_datetime, NaT
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas.compat import range, lrange, zip
@@ -749,6 +749,13 @@ class TestHolidayConflictingArguments(tm.TestCase):
         with self.assertRaises(NotImplementedError) as cm:
             h = Holiday("Cyber Monday", month=11, day=1,
                         offset=[DateOffset(weekday=SA(4))], observance=next_monday)
+
+class TestDaysInMonth(tm.TestCase):
+    def test_day_not_in_month_coerce_true(self):
+        self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
 
 if __name__ == '__main__':
     import nose
