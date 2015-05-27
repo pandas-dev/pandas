@@ -743,6 +743,10 @@ class TestDaysInMonth(tm.TestCase):
         self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
         self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
         self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
+    def test_day_not_in_month_coerce_false(self):
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-02-32', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-04-31', format="%Y-%m-%d", coerce=False)
 
 if __name__ == '__main__':
     import nose
