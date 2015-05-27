@@ -429,12 +429,17 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         # Test reading all sheetnames by setting sheetname to None,
         # Ensure a dict is returned.
         # See PR #9450
+        # Ensure sheet order is preserved.
+        # See issue #9930
     
         _skip_if_no_xlrd()
         
         dfs = read_excel(self.multisheet,sheetname=None)
-        expected_keys = ['Alpha','Beta','Charlie']
+        expected_keys = ['Charlie','Beta','Alpha']
         tm.assert_contains_all(expected_keys,dfs.keys())
+        for i, sheetname in enumerate(dfs):
+            expected_sheetname = expected_keys[i]
+            tm.assert_equal(sheetname, expected_sheetname)
 
     def test_reading_multiple_specific_sheets(self):
         # Test reading specific sheetnames by specifying a mixed list 

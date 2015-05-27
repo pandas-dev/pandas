@@ -393,7 +393,7 @@ class ExcelFile(object):
         #handle same-type duplicates.
         sheets = list(set(sheets))
         
-        output = OrderedDict()
+        output = {} #OrderedDict()
         
         for asheetname in sheets:
             if verbose:
