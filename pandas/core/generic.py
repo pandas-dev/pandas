@@ -1577,6 +1577,8 @@ class NDFrame(PandasObject):
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
+            .. versionadded:: 0.16.1
+
         Returns
         -------
         dropped : type of caller
@@ -1952,6 +1954,8 @@ class NDFrame(PandasObject):
     def sample(self, n=None, frac=None, replace=False, weights=None, random_state=None, axis=None):
         """
         Returns a random sample of items from an axis of object.
+
+        .. versionadded:: 0.16.1
 
         Parameters
         ----------
