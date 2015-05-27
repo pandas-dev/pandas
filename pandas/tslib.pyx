@@ -2483,17 +2483,24 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         # Cannot pre-calculate datetime_date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
-        if julian == -1:
-            # Need to add 1 to result since first day of the year is 1, not 0.
-            julian = datetime_date(year, month, day).toordinal() - \
-                      datetime_date(year, 1, 1).toordinal() + 1
-        else: # Assume that if they bothered to include Julian day it will
-            # be accurate.
-            datetime_result = datetime_date.fromordinal(
-                (julian - 1) + datetime_date(year, 1, 1).toordinal())
-            year = datetime_result.year
-            month = datetime_result.month
-            day = datetime_result.day
+        try:
+            if julian == -1:
+                # Need to add 1 to result since first day of the year is 1, not 0.
+                julian = datetime_date(year, month, day).toordinal() - \
+                         datetime_date(year, 1, 1).toordinal() + 1
+
+            else: # Assume that if they bothered to include Julian day it will
+                # be accurate.
+                datetime_result = datetime_date.fromordinal(
+                    (julian - 1) + datetime_date(year, 1, 1).toordinal())
+                year = datetime_result.year
+                month = datetime_result.month
+                day = datetime_result.day
+        except ValueError:
+                if coerce:
+                    iresult[i] = iNaT
+                    continue
+                raise
         if weekday == -1:
             weekday = datetime_date(year, month, day).weekday()
 
