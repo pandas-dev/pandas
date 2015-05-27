@@ -26,6 +26,7 @@ Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsne
 New features
 ~~~~~~~~~~~~
 
+- SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 
 .. _whatsnew_0170.enhancements.other:
 
