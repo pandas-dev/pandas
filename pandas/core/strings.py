@@ -710,6 +710,8 @@ def str_split(arr, pat=None, n=None):
     expand : bool, default False
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
+
+        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
