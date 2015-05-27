@@ -2,7 +2,7 @@
 import nose
 from numpy import nan
 import numpy as np
-from pandas import Index, isnull, Timestamp
+from pandas import Index, isnull, Timestamp, to_datetime, NaT
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas.compat import range, lrange, zip
@@ -736,6 +736,13 @@ class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, period.get_period_field_arr, -1, np.empty(1), 0)
+
+class TestDaysInMonth(tm.TestCase):
+    def test_day_not_in_month_coerce_true(self):
+        self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
 
 if __name__ == '__main__':
     import nose
