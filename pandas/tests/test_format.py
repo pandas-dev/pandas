@@ -3305,6 +3305,15 @@ class TestStringRepTimestamp(tm.TestCase):
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
 
+
+def test_float_formatting():
+    np.random.seed(0)
+    df = pd.DataFrame(dict(a=np.random.randn(10)))
+    df.to_csv('tmp.csv', index=False)
+    result = pd.read_csv('tmp.csv', header=0, index_col=None)
+    tm.assert_frame_equal(df, result)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
