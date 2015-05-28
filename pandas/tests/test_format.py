@@ -3309,10 +3309,10 @@ class TestStringRepTimestamp(tm.TestCase):
 def test_float_formatting():
     np.random.seed(0)
     df = pd.DataFrame(dict(a=np.random.randn(10)))
-    df.to_csv('tmp.csv', index=False)
-    with open('tmp.csv', 'rU') as f:
-        next(f)
-        raw = np.array([float(x.split(',')[0]) for x in f])
+    sio = StringIO()
+    df.to_csv(sio, index=False)
+    raw = np.array([float(x.split(',')[0])
+                    for x in sio.getvalue().splitlines()[1:]])
     np.testing.assert_array_equal(df.a.values, raw)
 
 
