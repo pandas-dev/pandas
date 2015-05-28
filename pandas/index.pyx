@@ -78,7 +78,7 @@ cdef class IndexEngine:
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check, unique_check
+        bint initialized, monotonic_check
 
     def __init__(self, vgetter, n):
         self.vgetter = vgetter
@@ -206,8 +206,7 @@ cdef class IndexEngine:
     property is_unique:
 
         def __get__(self):
-            if not self.unique_check:
-                self._do_unique_check()
+            self._ensure_mapping_populated()
 
             return self.unique == 1
 
@@ -235,7 +234,6 @@ cdef class IndexEngine:
 
             if unique is not None:
                 self.unique = unique
-                self.unique_check = 1
 
         except TypeError:
             self.monotonic_inc = 0
@@ -244,9 +242,6 @@ cdef class IndexEngine:
 
     cdef _get_index_values(self):
         return self.vgetter()
-
-    cdef inline _do_unique_check(self):
-        self._ensure_mapping_populated()
 
     def _call_monotonic(self, values):
         raise NotImplementedError
@@ -269,7 +264,6 @@ cdef class IndexEngine:
 
         if len(self.mapping) == len(values):
             self.unique = 1
-            self.unique_check = 1
 
         self.initialized = 1
 
