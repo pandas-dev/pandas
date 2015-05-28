@@ -3310,8 +3310,10 @@ def test_float_formatting():
     np.random.seed(0)
     df = pd.DataFrame(dict(a=np.random.randn(10)))
     df.to_csv('tmp.csv', index=False)
-    result = pd.read_csv('tmp.csv', header=0, index_col=None)
-    tm.assert_frame_equal(df, result)
+    with open('tmp.csv', 'rU') as f:
+        next(f)
+        raw = np.array([float(x.split(',')[0]) for x in f])
+    np.testing.assert_array_equal(df.a.values, raw)
 
 
 if __name__ == '__main__':
