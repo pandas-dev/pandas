@@ -296,6 +296,13 @@ class TestReadGBQIntegration(tm.TestCase):
         df = gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] GROUP EACH BY id ORDER BY id ASC LIMIT 200005", project_id=PROJECT_ID)
         self.assertEqual(len(df.drop_duplicates()), 200005)
 
+    def test_zero_rows(self):
+        # Bug fix for https://github.com/pydata/pandas/issues/10273
+        df = gbq.read_gbq("SELECT title, language  FROM [publicdata:samples.wikipedia] where timestamp=-9999999", project_id=PROJECT_ID)
+        expected_result = DataFrame(columns=['title', 'language'])
+        self.assert_frame_equal(df, expected_result)
+
+
 class TestToGBQIntegration(tm.TestCase):
     # This class requires bq.py to be installed for setup/teardown. 
     # It will also need to be preconfigured with a default dataset,
