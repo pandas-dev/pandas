@@ -3469,6 +3469,13 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(DataFrame({'a':[1,2,3],'b':[2,3,4]}), 
             plotting._dataframe_kinds, kws={'x':'a','y':'b'})
+
+    def test_hist_single_row(self):
+        bins = np.arange(80, 100 + 2, 1)
+        df = DataFrame({"Name": ["AAA", "BBB"], "ByCol": [1, 2], "Mark": [85, 89]})
+        df["Mark"].hist(by=df["ByCol"], bins=bins)
+        df = DataFrame({"Name": ["AAA"], "ByCol": [1], "Mark": [85]})
+        df["Mark"].hist(by=df["ByCol"], bins=bins)
         
 
 @tm.mplskip
