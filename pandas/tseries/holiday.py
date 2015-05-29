@@ -148,6 +148,9 @@ class Holiday(object):
         >>> July3rd = Holiday('July 3rd', month=7, day=3,
                               days_of_week=(0, 1, 2, 3))
         """
+        if offset is not None and observance is not None:
+            raise NotImplementedError("Cannot use both offset and observance.")
+
         self.name = name
         self.year = year
         self.month = month
