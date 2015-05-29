@@ -9,6 +9,8 @@ from pandas.compat import range, lrange, zip
 import pandas.lib as lib
 import pandas._period as period
 import pandas.algos as algos
+from pandas.tseries.holiday import Holiday, SA, next_monday
+from pandas import DateOffset
 
 
 class TestTseriesUtil(tm.TestCase):
@@ -736,6 +738,17 @@ class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, period.get_period_field_arr, -1, np.empty(1), 0)
+
+
+class TestHolidayConflictingArguments(tm.TestCase):
+
+    # GH 10217
+
+    def test_both_offset_observance_raises(self):
+
+        with self.assertRaises(NotImplementedError) as cm:
+            h = Holiday("Cyber Monday", month=11, day=1,
+                        offset=[DateOffset(weekday=SA(4))], observance=next_monday)
 
 if __name__ == '__main__':
     import nose
