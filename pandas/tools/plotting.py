@@ -2845,9 +2845,9 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize, bins=bins,
                             xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
                             **kwds)
-
-    if axes.ndim == 1 and len(axes) == 1:
-        return axes[0]
+    if isinstance(axes, np.ndarray):
+        if axes.ndim == 1 and len(axes) == 1:
+            return axes[0]
     return axes
 
 
