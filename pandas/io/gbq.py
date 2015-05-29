@@ -279,7 +279,7 @@ def _parse_data(schema, rows):
                                        field_type)
             page_array[row_num][col_num] = field_value
 
-    return DataFrame(page_array)
+    return DataFrame(page_array, columns=col_names)
 
 def _parse_entry(field_value, field_type):
     if field_value is None or field_value == 'null':
@@ -338,7 +338,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         page = pages.pop()
         dataframe_list.append(_parse_data(schema, page))
 
-    final_df = concat(dataframe_list, ignore_index = True)
+    if len(dataframe_list)>0:
+        final_df = concat(dataframe_list, ignore_index = True)
+    else:
+        final_df =  _parse_data(schema,[])
 
     # Reindex the DataFrame on the provided column
     if index_col is not None:
