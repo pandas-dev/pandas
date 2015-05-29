@@ -2195,6 +2195,13 @@ class TestXMySQL(tm.TestCase):
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
+    def tearDown(self):
+        from pymysql.err import Error
+        try:
+            self.db.close()
+        except Error:
+            pass
+
     def test_basic(self):
         _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
