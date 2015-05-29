@@ -491,12 +491,7 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isnull(values)
-
-        if not self.is_object and not quoting:
-            values = values.astype(str)
-        else:
-            values = np.array(values, dtype='object')
-
+        values = np.array(values, dtype=object)
         values[mask] = na_rep
         return values
 
