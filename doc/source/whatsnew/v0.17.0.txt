@@ -65,6 +65,7 @@ Bug Fixes
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
 
 
+- Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
 - Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
 - Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
 - Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
