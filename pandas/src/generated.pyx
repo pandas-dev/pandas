@@ -28,6 +28,8 @@ ctypedef unsigned char UChar
 
 cimport util
 from util cimport is_array, _checknull, _checknan, get_nat
+cimport lib
+from lib cimport is_null_datetimelike
 
 cdef int64_t iNaT = get_nat()
 
@@ -2096,7 +2098,7 @@ def groupby_float64(ndarray[float64_t] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
@@ -2124,7 +2126,7 @@ def groupby_float32(ndarray[float32_t] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
@@ -2152,7 +2154,7 @@ def groupby_object(ndarray[object] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
@@ -2180,7 +2182,7 @@ def groupby_int32(ndarray[int32_t] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
@@ -2208,7 +2210,7 @@ def groupby_int64(ndarray[int64_t] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
@@ -2236,7 +2238,7 @@ def groupby_bool(ndarray[uint8_t] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]

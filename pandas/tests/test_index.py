@@ -1858,6 +1858,25 @@ class Numeric(Base):
         expected = Float64Index(np.sin(np.arange(5,dtype='int64')))
         tm.assert_index_equal(result, expected)
 
+    def test_index_groupby(self):
+        int_idx = Index(range(6))
+        float_idx = Index(np.arange(0, 0.6, 0.1))
+        obj_idx = Index('A B C D E F'.split())
+        dt_idx = pd.date_range('2013-01-01', freq='M', periods=6)
+
+        for idx in [int_idx, float_idx, obj_idx, dt_idx]:
+            to_groupby = np.array([1, 2, np.nan, np.nan, 2, 1])
+            self.assertEqual(idx.groupby(to_groupby),
+                             {1.0: [idx[0], idx[5]], 2.0: [idx[1], idx[4]]})
+
+            to_groupby = Index([datetime(2011, 11, 1), datetime(2011, 12, 1),
+                                pd.NaT, pd.NaT,
+                                datetime(2011, 12, 1), datetime(2011, 11, 1)], tz='UTC').values
+
+            ex_keys = pd.tslib.datetime_to_datetime64(np.array([Timestamp('2011-11-01'), Timestamp('2011-12-01')]))
+            expected = {ex_keys[0][0]: [idx[0], idx[5]], ex_keys[0][1]: [idx[1], idx[4]]}
+            self.assertEqual(idx.groupby(to_groupby), expected)
+
 
 class TestFloat64Index(Numeric, tm.TestCase):
     _holder = Float64Index
