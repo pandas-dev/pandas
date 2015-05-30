@@ -212,6 +212,16 @@ class TestFrequencyInference(tm.TestCase):
             for i in range(1, 5):
                 self._check_generated_range('1/1/2000', 'WOM-%d%s' % (i, day))
 
+    def test_fifth_week_of_month(self):
+        # Only supports freq up to WOM-4. See #9425
+        func = lambda: date_range('2014-01-01', freq='WOM-5MON')
+        self.assertRaises(ValueError, func)
+
+    def test_fifth_week_of_month_infer(self):
+        # Only attempts to infer up to WOM-4. See #9425
+        index = DatetimeIndex(["2014-03-31", "2014-06-30", "2015-03-30"])
+        assert frequencies.infer_freq(index) is None
+
     def test_week_of_month_fake(self):
         #All of these dates are on same day of week and are 4 or 5 weeks apart
         index = DatetimeIndex(["2013-08-27","2013-10-01","2013-10-29","2013-11-26"])
