@@ -37,6 +37,8 @@ ctypedef unsigned char UChar
 
 cimport util
 from util cimport is_array, _checknull, _checknan, get_nat
+cimport lib
+from lib cimport is_null_datetimelike
 
 cdef int64_t iNaT = get_nat()
 
@@ -673,7 +675,7 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]
