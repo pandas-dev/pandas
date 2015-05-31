@@ -917,8 +917,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # GH 9456
         d = {np.datetime64('2015-01-07T02:00:00.000000000+0200'): 4.2,
-             np.datetime64('2015-01-08T02:00:00.000000000+0200'): 4.0,
-             np.datetime64('2015-01-09T02:00:00.000000000+0200'): 3.9,
+             np.datetime64('2015-01-09T02:00:00.000000000+0200'): 4.0,
+             np.datetime64('2015-01-08T02:00:00.000000000+0200'): 3.9,
              np.datetime64('2015-01-12T02:00:00.000000000+0200'): 3.5}
         keys = list()
         vals = list()
@@ -926,23 +926,37 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             vals.append(d[k])
             keys.append(k)
         expected = Series(vals, keys)
+        expected_unsorted = Series(d.values(), d.keys())
 
         s = Series(d)
         assert_series_equal(s, expected)
 
+        s = Series(d, d.keys())
+        assert_series_equal(s, expected_unsorted)
+
         d = {datetime(2015,1,7): 4.2,
-             datetime(2015,1,8): 4.0,
-             datetime(2015,1,9): 3.9,
+             datetime(2015,1,9): 4.0,
+             datetime(2015,1,8): 3.9,
              datetime(2015,1,12): 3.5}
+        expected_unsorted = Series(d.values(), d.keys())
+
         s = Series(d)
         assert_series_equal(s, expected)
 
+        s = Series(d, d.keys())
+        assert_series_equal(s, expected_unsorted)
+
         d = {datetime(2015,1,7): 4.2,
-             np.datetime64('2015-01-08T02:00:00.000000000+0200'): 4.0,
-             '20150109': 3.9,
+             np.datetime64('2015-01-09T02:00:00.000000000+0200'): 4.0,
+             '20150108': 3.9,
              np.datetime64('2015-01-12T02:00:00.000000000+0200'): 3.5}
+        expected_unsorted = Series(d.values(), d.keys())
+
         s = Series(d)
-        assert_series_equal(s, expected)
+        assert_series_equal(s, expected_unsorted)
+
+        s = Series(d, d.keys())
+        assert_series_equal(s, expected_unsorted)
 
     def test_constructor_periodindex(self):
         # GH7932
