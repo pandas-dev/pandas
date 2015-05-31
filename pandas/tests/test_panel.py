@@ -509,7 +509,9 @@ class CheckIndexing(object):
         idx = self.panel.major_axis[5]
         xs = self.panel.major_xs(idx)
 
-        assert_series_equal(xs['ItemA'], ref.xs(idx))
+        result = xs['ItemA']
+        assert_series_equal(result, ref.xs(idx), check_names=False)
+        self.assertEqual(result.name, 'ItemA')
 
         # not contained
         idx = self.panel.major_axis[0] - bday
@@ -527,7 +529,7 @@ class CheckIndexing(object):
         idx = self.panel.minor_axis[1]
         xs = self.panel.minor_xs(idx)
 
-        assert_series_equal(xs['ItemA'], ref[idx])
+        assert_series_equal(xs['ItemA'], ref[idx], check_names=False)
 
         # not contained
         self.assertRaises(Exception, self.panel.minor_xs, 'E')
@@ -658,7 +660,7 @@ class CheckIndexing(object):
 
     def test_ix_align(self):
         from pandas import Series
-        b = Series(np.random.randn(10))
+        b = Series(np.random.randn(10), name=0)
         b.sort()
         df_orig = Panel(np.random.randn(3, 10, 2))
         df = df_orig.copy()
@@ -959,6 +961,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         for dtype in ['float64','float32','int64','int32','object']:
             panel = Panel(np.random.randn(2,10,5),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
+
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'object']:
+            df1 = DataFrame(np.random.randn(2, 5), index=lrange(2), columns=lrange(5))
+            df2 = DataFrame(np.random.randn(2, 5), index=lrange(2), columns=lrange(5))
+            panel = Panel.from_dict({'a': df1, 'b': df2}, dtype=dtype)
+            _check_dtype(panel, dtype)
 
     def test_constructor_fails_with_not_3d_input(self):
         with tm.assertRaisesRegexp(ValueError,

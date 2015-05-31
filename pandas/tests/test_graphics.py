@@ -439,6 +439,38 @@ class TestPlotBase(tm.TestCase):
                 else:
                     raise AssertionError
 
+    def _check_grid_settings(self, obj, kinds, kws={}):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+
+        import matplotlib as mpl
+
+        def is_grid_on():
+            xoff = all(not g.gridOn for g in self.plt.gca().xaxis.get_major_ticks())
+            yoff = all(not g.gridOn for g in self.plt.gca().yaxis.get_major_ticks())
+            return not(xoff and yoff)
+
+        spndx=1
+        for kind in kinds:
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=False)
+            obj.plot(kind=kind, **kws)
+            self.assertFalse(is_grid_on())    
+
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=True)
+            obj.plot(kind=kind, grid=False, **kws)
+            self.assertFalse(is_grid_on())    
+
+            if kind != 'pie':
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=True)
+                obj.plot(kind=kind, **kws)
+                self.assertTrue(is_grid_on())
+
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=False)
+                obj.plot(kind=kind, grid=True, **kws)
+                self.assertTrue(is_grid_on())
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
@@ -552,6 +584,29 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         self.assertEqual(xmin, line[0])
         self.assertEqual(xmax, line[-1])
+
+    def test_label(self):
+        s = Series([1, 2])
+        ax = s.plot(label='LABEL', legend=True)
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['None'])
+        self.plt.close()
+        # get name from index
+        s.name = 'NAME'
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['NAME'])
+        self.plt.close()
+        # override the default
+        ax = s.plot(legend=True, label='LABEL')
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        # Add lebel info, but don't draw
+        ax = s.plot(legend=False, label='LABEL')
+        self.assertEqual(ax.get_legend(), None)  # Hasn't been drawn
+        ax.legend()  # draw it
+        self._check_legend_labels(ax, labels=['LABEL'])
 
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
@@ -1085,6 +1140,12 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)
 
+    @slow
+    def test_series_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(Series([1,2,3]), 
+            plotting._series_kinds + plotting._common_kinds)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
@@ -1533,6 +1594,19 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.get_yticklabels(), visible=False)
         for ax in axes[[0, 1, 2], [2]].ravel():
             self._check_visible(ax.get_yticklabels(), visible=False)
+
+    def test_subplots_sharex_axes_existing_axes(self):
+        # GH 9158
+        d = {'A': [1., 2., 3., 4.], 'B': [4., 3., 2., 1.], 'C': [5, 1, 3, 4]}
+        df = DataFrame(d, index=date_range('2014 10 11', '2014 10 14'))
+
+        axes = df[['A', 'B']].plot(subplots=True)
+        df['C'].plot(ax=axes[0], secondary_y=True)
+
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        for ax in axes.ravel():
+            self._check_visible(ax.get_yticklabels(), visible=True)
 
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
@@ -3390,6 +3464,12 @@ class TestDataFramePlots(TestPlotBase):
                              "y label is invisible but shouldn't")
 
 
+    @slow
+    def test_df_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(DataFrame({'a':[1,2,3],'b':[2,3,4]}), 
+            plotting._dataframe_kinds, kws={'x':'a','y':'b'})
+        
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):

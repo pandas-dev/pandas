@@ -810,7 +810,7 @@ class MPLPlot(object):
                 self.rot = self._default_rot
 
         if grid is None:
-            grid = False if secondary_y else True
+            grid = False if secondary_y else self.plt.rcParams['axes.grid']
 
         self.grid = grid
         self.legend = legend
@@ -999,7 +999,7 @@ class MPLPlot(object):
         data = self.data
 
         if isinstance(data, Series):
-            label = self.kwds.pop('label', None)
+            label = self.label
             if label is None and data.name is None:
                 label = 'None'
             data = data.to_frame(name=label)
@@ -1040,7 +1040,10 @@ class MPLPlot(object):
         if len(self.axes) > 0:
             all_axes = self._get_axes()
             nrows, ncols = self._get_axes_layout()
-            _handle_shared_axes(all_axes, len(all_axes), len(all_axes), nrows, ncols, self.sharex, self.sharey)
+            _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
+                                naxes=nrows * ncols, nrows=nrows,
+                                ncols=ncols, sharex=self.sharex,
+                                sharey=self.sharey)
 
         for ax in to_adorn:
             if self.yticks is not None:
@@ -3006,7 +3009,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]
-        columns = data._get_numeric_data().columns - by
+        columns = data._get_numeric_data().columns.difference(by)
     naxes = len(columns)
     fig, axes = _subplots(naxes=naxes, sharex=True, sharey=True,
                           figsize=figsize, ax=ax, layout=layout)

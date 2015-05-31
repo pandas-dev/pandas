@@ -156,50 +156,51 @@ class TestHDFStore(tm.TestCase):
         pass
 
     def test_factory_fun(self):
+        path = create_tempfile(self.path)
         try:
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 raise ValueError('blah')
         except ValueError:
             pass
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
         try:
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 tbl['a'] = tm.makeDataFrame()
 
-            with get_store(self.path) as tbl:
+            with get_store(path) as tbl:
                 self.assertEqual(len(tbl), 1)
                 self.assertEqual(type(tbl['a']), DataFrame)
         finally:
             safe_remove(self.path)
 
     def test_context(self):
+        path = create_tempfile(self.path)
         try:
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 raise ValueError('blah')
         except ValueError:
             pass
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
         try:
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 tbl['a'] = tm.makeDataFrame()
 
-            with HDFStore(self.path) as tbl:
+            with HDFStore(path) as tbl:
                 self.assertEqual(len(tbl), 1)
                 self.assertEqual(type(tbl['a']), DataFrame)
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_conv_read_write(self):
-
+        path = create_tempfile(self.path)
         try:
-
             def roundtrip(key, obj,**kwargs):
-                obj.to_hdf(self.path, key,**kwargs)
-                return read_hdf(self.path, key)
+                obj.to_hdf(path, key,**kwargs)
+                return read_hdf(path, key)
 
             o = tm.makeTimeSeries()
             assert_series_equal(o, roundtrip('series',o))
@@ -215,12 +216,12 @@ class TestHDFStore(tm.TestCase):
 
             # table
             df = DataFrame(dict(A=lrange(5), B=lrange(5)))
-            df.to_hdf(self.path,'table',append=True)
-            result = read_hdf(self.path, 'table', where = ['index>2'])
+            df.to_hdf(path,'table',append=True)
+            result = read_hdf(path, 'table', where = ['index>2'])
             assert_frame_equal(df[df.index>2],result)
 
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_long_strings(self):
 
@@ -1593,9 +1594,10 @@ class TestHDFStore(tm.TestCase):
 
             # series
             _maybe_remove(store, 's')
-            s = Series(np.zeros(12), index=make_index(['date',None,None]))
+            s = Series(np.zeros(12), index=make_index(['date', None, None]))
             store.append('s',s)
-            tm.assert_series_equal(store.select('s'),s)
+            xp = Series(np.zeros(12), index=make_index(['date', 'level_1', 'level_2']))
+            tm.assert_series_equal(store.select('s'), xp)
 
             # dup with column
             _maybe_remove(store, 'df')
@@ -3612,7 +3614,7 @@ class TestHDFStore(tm.TestCase):
 
             # invert ok for filters
             result = store.select('df', "~(columns=['A','B'])")
-            expected = df.loc[:,df.columns-['A','B']]
+            expected = df.loc[:,df.columns.difference(['A','B'])]
             tm.assert_frame_equal(result, expected)
 
             # in
@@ -4328,13 +4330,14 @@ class TestHDFStore(tm.TestCase):
         df = tm.makeDataFrame()
 
         try:
-            st = HDFStore(self.path)
+            path = create_tempfile(self.path)
+            st = HDFStore(path)
             st.append('df', df, data_columns = ['A'])
             st.close()
-            do_copy(f = self.path)
-            do_copy(f = self.path, propindexes = False)
+            do_copy(f = path)
+            do_copy(f = path, propindexes = False)
         finally:
-            safe_remove(self.path)
+            safe_remove(path)
 
     def test_legacy_table_write(self):
         raise nose.SkipTest("cannot write legacy tables")
@@ -4613,6 +4616,29 @@ class TestHDFStore(tm.TestCase):
 
             store['df'] = df
             assert_frame_equal(store['df'], df)
+
+    def test_colums_multiindex_modified(self):
+        # BUG: 7212
+        # read_hdf store.select modified the passed columns parameters
+        # when multi-indexed.
+
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        df.index.name = 'letters'
+        df = df.set_index(keys='E', append=True)
+
+        data_columns = df.index.names+df.columns.tolist()
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df',
+                      mode='a',
+                      append=True,
+                      data_columns=data_columns,
+                      index=False)
+            cols2load = list('BCD')
+            cols2load_original = list(cols2load)
+            df_loaded = read_hdf(path, 'df', columns=cols2load)
+            self.assertTrue(cols2load_original == cols2load)
 
 
 def _test_sort(obj):

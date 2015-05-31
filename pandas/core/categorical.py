@@ -9,20 +9,18 @@ from pandas.compat import u
 
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
-from pandas.core.index import Index, _ensure_index
-from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
-from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
+from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
+                                isnull, notnull, is_dtype_equal,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
                                 is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
-                                _coerce_indexer_dtype, _values_from_object, take_1d)
+                                _coerce_indexer_dtype, take_1d)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
-from pandas.core import format as fmt
 
 def _cat_compare_op(op):
     def f(self, other):
@@ -86,7 +84,7 @@ def _cat_compare_op(op):
 
 def maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
-    if isinstance(array, ABCSeries):
+    if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
         return array.values
     return array
 
@@ -236,15 +234,17 @@ class Categorical(PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
 
-            # we are either a Series or a Categorical
-            cat = values
-            if isinstance(values, ABCSeries):
-                cat = values.values
+            # we are either a Series or a CategoricalIndex
+            if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
+                values = values.values
+
+            if ordered is None:
+                ordered = values.ordered
             if categories is None:
-                categories = cat.categories
+                categories = values.categories
             values = values.__array__()
 
-        elif isinstance(values, Index):
+        elif isinstance(values, ABCIndexClass):
             pass
 
         else:
@@ -295,11 +295,11 @@ class Categorical(PandasObject):
                 warn("Values and categories have different dtypes. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            if is_integer_dtype(values) and (codes == -1).all():
+            if len(values) and is_integer_dtype(values) and (codes == -1).all():
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-        self.set_ordered(ordered, inplace=True)
+        self.set_ordered(ordered or False, inplace=True)
         self.categories = categories
         self.name = name
         self._codes = _coerce_indexer_dtype(codes, categories)
@@ -309,10 +309,26 @@ class Categorical(PandasObject):
         return Categorical(values=self._codes.copy(),categories=self.categories,
                            name=self.name, ordered=self.ordered, fastpath=True)
 
+    def astype(self, dtype):
+        """ coerce this type to another dtype """
+        if is_categorical_dtype(dtype):
+            return self
+        return np.array(self, dtype=dtype)
+
     @cache_readonly
     def ndim(self):
         """Number of dimensions of the Categorical """
         return self._codes.ndim
+
+    @cache_readonly
+    def size(self):
+        """ return the len of myself """
+        return len(self)
+
+    @cache_readonly
+    def itemsize(self):
+        """ return the size of a single category """
+        return self.categories.itemsize
 
     def reshape(self, new_shape, **kwargs):
         """ compat with .reshape """
@@ -395,7 +411,8 @@ class Categorical(PandasObject):
     codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     def _get_labels(self):
-        """ Get the category labels (deprecated).
+        """
+        Get the category labels (deprecated).
 
         Deprecated, use .codes!
         """
@@ -409,8 +426,10 @@ class Categorical(PandasObject):
 
     @classmethod
     def _validate_categories(cls, categories):
-        """" Validates that we have good categories """
-        if not isinstance(categories, Index):
+        """
+        Validates that we have good categories
+        """
+        if not isinstance(categories, ABCIndexClass):
             dtype = None
             if not hasattr(categories, "dtype"):
                 categories = _convert_to_list_like(categories)
@@ -421,6 +440,8 @@ class Categorical(PandasObject):
                     with_na = np.array(categories)
                     if with_na.dtype != without_na.dtype:
                         dtype = "object"
+
+            from pandas import Index
             categories = Index(categories, dtype=dtype)
         if not categories.is_unique:
             raise ValueError('Categorical categories must be unique')
@@ -687,7 +708,7 @@ class Categorical(PandasObject):
         if len(already_included) != 0:
             msg = "new categories must not include old categories: %s" % str(already_included)
             raise ValueError(msg)
-        new_categories = list(self._categories) + (new_categories)
+        new_categories = list(self._categories) + list(new_categories)
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = new_categories
@@ -761,6 +782,8 @@ class Categorical(PandasObject):
         cat = self if inplace else self.copy()
         _used = sorted(np.unique(cat._codes))
         new_categories = cat.categories.take(_ensure_platform_int(_used))
+
+        from pandas.core.index import _ensure_index
         new_categories = _ensure_index(new_categories)
         cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
         cat._categories = new_categories
@@ -790,7 +813,8 @@ class Categorical(PandasObject):
         return tuple([len(self._codes)])
 
     def __array__(self, dtype=None):
-        """ The numpy array interface.
+        """
+        The numpy array interface.
 
         Returns
         -------
@@ -799,7 +823,7 @@ class Categorical(PandasObject):
             dtype as categorical.categories.dtype
         """
         ret = take_1d(self.categories.values, self._codes)
-        if dtype and dtype != self.categories.dtype:
+        if dtype and not is_dtype_equal(dtype,self.categories.dtype):
             return np.asarray(ret, dtype)
         return ret
 
@@ -997,7 +1021,7 @@ class Categorical(PandasObject):
         """
 
         # if we are a period index, return a string repr
-        if isinstance(self.categories, PeriodIndex):
+        if isinstance(self.categories, ABCPeriodIndex):
             return take_1d(np.array(self.categories.to_native_types(), dtype=object),
                            self._codes)
 
@@ -1144,7 +1168,8 @@ class Categorical(PandasObject):
         """
         return np.asarray(self)
 
-    def fillna(self, fill_value=None, method=None, limit=None):
+    @deprecate_kwarg(old_arg_name='fill_value', new_arg_name='value')
+    def fillna(self, value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
         Parameters
@@ -1156,15 +1181,21 @@ class Categorical(PandasObject):
         value : scalar
             Value to use to fill holes (e.g. 0)
         limit : int, default None
-            Maximum size gap to forward or backward fill (not implemented yet!)
+            (Not implemented yet for Categorical!)
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
 
         Returns
         -------
         filled : Categorical with NA/NaN filled
         """
 
-        if fill_value is None:
-            fill_value = np.nan
+        if value is None:
+            value = np.nan
         if limit is not None:
             raise NotImplementedError("specifying a limit for fillna has not "
                                       "been implemented yet")
@@ -1179,24 +1210,23 @@ class Categorical(PandasObject):
                 # we only have one NA in categories
                 values[values == nan_pos] = -1
 
-
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1,len(self))
+            values = self.to_dense().reshape(-1, len(self))
             values = com.interpolate_2d(
-                values, method, 0, None, fill_value).astype(self.categories.dtype)[0]
+                values, method, 0, None, value).astype(self.categories.dtype)[0]
             values = _get_codes_for_values(values, self.categories)
 
         else:
 
-            if not isnull(fill_value) and fill_value not in self.categories:
+            if not isnull(value) and value not in self.categories:
                 raise ValueError("fill value must be in categories")
 
             mask = values==-1
             if mask.any():
                 values = values.copy()
-                values[mask] = self.categories.get_loc(fill_value)
+                values[mask] = self.categories.get_loc(value)
 
         return Categorical(values, categories=self.categories, ordered=self.ordered,
                            name=self.name, fastpath=True)
@@ -1243,7 +1273,8 @@ class Categorical(PandasObject):
         """Returns an Iterator over the values of this Categorical."""
         return iter(np.array(self))
 
-    def _tidy_repr(self, max_vals=10):
+    def _tidy_repr(self, max_vals=10, footer=True):
+        """ a short repr displaying only max_vals and an optional (but default footer) """
         num = max_vals // 2
         head = self[:num]._get_repr(length=False, name=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False,
@@ -1251,28 +1282,35 @@ class Categorical(PandasObject):
                                                   footer=False)
 
         result = '%s, ..., %s' % (head[:-1], tail[1:])
-        result = '%s\n%s' % (result, self._repr_footer())
+        if footer:
+            result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
 
-    def _repr_categories_info(self):
-        """ Returns a string representation of the footer."""
-
+    def _repr_categories(self):
+        """ return the base repr for the categories """
         max_categories = (10 if get_option("display.max_categories") == 0
                     else get_option("display.max_categories"))
+        from pandas.core import format as fmt
         category_strs = fmt.format_array(self.categories.get_values(), None)
         if len(category_strs) > max_categories:
             num = max_categories // 2
             head = category_strs[:num]
             tail = category_strs[-(max_categories - num):]
             category_strs = head + ["..."] + tail
+
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
+        return category_strs
+
+    def _repr_categories_info(self):
+        """ Returns a string representation of the footer."""
+
+        category_strs = self._repr_categories()
         levheader = "Categories (%d, %s): " % (len(self.categories),
                                                self.categories.dtype)
         width, height = get_terminal_size()
-        max_width = (width if get_option("display.width") == 0
-                    else get_option("display.width"))
+        max_width = get_option("display.width") or width
         if com.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
@@ -1299,8 +1337,11 @@ class Categorical(PandasObject):
                                        len(self), self._repr_categories_info())
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
-        formatter = fmt.CategoricalFormatter(self, name=name,
-                                             length=length, na_rep=na_rep,
+        from pandas.core import format as fmt
+        formatter = fmt.CategoricalFormatter(self,
+                                             name=name,
+                                             length=length,
+                                             na_rep=na_rep,
                                              footer=footer)
         result = formatter.to_string()
         return compat.text_type(result)
@@ -1315,9 +1356,9 @@ class Categorical(PandasObject):
                                     name=True)
         else:
             result = '[], %s' % self._get_repr(name=True,
-                                                           length=False,
-                                                           footer=True,
-                                                           ).replace("\n",", ")
+                                               length=False,
+                                               footer=True,
+                                               ).replace("\n",", ")
 
         return result
 
@@ -1358,6 +1399,8 @@ class Categorical(PandasObject):
                                  "categories")
 
         rvalue = value if is_list_like(value) else [value]
+
+        from pandas import Index
         to_add = Index(rvalue).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set something to np.nan
@@ -1516,11 +1559,27 @@ class Categorical(PandasObject):
         -------
         are_equal : boolean
         """
-        if not isinstance(other, Categorical):
-            return False
         # TODO: should this also test if name is equal?
-        return (self.categories.equals(other.categories) and self.ordered == other.ordered and
-                np.array_equal(self._codes, other._codes))
+        return self.is_dtype_equal(other) and np.array_equal(self._codes, other._codes)
+
+    def is_dtype_equal(self, other):
+        """
+        Returns True if categoricals are the same dtype
+          same categories, and same ordered
+
+        Parameters
+        ----------
+        other : Categorical
+
+        Returns
+        -------
+        are_equal : boolean
+        """
+
+        try:
+            return self.categories.equals(other.categories) and self.ordered == other.ordered
+        except (AttributeError, TypeError):
+            return False
 
     def describe(self):
         """ Describes this Categorical
@@ -1604,18 +1663,20 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
 ##### utility routines #####
 
 def _get_codes_for_values(values, categories):
-    """"
+    """
     utility routine to turn values into codes given the specified categories
     """
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
-    if values.dtype != categories.dtype:
+    if not is_dtype_equal(values.dtype,categories.dtype):
         values = _ensure_object(values)
         categories = _ensure_object(categories)
+
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    t = hash_klass(len(categories))
-    t.map_locations(_values_from_object(categories))
-    return _coerce_indexer_dtype(t.lookup(values), categories)
+    (_, _), cats = _get_data_algo(categories, _hashtables)
+    t = hash_klass(len(cats))
+    t.map_locations(cats)
+    return _coerce_indexer_dtype(t.lookup(vals), cats)
 
 def _convert_to_list_like(list_like):
     if hasattr(list_like, "dtype"):

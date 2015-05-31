@@ -524,6 +524,47 @@ def test_is_recompilable():
     for f in fails:
         assert not com.is_re_compilable(f)
 
+def test_random_state():
+    import numpy.random as npr
+    # Check with seed
+    state = com._random_state(5)
+    assert_equal(state.uniform(), npr.RandomState(5).uniform())
+
+    # Check with random state object
+    state2 = npr.RandomState(10)
+    assert_equal(com._random_state(state2).uniform(), npr.RandomState(10).uniform())
+
+    # check with no arg random state
+    assert isinstance(com._random_state(), npr.RandomState)
+
+    # Error for floats or strings
+    with tm.assertRaises(ValueError):
+        com._random_state('test')
+
+    with tm.assertRaises(ValueError):
+        com._random_state(5.5)
+
+
+def test_maybe_match_name():
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='x'))
+    assert(matched == 'x')
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='y'))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
+    assert(matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), [2])
+    assert(matched == 'x')
+
+    matched = com._maybe_match_name([1], Series([2], name='y'))
+    assert(matched == 'y')
+
 
 class TestTake(tm.TestCase):
     # standard incompatible fill error
@@ -608,8 +649,9 @@ class TestTake(tm.TestCase):
         _test_dtype(np.bool_, '', np.object_)
 
     def test_2d_with_out(self):
-        def _test_dtype(dtype, can_hold_na):
+        def _test_dtype(dtype, can_hold_na, writeable=True):
             data = np.random.randint(0, 2, (5, 3)).astype(dtype)
+            data.flags.writeable = writeable
 
             indexer = [2, 1, 0, 1]
             out0 = np.empty((4, 3), dtype=dtype)
@@ -640,18 +682,22 @@ class TestTake(tm.TestCase):
                     # no exception o/w
                     data.take(indexer, out=out, axis=i)
 
-        _test_dtype(np.float64, True)
-        _test_dtype(np.float32, True)
-        _test_dtype(np.uint64, False)
-        _test_dtype(np.uint32, False)
-        _test_dtype(np.uint16, False)
-        _test_dtype(np.uint8, False)
-        _test_dtype(np.int64, False)
-        _test_dtype(np.int32, False)
-        _test_dtype(np.int16, False)
-        _test_dtype(np.int8, False)
-        _test_dtype(np.object_, True)
-        _test_dtype(np.bool, False)
+        for writeable in [True, False]:
+            # Check that take_nd works both with writeable arrays (in which
+            # case fast typed memoryviews implementation) and read-only
+            # arrays alike.
+            _test_dtype(np.float64, True, writeable=writeable)
+            _test_dtype(np.float32, True, writeable=writeable)
+            _test_dtype(np.uint64, False, writeable=writeable)
+            _test_dtype(np.uint32, False, writeable=writeable)
+            _test_dtype(np.uint16, False, writeable=writeable)
+            _test_dtype(np.uint8, False, writeable=writeable)
+            _test_dtype(np.int64, False, writeable=writeable)
+            _test_dtype(np.int32, False, writeable=writeable)
+            _test_dtype(np.int16, False, writeable=writeable)
+            _test_dtype(np.int8, False, writeable=writeable)
+            _test_dtype(np.object_, True, writeable=writeable)
+            _test_dtype(np.bool, False, writeable=writeable)
 
     def test_2d_fill_nonna(self):
         def _test_dtype(dtype, fill_value, out_dtype):

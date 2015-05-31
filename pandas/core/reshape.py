@@ -14,8 +14,7 @@ from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
 from pandas.core.categorical import Categorical
-from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
-                                isnull)
+from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
@@ -612,7 +611,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_data[key] = value_slice.ravel()
 
     if len(drop_cols) > 0:
-        new_columns = new_columns - drop_cols
+        new_columns = new_columns.difference(drop_cols)
 
     N = len(this)
 
@@ -1045,7 +1044,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         with_dummies = [result]
         for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
 
-            dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep, 
+            dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)

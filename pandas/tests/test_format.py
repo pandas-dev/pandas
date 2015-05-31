@@ -14,7 +14,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, Timestamp, MultiIndex
+from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -297,6 +297,21 @@ class TestDataFrameFormatting(tm.TestCase):
                 df = mkframe((term_width // 7) + 2)
                 com.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
+
+    def test_str_max_colwidth(self):
+        # GH 7856
+        df = pd.DataFrame([{'a': 'foo', 'b': 'bar',
+                            'c': 'uncomfortably long line with lots of stuff',
+                            'd': 1},
+                           {'a': 'foo', 'b': 'bar', 'c': 'stuff', 'd': 1}])
+        df.set_index(['a', 'b', 'c'])
+        self.assertTrue(str(df) == '     a    b                                           c  d\n'
+                                   '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
+                                   '1  foo  bar                                       stuff  1')
+        with option_context('max_colwidth', 20):
+            self.assertTrue(str(df) == '     a    b                    c  d\n'
+                                       '0  foo  bar  uncomfortably lo...  1\n'
+                                       '1  foo  bar                stuff  1')
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
@@ -2480,7 +2495,7 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
-                   index=pd.date_range('1/1/2000', periods=10), name=0)
+                   index=date_range('1/1/2000', periods=10), name=0)
 
         result = repr(s)
         self.assertTrue('Freq: D, Name: 0' in result)
@@ -2541,7 +2556,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_datetimeindex(self):
 
-        from pandas import date_range, NaT
         index = date_range('20130102',periods=6)
         s = Series(1,index=index)
         result = s.to_string()
@@ -2559,7 +2573,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_timedelta64(self):
 
-        from pandas import date_range
         from datetime import datetime, timedelta
 
         Series(np.array([1100, 20], dtype='timedelta64[ns]')).to_string()
@@ -3010,12 +3023,12 @@ class TestFloatArrayFormatter(tm.TestCase):
 
     def test_output_significant_digits(self):
         # Issue #9764
-        
+
         # In case default display precision changes:
         with pd.option_context('display.precision', 7):
             # DataFrame example from issue #9764
             d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
-            
+
             expected_output={
                 (0,6):'           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
                 (1,6):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
@@ -3164,6 +3177,44 @@ class TestDatetime64Formatter(tm.TestCase):
         result = fmt.Datetime64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "1970-01-01 00:00:00.000000200")
 
+    def test_dates_display(self):
+
+        # 10170
+        # make sure that we are consistently display date formatting
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='D'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-05 09:00:00")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='s'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:04")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='ms'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='us'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='N'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
 
 class TestNaTFormatting(tm.TestCase):
     def test_repr(self):
@@ -3200,13 +3251,13 @@ class TestDatetimeIndexFormat(tm.TestCase):
 class TestDatetimeIndexUnicode(tm.TestCase):
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1)]))
-        self.assertTrue("[2013-01-01," in text)
-        self.assertTrue(", 2014-01-01]" in text)
+        self.assertTrue("['2013-01-01'," in text)
+        self.assertTrue(", '2014-01-01']" in text)
 
     def test_mixed(self):
         text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1,12), datetime(2014,1,1)]))
-        self.assertTrue("[2013-01-01 00:00:00," in text)
-        self.assertTrue(", 2014-01-01 00:00:00]" in text)
+        self.assertTrue("'2013-01-01 00:00:00'," in text)
+        self.assertTrue("'2014-01-01 00:00:00']" in text)
 
 
 class TestStringRepTimestamp(tm.TestCase):

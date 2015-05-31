@@ -1,23 +1,22 @@
 .. currentmodule:: pandas
-.. _computation:
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
-   import pandas.util.testing as tm
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   import pandas as pd
    import matplotlib
    try:
       matplotlib.style.use('ggplot')
    except AttributeError:
-      options.display.mpl_style = 'default'
+      pd.options.display.mpl_style = 'default'
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.max_rows=15
+   pd.options.display.max_rows=15
+
+.. _computation:
 
 Computational tools
 ===================
@@ -36,13 +35,13 @@ NA/null values *before* computing the percent change).
 
 .. ipython:: python
 
-   ser = Series(randn(8))
+   ser = pd.Series(np.random.randn(8))
 
    ser.pct_change()
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 4))
+   df = pd.DataFrame(np.random.randn(10, 4))
 
    df.pct_change(periods=3)
 
@@ -56,8 +55,8 @@ The ``Series`` object has a method ``cov`` to compute covariance between series
 
 .. ipython:: python
 
-   s1 = Series(randn(1000))
-   s2 = Series(randn(1000))
+   s1 = pd.Series(np.random.randn(1000))
+   s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
 Analogously, ``DataFrame`` has a method ``cov`` to compute pairwise covariances
@@ -78,7 +77,7 @@ among the series in the DataFrame, also excluding NA/null values.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.cov()
 
 ``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
@@ -87,7 +86,7 @@ in order to have a valid result.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
    frame.ix[:5, 'a'] = np.nan
    frame.ix[5:10, 'b'] = np.nan
 
@@ -123,7 +122,7 @@ All of these are currently computed using pairwise complete observations.
 
 .. ipython:: python
 
-   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.ix[::2] = np.nan
 
    # Series with Series
@@ -140,7 +139,7 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
 
 .. ipython:: python
 
-   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
    frame.ix[:5, 'a'] = np.nan
    frame.ix[5:10, 'b'] = np.nan
 
@@ -157,8 +156,8 @@ objects.
 
    index = ['a', 'b', 'c', 'd', 'e']
    columns = ['one', 'two', 'three', 'four']
-   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+   df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
+   df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
    df1.corrwith(df2)
    df2.corrwith(df1, axis=1)
 
@@ -172,7 +171,7 @@ of the ranks (by default) for the group:
 
 .. ipython:: python
 
-   s = Series(np.random.randn(5), index=list('abcde'))
+   s = pd.Series(np.random.np.random.randn(5), index=list('abcde'))
    s['d'] = s['b'] # so there's a tie
    s.rank()
 
@@ -181,7 +180,7 @@ or the columns (``axis=1``). ``NaN`` values are excluded from the ranking.
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(10, 6))
+   df = pd.DataFrame(np.random.np.random.randn(10, 6))
    df[4] = df[2][:5] # some ties
    df
    df.rank(1)
@@ -253,13 +252,13 @@ These functions can be applied to ndarrays or Series objects:
 
 .. ipython:: python
 
-   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    ts.plot(style='k--')
 
    @savefig rolling_mean_ex.png
-   rolling_mean(ts, 60).plot(style='k')
+   pd.rolling_mean(ts, 60).plot(style='k')
 
 They can also be applied to DataFrame objects. This is really just syntactic
 sugar for applying the moving window operator to all of the DataFrame's columns:
@@ -271,12 +270,12 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. ipython:: python
 
-   df = DataFrame(randn(1000, 4), index=ts.index,
+   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
                   columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
    @savefig rolling_mean_frame.png
-   rolling_sum(df, 60).plot(subplots=True)
+   pd.rolling_sum(df, 60).plot(subplots=True)
 
 The ``rolling_apply`` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
@@ -287,7 +286,7 @@ compute the mean absolute deviation on a rolling basis:
 
    mad = lambda x: np.fabs(x - x.mean()).mean()
    @savefig rolling_apply_ex.png
-   rolling_apply(ts, 60, mad).plot(style='k')
+   pd.rolling_apply(ts, 60, mad).plot(style='k')
 
 The ``rolling_window`` function performs a generic rolling window computation
 on the input data. The weights used in the window are specified by the ``win_type``
@@ -310,23 +309,23 @@ keyword. The list of recognized types are:
 
 .. ipython:: python
 
-   ser = Series(randn(10), index=date_range('1/1/2000', periods=10))
+   ser = pd.Series(np.random.randn(10), index=pd.date_range('1/1/2000', periods=10))
 
-   rolling_window(ser, 5, 'triang')
+   pd.rolling_window(ser, 5, 'triang')
 
 Note that the ``boxcar`` window is equivalent to ``rolling_mean``.
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'boxcar')
+   pd.rolling_window(ser, 5, 'boxcar')
 
-   rolling_mean(ser, 5)
+   pd.rolling_mean(ser, 5)
 
 For some windowing functions, additional parameters must be specified:
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'gaussian', std=0.1)
+   pd.rolling_window(ser, 5, 'gaussian', std=0.1)
 
 By default the labels are set to the right edge of the window, but a
 ``center`` keyword is available so the labels can be set at the center.
@@ -334,11 +333,11 @@ This keyword is available in other rolling functions as well.
 
 .. ipython:: python
 
-   rolling_window(ser, 5, 'boxcar')
+   pd.rolling_window(ser, 5, 'boxcar')
 
-   rolling_window(ser, 5, 'boxcar', center=True)
+   pd.rolling_window(ser, 5, 'boxcar', center=True)
 
-   rolling_mean(ser, 5, center=True)
+   pd.rolling_mean(ser, 5, center=True)
 
 .. _stats.moments.normalization:
 
@@ -377,7 +376,7 @@ For example:
 .. ipython:: python
 
    df2 = df[:20]
-   rolling_corr(df2, df2['B'], window=5)
+   pd.rolling_corr(df2, df2['B'], window=5)
 
 .. _stats.moments.corr_pairwise:
 
@@ -402,12 +401,12 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = rolling_cov(df[['B','C','D']], df[['A','B','C']], 50, pairwise=True)
+   covs = pd.rolling_cov(df[['B','C','D']], df[['A','B','C']], 50, pairwise=True)
    covs[df.index[-50]]
 
 .. ipython:: python
 
-   correls = rolling_corr(df, 50)
+   correls = pd.rolling_corr(df, 50)
    correls[df.index[-50]]
 
 .. note::
@@ -441,9 +440,9 @@ they are implemented in pandas such that the following two calls are equivalent:
 
 .. ipython:: python
 
-   rolling_mean(df, window=len(df), min_periods=1)[:5]
+   pd.rolling_mean(df, window=len(df), min_periods=1)[:5]
 
-   expanding_mean(df)[:5]
+   pd.expanding_mean(df)[:5]
 
 Like the ``rolling_`` functions, the following methods are included in the
 ``pandas`` namespace or can be located in ``pandas.stats.moments``.
@@ -502,7 +501,7 @@ relative impact of an individual data point. As an example, here is the
    ts.plot(style='k--')
 
    @savefig expanding_mean_frame.png
-   expanding_mean(ts).plot(style='k')
+   pd.expanding_mean(ts).plot(style='k')
 
 .. _stats.moments.exponentially_weighted:
 
@@ -584,7 +583,7 @@ Here is an example for a univariate time series:
    ts.plot(style='k--')
 
    @savefig ewma_ex.png
-   ewma(ts, span=20).plot(style='k')
+   pd.ewma(ts, span=20).plot(style='k')
 
 All the EW functions have a ``min_periods`` argument, which has the same
 meaning it does for all the ``expanding_`` and ``rolling_`` functions:

@@ -35,7 +35,7 @@ pandas at all.
 Simply create an account, and have access to pandas from within your brower via
 an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
 
-.. _install.anaconda
+.. _install.anaconda:
 
 Installing pandas with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +68,7 @@ admin rights to install it, it will install in the user's home directory, and
 this also makes it trivial to delete Anaconda at a later date (just delete
 that folder).
 
-.. _install.miniconda
+.. _install.miniconda:
 
 Installing pandas with Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -243,7 +243,7 @@ Optional Dependencies
 * `Cython <http://www.cython.org>`__: Only necessary to build development
   version. Version 0.19.1 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required.
+* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.0 or higher highly recommended.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
 * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
 * `statsmodels <http://statsmodels.sourceforge.net/>`__
@@ -255,6 +255,7 @@ Optional Dependencies
    * Alternative Excel writer.
 * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
   access.
+* `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
 * One of `PyQt4
   <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
   <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk

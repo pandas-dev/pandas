@@ -196,6 +196,7 @@ class TestFrequencyInference(tm.TestCase):
 
         index = _dti([b + base_delta * j for j in range(3)] +
                      [b + base_delta * 7])
+
         self.assertIsNone(frequencies.infer_freq(index))
 
     def test_weekly(self):
@@ -210,6 +211,16 @@ class TestFrequencyInference(tm.TestCase):
         for day in days:
             for i in range(1, 5):
                 self._check_generated_range('1/1/2000', 'WOM-%d%s' % (i, day))
+
+    def test_fifth_week_of_month(self):
+        # Only supports freq up to WOM-4. See #9425
+        func = lambda: date_range('2014-01-01', freq='WOM-5MON')
+        self.assertRaises(ValueError, func)
+
+    def test_fifth_week_of_month_infer(self):
+        # Only attempts to infer up to WOM-4. See #9425
+        index = DatetimeIndex(["2014-03-31", "2014-06-30", "2015-03-30"])
+        assert frequencies.infer_freq(index) is None
 
     def test_week_of_month_fake(self):
         #All of these dates are on same day of week and are 4 or 5 weeks apart
@@ -324,9 +335,39 @@ class TestFrequencyInference(tm.TestCase):
                     idx = date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
                     print(idx)
                     self.assertEqual(idx.inferred_freq, freq)
-                
+
         index = date_range("2013-11-03", periods=5, freq="3H").tz_localize("America/Chicago")
         self.assertIsNone(index.inferred_freq)
+
+    def test_infer_freq_businesshour(self):
+        # GH 7905
+        idx = DatetimeIndex(['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
+                             '2014-07-01 12:00', '2014-07-01 13:00', '2014-07-01 14:00'])
+        # hourly freq in a day must result in 'H'
+        self.assertEqual(idx.inferred_freq, 'H')
+
+        idx = DatetimeIndex(['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
+                             '2014-07-01 12:00', '2014-07-01 13:00', '2014-07-01 14:00',
+                             '2014-07-01 15:00', '2014-07-01 16:00',
+                             '2014-07-02 09:00', '2014-07-02 10:00', '2014-07-02 11:00'])
+        self.assertEqual(idx.inferred_freq, 'BH')
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00', '2014-07-07 11:00'])
+        self.assertEqual(idx.inferred_freq, 'BH')
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00', '2014-07-07 11:00',
+                             '2014-07-07 12:00', '2014-07-07 13:00', '2014-07-07 14:00',
+                             '2014-07-07 15:00', '2014-07-07 16:00',
+                             '2014-07-08 09:00', '2014-07-08 10:00', '2014-07-08 11:00',
+                             '2014-07-08 12:00', '2014-07-08 13:00', '2014-07-08 14:00',
+                             '2014-07-08 15:00', '2014-07-08 16:00'])
+        self.assertEqual(idx.inferred_freq, 'BH')
 
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])

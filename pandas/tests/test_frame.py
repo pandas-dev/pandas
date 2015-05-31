@@ -31,9 +31,9 @@ import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas import (DataFrame, Index, Series, notnull, isnull,
+from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
-                    read_csv, timedelta_range, Timedelta,
+                    read_csv, timedelta_range, Timedelta, CategoricalIndex,
                     option_context)
 import pandas as pd
 from pandas.parser import CParserError
@@ -783,6 +783,16 @@ class CheckIndexing(object):
         assert_series_equal(self.frame.loc[:,None], self.frame['A'])
         assert_series_equal(self.frame[None], self.frame['A'])
         repr(self.frame)
+
+    def test_setitem_empty(self):
+        # GH 9596
+        df = pd.DataFrame({'a': ['1', '2', '3'],
+                           'b': ['11', '22', '33'],
+                           'c': ['111', '222', '333']})
+
+        result = df.copy()
+        result.loc[result.b.isnull(), 'a'] = result.a
+        assert_frame_equal(result, df)
 
     def test_delitem_corner(self):
         f = self.frame.copy()
@@ -2376,6 +2386,36 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.set_index(['A', 'B'], drop=False)
         assert_frame_equal(result, expected, check_names=False) # TODO should set_index check_names ?
 
+    def test_construction_with_categorical_index(self):
+
+        ci = tm.makeCategoricalIndex(10)
+
+        # with Categorical
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci.values })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
+
+        # from a CategoricalIndex
+        df = DataFrame({'A' : np.random.randn(10),
+                        'B' : ci })
+        idf = df.set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
+
+        idf = df.set_index('B').reset_index().set_index('B')
+        str(idf)
+        tm.assert_index_equal(idf.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
+
+        new_df = idf.reset_index()
+        new_df.index = df.B
+        tm.assert_index_equal(new_df.index, ci, check_names=False)
+        self.assertEqual(idf.index.name, 'B')
+
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
                               for i in range(1000)],
@@ -2751,6 +2791,59 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
+    def test_frame_subclassing_and_slicing(self):
+        # Subclass frame and ensure it returns the right class on slicing it
+        # In reference to PR 9632
+
+        class CustomSeries(Series):
+            @property
+            def _constructor(self):
+                return CustomSeries
+
+            def custom_series_function(self):
+                return 'OK'
+
+        class CustomDataFrame(DataFrame):
+            "Subclasses pandas DF, fills DF with simulation results, adds some custom plotting functions."
+
+            def __init__(self, *args, **kw):
+                super(CustomDataFrame, self).__init__(*args, **kw)
+
+            @property
+            def _constructor(self):
+                return CustomDataFrame
+
+            _constructor_sliced = CustomSeries
+
+            def custom_frame_function(self):
+                return 'OK'
+
+        data = {'col1': range(10),
+                'col2': range(10)}
+        cdf = CustomDataFrame(data)
+        
+        # Did we get back our own DF class?
+        self.assertTrue(isinstance(cdf, CustomDataFrame))
+
+        # Do we get back our own Series class after selecting a column?
+        cdf_series = cdf.col1
+        self.assertTrue(isinstance(cdf_series, CustomSeries))
+        self.assertEqual(cdf_series.custom_series_function(), 'OK')
+
+        # Do we get back our own DF class after slicing row-wise?
+        cdf_rows = cdf[1:5]
+        self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
+        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')        
+
+        # Make sure sliced part of multi-index frame is custom class
+        mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
+        cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
+        self.assertTrue(isinstance(cdf_multi['A'], CustomDataFrame))
+
+        mcol = pd.MultiIndex.from_tuples([('A', ''), ('B', '')])
+        cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
+        self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
+
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
@@ -3123,6 +3216,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_constructor_empty_list(self):
         df = DataFrame([], index=[])
         expected = DataFrame(index=[])
+        assert_frame_equal(df, expected)
+
+        # GH 9939
+        df = DataFrame([], columns=['A', 'B'])
+        expected = DataFrame({}, columns=['A', 'B'])
+        assert_frame_equal(df, expected)
+
+        # Empty generator: list(empty_gen()) == []
+        def empty_gen():
+            return
+            yield
+
+        df = DataFrame(empty_gen(), columns=['A', 'B'])
         assert_frame_equal(df, expected)
 
     def test_constructor_list_of_lists(self):
@@ -7452,19 +7558,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
-        expected = Index(['a', 'b', 'c'])
+        expected = Index(['a', 'b', 'c'], name='first')
         self.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['b', 'g'], errors='ignore')
-        expected = Index(['a', 'c'])
+        expected = Index(['a', 'c'], name='first')
         self.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['g'], axis=1, errors='ignore')
-        expected = Index(['d', 'e', 'f'])
+        expected = Index(['d', 'e', 'f'], name='second')
         self.assert_index_equal(dropped.columns, expected)
 
         dropped = df.drop(['d', 'g'], axis=1, errors='ignore')
-        expected = Index(['e', 'f'])
+        expected = Index(['e', 'f'], name='second')
         self.assert_index_equal(dropped.columns, expected)
 
     def test_dropEmptyRows(self):
@@ -10047,6 +10153,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xp = self.tsframe.diff(1)
         assert_frame_equal(rs, xp)
 
+    def test_diff_axis(self):
+        # GH 9727
+        df = DataFrame([[1., 2.], [3., 4.]])
+        assert_frame_equal(df.diff(axis=1), DataFrame([[np.nan, 1.], [np.nan, 1.]]))
+        assert_frame_equal(df.diff(axis=0), DataFrame([[np.nan, np.nan], [2., 2.]]))
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
@@ -10734,6 +10846,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_index(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
+    def test_sort_index_categorical_index(self):
+
+        df = DataFrame({'A' : np.arange(6,dtype='int64'),
+                        'B' : Series(list('aabbca')).astype('category',categories=list('cab')) }).set_index('B')
+
+        result = df.sort_index()
+        expected = df.iloc[[4,0,1,5,2,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(ascending=False)
+        expected = df.iloc[[3,2,5,1,0,4]]
+        assert_frame_equal(result, expected)
+
     def test_sort_nan(self):
         # GH3917
         nan = np.nan
@@ -11345,6 +11470,39 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertTrue((clipped_df.values[ub_mask] == ub).all() == True)
             self.assertTrue((clipped_df.values[mask] == df.values[mask]).all() == True)
 
+    def test_clip_against_series(self):
+        # GH #6966
+
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = Series(np.random.randn(1000))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub, axis=0)
+
+        for i in range(2):
+            lb_mask = df.iloc[:, i] <= lb
+            ub_mask = df.iloc[:, i] >= ub
+            mask = ~lb_mask & ~ub_mask
+
+            assert_series_equal(clipped_df.loc[lb_mask, i], lb[lb_mask])
+            assert_series_equal(clipped_df.loc[ub_mask, i], ub[ub_mask])
+            assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
+
+    def test_clip_against_frame(self):
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = DataFrame(np.random.randn(1000, 2))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub)
+
+        lb_mask = df <= lb
+        ub_mask = df >= ub
+        mask = ~lb_mask & ~ub_mask
+
+        assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
+        assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
+        assert_frame_equal(clipped_df[mask], df[mask])
+
     def test_get_X_columns(self):
         # numeric and object columns
 
@@ -11755,16 +11913,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
                            "B": [10, 10, 10, np.nan, 3, 4],
                            "C": [8, 8, 8, 9, 9, 9],
-                           "D": range(6),
+                           "D": np.arange(6,dtype='int64'),
                            "E": [8, 8, 1, 1, 3, 3]})
         assert_frame_equal(df[["A"]].mode(),
                            pd.DataFrame({"A": [12]}))
-        assert_frame_equal(df[["D"]].mode(),
-                           pd.DataFrame(pd.Series([], dtype="int64"),
-                                        columns=["D"]))
-        assert_frame_equal(df[["E"]].mode(),
-                           pd.DataFrame(pd.Series([1, 3, 8], dtype="int64"),
-                                        columns=["E"]))
+        expected = pd.Series([], dtype='int64', name='D').to_frame()
+        assert_frame_equal(df[["D"]].mode(), expected)
+        expected = pd.Series([1, 3, 8], dtype='int64', name='E').to_frame()
+        assert_frame_equal(df[["E"]].mode(), expected)
         assert_frame_equal(df[["A", "B"]].mode(),
                            pd.DataFrame({"A": [12], "B": [10.]}))
         assert_frame_equal(df.mode(),
@@ -11786,7 +11942,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         com.pprint_thing(b)
         assert_frame_equal(a, b)
         # should work with heterogeneous types
-        df = pd.DataFrame({"A": range(6),
+        df = pd.DataFrame({"A": np.arange(6,dtype='int64'),
                            "B": pd.date_range('2011', periods=6),
                            "C": list('abcdef')})
         exp = pd.DataFrame({"A": pd.Series([], dtype=df["A"].dtype),
@@ -14203,6 +14359,27 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
+    def test_to_panel_expanddim(self):
+        # GH 9762
+
+        class SubclassedFrame(DataFrame):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedPanel
+
+        class SubclassedPanel(Panel):
+            pass
+
+        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+        df = SubclassedFrame({'X':[1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+        result = df.to_panel()
+        self.assertTrue(isinstance(result, SubclassedPanel))
+        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                   items=['X', 'Y'], major_axis=[0],
+                                   minor_axis=[0, 1, 2],
+                                   dtype='int64')
+        tm.assert_panel_equal(result, expected)
 
 
 def skip_if_no_ne(engine='numexpr'):

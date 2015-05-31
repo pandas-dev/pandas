@@ -11,7 +11,7 @@ from distutils.version import LooseVersion
 import numpy as np
 import pandas as pd
 
-from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp
+from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp, CategoricalIndex
 
 from pandas.core.config import option_context
 import pandas.core.common as com
@@ -92,6 +92,24 @@ class TestCategorical(tm.TestCase):
             self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
         else:
             Categorical.from_array(arr, ordered=True)
+
+    def test_is_equal_dtype(self):
+
+        # test dtype comparisons between cats
+
+        c1 = Categorical(list('aabca'),categories=list('abc'),ordered=False)
+        c2 = Categorical(list('aabca'),categories=list('cab'),ordered=False)
+        c3 = Categorical(list('aabca'),categories=list('cab'),ordered=True)
+        self.assertTrue(c1.is_dtype_equal(c1))
+        self.assertTrue(c2.is_dtype_equal(c2))
+        self.assertTrue(c3.is_dtype_equal(c3))
+        self.assertFalse(c1.is_dtype_equal(c2))
+        self.assertFalse(c1.is_dtype_equal(c3))
+        self.assertFalse(c1.is_dtype_equal(Index(list('aabca'))))
+        self.assertFalse(c1.is_dtype_equal(c1.astype(object)))
+        self.assertTrue(c1.is_dtype_equal(CategoricalIndex(c1)))
+        self.assertFalse(c1.is_dtype_equal(CategoricalIndex(c1,categories=list('cab'))))
+        self.assertFalse(c1.is_dtype_equal(CategoricalIndex(c1,ordered=True)))
 
     def test_constructor(self):
 
@@ -223,6 +241,18 @@ class TestCategorical(tm.TestCase):
         with tm.assert_produces_warning(None):
             c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1,2], categories=[1,2,3])
+
+        # this is a legitimate constructor
+        with tm.assert_produces_warning(None):
+            c = Categorical(np.array([],dtype='int64'),categories=[3,2,1],ordered=True)
+
+    def test_constructor_with_index(self):
+
+        ci = CategoricalIndex(list('aabbca'),categories=list('cab'))
+        self.assertTrue(ci.values.equals(Categorical(ci)))
+
+        ci = CategoricalIndex(list('aabbca'),categories=list('cab'))
+        self.assertTrue(ci.values.equals(Categorical(ci.astype(object),categories=ci.categories)))
 
     def test_constructor_with_generator(self):
         # This was raising an Error in isnull(single_val).any() because isnull returned a scalar
@@ -491,6 +521,15 @@ class TestCategorical(tm.TestCase):
         expected = ("[], Categories (0, object): []")
         self.assertEqual(expected, repr(factor))
 
+    def test_print_none_width(self):
+        # GH10087
+        a = pd.Series(pd.Categorical([1,2,3,4], name="a"))
+        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+              "Name: a, dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+
+        with option_context("display.width", None):
+            self.assertEqual(exp, repr(a))
+
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                             '2014-03', '2014-03'], freq='M')
@@ -726,6 +765,19 @@ class TestCategorical(tm.TestCase):
         def f():
             cat.add_categories(["d"])
         self.assertRaises(ValueError, f)
+
+        # GH 9927
+        cat = Categorical(list("abc"), ordered=True)
+        expected = Categorical(list("abc"), categories=list("abcde"), ordered=True)
+        # test with Series, np.array, index, list
+        res = cat.add_categories(Series(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(np.array(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(Index(["d", "e"]))
+        self.assert_categorical_equal(res, expected)
+        res = cat.add_categories(["d", "e"])
+        self.assert_categorical_equal(res, expected)
 
     def test_remove_categories(self):
         cat = Categorical(["a","b","c","a"], ordered=True)
@@ -1777,6 +1829,35 @@ class TestCategoricalAsBlock(tm.TestCase):
         expected['person_name'] = expected['person_name'].astype('object')
         tm.assert_frame_equal(result, expected)
 
+        # GH 9921
+        # Monotonic
+        df = DataFrame({"a": [5, 15, 25]})
+        c = pd.cut(df.a, bins=[0,10,20,30,40])
+        tm.assert_series_equal(df.a.groupby(c).transform(sum), df['a'])
+        tm.assert_series_equal(df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(df.groupby(c).transform(lambda xs: np.max(xs)), df[['a']])
+
+        # Filter
+        tm.assert_series_equal(df.a.groupby(c).filter(np.all), df['a'])
+        tm.assert_frame_equal(df.groupby(c).filter(np.all), df)
+
+        # Non-monotonic
+        df = DataFrame({"a": [5, 15, 25, -5]})
+        c = pd.cut(df.a, bins=[-10, 0,10,20,30,40])
+        tm.assert_series_equal(df.a.groupby(c).transform(sum), df['a'])
+        tm.assert_series_equal(df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(df.groupby(c).transform(lambda xs: np.sum(xs)), df[['a']])
+
+        # GH 9603
+        df = pd.DataFrame({'a': [1, 0, 0, 0]})
+        c = pd.cut(df.a, [0, 1, 2, 3, 4])
+        result = df.groupby(c).apply(len)
+        expected = pd.Series([1, 0, 0, 0], index=c.values.categories)
+        expected.index.name = 'a'
+        tm.assert_series_equal(result, expected)
+
     def test_pivot_table(self):
 
         raw_cat1 = Categorical(["a","a","b","b"], categories=["a","b","z"], ordered=True)
@@ -2562,6 +2643,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         dfx['grade'].cat.categories
         self.assert_numpy_array_equal(df['grade'].cat.categories, dfx['grade'].cat.categories)
 
+    def test_concat_preserve(self):
+
         # GH 8641
         # series concat not preserving category dtype
         s = Series(list('abc'),dtype='category')
@@ -2578,6 +2661,28 @@ class TestCategoricalAsBlock(tm.TestCase):
         result = pd.concat([s,s])
         expected = Series(list('abcabc'),index=[0,1,2,0,1,2]).astype('category')
         tm.assert_series_equal(result, expected)
+
+        a = Series(np.arange(6,dtype='int64'))
+        b = Series(list('aabbca'))
+
+        df2 = DataFrame({'A' : a, 'B' : b.astype('category',categories=list('cab')) })
+        result = pd.concat([df2,df2])
+        expected = DataFrame({'A' : pd.concat([a,a]), 'B' : pd.concat([b,b]).astype('category',categories=list('cab')) })
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_index_preserver(self):
+
+        a = Series(np.arange(6,dtype='int64'))
+        b = Series(list('aabbca'))
+
+        df2 = DataFrame({'A' : a, 'B' : b.astype('category',categories=list('cab')) }).set_index('B')
+        result = pd.concat([df2,df2])
+        expected = DataFrame({'A' : pd.concat([a,a]), 'B' : pd.concat([b,b]).astype('category',categories=list('cab')) }).set_index('B')
+        tm.assert_frame_equal(result, expected)
+
+        # wrong catgories
+        df3 = DataFrame({'A' : a, 'B' : b.astype('category',categories=list('abc')) }).set_index('B')
+        self.assertRaises(TypeError, lambda : pd.concat([df2,df3]))
 
     def test_append(self):
         cat = pd.Categorical(["a","b"], categories=["a","b"])
@@ -2713,6 +2818,14 @@ class TestCategoricalAsBlock(tm.TestCase):
                         lambda x: x.astype('object').astype(pd.Categorical)]:
             self.assertRaises(TypeError, lambda : invalid(s))
 
+
+    def test_astype_categorical(self):
+
+        cat = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        tm.assert_categorical_equal(cat,cat.astype('category'))
+        tm.assert_almost_equal(np.array(cat),cat.astype('object'))
+
+        self.assertRaises(ValueError, lambda : cat.astype(float))
 
     def test_to_records(self):
 

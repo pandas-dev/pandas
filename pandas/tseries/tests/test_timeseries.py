@@ -288,7 +288,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
     def test_recreate_from_data(self):
-        freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
 
         for f in freqs:
             org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
@@ -417,9 +417,9 @@ class TestTimeSeries(tm.TestCase):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        import dateutil
+        from pandas.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519',
-                         tz=dateutil.zoneinfo.gettz('US/Eastern'))
+                         tz=gettz('US/Eastern'))
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
@@ -791,7 +791,7 @@ class TestTimeSeries(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         result = repr(series)
-        expected = ('0          1970-01-01 00:00:00\n'
+        expected = ('0   1970-01-01 00:00:00.000000\n'
                     '1   1970-01-01 00:00:00.000001\n'
                     '2   1970-01-01 00:00:00.000002\n'
                     '3                          NaT\n'
@@ -1807,7 +1807,7 @@ class TestTimeSeries(tm.TestCase):
     def test_append_concat_tz_dateutil(self):
         # GH 2938
         tm._skip_if_no_dateutil()
-        from dateutil.zoneinfo import gettz as timezone
+        from pandas.tslib import _dateutil_gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')
@@ -3346,6 +3346,29 @@ class TestSeriesDatetime64(tm.TestCase):
 
         ex_first = Timestamp('2000-01-03')
         self.assertEqual(rng[0], ex_first)
+
+    def test_date_range_businesshour(self):
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00'], freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
+        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00', '2014-07-07 11:00',
+                             '2014-07-07 12:00', '2014-07-07 13:00', '2014-07-07 14:00',
+                             '2014-07-07 15:00', '2014-07-07 16:00',
+                             '2014-07-08 09:00', '2014-07-08 10:00', '2014-07-08 11:00',
+                             '2014-07-08 12:00', '2014-07-08 13:00', '2014-07-08 14:00',
+                             '2014-07-08 15:00', '2014-07-08 16:00'], freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
 
     def test_string_index_series_name_converted(self):
         # #1644

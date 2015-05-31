@@ -89,6 +89,8 @@ They can take a number of arguments:
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
+    Set to  ``'infer'`` (the default) to guess a format based on the file
+    extension.
   - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
@@ -2362,6 +2364,10 @@ for some advanced strategies
 
    As of version 0.15.0, pandas requires ``PyTables`` >= 3.0.0. Stores written with prior versions of pandas / ``PyTables`` >= 2.3 are fully compatible (this was the previous minimum ``PyTables`` required version).
 
+.. warning::
+   
+   There is a ``PyTables`` indexing bug which may appear when querying stores using an index.  If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.  Stores created previously will need to be rewritten using the updated version.
+
 .. ipython:: python
    :suppress:
    :okexcept:
@@ -3993,6 +3999,24 @@ whether imported ``Categorical`` variables are ordered.
     some but not all data values. Importing a partially labeled series will produce
     a ``Categorial`` with string categories for the values that are labeled and
     numeric categories for values with no label.
+
+.. _io.other:
+
+Other file formats
+------------------
+
+pandas itself only supports IO with a limited set of file formats that map
+cleanly to its tabular data model. For reading and writing other file formats
+into and from pandas, we recommend these packages from the broader community.
+
+netCDF
+~~~~~~
+
+xray_ provides data structures inspired by the pandas DataFrame for working
+with multi-dimensional datasets, with a focus on the netCDF file format and
+easy conversion to and from pandas.
+
+.. _xray: http://xray.readthedocs.org/
 
 .. _io.perf:
 

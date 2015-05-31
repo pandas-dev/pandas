@@ -14,6 +14,8 @@ from pandas.tseries.frequencies import get_freq
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
+import pandas.compat as compat
+
 
 class TestTimestamp(tm.TestCase):
 
@@ -368,6 +370,50 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
         self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
                             - ts_from_method_tz.tz_localize(None)) < delta)
+
+    def test_fields(self):
+
+        def check(value, equal):
+            # that we are int/long like
+            self.assertTrue(isinstance(value, (int, compat.long)))
+            self.assertEqual(value, equal)
+
+        # GH 10050
+        ts = Timestamp('2015-05-10 09:06:03.000100001')
+        check(ts.year, 2015)
+        check(ts.month, 5)
+        check(ts.day, 10)
+        check(ts.hour, 9)
+        check(ts.minute, 6)
+        check(ts.second, 3)
+        self.assertRaises(AttributeError, lambda : ts.millisecond)
+        check(ts.microsecond, 100)
+        check(ts.nanosecond, 1)
+        check(ts.dayofweek, 6)
+        check(ts.quarter, 2)
+        check(ts.dayofyear, 130)
+        check(ts.week, 19)
+        check(ts.daysinmonth, 31)
+        check(ts.daysinmonth, 31)
+
+    def test_nat_fields(self):
+        # GH 10050
+        ts = Timestamp('NaT')
+        self.assertTrue(np.isnan(ts.year))
+        self.assertTrue(np.isnan(ts.month))
+        self.assertTrue(np.isnan(ts.day))
+        self.assertTrue(np.isnan(ts.hour))
+        self.assertTrue(np.isnan(ts.minute))
+        self.assertTrue(np.isnan(ts.second))
+        self.assertTrue(np.isnan(ts.microsecond))
+        self.assertTrue(np.isnan(ts.nanosecond))
+        self.assertTrue(np.isnan(ts.dayofweek))
+        self.assertTrue(np.isnan(ts.quarter))
+        self.assertTrue(np.isnan(ts.dayofyear))
+        self.assertTrue(np.isnan(ts.week))
+        self.assertTrue(np.isnan(ts.daysinmonth))
+        self.assertTrue(np.isnan(ts.days_in_month))
+
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):

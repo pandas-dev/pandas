@@ -272,7 +272,7 @@ a,1
 b,2
 c,3
 """
-        expected = Series([1, 2, 3], ['a', 'b', 'c'])
+        expected = Series([1, 2, 3], index=Index(['a', 'b', 'c'], name=0))
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
         tm.assert_isinstance(result, Series)
@@ -981,8 +981,8 @@ c,4,5
                            parse_dates=[['date', 'time']])
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
-                             datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date_time'
+                             datetime(2009, 3, 31, 8, 30, 0)],
+                            dtype=object, name='date_time')
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -990,8 +990,8 @@ c,4,5
                            parse_dates=[[0, 1]])
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
-                             datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date_time'
+                             datetime(2009, 3, 31, 8, 30, 0)],
+                            dtype=object, name='date_time')
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -1097,6 +1097,21 @@ baz,7,8,9
         self.assertIsInstance(df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
+
+    def test_read_csv_infer_compression(self):
+        # GH 9770
+        expected = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+
+        inputs = [self.csv1, self.csv1 + '.gz',
+                  self.csv1 + '.bz2', open(self.csv1)]
+
+        for f in inputs:
+            df = self.read_csv(f, index_col=0, parse_dates=True,
+                compression='infer')
+
+            tm.assert_frame_equal(expected, df)
+
+        inputs[3].close()
 
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
@@ -2258,6 +2273,26 @@ a,b,c
         self.assertRaises(NotImplementedError, self.read_csv, StringIO(data),
                      nrows=10, chunksize=5)
 
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_chunk_begins_with_newline_whitespace(self):
+        # GH 10022
+        data = '\n hello\nworld\n'
+        result = self.read_csv(StringIO(data), header=None)
+        self.assertEqual(len(result), 2)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
@@ -3095,17 +3130,17 @@ A,B,C
         expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
                                  ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
                                  ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
-                                columns=['date', 'time', 'var', 'flag', 
+                                columns=['date', 'time', 'var', 'flag',
                                          'oflag'])
         # test with the three default lineterminators LF, CR and CRLF
         df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r')), 
+        df = self.read_csv(StringIO(data.replace('\n', '\r')),
                            skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r\n')), 
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
                            skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
@@ -3297,6 +3332,25 @@ nan 2
                 df = self.read_table(StringIO(malf))
             except Exception as cperr:
                 self.assertIn('Buffer overflow caught - possible malformed input file.', str(cperr))
+
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data), lineterminator='\n',
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
 
 class TestCParserLowMemory(ParserTests, tm.TestCase):
 
@@ -3718,6 +3772,25 @@ No,No,No"""
                 df = self.read_table(StringIO(malf))
             except Exception as cperr:
                 self.assertIn('Buffer overflow caught - possible malformed input file.', str(cperr))
+
+    def test_single_char_leading_whitespace(self):
+        # GH 9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn' : list('abab')})
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data), lineterminator='\n',
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
 
 class TestMiscellaneous(tm.TestCase):
 

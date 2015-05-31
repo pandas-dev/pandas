@@ -101,15 +101,15 @@ class TestPeriodProperties(tm.TestCase):
                          pytz.timezone('Europe/Brussels').normalize(p).tzinfo)
 
     def test_timestamp_tz_arg_dateutil(self):
-        import dateutil
+        from pandas.tslib import _dateutil_gettz as gettz
         from pandas.tslib import maybe_get_tz
         p = Period('1/1/2005', freq='M').to_timestamp(tz=maybe_get_tz('dateutil/Europe/Brussels'))
-        self.assertEqual(p.tz, dateutil.zoneinfo.gettz('Europe/Brussels'))
+        self.assertEqual(p.tz, gettz('Europe/Brussels'))
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
-        import dateutil
+        from pandas.tslib import _dateutil_gettz as gettz
         p = Period('1/1/2005', freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
-        self.assertEqual(p.tz, dateutil.zoneinfo.gettz('Europe/Brussels'))
+        self.assertEqual(p.tz, gettz('Europe/Brussels'))
 
     def test_timestamp_nat_tz(self):
         t = Period('NaT', freq='M').to_timestamp()
@@ -2118,6 +2118,7 @@ class TestPeriodIndex(tm.TestCase):
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
             empty = DataFrame(index=idx.__class__([], freq='D'), columns=['units'])
+            empty['units'] = empty['units'].astype('int64')
 
             tm.assert_frame_equal(df['2013/09/01':'2013/09/30'], empty)
             tm.assert_frame_equal(df['2013/09/30':'2013/10/02'], df.iloc[:2])

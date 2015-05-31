@@ -849,11 +849,12 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 ;
             else { // backtrack
                 /* We have to use i + 1 because buf has been incremented but not i */
-                while (i + 1 > self->datapos && *buf != '\n') {
+                do {
                     --buf;
                     --i;
-                }
-                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                } while (i + 1 > self->datapos && *buf != '\n');
+
+                if (*buf == '\n') // reached a newline rather than the beginning
                 {
                     ++buf; // move pointer to first char after newline
                     ++i;
@@ -1073,7 +1074,7 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
         // Next character in file
         c = *buf++;
 
-        TRACE(("Iter: %d Char: %c Line %d field_count %d, state %d\n",
+        TRACE(("tokenize_delim_customterm - Iter: %d Char: %c Line %d field_count %d, state %d\n",
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 
@@ -1166,11 +1167,12 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
                 ;
             else { // backtrack
                 /* We have to use i + 1 because buf has been incremented but not i */
-                while (i + 1 > self->datapos && *buf != self->lineterminator) {
+                do {
                     --buf;
                     --i;
-                }
-                if (i + 1 > self->datapos) // reached a newline rather than the beginning
+                } while (i + 1 > self->datapos && *buf != self->lineterminator);
+
+                if (*buf == self->lineterminator) // reached a newline rather than the beginning
                 {
                     ++buf; // move pointer to first char after newline
                     ++i;
@@ -1336,7 +1338,7 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
         // Next character in file
         c = *buf++;
 
-        TRACE(("Iter: %d Char: %c Line %d field_count %d, state %d\n",
+        TRACE(("tokenize_whitespace - Iter: %d Char: %c Line %d field_count %d, state %d\n",
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 

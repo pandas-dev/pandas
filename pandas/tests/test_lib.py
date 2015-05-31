@@ -6,20 +6,42 @@ import numpy as np
 import pandas as pd
 from pandas.lib import isscalar, item_from_zerodim, max_len_string_array
 import pandas.util.testing as tm
-from pandas.compat import u
+from pandas.compat import u, PY2
+
 
 class TestMisc(tm.TestCase):
 
     def test_max_len_string_array(self):
 
-        arr = np.array(['foo','b',np.nan],dtype='object')
-        self.assertTrue(max_len_string_array(arr),3)
+        arr = a = np.array(['foo', 'b', np.nan], dtype='object')
+        self.assertTrue(max_len_string_array(arr), 3)
 
         # unicode
-        arr = arr.astype('U')
-        self.assertTrue(max_len_string_array(arr),3)
+        arr = a.astype('U').astype(object)
+        self.assertTrue(max_len_string_array(arr), 3)
+
+        # bytes for python3
+        arr = a.astype('S').astype(object)
+        self.assertTrue(max_len_string_array(arr), 3)
+
+        # raises
+        tm.assertRaises(TypeError,
+                        lambda: max_len_string_array(arr.astype('U')))
+
+    def test_infer_dtype_bytes(self):
+        compare = 'string' if PY2 else 'bytes'
+
+        # string array of bytes
+        arr = np.array(list('abc'), dtype='S1')
+        self.assertEqual(pd.lib.infer_dtype(arr), compare)
+
+        # object array of bytes
+        arr = arr.astype(object)
+        self.assertEqual(pd.lib.infer_dtype(arr), compare)
+
 
 class TestIsscalar(tm.TestCase):
+
     def test_isscalar_builtin_scalars(self):
         self.assertTrue(isscalar(None))
         self.assertTrue(isscalar(True))

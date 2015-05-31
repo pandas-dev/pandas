@@ -1,13 +1,10 @@
 """
 Base and utility classes for pandas objects.
 """
-import datetime
-
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
-import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly
 from pandas.core.strings import StringMethods
@@ -86,16 +83,22 @@ class PandasObject(StringMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _local_dir(self):
-        """ provide addtional __dir__ for this object """
-        return []
+    def _dir_additions(self):
+        """ add addtional __dir__ for this object """
+        return set()
+
+    def _dir_deletions(self):
+        """ delete unwanted __dir__ for this object """
+        return set()
 
     def __dir__(self):
         """
         Provide method name lookup and completion
         Only provide 'public' methods
         """
-        return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
+        rv = set(dir(type(self)))
+        rv = (rv - self._dir_deletions()) | self._dir_additions()
+        return sorted(rv)
 
     def _reset_cache(self, key=None):
         """
@@ -121,7 +124,7 @@ class PandasDelegate(PandasObject):
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ):
+    def _add_delegate_accessors(cls, delegate, accessors, typ, overwrite=False):
         """
         add accessors to cls from the delegate class
 
@@ -131,6 +134,8 @@ class PandasDelegate(PandasObject):
         delegate : the class to get methods/properties & doc-strings
         acccessors : string list of accessors to add
         typ : 'property' or 'method'
+        overwrite : boolean, default False
+           overwrite the method/property in the target class if it exists
 
         """
 
@@ -164,7 +169,7 @@ class PandasDelegate(PandasObject):
                 f = _create_delegator_method(name)
 
             # don't overwrite existing methods/properties
-            if not hasattr(cls, name):
+            if overwrite or not hasattr(cls, name):
                 setattr(cls,name,f)
 
 
@@ -509,12 +514,29 @@ class IndexOpsMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index) and self.inferred_type != 'string':
-            raise AttributeError("Can only use .str accessor with string "
-                                 "values (i.e. inferred_type is 'string')")
+        elif isinstance(self, Index):
+            # see scc/inferrence.pyx which can contain string values
+            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
+            if self.inferred_type not in allowed_types:
+                message = ("Can only use .str accessor with string values "
+                           "(i.e. inferred_type is 'string', 'unicode' or 'mixed')")
+                raise AttributeError(message)
+            if self.nlevels > 1:
+                message = "Can only use .str accessor with Index, not MultiIndex"
+                raise AttributeError(message)
         return StringMethods(self)
 
     str = AccessorProperty(StringMethods, _make_str_accessor)
+
+    def _dir_additions(self):
+        return set()
+
+    def _dir_deletions(self):
+        try:
+            getattr(self, 'str')
+        except AttributeError:
+            return set(['str'])
+        return set()
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed

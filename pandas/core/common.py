@@ -83,6 +83,16 @@ ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
 ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",))
 ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",))
 ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
+ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",))
+ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ", ("index",
+                                                                 "int64index",
+                                                                 "float64index",
+                                                                 "multiindex",
+                                                                 "datetimeindex",
+                                                                 "timedeltaindex",
+                                                                 "periodindex",
+                                                                 "categoricalindex"))
+
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
@@ -2455,11 +2465,27 @@ def _get_dtype_type(arr_or_dtype):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
+    elif isinstance(arr_or_dtype, compat.string_types):
+        if is_categorical_dtype(arr_or_dtype):
+            return CategoricalDtypeType
+        return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:
         raise ValueError('%r is not a dtype' % arr_or_dtype)
 
+def is_dtype_equal(source, target):
+    """ return a boolean if the dtypes are equal """
+    source = _get_dtype_type(source)
+    target = _get_dtype_type(target)
+
+    try:
+        return source == target
+    except TypeError:
+
+        # invalid comparison
+        # object == category will hit this
+        return False
 
 def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -3106,7 +3132,7 @@ def in_ipython_frontend():
 #    working with straight ascii.
 
 
-def _pprint_seq(seq, _nest_lvl=0, **kwds):
+def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -3118,12 +3144,15 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 
-    nitems = get_option("max_seq_items") or len(seq)
+    if max_seq_items is False:
+        nitems = len(seq)
+    else:
+        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     s = iter(seq)
     r = []
     for i in range(min(nitems, len(seq))):  # handle sets, no slicing
-        r.append(pprint_thing(next(s), _nest_lvl + 1, **kwds))
+        r.append(pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
     if nitems < len(seq):
@@ -3134,7 +3163,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     return fmt % body
 
 
-def _pprint_dict(seq, _nest_lvl=0, **kwds):
+def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -3144,11 +3173,14 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
 
     pfmt = u("%s: %s")
 
-    nitems = get_option("max_seq_items") or len(seq)
+    if max_seq_items is False:
+        nitems = len(seq)
+    else:
+        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, **kwds),
-                             pprint_thing(v, _nest_lvl + 1, **kwds)))
+        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
+                             pprint_thing(v, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)))
 
     if nitems < len(seq):
         return fmt % (", ".join(pairs) + ", ...")
@@ -3157,7 +3189,7 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
 
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
-                 quote_strings=False):
+                 quote_strings=False, max_seq_items=None):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -3176,6 +3208,8 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         replacements
     default_escapes : bool, default False
         Whether the input escape characters replaces or adds to the defaults
+    max_seq_items : False, int, default None
+        Pass thru to other pretty printers to limit sequence printing
 
     Returns
     -------
@@ -3214,11 +3248,11 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         return compat.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl, quote_strings=True)
+        result = _pprint_dict(thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items)
     elif is_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
-                             quote_strings=quote_strings)
+                             quote_strings=quote_strings, max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
             fmt = "'%s'"
@@ -3288,8 +3322,42 @@ def save(obj, path):  # TODO remove in 0.13
 
 
 def _maybe_match_name(a, b):
-    a_name = getattr(a, 'name', None)
-    b_name = getattr(b, 'name', None)
-    if a_name == b_name:
-        return a_name
+    a_has = hasattr(a, 'name')
+    b_has = hasattr(b, 'name')
+    if a_has and b_has:
+        if a.name == b.name:
+            return a.name
+        else:
+            return None
+    elif a_has:
+        return a.name
+    elif b_has:
+        return b.name
     return None
+
+def _random_state(state=None):
+    """
+    Helper function for processing random_state arguments.
+
+    Parameters
+    ----------
+    state : int, np.random.RandomState, None.
+        If receives an int, passes to np.random.RandomState() as seed.
+        If receives an np.random.RandomState object, just returns object.
+        If receives `None`, returns an np.random.RandomState object.
+        If receives anything else, raises an informative ValueError.
+        Default None.
+
+    Returns
+    -------
+    np.random.RandomState
+    """
+
+    if is_integer(state):
+        return np.random.RandomState(state)
+    elif isinstance(state, np.random.RandomState):
+        return state
+    elif state is None:
+        return np.random.RandomState()
+    else:
+        raise ValueError("random_state must be an integer, a numpy RandomState, or None")

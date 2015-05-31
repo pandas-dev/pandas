@@ -26,8 +26,9 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                is_list_like, _get_dtype, _maybe_box_datetimelike,
-                                is_categorical_dtype, is_object_dtype, _possibly_infer_to_datetimelike)
+                                is_list_like, _maybe_box_datetimelike,
+                                is_categorical_dtype, is_object_dtype,
+                                _possibly_infer_to_datetimelike)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels,
@@ -66,7 +67,7 @@ from pandas.core.config import get_option
 # Docstring templates
 
 _shared_doc_kwargs = dict(axes='index, columns', klass='DataFrame',
-                          axes_single_arg="{0,1,'index','columns'}")
+                          axes_single_arg="{0, 1, 'index', 'columns'}")
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -191,6 +192,11 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
 
+    @property
+    def _constructor_expanddim(self):
+        from pandas.core.panel import Panel
+        return Panel
+
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
         if data is None:
@@ -260,8 +266,7 @@ class DataFrame(NDFrame):
                     mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                              copy=copy)
             else:
-                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                mgr = self._init_dict({}, index, columns, dtype=dtype)
         elif isinstance(data, collections.Iterator):
             raise TypeError("data argument can't be an iterator")
         else:
@@ -657,6 +662,8 @@ class DataFrame(NDFrame):
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
+        dtype : dtype, default None
+            Data type to force, otherwise infer
 
         Returns
         -------
@@ -1061,8 +1068,6 @@ class DataFrame(NDFrame):
         -------
         panel : Panel
         """
-        from pandas.core.panel import Panel
-
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
                 len(self.index.levels) != 2):
@@ -1100,7 +1105,7 @@ class DataFrame(NDFrame):
                                               shape=shape,
                                               ref_items=selfsorted.columns)
 
-        return Panel(new_mgr)
+        return self._constructor_expanddim(new_mgr)
 
     to_wide = deprecate('to_wide', to_panel)
 
@@ -1738,17 +1743,19 @@ class DataFrame(NDFrame):
                 lab_slice = slice(label[0], label[-1])
                 return self.ix[:, lab_slice]
             else:
-                label = self.columns[i]
                 if isinstance(label, Index):
                     return self.take(i, axis=1, convert=True)
+
+                index_len = len(self.index)
 
                 # if the values returned are not the same length
                 # as the index (iow a not found value), iget returns
                 # a 0-len ndarray. This is effectively catching
                 # a numpy error (as numpy should really raise)
                 values = self._data.iget(i)
-                if not len(values):
-                    values = np.array([np.nan] * len(self.index), dtype=object)
+
+                if index_len and not len(values):
+                    values = np.array([np.nan] * index_len, dtype=object)
                 result = self._constructor_sliced.from_array(
                     values, index=self.index,
                     name=label, fastpath=True)
@@ -1835,7 +1842,7 @@ class DataFrame(NDFrame):
                 result.columns = result_columns
             else:
                 new_values = self.values[:, loc]
-                result = DataFrame(new_values, index=self.index,
+                result = self._constructor(new_values, index=self.index,
                                    columns=result_columns).__finalize__(self)
             if len(result.columns) == 1:
                 top = result.columns[0]
@@ -1843,7 +1850,7 @@ class DataFrame(NDFrame):
                         (type(top) == tuple and top[0] == '')):
                     result = result['']
                     if isinstance(result, Series):
-                        result = Series(result, index=self.index, name=key)
+                        result = self._constructor_sliced(result, index=self.index, name=key)
 
             result._set_is_copy(self)
             return result
@@ -2513,6 +2520,19 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).rename(index=index, columns=columns,
                                              **kwargs)
 
+    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        return super(DataFrame, self).fillna(value=value, method=method,
+                                             axis=axis, inplace=inplace,
+                                             limit=limit, downcast=downcast,
+                                             **kwargs)
+
+    @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
+    def shift(self, periods=1, freq=None, axis=0, **kwargs):
+        return super(DataFrame, self).shift(periods=periods, freq=freq,
+                                            axis=axis, **kwargs)
+
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
@@ -2725,7 +2745,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}, or tuple/list thereof
+        axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
             Pass tuple or list to drop on multiple axes
         how : {'any', 'all'}
             * any : if any NA values are present, drop that label
@@ -2870,7 +2890,7 @@ class DataFrame(NDFrame):
         ascending : boolean or list, default True
             Sort ascending vs. descending. Specify list for multiple sort
             orders
-        axis : {0, 1}
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Sort index/rows versus columns
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
@@ -2899,7 +2919,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Sort index/rows versus columns
         by : object
             Column name(s) in frame. Accepts a column name or a list
@@ -3007,7 +3027,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         level : int
-        axis : {0, 1}
+        axis : {0 or 'index', 1 or 'columns'}, default 0
         ascending : boolean, default True
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
@@ -3584,7 +3604,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods=1):
+    def diff(self, periods=1, axis=0):
         """
         1st discrete difference of object
 
@@ -3592,12 +3612,14 @@ class DataFrame(NDFrame):
         ----------
         periods : int, default 1
             Periods to shift for forming difference
+        axis : {0 or 'index', 1 or 'columns'}, default 0
 
         Returns
         -------
         diffed : DataFrame
         """
-        new_data = self._data.diff(n=periods)
+        bm_axis = self._get_block_manager_axis(axis)
+        new_data = self._data.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
 
     #----------------------------------------------------------------------
@@ -3617,9 +3639,9 @@ class DataFrame(NDFrame):
         ----------
         func : function
             Function to apply to each column/row
-        axis : {0, 1}
-            * 0 : apply function to each column
-            * 1 : apply function to each row
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            * 0 or 'index': apply function to each column
+            * 1 or 'columns': apply function to each row
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
@@ -4140,8 +4162,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame
-        axis : {0, 1}
-            0 to compute column-wise, 1 for row-wise
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
 
@@ -4192,8 +4214,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
         level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a DataFrame
@@ -4346,8 +4368,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
@@ -4377,8 +4399,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be first index.
@@ -4424,9 +4446,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1, 'index', 'columns'} (default 0)
-            * 0/'index' : get mode of each column
-            * 1/'columns' : get mode of each row
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            * 0 or 'index' : get mode of each column
+            * 1 or 'columns' : get mode of each row
         numeric_only : boolean, default False
             if True, only apply to numeric columns
 
@@ -4531,7 +4553,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Ranks over columns (0) or rows (1)
         numeric_only : boolean, default None
             Include only float, int, boolean data
@@ -4583,7 +4605,7 @@ class DataFrame(NDFrame):
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
             vs. end
-        axis : {0, 1} default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default)
         copy : boolean, default True
             If false then underlying input data is not copied
@@ -4614,7 +4636,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         freq : string, default
-        axis : {0, 1}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default)
         copy : boolean, default True
             If False then underlying input data is not copied

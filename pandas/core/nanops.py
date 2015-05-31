@@ -1,7 +1,5 @@
-import sys
 import itertools
 import functools
-
 import numpy as np
 
 try:
@@ -10,7 +8,6 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-import pandas.core.common as com
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
 from pandas.compat import builtins
@@ -23,7 +20,7 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_complex_dtype, is_integer_dtype,
                                 is_bool_dtype, is_object_dtype,
                                 is_datetime64_dtype, is_timedelta64_dtype,
-                                is_datetime_or_timedelta_dtype,
+                                is_datetime_or_timedelta_dtype, _get_dtype,
                                 is_int_or_datetime_dtype, is_any_int_dtype)
 
 
@@ -257,8 +254,16 @@ def nansum(values, axis=None, skipna=True):
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
-    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_max))
-    count = _get_counts(mask, axis)
+
+    dtype_sum = dtype_max
+    dtype_count = np.float64
+    if is_integer_dtype(dtype):
+        dtype_sum = np.float64
+    elif is_float_dtype(dtype):
+        dtype_sum = dtype
+        dtype_count = dtype
+    count = _get_counts(mask, axis, dtype=dtype_count)
+    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
     if axis is not None and getattr(the_sum, 'ndim', False):
         the_mean = the_sum / count
@@ -285,6 +290,7 @@ def nanmedian(values, axis=None, skipna=True):
 
     if values.dtype != np.float64:
         values = values.astype('f8')
+        values[mask] = np.nan
 
     if axis is None:
         values = values.ravel()
@@ -559,15 +565,16 @@ def _maybe_arg_null_out(result, axis, mask, skipna):
     return result
 
 
-def _get_counts(mask, axis):
+def _get_counts(mask, axis, dtype=float):
+    dtype = _get_dtype(dtype)
     if axis is None:
-        return float(mask.size - mask.sum())
+        return dtype.type(mask.size - mask.sum())
 
     count = mask.shape[axis] - mask.sum(axis)
     try:
-        return count.astype(float)
+        return count.astype(dtype)
     except AttributeError:
-        return np.array(count, dtype=float)
+        return np.array(count, dtype=dtype)
 
 
 def _maybe_null_out(result, axis, mask):

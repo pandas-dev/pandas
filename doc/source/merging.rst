@@ -12,6 +12,12 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
+   import matplotlib.pyplot as plt
+   plt.close('all')
+   import pandas.util.doctools as doctools
+   p = doctools.TablePlotter()
+
+
 ****************************
 Merge, join, and concatenate
 ****************************
@@ -37,14 +43,34 @@ a simple example:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(10, 4))
-   df
+   df1 = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                    'B': ['B0', 'B1', 'B2', 'B3'],
+                    'C': ['C0', 'C1', 'C2', 'C3'],
+                    'D': ['D0', 'D1', 'D2', 'D3']},
+                   index=[0, 1, 2, 3])
 
-   # break it into pieces
-   pieces = [df[:3], df[3:7], df[7:]]
+   df2 = DataFrame({'A': ['A4', 'A5', 'A6', 'A7'],
+                    'B': ['B4', 'B5', 'B6', 'B7'],
+                    'C': ['C4', 'C5', 'C6', 'C7'],
+                    'D': ['D4', 'D5', 'D6', 'D7']},
+                   index=[4, 5, 6, 7])
 
-   concatenated = concat(pieces)
-   concatenated
+   df3 = DataFrame({'A': ['A8', 'A9', 'A10', 'A11'],
+                    'B': ['B8', 'B9', 'B10', 'B11'],
+                    'C': ['C8', 'C9', 'C10', 'C11'],
+                    'D': ['D8', 'D9', 'D10', 'D11']},
+                   index=[8, 9, 10, 11])
+
+   frames = [df1, df2, df3]
+   result = concat(frames)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_basic.png
+   p.plot(frames, result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
 
 Like its sibling function on ndarrays, ``numpy.concatenate``, ``pandas.concat``
 takes a list or dict of homogeneously-typed objects and concatenates them with
@@ -86,8 +112,15 @@ this using the ``keys`` argument:
 
 .. ipython:: python
 
-   concatenated = concat(pieces, keys=['first', 'second', 'third'])
-   concatenated
+   result = concat(frames, keys=['x', 'y', 'z'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_keys.png
+   p.plot(frames, result,
+          labels=['df1', 'df2', 'df3'], vertical=True)
+   plt.close('all');
 
 As you can see (if you've read the rest of the documentation), the resulting
 object's index has a :ref:`hierarchical index <advanced.hierarchical>`. This
@@ -95,7 +128,7 @@ means that we can now do stuff like select out each chunk by key:
 
 .. ipython:: python
 
-   concatenated.ix['second']
+   result.ix['y']
 
 It's not a stretch to see how this can be very useful. More detail on this
 functionality below.
@@ -130,29 +163,50 @@ behavior:
 
 .. ipython:: python
 
-   from pandas.util.testing import rands_array
-   df = DataFrame(np.random.randn(10, 4), columns=['a', 'b', 'c', 'd'],
-                  index=rands_array(5, 10))
-   df
+   df4 = DataFrame({'B': ['B2', 'B3', 'B6', 'B7'],
+                    'D': ['D2', 'D3', 'D6', 'D7'],
+                    'F': ['F2', 'F3', 'F6', 'F7']},
+                   index=[2, 3, 6, 7])
+   result = concat([df1, df4], axis=1)
 
-   concat([df.ix[:7, ['a', 'b']], df.ix[2:-2, ['c']],
-           df.ix[-7:, ['d']]], axis=1)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_axis1.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=False);
+   plt.close('all');
 
 Note that the row indexes have been unioned and sorted. Here is the same thing
 with ``join='inner'``:
 
 .. ipython:: python
 
-   concat([df.ix[:7, ['a', 'b']], df.ix[2:-2, ['c']],
-           df.ix[-7:, ['d']]], axis=1, join='inner')
+   result = concat([df1, df4], axis=1, join='inner')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_axis1_inner.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=False);
+   plt.close('all');
 
 Lastly, suppose we just wanted to reuse the *exact index* from the original
 DataFrame:
 
 .. ipython:: python
 
-   concat([df.ix[:7, ['a', 'b']], df.ix[2:-2, ['c']],
-           df.ix[-7:, ['d']]], axis=1, join_axes=[df.index])
+   result = concat([df1, df4], axis=1, join_axes=[df1.index])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_axis1_join_axes.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=False);
+   plt.close('all');
 
 .. _merging.concatenation:
 
@@ -165,32 +219,44 @@ along ``axis=0``, namely the index:
 
 .. ipython:: python
 
-   s = Series(randn(10), index=np.arange(10))
-   s1 = s[:5] # note we're slicing with labels here, so 5 is included
-   s2 = s[6:]
-   s1.append(s2)
+   result = df1.append(df2)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append1.png
+   p.plot([df1, df2], result,
+          labels=['df1', 'df2'], vertical=True);
+   plt.close('all');
 
 In the case of DataFrame, the indexes must be disjoint but the columns do not
 need to be:
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 4), index=date_range('1/1/2000', periods=6),
-                  columns=['A', 'B', 'C', 'D'])
-   df1 = df.ix[:3]
-   df2 = df.ix[3:, :3]
-   df1
-   df2
-   df1.append(df2)
+   result = df1.append(df4)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append2.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=True);
+   plt.close('all');
 
 ``append`` may take multiple objects to concatenate:
 
 .. ipython:: python
 
-   df1 = df.ix[:2]
-   df2 = df.ix[2:4]
-   df3 = df.ix[4:]
-   df1.append([df2,df3])
+   result = df1.append([df2, df3])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append3.png
+   p.plot([df1, df2, df3], result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
 
 .. note::
 
@@ -205,25 +271,33 @@ Ignoring indexes on the concatenation axis
 For DataFrames which don't have a meaningful index, you may wish to append them
 and ignore the fact that they may have overlapping indexes:
 
-.. ipython:: python
-
-   df1 = DataFrame(randn(6, 4), columns=['A', 'B', 'C', 'D'])
-   df2 = DataFrame(randn(3, 4), columns=['A', 'B', 'C', 'D'])
-
-   df1
-   df2
-
 To do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
-   concat([df1, df2], ignore_index=True)
+   result = concat([df1, df4], ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_ignore_index.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=True);
+   plt.close('all');
 
 This is also a valid argument to ``DataFrame.append``:
 
 .. ipython:: python
 
-   df1.append(df2, ignore_index=True)
+   result = df1.append(df4, ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append_ignore_index.png
+   p.plot([df1, df4], result,
+          labels=['df1', 'df4'], vertical=True);
+   plt.close('all');
 
 .. _merging.mixed_ndims:
 
@@ -236,22 +310,45 @@ the name of the Series.
 
 .. ipython:: python
 
-   df1 = DataFrame(randn(6, 4), columns=['A', 'B', 'C', 'D'])
-   s1 = Series(randn(6), name='foo')
-   concat([df1, s1],axis=1)
+   s1 = Series(['X0', 'X1', 'X2', 'X3'], name='X')
+   result = concat([df1, s1], axis=1)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_mixed_ndim.png
+   p.plot([df1, s1], result,
+          labels=['df1', 's1'], vertical=False);
+   plt.close('all');
 
 If unnamed Series are passed they will be numbered consecutively.
 
 .. ipython:: python
 
-   s2 = Series(randn(6))
-   concat([df1, s2, s2, s2],axis=1)
+   s2 = Series(['_0', '_1', '_2', '_3'])
+   result = concat([df1, s2, s2, s2], axis=1)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_unnamed_series.png
+   p.plot([df1, s2], result,
+          labels=['df1', 's2'], vertical=False);
+   plt.close('all');
 
 Passing ``ignore_index=True`` will drop all name references.
 
 .. ipython:: python
 
-   concat([df1, s1],axis=1,ignore_index=True)
+   result = concat([df1, s1], axis=1, ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_series_ignore_index.png
+   p.plot([df1, s1], result,
+          labels=['df1', 's1'], vertical=False);
+   plt.close('all');
 
 More concatenating with group keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -260,43 +357,71 @@ Let's consider a variation on the first example presented:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(10, 4))
-   df
+   result = concat(frames, keys=['x', 'y', 'z'])
 
-   # break it into pieces
-   pieces = [df.ix[:, [0, 1]], df.ix[:, [2]], df.ix[:, [3]]]
+.. ipython:: python
+   :suppress:
 
-   result = concat(pieces, axis=1, keys=['one', 'two', 'three'])
-   result
+   @savefig merging_concat_group_keys2.png
+   p.plot(frames, result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
 
 You can also pass a dict to ``concat`` in which case the dict keys will be used
 for the ``keys`` argument (unless other keys are specified):
 
 .. ipython:: python
 
-   pieces = {'one': df.ix[:, [0, 1]],
-             'two': df.ix[:, [2]],
-             'three': df.ix[:, [3]]}
-   concat(pieces, axis=1)
-   concat(pieces, keys=['three', 'two'])
+   pieces = {'x': df1, 'y': df2, 'z': df3}
+   result = concat(pieces)
 
-The MultiIndex created has levels that are constructed from the passed keys and
-the columns of the DataFrame pieces:
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_dict.png
+   p.plot([df1, df2, df3], result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
 
 .. ipython:: python
 
-   result.columns.levels
+   result = concat(pieces, keys=['z', 'y'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_dict_keys.png
+   p.plot([df1, df2, df3], result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
+
+The MultiIndex created has levels that are constructed from the passed keys and
+the index of the DataFrame pieces:
+
+.. ipython:: python
+
+   result.index.levels
 
 If you wish to specify other levels (as will occasionally be the case), you can
 do so using the ``levels`` argument:
 
 .. ipython:: python
 
-   result = concat(pieces, axis=1, keys=['one', 'two', 'three'],
-                   levels=[['three', 'two', 'one', 'zero']],
+   result = concat(pieces, keys=['x', 'y', 'z'],
+                   levels=[['z', 'y', 'x', 'w']],
                    names=['group_key'])
-   result
-   result.columns.levels
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_dict_keys_names.png
+   p.plot([df1, df2, df3], result,
+          labels=['df1', 'df2', 'df3'], vertical=True);
+   plt.close('all');
+
+.. ipython:: python
+
+   result.index.levels
 
 Yes, this is fairly esoteric, but is actually necessary for implementing things
 like GroupBy where the order of a categorical variable is meaningful.
@@ -312,10 +437,16 @@ which returns a new DataFrame as above.
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(8, 4), columns=['A','B','C','D'])
-   df
-   s = df.xs(3)
-   df.append(s, ignore_index=True)
+   s2 = Series(['X0', 'X1', 'X2', 'X3'], index=['A', 'B', 'C', 'D'])
+   result = df1.append(s2, ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append_series_as_row.png
+   p.plot([df1, s2], result,
+          labels=['df1', 's2'], vertical=True);
+   plt.close('all');
 
 You should use ``ignore_index`` with this method to instruct DataFrame to
 discard its index. If you wish to preserve the index, you should construct an
@@ -325,12 +456,17 @@ You can also pass a list of dicts or Series:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(5, 4),
-                  columns=['foo', 'bar', 'baz', 'qux'])
-   dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
-            {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
-   result = df.append(dicts, ignore_index=True)
-   result
+   dicts = [{'A': 1, 'B': 2, 'C': 3, 'X': 4},
+            {'A': 5, 'B': 6, 'C': 7, 'Y': 8}]
+   result = df1.append(dicts, ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append_dits.png
+   p.plot([df1, DataFrame(dicts)], result,
+          labels=['df1', 'dicts'], vertical=True);
+   plt.close('all');
 
 .. _merging.join:
 
@@ -354,7 +490,7 @@ standard database join operations between DataFrame objects:
 
 ::
 
-    merge(left, right, how='left', on=None, left_on=None, right_on=None,
+    merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('_x', '_y'), copy=True)
 
@@ -430,24 +566,46 @@ key combination:
 
 .. ipython:: python
 
-   left = DataFrame({'key': ['foo', 'foo'], 'lval': [1, 2]})
-   right = DataFrame({'key': ['foo', 'foo'], 'rval': [4, 5]})
-   left
-   right
-   merge(left, right, on='key')
+   left = DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
+                     'A': ['A0', 'A1', 'A2', 'A3'],
+                     'B': ['B0', 'B1', 'B2', 'B3']})
+
+   right = DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
+                      'C': ['C0', 'C1', 'C2', 'C3'],
+                      'D': ['D0', 'D1', 'D2', 'D3']})
+   result = merge(left, right, on='key')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 Here is a more complicated example with multiple join keys:
 
 .. ipython:: python
 
-   left = DataFrame({'key1': ['foo', 'foo', 'bar'],
-                     'key2': ['one', 'two', 'one'],
-                     'lval': [1, 2, 3]})
-   right = DataFrame({'key1': ['foo', 'foo', 'bar', 'bar'],
-                      'key2': ['one', 'one', 'one', 'two'],
-                      'rval': [4, 5, 6, 7]})
-   merge(left, right, how='outer')
-   merge(left, right, how='inner')
+   left = DataFrame({'key1': ['K0', 'K0', 'K1', 'K2'],
+                     'key2': ['K0', 'K1', 'K0', 'K1'],
+                     'A': ['A0', 'A1', 'A2', 'A3'],
+                     'B': ['B0', 'B1', 'B2', 'B3']})
+
+   right = DataFrame({'key1': ['K0', 'K1', 'K1', 'K2'],
+                      'key2': ['K0', 'K0', 'K0', 'K0'],
+                      'C': ['C0', 'C1', 'C2', 'C3'],
+                      'D': ['D0', 'D1', 'D2', 'D3']})
+
+   result = merge(left, right, on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_multiple.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 The ``how`` argument to ``merge`` specifies how to determine which keys are to
 be included in the resulting table. If a key combination **does not appear** in
@@ -463,6 +621,53 @@ either the left or right tables, the values in the joined table will be
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
 
+.. ipython:: python
+
+   result = merge(left, right, how='left', on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_left.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = merge(left, right, how='right', on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_right.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+
+.. ipython:: python
+
+   result = merge(left, right, how='outer', on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_outer.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = merge(left, right, how='inner', on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_inner.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
 .. _merging.join.index:
 
 Joining on index
@@ -474,14 +679,47 @@ is a very basic example:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(8, 4), columns=['A','B','C','D'])
-   df1 = df.ix[1:, ['A', 'B']]
-   df2 = df.ix[:5, ['C', 'D']]
-   df1
-   df2
-   df1.join(df2)
-   df1.join(df2, how='outer')
-   df1.join(df2, how='inner')
+   left = DataFrame({'A': ['A0', 'A1', 'A2'],
+                     'B': ['B0', 'B1', 'B2']},
+                    index=['K0', 'K1', 'K2'])
+
+   right = DataFrame({'C': ['C0', 'C2', 'C3'],
+                      'D': ['D0', 'D2', 'D3']},
+                     index=['K0', 'K2', 'K3'])
+
+   result = left.join(right)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = left.join(right, how='outer')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_outer.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = left.join(right, how='inner')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_inner.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 The data alignment here is on the indexes (row labels). This same behavior can
 be achieved using ``merge`` plus additional arguments instructing it to use the
@@ -489,7 +727,27 @@ indexes:
 
 .. ipython:: python
 
-   merge(df1, df2, left_index=True, right_index=True, how='outer')
+   result = merge(left, right, left_index=True, right_index=True, how='outer')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_index_outer.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = merge(left, right, left_index=True, right_index=True, how='inner');
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_index_inner.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 Joining key columns on an index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -511,14 +769,36 @@ key), using ``join`` may be more convenient. Here is a simple example:
 
 .. ipython:: python
 
-   df['key'] = ['foo', 'bar'] * 4
-   to_join = DataFrame(randn(2, 2), index=['bar', 'foo'],
-                       columns=['j1', 'j2'])
-   df
-   to_join
-   df.join(to_join, on='key')
-   merge(df, to_join, left_on='key', right_index=True,
-         how='left', sort=False)
+   left = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                     'B': ['B0', 'B1', 'B2', 'B3'],
+                     'key': ['K0', 'K1', 'K0', 'K1']})
+
+   right = DataFrame({'C': ['C0', 'C1'],
+                      'D': ['D0', 'D1']},
+                     index=['K0', 'K1'])
+
+   result = left.join(right, on='key')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_key_columns.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. ipython:: python
+
+   result = merge(left, right, left_on='key', right_index=True,
+                  how='left', sort=False);
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_key_columns.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 .. _merging.multikey_join:
 
@@ -526,31 +806,30 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
 
 .. ipython:: python
 
-   index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                              ['one', 'two', 'three']],
-                      labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                      names=['first', 'second'])
-   to_join = DataFrame(np.random.randn(10, 3), index=index,
-                       columns=['j_one', 'j_two', 'j_three'])
+   left = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                     'B': ['B0', 'B1', 'B2', 'B3'],
+                     'key1': ['K0', 'K0', 'K1', 'K2'],
+                     'key2': ['K0', 'K1', 'K0', 'K1']})
 
-   # a little relevant example with NAs
-   key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
-           'qux', 'snap']
-   key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
-           'three', 'one']
-
-   data = np.random.randn(len(key1))
-   data = DataFrame({'key1' : key1, 'key2' : key2,
-                     'data' : data})
-   data
-   to_join
+   index = MultiIndex.from_tuples([('K0', 'K0'), ('K1', 'K0'),
+                                   ('K2', 'K0'), ('K2', 'K1')])
+   right = DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                      'D': ['D0', 'D1', 'D2', 'D3']},
+                     index=index)
 
 Now this can be joined by passing the two key column names:
 
 .. ipython:: python
 
-   data.join(to_join, on=['key1', 'key2'])
+   result = left.join(right, on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_multikeys.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 .. _merging.df_inner_join:
 
@@ -561,9 +840,91 @@ easily performed:
 
 .. ipython:: python
 
-   data.join(to_join, on=['key1', 'key2'], how='inner')
+   result = left.join(right, on=['key1', 'key2'], how='inner')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_multikeys_inner.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 As you can see, this drops any rows where there was no match.
+
+.. _merging.join_on_mi:
+
+Joining a single Index to a Multi-index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.14.0
+
+You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
+The level will match on the name of the index of the singly-indexed frame against
+a level name of the multi-indexed frame.
+
+..  ipython:: python
+
+   left = DataFrame({'A': ['A0', 'A1', 'A2'],
+                     'B': ['B0', 'B1', 'B2']},
+                    index=Index(['K0', 'K1', 'K2'], name='key'))
+
+   index = MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+                                   ('K2', 'Y2'), ('K2', 'Y3')],
+                                  names=['key', 'Y'])
+   right = DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                      'D': ['D0', 'D1', 'D2', 'D3']},
+                     index=index)
+
+   result = left.join(right, how='inner')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_multiindex_inner.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+This is equivalent but less verbose and more memory efficient / faster than this.
+
+..  ipython:: python
+
+    result = merge(left.reset_index(), right.reset_index(),
+          on=['key'], how='inner').set_index(['key','Y'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_multiindex_alternative.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+Joining with two multi-indexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is not Implemented via ``join`` at-the-moment, however it can be done using the following.
+
+.. ipython:: python
+
+   index = MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+                                   ('K1', 'X2')],
+                                  names=['key', 'X'])
+   left = DataFrame({'A': ['A0', 'A1', 'A2'],
+                     'B': ['B0', 'B1', 'B2']},
+                    index=index)
+
+   result = merge(left.reset_index(), right.reset_index(),
+                  on=['key'], how='inner').set_index(['key','X','Y'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_two_multiindex.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -574,38 +935,47 @@ columns:
 
 .. ipython:: python
 
-   left = DataFrame({'key': ['foo', 'foo'], 'value': [1, 2]})
-   right = DataFrame({'key': ['foo', 'foo'], 'value': [4, 5]})
-   merge(left, right, on='key', suffixes=['_left', '_right'])
+   left = DataFrame({'k': ['K0', 'K1', 'K2'], 'v': [1, 2, 3]})
+   right = DataFrame({'k': ['K0', 'K0', 'K3'], 'v': [4, 5, 6]})
 
-``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
-similarly.
-
-.. _merging.ordered_merge:
-
-Merging Ordered Data
-~~~~~~~~~~~~~~~~~~~~
-
-New in v0.8.0 is the ordered_merge function for combining time series and other
-ordered data. In particular it has an optional ``fill_method`` keyword to
-fill/interpolate missing data:
+   result = merge(left, right, on='k')
 
 .. ipython:: python
    :suppress:
 
-   A = DataFrame({'key' : ['a', 'c', 'e'] * 2,
-                  'lvalue' : [1, 2, 3] * 2,
-                  'group' : ['a', 'a', 'a', 'b', 'b', 'b']})
-   B = DataFrame({'key' : ['b', 'c', 'd'],
-                  'rvalue' : [1, 2, 3]})
+   @savefig merging_merge_overlapped.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 .. ipython:: python
 
-   A
+   result = merge(left, right, on='k', suffixes=['_l', '_r'])
 
-   B
+.. ipython:: python
+   :suppress:
 
-   ordered_merge(A, B, fill_method='ffill', left_by='group')
+   @savefig merging_merge_overlapped_suffix.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
+similarly.
+
+.. ipython:: python
+
+   left = left.set_index('k')
+   right = right.set_index('k')
+   result = left.join(right, lsuffix='_l', rsuffix='_r')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_overlapped_multi_suffix.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
 
 .. _merging.multiple_join:
 
@@ -617,11 +987,44 @@ them together on their indexes. The same is true for ``Panel.join``.
 
 .. ipython:: python
 
-   df1 = df.ix[:, ['A', 'B']]
-   df2 = df.ix[:, ['C', 'D']]
-   df3 = df.ix[:, ['key']]
-   df1
-   df1.join([df2, df3])
+   right2 = DataFrame({'v': [7, 8, 9]}, index=['K1', 'K1', 'K2'])
+   result = left.join([right, right2])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_join_multi_df.png
+   p.plot([left, right, right2], result,
+          labels=['left', 'right', 'right2'], vertical=False);
+   plt.close('all');
+
+.. _merging.ordered_merge:
+
+Merging Ordered Data
+~~~~~~~~~~~~~~~~~~~~
+
+New in v0.8.0 is the ordered_merge function for combining time series and other
+ordered data. In particular it has an optional ``fill_method`` keyword to
+fill/interpolate missing data:
+
+.. ipython:: python
+
+   left = DataFrame({'k': ['K0', 'K1', 'K1', 'K2'],
+                     'lv': [1, 2, 3, 4],
+                     's': ['a', 'b', 'c', 'd']})
+
+   right = DataFrame({'k': ['K1', 'K2', 'K4'],
+                      'rv': [1, 2, 3]})
+
+   result = ordered_merge(left, right, fill_method='ffill', left_by='s')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_ordered_merge.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=True);
+   plt.close('all');
 
 .. _merging.combine_first.update:
 
@@ -643,87 +1046,33 @@ For this, use the ``combine_first`` method:
 
 .. ipython:: python
 
-   df1.combine_first(df2)
+   result = df1.combine_first(df2)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_combine_first.png
+   p.plot([df1, df2], result,
+          labels=['df1', 'df2'], vertical=False);
+   plt.close('all');
 
 Note that this method only takes values from the right DataFrame if they are
 missing in the left DataFrame. A related method, ``update``, alters non-NA
 values inplace:
 
 .. ipython:: python
+   :suppress:
 
-   df1.update(df2)
-   df1
-
-.. _merging.on_mi:
-
-Merging with Multi-indexes
---------------------------
-
-.. _merging.join_on_mi:
-
-Joining a single Index to a Multi-index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.14.0
-
-You can join a singly-indexed DataFrame with a level of a multi-indexed DataFrame.
-The level will match on the name of the index of the singly-indexed frame against
-a level name of the multi-indexed frame.
-
-..  ipython:: python
-
-    household = DataFrame(dict(household_id = [1,2,3],
-                               male = [0,1,0],
-                               wealth = [196087.3,316478.7,294750]),
-                          columns = ['household_id','male','wealth']
-                         ).set_index('household_id')
-    household
-    portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
-                               asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29",
-                                           "gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
-                               name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell",
-                                       "AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
-                               share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
-                          columns = ['household_id','asset_id','name','share']
-                         ).set_index(['household_id','asset_id'])
-    portfolio
-
-    household.join(portfolio, how='inner')
-
-This is equivalent but less verbose and more memory efficient / faster than this.
-
-.. code-block:: python
-
-    merge(household.reset_index(),
-          portfolio.reset_index(),
-          on=['household_id'],
-          how='inner'
-         ).set_index(['household_id','asset_id'])
-
-Joining with two multi-indexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This is not Implemented via ``join`` at-the-moment, however it can be done using the following.
+   df1_copy = df1.copy()
 
 .. ipython:: python
 
-   household = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
-                              asset_id = ["nl0000301109","nl0000301109","gb00b03mlx29",
-                                          "gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
-                              share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
-                         columns = ['household_id','asset_id','share']
-                        ).set_index(['household_id','asset_id'])
-   household
+   df1.update(df2)
 
-   log_return = DataFrame(dict(asset_id = ["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
-                                           "lu0197800237", "lu0197800237"],
-                               t = [233, 234, 235, 180, 181],
-                               log_return = [.09604978, -.06524096, .03532373, .03025441, .036997]),
-                         ).set_index(["asset_id","t"])
-   log_return
+.. ipython:: python
+   :suppress:
 
-   merge(household.reset_index(),
-         log_return.reset_index(),
-         on=['asset_id'],
-         how='inner'
-        ).set_index(['household_id','asset_id','t'])
+   @savefig merging_update.png
+   p.plot([df1_copy, df2], df1,
+          labels=['df1', 'df2'], vertical=False);
+   plt.close('all');

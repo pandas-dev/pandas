@@ -296,7 +296,7 @@ class Block(PandasObject):
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
-            mask[mask.cumsum(self.ndim-1)>limit]=False
+            mask[mask.cumsum(self.ndim-1) > limit] = False
 
         value = self._try_fill(value)
         blocks = self.putmask(mask, value, inplace=inplace)
@@ -484,16 +484,21 @@ class Block(PandasObject):
     def _try_fill(self, value):
         return value
 
-    def to_native_types(self, slicer=None, na_rep='', **kwargs):
+    def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
+
+        if not self.is_object and not quoting:
+            values = values.astype(str)
+        else:
+            values = np.array(values, dtype='object')
+
         values[mask] = na_rep
-        return values.tolist()
+        return values
 
     # block actions ####
     def copy(self, deep=True):
@@ -582,7 +587,7 @@ class Block(PandasObject):
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-                    return all([ isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer ])
+                    return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
                 return False
 
             # empty indexers
@@ -869,9 +874,9 @@ class Block(PandasObject):
     def get_values(self, dtype=None):
         return self.values
 
-    def diff(self, n):
+    def diff(self, n, axis=1):
         """ return block for the diff of the values """
-        new_values = com.diff(self.values, n, axis=1)
+        new_values = com.diff(self.values, n, axis=axis)
         return [make_block(values=new_values,
                            ndim=self.ndim, fastpath=True,
                            placement=self.mgr_locs)]
@@ -1221,32 +1226,34 @@ class FloatBlock(FloatOrComplexBlock):
             return element
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None, decimal='.',
-                        **kwargs):
+                        quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
-        values[mask] = na_rep
 
-
+        formatter = None
         if float_format and decimal != '.':
             formatter = lambda v : (float_format % v).replace('.',decimal,1)
         elif decimal != '.':
             formatter = lambda v : ('%g' % v).replace('.',decimal,1)
         elif float_format:
             formatter = lambda v : float_format % v
-        else:
-            formatter = None
 
+        if formatter is None and not quoting:
+            values = values.astype(str)
+        else:
+            values = np.array(values, dtype='object')
+
+        values[mask] = na_rep
         if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
                 [formatter(val) for val in values.ravel()[imask]])
 
-        return values.tolist()
+        return values
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -1366,7 +1373,7 @@ class TimeDeltaBlock(IntBlock):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.timedelta64)
 
-    def to_native_types(self, slicer=None, na_rep=None, **kwargs):
+    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
@@ -1387,7 +1394,7 @@ class TimeDeltaBlock(IntBlock):
         rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
                                         for val in values.ravel()[imask]],
                                        dtype=object)
-        return rvalues.tolist()
+        return rvalues
 
 
     def get_values(self, dtype=None):
@@ -1686,7 +1693,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                                       "not been implemented yet")
 
         values = self.values if inplace else self.values.copy()
-        return [self.make_block_same_class(values=values.fillna(fill_value=value,
+        return [self.make_block_same_class(values=values.fillna(value=value,
                                                                 limit=limit),
                                            placement=self.mgr_locs)]
 
@@ -1763,18 +1770,19 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                           ndim=self.ndim,
                           placement=self.mgr_locs)
 
-    def to_native_types(self, slicer=None, na_rep='', **kwargs):
+    def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             # Categorical is always one dimension
             values = values[slicer]
-        values = np.array(values, dtype=object)
         mask = isnull(values)
+        values = np.array(values, dtype='object')
         values[mask] = na_rep
-        # Blocks.to_native_type returns list of lists, but we are always only a list
-        return [values.tolist()]
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1,len(values))
 
 class DatetimeBlock(Block):
     __slots__ = ()
@@ -1864,29 +1872,21 @@ class DatetimeBlock(Block):
                            fastpath=True, placement=self.mgr_locs)]
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
-                        **kwargs):
+                        quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        mask = isnull(values)
 
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = 'NaT'
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
+        from pandas.core.format import _get_format_datetime64_from_values
+        format = _get_format_datetime64_from_values(values, date_format)
 
-        if date_format is None:
-            date_formatter = lambda x: Timestamp(x)._repr_base
-        else:
-            date_formatter = lambda x: Timestamp(x).strftime(date_format)
-
-        rvalues.flat[imask] = np.array([date_formatter(val) for val in
-                                        values.ravel()[imask]], dtype=object)
-
-        return rvalues.tolist()
+        result = tslib.format_array_from_datetime(values.view('i8').ravel(),
+                                                  tz=None,
+                                                  format=format,
+                                                  na_rep=na_rep).reshape(values.shape)
+        return result
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
@@ -3134,7 +3134,6 @@ class BlockManager(PandasObject):
 
         pandas-indexer with -1's only.
         """
-
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
                 return self
@@ -3146,10 +3145,9 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
-        # trying to reindex on an axis with duplicates
-        if (not allow_dups and not self.axes[axis].is_unique
-            and len(indexer)):
-            raise ValueError("cannot reindex from a duplicate axis")
+        # some axes don't allow reindexing with dups
+        if not allow_dups:
+            self.axes[axis]._can_reindex(indexer)
 
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
@@ -4019,7 +4017,8 @@ def _putmask_smart(v, m, n):
     try:
         nn = n[m]
         nn_at = nn.astype(v.dtype)
-        if (nn == nn_at).all():
+        comp = (nn == nn_at)
+        if is_list_like(comp) and comp.all():
             nv = v.copy()
             nv[m] = nn_at
             return nv

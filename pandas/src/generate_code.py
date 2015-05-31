@@ -37,6 +37,8 @@ ctypedef unsigned char UChar
 
 cimport util
 from util cimport is_array, _checknull, _checknan, get_nat
+cimport lib
+from lib cimport is_null_datetimelike
 
 cdef int64_t iNaT = get_nat()
 
@@ -93,12 +95,7 @@ def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
 
 """
 
-take_2d_axis0_template = """@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_%(name)s_%(dest)s(%(c_type_in)s[:, :] values,
-                                    ndarray[int64_t] indexer,
-                                    %(c_type_out)s[:, :] out,
-                                    fill_value=np.nan):
+inner_take_2d_axis0_template = """\
     cdef:
         Py_ssize_t i, j, k, n, idx
         %(c_type_out)s fv
@@ -140,12 +137,34 @@ def take_2d_axis0_%(name)s_%(dest)s(%(c_type_in)s[:, :] values,
 
 """
 
-take_2d_axis1_template = """@cython.wraparound(False)
+take_2d_axis0_template = """\
+@cython.wraparound(False)
 @cython.boundscheck(False)
-def take_2d_axis1_%(name)s_%(dest)s(%(c_type_in)s[:, :] values,
+cdef inline take_2d_axis0_%(name)s_%(dest)s_memview(%(c_type_in)s[:, :] values,
+                                                    int64_t[:] indexer,
+                                                    %(c_type_out)s[:, :] out,
+                                                    fill_value=np.nan):
+""" + inner_take_2d_axis0_template + """
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                                     ndarray[int64_t] indexer,
                                     %(c_type_out)s[:, :] out,
                                     fill_value=np.nan):
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_2d_axis0_%(name)s_%(dest)s_memview(values, indexer, out,
+                                                fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+""" + inner_take_2d_axis0_template
+
+
+inner_take_2d_axis1_template = """\
     cdef:
         Py_ssize_t i, j, k, n, idx
         %(c_type_out)s fv
@@ -165,8 +184,35 @@ def take_2d_axis1_%(name)s_%(dest)s(%(c_type_in)s[:, :] values,
                 out[i, j] = fv
             else:
                 out[i, j] = %(preval)svalues[i, idx]%(postval)s
-
 """
+
+take_2d_axis1_template = """\
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_2d_axis1_%(name)s_%(dest)s_memview(%(c_type_in)s[:, :] values,
+                                                    int64_t[:] indexer,
+                                                    %(c_type_out)s[:, :] out,
+                                                    fill_value=np.nan):
+""" + inner_take_2d_axis1_template + """
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
+                                    ndarray[int64_t] indexer,
+                                    %(c_type_out)s[:, :] out,
+                                    fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_2d_axis1_%(name)s_%(dest)s_memview(values, indexer, out,
+                                                fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+""" + inner_take_2d_axis1_template
+
 
 take_2d_multi_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
@@ -629,7 +675,7 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
-        if _checknull(key):
+        if is_null_datetimelike(key):
             continue
 
         idx = index[i]

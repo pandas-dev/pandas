@@ -94,4 +94,155 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
+.. _ref-subclassing-pandas:
+
+Subclassing pandas Data Structures
+----------------------------------
+
+.. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
+
+  1. Monkey-patching: See :ref:`Adding Features to your pandas Installation <ref-monkey-patching>`.
+
+  2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+
+This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
+
+1. Override constructor properties.
+2. Define original properties
+
+.. note:: You can find a nice example in `geopandas <https://github.com/geopandas/geopandas>`_ project.
+
+Override Constructor Properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined-classes through ``pandas`` data manipulations.
+
+There are 3 constructors to be defined:
+
+- ``_constructor``: Used when a manipulation result has the same dimesions as the original.
+- ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
+- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+
+Following table shows how ``pandas`` data structures define constructor properties by default.
+
+===========================  ======================= =================== =======================
+Property Attributes          ``Series``              ``DataFrame``       ``Panel``
+===========================  ======================= =================== =======================
+``_constructor``             ``Series``              ``DataFrame``       ``Panel``
+``_constructor_sliced``      ``NotImplementedError`` ``Series``          ``DataFrame``
+``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
+===========================  ======================= =================== =======================
+
+Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
+
+.. code-block:: python
+
+   class SubclassedSeries(Series):
+
+       @property
+       def _constructor(self):
+           return SubclassedSeries
+
+       @property
+       def _constructor_expanddim(self):
+           return SubclassedDataFrame
+
+   class SubclassedDataFrame(DataFrame):
+
+       @property
+       def _constructor(self):
+           return SubclassedDataFrame
+
+       @property
+       def _constructor_sliced(self):
+           return SubclassedSeries
+
+.. code-block:: python
+
+   >>> s = SubclassedSeries([1, 2, 3])
+   >>> type(s)
+   <class '__main__.SubclassedSeries'>
+
+   >>> to_framed = s.to_frame()
+   >>> type(to_framed)
+   <class '__main__.SubclassedDataFrame'>
+
+   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df
+      A  B  C
+   0  1  4  7
+   1  2  5  8
+   2  3  6  9
+
+   >>> type(df)
+   <class '__main__.SubclassedDataFrame'>
+
+   >>> sliced1 = df[['A', 'B']]
+   >>> sliced1
+      A  B
+   0  1  4
+   1  2  5
+   2  3  6
+   >>> type(sliced1)
+   <class '__main__.SubclassedDataFrame'>
+
+   >>> sliced2 = df['A']
+   >>> sliced2
+   0    1
+   1    2
+   2    3
+   Name: A, dtype: int64
+   >>> type(sliced2)
+   <class '__main__.SubclassedSeries'>
+
+Define Original Properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To let original data structures have additional properties, you should let ``pandas`` knows what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
+
+1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
+2. Define ``_metadata`` for normal properties which will be passed to manipulation results.
+
+Below is an example to define 2 original properties, "internal_cache" as a temporary property and "added_property" as a normal property
+
+.. code-block:: python
+
+   class SubclassedDataFrame2(DataFrame):
+
+       # temporary properties
+       _internal_names = DataFrame._internal_names + ['internal_cache']
+       _internal_names_set = set(_internal_names)
+
+       # normal properties
+       _metadata = ['added_property']
+
+       @property
+       def _constructor(self):
+           return SubclassedDataFrame2
+
+.. code-block:: python
+
+   >>> df = SubclassedDataFrame2({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df
+      A  B  C
+   0  1  4  7
+   1  2  5  8
+   2  3  6  9
+
+   >>> df.internal_cache = 'cached'
+   >>> df.added_property = 'property'
+
+   >>> df.internal_cache
+   cached
+   >>> df.added_property
+   property
+
+   # properties defined in _internal_names is reset after manipulation
+   >>> df[['A', 'B']].internal_cache
+   AttributeError: 'SubclassedDataFrame2' object has no attribute 'internal_cache'
+
+   # properties defined in _metadata are retained
+   >>> df[['A', 'B']].added_property
+   property
+
 

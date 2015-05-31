@@ -1,13 +1,8 @@
 # pylint: disable=E1101
 import operator
-
 from datetime import time, datetime
 from datetime import timedelta
-
 import numpy as np
-
-import warnings
-
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
                                 ABCSeries, is_integer, is_float)
@@ -597,7 +592,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     def _formatter_func(self):
         from pandas.core.format import _get_format_datetime64
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: formatter(x, tz=self.tz)
+        return lambda x: "'%s'" % formatter(x, tz=self.tz)
 
     def __reduce__(self):
 
@@ -658,14 +653,18 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _add_delta(self, delta):
         from pandas import TimedeltaIndex
+        name = self.name
+
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)
+            # update name when delta is Index
+            name = com._maybe_match_name(self, delta)
         else:
             new_values = self.astype('O') + delta
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, freq='infer')
+        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
         utc = _utc()
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
@@ -673,19 +672,16 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
-        data = self.asobject
-        from pandas.core.format import Datetime64Formatter
-        return Datetime64Formatter(values=data,
-                                   nat_rep=na_rep,
-                                   date_format=date_format,
-                                   justify='all').get_result()
+        from pandas.core.format import _get_format_datetime64_from_values
+        format = _get_format_datetime64_from_values(self, date_format)
+
+        return tslib.format_array_from_datetime(self.asi8,
+                                                tz=self.tz,
+                                                format=format,
+                                                na_rep=na_rep)
 
     def to_datetime(self, dayfirst=False):
         return self.copy()
-
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s, Timezone: %s'
-        return tagline % (len(self), self.freqstr, self.tz)
 
     def astype(self, dtype):
         dtype = np.dtype(dtype)

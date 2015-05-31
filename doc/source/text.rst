@@ -82,11 +82,11 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-Easy to expand this to return a DataFrame using ``return_type``.
+Easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
-   s2.str.split('_', return_type='frame')
+   s2.str.split('_', expand=True)
 
 Methods like ``replace`` and ``findall`` take `regular expressions
 <https://docs.python.org/2/library/re.html>`__, too:
@@ -262,12 +262,18 @@ Method Summary
     :meth:`~Series.str.strip`,Equivalent to ``str.strip``
     :meth:`~Series.str.rstrip`,Equivalent to ``str.rstrip``
     :meth:`~Series.str.lstrip`,Equivalent to ``str.lstrip``
+    :meth:`~Series.str.partition`,Equivalent to ``str.partition``
+    :meth:`~Series.str.rpartition`,Equivalent to ``str.rpartition``
     :meth:`~Series.str.lower`,Equivalent to ``str.lower``
     :meth:`~Series.str.upper`,Equivalent to ``str.upper``
     :meth:`~Series.str.find`,Equivalent to ``str.find``
     :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
-    :meth:`~Series.str.capicalize`,Equivalent to ``str.capitalize``
+    :meth:`~Series.str.index`,Equivalent to ``str.index``
+    :meth:`~Series.str.rindex`,Equivalent to ``str.rindex``
+    :meth:`~Series.str.capitalize`,Equivalent to ``str.capitalize``
     :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
+    :meth:`~Series.str.normalize`,Return Unicode normal form. Equivalent to ``unicodedata.normalize``
+    :meth:`~Series.str.translate`,Equivalent to ``str.translate``
     :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
     :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
     :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``
@@ -276,4 +282,4 @@ Method Summary
     :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
     :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``
     :meth:`~Series.str.isnumeric`,Equivalent to ``str.isnumeric``
-    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isdecimal``
+    :meth:`~Series.str.isdecimal`,Equivalent to ``str.isdecimal``

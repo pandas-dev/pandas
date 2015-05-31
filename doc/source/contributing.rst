@@ -112,9 +112,11 @@ want to clone your fork to your machine: ::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-You will also need to hook up Travis-CI to your GitHub repository so the suite
-is automatically run when a Pull Request is submitted.  Instructions are `here
-<http://about.travis-ci.org/docs/user/getting-started/>`_.
+The testing suite will run automatically on Travis-CI once your Pull Request is
+submitted.  However, if you wish to run the test suite on a branch prior to
+submitting the Pull Request, then Travis-CI needs to be hooked up to your
+GitHub repository.  Instructions are for doing so are `here
+<http://about.travis-ci.org/docs/user/getting-started/>`__.
 
 Creating a Branch
 -----------------
@@ -133,6 +135,17 @@ This changes your working directory to the shiny-new-feature branch.  Keep any
 changes in this branch specific to one bug or feature so it is clear
 what the branch brings to *pandas*. You can have many shiny-new-features
 and switch in between them using the git checkout command.
+
+To update this branch, you need to retrieve the changes from the master branch::
+
+    git fetch upstream
+    git rebase upstream/master
+
+This will replay your commits on top of the lastest pandas git master.  If this
+leads to merge conflicts, you must resolve these before submitting your Pull
+Request.  If you have uncommitted changes, you will need to `stash` them prior
+to updating.  This will effectively store your changes and they can be reapplied
+after updating.
 
 .. _contributing.dev_env:
 
@@ -206,7 +219,7 @@ To return to you home root environment:
       deactivate
 
 See the full ``conda`` docs `here
-<http://conda.pydata.org/docs>`_.
+<http://conda.pydata.org/docs>`__.
 
 At this point you can easily do an *in-place* install, as detailed in the next section.
 
@@ -338,7 +351,7 @@ dependencies.
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-So how do you build the docs? Navigate to your local  the folder
+So how do you build the docs? Navigate to your local the folder
 ``pandas/doc/`` directory in the console and run::
 
     python make.py html
@@ -358,8 +371,9 @@ If you want to do a full clean build, do::
 
 Starting with 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
-You will be prompted to delete `.rst` files that aren't required, since the
-last committed version can always be restored from git.
+You will be prompted to delete `.rst` files that aren't required.  This is okay
+since the prior version can be checked out from git, but make sure to
+not commit the file deletions.
 
 ::
 
@@ -387,7 +401,7 @@ Built Master Branch Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When pull-requests are merged into the pandas *master* branch, the main parts of the documentation are
-also built by Travis-CI. These docs are then hosted `here <http://pandas-docs.github.io/pandas-docs-travis>`_.
+also built by Travis-CI. These docs are then hosted `here <http://pandas-docs.github.io/pandas-docs-travis>`__.
 
 Contributing to the code base
 =============================
@@ -417,7 +431,7 @@ deprecation warnings where needed.
 Test-driven Development/Writing Code
 ------------------------------------
 
-*Pandas* is serious about `Test-driven Development (TDD)
+*Pandas* is serious about testing and strongly encourages individuals to embrace `Test-driven Development (TDD)
 <http://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
@@ -550,8 +564,8 @@ Doing 'git status' again should give something like ::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message.  An informal
-commit message format is in effect for the project.  Please try to adhere to it.  Here are
+Finally, commit your changes to your local repository with an explanatory message.  *Pandas*
+uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
     * ENH: Enhancement, new functionality

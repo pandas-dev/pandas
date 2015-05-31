@@ -1,17 +1,13 @@
 """ implement the TimedeltaIndex """
 
-import operator
-import datetime
 from datetime import timedelta
 import numpy as np
-
 from pandas.core.common import (ABCSeries, _TD_DTYPE, _INT64_DTYPE,
                                 is_timedelta64_dtype, _maybe_box,
                                 _values_from_object, isnull, is_integer, is_float)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
-from pandas.core.base import PandasObject
 from pandas.util.decorators import cache_readonly
 from pandas.tseries.frequencies import to_offset
 import pandas.core.common as com
@@ -140,7 +136,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 copy=False, name=None,
                 closed=None, verify_integrity=True, **kwargs):
 
-        if isinstance(data, TimedeltaIndex) and freq is None:
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
                 data = data.copy()
             return data
@@ -274,10 +270,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         from pandas.core.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
-
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
@@ -289,12 +281,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
+            name = self.name
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)
+            # update name when delta is index
+            name = com._maybe_match_name(self, delta)
         else:
             raise ValueError("cannot add the type {0} to a TimedeltaIndex".format(type(delta)))
 
-        result = TimedeltaIndex(new_values, freq='infer')
+        result = TimedeltaIndex(new_values, freq='infer', name=name)
         return result
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):

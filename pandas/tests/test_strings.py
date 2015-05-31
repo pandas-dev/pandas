@@ -516,7 +516,6 @@ class TestStringMethods(tm.TestCase):
 
     def test_extract(self):
         # Contains tests like those in test_match and some others.
-
         values = Series(['fooBAD__barBAD', NA, 'foo'])
         er = [NA, NA]  # empty row
 
@@ -540,15 +539,31 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([[u('BAD__'), u('BAD')], er, er])
         tm.assert_frame_equal(result, exp)
 
-        # no groups
+        # GH9980
+        # Index only works with one regex group since
+        # multi-group would expand to a frame
+        idx = Index(['A1', 'A2', 'A3', 'A4', 'B5'])
+        with tm.assertRaisesRegexp(ValueError, "supported"):
+            idx.str.extract('([AB])([123])')
+
+        # these should work for both Series and Index
+        for klass in [Series, Index]:
+            # no groups
+            s_or_idx = klass(['A1', 'B2', 'C3'])
+            f = lambda: s_or_idx.str.extract('[ABC][123]')
+            self.assertRaises(ValueError, f)
+
+            # only non-capturing groups
+            f = lambda: s_or_idx.str.extract('(?:[AB]).*')
+            self.assertRaises(ValueError, f)
+
+            # single group renames series/index properly
+            s_or_idx = klass(['A1', 'A2'])
+            result = s_or_idx.str.extract(r'(?P<uno>A)\d')
+            tm.assert_equal(result.name, 'uno')
+            tm.assert_array_equal(result, klass(['A', 'A']))
+
         s = Series(['A1', 'B2', 'C3'])
-        f = lambda: s.str.extract('[ABC][123]')
-        self.assertRaises(ValueError, f)
-
-        # only non-capturing groups
-        f = lambda: s.str.extract('(?:[AB]).*')
-        self.assertRaises(ValueError, f)
-
         # one group, no matches
         result = s.str.extract('(_)')
         exp = Series([NA, NA, NA], dtype=object)
@@ -569,13 +584,15 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]])
         tm.assert_frame_equal(result, exp)
 
-        # named group/groups
-        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
-        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=['letter', 'number'])
-        tm.assert_frame_equal(result, exp)
+        # one named group
         result = s.str.extract('(?P<letter>[AB])')
         exp = Series(['A', 'B', NA], name='letter')
         tm.assert_series_equal(result, exp)
+
+        # two named groups
+        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=['letter', 'number'])
+        tm.assert_frame_equal(result, exp)
 
         # mix named and unnamed groups
         result = s.str.extract('([AB])(?P<number>[123])')
@@ -601,11 +618,6 @@ class TestStringMethods(tm.TestCase):
         result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
-
-        # single group renames series properly
-        s = Series(['A1', 'A2'])
-        result = s.str.extract(r'(?P<uno>A)\d')
-        tm.assert_equal(result.name, 'uno')
 
         # GH6348
         # not passing index to the extractor
@@ -664,6 +676,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
+        tm.assert_series_equal(empty_list, empty.str.partition('a', expand=False))
+        tm.assert_series_equal(empty_list, empty.str.rpartition('a', expand=False))
         tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
         tm.assert_series_equal(empty_str, empty.str.slice(step=1))
         tm.assert_series_equal(empty_str, empty.str.strip())
@@ -685,6 +699,19 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.isdecimal())
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
+        tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
+        if compat.PY3:
+            table = str.maketrans('a', 'b')
+        else:
+            import string
+            table = string.maketrans('a', 'b')
+        tm.assert_series_equal(empty_str, empty.str.translate(table))
+
+    def test_empty_str_methods_to_frame(self):
+        empty_str = empty = Series(dtype=str)
+        empty_df = DataFrame([])
+        tm.assert_frame_equal(empty_df, empty.str.partition('a'))
+        tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
     def test_ismethods(self):
         values = ['A', 'b', 'Xy', '4', '3A', '', 'TT', '55', '-', '  ']
@@ -751,6 +778,12 @@ class TestStringMethods(tm.TestCase):
         expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]],
                              columns=list('7ab'))
         tm.assert_frame_equal(result, expected)
+
+        # GH9980
+        # Index.str does not support get_dummies() as it returns a frame
+        with tm.assertRaisesRegexp(TypeError, "not supported"):
+            idx = Index(['a|b', 'a|c', 'b|c'])
+            idx.str.get_dummies('|')
 
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
@@ -881,6 +914,53 @@ class TestStringMethods(tm.TestCase):
         result = values.str.rfind('EF', 3, 6)
         tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
 
+    def test_index(self):
+        for klass in [Series, Index]:
+            s = klass(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF'])
+
+            result = s.str.index('EF')
+            tm.assert_array_equal(result, klass([4, 3, 1, 0]))
+            expected = np.array([v.index('EF') for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('EF')
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.rindex('EF') for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.index('EF', 3)
+            tm.assert_array_equal(result, klass([4, 3, 7, 4]))
+            expected = np.array([v.index('EF', 3) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('EF', 3)
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.rindex('EF', 3) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.index('E', 4, 8)
+            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            expected = np.array([v.index('E', 4, 8) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            result = s.str.rindex('E', 0, 5)
+            tm.assert_array_equal(result, klass([4, 3, 1, 4]))
+            expected = np.array([v.rindex('E', 0, 5) for v in s.values])
+            tm.assert_array_equal(result.values, expected)
+
+            with tm.assertRaisesRegexp(ValueError, "substring not found"):
+                result = s.str.index('DE')
+
+            with tm.assertRaisesRegexp(TypeError, "expected a string object, not int"):
+                result = s.str.index(0)
+
+        # test with nan
+        s = Series(['abcb', 'ab', 'bcbe', np.nan])
+        result = s.str.index('b')
+        tm.assert_array_equal(result, Series([1, 1, 0, np.nan]))
+        result = s.str.rindex('b')
+        tm.assert_array_equal(result, Series([3, 1, 2, np.nan]))
+
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
 
@@ -964,6 +1044,37 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assertRaisesRegexp(TypeError, "fillchar must be a character, not int"):
             result = values.str.pad(5, fillchar=5)
+
+    def test_translate(self):
+        for klass in [Series, Index]:
+            s = klass(['abcdefg', 'abcc', 'cdddfg', 'cdefggg'])
+            if not compat.PY3:
+                import string
+                table = string.maketrans('abc', 'cde')
+            else:
+                table = str.maketrans('abc', 'cde')
+            result = s.str.translate(table)
+            expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
+            tm.assert_array_equal(result, expected)
+
+            # use of deletechars is python 2 only
+            if not compat.PY3:
+                result = s.str.translate(table, deletechars='fg')
+                expected = klass(['cdede', 'cdee', 'eddd', 'ede'])
+                tm.assert_array_equal(result, expected)
+
+                result = s.str.translate(None, deletechars='fg')
+                expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
+                tm.assert_array_equal(result, expected)
+            else:
+                with tm.assertRaisesRegexp(ValueError, "deletechars is not a valid argument"):
+                    result = s.str.translate(table, deletechars='fg')
+
+        # Series with non-string values
+        s = Series(['a', 'b', 'c', 1.2])
+        expected = Series(['c', 'd', 'e', np.nan])
+        result = s.str.translate(table)
+        tm.assert_array_equal(result, expected)
 
     def test_center_ljust_rjust(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
@@ -1095,14 +1206,19 @@ class TestStringMethods(tm.TestCase):
         result = values.str.split('__')
         tm.assert_series_equal(result, exp)
 
+        result = values.str.split('__', expand=False)
+        tm.assert_series_equal(result, exp)
+
         # mixed
         mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
                         None, 1, 2.])
-
-        rs = Series(mixed).str.split('_')
+        rs = mixed.str.split('_')
         xp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
                      NA, NA, NA])
+        tm.assert_isinstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
 
+        rs = mixed.str.split('_', expand=False)
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
@@ -1113,6 +1229,9 @@ class TestStringMethods(tm.TestCase):
         exp = Series([[u('a'), u('b'), u('c')],
                       [u('c'), u('d'), u('e')], NA,
                       [u('f'), u('g'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.split('_', expand=False)
         tm.assert_series_equal(result, exp)
 
     def test_split_noargs(self):
@@ -1148,7 +1267,10 @@ class TestStringMethods(tm.TestCase):
 
     def test_split_to_dataframe(self):
         s = Series(['nosplit', 'alsonosplit'])
-        result = s.str.split('_', return_type='frame')
+
+        with tm.assert_produces_warning():
+            result = s.str.split('_', return_type='frame')
+
         exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
         tm.assert_frame_equal(result, exp)
 
@@ -1171,8 +1293,173 @@ class TestStringMethods(tm.TestCase):
                         index=['preserve', 'me'])
         tm.assert_frame_equal(result, exp)
 
-        with tm.assertRaisesRegexp(ValueError, "return_type must be"):
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
             s.str.split('_', return_type="some_invalid_type")
+
+    def test_split_to_dataframe_expand(self):
+        s = Series(['nosplit', 'alsonosplit'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_equal_splits', 'with_no_nans'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
+                         2: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_unequal_splits', 'one_of_these_things_is_not'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'one'], 1: ['unequal', 'of'],
+                         2: ['splits', 'these'], 3: [NA, 'things'],
+                         4: [NA, 'is'], 5: [NA, 'not']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
+        result = s.str.split('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
+                        index=['preserve', 'me'])
+        tm.assert_frame_equal(result, exp)
+
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+            s.str.split('_', return_type="some_invalid_type")
+
+    def test_split_to_multiindex_expand(self):
+        idx = Index(['nosplit', 'alsonosplit'])
+        result = idx.str.split('_', expand=True)
+        exp = Index([np.array(['nosplit']), np.array(['alsonosplit'])])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        idx = Index(['some_equal_splits', 'with_no_nans'])
+        result = idx.str.split('_', expand=True)
+        exp = MultiIndex.from_tuples([('some', 'equal', 'splits'),
+                                      ('with', 'no', 'nans')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 3)
+
+        idx = Index(['some_unequal_splits', 'one_of_these_things_is_not'])
+        result = idx.str.split('_', expand=True)
+        exp = MultiIndex.from_tuples([('some', 'unequal', 'splits', NA, NA, NA),
+                                      ('one', 'of', 'these', 'things', 'is', 'not')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 6)
+
+        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+            idx.str.split('_', return_type="some_invalid_type")
+
+    def test_partition_series(self):
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+
+        result = values.str.partition('_', expand=False)
+        exp = Series([['a', '_', 'b_c'], ['c', '_', 'd_e'], NA, ['f', '_', 'g_h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([['a_b', '_', 'c'], ['c_d', '_', 'e'], NA, ['f_g', '_', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # more than one char
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        result = values.str.partition('__', expand=False)
+        exp = Series([['a', '__', 'b__c'], ['c', '__', 'd__e'], NA, ['f', '__', 'g__h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('__', expand=False)
+        exp = Series([['a__b', '__', 'c'], ['c__d', '__', 'e'], NA, ['f__g', '__', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # None
+        values = Series(['a b c', 'c d e', NA, 'f g h'])
+        result = values.str.partition(expand=False)
+        exp = Series([['a', ' ', 'b c'], ['c', ' ', 'd e'], NA, ['f', ' ', 'g h']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition(expand=False)
+        exp = Series([['a b', ' ', 'c'], ['c d', ' ', 'e'], NA, ['f g', ' ', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # Not splited
+        values = Series(['abc', 'cde', NA, 'fgh'])
+        result = values.str.partition('_', expand=False)
+        exp = Series([['abc', '', ''], ['cde', '', ''], NA, ['fgh', '', '']])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([['', '', 'abc'], ['', '', 'cde'], NA, ['', '', 'fgh']])
+        tm.assert_series_equal(result, exp)
+
+        # unicode
+        values = Series([u('a_b_c'), u('c_d_e'), NA, u('f_g_h')])
+
+        result = values.str.partition('_', expand=False)
+        exp = Series([[u('a'), u('_'), u('b_c')], [u('c'), u('_'), u('d_e')],
+                      NA, [u('f'), u('_'), u('g_h')]])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Series([[u('a_b'), u('_'), u('c')], [u('c_d'), u('_'), u('e')],
+                      NA, [u('f_g'), u('_'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+        # compare to standard lib
+        values = Series(['A_B_C', 'B_C_D', 'E_F_G', 'EFGHEF'])
+        result = values.str.partition('_', expand=False).tolist()
+        self.assertEqual(result, [v.partition('_') for v in values])
+        result = values.str.rpartition('_', expand=False).tolist()
+        self.assertEqual(result, [v.rpartition('_') for v in values])
+
+    def test_partition_index(self):
+        values = Index(['a_b_c', 'c_d_e', 'f_g_h'])
+
+        result = values.str.partition('_', expand=False)
+        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')]))
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        result = values.str.rpartition('_', expand=False)
+        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')]))
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        result = values.str.partition('_')
+        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(isinstance(result, MultiIndex))
+        self.assertEqual(result.nlevels, 3)
+
+        result = values.str.rpartition('_')
+        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')])
+        tm.assert_index_equal(result, exp)
+        self.assertTrue(isinstance(result, MultiIndex))
+        self.assertEqual(result.nlevels, 3)
+
+    def test_partition_to_dataframe(self):
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.partition('_')
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        tm.assert_frame_equal(result, exp)
+
+        result = values.str.rpartition('_')
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['c', 'e', np.nan, 'h']})
+        tm.assert_frame_equal(result, exp)
+
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.partition('_', expand=True)
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        tm.assert_frame_equal(result, exp)
+
+        result = values.str.rpartition('_', expand=True)
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
+                         1: ['_', '_', np.nan, '_'],
+                         2: ['c', 'e', np.nan, 'h']})
+        tm.assert_frame_equal(result, exp)
 
     def test_pipe_failures(self):
         # #2119
@@ -1549,6 +1836,51 @@ class TestStringMethods(tm.TestCase):
 
         tm.assert_series_equal(result, exp)
 
+    def test_normalize(self):
+        def unistr(codes):
+            # build unicode string from unichr
+            # we cannot use six.u() here because it escapes unicode
+            return ''.join([unichr(c) for c in codes])
+
+        values = ['ABC', # ASCII
+                  unistr([0xFF21, 0xFF22, 0xFF23]), # ＡＢＣ
+                  unistr([0xFF11, 0xFF12, 0xFF13]), # １２３
+                  np.nan,
+                  unistr([0xFF71, 0xFF72, 0xFF74])] # ｱｲｴ
+        s = Series(values, index=['a', 'b', 'c', 'd', 'e'])
+
+        normed = [compat.u_safe('ABC'),
+                  compat.u_safe('ABC'),
+                  compat.u_safe('123'),
+                  np.nan,
+                  unistr([0x30A2, 0x30A4, 0x30A8])] # アイエ
+        expected = Series(normed, index=['a', 'b', 'c', 'd', 'e'])
+
+        result = s.str.normalize('NFKC')
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([compat.u_safe('ABC'),
+                           unistr([0xFF21, 0xFF22, 0xFF23]), # ＡＢＣ
+                           unistr([0xFF11, 0xFF12, 0xFF13]), # １２３
+                           np.nan,
+                           unistr([0xFF71, 0xFF72, 0xFF74])], # ｱｲｴ
+                          index=['a', 'b', 'c', 'd', 'e'])
+
+        result = s.str.normalize('NFC')
+        tm.assert_series_equal(result, expected)
+
+        with tm.assertRaisesRegexp(ValueError, "invalid normalization form"):
+            s.str.normalize('xxx')
+
+        s = Index([unistr([0xFF21, 0xFF22, 0xFF23]),  # ＡＢＣ
+                   unistr([0xFF11, 0xFF12, 0xFF13]),  # １２３
+                   unistr([0xFF71, 0xFF72, 0xFF74])]) # ｱｲｴ
+        expected = Index([compat.u_safe('ABC'),
+                          compat.u_safe('123'),
+                          unistr([0x30A2, 0x30A4, 0x30A8])])
+        result = s.str.normalize('NFKC')
+        tm.assert_index_equal(result, expected)
+
     def test_cat_on_filtered_index(self):
         df = DataFrame(index=MultiIndex.from_product([[2011, 2012], [1,2,3]],
                                                      names=['year', 'month']))
@@ -1565,6 +1897,68 @@ class TestStringMethods(tm.TestCase):
         str_multiple = str_year.str.cat([str_month, str_month], sep=' ')
 
         self.assertEqual(str_multiple.loc[1], '2011 2 2')
+
+
+    def test_index_str_accessor_visibility(self):
+        from pandas.core.strings import StringMethods
+
+        if not compat.PY3:
+            cases = [(['a', 'b'], 'string'),
+                     (['a', u('b')], 'mixed'),
+                     ([u('a'), u('b')], 'unicode'),
+                     (['a', 'b', 1], 'mixed-integer'),
+                     (['a', 'b', 1.3], 'mixed'),
+                     (['a', 'b', 1.3, 1], 'mixed-integer'),
+                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        else:
+            cases = [(['a', 'b'], 'string'),
+                     (['a', u('b')], 'string'),
+                     ([u('a'), u('b')], 'string'),
+                     (['a', 'b', 1], 'mixed-integer'),
+                     (['a', 'b', 1.3], 'mixed'),
+                     (['a', 'b', 1.3, 1], 'mixed-integer'),
+                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        for values, tp in cases:
+            idx = Index(values)
+            self.assertTrue(isinstance(Series(values).str, StringMethods))
+            self.assertTrue(isinstance(idx.str, StringMethods))
+            self.assertEqual(idx.inferred_type, tp)
+
+        for values, tp in cases:
+            idx = Index(values)
+            self.assertTrue(isinstance(Series(values).str, StringMethods))
+            self.assertTrue(isinstance(idx.str, StringMethods))
+            self.assertEqual(idx.inferred_type, tp)
+
+        cases = [([1, np.nan], 'floating'),
+                 ([datetime(2011, 1, 1)], 'datetime64'),
+                 ([timedelta(1)], 'timedelta64')]
+        for values, tp in cases:
+            idx = Index(values)
+            message = 'Can only use .str accessor with string values'
+            with self.assertRaisesRegexp(AttributeError, message):
+                Series(values).str
+            with self.assertRaisesRegexp(AttributeError, message):
+                idx.str
+            self.assertEqual(idx.inferred_type, tp)
+
+        # MultiIndex has mixed dtype, but not allow to use accessor
+        idx = MultiIndex.from_tuples([('a', 'b'), ('a', 'b')])
+        self.assertEqual(idx.inferred_type, 'mixed')
+        message = 'Can only use .str accessor with Index, not MultiIndex'
+        with self.assertRaisesRegexp(AttributeError, message):
+            idx.str
+
+    def test_method_on_bytes(self):
+        lhs = Series(np.array(list('abc'), 'S1').astype(object))
+        rhs = Series(np.array(list('def'), 'S1').astype(object))
+        if compat.PY3:
+            self.assertRaises(TypeError, lhs.str.cat, rhs)
+        else:
+            result = lhs.str.cat(rhs)
+            expected = Series(np.array(['ad', 'be', 'cf'],
+                                       'S2').astype(object))
+            tm.assert_series_equal(result, expected)
 
 
 if __name__ == '__main__':

@@ -83,7 +83,7 @@ class CheckNameIntegration(object):
         ok_for_period = ok_for_base + ['qyear']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
         ok_for_td_methods = ['components','to_pytimedelta']
 
@@ -165,6 +165,7 @@ class CheckNameIntegration(object):
         tm.assert_series_equal(s.dt.year,Series(np.array([2014,2014,2014],dtype='int64'),index=index))
         tm.assert_series_equal(s.dt.month,Series(np.array([2,2,2],dtype='int64'),index=index))
         tm.assert_series_equal(s.dt.second,Series(np.array([0,1,2],dtype='int64'),index=index))
+        tm.assert_series_equal(s.dt.normalize(), pd.Series([s[0]] * 3, index=index))
 
         # periodindex
         for s in [Series(period_range('20130101',periods=5,freq='D'))]:
@@ -241,6 +242,26 @@ class CheckNameIntegration(object):
                                        "only use .dt accessor"):
                 s.dt
             self.assertFalse(hasattr(s, 'dt'))
+
+    def test_tab_completion(self):
+        # GH 9910
+        s = Series(list('abcd'))
+        # Series of str values should have .str but not .dt/.cat in __dir__
+        self.assertTrue('str' in dir(s))
+        self.assertTrue('dt' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .dt
+        s = Series(date_range('1/1/2015', periods=5))
+        self.assertTrue('dt' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .cat
+        s = Series(list('abbcd'), dtype="category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' not in dir(s))
 
     def test_binop_maybe_preserve_name(self):
 
@@ -3662,6 +3683,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([999,999,np.nan],index=[0,1,2])
         assert_series_equal(result,expected)
 
+        # GH 9043
+        # make sure a string representation of int/float values can be filled
+        # correctly without raising errors or being converted
+        vals = ['0', '1.5', '-0.3']
+        for val in vals:
+            s = Series([0, 1, np.nan, np.nan, 4], dtype='float64')
+            result = s.fillna(val)
+            expected = Series([0, 1, val, val, 4], dtype='object')
+            assert_series_equal(result, expected)
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         filled = x.fillna(method='ffill')
@@ -5046,6 +5077,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertEqual(list(isnull(s)), list(isnull(l)))
             self.assertEqual(list(isnull(s)), list(isnull(u)))
 
+    def test_clip_against_series(self):
+        # GH #6966
+
+        s = Series([1.0, 1.0, 4.0])
+        threshold = Series([1.0, 2.0, 3.0])
+
+        assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
+        assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
+
+        lower = Series([1.0, 2.0, 3.0])
+        upper = Series([1.5, 2.5, 3.5])
+        assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
+        assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
+
     def test_valid(self):
         ts = self.ts.copy()
         ts[::2] = np.NaN
@@ -5382,7 +5427,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_getitem_setitem_datetime_tz_dateutil(self):
         tm._skip_if_no_dateutil();
         from dateutil.tz import tzutc
-        from dateutil.zoneinfo import gettz
+        from pandas.tslib import _dateutil_gettz as gettz
+
         tz = lambda x: tzutc() if x == 'UTC' else gettz(x)  # handle special case for utc in dateutil
 
         from pandas import date_range
@@ -5915,6 +5961,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             assert_series_equal(aa, ea)
             assert_series_equal(ab, eb)
+            self.assertEqual(aa.name, 'ts')
+            self.assertEqual(ea.name, 'ts')
+            self.assertEqual(ab.name, 'ts')
+            self.assertEqual(eb.name, 'ts')
 
         for kind in JOIN_TYPES:
             _check_align(self.ts[2:], self.ts[:-5], how=kind)
@@ -5922,12 +5972,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             # empty left
             _check_align(self.ts[:0], self.ts[:-5], how=kind)
+            _check_align(self.ts[:0], self.ts[:-5], how=kind, fill=-1)
 
             # empty right
             _check_align(self.ts[:-5], self.ts[:0], how=kind)
+            _check_align(self.ts[:-5], self.ts[:0], how=kind, fill=-1)
 
             # both empty
             _check_align(self.ts[:0], self.ts[:0], how=kind)
+            _check_align(self.ts[:0], self.ts[:0], how=kind, fill=-1)
 
     def test_align_fill_method(self):
         def _check_align(a, b, how='left', method='pad', limit=None):
@@ -6880,6 +6933,22 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         e = np.array([0, 2])
         tm.assert_array_equal(r, e)
 
+    def test_to_frame_expanddim(self):
+        # GH 9762
+
+        class SubclassedSeries(Series):
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedFrame
+
+        class SubclassedFrame(DataFrame):
+            pass
+
+        s = SubclassedSeries([1, 2, 3], name='X')
+        result = s.to_frame()
+        self.assertTrue(isinstance(result, SubclassedFrame))
+        expected = SubclassedFrame({'X': [1, 2, 3]})
+        assert_frame_equal(result, expected)
 
 
 class TestSeriesNonUnique(tm.TestCase):

@@ -1256,10 +1256,14 @@ class _TestSQLAlchemy(PandasSQLTest):
         self._transaction_test()
 
     def test_get_schema_create_table(self):
-        self._load_test2_data()
+        # Use a dataframe without a bool column, since MySQL converts bool to 
+        # TINYINT (which read_sql_table returns as an int and causes a dtype
+        # mismatch)
+
+        self._load_test3_data()
         tbl = 'test_get_schema_create_table'
-        create_sql = sql.get_schema(self.test_frame2, tbl, con=self.conn)
-        blank_test_df = self.test_frame2.iloc[:0]
+        create_sql = sql.get_schema(self.test_frame3, tbl, con=self.conn)
+        blank_test_df = self.test_frame3.iloc[:0]
 
         self.drop_table(tbl)
         self.conn.execute(create_sql)
@@ -1323,19 +1327,19 @@ class _TestSQLAlchemy(PandasSQLTest):
                         'i64':Series([5,], dtype='int64'),
                         })
 
-        df.to_sql('test_dtypes', self.conn, index=False, if_exists='replace', 
+        df.to_sql('test_dtypes', self.conn, index=False, if_exists='replace',
             dtype={'f64_as_f32':sqlalchemy.Float(precision=23)})
         res = sql.read_sql_table('test_dtypes', self.conn)
-        
+
         # check precision of float64
-        self.assertEqual(np.round(df['f64'].iloc[0],14), 
+        self.assertEqual(np.round(df['f64'].iloc[0],14),
                          np.round(res['f64'].iloc[0],14))
 
         # check sql types
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
         meta.reflect()
         col_dict = meta.tables['test_dtypes'].columns
-        self.assertEqual(str(col_dict['f32'].type), 
+        self.assertEqual(str(col_dict['f32'].type),
                          str(col_dict['f64_as_f32'].type))
         self.assertTrue(isinstance(col_dict['f32'].type, sqltypes.Float))
         self.assertTrue(isinstance(col_dict['f64'].type, sqltypes.Float))
@@ -1729,11 +1733,11 @@ class TestSQLiteFallback(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
 
         # Raise error on blank
-        self.assertRaises(ValueError, df.to_sql, "", self.conn, 
+        self.assertRaises(ValueError, df.to_sql, "", self.conn,
             flavor=self.flavor)
 
         for ndx, weird_name in enumerate(['test_weird_name]','test_weird_name[',
-            'test_weird_name`','test_weird_name"', 'test_weird_name\'', 
+            'test_weird_name`','test_weird_name"', 'test_weird_name\'',
             '_b.test_weird_name_01-30', '"_b.test_weird_name_01-30"']):
             df.to_sql(weird_name, self.conn, flavor=self.flavor)
             sql.table_exists(weird_name, self.conn)
@@ -1839,12 +1843,12 @@ class TestMySQLLegacy(TestSQLiteFallback):
         for ndx, illegal_name in enumerate(['test_illegal_name]','test_illegal_name[',
             'test_illegal_name`','test_illegal_name"', 'test_illegal_name\'', '']):
             df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
-            self.assertRaises(ValueError, df.to_sql, illegal_name, self.conn, 
+            self.assertRaises(ValueError, df.to_sql, illegal_name, self.conn,
                 flavor=self.flavor, index=False)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=['a', illegal_name])
             c_tbl = 'test_illegal_col_name%d'%ndx
-            self.assertRaises(ValueError, df2.to_sql, 'test_illegal_col_name', 
+            self.assertRaises(ValueError, df2.to_sql, 'test_illegal_col_name',
                 self.conn, flavor=self.flavor, index=False)
 
 
@@ -2021,7 +2025,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         sql.write_frame(frame, name='test_table', con=self.db)
         result = sql.tquery("select A from test_table", self.db)
-        expected = frame.A
+        expected = Series(frame.A, frame.index) # not to have name
         result = Series(result, frame.index)
         tm.assert_series_equal(result, expected)
 
@@ -2191,6 +2195,13 @@ class TestXMySQL(tm.TestCase):
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
+    def tearDown(self):
+        from pymysql.err import Error
+        try:
+            self.db.close()
+        except Error:
+            pass
+
     def test_basic(self):
         _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
@@ -2359,7 +2370,7 @@ class TestXMySQL(tm.TestCase):
         cur.execute(drop_sql)
         sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
         result = sql.tquery("select A from test_table", self.db)
-        expected = frame.A
+        expected = Series(frame.A, frame.index) # not to have name
         result = Series(result, frame.index)
         tm.assert_series_equal(result, expected)
 

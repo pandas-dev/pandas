@@ -1,0 +1,93 @@
+.. _whatsnew_0170:
+
+v0.17.0 (July ??, 2015)
+-----------------------
+
+This is a major release from 0.16.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+
+Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
+
+.. contents:: What's new in v0.17.0
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0170.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0170.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.api:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0170.api_breaking:
+
+.. _whatsnew_0170.api_breaking.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+.. _whatsnew_0170.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0170.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved ``Series.resample`` performance with dtype=datetime64[ns] (:issue:`7754`)
+
+.. _whatsnew_0170.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- Bug where read_hdf store.select modifies the passed columns list when
+  multi-indexed (:issue:`7212`)
+- Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
+
+
+- Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
+- Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
+- Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
+- Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
+
+
+- Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
+- Bug in display datetimes with mixed frequencies uniformly; display 'ms' datetimes to the proper precision. (:issue:`10170`)
+
+
+
+- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+
+
+- Bug in `Series.plot(label="LABEL")` not correctly setting the label (:issue:`10119`)
+
+- Bug in `plot` not defaulting to matplotlib `axes.grid` setting (:issue:`9792`)
+
+- Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)
+
+
+
+- Bug in GroupBy.get_group raises ValueError when group key contains NaT (:issue:`6992`)
+
+
+- Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)

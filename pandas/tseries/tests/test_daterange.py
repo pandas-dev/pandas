@@ -441,7 +441,7 @@ class TestDateRange(tm.TestCase):
     def test_month_range_union_tz_dateutil(self):
         _skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        from dateutil.zoneinfo import gettz as timezone
+        from pandas.tslib import _dateutil_gettz as timezone
         tz = timezone('US/Eastern')
 
         early_start = datetime(2011, 1, 1)
