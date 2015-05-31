@@ -121,6 +121,9 @@ class SparseSeries(Series):
             if data is None:
                 data = []
 
+            if isinstance(data, Series) and name is None:
+                name = data.name
+
             is_sparse_array = isinstance(data, SparseArray)
             if fill_value is None:
                 if is_sparse_array:
