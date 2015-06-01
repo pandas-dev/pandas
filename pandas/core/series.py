@@ -2003,7 +2003,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         result.index = result.index.reorder_levels(order)
         return result
 
-    def unstack(self, level=-1):
+    def unstack(self, level=-1, fill_value=None):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
         The level involved will automatically get sorted.
@@ -2012,6 +2012,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         ----------
         level : int, string, or list of these, default last level
             Level(s) to unstack, can pass level name
+        fill_value : replace NaN with this value if the unstack produces
+            missing values
+
+            .. versionadded: 0.18.0
 
         Examples
         --------
@@ -2036,7 +2040,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         unstacked : DataFrame
         """
         from pandas.core.reshape import unstack
-        return unstack(self, level)
+        return unstack(self, level, fill_value)
 
     # ----------------------------------------------------------------------
     # function application

@@ -431,6 +431,10 @@ Other API Changes
 
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 
+- ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of
+  missing values when an unstack results in missing values in the resulting ``DataFrame``.  As an added benefit,
+  specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
+
 .. _whatsnew_0180.deprecations:
 
 Deprecations
