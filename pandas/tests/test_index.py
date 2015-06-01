@@ -87,6 +87,83 @@ class Base(object):
                               'cannot perform any',
                               lambda : idx.any())
 
+
+    def compare_naming(self, equal_values, disjunct_values, intersect_values, func_name='union'):
+        '''
+            given arrays of values checks whether the function specified
+            keeps the naming convention
+
+            euqual_values : values to be used for equal comparison of func_name
+            disjunct_values : values to be used for disjunct comparison of func_name
+            intersect_values : values to be used for intersect comparison of func_name
+
+            func_name : either union, append, intersection
+        '''
+
+        idx_name_a = self.create_index(content=equal_values, name='a')
+        if isinstance(idx_name_a, CategoricalIndex):
+            return
+        idx_name_a_function = getattr(idx_name_a, func_name)
+
+        equal_idx_name_a = self.create_index(content=equal_values, name='a')
+        equal_idx_name_b = self.create_index(content=equal_values, name='b')
+        equal_idx_name_none = self.create_index(content=equal_values, name=None)
+        equal_numpy_array = np.array(equal_values)
+
+        empty_idx_name_a = self.create_index(content=[], name='a')
+        empty_idx_name_b = self.create_index(content=[], name='b')
+        empty_idx_name_none = self.create_index(content=[], name=None)
+        empty_numpy_array = np.array([])
+
+        disjunct_idx_name_a = self.create_index(content=disjunct_values, name='a')
+        disjunct_idx_name_b = self.create_index(content=disjunct_values, name='b')
+        disjunct_idx_name_none = self.create_index(content=disjunct_values, name=None)
+        disjunct_numpy_array = np.array(disjunct_values)
+
+        intersect_idx_name_a = self.create_index(content=intersect_values, name='a')
+        intersect_idx_name_b = self.create_index(content=intersect_values, name='b')
+        intersect_idx_name_none = self.create_index(content=intersect_values, name=None)
+        intersect_numpy_array = np.array(intersect_values)
+
+        ### python arrays need a transpose for append operation
+        equal_python_array = equal_values
+        empty_python_array = []
+        disjunct_python_array = disjunct_values
+        intersect_python_array = intersect_values
+        if func_name == 'append':
+            equal_python_array = np.array(np.matrix(equal_python_array).T).tolist()
+            empty_python_array = [[]]
+            disjunct_python_array = np.array(np.matrix(disjunct_python_array).T).tolist()
+            intersect_python_array = np.array(np.matrix(intersect_python_array).T).tolist()
+
+        #index union naming behavior in equal contents
+        self.assertEqual(idx_name_a_function(equal_idx_name_a).name, idx_name_a.name)
+        self.assertTrue(idx_name_a_function(equal_idx_name_b).name is None)
+        self.assertEqual(idx_name_a_function(equal_idx_name_none).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(equal_python_array).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(equal_numpy_array).name, idx_name_a.name)
+
+        #index union naming behavior in empty second index
+        self.assertEqual(idx_name_a_function(empty_idx_name_a).name, idx_name_a.name)
+        self.assertTrue(idx_name_a_function(empty_idx_name_b).name is None)
+        self.assertEqual(idx_name_a_function(empty_idx_name_none).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(empty_python_array).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(empty_numpy_array).name, idx_name_a.name)
+
+        #index union naming behavior with disjunct contents
+        self.assertEqual(idx_name_a_function(disjunct_idx_name_a).name, idx_name_a.name)
+        self.assertTrue(idx_name_a_function(disjunct_idx_name_b).name is None)
+        self.assertEqual(idx_name_a_function(disjunct_idx_name_none).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(disjunct_python_array).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(disjunct_numpy_array).name, idx_name_a.name)
+
+        #index union naming behavior with intersecting content
+        self.assertEqual(idx_name_a_function(intersect_idx_name_a).name, idx_name_a.name)
+        self.assertTrue(idx_name_a_function(intersect_idx_name_b).name is None)
+        self.assertEqual(idx_name_a_function(intersect_idx_name_none).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(intersect_python_array).name, idx_name_a.name)
+        self.assertEqual(idx_name_a_function(intersect_numpy_array).name, idx_name_a.name)
+
     def test_boolean_context_compat(self):
 
         # boolean context compat
@@ -272,8 +349,10 @@ class TestIndex(Base, tm.TestCase):
         )
         self.setup_indices()
 
-    def create_index(self):
-        return Index(list('abcde'))
+    def create_index(self, content=None, name=None):
+        if content is None:
+            content=list('abcde')
+        return Index(content, name=name)
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -313,6 +392,27 @@ class TestIndex(Base, tm.TestCase):
     def test_constructor_corner(self):
         # corner case
         self.assertRaises(TypeError, Index, 0)
+
+    def test_union_naming_behavior(self):
+        #9965
+        self.compare_naming([1,2,3],[4,5,6],[2,5,6], func_name='union')
+        self.compare_naming(['1','2','3'],['4','5','6'],['2','5','6'], func_name='union')
+        self.compare_naming([1,'2',3],[4,'5','6'],[2,3,6], func_name='union')
+        self.compare_naming([1.,2.,3.],[4.,5.,6.],[2.,3.,6.], func_name='union')
+
+    def test_intersection_naming_behavior(self):
+        #9965
+        self.compare_naming([1,2,3],[4,5,6],[2,5,6], func_name='intersection')
+        self.compare_naming(['1','2','3'],['4','5','6'],['2','5','6'], func_name='intersection')
+        self.compare_naming([1,'2',3],[4,'5','6'],[2,3,6], func_name='intersection')
+        self.compare_naming([1.,2.,3.],[4.,5.,6.],[2.,3.,6.], func_name='intersection')
+
+    def test_append_naming_behavior(self):
+        #9965
+        self.compare_naming([1,2,3],[4,5,6],[2,5,6], func_name='append')
+        self.compare_naming(['1','2','3'],['4','5','6'],['2','5','6'], func_name='append')
+        self.compare_naming([1,'2',3],[4,'5','6'],[2,3,6], func_name='append')
+        self.compare_naming([1.,2.,3.],[4.,5.,6.],[2.,3.,6.], func_name='append')
 
     def test_constructor_from_series(self):
 
@@ -616,6 +716,19 @@ class TestIndex(Base, tm.TestCase):
         shifted.name = 'shifted'
         self.assertEqual(shifted.name, shifted.shift(1, 'D').name)
 
+    def test_intersection_preserves_name(self):
+        #GH 9943
+        df = pd.DataFrame([np.nan, np.nan], columns=['tags'],
+                          index=pd.Int64Index([4815961, 4815962], dtype='int64', name='id'))
+        self.assertEqual(str(df), '         tags\nid           \n4815961   NaN\n4815962   NaN')
+        L = [4815962]
+        intersection = df.index.intersection(L)
+        self.assertEqual(list(L), list(intersection))
+        ixdfl = df.ix[L];
+        ixdfinter = df.ix[intersection]
+        self.assertEqual(ixdfl.tags.index.name, ixdfinter.tags.index.name)
+        self.assertEqual(ixdfl.index.name, ixdfinter.index.name)
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -679,6 +792,7 @@ class TestIndex(Base, tm.TestCase):
         self.assertIs(union, first)
 
         union = Index([]).union(first)
+        #FIXME: Union asserts that empty union returns the second index, this is not documented bug? feature?
         self.assertIs(union, first)
 
         # non-iterable input
@@ -693,6 +807,10 @@ class TestIndex(Base, tm.TestCase):
         second.name = 'B'
         union = first.union(second)
         self.assertIsNone(union.name)
+
+        #union array-like
+        union = first.union([1234])
+        self.assertEqual('A', union.name)
 
     def test_add(self):
 
@@ -1430,10 +1548,14 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.indices = dict(catIndex = tm.makeCategoricalIndex(100))
         self.setup_indices()
 
-    def create_index(self, categories=None, ordered=False):
+    def create_index(self, content=None, categories=None, ordered=False, name=None):
         if categories is None:
             categories = list('cab')
-        return CategoricalIndex(list('aabbca'), categories=categories, ordered=ordered)
+
+        if content is None:
+            content = list('aabbca')
+
+        return CategoricalIndex(content, categories=categories, ordered=ordered, name=name)
 
     def test_construction(self):
 
@@ -1887,8 +2009,10 @@ class TestFloat64Index(Numeric, tm.TestCase):
                             float = Float64Index(np.arange(5) * 2.5))
         self.setup_indices()
 
-    def create_index(self):
-        return Float64Index(np.arange(5,dtype='float64'))
+    def create_index(self, content=None, name=None):
+        if content is None:
+            content = np.arange(5, dtype='float64')
+        return Float64Index(content, name=name)
 
     def test_repr_roundtrip(self):
         for ind in (self.mixed, self.float):
@@ -2058,8 +2182,10 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.indices = dict(index = Int64Index(np.arange(0, 20, 2)))
         self.setup_indices()
 
-    def create_index(self):
-        return Int64Index(np.arange(5,dtype='int64'))
+    def create_index(self, content=None, name=None):
+        if content is None:
+            content =np.arange(5,dtype='int64')
+        return Int64Index(content, name=name)
 
     def test_too_many_names(self):
         def testit():
@@ -2548,8 +2674,10 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.indices = dict(index = tm.makeDateIndex(10))
         self.setup_indices()
 
-    def create_index(self):
-        return date_range('20130101',periods=5)
+    def create_index(self, content=None, name=None):
+        if content is None:
+            content = '20130101'
+        return date_range(content, periods=5, name=name)
 
     def test_pickle_compat_construction(self):
         pass
@@ -4606,6 +4734,7 @@ class TestMultiIndex(Base, tm.TestCase):
                                'y': [2, 2, 8],
                                'z': [-5, 0, 5]})
         result = result.set_index('z')
+        #FIXME: loc seems to use append which resets the index name
         result.loc[10] = [9, 10]
         df_expected = pd.DataFrame({'x': [1, 2, 6, 9],
                                     'y': [2, 2, 8, 10],

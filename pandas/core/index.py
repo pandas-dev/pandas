@@ -21,7 +21,7 @@ import pandas.core.common as com
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
                                 ABCSeries, ABCCategorical, _ensure_object, _ensure_int64, is_bool_indexer,
-                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
+                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype, _maybe_match_name)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -1088,7 +1088,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         list of to_concat, name of result Index
         """
-        name = self.name
         to_concat = [self]
 
         if isinstance(other, (list, tuple)):
@@ -1097,16 +1096,13 @@ class Index(IndexOpsMixin, PandasObject):
             to_concat.append(other)
 
         for obj in to_concat:
-            if (isinstance(obj, Index) and
-                obj.name != name and
-                obj.name is not None):
-                name = None
-                break
+            result_name = _maybe_match_name(self, obj)
+            self.name = result_name
 
         to_concat = self._ensure_compat_concat(to_concat)
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
-        return to_concat, name
+        return to_concat, result_name
 
     def append(self, other):
         """
@@ -1367,15 +1363,21 @@ class Index(IndexOpsMixin, PandasObject):
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable.')
 
+        result_name = _maybe_match_name(self, other)
+
         if len(other) == 0 or self.equals(other):
+            self.name = result_name
             return self
 
+        other = _ensure_index(other, copy=True)
         if len(self) == 0:
-            return _ensure_index(other)
+            other.name = result_name
+            return other
 
         self._assert_can_do_setop(other)
 
-        if not is_dtype_equal(self.dtype,other.dtype):
+        #FIXME: right now crashes if we union with python array
+        if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.union(other)
@@ -1420,10 +1422,9 @@ class Index(IndexOpsMixin, PandasObject):
                                   "incomparable objects" % e, RuntimeWarning)
 
         # for subclasses
-        return self._wrap_union_result(other, result)
+        return self._wrap_union_result(other, result, result_name)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+    def _wrap_union_result(self, other, result, name=None):
         return self.__class__(data=result, name=name)
 
     def intersection(self, other):
@@ -1444,9 +1445,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         self._assert_can_do_setop(other)
 
+        result_name = _maybe_match_name(self, other)
+
         other = _ensure_index(other)
 
         if self.equals(other):
+            self.name = result_name
             return self
 
         if not is_dtype_equal(self.dtype,other.dtype):
@@ -1457,7 +1461,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(self.values, other.values)[0]
-                return self._wrap_union_result(other, result)
+                return self._wrap_union_result(other, result, result_name)
             except TypeError:
                 pass
 
@@ -1470,8 +1474,8 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = self.take(indexer)
-        if self.name != other.name:
-            taken.name = None
+        taken.name = result_name
+
         return taken
 
     def difference(self, other):
@@ -1496,14 +1500,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable!')
 
+        result_name = _maybe_match_name(self, other)
         if self.equals(other):
-            return Index([], name=self.name)
+            return Index([], name=result_name)
 
         if not isinstance(other, Index):
             other = np.asarray(other)
-            result_name = self.name
-        else:
-            result_name = self.name if self.name == other.name else None
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
@@ -1548,9 +1550,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable!')
 
+        if result_name is None:
+            result_name = _maybe_match_name(self, other)
+
         if not isinstance(other, Index):
             other = Index(other)
-            result_name = result_name or self.name
 
         the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
         return Index(the_diff, name=result_name)
@@ -2861,6 +2865,7 @@ class CategoricalIndex(Index, PandasDelegate):
             ordered = self.ordered
         if name is None:
             name = self.name
+
         cat = Categorical.from_codes(codes, categories=categories, ordered=self.ordered)
         return CategoricalIndex(cat, name=name)
 
@@ -3241,7 +3246,10 @@ class CategoricalIndex(Index, PandasDelegate):
         to_concat, name = self._ensure_compat_append(other)
         to_concat = [ self._is_dtype_compat(c) for c in to_concat ]
         codes = np.concatenate([ c.codes for c in to_concat ])
-        return self._create_from_codes(codes, name=name)
+        new_index = self._create_from_codes(codes, name=name)
+        #if name should be set to None the create_from_codes method overrides that
+        new_index.name = name
+        return new_index
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -4401,7 +4409,6 @@ class MultiIndex(Index):
                                   of iterables
         """
         from pandas.core.categorical import Categorical
-
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
@@ -4411,7 +4418,6 @@ class MultiIndex(Index):
         labels = [c.codes for c in cats]
         if names is None:
             names = [c.name for c in cats]
-
         return MultiIndex(levels=levels, labels=labels,
                           sortorder=sortorder, names=names,
                           verify_integrity=False)
@@ -5461,10 +5467,11 @@ class MultiIndex(Index):
         """
         self._assert_can_do_setop(other)
 
-        if len(other) == 0 or self.equals(other):
-            return self
+        result_names = self.names if hasattr(other,'names') and self.names == other.names else []
 
-        result_names = self.names if self.names == other.names else None
+        if len(other) == 0 or self.equals(other):
+            self.names = result_names
+            return self
 
         uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
@@ -5487,7 +5494,9 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        result_names = self.names if self.names == other.names else None
+        result_names = None
+        if self.names == other.names or other.names is None:
+            result_names = self.names
 
         self_tuples = self.values
         other_tuples = other.values
@@ -5520,7 +5529,9 @@ class MultiIndex(Index):
                                 ' tuples')
             result_names = self.names
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = None
+            if self.names == other.names or other.names is None:
+                result_names = self.names
 
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
@@ -5615,7 +5626,9 @@ class MultiIndex(Index):
         return self.__bounds
 
     def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
+        names = None
+        if self.names == other.names or other.names is None:
+            names = self.names
         return MultiIndex.from_tuples(joined, names=names)
 
     @Appender(Index.isin.__doc__)
