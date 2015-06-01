@@ -3851,7 +3851,7 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
-    def unstack(self, level=-1):
+    def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
         a DataFrame having a new level of column labels whose inner-most level
@@ -3864,6 +3864,10 @@ class DataFrame(NDFrame):
         ----------
         level : int, string, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
+        fill_value : replace NaN with this value if the unstack produces
+            missing values
+
+            .. versionadded: 0.18.0
 
         See also
         --------
@@ -3905,7 +3909,7 @@ class DataFrame(NDFrame):
         unstacked : DataFrame or Series
         """
         from pandas.core.reshape import unstack
-        return unstack(self, level)
+        return unstack(self, level, fill_value)
 
     # ----------------------------------------------------------------------
     # Time series-related

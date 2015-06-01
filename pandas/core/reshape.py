@@ -60,7 +60,8 @@ class _Unstacker(object):
     unstacked : DataFrame
     """
 
-    def __init__(self, values, index, level=-1, value_columns=None):
+    def __init__(self, values, index, level=-1, value_columns=None,
+                 fill_value=None):
 
         self.is_categorical = None
         if values.ndim == 1:
@@ -70,6 +71,7 @@ class _Unstacker(object):
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
+        self.fill_value = fill_value
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
@@ -178,7 +180,7 @@ class _Unstacker(object):
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
         else:
-            dtype, fill_value = _maybe_promote(values.dtype)
+            dtype, fill_value = _maybe_promote(values.dtype, self.fill_value)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
 
@@ -389,21 +391,22 @@ def _slow_pivot(index, columns, values):
     return DataFrame(tree)
 
 
-def unstack(obj, level):
+def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
         return _unstack_multiple(obj, level)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level)
+            return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
     else:
-        unstacker = _Unstacker(obj.values, obj.index, level=level)
+        unstacker = _Unstacker(obj.values, obj.index, level=level,
+                               fill_value=fill_value)
         return unstacker.get_result()
 
 
-def _unstack_frame(obj, level):
+def _unstack_frame(obj, level, fill_value=None):
     from pandas.core.internals import BlockManager, make_block
 
     if obj._is_mixed_type:
@@ -419,7 +422,8 @@ def _unstack_frame(obj, level):
         for blk in obj._data.blocks:
             blk_items = obj._data.items[blk.mgr_locs.indexer]
             bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
-                                    value_columns=blk_items)
+                                    value_columns=blk_items,
+                                    fill_value=fill_value)
             new_items = bunstacker.get_new_columns()
             new_placement = new_columns.get_indexer(new_items)
             new_values, mask = bunstacker.get_new_values()
@@ -435,7 +439,8 @@ def _unstack_frame(obj, level):
         return result.ix[:, mask_frame.sum(0) > 0]
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
-                               value_columns=obj.columns)
+                               value_columns=obj.columns,
+                               fill_value=fill_value)
         return unstacker.get_result()
 
 

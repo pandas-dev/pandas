@@ -228,6 +228,27 @@ which level in the columns to stack:
    df2.stack('exp')
    df2.stack('animal')
 
+Unstacking can result in missing values if subgroups do not have the same
+set of labels.  By default, missing values will be replaced with the default
+fill value for that data type, ``NaN`` for float, ``NaT`` for datetimelike,
+etc.  For integer types, by default data will converted to float and missing
+values will be set to ``NaN``.
+
+.. ipython:: python
+
+   df3 = df.iloc[[0, 1, 4, 7], [1, 2]]
+   df3
+   df3.unstack()
+
+.. versionadded: 0.18.0
+
+Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
+the value of missing data.
+
+.. ipython:: python
+
+   df3.unstack(fill_value=-1e9)
+
 With a MultiIndex
 ~~~~~~~~~~~~~~~~~
 
