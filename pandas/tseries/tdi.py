@@ -436,12 +436,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         y : Index or TimedeltaIndex
         """
-        if _is_convertible_to_index(other):
+        self._assert_can_do_setop(other)
+        if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)
-            except TypeError:
+            except (TypeError, ValueError):
                 pass
-
         this, other = self, other
 
         if this._can_fast_union(other):
@@ -581,6 +581,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         y : Index or TimedeltaIndex
         """
+        self._assert_can_do_setop(other)
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)

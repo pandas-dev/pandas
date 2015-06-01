@@ -804,6 +804,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         y : Index or DatetimeIndex
         """
+        self._assert_can_do_setop(other)
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
@@ -1039,6 +1040,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         y : Index or DatetimeIndex
         """
+        self._assert_can_do_setop(other)
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
