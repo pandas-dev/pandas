@@ -3310,10 +3310,12 @@ def test_float_formatting():
     np.random.seed(0)
     df = pd.DataFrame(dict(a=np.random.randn(10)))
     sio = StringIO()
-    df.to_csv(sio, index=False)
-    raw = np.array([float(x.split(',')[0])
-                    for x in sio.getvalue().splitlines()[1:]])
-    np.testing.assert_array_equal(df.a.values, raw)
+    df.to_csv(sio, index=False, header=False)
+    raw = np.array([float(x) for x in sio.getvalue().splitlines()])
+    if sys.version_info[:2] == (2, 6):
+        np.testing.assert_array_almost_equal(df.a.values, raw)
+    else:
+        np.testing.assert_array_equal(df.a.values, raw)
 
 
 if __name__ == '__main__':
