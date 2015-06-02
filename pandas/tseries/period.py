@@ -589,9 +589,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         shifted : PeriodIndex
         """
-        mask = self.values == tslib.iNaT
         values = self.values + n * self.freq.n
-        values[mask] = tslib.iNaT
+        if self.hasnans:
+            values[self._isnan] = tslib.iNaT
         return PeriodIndex(data=values, name=self.name, freq=self.freq)
 
     @cache_readonly
