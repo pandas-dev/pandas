@@ -51,9 +51,8 @@ def _td_index_cmp(opname, nat_result=False):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        mask = self.asi8 == tslib.iNaT
-        if mask.any():
-            result[mask] = nat_result
+        if self.hasnans:
+            result[self._isnan] = nat_result
 
         # support of bool dtype indexers
         if com.is_bool_dtype(result):
@@ -334,7 +333,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         hasnans = self.hasnans
         if hasnans:
             result = np.empty(len(self), dtype='float64')
-            mask = values == tslib.iNaT
+            mask = self._isnan
             imask = ~mask
             result.flat[imask] = np.array([ getattr(Timedelta(val),m) for val in values[imask] ])
             result[mask] = np.nan

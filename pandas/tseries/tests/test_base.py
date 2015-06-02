@@ -124,6 +124,8 @@ class TestDatetimeIndexOps(Ops):
             for idx in [idx1, idx2]:
                 self.assertEqual(idx.min(), pd.Timestamp('2011-01-01', tz=tz))
                 self.assertEqual(idx.max(), pd.Timestamp('2011-01-03', tz=tz))
+                self.assertEqual(idx.argmin(), 0)
+                self.assertEqual(idx.argmax(), 2)
 
         for op in ['min', 'max']:
             # Return NaT
@@ -579,6 +581,8 @@ class TestTimedeltaIndexOps(Ops):
         for idx in [idx1, idx2]:
             self.assertEqual(idx.min(), Timedelta('1 days')),
             self.assertEqual(idx.max(), Timedelta('3 days')),
+            self.assertEqual(idx.argmin(), 0)
+            self.assertEqual(idx.argmax(), 2)
 
         for op in ['min', 'max']:
             # Return NaT
@@ -1209,6 +1213,10 @@ class TestPeriodIndexOps(Ops):
         for idx in [idx1, idx2]:
             self.assertEqual(idx.min(), pd.Period('2011-01-01', freq='D'))
             self.assertEqual(idx.max(), pd.Period('2011-01-03', freq='D'))
+        self.assertEqual(idx1.argmin(), 1)
+        self.assertEqual(idx2.argmin(), 0)
+        self.assertEqual(idx1.argmax(), 3)
+        self.assertEqual(idx2.argmax(), 2)
 
         for op in ['min', 'max']:
             # Return NaT

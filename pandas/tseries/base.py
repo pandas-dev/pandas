@@ -281,12 +281,11 @@ class DatetimeIndexOpsMixin(object):
         """
 
         if self.hasnans:
-            mask = self.asi8 == tslib.iNaT
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
                 fill_value = np.nan
-            result[mask] = fill_value
+            result[self._isnan] = fill_value
         return result
 
     def tolist(self):
@@ -312,8 +311,7 @@ class DatetimeIndexOpsMixin(object):
                     return self._box_func(i8[0])
 
             if self.hasnans:
-                mask = i8 == tslib.iNaT
-                min_stamp = i8[~mask].min()
+                min_stamp = self[~self._isnan].asi8.min()
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
@@ -331,7 +329,7 @@ class DatetimeIndexOpsMixin(object):
 
         i8 = self.asi8
         if self.hasnans:
-            mask = i8 == tslib.iNaT
+            mask = self._isnan
             if mask.all():
                 return -1
             i8 = i8.copy()
@@ -355,8 +353,7 @@ class DatetimeIndexOpsMixin(object):
                     return self._box_func(i8[-1])
 
             if self.hasnans:
-                mask = i8 == tslib.iNaT
-                max_stamp = i8[~mask].max()
+                max_stamp = self[~self._isnan].asi8.max()
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
@@ -374,7 +371,7 @@ class DatetimeIndexOpsMixin(object):
 
         i8 = self.asi8
         if self.hasnans:
-            mask = i8 == tslib.iNaT
+            mask = self._isnan
             if mask.all():
                 return -1
             i8 = i8.copy()
@@ -498,9 +495,9 @@ class DatetimeIndexOpsMixin(object):
         # return the i8 result view
 
         inc = tslib._delta_to_nanoseconds(other)
-        mask = self.asi8 == tslib.iNaT
         new_values = (self.asi8 + inc).view('i8')
-        new_values[mask] = tslib.iNaT
+        if self.hasnans:
+            new_values[self._isnan] = tslib.iNaT
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
@@ -513,9 +510,10 @@ class DatetimeIndexOpsMixin(object):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        mask = (self_i8 == tslib.iNaT) | (other_i8 == tslib.iNaT)
         new_values = self_i8 + other_i8
-        new_values[mask] = tslib.iNaT
+        if self.hasnans or other.hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = tslib.iNaT
         return new_values.view(self.dtype)
 
     def isin(self, values):

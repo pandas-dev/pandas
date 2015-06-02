@@ -93,9 +93,8 @@ def _dt_index_cmp(opname, nat_result=False):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        mask = self.asi8 == tslib.iNaT
-        if mask.any():
-            result[mask] = nat_result
+        if self.hasnans:
+            result[self._isnan] = nat_result
 
         # support of bool dtype indexers
         if com.is_bool_dtype(result):
