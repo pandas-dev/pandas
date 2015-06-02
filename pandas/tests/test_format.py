@@ -2451,14 +2451,24 @@ $1$,$2$
 
     def test_to_csv_date_format(self):
         # GH 10209
-        df = DataFrame({'A' : pd.date_range('20130101',periods=5,freq='s')})
+        df_sec = DataFrame({'A': pd.date_range('20130101',periods=5,freq='s')})
+        df_day = DataFrame({'A': pd.date_range('20130101',periods=5,freq='d')})
 
-        expected_default = ',A\n0,2013-01-01 00:00:00\n1,2013-01-01 00:00:01\n2,2013-01-01 00:00:02' + \
-                           '\n3,2013-01-01 00:00:03\n4,2013-01-01 00:00:04\n'
-        self.assertEqual(df.to_csv(), expected_default)
+        expected_default_sec = ',A\n0,2013-01-01 00:00:00\n1,2013-01-01 00:00:01\n2,2013-01-01 00:00:02' + \
+                               '\n3,2013-01-01 00:00:03\n4,2013-01-01 00:00:04\n'
+        self.assertEqual(df_sec.to_csv(), expected_default_sec)
 
-        expected_ymd = ',A\n0,2013-01-01\n1,2013-01-01\n2,2013-01-01\n3,2013-01-01\n4,2013-01-01\n'
-        self.assertEqual(df.to_csv(date_format='%Y-%m-%d'), expected_ymd)
+        expected_ymdhms_day = ',A\n0,2013-01-01 00:00:00\n1,2013-01-02 00:00:00\n2,2013-01-03 00:00:00' + \
+                              '\n3,2013-01-04 00:00:00\n4,2013-01-05 00:00:00\n'
+        self.assertEqual(df_day.to_csv(date_format='%Y-%m-%d %H:%M:%S'), expected_ymdhms_day)
+
+        expected_ymd_sec = ',A\n0,2013-01-01\n1,2013-01-01\n2,2013-01-01\n3,2013-01-01\n4,2013-01-01\n'
+        self.assertEqual(df_sec.to_csv(date_format='%Y-%m-%d'), expected_ymd_sec)
+
+        expected_default_day = ',A\n0,2013-01-01\n1,2013-01-02\n2,2013-01-03\n3,2013-01-04\n4,2013-01-05\n'
+        self.assertEqual(df_day.to_csv(), expected_default_day)
+        self.assertEqual(df_day.to_csv(date_format='%Y-%m-%d'), expected_default_day)
+
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
