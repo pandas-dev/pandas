@@ -1,63 +1,52 @@
-.. _whatsnew_0170:
+.. _whatsnew_0162:
 
-v0.17.0 (July ??, 2015)
+v0.16.2 (June 12, 2015)
 -----------------------
 
-This is a major release from 0.16.1 and includes a small number of API changes, several new features,
-enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
-users upgrade to this version.
+This is a minor bug-fix release from 0.16.1 and includes a a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
 
 Highlights include:
 
+Check the :ref:`API Changes <whatsnew_0162.api>` before updating.
 
-Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
-
-.. contents:: What's new in v0.17.0
+.. contents:: What's new in v0.16.2
     :local:
     :backlinks: none
 
-.. _whatsnew_0170.enhancements:
+.. _whatsnew_0162.enhancements:
 
 New features
 ~~~~~~~~~~~~
 
-.. _whatsnew_0170.enhancements.other:
+.. _whatsnew_0162.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_0170.api:
+.. _whatsnew_0162.api:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0170.api_breaking:
+.. _whatsnew_0162.api_breaking:
 
-.. _whatsnew_0170.api_breaking.other:
+.. _whatsnew_0162.api_breaking.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor. (:issue:`102171`)
 
-.. _whatsnew_0170.deprecations:
-
-Deprecations
-^^^^^^^^^^^^
-
-.. _whatsnew_0170.prior_deprecations:
-
-Removal of prior version deprecations/changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _whatsnew_0170.performance:
+.. _whatsnew_0162.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved ``Series.resample`` performance with dtype=datetime64[ns] (:issue:`7754`)
 
-.. _whatsnew_0170.bug_fixes:
+.. _whatsnew_0162.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
@@ -94,4 +83,3 @@ Bug Fixes
 
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
-
