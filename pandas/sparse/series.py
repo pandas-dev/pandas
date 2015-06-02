@@ -399,7 +399,7 @@ class SparseSeries(Series):
         res_sp_values = np.abs(self.sp_values)
         return self._constructor(res_sp_values, index=self.index,
                                  sparse_index=self.sp_index,
-                                 fill_value=self.fill_value)
+                                 fill_value=self.fill_value).__finalize__(self)
 
     def get(self, label, default=None):
         """
