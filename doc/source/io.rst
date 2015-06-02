@@ -4093,6 +4093,34 @@ The key functions are:
 
 .. _io.bigquery_reader:
 
+
+Authentication
+''''''''''''''
+
+Authentication is possible with either user account credentials or service account credentials.
+
+Authenticating with user account credentials is as simple as following the prompts in a browser window
+which will be automatically opened for you. You will be authenticated to the specified
+``BigQuery`` account via Google's ``Oauth2`` mechanism. Additional information on the
+authentication mechanism can be found `here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
+
+Authentication with service account credentials is possible via the `'private_key'` parameter. This method
+is particularly useful when working on remote servers (eg. jupyter iPython notebook on remote host).
+The remote authentication using user account credentials is not currently supported in Pandas.
+Additional information on service accounts can be found
+`here <https://developers.google.com/identity/protocols/OAuth2#serviceaccount>`__.
+
+.. note::
+
+   The `'private_key'` parameter can be set to either the file path of the service account key
+   in JSON format, or key contents of the service account key in JSON format.
+
+.. note::
+
+   A private key can be obtained from the Google developers console by clicking
+   `here <https://console.developers.google.com/permissions/serviceaccounts>`__. Use JSON key type.
+
+
 Querying
 ''''''''
 
@@ -4107,12 +4135,6 @@ into a DataFrame using the :func:`~pandas.io.gbq.read_gbq` function.
 
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', projectid)
 
-You will then be authenticated to the specified BigQuery account
-via Google's Oauth2 mechanism. In general, this is as simple as following the
-prompts in a browser window which will be opened for you. Should the browser not
-be available, or fail to launch, a code will be provided to complete the process
-manually.  Additional information on the authentication mechanism can be found
-`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__.
 
 You can define which column from BigQuery to use as an index in the
 destination DataFrame as well as a preferred column order as follows:
@@ -4125,7 +4147,7 @@ destination DataFrame as well as a preferred column order as follows:
 
 .. note::
 
-   You can find your project id in the `BigQuery management console <https://code.google.com/apis/console/b/0/?noredirect>`__.
+   You can find your project id in the `Google developers console <https://console.developers.google.com>`__.
 
 
 .. note::
@@ -4133,6 +4155,7 @@ destination DataFrame as well as a preferred column order as follows:
    You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
 
 .. _io.bigquery_writer:
+
 
 Writing DataFrames
 ''''''''''''''''''
