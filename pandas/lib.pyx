@@ -951,8 +951,8 @@ def string_array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_re
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def write_csv_rows(list data, object[:] data_index, int nlevels,
-                   object[:] cols, object writer):
+def write_csv_rows(list data, ndarray[object] data_index, int nlevels,
+                   ndarray[object] cols, object writer):
 
     cdef:
         Py_ssize_t i, j
