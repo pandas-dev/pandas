@@ -59,6 +59,7 @@ Bug Fixes
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
 - Bug where some of the nan funcs do not have consistent return dtypes (:issue:`10251`)
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
+- Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)
 
 - Bug in cache updating when consolidating (:issue:`10264`)
 
@@ -92,4 +93,3 @@ Bug Fixes
 
 - Bug to handle masking empty ``DataFrame``(:issue:`10126`)
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
-

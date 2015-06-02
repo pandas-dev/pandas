@@ -2114,7 +2114,7 @@ def _get_format_datetime64_from_values(values, date_format):
     is_dates_only = _is_dates_only(values)
     if is_dates_only:
         return date_format or "%Y-%m-%d"
-    return None
+    return date_format
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
