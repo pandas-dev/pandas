@@ -2944,7 +2944,8 @@ class NDFrameGroupBy(GroupBy):
                     cd = 'coerce'
                 else:
                     cd = True
-                return result.convert_objects(convert_dates=cd)
+                result = result.convert_objects(convert_dates=cd)
+                return self._reindex_output(result)
 
             else:
                 # only coerce dates if we find at least 1 datetime
