@@ -699,7 +699,6 @@ class TestGroupBy(tm.TestCase):
         expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
         assert_panel_equal(gp, expected)
 
-
         # GH 5267
         # be datelike friendly
         df = DataFrame({'DATE' : pd.to_datetime(['10-Oct-2013', '10-Oct-2013', '10-Oct-2013',
@@ -2836,6 +2835,49 @@ class TestGroupBy(tm.TestCase):
 
         result = df.groupby(['foo', 'bar']).mean()
         expected = df.groupby([df['foo'], df['bar']]).mean()[['val']]
+
+    def test_groupby_nat_exclude(self):
+        # GH 6992
+        df = pd.DataFrame({'values': np.random.randn(8),
+                   'dt': [np.nan, pd.Timestamp('2013-01-01'), np.nan, pd.Timestamp('2013-02-01'),
+                          np.nan, pd.Timestamp('2013-02-01'), np.nan, pd.Timestamp('2013-01-01')],
+                    'str': [np.nan, 'a', np.nan, 'a',
+                          np.nan, 'a', np.nan, 'b']})
+        grouped = df.groupby('dt')
+
+        expected = [[1, 7], [3, 5]]
+        keys = sorted(grouped.groups.keys())
+        self.assertEqual(len(keys), 2)
+        for k, e in zip(keys, expected):
+            # grouped.groups keys are np.datetime64 with system tz
+            # not to be affected by tz, only compare values
+            self.assertEqual(grouped.groups[k], e)
+
+        # confirm obj is not filtered
+        tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
+        self.assertEqual(grouped.ngroups, 2)
+        expected = {Timestamp('2013-01-01 00:00:00'): np.array([1, 7]),
+                    Timestamp('2013-02-01 00:00:00'): np.array([3, 5])}
+        for k in grouped.indices:
+            self.assert_numpy_array_equal(grouped.indices[k], expected[k])
+
+        tm.assert_frame_equal(grouped.get_group(Timestamp('2013-01-01')), df.iloc[[1, 7]])
+        tm.assert_frame_equal(grouped.get_group(Timestamp('2013-02-01')), df.iloc[[3, 5]])
+
+        self.assertRaises(KeyError, grouped.get_group, pd.NaT)
+
+        nan_df = DataFrame({'nan': [np.nan, np.nan, np.nan],
+                            'nat': [pd.NaT, pd.NaT, pd.NaT]})
+        self.assertEqual(nan_df['nan'].dtype, 'float64')
+        self.assertEqual(nan_df['nat'].dtype, 'datetime64[ns]')
+
+        for key in ['nan', 'nat']:
+            grouped = nan_df.groupby(key)
+            self.assertEqual(grouped.groups, {})
+            self.assertEqual(grouped.ngroups, 0)
+            self.assertEqual(grouped.indices, {})
+            self.assertRaises(KeyError, grouped.get_group, np.nan)
+            self.assertRaises(KeyError, grouped.get_group, pd.NaT)
 
     def test_dictify(self):
         dict(iter(self.df.groupby('A')))

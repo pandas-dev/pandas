@@ -264,9 +264,10 @@ class CheckNameIntegration(object):
         self.assertTrue('dt' not in dir(s))
 
     def test_binop_maybe_preserve_name(self):
-
         # names match, preserve
         result = self.ts * self.ts
+        self.assertEqual(result.name, self.ts.name)
+        result = self.ts.mul(self.ts)
         self.assertEqual(result.name, self.ts.name)
 
         result = self.ts * self.ts[:-2]
@@ -277,6 +278,22 @@ class CheckNameIntegration(object):
         cp.name = 'something else'
         result = self.ts + cp
         self.assertIsNone(result.name)
+        result = self.ts.add(cp)
+        self.assertIsNone(result.name)
+
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
+        ops = ops + ['r' + op for op in ops]
+        for op in ops:
+            # names match, preserve
+            s = self.ts.copy()
+            result = getattr(s, op)(s)
+            self.assertEqual(result.name, self.ts.name)
+
+            # names don't match, don't preserve
+            cp = self.ts.copy()
+            cp.name = 'changed'
+            result = getattr(s, op)(cp)
+            self.assertIsNone(result.name)
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
@@ -5932,6 +5949,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             assert_series_equal(aa, ea)
             assert_series_equal(ab, eb)
+            self.assertEqual(aa.name, 'ts')
+            self.assertEqual(ea.name, 'ts')
+            self.assertEqual(ab.name, 'ts')
+            self.assertEqual(eb.name, 'ts')
 
         for kind in JOIN_TYPES:
             _check_align(self.ts[2:], self.ts[:-5], how=kind)
@@ -5939,12 +5960,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             # empty left
             _check_align(self.ts[:0], self.ts[:-5], how=kind)
+            _check_align(self.ts[:0], self.ts[:-5], how=kind, fill=-1)
 
             # empty right
             _check_align(self.ts[:-5], self.ts[:0], how=kind)
+            _check_align(self.ts[:-5], self.ts[:0], how=kind, fill=-1)
 
             # both empty
             _check_align(self.ts[:0], self.ts[:0], how=kind)
+            _check_align(self.ts[:0], self.ts[:0], how=kind, fill=-1)
 
     def test_align_fill_method(self):
         def _check_align(a, b, how='left', method='pad', limit=None):

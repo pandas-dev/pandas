@@ -509,6 +509,21 @@ class TestSparseSeries(tm.TestCase,
             _check_inplace_op(
                 getattr(operator, "i%s" % op), getattr(operator, op))
 
+    def test_abs(self):
+        s = SparseSeries([1, 2, -3], name='x')
+        expected = SparseSeries([1, 2, 3], name='x')
+        result = s.abs()
+        assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = abs(s)
+        assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = np.abs(s)
+        assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
     def test_reindex(self):
         def _compare_with_series(sps, new_index):
             spsre = sps.reindex(new_index)

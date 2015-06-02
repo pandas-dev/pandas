@@ -251,6 +251,136 @@ class Base(object):
             expected = ind[indexer]
             self.assertTrue(result.equals(expected))
 
+    def test_setops_errorcases(self):
+        for name, idx in compat.iteritems(self.indices):
+            # # non-iterable input
+            cases = [0.5, 'xxx']
+            methods = [idx.intersection, idx.union, idx.difference, idx.sym_diff]
+
+            for method in methods:
+                for case in cases:
+                    assertRaisesRegexp(TypeError,
+                                       "Input must be Index or array-like",
+                                       method, case)
+
+    def test_intersection_base(self):
+        for name, idx in compat.iteritems(self.indices):
+            first = idx[:5]
+            second = idx[:3]
+            intersect = first.intersection(second)
+
+            if isinstance(idx, CategoricalIndex):
+                pass
+            else:
+                self.assertTrue(tm.equalContents(intersect, second))
+
+            # GH 10149
+            cases = [klass(second.values) for klass in [np.array, Series, list]]
+            for case in cases:
+                if isinstance(idx, PeriodIndex):
+                    msg = "can only call with other PeriodIndex-ed objects"
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        result = first.intersection(case)
+                elif isinstance(idx, CategoricalIndex):
+                    pass
+                else:
+                    result = first.intersection(case)
+                    self.assertTrue(tm.equalContents(result, second))
+
+            if isinstance(idx, MultiIndex):
+                msg = "other must be a MultiIndex or a list of tuples"
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    result = first.intersection([1, 2, 3])
+
+    def test_union_base(self):
+        for name, idx in compat.iteritems(self.indices):
+            first = idx[3:]
+            second = idx[:5]
+            everything = idx
+            union = first.union(second)
+            self.assertTrue(tm.equalContents(union, everything))
+
+            # GH 10149
+            cases = [klass(second.values) for klass in [np.array, Series, list]]
+            for case in cases:
+                if isinstance(idx, PeriodIndex):
+                    msg = "can only call with other PeriodIndex-ed objects"
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        result = first.union(case)
+                elif isinstance(idx, CategoricalIndex):
+                    pass
+                else:
+                    result = first.union(case)
+                    self.assertTrue(tm.equalContents(result, everything))
+
+            if isinstance(idx, MultiIndex):
+                msg = "other must be a MultiIndex or a list of tuples"
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    result = first.union([1, 2, 3])
+
+    def test_difference_base(self):
+        for name, idx in compat.iteritems(self.indices):
+            first = idx[2:]
+            second = idx[:4]
+            answer = idx[4:]
+            result = first.difference(second)
+
+            if isinstance(idx, CategoricalIndex):
+                pass
+            else:
+                self.assertTrue(tm.equalContents(result, answer))
+
+            # GH 10149
+            cases = [klass(second.values) for klass in [np.array, Series, list]]
+            for case in cases:
+                if isinstance(idx, PeriodIndex):
+                    msg = "can only call with other PeriodIndex-ed objects"
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        result = first.difference(case)
+                elif isinstance(idx, CategoricalIndex):
+                    pass
+                elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
+                    self.assertEqual(result.__class__, answer.__class__)
+                    self.assert_numpy_array_equal(result.asi8, answer.asi8)
+                else:
+                    result = first.difference(case)
+                    self.assertTrue(tm.equalContents(result, answer))
+
+            if isinstance(idx, MultiIndex):
+                msg = "other must be a MultiIndex or a list of tuples"
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    result = first.difference([1, 2, 3])
+
+    def test_symmetric_diff(self):
+        for name, idx in compat.iteritems(self.indices):
+            first = idx[1:]
+            second = idx[:-1]
+            if isinstance(idx, CategoricalIndex):
+                pass
+            else:
+                answer = idx[[0, -1]]
+                result = first.sym_diff(second)
+                self.assertTrue(tm.equalContents(result, answer))
+
+            # GH 10149
+            cases = [klass(second.values) for klass in [np.array, Series, list]]
+            for case in cases:
+                if isinstance(idx, PeriodIndex):
+                    msg = "can only call with other PeriodIndex-ed objects"
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        result = first.sym_diff(case)
+                elif isinstance(idx, CategoricalIndex):
+                    pass
+                else:
+                    result = first.sym_diff(case)
+                    self.assertTrue(tm.equalContents(result, answer))
+
+            if isinstance(idx, MultiIndex):
+                msg = "other must be a MultiIndex or a list of tuples"
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    result = first.sym_diff([1, 2, 3])
+
+
 class TestIndex(Base, tm.TestCase):
     _holder = Index
     _multiprocess_can_split_ = True
@@ -620,15 +750,11 @@ class TestIndex(Base, tm.TestCase):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
         intersect = first.intersection(second)
-
         self.assertTrue(tm.equalContents(intersect, second))
 
         # Corner cases
         inter = first.intersection(first)
         self.assertIs(inter, first)
-
-        # non-iterable input
-        assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
 
         idx1 = Index([1, 2, 3, 4, 5], name='idx')
         # if target has the same name, it is preserved
@@ -671,6 +797,12 @@ class TestIndex(Base, tm.TestCase):
         union = first.union(second)
         self.assertTrue(tm.equalContents(union, everything))
 
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case)
+            self.assertTrue(tm.equalContents(result, everything))
+
         # Corner cases
         union = first.union(first)
         self.assertIs(union, first)
@@ -680,9 +812,6 @@ class TestIndex(Base, tm.TestCase):
 
         union = Index([]).union(first)
         self.assertIs(union, first)
-
-        # non-iterable input
-        assertRaisesRegexp(TypeError, "iterable", first.union, 0.5)
 
         # preserve names
         first.name = 'A'
@@ -792,11 +921,7 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(len(result), 0)
         self.assertEqual(result.name, first.name)
 
-        # non-iterable input
-        assertRaisesRegexp(TypeError, "iterable", first.difference, 0.5)
-
     def test_symmetric_diff(self):
-
         # smoke
         idx1 = Index([1, 2, 3, 4], name='idx1')
         idx2 = Index([2, 3, 4, 5])
@@ -841,10 +966,6 @@ class TestIndex(Base, tm.TestCase):
         result = idx1.sym_diff(idx2, result_name='new_name')
         self.assertTrue(tm.equalContents(result, expected))
         self.assertEqual(result.name, 'new_name')
-
-        # other isn't iterable
-        with tm.assertRaises(TypeError):
-            Index(idx1,dtype='object').difference(1)
 
     def test_is_numeric(self):
         self.assertFalse(self.dateIndex.is_numeric())
@@ -1786,6 +1907,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b',np.nan]).equals(list('aabca')))
         self.assertTrue(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b',np.nan]).equals(list('aabca') + [np.nan]))
 
+
 class Numeric(Base):
 
     def test_numeric_compat(self):
@@ -1857,6 +1979,25 @@ class Numeric(Base):
         result = np.sin(idx)
         expected = Float64Index(np.sin(np.arange(5,dtype='int64')))
         tm.assert_index_equal(result, expected)
+
+    def test_index_groupby(self):
+        int_idx = Index(range(6))
+        float_idx = Index(np.arange(0, 0.6, 0.1))
+        obj_idx = Index('A B C D E F'.split())
+        dt_idx = pd.date_range('2013-01-01', freq='M', periods=6)
+
+        for idx in [int_idx, float_idx, obj_idx, dt_idx]:
+            to_groupby = np.array([1, 2, np.nan, np.nan, 2, 1])
+            self.assertEqual(idx.groupby(to_groupby),
+                             {1.0: [idx[0], idx[5]], 2.0: [idx[1], idx[4]]})
+
+            to_groupby = Index([datetime(2011, 11, 1), datetime(2011, 12, 1),
+                                pd.NaT, pd.NaT,
+                                datetime(2011, 12, 1), datetime(2011, 11, 1)], tz='UTC').values
+
+            ex_keys = pd.tslib.datetime_to_datetime64(np.array([Timestamp('2011-11-01'), Timestamp('2011-12-01')]))
+            expected = {ex_keys[0][0]: [idx[0], idx[5]], ex_keys[0][1]: [idx[1], idx[4]]}
+            self.assertEqual(idx.groupby(to_groupby), expected)
 
 
 class TestFloat64Index(Numeric, tm.TestCase):
@@ -2642,6 +2783,36 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         idx2 = pd.date_range(end='2000', periods=periods, freq='S')
         self.assertEqual(len(idx2), periods)
 
+    def test_intersection(self):
+        first = self.index
+        second = self.index[5:]
+        intersect = first.intersection(second)
+        self.assertTrue(tm.equalContents(intersect, second))
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.intersection(case)
+            self.assertTrue(tm.equalContents(result, second))
+
+        third = Index(['a', 'b', 'c'])
+        result = first.intersection(third)
+        expected = pd.Index([], dtype=object)
+        self.assert_index_equal(result, expected)
+
+    def test_union(self):
+        first = self.index[:5]
+        second = self.index[5:]
+        everything = self.index
+        union = first.union(second)
+        self.assertTrue(tm.equalContents(union, everything))
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case)
+            self.assertTrue(tm.equalContents(result, everything))
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
@@ -2652,7 +2823,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.setup_indices()
 
     def create_index(self):
-        return period_range('20130101',periods=5,freq='D')
+        return period_range('20130101', periods=5, freq='D')
 
     def test_pickle_compat_construction(self):
         pass
