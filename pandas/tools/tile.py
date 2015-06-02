@@ -2,7 +2,7 @@
 Quantilization functions and related stuff
 """
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame, Series, Index
 from pandas.core.categorical import Categorical
 from pandas.core.index import _ensure_index
 import pandas.core.algorithms as algos
@@ -195,6 +195,14 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     has_nas = na_mask.any()
 
     if labels is not False:
+
+        def to_categorical(levels):
+            if com.is_categorical_dtype(levels):
+                levels = levels.categories
+            np.putmask(ids, na_mask, 0)
+            fac = Categorical(ids - 1, levels, ordered=True, name=name, fastpath=True)
+            return fac
+
         if labels is None:
             increases = 0
             while True:
@@ -209,15 +217,21 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
                 else:
                     break
 
+            fac = to_categorical(levels)
+
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
-            levels = labels
 
-        levels = np.asarray(levels, dtype=object)
-        np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, ordered=True, name=name, fastpath=True)
+            # we want to coerce the resultant Categorical to the binlabels type if supplied
+            # if we are passed a Categorical in the binlabels, then use this dtype
+            # 10140
+            labels = _ensure_index(labels)
+            fac = to_categorical(labels)
+            if not (com.is_object_dtype(labels) or com.is_categorical_dtype(labels)):
+                fac = type(labels)(np.asarray(fac))
+
     else:
         fac = ids - 1
         if has_nas:

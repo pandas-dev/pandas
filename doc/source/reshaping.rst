@@ -417,7 +417,8 @@ Tiling
 
 The ``cut`` function computes groupings for the values of the input array and
 is often used to transform continuous variables to discrete or categorical
-variables:
+variables. These will result in a ``Categorical`` dtype, where the categories
+are the bins.
 
 .. ipython:: python
 
@@ -433,6 +434,13 @@ Alternatively we can specify custom bin-edges:
 
    pd.cut(ages, bins=[0, 18, 35, 70])
 
+Furthermore, one can specify ``labels`` to have custom labels.
+
+.. ipython:: python
+
+   pd.cut(ages, bins=[0, 18, 35, 70], labels=['child','adult','senior'])
+
+``cut/qcut`` are often used as groupers, see the :ref:`grouping with ordered factors<groupby.categorical>` for more.
 
 .. _reshaping.dummies:
 

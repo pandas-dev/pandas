@@ -792,6 +792,8 @@ excluded. So there will never be an "NA group" or "NaT group". This was not the 
 versions of pandas, but users were generally discarding the NA group anyway
 (and supporting it was an implementation headache).
 
+.. _groupby.categorical:
+
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -801,9 +803,14 @@ can be used as group keys. If so, the order of the levels will be preserved:
 .. ipython:: python
 
    data = Series(np.random.randn(100))
-
    factor = qcut(data, [0, .25, .5, .75, 1.])
+   data.groupby(factor).mean()
 
+Further, one can name the bins to produce a custom-labeled binner.
+
+.. ipython:: python
+
+   factor = qcut(data, [0, .25, .5, .75, 1.], labels=['small','medium','large','x-large'])
    data.groupby(factor).mean()
 
 .. _groupby.specify:
