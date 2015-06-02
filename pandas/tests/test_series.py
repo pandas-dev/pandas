@@ -264,9 +264,10 @@ class CheckNameIntegration(object):
         self.assertTrue('dt' not in dir(s))
 
     def test_binop_maybe_preserve_name(self):
-
         # names match, preserve
         result = self.ts * self.ts
+        self.assertEqual(result.name, self.ts.name)
+        result = self.ts.mul(self.ts)
         self.assertEqual(result.name, self.ts.name)
 
         result = self.ts * self.ts[:-2]
@@ -277,6 +278,22 @@ class CheckNameIntegration(object):
         cp.name = 'something else'
         result = self.ts + cp
         self.assertIsNone(result.name)
+        result = self.ts.add(cp)
+        self.assertIsNone(result.name)
+
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
+        ops = ops + ['r' + op for op in ops]
+        for op in ops:
+            # names match, preserve
+            s = self.ts.copy()
+            result = getattr(s, op)(s)
+            self.assertEqual(result.name, self.ts.name)
+
+            # names don't match, don't preserve
+            cp = self.ts.copy()
+            cp.name = 'changed'
+            result = getattr(s, op)(cp)
+            self.assertIsNone(result.name)
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
