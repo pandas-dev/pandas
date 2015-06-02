@@ -11,7 +11,7 @@ from numpy import nan
 import numpy as np
 from numpy.testing.decorators import slow
 
-from pandas import DataFrame, Series, Index, isnull
+from pandas import DataFrame, Series, Index, MultiIndex, isnull
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextParser)
@@ -119,6 +119,31 @@ year, month, day, hour, minute, second, a, b
         self.assertIn('ym', df)
         self.assertEqual(df.ym.ix[0], date(2001, 1, 1))
 
+    def test_dateparser_resolution_if_not_ns(self):
+        # issue 10245
+        data = """\
+date,time,prn,rxstatus
+2013-11-03,19:00:00,126,00E80000
+2013-11-03,19:00:00,23,00E80000
+2013-11-03,19:00:00,13,00E80000
+"""
+
+        def date_parser(date, time):
+            datetime = np.array(date + 'T' + time + 'Z', dtype='datetime64[s]')
+            return datetime
+
+        df = read_csv(StringIO(data), date_parser=date_parser,
+                      parse_dates={'datetime': ['date', 'time']},
+                      index_col=['datetime', 'prn'])
+
+        datetimes = np.array(['2013-11-03T19:00:00Z']*3, dtype='datetime64[s]')
+        df_correct = DataFrame(data={'rxstatus': ['00E80000']*3},
+                               index=MultiIndex.from_tuples(
+                                   [(datetimes[0], 126),
+                                    (datetimes[1], 23),
+                                    (datetimes[2], 13)],
+                               names=['datetime', 'prn']))
+        assert_frame_equal(df, df_correct)
 
 if __name__ == '__main__':
     import nose
