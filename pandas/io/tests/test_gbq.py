@@ -16,6 +16,9 @@ import pandas.io.gbq as gbq
 import pandas.util.testing as tm
 
 PROJECT_ID = None
+PRIVATE_KEY_JSON_PATH = None
+PRIVATE_KEY_JSON_CONTENTS = None
+
 DATASET_ID = 'pydata_pandas_bq_testing'
 TABLE_ID = 'new_test'
 DESTINATION_TABLE = "{0}.{1}".format(DATASET_ID + "1", TABLE_ID)
@@ -49,8 +52,9 @@ def _test_imports():
             from apiclient.discovery import build  # noqa
             from apiclient.errors import HttpError  # noqa
 
-            from oauth2client.client import OAuth2WebServerFlow  # noqa
-            from oauth2client.client import AccessTokenRefreshError  # noqa
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.client import AccessTokenRefreshError
+            from oauth2client.client import SignedJwtAssertionCredentials
 
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa
@@ -96,13 +100,13 @@ def test_requirements():
         raise nose.SkipTest(import_exception)
 
 
-def clean_gbq_environment():
-    dataset = gbq._Dataset(PROJECT_ID)
+def clean_gbq_environment(private_key=None):
+    dataset = gbq._Dataset(PROJECT_ID, private_key=private_key)
 
     for i in range(1, 10):
         if DATASET_ID + str(i) in dataset.datasets():
             dataset_id = DATASET_ID + str(i)
-            table = gbq._Table(PROJECT_ID, dataset_id)
+            table = gbq._Table(PROJECT_ID, dataset_id, private_key=private_key)
             for j in range(1, 20):
                 if TABLE_ID + str(j) in dataset.tables(dataset_id):
                     table.delete(TABLE_ID + str(j))
@@ -153,8 +157,7 @@ class TestGBQConnectorIntegration(tm.TestCase):
         self.assertFalse(credentials.invalid, 'Returned credentials invalid')
 
     def test_should_be_able_to_get_a_bigquery_service(self):
-        credentials = self.sut.get_credentials()
-        bigquery_service = self.sut.get_service(credentials)
+        bigquery_service = self.sut.get_service()
         self.assertTrue(bigquery_service is not None, 'No service returned')
 
     def test_should_be_able_to_get_schema_from_query(self):
@@ -166,8 +169,71 @@ class TestGBQConnectorIntegration(tm.TestCase):
         self.assertTrue(pages is not None)
 
 
-class TestReadGBQUnitTests(tm.TestCase):
+class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):
+    def setUp(self):
+        test_requirements()
 
+        if not PROJECT_ID or not PRIVATE_KEY_JSON_PATH:
+            raise nose.SkipTest("Cannot run integration tests without "
+                                "a project id and private key json path")
+
+        self.sut = gbq.GbqConnector(PROJECT_ID,
+                                    private_key=PRIVATE_KEY_JSON_PATH)
+
+    def test_should_be_able_to_make_a_connector(self):
+        self.assertTrue(self.sut is not None,
+                        'Could not create a GbqConnector')
+
+    def test_should_be_able_to_get_valid_credentials(self):
+        credentials = self.sut.get_credentials()
+        self.assertFalse(credentials.invalid, 'Returned credentials invalid')
+
+    def test_should_be_able_to_get_a_bigquery_service(self):
+        bigquery_service = self.sut.get_service()
+        self.assertTrue(bigquery_service is not None, 'No service returned')
+
+    def test_should_be_able_to_get_schema_from_query(self):
+        schema, pages = self.sut.run_query('SELECT 1')
+        self.assertTrue(schema is not None)
+
+    def test_should_be_able_to_get_results_from_query(self):
+        schema, pages = self.sut.run_query('SELECT 1')
+        self.assertTrue(pages is not None)
+
+
+class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
+    def setUp(self):
+        test_requirements()
+
+        if not PROJECT_ID or not PRIVATE_KEY_JSON_CONTENTS:
+            raise nose.SkipTest("Cannot run integration tests without "
+                                "a project id and private key json contents")
+
+        self.sut = gbq.GbqConnector(PROJECT_ID,
+                                    private_key=PRIVATE_KEY_JSON_CONTENTS)
+
+    def test_should_be_able_to_make_a_connector(self):
+        self.assertTrue(self.sut is not None,
+                        'Could not create a GbqConnector')
+
+    def test_should_be_able_to_get_valid_credentials(self):
+        credentials = self.sut.get_credentials()
+        self.assertFalse(credentials.invalid, 'Returned credentials invalid')
+
+    def test_should_be_able_to_get_a_bigquery_service(self):
+        bigquery_service = self.sut.get_service()
+        self.assertTrue(bigquery_service is not None, 'No service returned')
+
+    def test_should_be_able_to_get_schema_from_query(self):
+        schema, pages = self.sut.run_query('SELECT 1')
+        self.assertTrue(schema is not None)
+
+    def test_should_be_able_to_get_results_from_query(self):
+        schema, pages = self.sut.run_query('SELECT 1')
+        self.assertTrue(pages is not None)
+
+
+class GBQUnitTests(tm.TestCase):
     def setUp(self):
         test_requirements()
 
@@ -212,6 +278,41 @@ class TestReadGBQUnitTests(tm.TestCase):
         correct_output = DataFrame({'VALID_STRING': ['PI']})
         tm.assert_frame_equal(test_output, correct_output)
 
+    def test_read_gbq_with_invalid_private_key_json_should_fail(self):
+        with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
+            gbq.read_gbq('SELECT 1', project_id='x', private_key='y')
+
+    def test_read_gbq_with_empty_private_key_json_should_fail(self):
+        with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
+            gbq.read_gbq('SELECT 1', project_id='x', private_key='{}')
+
+    def test_read_gbq_with_private_key_json_wrong_types_should_fail(self):
+        with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
+            gbq.read_gbq(
+                'SELECT 1', project_id='x',
+                private_key='{ "client_email" : 1, "private_key" : True }')
+
+    def test_read_gbq_with_empty_private_key_file_should_fail(self):
+        from tempfile import mkstemp
+        from os import remove
+        _, empty_file = mkstemp()
+        try:
+            with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
+                gbq.read_gbq('SELECT 1', project_id='x',
+                             private_key=empty_file)
+        finally:
+            remove(empty_file)
+
+    def test_read_gbq_with_corrupted_private_key_json_should_fail(self):
+        if not PRIVATE_KEY_JSON_CONTENTS:
+            raise nose.SkipTest("Cannot run without private key json content")
+
+        import re
+        with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
+            gbq.read_gbq(
+                'SELECT 1', project_id='x',
+                private_key=re.sub('[a-z]', '9', PRIVATE_KEY_JSON_CONTENTS))
+
 
 class TestReadGBQIntegration(tm.TestCase):
 
@@ -245,6 +346,24 @@ class TestReadGBQIntegration(tm.TestCase):
         # put here any instructions you want to be run *AFTER* *EVERY* test is
         # executed.
         pass
+
+    def test_should_read_as_service_account_with_key_path(self):
+        if not PRIVATE_KEY_JSON_PATH:
+            raise nose.SkipTest("Cannot run integration tests without a "
+                                "private key json path")
+        query = 'SELECT "PI" as VALID_STRING'
+        df = gbq.read_gbq(query, project_id=PROJECT_ID,
+                          private_key=PRIVATE_KEY_JSON_PATH)
+        tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
+
+    def test_should_read_as_service_account_with_key_contents(self):
+        if not PRIVATE_KEY_JSON_CONTENTS:
+            raise nose.SkipTest("Cannot run integration tests without a "
+                                "private key json contents")
+        query = 'SELECT "PI" as VALID_STRING'
+        df = gbq.read_gbq(query, project_id=PROJECT_ID,
+                          private_key=PRIVATE_KEY_JSON_CONTENTS)
+        tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
 
     def test_should_properly_handle_valid_strings(self):
         query = 'SELECT "PI" as VALID_STRING'
@@ -384,11 +503,13 @@ class TestReadGBQIntegration(tm.TestCase):
 
     def test_zero_rows(self):
         # Bug fix for https://github.com/pydata/pandas/issues/10273
-        df = gbq.read_gbq("SELECT title, language  FROM "
-                          "[publicdata:samples.wikipedia] where "
-                          "timestamp=-9999999",
+        df = gbq.read_gbq("SELECT title, id "
+                          "FROM [publicdata:samples.wikipedia] "
+                          "WHERE timestamp=-9999999",
                           project_id=PROJECT_ID)
-        expected_result = DataFrame(columns=['title', 'language'])
+        page_array = np.zeros(
+            (0,), dtype=[('title', object), ('id', np.dtype(float))])
+        expected_result = DataFrame(page_array, columns=['title', 'id'])
         self.assert_frame_equal(df, expected_result)
 
 
@@ -439,12 +560,12 @@ class TestToGBQIntegration(tm.TestCase):
     def test_upload_data(self):
         destination_table = DESTINATION_TABLE + "1"
 
-        test_size = 1000001
+        test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
 
         gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000)
 
-        sleep(60)  # <- Curses Google!!!
+        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}"
                               .format(destination_table),
@@ -479,7 +600,7 @@ class TestToGBQIntegration(tm.TestCase):
         # Test the if_exists parameter with value 'append'
         gbq.to_gbq(df, destination_table, PROJECT_ID, if_exists='append')
 
-        sleep(60)  # <- Curses Google!!!
+        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}"
                               .format(destination_table),
@@ -505,7 +626,7 @@ class TestToGBQIntegration(tm.TestCase):
         gbq.to_gbq(df_different_schema, destination_table,
                    PROJECT_ID, if_exists='replace')
 
-        sleep(60)  # <- Curses Google!!!
+        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}"
                               .format(destination_table),
@@ -618,6 +739,131 @@ class TestToGBQIntegration(tm.TestCase):
     def test_dataset_does_not_exist(self):
         self.assertTrue(not self.dataset.exists(
             DATASET_ID + "_not_found"), 'Expected dataset not to exist')
+
+
+class TestToGBQIntegrationServiceAccountKeyPath(tm.TestCase):
+    # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
+    # As a workaround to this issue, each test should use a unique table name.
+    # Make sure to modify the for loop range in the tearDownClass when a new
+    # test is added
+    # See `Issue 191
+    # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
+
+    @classmethod
+    def setUpClass(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *BEFORE*
+        # executing *ALL* tests described below.
+
+        if not PROJECT_ID:
+            raise nose.SkipTest(
+                "Cannot run integration tests without a project id")
+        if not PRIVATE_KEY_JSON_PATH:
+            raise nose.SkipTest(
+                "Cannot run integration tests without private key json path")
+
+        test_requirements()
+        clean_gbq_environment(PRIVATE_KEY_JSON_PATH)
+
+    def setUp(self):
+        # - PER-TEST FIXTURES -
+        # put here any instruction you want to be run *BEFORE* *EVERY* test
+        # is executed.
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *AFTER*
+        # executing all tests.
+
+        clean_gbq_environment(PRIVATE_KEY_JSON_PATH)
+
+    def tearDown(self):
+        # - PER-TEST FIXTURES -
+        # put here any instructions you want to be run *AFTER* *EVERY* test
+        # is executed.
+        pass
+
+    def test_upload_data_as_service_account_with_key_path(self):
+        destination_table = DESTINATION_TABLE + "11"
+
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+
+        gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000,
+                   private_key=PRIVATE_KEY_JSON_PATH)
+
+        sleep(30)  # <- Curses Google!!!
+
+        result = gbq.read_gbq(
+            "SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table),
+            project_id=PROJECT_ID,
+            private_key=PRIVATE_KEY_JSON_PATH)
+
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
+
+
+class TestToGBQIntegrationServiceAccountKeyContents(tm.TestCase):
+    # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
+    # As a workaround to this issue, each test should use a unique table name.
+    # Make sure to modify the for loop range in the tearDownClass when a new
+    # test is added
+    # See `Issue 191
+    # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
+
+    @classmethod
+    def setUpClass(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *BEFORE*
+        # executing *ALL* tests described below.
+
+        if not PROJECT_ID:
+            raise nose.SkipTest(
+                "Cannot run integration tests without a project id")
+        if not PRIVATE_KEY_JSON_CONTENTS:
+            raise nose.SkipTest("Cannot run integration tests without "
+                                "private key json contents")
+
+        test_requirements()
+        clean_gbq_environment(PRIVATE_KEY_JSON_CONTENTS)
+
+    def setUp(self):
+        # - PER-TEST FIXTURES -
+        # put here any instruction you want to be run *BEFORE* *EVERY* test
+        # is executed.
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *AFTER*
+        # executing all tests.
+
+        clean_gbq_environment(PRIVATE_KEY_JSON_CONTENTS)
+
+    def tearDown(self):
+        # - PER-TEST FIXTURES -
+        # put here any instructions you want to be run *AFTER* *EVERY* test
+        # is executed.
+        pass
+
+    def test_upload_data_as_service_account_with_key_contents(self):
+        destination_table = DESTINATION_TABLE + "12"
+
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+
+        gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000,
+                   private_key=PRIVATE_KEY_JSON_CONTENTS)
+
+        sleep(30)  # <- Curses Google!!!
+
+        result = gbq.read_gbq(
+            "SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table),
+            project_id=PROJECT_ID,
+            private_key=PRIVATE_KEY_JSON_CONTENTS)
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
