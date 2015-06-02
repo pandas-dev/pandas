@@ -1508,7 +1508,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         result = func(this_vals, other_vals)
         name = _maybe_match_name(self, other)
-        return self._constructor(result, index=new_index).__finalize__(self)
+        result = self._constructor(result, index=new_index, name=name)
+        result = result.__finalize__(self)
+        if name is None:
+            # When name is None, __finalize__ overwrites current name
+            result.name = None
+        return result
 
     def combine(self, other, func, fill_value=nan):
         """
