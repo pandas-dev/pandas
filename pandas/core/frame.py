@@ -859,7 +859,7 @@ class DataFrame(NDFrame):
             raise ValueError("orient '%s' not understood" % orient)
 
     def to_gbq(self, destination_table, project_id, chunksize=10000,
-               verbose=True, reauth=False, if_exists='fail'):
+               verbose=True, reauth=False, if_exists='fail', private_key=None):
         """Write a DataFrame to a Google BigQuery table.
 
         THIS IS AN EXPERIMENTAL LIBRARY
@@ -883,6 +883,10 @@ class DataFrame(NDFrame):
             'fail': If table exists, do nothing.
             'replace': If table exists, drop it, recreate it, and insert data.
             'append': If table exists, insert data. Create if does not exist.
+        private_key : str (optional)
+            Service account private key in JSON format. Can be file path
+            or string contents. This is useful for remote server
+            authentication (eg. jupyter iPython notebook on remote host)
 
             .. versionadded:: 0.17.0
         """
@@ -890,7 +894,7 @@ class DataFrame(NDFrame):
         from pandas.io import gbq
         return gbq.to_gbq(self, destination_table, project_id=project_id,
                           chunksize=chunksize, verbose=verbose, reauth=reauth,
-                          if_exists=if_exists)
+                          if_exists=if_exists, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,

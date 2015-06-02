@@ -4,6 +4,8 @@ import json
 import logging
 from time import sleep
 import uuid
+import time
+import sys
 
 import numpy as np
 
@@ -39,8 +41,31 @@ def _check_google_client_version():
                           .format(google_api_minimum_version,
                                   _GOOGLE_API_CLIENT_VERSION))
 
+
+def _test_google_api_imports():
+
+    try:
+        import httplib2  # noqa
+        from apiclient.discovery import build  # noqa
+        from apiclient.errors import HttpError  # noqa
+        from oauth2client.client import AccessTokenRefreshError  # noqa
+        from oauth2client.client import OAuth2WebServerFlow  # noqa
+        from oauth2client.client import SignedJwtAssertionCredentials  # noqa
+        from oauth2client.file import Storage  # noqa
+        from oauth2client.tools import run_flow, argparser  # noqa
+    except ImportError as e:
+        raise ImportError("Missing module required for Google BigQuery "
+                          "support: {0}".format(str(e)))
+
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
+
+
+class InvalidPrivateKeyFormat(PandasError, ValueError):
+    """
+    Raised when provided private key has invalid format.
+    """
+    pass
 
 
 class AccessDenied(PandasError, ValueError):
@@ -114,39 +139,35 @@ class TableCreationError(PandasError, ValueError):
 
 
 class GbqConnector(object):
+    scope = 'https://www.googleapis.com/auth/bigquery'
 
-    def __init__(self, project_id, reauth=False):
-        self.test_google_api_imports()
+    def __init__(self, project_id, reauth=False, verbose=False,
+                 private_key=None):
+        _check_google_client_version()
+        _test_google_api_imports()
         self.project_id = project_id
         self.reauth = reauth
+        self.verbose = verbose
+        self.private_key = private_key
         self.credentials = self.get_credentials()
-        self.service = self.get_service(self.credentials)
-
-    def test_google_api_imports(self):
-        try:
-            import httplib2  # noqa
-            from apiclient.discovery import build  # noqa
-            from apiclient.errors import HttpError  # noqa
-            from oauth2client.client import AccessTokenRefreshError  # noqa
-            from oauth2client.client import OAuth2WebServerFlow  # noqa
-            from oauth2client.file import Storage  # noqa
-            from oauth2client.tools import run_flow, argparser  # noqa
-        except ImportError as e:
-            raise ImportError("Missing module required for Google BigQuery "
-                              "support: {0}".format(str(e)))
+        self.service = self.get_service()
 
     def get_credentials(self):
+        if self.private_key:
+            return self.get_service_account_credentials()
+        else:
+            return self.get_user_account_credentials()
+
+    def get_user_account_credentials(self):
         from oauth2client.client import OAuth2WebServerFlow
         from oauth2client.file import Storage
         from oauth2client.tools import run_flow, argparser
-
-        _check_google_client_version()
 
         flow = OAuth2WebServerFlow(
             client_id=('495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd'
                        '.apps.googleusercontent.com'),
             client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
-            scope='https://www.googleapis.com/auth/bigquery',
+            scope=self.scope,
             redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
         storage = Storage('bigquery_credentials.dat')
@@ -157,15 +178,71 @@ class GbqConnector(object):
 
         return credentials
 
+    def get_service_account_credentials(self):
+        from oauth2client.client import SignedJwtAssertionCredentials
+        from os.path import isfile
+
+        try:
+            if isfile(self.private_key):
+                with open(self.private_key) as f:
+                    json_key = json.loads(f.read())
+            else:
+                # ugly hack: 'private_key' field has new lines inside,
+                # they break json parser, but we need to preserve them
+                json_key = json.loads(self.private_key.replace('\n', '   '))
+                json_key['private_key'] = json_key['private_key'].replace(
+                    '   ', '\n')
+
+            if compat.PY3:
+                json_key['private_key'] = bytes(
+                    json_key['private_key'], 'UTF-8')
+
+            return SignedJwtAssertionCredentials(
+                json_key['client_email'],
+                json_key['private_key'],
+                self.scope,
+            )
+        except (KeyError, ValueError, TypeError, AttributeError):
+            raise InvalidPrivateKeyFormat(
+                "Private key is missing or invalid. It should be service "
+                "account private key JSON (file path or string contents) "
+                "with at least two keys: 'client_email' and 'private_key'. "
+                "Can be obtained from: https://console.developers.google."
+                "com/permissions/serviceaccounts")
+
+    def _print(self, msg, end='\n'):
+        if self.verbose:
+            sys.stdout.write(msg + end)
+            sys.stdout.flush()
+
+    def _start_timer(self):
+        self.start = time.time()
+
+    def get_elapsed_seconds(self):
+        return round(time.time() - self.start, 2)
+
+    def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
+                              overlong=7):
+        sec = self.get_elapsed_seconds()
+        if sec > overlong:
+            self._print('{} {} {}'.format(prefix, sec, postfix))
+
+    # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     @staticmethod
-    def get_service(credentials):
+    def sizeof_fmt(num, suffix='b'):
+        fmt = "%3.1f %s%s"
+        for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
+            if abs(num) < 1024.0:
+                return fmt % (num, unit, suffix)
+            num /= 1024.0
+        return fmt % (num, 'Y', suffix)
+
+    def get_service(self):
         import httplib2
         from apiclient.discovery import build
 
-        _check_google_client_version()
-
         http = httplib2.Http()
-        http = credentials.authorize(http)
+        http = self.credentials.authorize(http)
         bigquery_service = build('bigquery', 'v2', http=http)
 
         return bigquery_service
@@ -188,8 +265,7 @@ class GbqConnector(object):
 
         raise GenericGBQException(errors)
 
-    @staticmethod
-    def process_insert_errors(insert_errors, verbose):
+    def process_insert_errors(self, insert_errors):
         for insert_error in insert_errors:
             row = insert_error['index']
             errors = insert_error.get('errors', None)
@@ -202,8 +278,8 @@ class GbqConnector(object):
                                  .format(row, reason, location, message))
 
                 # Report all error messages if verbose is set
-                if verbose:
-                    print(error_message)
+                if self.verbose:
+                    self._print(error_message)
                 else:
                     raise StreamingInsertError(error_message +
                                                '\nEnable verbose logging to '
@@ -211,7 +287,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query, verbose=True):
+    def run_query(self, query):
         from apiclient.errors import HttpError
         from oauth2client.client import AccessTokenRefreshError
 
@@ -228,27 +304,44 @@ class GbqConnector(object):
             }
         }
 
+        self._start_timer()
         try:
+            self._print('Requesting query... ', end="")
             query_reply = job_collection.insert(
                 projectId=self.project_id, body=job_data).execute()
-        except AccessTokenRefreshError:
-            raise AccessDenied("The credentials have been revoked or expired, "
-                               "please re-run the application "
-                               "to re-authorize")
+            self._print('ok.\nQuery running...')
+        except (AccessTokenRefreshError, ValueError):
+            if self.private_key:
+                raise AccessDenied(
+                    "The service account credentials are not valid")
+            else:
+                raise AccessDenied(
+                    "The credentials have been revoked or expired, "
+                    "please re-run the application to re-authorize")
         except HttpError as ex:
             self.process_http_error(ex)
 
         job_reference = query_reply['jobReference']
 
         while not query_reply.get('jobComplete', False):
-            if verbose:
-                print('Waiting for job to complete...')
+            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
             try:
                 query_reply = job_collection.getQueryResults(
                     projectId=job_reference['projectId'],
                     jobId=job_reference['jobId']).execute()
             except HttpError as ex:
                 self.process_http_error(ex)
+
+        if self.verbose:
+            if query_reply['cacheHit']:
+                self._print('Query done.\nCache hit.\n')
+            else:
+                bytes_processed = int(query_reply.get(
+                    'totalBytesProcessed', '0'))
+                self._print('Query done.\nProcessed: {}\n'.format(
+                    self.sizeof_fmt(bytes_processed)))
+
+            self._print('Retrieving results...')
 
         total_rows = int(query_reply['totalRows'])
         result_pages = list()
@@ -262,6 +355,15 @@ class GbqConnector(object):
             page = query_reply['rows']
             result_pages.append(page)
             current_row += len(page)
+
+            self.print_elapsed_seconds(
+                '  Got page: {}; {}% done. Elapsed'.format(
+                    len(result_pages),
+                    round(100.0 * current_row / total_rows)))
+
+            if current_row == total_rows:
+                break
+
             page_token = query_reply.get('pageToken', None)
 
             if not page_token and current_row < total_rows:
@@ -285,18 +387,21 @@ class GbqConnector(object):
         if current_row < total_rows:
             raise InvalidPageToken()
 
+        # print basic query stats
+        self._print('Got {} rows.\n'.format(total_rows))
+
         return schema, result_pages
 
-    def load_data(self, dataframe, dataset_id, table_id, chunksize, verbose):
+    def load_data(self, dataframe, dataset_id, table_id, chunksize):
         from apiclient.errors import HttpError
 
         job_id = uuid.uuid4().hex
         rows = []
         remaining_rows = len(dataframe)
 
-        if verbose:
+        if self.verbose:
             total_rows = remaining_rows
-            print("\n\n")
+            self._print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
@@ -308,9 +413,8 @@ class GbqConnector(object):
             remaining_rows -= 1
 
             if (len(rows) % chunksize == 0) or (remaining_rows == 0):
-                if verbose:
-                    print("\rStreaming Insert is {0}% Complete".format(
-                        ((total_rows - remaining_rows) * 100) / total_rows))
+                self._print("\rStreaming Insert is {0}% Complete".format(
+                    ((total_rows - remaining_rows) * 100) / total_rows))
 
                 body = {'rows': rows}
 
@@ -335,13 +439,12 @@ class GbqConnector(object):
 
                 insert_errors = response.get('insertErrors', None)
                 if insert_errors:
-                    self.process_insert_errors(insert_errors, verbose)
+                    self.process_insert_errors(insert_errors)
 
                 sleep(1)  # Maintains the inserts "per second" rate per API
                 rows = []
 
-        if verbose:
-            print("\n")
+        self._print("\n")
 
     def verify_schema(self, dataset_id, table_id, schema):
         from apiclient.errors import HttpError
@@ -356,8 +459,7 @@ class GbqConnector(object):
         except HttpError as ex:
             self.process_http_error(ex)
 
-    def delete_and_recreate_table(self, dataset_id, table_id,
-                                  table_schema, verbose):
+    def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
         delay = 0
 
         # Changes to table schema may take up to 2 minutes as of May 2015 See
@@ -367,12 +469,12 @@ class GbqConnector(object):
         # be a 120 second delay
 
         if not self.verify_schema(dataset_id, table_id, table_schema):
-            if verbose:
-                print('The existing table has a different schema. '
-                      'Please wait 2 minutes. See Google BigQuery issue #191')
+            self._print('The existing table has a different schema. Please '
+                        'wait 2 minutes. See Google BigQuery issue #191')
             delay = 120
 
-        table = _Table(self.project_id, dataset_id)
+        table = _Table(self.project_id, dataset_id,
+                       private_key=self.private_key)
         table.delete(table_id)
         table.create(table_id, table_schema)
         sleep(delay)
@@ -418,7 +520,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True):
+             reauth=False, verbose=True, private_key=None):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -446,6 +548,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         if multiple accounts are used.
     verbose : boolean (default True)
         Verbose output
+    private_key : str (optional)
+        Service account private key in JSON format. Can be file path
+        or string contents. This is useful for remote server
+        authentication (eg. jupyter iPython notebook on remote host)
 
     Returns
     -------
@@ -457,8 +563,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
-    connector = GbqConnector(project_id, reauth=reauth)
-    schema, pages = connector.run_query(query, verbose=verbose)
+    connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
+                             private_key=private_key)
+    schema, pages = connector.run_query(query)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
@@ -492,11 +599,18 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     # if there are no NaN's. This is presently due to a
     # limitation of numpy in handling missing data.
     final_df._data = final_df._data.downcast(dtypes='infer')
+
+    connector.print_elapsed_seconds(
+        'Total time taken',
+        datetime.now().strftime('s.\nFinished at %Y-%m-%d %H:%M:%S.'),
+        0
+    )
+
     return final_df
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
-           verbose=True, reauth=False, if_exists='fail'):
+           verbose=True, reauth=False, if_exists='fail', private_key=None):
     """Write a DataFrame to a Google BigQuery table.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -520,6 +634,10 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         'fail': If table exists, do nothing.
         'replace': If table exists, drop it, recreate it, and insert data.
         'append': If table exists, insert data. Create if does not exist.
+    private_key : str (optional)
+        Service account private key in JSON format. Can be file path
+        or string contents. This is useful for remote server
+        authentication (eg. jupyter iPython notebook on remote host)
     """
 
     if if_exists not in ('fail', 'replace', 'append'):
@@ -529,10 +647,12 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         raise NotFoundException(
             "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
-    connector = GbqConnector(project_id, reauth=reauth)
+    connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
+                             private_key=private_key)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
-    table = _Table(project_id, dataset_id, reauth=reauth)
+    table = _Table(project_id, dataset_id, reauth=reauth,
+                   private_key=private_key)
 
     table_schema = _generate_bq_schema(dataframe)
 
@@ -545,7 +665,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                                      "append or replace data.")
         elif if_exists == 'replace':
             connector.delete_and_recreate_table(
-                dataset_id, table_id, table_schema, verbose)
+                dataset_id, table_id, table_schema)
         elif if_exists == 'append':
             if not connector.verify_schema(dataset_id, table_id, table_schema):
                 raise InvalidSchema("Please verify that the column order, "
@@ -555,7 +675,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     else:
         table.create(table_id, table_schema)
 
-    connector.load_data(dataframe, dataset_id, table_id, chunksize, verbose)
+    connector.load_data(dataframe, dataset_id, table_id, chunksize)
 
 
 def generate_bq_schema(df, default_type='STRING'):
@@ -597,15 +717,12 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
-    def __init__(self, project_id, dataset_id, reauth=False):
+    def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
+                 private_key=None):
         from apiclient.errors import HttpError
-        self.test_google_api_imports()
-        self.project_id = project_id
-        self.reauth = reauth
-        self.credentials = self.get_credentials()
-        self.service = self.get_service(self.credentials)
         self.http_error = HttpError
         self.dataset_id = dataset_id
+        super(_Table, self).__init__(project_id, reauth, verbose, private_key)
 
     def exists(self, table_id):
         """ Check if a table exists in Google BigQuery
@@ -653,8 +770,10 @@ class _Table(GbqConnector):
             raise TableCreationError(
                 "The table could not be created because it already exists")
 
-        if not _Dataset(self.project_id).exists(self.dataset_id):
-            _Dataset(self.project_id).create(self.dataset_id)
+        if not _Dataset(self.project_id,
+                        private_key=self.private_key).exists(self.dataset_id):
+            _Dataset(self.project_id,
+                     private_key=self.private_key).create(self.dataset_id)
 
         body = {
             'schema': schema,
@@ -698,14 +817,12 @@ class _Table(GbqConnector):
 
 class _Dataset(GbqConnector):
 
-    def __init__(self, project_id, reauth=False):
+    def __init__(self, project_id, reauth=False, verbose=False,
+                 private_key=None):
         from apiclient.errors import HttpError
-        self.test_google_api_imports()
-        self.project_id = project_id
-        self.reauth = reauth
-        self.credentials = self.get_credentials()
-        self.service = self.get_service(self.credentials)
         self.http_error = HttpError
+        super(_Dataset, self).__init__(project_id, reauth, verbose,
+                                       private_key)
 
     def exists(self, dataset_id):
         """ Check if a dataset exists in Google BigQuery
