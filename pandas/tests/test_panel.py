@@ -404,6 +404,8 @@ class SafeForSparse(object):
         expected = np.abs(s)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+        self.assertEqual(result.name, 'A')
+        self.assertEqual(result2.name, 'A')
 
 
 class CheckIndexing(object):
