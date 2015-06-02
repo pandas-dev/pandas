@@ -95,3 +95,7 @@ Bug Fixes
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 
+
+- Bug in to_csv where data_format is ignored if the datetime is not 
+an integral date value (i.e. it is fractional) (:issue:`10209`)
+
