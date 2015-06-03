@@ -9,6 +9,8 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
+- Documentation on how to use ``numba`` with *pandas*, see :ref:`here <enhancingperf.numba>`
+
 Check the :ref:`API Changes <whatsnew_0162.api>` before updating.
 
 .. contents:: What's new in v0.16.2

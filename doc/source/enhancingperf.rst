@@ -7,7 +7,7 @@
 
    import os
    import csv
-   from pandas import DataFrame
+   from pandas import DataFrame, Series
    import pandas as pd
    pd.options.display.max_rows=15
 
@@ -68,9 +68,10 @@ Here's the function in pure python:
 
 We achieve our result by using ``apply`` (row-wise):
 
-.. ipython:: python
+.. code-block:: python
 
-   %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
+   In [7]: %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
+   10 loops, best of 3: 174 ms per loop
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
 time is spent during this operation (limited to the most time consuming
@@ -97,7 +98,7 @@ First we're going to need to import the cython magic function to ipython:
 
 .. ipython:: python
 
-   %load_ext cythonmagic
+   %load_ext Cython
 
 
 Now, let's simply copy our functions over to cython as is (the suffix
@@ -122,9 +123,10 @@ is here to distinguish between function versions):
   to be using bleeding edge ipython for paste to play well with cell magics.
 
 
-.. ipython:: python
+.. code-block:: python
 
-   %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
+   10 loops, best of 3: 85.5 ms per loop
 
 Already this has shaved a third off, not too bad for a simple copy and paste.
 
@@ -150,9 +152,10 @@ We get another huge improvement simply by providing type information:
       ...:     return s * dx
       ...:
 
-.. ipython:: python
+.. code-block:: python
 
-   %timeit df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
+   10 loops, best of 3: 20.3 ms per loop
 
 Now, we're talking! It's now over ten times faster than the original python
 implementation, and we haven't *really* modified the code. Let's have another
@@ -229,9 +232,10 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
     Loops like this would be *extremely* slow in python, but in Cython looping
     over numpy arrays is *fast*.
 
-.. ipython:: python
+.. code-block:: python
 
-   %timeit apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
+   In [4]: %timeit apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
+   1000 loops, best of 3: 1.25 ms per loop
 
 We've gotten another big improvement. Let's check again where the time is spent:
 
@@ -278,20 +282,70 @@ advanced cython techniques:
       ...:     return res
       ...:
 
-.. ipython:: python
+.. code-block:: python
 
-   %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
+   In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
+   1000 loops, best of 3: 987 us per loop
 
 Even faster, with the caveat that a bug in our cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
 
 
-Further topics
-~~~~~~~~~~~~~~
+.. _enhancingperf.numba:
 
-- Loading C modules into cython.
+Using numba
+-----------
 
-Read more in the `cython docs <http://docs.cython.org/>`__.
+A recent alternative to statically compiling cython code, is to use a *dynamic jit-compiler*, ``numba``.
+
+Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
+
+Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool). Numba supports compilation of Python to run on either CPU or GPU hardware, and is designed to integrate with the Python scientific software stack.
+
+.. note::
+
+    You will need to install ``numba``. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
+
+We simply take the plain python code from above and annotate with the ``@jit`` decorator.
+
+.. code-block:: python
+
+    import numba
+
+    @numba.jit
+    def f_plain(x):
+       return x * (x - 1)
+
+    @numba.jit
+    def integrate_f_numba(a, b, N):
+       s = 0
+       dx = (b - a) / N
+       for i in range(N):
+           s += f_plain(a + i * dx)
+       return s * dx
+
+    @numba.jit
+    def apply_integrate_f_numba(col_a, col_b, col_N):
+       n = len(col_N)
+       result = np.empty(n, dtype='float64')
+       assert len(col_a) == len(col_b) == n
+       for i in range(n):
+          result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
+       return result
+
+    def compute_numba(df):
+       result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
+       return Series(result, index=df.index, name='result')
+
+Similar to above, we directly pass ``numpy`` arrays directly to the numba function. Further
+we are wrapping the results to provide a nice interface by passing/returning pandas objects.
+
+.. code-block:: python
+
+    In [4]: %timeit compute_numba(df)
+    1000 loops, best of 3: 798 us per loop
+
+Read more in the `numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
