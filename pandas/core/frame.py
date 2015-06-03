@@ -2151,7 +2151,7 @@ class DataFrame(NDFrame):
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
-        if key.values.dtype != np.bool_:
+        if key.values.size and not com.is_bool_dtype(key.values):
             raise TypeError('Must pass DataFrame with boolean values only')
 
         self._check_inplace_setting(value)
