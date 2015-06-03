@@ -82,7 +82,7 @@ Bug Fixes
 
 
 - Bug in GroupBy.get_group raises ValueError when group key contains NaT (:issue:`6992`)
-
+- Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 
