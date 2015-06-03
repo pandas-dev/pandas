@@ -614,42 +614,4 @@ Bug Fixes
 
   .. code-block:: python
 
-    In [2]: pd.options.display.max_rows = 10
-    In [3]: s = pd.Series([1,1,1,1,1,1,1,1,1,1,0.9999,1,1]*10)
-    In [4]: s
-    Out[4]:
-    0    1
-    1    1
-    2    1
-    ...
-    127    0.9999
-    128    1.0000
-    129    1.0000
-    Length: 130, dtype: float64
-
-  New Behavior
-
-  .. code-block:: python
-
-    0      1.0000
-    1      1.0000
-    2      1.0000
-    3      1.0000
-    4      1.0000
-    ...
-    125    1.0000
-    126    1.0000
-    127    0.9999
-    128    1.0000
-    129    1.0000
-    dtype: float64
-
-- A Spurious ``SettingWithCopy`` Warning was generated when setting a new item in a frame in some cases (:issue:`8730`)
-
-  The following would previously report a ``SettingWithCopy`` Warning.
-
-  .. ipython:: python
-
-     df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
-     df2 = df1[['x']]
-     df2['y'] = ['g', 'h', 'i']
+- ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
