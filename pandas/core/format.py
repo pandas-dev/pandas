@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
@@ -692,13 +693,20 @@ class DataFrameFormatter(TableFormatter):
             space=self.col_space
         )
 
-    def to_html(self, classes=None):
+    def to_html(self, classes=None, notebook=False):
         """
         Render a DataFrame to a html table.
+
+        Parameters
+        ----------
+        notebook : {True, False}, optional, default False
+            Whether the generated HTML is for IPython Notebook.
+
         """
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
-                                      max_cols=self.max_cols)
+                                      max_cols=self.max_cols,
+                                      notebook=notebook)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -808,7 +816,8 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None):
+    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
+                 notebook=False):
         self.fmt = formatter
         self.classes = classes
 
@@ -823,6 +832,7 @@ class HTMLFormatter(TableFormatter):
         self.show_dimensions = self.fmt.show_dimensions
         self.is_truncated = (self.max_rows < len(self.fmt.frame) or
                              self.max_cols < len(self.fmt.columns))
+        self.notebook = notebook
 
     def write(self, s, indent=0):
         rs = com.pprint_thing(s)
@@ -890,6 +900,17 @@ class HTMLFormatter(TableFormatter):
                                       'not %s') % type(self.classes))
             _classes.extend(self.classes)
 
+        if self.notebook:
+            div_style = ''
+            try:
+                import IPython
+                if IPython.__version__ < LooseVersion('3.0.0'):
+                    div_style = ' style="max-width:1500px;overflow:auto;"'
+            except ImportError:
+                pass
+
+            self.write('<div{0}>'.format(div_style))
+
         self.write('<table border="1" class="%s">' % ' '.join(_classes),
                    indent)
 
@@ -902,6 +923,10 @@ class HTMLFormatter(TableFormatter):
             by = chr(215) if compat.PY3 else unichr(215)  # ×
             self.write(u('<p>%d rows %s %d columns</p>') %
                        (len(frame), by, len(frame.columns)))
+
+        if self.notebook:
+            self.write('</div>')
+
         _put_lines(buf, self.elements)
 
     def _write_header(self, indent):

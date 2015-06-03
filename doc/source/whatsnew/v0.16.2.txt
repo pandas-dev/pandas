@@ -83,17 +83,12 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 
 .. _whatsnew_0162.enhancements.other:
 
-Other enhancements
+Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Removed the duplicate scroll bars in the ``DataFrame`` HTML representation when displaying in an ``IPython notebook`` v3.0 or greater. Note that the notebook has a ``toggle output scrolling`` feature to automate the display of very large frames. (:issue:`10231`)
+
 .. _whatsnew_0162.api:
-
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _whatsnew_0162.api_breaking:
-
-.. _whatsnew_0162.api_breaking.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
@@ -108,7 +103,7 @@ Other API Changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved ``Series.resample`` performance with dtype=datetime64[ns] (:issue:`7754`)
+- Improved ``Series.resample`` performance with ``dtype=datetime64[ns]`` (:issue:`7754`)
 - Increase performance of ``str.split`` when ``expand=True`` (:issue:`10081`)
 
 .. _whatsnew_0162.bug_fixes:
@@ -173,4 +168,4 @@ Bug Fixes
 
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
 
-- Bug in ``read_csv`` with a ``date_parser`` that returned a ``datetime64`` array of other time resolution than ``[ns]`` (:issue:`10245`).
+- Bug in ``read_csv`` with a ``date_parser`` that returned a ``datetime64`` array of other time resolution than ``[ns]`` (:issue:`10245`)
