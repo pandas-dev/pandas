@@ -88,3 +88,5 @@ Bug Fixes
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 
 - Bug to handle masking empty ``DataFrame``(:issue:`10126`)
+- Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
+
