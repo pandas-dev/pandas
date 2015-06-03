@@ -57,3 +57,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+fixed bug in csv parsing when using a converting that specified uint8 (:issue: '9266')
