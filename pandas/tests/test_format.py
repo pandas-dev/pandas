@@ -2187,6 +2187,33 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_with_formatted_columns(self):
+        df = DataFrame({'a': [1, 2],
+                        'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(column_format="rrr")
+        withindex_expected = r"""\begin{tabular}{rrr}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withindex_result, withindex_expected)
+
+        withoutindex_result = df.to_latex(index=False, column_format="rr")
+        withoutindex_expected = r"""\begin{tabular}{rr}
+\toprule
+ a &   b \\
+\midrule
+ 1 &  b1 \\
+ 2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withoutindex_result, withoutindex_expected)
+
     def test_to_latex_multiindex(self):
         df = DataFrame({('x', 'y'): ['a']})
         result = df.to_latex()

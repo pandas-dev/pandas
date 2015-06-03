@@ -83,3 +83,5 @@ Bug Fixes
 
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
+
+- Fixed ``column_format`` propagation to ``DataFrameFormatter`` in ``DataFrame.to_latex`` (:issue: `9402`)
