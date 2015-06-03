@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from distutils.version import LooseVersion
 import re
 
 from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
@@ -13,6 +14,14 @@ import warnings
 from numpy import nan
 from numpy.random import randn
 import numpy as np
+
+div_style = ''
+try:
+    import IPython
+    if IPython.__version__ < LooseVersion('3.0.0'):
+        div_style = ' style="max-width:1500px;overflow:auto;"'
+except ImportError:
+    pass
 
 from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
 
@@ -892,7 +901,7 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.max_columns',4)
         result = df._repr_html_()
         expected = '''\
-<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -980,7 +989,7 @@ class TestDataFrameFormatting(tm.TestCase):
   </tbody>
 </table>
 <p>20 rows × 20 columns</p>
-</div>'''
+</div>'''.format(div_style)
         if sys.version_info[0] < 3:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
@@ -993,7 +1002,7 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.max_columns',7)
         result = df._repr_html_()
         expected = '''\
-<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1096,7 +1105,7 @@ class TestDataFrameFormatting(tm.TestCase):
   </tbody>
 </table>
 <p>8 rows × 8 columns</p>
-</div>'''
+</div>'''.format(div_style)
         if sys.version_info[0] < 3:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
@@ -1110,7 +1119,7 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.multi_sparse',False)
         result = df._repr_html_()
         expected = '''\
-<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1206,7 +1215,7 @@ class TestDataFrameFormatting(tm.TestCase):
   </tbody>
 </table>
 <p>8 rows × 8 columns</p>
-</div>'''
+</div>'''.format(div_style)
         if sys.version_info[0] < 3:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)

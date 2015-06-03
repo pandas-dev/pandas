@@ -538,10 +538,9 @@ class DataFrame(NDFrame):
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return ('<div style="max-height:1000px;'
-                    'max-width:1500px;overflow:auto;">\n' +
-                    self.to_html(max_rows=max_rows, max_cols=max_cols,
-                                 show_dimensions=show_dimensions) + '\n</div>')
+            return self.to_html(max_rows=max_rows, max_cols=max_cols,
+                                show_dimensions=show_dimensions,
+                                notebook=True)
         else:
             return None
 
@@ -1349,7 +1348,8 @@ class DataFrame(NDFrame):
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, bold_rows=True, classes=None, escape=True,
-                max_rows=None, max_cols=None, show_dimensions=False):
+                max_rows=None, max_cols=None, show_dimensions=False,
+                notebook=False):
         """
         Render a DataFrame as an HTML table.
 
@@ -1388,7 +1388,7 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions)
-        formatter.to_html(classes=classes)
+        formatter.to_html(classes=classes, notebook=notebook)
 
         if buf is None:
             return formatter.buf.getvalue()
