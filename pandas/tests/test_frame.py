@@ -794,6 +794,19 @@ class CheckIndexing(object):
         result.loc[result.b.isnull(), 'a'] = result.a
         assert_frame_equal(result, df)
 
+    def test_setitem_empty_frame_with_boolean(self):
+        # Test for issue #10126
+
+        for dtype in ('float', 'int64'):
+            for df in [
+                    pd.DataFrame(dtype=dtype),
+                    pd.DataFrame(dtype=dtype, index=[1]),
+                    pd.DataFrame(dtype=dtype, columns=['A']),
+            ]:
+                df2 = df.copy()
+                df[df > df2] = 47
+                assert_frame_equal(df, df2)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']
@@ -2821,7 +2834,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         data = {'col1': range(10),
                 'col2': range(10)}
         cdf = CustomDataFrame(data)
-        
+
         # Did we get back our own DF class?
         self.assertTrue(isinstance(cdf, CustomDataFrame))
 
@@ -2833,7 +2846,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Do we get back our own DF class after slicing row-wise?
         cdf_rows = cdf[1:5]
         self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
-        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')        
+        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')
 
         # Make sure sliced part of multi-index frame is custom class
         mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
