@@ -2595,6 +2595,35 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby(cats).D.apply(get_stats)
         self.assertEqual(result.index.names[0], 'C')
 
+    def test_apply_categorical_data(self):
+        # GH 10138
+        for ordered in [True, False]:
+            dense = Categorical(list('abc'), ordered=ordered)
+            # 'b' is in the categories but not in the list
+            missing = Categorical(list('aaa'), categories=['a', 'b'], ordered=ordered)
+            values = np.arange(len(dense))
+            df = DataFrame({'missing': missing,
+                            'dense': dense,
+                            'values': values})
+            grouped = df.groupby(['missing', 'dense'])
+
+            # missing category 'b' should still exist in the output index
+            idx = MultiIndex.from_product([['a', 'b'], ['a', 'b', 'c']],
+                                          names=['missing', 'dense'])
+            expected = DataFrame([0, 1, 2, np.nan, np.nan, np.nan],
+                                 index=idx,
+                                 columns=['values'])
+
+            assert_frame_equal(grouped.apply(lambda x: np.mean(x)), expected)
+            assert_frame_equal(grouped.mean(), expected)
+            assert_frame_equal(grouped.agg(np.mean), expected)
+
+            # but for transform we should still get back the original index
+            idx = MultiIndex.from_product([['a'], ['a', 'b', 'c']],
+                                          names=['missing', 'dense'])
+            expected = Series(1, index=idx)
+            assert_series_equal(grouped.apply(lambda x: 1), expected)
+
     def test_apply_corner_cases(self):
         # #535, can't use sliding iterator
 
