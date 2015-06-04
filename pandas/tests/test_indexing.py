@@ -3527,6 +3527,18 @@ class TestIndexing(tm.TestCase):
         result = df.loc[(0,0),'z']
         self.assertEqual(result, 2)
 
+        # 10264
+        df = DataFrame(np.zeros((5,5),dtype='int64'),columns=['a','b','c','d','e'],index=range(5))
+        df['f'] = 0
+        df.f.values[3] = 1
+        y = df.iloc[np.arange(2,len(df))]
+        df.f.values[3] = 2
+        expected = DataFrame(np.zeros((5,6),dtype='int64'),columns=['a','b','c','d','e','f'],index=range(5))
+        expected.at[3,'f'] = 2
+        assert_frame_equal(df, expected)
+        expected = Series([0,0,0,2,0],name='f')
+        assert_series_equal(df.f, expected)
+
     def test_slice_consolidate_invalidate_item_cache(self):
 
         # this is chained assignment, but will 'work'

@@ -59,6 +59,9 @@ Bug Fixes
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
 
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
+
+- Bug in cache updating when consolidating (:issue:`10264`)
+
 - Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
 - Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
 - Bug in ``Index.union`` raises ``AttributeError`` when passing array-likes. (:issue:`10149`)

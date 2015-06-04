@@ -1352,6 +1352,7 @@ class NDFrame(PandasObject):
         taken : type of caller
         """
 
+        self._consolidate_inplace()
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
                                    convert=True, verify=True)
@@ -2128,8 +2129,10 @@ class NDFrame(PandasObject):
         return result
 
     def _consolidate_inplace(self):
-        f = lambda: self._data.consolidate()
-        self._data = self._protect_consolidate(f)
+        """ we are inplace consolidating; return None """
+        def f():
+            self._data = self._data.consolidate()
+        self._protect_consolidate(f)
 
     def consolidate(self, inplace=False):
         """
