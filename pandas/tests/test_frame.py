@@ -6108,7 +6108,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # use the default copy=True, change a column
         blocks = df.as_blocks()
-        for dtype, _df in blocks.iteritems():
+        for dtype, _df in blocks.items():
             if column in _df:
                 _df.ix[:, column] = _df[column] + 1
 
@@ -6122,7 +6122,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # use the copy=False, change a column
         blocks = df.as_blocks(copy=False)
-        for dtype, _df in blocks.iteritems():
+        for dtype, _df in blocks.items():
             if column in _df:
                 _df.ix[:, column] = _df[column] + 1
 
