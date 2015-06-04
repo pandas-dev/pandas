@@ -628,6 +628,9 @@ class Panel(NDFrame):
         """ don't allow a multi reindex on Panel or above ndim """
         return False
 
+    def align(self, other, **kwargs):
+        raise NotImplementedError
+
     def dropna(self, axis=0, how='any', inplace=False):
         """
         Drop 2D from panel, holding passed axis constant
