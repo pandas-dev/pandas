@@ -2100,6 +2100,9 @@ class NDFrame(PandasObject):
     def pipe(self, func, *args, **kwargs):
         if isinstance(func, tuple):
             func, target = func
+            if target in kwargs:
+                msg = '%s is both the pipe target and a keyword argument' % target
+                raise ValueError(msg)
             kwargs[target] = self
             return func(*args, **kwargs)
         else:
