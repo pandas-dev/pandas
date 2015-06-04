@@ -2941,6 +2941,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = df.reindex(columns=expected.columns, index=expected.index)
         check(df, expected)
 
+    def test_constructor_dict_datetime64_index(self):
+        # GH 10160
+        data = {1: {np.datetime64('1990-03-15'): 1},
+                2: {np.datetime64('1989-12-03'): 3},
+                3: {np.datetime64('1988-11-06'): 5},
+                4: {np.datetime64('1984-02-19'): 7}}
+        data_expected = {1: {Timestamp('1990-03-15'): 1},
+                         2: {Timestamp('1989-12-03'): 3},
+                         3: {Timestamp('1988-11-06'): 5},
+                         4: {Timestamp('1984-02-19'): 7}}
+        result = DataFrame(data)
+        expected = DataFrame(data_expected)
+        assert_frame_equal(result, expected)
+
+
     def _check_basic_constructor(self, empty):
         "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
         mat = empty((2, 3), dtype=float)

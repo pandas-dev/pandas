@@ -95,3 +95,5 @@ Bug Fixes
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 
+
+- Bug in DataFrame constructor from nested ``dict`` type where the index is ``datatime64`` (:issue:`10160`)

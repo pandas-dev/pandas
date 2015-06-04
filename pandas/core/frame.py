@@ -5095,8 +5095,9 @@ def _homogenize(data, index, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                if oindex is None:
-                    oindex = index.astype('O')
+                if lib.infer_dtype(v) in ['datetime64']:
+                    v = dict((lib.Timestamp(key), v[key]) for key in v)
+                oindex = index.astype('O')
                 if type(v) == dict:
                     # fast cython method
                     v = lib.fast_multiget(v, oindex.values, default=NA)
