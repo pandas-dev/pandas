@@ -2316,7 +2316,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertFalse(hasattr(self.series.iteritems(), 'reverse'))
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, check_allna=True)
 
     def test_sum_inf(self):
         import pandas.core.nanops as nanops
@@ -2629,7 +2629,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def _check_stat_op(self, name, alternate, check_objects=False):
+    def _check_stat_op(self, name, alternate, check_objects=False, check_allna=False):
         import pandas.core.nanops as nanops
 
         def testit():
@@ -2653,7 +2653,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_almost_equal(f(self.series), alternate(nona.values))
 
             allna = self.series * nan
-            self.assertTrue(np.isnan(f(allna)))
+
+            if check_allna:
+                # xref 9422
+                # bottleneck >= 1.0 give 0.0 for an allna Series sum
+                try:
+                    self.assertTrue(nanops._USE_BOTTLENECK)
+                    import bottleneck as bn
+                    self.assertTrue(bn.__version__ >= LooseVersion('1.0'))
+                    self.assertEqual(f(allna),0.0)
+                except:
+                    self.assertTrue(np.isnan(f(allna)))
 
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])

@@ -16,7 +16,7 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 ensure_float, _ensure_float64,
                                 _ensure_int64, _ensure_object,
                                 is_float, is_integer, is_complex,
-                                is_float_dtype, is_floating_dtype,
+                                is_float_dtype,
                                 is_complex_dtype, is_integer_dtype,
                                 is_bool_dtype, is_object_dtype,
                                 is_datetime64_dtype, is_timedelta64_dtype,
@@ -373,7 +373,7 @@ def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isnull(values)
-    if not is_floating_dtype(values):
+    if not is_float_dtype(values.dtype):
         values = values.astype('f8')
     count, _ = _get_counts_nanvar(mask, axis, ddof)
 
@@ -467,7 +467,7 @@ def nanargmin(values, axis=None, skipna=True):
 def nanskew(values, axis=None, skipna=True):
 
     mask = isnull(values)
-    if not is_floating_dtype(values):
+    if not is_float_dtype(values.dtype):
         values = values.astype('f8')
 
     count = _get_counts(mask, axis)
@@ -502,7 +502,7 @@ def nanskew(values, axis=None, skipna=True):
 def nankurt(values, axis=None, skipna=True):
 
     mask = isnull(values)
-    if not is_floating_dtype(values):
+    if not is_float_dtype(values.dtype):
         values = values.astype('f8')
 
     count = _get_counts(mask, axis)
