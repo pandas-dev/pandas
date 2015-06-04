@@ -5,6 +5,7 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
+from cpython.ref cimport PyObject
 from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
@@ -12,13 +13,14 @@ from cpython cimport (
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     PyString_Check,
-    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
+    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE,
 )
 
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
     int PySlice_Check(object)
+    object PyUnicode_FromFormat(const char*, ...)
 
 cdef extern from "datetime_helper.h":
     double total_seconds(object)
@@ -1450,20 +1452,43 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None, object f
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
-            res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
-                                                   dts.month,
-                                                   dts.day,
-                                                   dts.hour,
-                                                   dts.min,
-                                                   dts.sec)
-
             if show_ns:
                 ns = dts.ps / 1000
-                res += '.%.9d' % (ns + 1000 * dts.us)
+                res = PyUnicode_FromFormat('%d-%02d-%02d %02d:%02d:%02d.%09d',
+                                           dts.year,
+                                           dts.month,
+                                           dts.day,
+                                           dts.hour,
+                                           dts.min,
+                                           dts.sec,
+                                           ns + 1000 * dts.us)
             elif show_us:
-                res += '.%.6d' % dts.us
+                res = PyUnicode_FromFormat('%d-%02d-%02d %02d:%02d:%02d.%06d',
+                                           dts.year,
+                                           dts.month,
+                                           dts.day,
+                                           dts.hour,
+                                           dts.min,
+                                           dts.sec,
+                                           dts.us)
+
             elif show_ms:
-                res += '.%.3d' % (dts.us/1000)
+                res = PyUnicode_FromFormat('%d-%02d-%02d %02d:%02d:%02d.%03d',
+                                           dts.year,
+                                           dts.month,
+                                           dts.day,
+                                           dts.hour,
+                                           dts.min,
+                                           dts.sec,
+                                           dts.us/1000)
+            else:
+                res = PyUnicode_FromFormat('%d-%02d-%02d %02d:%02d:%02d',
+                                           dts.year,
+                                           dts.month,
+                                           dts.day,
+                                           dts.hour,
+                                           dts.min,
+                                           dts.sec)
 
             result[i] = res
 
