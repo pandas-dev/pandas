@@ -6149,6 +6149,34 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(df0.equals(df1))
         self.assertTrue(df1.equals(df0))
 
+    def test_copy_blocks(self):
+        # API/ENH 9607
+        df = DataFrame(self.frame, copy=True)
+        column = df.columns[0]
+
+        # use the default copy=True, change a column
+        blocks = df.as_blocks()
+        for dtype, _df in blocks.items():
+            if column in _df:
+                _df.ix[:, column] = _df[column] + 1
+
+        # make sure we did not change the original DataFrame
+        self.assertFalse(_df[column].equals(df[column]))
+
+    def test_no_copy_blocks(self):
+        # API/ENH 9607
+        df = DataFrame(self.frame, copy=True)
+        column = df.columns[0]
+
+        # use the copy=False, change a column
+        blocks = df.as_blocks(copy=False)
+        for dtype, _df in blocks.items():
+            if column in _df:
+                _df.ix[:, column] = _df[column] + 1
+
+        # make sure we did change the original DataFrame
+        self.assertTrue(_df[column].equals(df[column]))
+
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'
