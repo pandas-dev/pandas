@@ -244,7 +244,10 @@ def nanall(values, axis=None, skipna=True):
 @bottleneck_switch(zero_value=0)
 def nansum(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
-    the_sum = values.sum(axis, dtype=dtype_max)
+    dtype_sum = dtype_max
+    if is_float_dtype(dtype):
+        dtype_sum = dtype
+    the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
     return _wrap_results(the_sum, dtype)
@@ -288,7 +291,7 @@ def nanmedian(values, axis=None, skipna=True):
             return np.nan
         return algos.median(_values_from_object(x[mask]))
 
-    if values.dtype != np.float64:
+    if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
 
@@ -317,10 +320,10 @@ def nanmedian(values, axis=None, skipna=True):
     return _wrap_results(get_median(values) if notempty else np.nan, dtype)
 
 
-def _get_counts_nanvar(mask, axis, ddof):
-    count = _get_counts(mask, axis)
-
-    d = count-ddof
+def _get_counts_nanvar(mask, axis, ddof, dtype=float):
+    dtype = _get_dtype(dtype)
+    count = _get_counts(mask, axis, dtype=dtype)
+    d = count - dtype.type(ddof)
 
     # always return NaN, never inf
     if np.isscalar(count):
@@ -341,7 +344,10 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
     if is_any_int_dtype(values):
         values = values.astype('f8')
 
-    count, d = _get_counts_nanvar(mask, axis, ddof)
+    if is_float_dtype(values):
+        count, d = _get_counts_nanvar(mask, axis, ddof, values.dtype)
+    else:
+        count, d = _get_counts_nanvar(mask, axis, ddof)
 
     if skipna:
         values = values.copy()
@@ -349,7 +355,8 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
-    return np.fabs((XX - X ** 2 / count) / d)
+    result = np.fabs((XX - X * X / count) / d)
+    return result
 
 @disallow('M8')
 @bottleneck_switch(ddof=1)
@@ -375,9 +382,9 @@ def nansem(values, axis=None, skipna=True, ddof=1):
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
-    count, _ = _get_counts_nanvar(mask, axis, ddof)
+    count, _ = _get_counts_nanvar(mask, axis, ddof, values.dtype)
 
-    return np.sqrt(var)/np.sqrt(count)
+    return np.sqrt(var) / np.sqrt(count)
 
 
 @bottleneck_switch()
@@ -469,23 +476,25 @@ def nanskew(values, axis=None, skipna=True):
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
-
-    count = _get_counts(mask, axis)
+        count = _get_counts(mask, axis)
+    else:
+        count = _get_counts(mask, axis, dtype=values.dtype)
 
     if skipna:
         values = values.copy()
         np.putmask(values, mask, 0)
 
+    typ = values.dtype.type
     A = values.sum(axis) / count
-    B = (values ** 2).sum(axis) / count - A ** 2
-    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
+    B = (values ** 2).sum(axis) / count - A ** typ(2)
+    C = (values ** 3).sum(axis) / count - A ** typ(3) - typ(3) * A * B
 
     # floating point error
     B = _zero_out_fperr(B)
     C = _zero_out_fperr(C)
 
-    result = ((np.sqrt((count ** 2 - count)) * C) /
-              ((count - 2) * np.sqrt(B) ** 3))
+    result = ((np.sqrt(count * count - count) * C) /
+              ((count - typ(2)) * np.sqrt(B) ** typ(3)))
 
     if isinstance(result, np.ndarray):
         result = np.where(B == 0, 0, result)
@@ -504,17 +513,19 @@ def nankurt(values, axis=None, skipna=True):
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
-
-    count = _get_counts(mask, axis)
+        count = _get_counts(mask, axis)
+    else:
+        count = _get_counts(mask, axis, dtype=values.dtype)
 
     if skipna:
         values = values.copy()
         np.putmask(values, mask, 0)
 
+    typ = values.dtype.type
     A = values.sum(axis) / count
-    B = (values ** 2).sum(axis) / count - A ** 2
-    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
-    D = (values ** 4).sum(axis) / count - A ** 4 - 6 * B * A * A - 4 * C * A
+    B = (values ** 2).sum(axis) / count - A ** typ(2)
+    C = (values ** 3).sum(axis) / count - A ** typ(3) - typ(3) * A * B
+    D = (values ** 4).sum(axis) / count - A ** typ(4) - typ(6) * B * A * A - typ(4) * C * A
 
     B = _zero_out_fperr(B)
     D = _zero_out_fperr(D)
@@ -526,8 +537,8 @@ def nankurt(values, axis=None, skipna=True):
         if B == 0:
             return 0
 
-    result = (((count * count - 1.) * D / (B * B) - 3 * ((count - 1.) ** 2)) /
-              ((count - 2.) * (count - 3.)))
+    result = (((count * count - typ(1)) * D / (B * B) - typ(3) * ((count - typ(1)) ** typ(2))) /
+              ((count - typ(2)) * (count - typ(3))))
 
     if isinstance(result, np.ndarray):
         result = np.where(B == 0, 0, result)
@@ -598,7 +609,7 @@ def _zero_out_fperr(arg):
     if isinstance(arg, np.ndarray):
         return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
-        return 0 if np.abs(arg) < 1e-14 else arg
+        return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
 
 
 @disallow('M8','m8')
