@@ -1283,8 +1283,6 @@ def _get_valid_mysql_name(name):
         if not re.match(basere, c):
             if not (0x80 < ord(c) < 0xFFFF):
                 raise ValueError("Invalid MySQL identifier '%s'" % uname)
-    if not re.match(r'[^0-9]', uname):
-        raise ValueError('MySQL identifier cannot be entirely numeric')
 
     return '`' + uname + '`'
 
