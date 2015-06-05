@@ -11787,6 +11787,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(result, expected)
 
     def test_quantile_axis_parameter(self):
+        # GH 9543/9544
         from numpy import percentile
 
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
