@@ -272,7 +272,8 @@ a,1
 b,2
 c,3
 """
-        expected = Series([1, 2, 3], index=Index(['a', 'b', 'c'], name=0))
+        idx = Index(['a', 'b', 'c'], name=0)
+        expected = Series([1, 2, 3], name=1, index=idx)
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
         tm.assert_isinstance(result, Series)
@@ -2638,7 +2639,7 @@ eight,1,2,3"""
                 result = read_table(f, squeeze=True, header=None,
                                     engine='python')
 
-                expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
+                expected = Series(['DDD', 'EEE', 'FFF', 'GGG'], name=0)
                 tm.assert_series_equal(result, expected)
 
     def test_iterator(self):

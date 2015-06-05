@@ -409,12 +409,10 @@ class TestPandasContainer(tm.TestCase):
             if orient == "records" or orient == "values":
                 assert_almost_equal(series.values, unser.values)
             else:
-                try:
-                    assert_series_equal(series, unser)
-                except:
-                    raise
                 if orient == "split":
-                    self.assertEqual(series.name, unser.name)
+                    assert_series_equal(series, unser)
+                else:
+                    assert_series_equal(series, unser, check_names=False)
 
         def _check_all_orients(series, dtype=None):
             _check_orient(series, "columns", dtype=dtype)
@@ -491,7 +489,8 @@ class TestPandasContainer(tm.TestCase):
         # series
         json = self.ts.to_json()
         result = read_json(json, typ='series')
-        assert_series_equal(result, self.ts)
+        assert_series_equal(result, self.ts, check_names=False)
+        self.assertTrue(result.name is None)
 
     def test_convert_dates(self):
 

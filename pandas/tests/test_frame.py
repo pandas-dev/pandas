@@ -189,8 +189,8 @@ class CheckIndexing(object):
         data = self.frame[['A', 'B']]
         self.frame[['B', 'A']] = data
 
-        assert_series_equal(self.frame['B'], data['A'])
-        assert_series_equal(self.frame['A'], data['B'])
+        assert_series_equal(self.frame['B'], data['A'], check_names=False)
+        assert_series_equal(self.frame['A'], data['B'], check_names=False)
 
         with assertRaisesRegexp(ValueError, 'Columns must be same length as key'):
             data[['A']] = self.frame[['A', 'B']]
@@ -202,13 +202,13 @@ class CheckIndexing(object):
         df.ix[1, ['tt1', 'tt2']] = [1, 2]
 
         result = df.ix[1, ['tt1', 'tt2']]
-        expected = Series([1, 2], df.columns, dtype=np.int_)
+        expected = Series([1, 2], df.columns, dtype=np.int_, name=1)
         assert_series_equal(result, expected)
 
         df['tt1'] = df['tt2'] = '0'
         df.ix[1, ['tt1', 'tt2']] = ['1', '2']
         result = df.ix[1, ['tt1', 'tt2']]
-        expected = Series(['1', '2'], df.columns)
+        expected = Series(['1', '2'], df.columns, name=1)
         assert_series_equal(result, expected)
 
     def test_setitem_list_not_dataframe(self):
@@ -221,7 +221,7 @@ class CheckIndexing(object):
         self.frame['tuples'] = tuples
 
         result = self.frame['tuples']
-        expected = Series(tuples, index=self.frame.index)
+        expected = Series(tuples, index=self.frame.index, name='tuples')
         assert_series_equal(result, expected)
 
     def test_setitem_mulit_index(self):
@@ -505,7 +505,9 @@ class CheckIndexing(object):
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
         a.ix[-1] = a.ix[-2]
 
-        assert_series_equal(a.ix[-1], a.ix[-2])
+        assert_series_equal(a.ix[-1], a.ix[-2], check_names=False)
+        self.assertEqual(a.ix[-1].name, 'T')
+        self.assertEqual(a.ix[-2].name, 'S')
 
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
@@ -574,7 +576,7 @@ class CheckIndexing(object):
 
     def test_setitem_tuple(self):
         self.frame['A', 'B'] = self.frame['A']
-        assert_series_equal(self.frame['A', 'B'], self.frame['A'])
+        assert_series_equal(self.frame['A', 'B'], self.frame['A'], check_names=False)
 
     def test_setitem_always_copy(self):
         s = self.frame['A'].copy()
@@ -772,16 +774,16 @@ class CheckIndexing(object):
 
         df.ix[2:, 'z'] = 42
 
-        expected = Series([np.nan, np.nan, 42, 42], index=df.index)
+        expected = Series([np.nan, np.nan, 42, 42], index=df.index, name='z')
         self.assertIsNot(df['z'], foo)
         assert_series_equal(df['z'], expected)
 
     def test_setitem_None(self):
         # GH #766
         self.frame[None] = self.frame['A']
-        assert_series_equal(self.frame.iloc[:,-1], self.frame['A'])
-        assert_series_equal(self.frame.loc[:,None], self.frame['A'])
-        assert_series_equal(self.frame[None], self.frame['A'])
+        assert_series_equal(self.frame.iloc[:,-1], self.frame['A'], check_names=False)
+        assert_series_equal(self.frame.loc[:,None], self.frame['A'], check_names=False)
+        assert_series_equal(self.frame[None], self.frame['A'], check_names=False)
         repr(self.frame)
 
     def test_setitem_empty(self):
@@ -1077,7 +1079,8 @@ class CheckIndexing(object):
         self.assertTrue(isnull(self.mixed_frame.ix[5]).all())
 
         self.mixed_frame.ix[5] = self.mixed_frame.ix[6]
-        assert_series_equal(self.mixed_frame.ix[5], self.mixed_frame.ix[6])
+        assert_series_equal(self.mixed_frame.ix[5], self.mixed_frame.ix[6],
+                            check_names=False)
 
         # #1432
         df = DataFrame({1: [1., 2., 3.],
@@ -1092,7 +1095,7 @@ class CheckIndexing(object):
         assert_frame_equal(df, expected)
 
     def test_ix_align(self):
-        b = Series(randn(10))
+        b = Series(randn(10), name=0)
         b.sort()
         df_orig = DataFrame(randn(10, 4))
         df = df_orig.copy()
@@ -2040,14 +2043,15 @@ class CheckIndexing(object):
         df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
         sp_series = pd.Series([0, 0, 1]).to_sparse(fill_value=0)
         df['new_column'] = sp_series
-        tm.assert_series_equal(df['new_column'], sp_series)
+        tm.assert_series_equal(df['new_column'], sp_series, check_names=False)
 
     def test_setitem_with_unaligned_sparse_value(self):
         df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
         sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
                      .to_sparse(fill_value=0))
         df['new_column'] = sp_series
-        tm.assert_series_equal(df['new_column'], pd.Series([1, 0, 0]))
+        exp = pd.Series([1, 0, 0], name='new_column')
+        tm.assert_series_equal(df['new_column'], exp)
 
 
 _seriesd = tm.getSeriesData()
@@ -2452,7 +2456,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # assignt to frame
         df['B'] = i
         result = df['B']
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
+        self.assertEqual(result.name, 'B')
 
         # keep the timezone
         result = i.to_series(keep_tz=True)
@@ -2468,7 +2473,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # list of datetimes with a tz
         df['D'] = i.to_pydatetime()
         result = df['D']
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
+        self.assertEqual(result.name, 'D')
 
         # GH 6785
         # set the index manually
@@ -5929,7 +5935,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             added = self.tsframe + ts
 
             for key, col in compat.iteritems(self.tsframe):
-                assert_series_equal(added[key], col + ts)
+                result = col + ts
+                assert_series_equal(added[key], result, check_names=False)
+                self.assertEqual(added[key].name, key)
+                if col.name == ts.name:
+                    self.assertEqual(result.name, 'A')
+                else:
+                    self.assertTrue(result.name is None)
 
             smaller_frame = self.tsframe[:-5]
             smaller_added = smaller_frame + ts
@@ -7592,7 +7604,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         mat[:5] = nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
-        original = Series(mat, index=self.frame.index)
+        original = Series(mat, index=self.frame.index, name='foo')
         expected = original.dropna()
         inplace_frame1, inplace_frame2 = frame.copy(), frame.copy()
 
@@ -7615,7 +7627,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         frame['bar'] = 5
-        original = Series(mat, index=self.frame.index)
+        original = Series(mat, index=self.frame.index, name='foo')
         inp_frame1, inp_frame2 = frame.copy(), frame.copy()
 
         smaller_frame = frame.dropna()
@@ -7692,8 +7704,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
-        original = Series([1, 2, np.nan])
-        expected = Series([1, 2], dtype=original.dtype)
+        original = Series([1, 2, np.nan], name='A')
+        expected = Series([1, 2], dtype=original.dtype, name='A')
         df = pd.DataFrame({'A': original.values.copy()})
         df2 = df.copy()
         df['A'].dropna()
@@ -9299,7 +9311,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # no columns but index
         df = DataFrame(index=['a', 'b', 'c'])
         result = df.xs('a')
-        expected = Series([])
+        expected = Series([], name='a')
         assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
@@ -9738,7 +9750,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             rs = df.where(cond, other1)
             rs2 = df.where(cond.values, other1)
             for k, v in rs.iteritems():
-                assert_series_equal(v, Series(np.where(cond[k], df[k], other1[k]),index=v.index))
+                exp = Series(np.where(cond[k], df[k], other1[k]),index=v.index)
+                assert_series_equal(v, exp, check_names=False)
             assert_frame_equal(rs, rs2)
 
             # dtypes
@@ -9779,7 +9792,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                         o = other[k].values
 
                 new_values = d if c.all() else np.where(c, d, o)
-                expected = Series(new_values,index=result.index)
+                expected = Series(new_values, index=result.index, name=k)
 
                 # since we can't always have the correct numpy dtype
                 # as numpy doesn't know how to downcast, don't check
@@ -10226,7 +10239,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         d = self.tsframe.index[0]
         shifted_d = d + datetools.BDay(5)
         assert_series_equal(self.tsframe.xs(d),
-                            shiftedFrame.xs(shifted_d))
+                            shiftedFrame.xs(shifted_d), check_names=False)
 
         # shift int frame
         int_shifted = self.intframe.shift(1)
@@ -11264,27 +11277,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df2 = DataFrame([[-42.6, np.nan, True], [-5., 1.6, False]], index=[1, 2])
 
         result = df1.combine_first(df2)[2]
-        expected = Series([True,True,False])
-        assert_series_equal(result,expected)
+        expected = Series([True, True, False], name=2)
+        assert_series_equal(result, expected)
 
         # GH 3593, converting datetime64[ns] incorrecly
         df0 = DataFrame({"a":[datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]})
         df1 = DataFrame({"a":[None, None, None]})
         df2 = df1.combine_first(df0)
-        assert_frame_equal(df2,df0)
+        assert_frame_equal(df2, df0)
 
         df2 = df0.combine_first(df1)
-        assert_frame_equal(df2,df0)
+        assert_frame_equal(df2, df0)
 
         df0 = DataFrame({"a":[datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]})
         df1 = DataFrame({"a":[datetime(2000, 1, 2), None, None]})
         df2 = df1.combine_first(df0)
         result = df0.copy()
         result.iloc[0,:] = df1.iloc[0,:]
-        assert_frame_equal(df2,result)
+        assert_frame_equal(df2, result)
 
         df2 = df0.combine_first(df1)
-        assert_frame_equal(df2,df0)
+        assert_frame_equal(df2, df0)
 
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
@@ -11497,8 +11510,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             ub_mask = df.iloc[:, i] >= ub
             mask = ~lb_mask & ~ub_mask
 
-            assert_series_equal(clipped_df.loc[lb_mask, i], lb[lb_mask])
-            assert_series_equal(clipped_df.loc[ub_mask, i], ub[ub_mask])
+            result = clipped_df.loc[lb_mask, i]
+            assert_series_equal(result, lb[lb_mask], check_names=False)
+            self.assertEqual(result.name, i)
+
+            result = clipped_df.loc[ub_mask, i]
+            assert_series_equal(result, ub[ub_mask], check_names=False)
+            self.assertEqual(result.name, i)
+
             assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
 
     def test_clip_against_frame(self):
@@ -11837,7 +11856,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                    [0, 1, 2, 0, 1, 2],
                                    [0, 1, 0, 1, 0, 1]])
         df = DataFrame(np.random.randn(6, 3), index=index)
-        assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
+
+        kurt = df.kurt()
+        kurt2 = df.kurt(level=0).xs('bar')
+        assert_series_equal(kurt, kurt2, check_names=False)
+        self.assertTrue(kurt.name is None)
+        self.assertEqual(kurt2.name, 'bar')
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True, check_dates=False,
@@ -13118,63 +13142,64 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # #2845
         df = DataFrame({'A' : [2**63-1] })
         result = df['A']
-        expected = Series(np.asarray([2**63-1], np.int64))
+        expected = Series(np.asarray([2**63-1], np.int64), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [2**63] })
         result = df['A']
-        expected = Series(np.asarray([2**63], np.object_))
+        expected = Series(np.asarray([2**63], np.object_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [datetime(2005, 1, 1), True] })
         result = df['A']
-        expected = Series(np.asarray([datetime(2005, 1, 1), True], np.object_))
+        expected = Series(np.asarray([datetime(2005, 1, 1), True], np.object_),
+                          name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [None, 1] })
         result = df['A']
-        expected = Series(np.asarray([np.nan, 1], np.float_))
+        expected = Series(np.asarray([np.nan, 1], np.float_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0, 2] })
         result = df['A']
-        expected = Series(np.asarray([1.0, 2], np.float_))
+        expected = Series(np.asarray([1.0, 2], np.float_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0+2.0j, 3] })
         result = df['A']
-        expected = Series(np.asarray([1.0+2.0j, 3], np.complex_))
+        expected = Series(np.asarray([1.0+2.0j, 3], np.complex_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0+2.0j, 3.0] })
         result = df['A']
-        expected = Series(np.asarray([1.0+2.0j, 3.0], np.complex_))
+        expected = Series(np.asarray([1.0+2.0j, 3.0], np.complex_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0+2.0j, True] })
         result = df['A']
-        expected = Series(np.asarray([1.0+2.0j, True], np.object_))
+        expected = Series(np.asarray([1.0+2.0j, True], np.object_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0, None] })
         result = df['A']
-        expected = Series(np.asarray([1.0, np.nan], np.float_))
+        expected = Series(np.asarray([1.0, np.nan], np.float_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [1.0+2.0j, None] })
         result = df['A']
-        expected = Series(np.asarray([1.0+2.0j, np.nan], np.complex_))
+        expected = Series(np.asarray([1.0+2.0j, np.nan], np.complex_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [2.0, 1, True, None] })
         result = df['A']
-        expected = Series(np.asarray([2.0, 1, True, None], np.object_))
+        expected = Series(np.asarray([2.0, 1, True, None], np.object_), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [2.0, 1, datetime(2006, 1, 1), None] })
         result = df['A']
         expected = Series(np.asarray([2.0, 1, datetime(2006, 1, 1),
-                                      None], np.object_))
+                                      None], np.object_), name='A')
         assert_series_equal(result, expected)
 
     def test_construction_with_mixed(self):
@@ -13282,8 +13307,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         frame = self.frame.copy()
         frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
-        assert_series_equal(self.frame['C'], frame['baz'])
-        assert_series_equal(self.frame['hi'], frame['foo2'])
+        assert_series_equal(self.frame['C'], frame['baz'], check_names=False)
+        assert_series_equal(self.frame['hi'], frame['foo2'], check_names=False)
 
     def test_columns_with_dups(self):
 
@@ -13593,9 +13618,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # Check series argument
         result = a.dot(b['one'])
-        assert_series_equal(result, expected['one'])
+        assert_series_equal(result, expected['one'], check_names=False)
+        self.assertTrue(result.name is None)
+
         result = a.dot(b1['one'])
-        assert_series_equal(result, expected['one'])
+        assert_series_equal(result, expected['one'], check_names=False)
+        self.assertTrue(result.name is None)
 
         # can pass correct-length arrays
         row = a.ix[0].values

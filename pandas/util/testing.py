@@ -24,7 +24,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 import pandas as pd
-from pandas.core.common import is_sequence, array_equivalent, is_list_like
+from pandas.core.common import is_sequence, array_equivalent, is_list_like, is_number
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
@@ -691,6 +691,14 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_isinstance(lindex, type(rindex))
             assert_attr_equal('dtype', lindex, rindex)
             assert_attr_equal('inferred_type', lindex, rindex)
+    if check_names:
+        if is_number(left.name) and np.isnan(left.name):
+            # Series.name can be np.nan in some test cases
+            assert is_number(right.name) and np.isnan(right.name)
+        elif left.name is pd.NaT:
+            assert right.name is pd.NaT
+        else:
+            assert_attr_equal('name', left, right)
 
 
 # This could be refactored to use the NDFrame.equals method

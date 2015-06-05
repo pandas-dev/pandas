@@ -1207,7 +1207,9 @@ class TestOperationsNumExprPandas(tm.TestCase):
             a = 1
             old_a = df.a.copy()
             df.eval('a = a + b')
-            assert_series_equal(old_a + df.b, df.a)
+            result = old_a + df.b
+            assert_series_equal(result, df.a, check_names=False)
+            self.assertTrue(result.name is None)
 
         f()
 
@@ -1251,7 +1253,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
         res = self.eval('df.dates1 < 20130101', local_dict={'df': df},
                         engine=self.engine, parser=self.parser)
         expec = df.dates1 < '20130101'
-        assert_series_equal(res, expec)
+        assert_series_equal(res, expec, check_names=False)
 
     def test_simple_in_ops(self):
         if self.parser != 'python':

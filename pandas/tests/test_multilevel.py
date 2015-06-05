@@ -149,7 +149,7 @@ class TestMultiLevel(tm.TestCase):
         # Series
         result = month_sums['A'].reindex(self.ymd.index, level=1)
         expected = self.ymd['A'].groupby(level='month').transform(np.sum)
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
 
         # axis=1
         month_sums = self.ymd.T.sum(axis=1, level='month')
@@ -173,6 +173,7 @@ class TestMultiLevel(tm.TestCase):
             broadcasted = self.ymd['A'].groupby(
                 level='month').transform(np.sum)
             expected = op(self.ymd['A'], broadcasted)
+            expected.name = 'A'
             assert_series_equal(result, expected)
 
         _check_op('sub')
@@ -1209,7 +1210,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         applied = grouped.apply(lambda x: x * 2)
         expected = grouped.transform(lambda x: x * 2)
-        assert_series_equal(applied.reindex(expected.index), expected)
+        result = applied.reindex(expected.index)
+        assert_series_equal(result, expected, check_names=False)
 
     def test_unstack_sparse_keyspace(self):
         # memory problems with naive impl #2278

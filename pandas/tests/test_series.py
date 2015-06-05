@@ -1063,7 +1063,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = k.pop('B')
         self.assertEqual(result, 4)
 
-        expected = Series([0,0],index=['A','C'])
+        expected = Series([0, 0], index=['A', 'C'], name=4)
         assert_series_equal(k, expected)
 
     def test_not_hashable(self):
@@ -1452,8 +1452,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # set item that's not contained
         s = self.series.copy()
         s['foobar'] = 1
-        expected = self.series.append(Series([1],index=['foobar']))
-        assert_series_equal(s,expected)
+
+        app = Series([1], index=['foobar'], name='series')
+        expected = self.series.append(app)
+        assert_series_equal(s, expected)
 
     def test_setitem_dtypes(self):
 
@@ -2716,7 +2718,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
         # re: GH #314
         result = np.round(self.ts, 2)
-        expected = Series(np.round(self.ts.values, 2), index=self.ts.index)
+        expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
+                          name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
 
@@ -2865,7 +2868,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         result = p['first'] % 0
-        expected = Series(np.nan, index=p.index)
+        expected = Series(np.nan, index=p.index, name='first')
         assert_series_equal(result, expected)
 
         p = p.astype('float64')
@@ -2894,13 +2897,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # no longer do integer div for any ops, but deal with the 0's
         p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
         result = p['first'] / p['second']
-        expected = Series(
-            p['first'].values.astype(float) / p['second'].values, dtype='float64')
+        expected = Series(p['first'].values.astype(float) / p['second'].values,
+                          dtype='float64')
         expected.iloc[0:3] = np.inf
         assert_series_equal(result, expected)
 
         result = p['first'] / 0
-        expected = Series(np.inf, index=p.index)
+        expected = Series(np.inf, index=p.index, name='first')
         assert_series_equal(result, expected)
 
         p = p.astype('float64')
@@ -2910,7 +2913,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
         result = p['first'] / p['second']
-        assert_series_equal(result, p['first'].astype('float64'))
+        assert_series_equal(result, p['first'].astype('float64'), check_names=False)
+        self.assertTrue(result.name is None)
         self.assertFalse(np.array_equal(result, p['second'] / p['first']))
 
         # inf signing
@@ -2925,7 +2929,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([-0.01,-np.inf])
 
         result = p['second'].div(p['first'])
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_names=False)
 
         result = p['second'] / p['first']
         assert_series_equal(result, expected)
@@ -3100,13 +3104,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # timestamp on lhs
         result = resultb + df['A']
-        expected = Series(
-            [Timestamp('20111230'), Timestamp('20120101'), Timestamp('20120103')])
+        values = [Timestamp('20111230'), Timestamp('20120101'), Timestamp('20120103')]
+        expected = Series(values, name='A')
         assert_series_equal(result, expected)
 
         # datetimes on rhs
         result = df['A'] - datetime(2001, 1, 1)
-        expected = Series([timedelta(days=4017 + i) for i in range(3)])
+        expected = Series([timedelta(days=4017 + i) for i in range(3)], name='A')
         assert_series_equal(result, expected)
         self.assertEqual(result.dtype, 'm8[ns]')
 
@@ -3431,13 +3435,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
-        expected = Series([timedelta(0),timedelta(0),pd.NaT])
+        expected = Series([timedelta(0), timedelta(0), pd.NaT])
+        # name is reset
+        result = dt2 - dt
+        assert_series_equal(result, expected)
 
-        result = dt2-dt
-        assert_series_equal(result,expected)
-
-        result = (dt2.to_frame()-dt.to_frame())[0]
-        assert_series_equal(result,expected)
+        expected = Series(expected, name=0)
+        result = (dt2.to_frame() - dt.to_frame())[0]
+        assert_series_equal(result, expected)
 
     def test_timedelta64_functions(self):
 
@@ -3738,25 +3743,27 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # arithmetic integer ops with an index
         s = Series(np.random.randn(5))
-        expected = s-s.index.to_series()
-        result = s-s.index
-        assert_series_equal(result,expected)
+        expected = s - s.index.to_series()
+        result = s - s.index
+        assert_series_equal(result, expected)
 
         # GH 4629
         # arithmetic datetime64 ops with an index
-        s = Series(date_range('20130101',periods=5),index=date_range('20130101',periods=5))
-        expected = s-s.index.to_series()
-        result = s-s.index
-        assert_series_equal(result,expected)
+        s = Series(date_range('20130101', periods=5),
+                   index=date_range('20130101', periods=5))
+        expected = s - s.index.to_series()
+        result = s - s.index
+        assert_series_equal(result, expected)
 
-        result = s-s.index.to_period()
-        assert_series_equal(result,expected)
+        result = s - s.index.to_period()
+        assert_series_equal(result, expected)
 
-        df = DataFrame(np.random.randn(5,2),index=date_range('20130101',periods=5))
+        df = DataFrame(np.random.randn(5,2),
+                      index=date_range('20130101', periods=5))
         df['date'] = Timestamp('20130102')
         df['expected'] = df['date'] - df.index.to_series()
         df['result'] = df['date'] - df.index
-        assert_series_equal(df['result'],df['expected'])
+        assert_series_equal(df['result'], df['expected'], check_names=False)
 
     def test_timedelta64_nan(self):
 
@@ -4933,14 +4940,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         with ensure_clean() as path:
             self.ts.to_csv(path)
             ts = Series.from_csv(path)
-            assert_series_equal(self.ts, ts)
+            assert_series_equal(self.ts, ts, check_names=False)
+            self.assertTrue(ts.name is None)
             self.assertTrue(ts.index.name is None)
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
             self.assertIsNone(series.name)
             self.assertIsNone(series.index.name)
-            assert_series_equal(self.series, series)
+            assert_series_equal(self.series, series, check_names=False)
+            self.assertTrue(series.name is None)
+            self.assertTrue(series.index.name is None)
 
             outfile = open(path, 'w')
             outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
@@ -5190,7 +5200,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         shifted2 = self.ts.tshift(freq=self.ts.index.freq)
         assert_series_equal(shifted, shifted2)
 
-        inferred_ts = Series(self.ts.values, Index(np.asarray(self.ts.index)))
+        inferred_ts = Series(self.ts.values, Index(np.asarray(self.ts.index)),
+                             name='ts')
         shifted = inferred_ts.tshift(1)
         unshifted = shifted.tshift(-1)
         assert_series_equal(shifted, self.ts.tshift(1))
@@ -5778,7 +5789,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now
-        tm.assert_series_equal(df['labels'], df['expected_labels'])
+        tm.assert_series_equal(df['labels'], df['expected_labels'], check_names=False)
 
     def test_apply(self):
         assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
@@ -6360,6 +6371,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         left = ts.unstack()
         right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
                           columns=[nan, 3.5])
+        print(left)
+        print(right)
         assert_frame_equal(left, right)
 
         idx = pd.MultiIndex.from_arrays([['cat', 'cat', 'cat', 'dog', 'dog'],
