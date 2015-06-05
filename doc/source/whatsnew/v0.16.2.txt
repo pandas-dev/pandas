@@ -57,7 +57,7 @@ Bug Fixes
 - Bug where read_hdf store.select modifies the passed columns list when
   multi-indexed (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
-
+- Bug where some of the nan funcs do not have consistent return dtypes (:issue:`10251`)
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
 - Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
 - Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
