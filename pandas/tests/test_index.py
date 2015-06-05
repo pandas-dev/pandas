@@ -19,7 +19,7 @@ from pandas.core.index import InvalidIndexError, NumericIndex
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
 from pandas import compat
-from pandas.compat import long
+from pandas.compat import long, is_platform_windows
 
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -1000,9 +1000,15 @@ class TestIndex(Base, tm.TestCase):
         self._check_method_works(Index.format)
 
         index = Index([datetime.now()])
-        formatted = index.format()
-        expected = [str(index[0])]
-        self.assertEqual(formatted, expected)
+
+
+        # windows has different precision on datetime.datetime.now (it doesn't include us
+        # since the default for Timestamp shows these but Index formating does not
+        # we are skipping
+        if not is_platform_windows:
+            formatted = index.format()
+            expected = [str(index[0])]
+            self.assertEqual(formatted, expected)
 
         # 2845
         index = Index([1, 2.0+3.0j, np.nan])
