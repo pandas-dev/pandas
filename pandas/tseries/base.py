@@ -449,7 +449,7 @@ class DatetimeIndexOpsMixin(object):
                 return self.asobject.isin(values)
 
         value_set = set(values.asi8)
-        return lib.ismember(self.asi8, value_set)
+        return lib.ismember_int64(self.asi8, value_set)
 
     def shift(self, n, freq=None):
         """
