@@ -244,7 +244,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def _box_func(self):
-        return lambda x: Timedelta(x,unit='ns')
+        return lambda x: Timedelta(x, unit='ns')
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -746,25 +746,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         # try to find a the dates
         return (lhs_mask & rhs_mask).nonzero()[0]
-
-    def __getitem__(self, key):
-        getitem = self._data.__getitem__
-        if np.isscalar(key):
-            val = getitem(key)
-            return Timedelta(val)
-        else:
-            if com.is_bool_indexer(key):
-                key = np.asarray(key)
-                if key.all():
-                    key = slice(0,None,None)
-                else:
-                    key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-
-            result = getitem(key)
-            if result.ndim > 1:
-                return result
-
-            return self._simple_new(result, self.name)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, (np.ndarray, Index)):
