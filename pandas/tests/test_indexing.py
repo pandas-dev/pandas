@@ -2293,6 +2293,7 @@ class TestIndexing(tm.TestCase):
                              index=pd.MultiIndex.from_product([['A','B','C'],['foo']],
                                                               names=['one','two'])
                              ).sortlevel()
+
         result = s.loc[idx[:,['foo']]]
         assert_series_equal(result,expected)
         result = s.loc[idx[:,['foo','bah']]]
@@ -2304,9 +2305,9 @@ class TestIndexing(tm.TestCase):
         df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
         df = df.sortlevel(0, axis=1)
 
+        expected = DataFrame(index=range(5),columns=multi_index.reindex([])[0])
         result1 = df.loc[:, ([], slice(None))]
         result2 = df.loc[:, (['foo'], [])]
-        expected = DataFrame(index=range(5),columns=multi_index.reindex([])[0])
         assert_frame_equal(result1, expected)
         assert_frame_equal(result2, expected)
 

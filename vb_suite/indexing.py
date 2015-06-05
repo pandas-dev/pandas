@@ -239,6 +239,7 @@ series_ix_array = Benchmark("s.ix[np.arange(10000)]", setup)
 
 # multi-index slicing
 setup = common_setup + """
+np.random.seed(1234)
 idx=pd.IndexSlice
 n=100000
 mdt = pandas.DataFrame()

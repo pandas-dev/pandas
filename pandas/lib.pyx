@@ -156,6 +156,31 @@ def ismember(ndarray arr, set values):
 
     return result.view(np.bool_)
 
+def ismember_int64(ndarray[int64_t] arr, set values):
+    '''
+    Checks whether
+
+    Parameters
+    ----------
+    arr : ndarray of int64
+    values : set
+
+    Returns
+    -------
+    ismember : ndarray (boolean dtype)
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[uint8_t] result
+        int64_t v
+
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i in range(n):
+        result[i] = arr[i] in values
+
+    return result.view(np.bool_)
+
 #----------------------------------------------------------------------
 # datetime / io related
 

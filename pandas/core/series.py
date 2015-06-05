@@ -19,6 +19,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
+                                is_int64_dtype,
                                 ABCSparseArray, _maybe_match_name,
                                 _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
@@ -2250,17 +2251,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # may need i8 conversion for proper membership testing
         comps = _values_from_object(self)
+        f = lib.ismember
         if com.is_datetime64_dtype(self):
             from pandas.tseries.tools import to_datetime
             values = Series(to_datetime(values)).values.view('i8')
             comps = comps.view('i8')
+            f = lib.ismember_int64
         elif com.is_timedelta64_dtype(self):
             from pandas.tseries.timedeltas import to_timedelta
             values = Series(to_timedelta(values)).values.view('i8')
             comps = comps.view('i8')
+            f = lib.ismember_int64
+        elif is_int64_dtype(self):
+            f = lib.ismember_int64
 
         value_set = set(values)
-        result = lib.ismember(comps, value_set)
+        result = f(comps, value_set)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
