@@ -19,7 +19,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
 
 from pandas.core.config import get_option
 
@@ -3028,13 +3028,27 @@ def _where_compat(mask, arr1, arr2):
 
     return np.where(mask, arr1, arr2)
 
+def _dict_compat(d):
+    """
+    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
+
+    Parameters
+    ----------
+    d: dict like object
+
+    Returns
+    -------
+    dict
+
+    """
+    return dict((_maybe_box_datetimelike(key), value) for key, value in iteritems(d))
 
 def sentinel_factory():
+
     class Sentinel(object):
         pass
 
     return Sentinel()
-
 
 def in_interactive_session():
     """ check if we're running in an interactive shell
