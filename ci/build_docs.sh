@@ -16,7 +16,7 @@ if [ x"$DOC_BUILD" != x"" ]; then
 
     # we're running network tests, let's build the docs in the meantime
     echo "Will build docs"
-    conda install sphinx==1.1.3 ipython
+    pip install sphinx==1.1.3 ipython
 
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
     cd /tmp/doc
