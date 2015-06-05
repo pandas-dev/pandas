@@ -47,7 +47,6 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved ``Series.resample`` performance with dtype=datetime64[ns] (:issue:`7754`)
-- Modest improvement in datetime writing speed in to_csv (:issue:`10271`)
 
 .. _whatsnew_0162.bug_fixes:
 
