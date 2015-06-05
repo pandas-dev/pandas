@@ -39,7 +39,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor. (:issue:`102171`)
+- ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor instead of returning an incorrect result (:issue:`10217`).
 
 .. _whatsnew_0162.performance:
 
