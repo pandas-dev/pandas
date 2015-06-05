@@ -369,6 +369,7 @@ class _NDFrameIndexer(object):
                     # we can directly set the series here
                     # as we select a slice indexer on the mi
                     idx = index._convert_slice_indexer(idx)
+                    obj._consolidate_inplace()
                     obj = obj.copy()
                     obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
                     self.obj[item] = obj
@@ -396,6 +397,7 @@ class _NDFrameIndexer(object):
                     s = v
                 else:
                     # set the item, possibly having a dtype change
+                    s._consolidate_inplace()
                     s = s.copy()
                     s._data = s._data.setitem(indexer=pi, value=v)
                     s._maybe_update_cacher(clear=True)
@@ -492,6 +494,7 @@ class _NDFrameIndexer(object):
             self.obj._check_is_chained_assignment_possible()
 
             # actually do the set
+            self.obj._consolidate_inplace()
             self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
 
