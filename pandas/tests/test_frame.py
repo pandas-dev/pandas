@@ -12066,6 +12066,31 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series([3., 4.], index=[0, 1])
         assert_series_equal(result, expected)
 
+    def test_quantile_axis_parameter(self):
+        # GH 9543/9544
+        from numpy import percentile
+
+        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
+
+        result = df.quantile(.5, axis=0)
+
+        expected = Series([2., 3.], index=["A", "B"])
+        assert_series_equal(result, expected)
+
+        expected = df.quantile(.5, axis="index")
+        assert_series_equal(result, expected)
+
+        result = df.quantile(.5, axis=1)
+
+        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = df.quantile(.5, axis="columns")
+        assert_series_equal(result, expected)
+
+        assertRaises(ValueError, df.quantile, 0.1, axis=-1)
+        assertRaises(ValueError, df.quantile, 0.1, axis="column")
+
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
