@@ -39,7 +39,9 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor instead of returning an incorrect result (:issue:`10217`).
+- ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor. (:issue:`102171`)
+
+- ``axis`` parameter of method ``DataFrame.quantile`` now accepts also ``index`` and``column``. (:issue:`9543`)
 
 .. _whatsnew_0162.performance:
 
@@ -57,7 +59,7 @@ Bug Fixes
 - Bug where read_hdf store.select modifies the passed columns list when
   multi-indexed (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
-
+- Bug in ``DataFrame.quantile``: no check on the value inserted for the ``axis`` parameter (if 'foo' was inserted, no ``ValueError()`` was raised) (:issue:`9543`)
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
 - Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
 - Bug where Panel.from_dict does not set dtype when specified (:issue:`10058`)
@@ -69,7 +71,7 @@ Bug Fixes
 - Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
 - Bug in display datetimes with mixed frequencies uniformly; display 'ms' datetimes to the proper precision. (:issue:`10170`)
 
-- Bung in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
+- Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
 
 - Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
 
