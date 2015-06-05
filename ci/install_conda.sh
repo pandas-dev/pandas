@@ -86,6 +86,9 @@ conda remove -n pandas pandas
 
 source activate pandas
 
+pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
+python -c 'import blosc; blosc.print_versions()'
+
 # set the compiler cache to work
 if [ "$IRON_TOKEN" ]; then
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
@@ -96,9 +99,15 @@ if [ "$IRON_TOKEN" ]; then
     export CC='ccache gcc'
 fi
 
-python setup.py build_ext --inplace && python setup.py develop
+if [ "$BUILD_TEST" ]; then
+    pip uninstall --yes cython
+    pip install cython==0.15.1
+    ( python setup.py build_ext --inplace && python setup.py develop ) || true
+else
+    python setup.py build_ext --inplace && python setup.py develop
+fi
 
-for package in beautifulsoup4 'python-dateutil'; do
+for package in beautifulsoup4; do
     pip uninstall --yes $package
 done
 

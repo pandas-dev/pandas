@@ -439,6 +439,38 @@ class TestPlotBase(tm.TestCase):
                 else:
                     raise AssertionError
 
+    def _check_grid_settings(self, obj, kinds, kws={}):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+
+        import matplotlib as mpl
+
+        def is_grid_on():
+            xoff = all(not g.gridOn for g in self.plt.gca().xaxis.get_major_ticks())
+            yoff = all(not g.gridOn for g in self.plt.gca().yaxis.get_major_ticks())
+            return not(xoff and yoff)
+
+        spndx=1
+        for kind in kinds:
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=False)
+            obj.plot(kind=kind, **kws)
+            self.assertFalse(is_grid_on())    
+
+            self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+            mpl.rc('axes',grid=True)
+            obj.plot(kind=kind, grid=False, **kws)
+            self.assertFalse(is_grid_on())    
+
+            if kind != 'pie':
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=True)
+                obj.plot(kind=kind, **kws)
+                self.assertTrue(is_grid_on())
+
+                self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
+                mpl.rc('axes',grid=False)
+                obj.plot(kind=kind, grid=True, **kws)
+                self.assertTrue(is_grid_on())
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
@@ -553,6 +585,29 @@ class TestSeriesPlots(TestPlotBase):
         self.assertEqual(xmin, line[0])
         self.assertEqual(xmax, line[-1])
 
+    def test_label(self):
+        s = Series([1, 2])
+        ax = s.plot(label='LABEL', legend=True)
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['None'])
+        self.plt.close()
+        # get name from index
+        s.name = 'NAME'
+        ax = s.plot(legend=True)
+        self._check_legend_labels(ax, labels=['NAME'])
+        self.plt.close()
+        # override the default
+        ax = s.plot(legend=True, label='LABEL')
+        self._check_legend_labels(ax, labels=['LABEL'])
+        self.plt.close()
+        # Add lebel info, but don't draw
+        ax = s.plot(legend=False, label='LABEL')
+        self.assertEqual(ax.get_legend(), None)  # Hasn't been drawn
+        ax.legend()  # draw it
+        self._check_legend_labels(ax, labels=['LABEL'])
+
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
         s = Series(values)
@@ -592,6 +647,26 @@ class TestSeriesPlots(TestPlotBase):
 
         ax = Series([200, 500]).plot(log=True, kind='bar')
         assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([200, 500]).plot(log=True, kind='barh')
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
+        tm.close()
+
+        # GH 9905
+        expected = np.array([1.0e-03, 1.0e-02, 1.0e-01, 1.0e+00])
+
+        if not self.mpl_le_1_2_1:
+            expected = np.hstack((1.0e-04, expected, 1.0e+01))
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        assert_array_equal(ax.get_ylim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.close()
+
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
+        assert_array_equal(ax.get_xlim(), (0.001, 0.10000000000000001))
+        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_ignore_index(self):
@@ -679,6 +754,18 @@ class TestSeriesPlots(TestPlotBase):
         self.assertEqual(len(ax.patches), 10)
 
     @slow
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
+        df['E'] = ['x', 'y'] * 5
+        ax = df.plot(kind='hist', bins=5)
+        self.assertEqual(len(ax.patches), 20)
+
+        ax = df.plot(kind='hist') # bins=10
+        self.assertEqual(len(ax.patches), 40)
+
+    @slow
     def test_hist_legacy(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
@@ -754,6 +841,101 @@ class TestSeriesPlots(TestPlotBase):
         fig = gcf()
         axes = fig.get_axes()
         self.assertEqual(len(axes), 2)
+
+    @slow
+    def test_hist_secondary_legend(self):
+        # GH 9610
+        df = DataFrame(np.random.randn(30, 4), columns=list('abcd'))
+
+        # primary -> secondary
+        ax = df['a'].plot(kind='hist', legend=True)
+        df['b'].plot(kind='hist', ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary
+        ax = df['a'].plot(kind='hist', legend=True, secondary_y=True)
+        df['b'].plot(kind='hist', ax=ax, legend=True, secondary_y=True)
+        # both legends are draw on left ax
+        # left axis must be invisible, right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=['a (right)', 'b (right)'])
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> primary
+        ax = df['a'].plot(kind='hist', legend=True, secondary_y=True)
+        # right axes is returned
+        df['b'].plot(kind='hist', ax=ax, legend=True)
+        # both legends are draw on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=['a (right)', 'b'])
+        self.assertTrue(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+    @slow
+    def test_df_series_secondary_legend(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list('abc'))
+        s = Series(np.random.randn(30), name='x')
+
+        # primary -> secondary (without passing ax)
+        ax = df.plot()
+        s.plot(legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # primary -> secondary (with passing ax)
+        ax = df.plot()
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
+        self.assertTrue(ax.get_yaxis().get_visible())
+        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        tm.close()
+
+        # seconcary -> secondary (without passing ax)
+        ax = df.plot(secondary_y=True)
+        s.plot(legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
+        self._check_legend_labels(ax.left_ax, labels=expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary (with passing ax)
+        ax = df.plot(secondary_y=True)
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
+        self._check_legend_labels(ax.left_ax, expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
+
+        # secondary -> secondary (with passing ax)
+        ax = df.plot(secondary_y=True, mark_right=False)
+        s.plot(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left axis must be invisible and right axis must be visible
+        expected = ['a', 'b', 'c', 'x (right)']
+        self._check_legend_labels(ax.left_ax, expected)
+        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        self.assertTrue(ax.get_yaxis().get_visible())
+        tm.close()
 
     @slow
     def test_plot_fails_with_dupe_color_and_style(self):
@@ -958,6 +1140,12 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)
 
+    @slow
+    def test_series_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(Series([1,2,3]), 
+            plotting._series_kinds + plotting._common_kinds)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
@@ -1000,8 +1188,14 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
-        axes = _check_plot_works(df.plot, subplots=True, title='blah')
+        _check_plot_works(df.plot, subplots=True, title='blah')
+        # We have to redo it here because _check_plot_works does two plots, once without an ax
+        # kwarg and once with an ax kwarg and the new sharex behaviour does not remove the
+        # visibility of the latter axis (as ax is present).
+        # see: https://github.com/pydata/pandas/issues/9737
+        axes = df.plot(subplots=True, title='blah')
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        #axes[0].figure.savefig("test.png")
         for ax in axes[:2]:
             self._check_visible(ax.xaxis)   # xaxis must be visible for grid
             self._check_visible(ax.get_xticklabels(), visible=False)
@@ -1053,6 +1247,22 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(len(axes), 1)
         self.assertIs(ax.get_axes(), axes[0])
 
+    def test_color_and_style_arguments(self):
+        df = DataFrame({'x': [1, 2], 'y': [3, 4]})
+        # passing both 'color' and 'style' arguments should be allowed
+        # if there is no color symbol in the style strings:
+        ax = df.plot(color = ['red', 'black'], style = ['-', '--'])
+        # check that the linestyles are correctly set:
+        linestyle = [line.get_linestyle() for line in ax.lines]
+        self.assertEqual(linestyle, ['-', '--'])
+        # check that the colors are correctly set:
+        color = [line.get_color() for line in ax.lines]
+        self.assertEqual(color, ['red', 'black'])
+        # passing both 'color' and 'style' arguments should not be allowed
+        # if there is a color symbol in the style strings:
+        with tm.assertRaises(ValueError):
+            df.plot(color = ['red', 'black'], style = ['k-', 'r--'])
+
     def test_nonnumeric_exclude(self):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
         ax = df.plot()
@@ -1063,12 +1273,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
         ax = df.plot(x='a', y='b')
         self._check_text_labels(ax.xaxis.get_label(), 'a')
-
-    @slow
-    def test_explicit_label(self):
-        df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
-        ax = df.plot(x='a', y='b', label='LABEL')
-        self._check_text_labels(ax.xaxis.get_label(), 'LABEL')
 
     @slow
     def test_donot_overwrite_index_name(self):
@@ -1246,6 +1450,7 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_visible(ax.get_yticklabels())
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45, ylabelsize=7)
 
+    @slow
     def test_subplots_layout(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3),
@@ -1290,6 +1495,21 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(subplots=True, layout=(3, 3))
         self._check_axes_shape(axes, axes_num=1, layout=(3, 3))
         self.assertEqual(axes.shape, (3, 3))
+
+    @slow
+    def test_subplots_warnings(self):
+        # GH 9464
+        warnings.simplefilter('error')
+        try:
+            df = DataFrame(np.random.randn(100, 4))
+            df.plot(subplots=True, layout=(3, 2))
+
+            df = DataFrame(np.random.randn(100, 4),
+                           index=date_range('1/1/2000', periods=100))
+            df.plot(subplots=True, layout=(3, 2))
+        except Warning as w:
+            self.fail(w)
+        warnings.simplefilter('default')
 
     @slow
     def test_subplots_multiple_axes(self):
@@ -1374,6 +1594,19 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.get_yticklabels(), visible=False)
         for ax in axes[[0, 1, 2], [2]].ravel():
             self._check_visible(ax.get_yticklabels(), visible=False)
+
+    def test_subplots_sharex_axes_existing_axes(self):
+        # GH 9158
+        d = {'A': [1., 2., 3., 4.], 'B': [4., 3., 2., 1.], 'C': [5, 1, 3, 4]}
+        df = DataFrame(d, index=date_range('2014 10 11', '2014 10 14'))
+
+        axes = df[['A', 'B']].plot(subplots=True)
+        df['C'].plot(ax=axes[0], secondary_y=True)
+
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        for ax in axes.ravel():
+            self._check_visible(ax.get_yticklabels(), visible=True)
 
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
@@ -1470,7 +1703,10 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(xmax, lines[0].get_data()[0][-1])
 
         axes = df.plot(secondary_y=True, subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
+            self.assertTrue(hasattr(ax, 'left_ax'))
+            self.assertFalse(hasattr(ax, 'right_ax'))
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
             self.assertEqual(xmin, lines[0].get_data()[0][0])
@@ -2337,10 +2573,9 @@ class TestDataFramePlots(TestPlotBase):
         tm._skip_if_no_scipy()
 
         df = DataFrame(randn(100, 2))
-        import pandas.tools.plotting as plt
 
         def scat(**kwds):
-            return plt.scatter_matrix(df, **kwds)
+            return plotting.scatter_matrix(df, **kwds)
 
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
@@ -2353,11 +2588,32 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(scat, range_padding=.1)
 
         def scat2(x, y, by=None, ax=None, figsize=None):
-            return plt.scatter_plot(df, x, y, by, ax, figsize=None)
+            return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, 0, 1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
+
+    def test_scatter_matrix_axis(self):
+        tm._skip_if_no_scipy()
+        scatter_matrix = plotting.scatter_matrix
+
+        with tm.RNGContext(42):
+            df = DataFrame(randn(100, 3))
+
+        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes0_labels = axes[0][0].yaxis.get_majorticklabels()
+        # GH 5662
+        expected = ['-2', '-1', '0', '1', '2']
+        self._check_text_labels(axes0_labels, expected)
+        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+
+        df[0] = ((df[0] - 2) / 3)
+        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes0_labels = axes[0][0].yaxis.get_majorticklabels()
+        expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
+        self._check_text_labels(axes0_labels, expected)
+        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @slow
     def test_andrews_curves(self):
@@ -2525,6 +2781,20 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=['data1'])
         ax = df3.plot(kind='scatter', x='g', y='h', label='data3', ax=ax)
         self._check_legend_labels(ax, labels=['data1', 'data3'])
+
+        # ensure label args pass through and
+        # index name does not mutate
+        # column names don't mutate
+        df5 = df.set_index('a')
+        ax = df5.plot(y='b')
+        self._check_legend_labels(ax, labels=['b'])
+        ax = df5.plot(y='b', label='LABEL_b')
+        self._check_legend_labels(ax, labels=['LABEL_b'])
+        self._check_text_labels(ax.xaxis.get_label(), 'a')
+        ax = df5.plot(y='c', label='LABEL_c', ax=ax)
+        self._check_legend_labels(ax, labels=['LABEL_b','LABEL_c'])
+        self.assertTrue(df5.columns.tolist() == ['b','c'])
+
 
     def test_legend_name(self):
         multi = DataFrame(randn(4, 4),
@@ -3122,6 +3392,84 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, 'green', has_err='has_yerr')
 
+    def test_sharex_and_ax(self):
+        # https://github.com/pydata/pandas/issues/9737
+        # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
+        # them, so make sure that only the right ones are removed
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax, sharex=True)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_xticklabels():
+                self.assertEqual(label.get_visible(), ax.is_last_row(),
+                                 "x ticklabel has wrong visiblity")
+            self.assertEqual(ax.xaxis.get_label().get_visible(), ax.is_last_row(),
+                            "x label has wrong visiblity")
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+        # without sharex, no labels should be touched!
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_xticklabels():
+                self.assertTrue(label.get_visible(), "x ticklabel is invisible but shouldn't")
+            self.assertTrue(ax.xaxis.get_label().get_visible(),
+                            "x label is invisible but shouldn't")
+
+
+    def test_sharey_and_ax(self):
+        # https://github.com/pydata/pandas/issues/9737
+        # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
+        # them, so make sure that only the right ones are removed
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax, sharey=True)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_yticklabels():
+                self.assertEqual(label.get_visible(), ax.is_first_col(),
+                                 "y ticklabel has wrong visiblity")
+            self.assertEqual(ax.yaxis.get_label().get_visible(), ax.is_first_col(),
+                            "y label has wrong visiblity")
+
+        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+
+        # without sharex, no labels should be touched!
+        for ax in axes:
+            df.plot(x="a", y="b", title="title", ax=ax)
+
+        gs.tight_layout(plt.gcf())
+        for ax in plt.gcf().get_axes():
+            for label in ax.get_yticklabels():
+                self.assertTrue(label.get_visible(), "y ticklabel is invisible but shouldn't")
+            self.assertTrue(ax.yaxis.get_label().get_visible(),
+                             "y label is invisible but shouldn't")
+
+
+    @slow
+    def test_df_grid_settings(self):
+        # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
+        self._check_grid_settings(DataFrame({'a':[1,2,3],'b':[2,3,4]}), 
+            plotting._dataframe_kinds, kws={'x':'a','y':'b'})
+        
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -3595,6 +3943,19 @@ def _check_plot_works(f, *args, **kwargs):
         tm.close(fig)
 
     return ret
+
+def _generate_4_axes_via_gridspec():
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    import matplotlib.gridspec
+
+    gs = mpl.gridspec.GridSpec(2, 2)
+    ax_tl = plt.subplot(gs[0,0])
+    ax_ll = plt.subplot(gs[1,0])
+    ax_tr = plt.subplot(gs[0,1])
+    ax_lr = plt.subplot(gs[1,1])
+
+    return gs, [ax_tl, ax_ll, ax_tr, ax_lr]
 
 
 def curpath():

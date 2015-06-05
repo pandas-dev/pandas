@@ -16,6 +16,7 @@ import functools
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd','CBMonthBegin',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
+           'BusinessHour',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
@@ -54,12 +55,16 @@ def apply_wraps(func):
         nano = getattr(other, 'nanosecond', 0)
 
         try:
-            result = func(self, other)
+            if self._adjust_dst and isinstance(other, Timestamp):
+                other = other.tz_localize(None)
 
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+            result = func(self, other)
+            if self._adjust_dst:
+                result = tslib._localize_pydatetime(result, tz)
+            
             result = Timestamp(result)
+            if self.normalize:
+                result = result.normalize()
 
             # nanosecond may be deleted depending on offset process
             if not self.normalize and nano != 0:
@@ -79,7 +84,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+                result = normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = tslib._localize_pydatetime(result, tz)
@@ -158,6 +163,7 @@ class DateOffset(object):
         'hour', 'minute', 'second', 'microsecond'
         )
     _use_relativedelta = False
+    _adjust_dst = False
 
     # default for prior pickles
     normalize = False
@@ -380,15 +386,14 @@ class DateOffset(object):
 
         return fstr
 
-
 class SingleConstructorOffset(DateOffset):
+    
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError("Bad freq suffix %s" % suffix)
         return cls()
-
 
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
@@ -400,10 +405,6 @@ class BusinessMixin(object):
         if hasattr(self, '_named'):
             return self._named
         className = getattr(self, '_outputName', self.__class__.__name__)
-        attrs = []
-
-        if self.offset:
-            attrs = ['offset=%s' % repr(self.offset)]
 
         if abs(self.n) != 1:
             plural = 's'
@@ -414,10 +415,17 @@ class BusinessMixin(object):
         if self.n != 1:
             n_str = "%s * " % self.n
 
-        out = '<%s' % n_str + className + plural
+        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        return out
+
+    def _repr_attrs(self):
+        if self.offset:
+            attrs = ['offset=%s' % repr(self.offset)]
+        else:
+            attrs = None
+        out = ''
         if attrs:
             out += ': ' + ', '.join(attrs)
-        out += '>'
         return out
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
@@ -425,6 +433,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     DateOffset subclass representing possibly n business days
     """
     _prefix = 'B'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
@@ -524,6 +533,234 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
+
+
+class BusinessHour(BusinessMixin, SingleConstructorOffset):
+    """
+    DateOffset subclass representing possibly n business days
+    """
+    _prefix = 'BH'
+    _anchor = 0
+
+    def __init__(self, n=1, normalize=False, **kwds):
+        self.n = int(n)
+        self.normalize = normalize
+
+        # must be validated here to equality check
+        kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
+        kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.start = kwds.get('start', '09:00')
+        self.end = kwds.get('end', '17:00')
+
+        # used for moving to next businessday
+        if self.n >= 0:
+            self.next_bday = BusinessDay(n=1)
+        else:
+            self.next_bday = BusinessDay(n=-1)
+
+    def _validate_time(self, t_input):
+        from datetime import time as dt_time
+        import time
+        if isinstance(t_input, compat.string_types):
+            try:
+                t = time.strptime(t_input, '%H:%M')
+                return dt_time(hour=t.tm_hour, minute=t.tm_min)
+            except ValueError:
+                raise ValueError("time data must match '%H:%M' format")
+        elif isinstance(t_input, dt_time):
+            if t_input.second != 0 or t_input.microsecond != 0:
+                raise ValueError("time data must be specified only with hour and minute")
+            return t_input
+        else:
+            raise ValueError("time data must be string or datetime.time")
+
+    def _get_daytime_flag(self):
+        if self.start == self.end:
+            raise ValueError('start and end must not be the same')
+        elif self.start < self.end:
+            return True
+        else:
+            return False
+
+    def _repr_attrs(self):
+        out = super(BusinessHour, self)._repr_attrs()
+        attrs = ['BH=%s-%s' % (self.start.strftime('%H:%M'),
+                               self.end.strftime('%H:%M'))]
+        out += ': ' + ', '.join(attrs)
+        return out
+
+    def _next_opening_time(self, other):
+        """
+        If n is positive, return tomorrow's business day opening time.
+        Otherwise yesterday's business day's opening time.
+
+        Opening time always locates on BusinessDay.
+        Otherwise, closing time may not if business hour extends over midnight.
+        """
+        if not self.next_bday.onOffset(other):
+            other = other + self.next_bday
+        else:
+            if self.n >= 0 and self.start < other.time():
+                other = other + self.next_bday
+            elif self.n < 0 and other.time() < self.start:
+                other = other + self.next_bday
+        return datetime(other.year, other.month, other.day,
+                        self.start.hour, self.start.minute)
+
+    def _prev_opening_time(self, other):
+        """
+        If n is positive, return yesterday's business day opening time.
+        Otherwise yesterday business day's opening time.
+        """
+        if not self.next_bday.onOffset(other):
+            other = other - self.next_bday
+        else:
+            if self.n >= 0 and other.time() < self.start:
+                other = other - self.next_bday
+            elif self.n < 0 and other.time() > self.start:
+                other = other - self.next_bday
+        return datetime(other.year, other.month, other.day,
+                        self.start.hour, self.start.minute)
+
+    def _get_business_hours_by_sec(self):
+        """
+        Return business hours in a day by seconds.
+        """
+        if self._get_daytime_flag():
+            # create dummy datetime to calcurate businesshours in a day
+            dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
+            until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
+            return tslib.tot_seconds(until - dtstart)
+        else:
+            self.daytime = False
+            dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
+            until = datetime(2014, 4, 2, self.end.hour, self.end.minute)
+            return tslib.tot_seconds(until - dtstart)
+
+    @apply_wraps
+    def rollback(self, dt):
+        """Roll provided date backward to next offset only if not on offset"""
+        if not self.onOffset(dt):
+            businesshours = self._get_business_hours_by_sec()
+            if self.n >= 0:
+                dt = self._prev_opening_time(dt) + timedelta(seconds=businesshours)
+            else:
+                dt = self._next_opening_time(dt) + timedelta(seconds=businesshours)
+        return dt
+
+    @apply_wraps
+    def rollforward(self, dt):
+        """Roll provided date forward to next offset only if not on offset"""
+        if not self.onOffset(dt):
+            if self.n >= 0:
+                return self._next_opening_time(dt)
+            else:
+                return self._prev_opening_time(dt)
+        return dt
+
+    @apply_wraps
+    def apply(self, other):
+        # calcurate here because offset is not immutable
+        daytime = self._get_daytime_flag()
+        businesshours = self._get_business_hours_by_sec()
+        bhdelta = timedelta(seconds=businesshours)
+
+        if isinstance(other, datetime):
+            # used for detecting edge condition
+            nanosecond = getattr(other, 'nanosecond', 0)
+            # reset timezone and nanosecond
+            # other may be a Timestamp, thus not use replace
+            other = datetime(other.year, other.month, other.day,
+                             other.hour, other.minute,
+                             other.second, other.microsecond)
+            n = self.n
+            if n >= 0:
+                if (other.time() == self.end or
+                    not self._onOffset(other, businesshours)):
+                    other = self._next_opening_time(other)
+            else:
+                if other.time() == self.start:
+                    # adjustment to move to previous business day
+                    other = other - timedelta(seconds=1)
+                if not self._onOffset(other, businesshours):
+                    other = self._next_opening_time(other)
+                    other = other + bhdelta
+
+            bd, r = divmod(abs(n * 60), businesshours // 60)
+            if n < 0:
+                bd, r = -bd, -r
+
+            if bd != 0:
+                skip_bd = BusinessDay(n=bd)
+                # midnight busienss hour may not on BusinessDay
+                if not self.next_bday.onOffset(other):
+                    remain = other - self._prev_opening_time(other)
+                    other = self._next_opening_time(other + skip_bd) + remain
+                else:
+                    other = other + skip_bd
+
+            hours, minutes = divmod(r, 60)
+            result = other + timedelta(hours=hours, minutes=minutes)
+
+            # because of previous adjustment, time will be larger than start
+            if ((daytime and (result.time() < self.start or self.end < result.time())) or
+                not daytime and (self.end < result.time() < self.start)):
+                if n >= 0:
+                    bday_edge = self._prev_opening_time(other)
+                    bday_edge = bday_edge + bhdelta
+                    # calcurate remainder
+                    bday_remain = result - bday_edge
+                    result = self._next_opening_time(other)
+                    result += bday_remain
+                else:
+                    bday_edge = self._next_opening_time(other)
+                    bday_remain = result - bday_edge
+                    result = self._next_opening_time(result) + bhdelta
+                    result += bday_remain
+            # edge handling
+            if n >= 0:
+                if result.time() == self.end:
+                    result = self._next_opening_time(result)
+            else:
+                if result.time() == self.start and nanosecond == 0:
+                    # adjustment to move to previous business day
+                    result = self._next_opening_time(result- timedelta(seconds=1)) +bhdelta
+
+            return result
+        else:
+            raise ApplyTypeError('Only know how to combine business hour with ')
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+
+        if dt.tzinfo is not None:
+            dt = datetime(dt.year, dt.month, dt.day, dt.hour,
+                          dt.minute, dt.second, dt.microsecond)
+        # Valid BH can be on the different BusinessDay during midnight
+        # Distinguish by the time spent from previous opening time
+        businesshours = self._get_business_hours_by_sec()
+        return self._onOffset(dt, businesshours)
+
+    def _onOffset(self, dt, businesshours):
+        """
+        Slight speedups using calcurated values
+        """
+        # if self.normalize and not _is_normalized(dt):
+        #     return False
+        # Valid BH can be on the different BusinessDay during midnight
+        # Distinguish by the time spent from previous opening time
+        if self.n >= 0:
+            op = self._prev_opening_time(dt)
+        else:
+            op = self._next_opening_time(dt)
+        span = tslib.tot_seconds(dt - op)
+        if span <= businesshours:
+            return True
+        else:
+            return False
 
 
 class CustomBusinessDay(BusinessDay):
@@ -685,6 +922,8 @@ class CustomBusinessDay(BusinessDay):
 
 
 class MonthOffset(SingleConstructorOffset):
+    _adjust_dst = True
+    
     @property
     def name(self):
         if self.isAnchored:
@@ -925,7 +1164,7 @@ class Week(DateOffset):
     weekday : int, default None
         Always generate specific day of week. 0 for Monday
     """
-
+    _adjust_dst = True
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
@@ -1031,7 +1270,9 @@ class WeekOfMonth(DateOffset):
         5: Saturdays
         6: Sundays
     """
-
+    
+    _adjust_dst = True
+    
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
@@ -1190,7 +1431,7 @@ class QuarterOffset(DateOffset):
     _default_startingMonth = None
     #: default month in _from_name
     _from_name_startingMonth = None
-
+    _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point
     def __init__(self, n=1, normalize=False, **kwds):
@@ -1395,7 +1636,7 @@ class QuarterBegin(QuarterOffset):
 
 class YearOffset(DateOffset):
     """DateOffset that just needs a month"""
-
+    _adjust_dst = True
     def __init__(self, n=1, normalize=False, **kwds):
         self.month = kwds.get('month', self._default_month)
 
@@ -1627,6 +1868,7 @@ class FY5253(DateOffset):
     _prefix = 'RE'
     _suffix_prefix_last = 'L'
     _suffix_prefix_nearest = 'N'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1848,6 +2090,7 @@ class FY5253Quarter(DateOffset):
     """
 
     _prefix = 'REQ'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1966,6 +2209,8 @@ class Easter(DateOffset):
     the revised method which is valid in years
     1583-4099.
     '''
+    _adjust_dst = True
+    
     def __init__(self, n=1, **kwds):
         super(Easter, self).__init__(n, **kwds)
 
@@ -2237,6 +2482,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     BusinessMonthEnd,         # 'BM'
     BQuarterEnd,              # 'BQ'
     BQuarterBegin,            # 'BQS'
+    BusinessHour,             # 'BH'
     CustomBusinessDay,        # 'C'
     CustomBusinessMonthEnd,   # 'CBM'
     CustomBusinessMonthBegin, # 'CBMS'

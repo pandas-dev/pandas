@@ -288,7 +288,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
     def test_recreate_from_data(self):
-        freqs = ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
 
         for f in freqs:
             org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
@@ -417,9 +417,9 @@ class TestTimeSeries(tm.TestCase):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         _skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        import dateutil
+        from pandas.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519',
-                         tz=dateutil.zoneinfo.gettz('US/Eastern'))
+                         tz=gettz('US/Eastern'))
 
         stamp = rng[0]
         dtval = stamp.to_pydatetime()
@@ -791,7 +791,7 @@ class TestTimeSeries(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         result = repr(series)
-        expected = ('0          1970-01-01 00:00:00\n'
+        expected = ('0   1970-01-01 00:00:00.000000\n'
                     '1   1970-01-01 00:00:00.000001\n'
                     '2   1970-01-01 00:00:00.000002\n'
                     '3                          NaT\n'
@@ -937,7 +937,7 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
@@ -947,7 +947,7 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear']
+                  'week', 'dayofyear', 'days_in_month']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
@@ -1130,6 +1130,15 @@ class TestTimeSeries(tm.TestCase):
 
         result = ts[list(ts.index[5:10])]
         tm.assert_series_equal(result, expected)
+
+    def test_asfreq_keep_index_name(self):
+        # GH #9854
+        index_name = 'bar'
+        index = pd.date_range('20130101',periods=20,name=index_name)
+        df = pd.DataFrame([x for x in range(20)],columns=['foo'],index=index)
+
+        tm.assert_equal(index_name, df.index.name)
+        tm.assert_equal(index_name, df.asfreq('10D').index.name)
 
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
@@ -1625,7 +1634,7 @@ class TestTimeSeries(tm.TestCase):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
 
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'days_in_month', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
         for f in fields:
             expected = getattr(idx, f)[-1]
             result = getattr(Timestamp(idx[-1]), f)
@@ -1798,7 +1807,7 @@ class TestTimeSeries(tm.TestCase):
     def test_append_concat_tz_dateutil(self):
         # GH 2938
         tm._skip_if_no_dateutil()
-        from dateutil.zoneinfo import gettz as timezone
+        from pandas.tslib import _dateutil_gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')
@@ -2865,6 +2874,9 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.quarter[0], 1)
         self.assertEqual(dti.quarter[120], 2)
 
+        self.assertEqual(dti.days_in_month[0], 31)
+        self.assertEqual(dti.days_in_month[90], 30)
+
         self.assertEqual(dti.is_month_start[0], True)
         self.assertEqual(dti.is_month_start[1], False)
         self.assertEqual(dti.is_month_start[31], True)
@@ -2948,7 +2960,9 @@ class TestDatetime64(tm.TestCase):
             (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
             (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
             (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
-            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1)]
+            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1),
+            (Timestamp('2012-02-01').days_in_month, 29),
+            (Timestamp('2013-02-01').days_in_month, 28)]
 
         for ts, value in tests:
             self.assertEqual(ts, value)
@@ -3332,6 +3346,29 @@ class TestSeriesDatetime64(tm.TestCase):
 
         ex_first = Timestamp('2000-01-03')
         self.assertEqual(rng[0], ex_first)
+
+    def test_date_range_businesshour(self):
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00'], freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
+        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00', '2014-07-07 11:00',
+                             '2014-07-07 12:00', '2014-07-07 13:00', '2014-07-07 14:00',
+                             '2014-07-07 15:00', '2014-07-07 16:00',
+                             '2014-07-08 09:00', '2014-07-08 10:00', '2014-07-08 11:00',
+                             '2014-07-08 12:00', '2014-07-08 13:00', '2014-07-08 14:00',
+                             '2014-07-08 15:00', '2014-07-08 16:00'], freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
 
     def test_string_index_series_name_converted(self):
         # #1644

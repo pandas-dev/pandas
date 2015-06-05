@@ -33,7 +33,7 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
                                   compat.iteritems(obj)))
     n_all_nan_cols = all_nan_cols.sum()
-    valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
+    valid_warnings = pd.Series([wng for wng in wngs if wng.category == cls])
     assert_equal(len(valid_warnings), n_all_nan_cols)
     failed_symbols = all_nan_cols[all_nan_cols].index
     msgs = valid_warnings.map(lambda x: x.message)
@@ -79,7 +79,7 @@ class TestGoogle(tm.TestCase):
         for locale in self.locales:
             with tm.set_locale(locale):
                 df = web.get_data_google('GOOG').sort_index()
-            self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
+            self.assertEqual(df.Volume.ix['JAN-02-2015'], 1446662)
 
     @network
     def test_get_multi1(self):
@@ -87,10 +87,10 @@ class TestGoogle(tm.TestCase):
             sl = ['AAPL', 'AMZN', 'GOOG']
             with tm.set_locale(locale):
                 pan = web.get_data_google(sl, '2012')
-            ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+            ts = pan.Close.GOOG.index[pan.Close.AAPL < pan.Close.GOOG]
             if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
                 hasattr(pan.Close, 'AAPL')):
-                self.assertEqual(ts[0].dayofyear, 96)
+                self.assertEqual(ts[0].dayofyear, 3)
             else:
                 self.assertRaises(AttributeError, lambda: pan.Close)
 
@@ -99,6 +99,11 @@ class TestGoogle(tm.TestCase):
         sl = ['AAPL', 'AMZN', 'INVALID']
         pan = web.get_data_google(sl, '2012')
         self.assertIn('INVALID', pan.minor_axis)
+
+    @network
+    def test_get_multi_all_invalid(self):
+        sl = ['INVALID', 'INVALID2', 'INVALID3']
+        self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
 
     @network
     def test_get_multi2(self):
@@ -112,19 +117,27 @@ class TestGoogle(tm.TestCase):
 
                 # sanity checking
 
-                assert np.issubdtype(result.dtype, np.floating)
+                self.assertTrue(np.issubdtype(result.dtype, np.floating))
                 result = pan.Open.ix['Jan-15-12':'Jan-20-12']
                 self.assertEqual((4, 3), result.shape)
                 assert_n_failed_equals_n_null_columns(w, result)
 
+    @network
     def test_dtypes(self):
         #GH3995, #GH8980
         data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
-        assert np.issubdtype(data.Open.dtype, np.number)
-        assert np.issubdtype(data.Close.dtype, np.number)
-        assert np.issubdtype(data.Low.dtype, np.number)
-        assert np.issubdtype(data.High.dtype, np.number)
-        assert np.issubdtype(data.Volume.dtype, np.number)
+        self.assertTrue(np.issubdtype(data.Open.dtype, np.number))
+        self.assertTrue(np.issubdtype(data.Close.dtype, np.number))
+        self.assertTrue(np.issubdtype(data.Low.dtype, np.number))
+        self.assertTrue(np.issubdtype(data.High.dtype, np.number))
+        self.assertTrue(np.issubdtype(data.Volume.dtype, np.number))
+
+    @network
+    def test_unicode_date(self):
+        #GH8967
+        data = web.get_data_google('F', start='JAN-01-10', end='JAN-27-13')
+        self.assertEqual(data.index.name, 'Date')
+
 
 class TestYahoo(tm.TestCase):
     @classmethod
@@ -175,7 +188,7 @@ class TestYahoo(tm.TestCase):
         raise nose.SkipTest('unreliable test, receive partial components back for dow_jones')
 
         df = web.get_components_yahoo('^DJI') #Dow Jones
-        assert isinstance(df, pd.DataFrame)
+        self.assertIsInstance(df, pd.DataFrame)
         self.assertEqual(len(df), 30)
 
     @network
@@ -183,7 +196,7 @@ class TestYahoo(tm.TestCase):
         raise nose.SkipTest('unreliable test, receive partial components back for dax')
 
         df = web.get_components_yahoo('^GDAXI') #DAX
-        assert isinstance(df, pd.DataFrame)
+        self.assertIsInstance(df, pd.DataFrame)
         self.assertEqual(len(df), 30)
         self.assertEqual(df[df.name.str.contains('adidas', case=False)].index,
                          'ADS.DE')
@@ -194,13 +207,13 @@ class TestYahoo(tm.TestCase):
         raise nose.SkipTest('unreliable test, receive partial components back for nasdaq_100')
 
         df = web.get_components_yahoo('^NDX') #NASDAQ-100
-        assert isinstance(df, pd.DataFrame)
+        self.assertIsInstance(df, pd.DataFrame)
 
         if len(df) > 1:
             # Usual culprits, should be around for a while
-            assert 'AAPL' in df.index
-            assert 'GOOG' in df.index
-            assert 'AMZN' in df.index
+            self.assertTrue('AAPL' in df.index)
+            self.assertTrue('GOOG' in df.index)
+            self.assertTrue('AMZN' in df.index)
         else:
             expected = DataFrame({'exchange': 'N/A', 'name': '@^NDX'},
                                  index=['@^NDX'])
@@ -248,7 +261,7 @@ class TestYahoo(tm.TestCase):
         self.assertEqual(len(result), 3)
 
         # sanity checking
-        assert np.issubdtype(result.dtype, np.floating)
+        self.assertTrue(np.issubdtype(result.dtype, np.floating))
 
         expected = np.array([[18.99,  28.4, 25.18],
                              [18.58, 28.31, 25.13],
@@ -268,7 +281,7 @@ class TestYahoo(tm.TestCase):
             self.assertEqual(result, 1.0)
 
         # sanity checking
-        assert np.issubdtype(pan.values.dtype, np.floating)
+        self.assertTrue(np.issubdtype(pan.values.dtype, np.floating))
 
 
 class TestYahooOptions(tm.TestCase):
@@ -289,6 +302,7 @@ class TestYahooOptions(tm.TestCase):
         cls.dirpath = tm.get_data_path()
         cls.html1 = os.path.join(cls.dirpath, 'yahoo_options1.html')
         cls.html2 = os.path.join(cls.dirpath, 'yahoo_options2.html')
+        cls.html3 = os.path.join(cls.dirpath, 'yahoo_options3.html') #Empty table GH#22
         cls.data1 = cls.aapl._option_frames_from_url(cls.html1)['puts']
 
     @classmethod
@@ -366,9 +380,20 @@ class TestYahooOptions(tm.TestCase):
         self.assertTrue(len(data) > 1)
 
     @network
+    def test_get_underlying_price(self):
+        #GH7
+        try:
+            options_object = web.Options('^spxpm', 'yahoo')
+            url = options_object._yahoo_url_from_expiry(options_object.expiry_dates[0])
+            root = options_object._parse_url(url)
+            quote_price = options_object._underlying_price_from_root(root)
+        except RemoteDataError as e:
+            raise nose.SkipTest(e)
+        self.assertIsInstance(quote_price, float)
+
     def test_sample_page_price_quote_time1(self):
         #Tests the weekend quote time format
-        price, quote_time = self.aapl._get_underlying_price(self.html1)
+        price, quote_time = self.aapl._underlying_price_and_time_from_url(self.html1)
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
 
@@ -391,7 +416,7 @@ class TestYahooOptions(tm.TestCase):
     def test_sample_page_price_quote_time2(self):
         #Tests the EDT page format
         #regression test for #8741
-        price, quote_time = self.aapl._get_underlying_price(self.html2)
+        price, quote_time = self.aapl._underlying_price_and_time_from_url(self.html2)
         self.assertIsInstance(price, (int, float, complex))
         self.assertIsInstance(quote_time, (datetime, Timestamp))
 
@@ -408,6 +433,12 @@ class TestYahooOptions(tm.TestCase):
             raise nose.SkipTest(e)
 
         self.assertTrue(len(data) > 1)
+
+    @network
+    def test_empty_table(self):
+        #GH22
+        empty = self.aapl._option_frames_from_url(self.html3)['puts']
+        self.assertTrue(len(empty) == 0)
 
 
 class TestOptionsWarnings(tm.TestCase):
@@ -433,17 +464,17 @@ class TestDataReader(tm.TestCase):
     @network
     def test_read_yahoo(self):
         gs = DataReader("GS", "yahoo")
-        assert isinstance(gs, DataFrame)
+        self.assertIsInstance(gs, DataFrame)
 
     @network
     def test_read_google(self):
         gs = DataReader("GS", "google")
-        assert isinstance(gs, DataFrame)
+        self.assertIsInstance(gs, DataFrame)
 
     @network
     def test_read_fred(self):
         vix = DataReader("VIXCLS", "fred")
-        assert isinstance(vix, DataFrame)
+        self.assertIsInstance(vix, DataFrame)
 
     @network
     def test_read_famafrench(self):
@@ -451,8 +482,8 @@ class TestDataReader(tm.TestCase):
                      "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
                      "F-F_ST_Reversal_Factor", "F-F_Momentum_Factor"):
             ff = DataReader(name, "famafrench")
-            assert ff
-            assert isinstance(ff, dict)
+            self.assertTrue(ff is not None)
+            self.assertIsInstance(ff, dict)
 
 
 class TestFred(tm.TestCase):
@@ -479,7 +510,7 @@ class TestFred(tm.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
         df = web.DataReader("DFII5", "fred", start, end)
-        assert pd.isnull(df.ix['2010-01-01'][0])
+        self.assertTrue(pd.isnull(df.ix['2010-01-01'][0]))
 
     @network
     def test_fred_parts(self):
@@ -491,7 +522,7 @@ class TestFred(tm.TestCase):
         self.assertEqual(df.ix['2010-05-01'][0], 217.23)
 
         t = df.CPIAUCSL.values
-        assert np.issubdtype(t.dtype, np.floating)
+        self.assertTrue(np.issubdtype(t.dtype, np.floating))
         self.assertEqual(t.shape, (37,))
 
     @network

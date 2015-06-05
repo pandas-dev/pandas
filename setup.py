@@ -11,13 +11,17 @@ import sys
 import shutil
 import warnings
 import re
+from distutils.version import LooseVersion
 
 # may need to work around setuptools bug by providing a fake Pyrex
+min_cython_ver = '0.19.1'
 try:
     import Cython
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "fake_pyrex"))
+    ver = Cython.__version__
+    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
 except ImportError:
-    pass
+    _CYTHON_INSTALLED = False
 
 # try bootstrapping setuptools if it doesn't exist
 try:
@@ -74,6 +78,8 @@ from distutils.command.sdist import sdist
 from distutils.command.build_ext import build_ext as _build_ext
 
 try:
+    if not _CYTHON_INSTALLED:
+        raise ImportError('No supported version of Cython installed.')
     from Cython.Distutils import build_ext as _build_ext
     # from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython = True
@@ -170,7 +176,7 @@ EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
@@ -187,8 +193,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 15
-MICRO = 2
+MINOR = 16
+MICRO = 1
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -456,7 +462,8 @@ ext_data = dict(
          'pxdfiles': [],
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
-               'pxdfiles': ['hashtable']},
+               'pxdfiles': ['hashtable'],
+               'depends': ['pandas/src/klib/khash_python.h']},
     tslib={'pyxfile': 'tslib',
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
@@ -595,7 +602,7 @@ setup(name=DISTNAME,
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',
-                                  'tests/data/*.csv',
+                                  'tests/data/*.csv*',
                                   'tests/data/*.dta',
                                   'tests/data/*.txt',
                                   'tests/data/*.xls',

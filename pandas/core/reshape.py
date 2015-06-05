@@ -9,9 +9,12 @@ import numpy as np
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
+from pandas.core.sparse import SparseDataFrame, SparseSeries
+from pandas.sparse.array import SparseArray
+from pandas._sparse import IntIndex
+
 from pandas.core.categorical import Categorical
-from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
-                                isnull)
+from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
@@ -157,7 +160,8 @@ class _Unstacker(object):
         # may need to coerce categoricals here
         if self.is_categorical is not None:
             values = [ Categorical.from_array(values[:,i],
-                                              categories=self.is_categorical.categories)
+                                              categories=self.is_categorical.categories,
+                                              ordered=True)
                        for i in range(values.shape[-1]) ]
 
         return DataFrame(values, index=index, columns=columns)
@@ -260,7 +264,8 @@ def _unstack_multiple(data, clocs):
     group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
-    recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels)
+    recons_labels = decons_obs_group_ids(comp_ids,
+                       obs_ids, shape, clabels, xnull=False)
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
@@ -606,7 +611,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_data[key] = value_slice.ravel()
 
     if len(drop_cols) > 0:
-        new_columns = new_columns - drop_cols
+        new_columns = new_columns.difference(drop_cols)
 
     N = len(this)
 
@@ -929,41 +934,8 @@ def wide_to_long(df, stubnames, i, j):
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
 
-
-def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """
-    Compute DataFrame with specified columns converted to dummy variables (0 /
-    1). Result columns will be prefixed with the column name, then the level
-    name, e.g. 'A_foo' for column A and level foo
-
-    Parameters
-    ----------
-    data : DataFrame
-    cat_variables : list-like
-        Must be column names in the DataFrame
-    prefix_sep : string, default '_'
-        String to use to separate column name from dummy level
-
-    Returns
-    -------
-    dummies : DataFrame
-    """
-    import warnings
-
-    warnings.warn("'convert_dummies' is deprecated and will be removed "
-                  "in a future release. Use 'get_dummies' instead.",
-                  FutureWarning)
-
-    result = data.drop(cat_variables, axis=1)
-    for variable in cat_variables:
-        dummies = _get_dummies_1d(data[variable], prefix=variable,
-                                  prefix_sep=prefix_sep)
-        result = result.join(dummies)
-    return result
-
-
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None):
+                columns=None, sparse=False):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -984,6 +956,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
+    sparse : bool, default False
+        Whether the returned DataFrame should be sparse or not.
 
     Returns
     -------
@@ -1070,18 +1044,19 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         with_dummies = [result]
         for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
 
-            dummy = _get_dummies_1d(data[col], prefix=pre,
-                                    prefix_sep=sep, dummy_na=dummy_na)
+            dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
+                                    dummy_na=dummy_na, sparse=sparse)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
-        result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na)
+        result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
+                                 sparse=sparse)
     return result
 
 
-def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
+def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False, sparse=False):
     # Series avoids inconsistent NaN handling
-    cat = Categorical.from_array(Series(data))
+    cat = Categorical.from_array(Series(data), ordered=True)
     levels = cat.categories
 
     # if all NaN
@@ -1090,19 +1065,17 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
             index = data.index
         else:
             index = np.arange(len(data))
-        return DataFrame(index=index)
+        if not sparse:
+            return DataFrame(index=index)
+        else:
+            return SparseDataFrame(index=index)
+
+    codes = cat.codes.copy()
+    if dummy_na:
+        codes[codes == -1] = len(cat.categories)
+        levels = np.append(cat.categories, np.nan)
 
     number_of_cols = len(levels)
-    if dummy_na:
-        number_of_cols += 1
-
-    dummy_mat = np.eye(number_of_cols).take(cat.codes, axis=0)
-
-    if dummy_na:
-        levels = np.append(cat.categories, np.nan)
-    else:
-        # reset NaN GH4446
-        dummy_mat[cat.codes == -1] = 0
 
     if prefix is not None:
         dummy_cols = ['%s%s%s' % (prefix, prefix_sep, v)
@@ -1115,7 +1088,31 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False):
     else:
         index = None
 
-    return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+    if sparse:
+        sparse_series = {}
+        N = len(data)
+        sp_indices = [ [] for _ in range(len(dummy_cols)) ]
+        for ndx, code in enumerate(codes):
+            if code == -1:
+                # Blank entries if not dummy_na and code == -1, #GH4446
+                continue
+            sp_indices[code].append(ndx)
+
+        for col, ixs in zip(dummy_cols, sp_indices):
+            sarr = SparseArray(np.ones(len(ixs)), sparse_index=IntIndex(N, ixs),
+                               fill_value=0)
+            sparse_series[col] = SparseSeries(data=sarr, index=index)
+
+        return SparseDataFrame(sparse_series, index=index, columns=dummy_cols)
+
+    else:
+        dummy_mat = np.eye(number_of_cols).take(codes, axis=0)
+
+        if not dummy_na:
+            # reset NaN GH4446
+            dummy_mat[codes == -1] = 0
+
+        return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
 def make_axis_dummies(frame, axis='minor', transform=None):
@@ -1149,7 +1146,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        cat = Categorical.from_array(mapped_items.take(labels))
+        cat = Categorical.from_array(mapped_items.take(labels), ordered=True)
         labels = cat.codes
         items = cat.categories
 

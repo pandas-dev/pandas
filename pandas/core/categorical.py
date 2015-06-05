@@ -9,20 +9,18 @@ from pandas.compat import u
 
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
-from pandas.core.index import Index, _ensure_index
-from pandas.tseries.period import PeriodIndex
 import pandas.core.common as com
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
-from pandas.core.common import (CategoricalDtype, ABCSeries, isnull, notnull,
+from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
+                                isnull, notnull, is_dtype_equal,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
-                                is_list_like, is_sequence, is_null_slice,
+                                is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
-                                _coerce_indexer_dtype, _values_from_object, take_1d)
+                                _coerce_indexer_dtype, take_1d)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
-from pandas.core import format as fmt
 
 def _cat_compare_op(op):
     def f(self, other):
@@ -61,7 +59,14 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
             else:
-                return np.repeat(False, len(self))
+                if op == '__eq__':
+                    return np.repeat(False, len(self))
+                elif op == '__ne__':
+                    return np.repeat(True, len(self))
+                else:
+                    msg  = "Cannot compare a Categorical for op {op} with a scalar, " \
+                           "which is not a category."
+                    raise TypeError(msg.format(op=op))
         else:
 
             # allow categorical vs object dtype array comparisons for equality
@@ -79,7 +84,7 @@ def _cat_compare_op(op):
 
 def maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
-    if isinstance(array, ABCSeries):
+    if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
         return array.values
     return array
 
@@ -139,9 +144,9 @@ class Categorical(PandasObject):
     categories : Index-like (unique), optional
         The unique categories for this categorical. If not given, the categories are assumed
         to be the unique values of values.
-    ordered : boolean, optional
+    ordered : boolean, (default False)
         Whether or not this categorical is treated as a ordered categorical. If not given,
-        the resulting categorical will be ordered if values can be sorted.
+        the resulting categorical will not be ordered.
     name : str, optional
         Name for the Categorical variable. If name is None, will attempt
         to infer from values.
@@ -184,7 +189,6 @@ class Categorical(PandasObject):
     dtype = CategoricalDtype()
     """The dtype (always "category")"""
 
-    ordered = None
     """Whether or not this Categorical is ordered.
 
     Only ordered `Categoricals` can be sorted (according to the order
@@ -201,10 +205,9 @@ class Categorical(PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare ops, which raise
     __array_priority__ = 1000
     _typ = 'categorical'
-    ordered = False
     name = None
 
-    def __init__(self, values, categories=None, ordered=None, name=None, fastpath=False,
+    def __init__(self, values, categories=None, ordered=False, name=None, fastpath=False,
                  levels=None):
 
         if fastpath:
@@ -212,7 +215,7 @@ class Categorical(PandasObject):
             self._codes = _coerce_indexer_dtype(values, categories)
             self.name = name
             self.categories = categories
-            self.ordered = ordered
+            self._ordered = ordered
             return
 
         if name is None:
@@ -231,17 +234,17 @@ class Categorical(PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
 
-            # we are either a Series or a Categorical
-            cat = values
-            if isinstance(values, ABCSeries):
-                cat = values.values
-            if categories is None:
-                categories = cat.categories
+            # we are either a Series or a CategoricalIndex
+            if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
+                values = values.values
+
             if ordered is None:
-                ordered = cat.ordered
+                ordered = values.ordered
+            if categories is None:
+                categories = values.categories
             values = values.__array__()
 
-        elif isinstance(values, Index):
+        elif isinstance(values, ABCIndexClass):
             pass
 
         else:
@@ -264,10 +267,6 @@ class Categorical(PandasObject):
         if categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
-                # If the underlying data structure was sortable, and the user doesn't want to
-                # "forget" this order, the categorical also is sorted/ordered
-                if ordered is None:
-                    ordered = True
             except TypeError:
                 codes, categories = factorize(values, sort=False)
                 if ordered:
@@ -296,16 +295,11 @@ class Categorical(PandasObject):
                 warn("Values and categories have different dtypes. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            if is_integer_dtype(values) and (codes == -1).all():
+            if len(values) and is_integer_dtype(values) and (codes == -1).all():
                 warn("None of the categories were found in values. Did you mean to use\n"
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning)
 
-            # if we got categories, we can assume that the order is intended
-            # if ordered is unspecified
-            if ordered is None:
-                ordered = True
-
-        self.ordered = False if ordered is None else ordered
+        self.set_ordered(ordered or False, inplace=True)
         self.categories = categories
         self.name = name
         self._codes = _coerce_indexer_dtype(codes, categories)
@@ -315,10 +309,26 @@ class Categorical(PandasObject):
         return Categorical(values=self._codes.copy(),categories=self.categories,
                            name=self.name, ordered=self.ordered, fastpath=True)
 
+    def astype(self, dtype):
+        """ coerce this type to another dtype """
+        if is_categorical_dtype(dtype):
+            return self
+        return np.array(self, dtype=dtype)
+
     @cache_readonly
     def ndim(self):
         """Number of dimensions of the Categorical """
         return self._codes.ndim
+
+    @cache_readonly
+    def size(self):
+        """ return the len of myself """
+        return len(self)
+
+    @cache_readonly
+    def itemsize(self):
+        """ return the size of a single category """
+        return self.categories.itemsize
 
     def reshape(self, new_shape, **kwargs):
         """ compat with .reshape """
@@ -360,7 +370,7 @@ class Categorical(PandasObject):
             An integer array, where each integer points to a category in categories or -1 for NaN
         categories : index-like
             The categories for the categorical. Items need to be unique.
-        ordered : boolean, optional
+        ordered : boolean, (default False)
             Whether or not this categorical is treated as a ordered categorical. If not given,
             the resulting categorical will be unordered.
         name : str, optional
@@ -401,7 +411,8 @@ class Categorical(PandasObject):
     codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     def _get_labels(self):
-        """ Get the category labels (deprecated).
+        """
+        Get the category labels (deprecated).
 
         Deprecated, use .codes!
         """
@@ -415,8 +426,10 @@ class Categorical(PandasObject):
 
     @classmethod
     def _validate_categories(cls, categories):
-        """" Validates that we have good categories """
-        if not isinstance(categories, Index):
+        """
+        Validates that we have good categories
+        """
+        if not isinstance(categories, ABCIndexClass):
             dtype = None
             if not hasattr(categories, "dtype"):
                 categories = _convert_to_list_like(categories)
@@ -427,6 +440,8 @@ class Categorical(PandasObject):
                     with_na = np.array(categories)
                     if with_na.dtype != without_na.dtype:
                         dtype = "object"
+
+            from pandas import Index
             categories = Index(categories, dtype=dtype)
         if not categories.is_unique:
             raise ValueError('Categorical categories must be unique')
@@ -460,6 +475,61 @@ class Categorical(PandasObject):
     # TODO: Remove after deprecation period in 2017/ after 0.18
     levels = property(fget=_get_levels, fset=_set_levels)
 
+    _ordered = None
+
+    def _set_ordered(self, value):
+        """ Sets the ordered attribute to the boolean value """
+        warn("Setting 'ordered' directly is deprecated, use 'set_ordered'", FutureWarning)
+        self.set_ordered(value, inplace=True)
+
+    def set_ordered(self, value, inplace=False):
+        """
+        Sets the ordered attribute to the boolean value
+
+        Parameters
+        ----------
+        value : boolean to set whether this categorical is ordered (True) or not (False)
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to the value
+        """
+        if not is_bool(value):
+            raise TypeError("ordered must be a boolean value")
+        cat = self if inplace else self.copy()
+        cat._ordered = value
+        if not inplace:
+            return cat
+
+    def as_ordered(self, inplace=False):
+        """
+        Sets the Categorical to be ordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to True
+        """
+        return self.set_ordered(True, inplace=inplace)
+
+    def as_unordered(self, inplace=False):
+        """
+        Sets the Categorical to be unordered
+
+        Parameters
+        ----------
+        inplace : boolean (default: False)
+           Whether or not to set the ordered attribute inplace or return a copy of this categorical
+           with ordered set to False
+        """
+        return self.set_ordered(False, inplace=inplace)
+
+    def _get_ordered(self):
+        """ Gets the ordered attribute """
+        return self._ordered
+
+    ordered = property(fget=_get_ordered, fset=_set_ordered)
+
     def set_categories(self, new_categories, ordered=None, rename=False, inplace=False):
         """ Sets the categories to the specified new_categories.
 
@@ -486,7 +556,7 @@ class Categorical(PandasObject):
         ----------
         new_categories : Index-like
            The categories in new order.
-        ordered : boolean, optional
+        ordered : boolean, (default: False)
            Whether or not the categorical is treated as a ordered categorical. If not given,
            do not change the ordered information.
         rename : boolean (default: False)
@@ -520,8 +590,9 @@ class Categorical(PandasObject):
             cat._codes = _get_codes_for_values(values, new_categories)
             cat._categories = new_categories
 
-        if not ordered is None:
-            cat.ordered = ordered
+        if ordered is None:
+            ordered = self.ordered
+        cat.set_ordered(ordered, inplace=True)
 
         if not inplace:
             return cat
@@ -637,7 +708,7 @@ class Categorical(PandasObject):
         if len(already_included) != 0:
             msg = "new categories must not include old categories: %s" % str(already_included)
             raise ValueError(msg)
-        new_categories = list(self._categories) + (new_categories)
+        new_categories = list(self._categories) + list(new_categories)
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = new_categories
@@ -711,6 +782,8 @@ class Categorical(PandasObject):
         cat = self if inplace else self.copy()
         _used = sorted(np.unique(cat._codes))
         new_categories = cat.categories.take(_ensure_platform_int(_used))
+
+        from pandas.core.index import _ensure_index
         new_categories = _ensure_index(new_categories)
         cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
         cat._categories = new_categories
@@ -740,7 +813,8 @@ class Categorical(PandasObject):
         return tuple([len(self._codes)])
 
     def __array__(self, dtype=None):
-        """ The numpy array interface.
+        """
+        The numpy array interface.
 
         Returns
         -------
@@ -749,7 +823,7 @@ class Categorical(PandasObject):
             dtype as categorical.categories.dtype
         """
         ret = take_1d(self.categories.values, self._codes)
-        if dtype and dtype != self.categories.dtype:
+        if dtype and not is_dtype_equal(dtype,self.categories.dtype):
             return np.asarray(ret, dtype)
         return ret
 
@@ -764,6 +838,15 @@ class Categorical(PandasObject):
         if '_categories' not in state and '_levels' in state:
             state['_categories'] = \
                 self._validate_categories(state.pop('_levels'))
+
+        # 0.16.0 ordered change
+        if '_ordered' not in state:
+
+            # >=15.0 < 0.16.0
+            if 'ordered' in state:
+                state['_ordered'] = state.pop('ordered')
+            else:
+                state['_ordered'] = False
 
         for k, v in compat.iteritems(state):
             setattr(self, k, v)
@@ -827,7 +910,8 @@ class Categorical(PandasObject):
         array([3, 5])       # eggs after donuts, after switching milk and donuts
         """
         if not self.ordered:
-            raise ValueError("searchsorted requires an ordered Categorical.")
+            raise ValueError("Categorical not ordered\n"
+                             "you can use .as_ordered() to change the Categorical to an ordered one\n")
 
         from pandas.core.series import Series
         values_as_codes = self.categories.values.searchsorted(Series(v).values, side)
@@ -876,6 +960,54 @@ class Categorical(PandasObject):
         """
         return ~self.isnull()
 
+    def dropna(self):
+        """
+        Return the Categorical without null values.
+
+        Both missing values (-1 in .codes) and NA as a category are detected.
+        NA is removed from the categories if present.
+
+        Returns
+        -------
+        valid : Categorical
+        """
+        result = self[self.notnull()]
+        if isnull(result.categories).any():
+            result = result.remove_categories([np.nan])
+        return result
+
+    def value_counts(self, dropna=True):
+        """
+        Returns a Series containing counts of each category.
+
+        Every category will have an entry, even those with a count of 0.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaN, even if NaN is a category.
+
+        Returns
+        -------
+        counts : Series
+        """
+        import pandas.hashtable as htable
+        from pandas.core.series import Series
+
+        cat = self.dropna() if dropna else self
+        keys, counts = htable.value_count_int64(com._ensure_int64(cat._codes))
+        result = Series(counts, index=keys)
+
+        ix = np.arange(len(cat.categories), dtype='int64')
+        if not dropna and -1 in keys:
+            ix = np.append(ix, -1)
+        result = result.reindex(ix, fill_value=0)
+        result.index = (np.append(cat.categories, np.nan)
+            if not dropna and -1 in keys
+            else cat.categories)
+
+        return result
+
     def get_values(self):
         """ Return the values.
 
@@ -889,11 +1021,17 @@ class Categorical(PandasObject):
         """
 
         # if we are a period index, return a string repr
-        if isinstance(self.categories, PeriodIndex):
+        if isinstance(self.categories, ABCPeriodIndex):
             return take_1d(np.array(self.categories.to_native_types(), dtype=object),
                            self._codes)
 
         return np.array(self)
+
+    def check_for_ordered(self, op):
+        """ assert that we are ordered """
+        if not self.ordered:
+            raise TypeError("Categorical is not ordered for operation {op}\n"
+                            "you can use .as_ordered() to change the Categorical to an ordered one\n".format(op=op))
 
     def argsort(self, ascending=True, **kwargs):
         """ Implements ndarray.argsort.
@@ -906,14 +1044,12 @@ class Categorical(PandasObject):
         -------
         argsorted : numpy array
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
         return result
 
-    def order(self, inplace=False, ascending=True, na_position='last', **kwargs):
+    def order(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Category by category value returning a new Categorical by default.
 
         Only ordered Categoricals can be sorted!
@@ -938,8 +1074,6 @@ class Categorical(PandasObject):
         --------
         Category.sort
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
         if na_position not in ['last','first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
@@ -972,7 +1106,7 @@ class Categorical(PandasObject):
                                name=self.name, fastpath=True)
 
 
-    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
+    def sort(self, inplace=True, ascending=True, na_position='last'):
         """ Sorts the Category inplace by category value.
 
         Only ordered Categoricals can be sorted!
@@ -997,7 +1131,8 @@ class Categorical(PandasObject):
         --------
         Category.order
         """
-        return self.order(inplace=inplace, ascending=ascending, **kwargs)
+        return self.order(inplace=inplace, ascending=ascending,
+                na_position=na_position)
 
     def ravel(self, order='C'):
         """ Return a flattened (numpy) array.
@@ -1033,7 +1168,8 @@ class Categorical(PandasObject):
         """
         return np.asarray(self)
 
-    def fillna(self, fill_value=None, method=None, limit=None, **kwargs):
+    @deprecate_kwarg(old_arg_name='fill_value', new_arg_name='value')
+    def fillna(self, value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
         Parameters
@@ -1045,17 +1181,24 @@ class Categorical(PandasObject):
         value : scalar
             Value to use to fill holes (e.g. 0)
         limit : int, default None
-            Maximum size gap to forward or backward fill (not implemented yet!)
+            (Not implemented yet for Categorical!)
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
 
         Returns
         -------
         filled : Categorical with NA/NaN filled
         """
 
-        if fill_value is None:
-            fill_value = np.nan
+        if value is None:
+            value = np.nan
         if limit is not None:
-            raise NotImplementedError
+            raise NotImplementedError("specifying a limit for fillna has not "
+                                      "been implemented yet")
 
         values = self._codes
 
@@ -1067,24 +1210,23 @@ class Categorical(PandasObject):
                 # we only have one NA in categories
                 values[values == nan_pos] = -1
 
-
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1,len(self))
+            values = self.to_dense().reshape(-1, len(self))
             values = com.interpolate_2d(
-                values, method, 0, None, fill_value).astype(self.categories.dtype)[0]
+                values, method, 0, None, value).astype(self.categories.dtype)[0]
             values = _get_codes_for_values(values, self.categories)
 
         else:
 
-            if not isnull(fill_value) and fill_value not in self.categories:
+            if not isnull(value) and value not in self.categories:
                 raise ValueError("fill value must be in categories")
 
             mask = values==-1
             if mask.any():
                 values = values.copy()
-                values[mask] = self.categories.get_loc(fill_value)
+                values[mask] = self.categories.get_loc(value)
 
         return Categorical(values, categories=self.categories, ordered=self.ordered,
                            name=self.name, fastpath=True)
@@ -1131,7 +1273,8 @@ class Categorical(PandasObject):
         """Returns an Iterator over the values of this Categorical."""
         return iter(np.array(self))
 
-    def _tidy_repr(self, max_vals=10):
+    def _tidy_repr(self, max_vals=10, footer=True):
+        """ a short repr displaying only max_vals and an optional (but default footer) """
         num = max_vals // 2
         head = self[:num]._get_repr(length=False, name=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False,
@@ -1139,28 +1282,35 @@ class Categorical(PandasObject):
                                                   footer=False)
 
         result = '%s, ..., %s' % (head[:-1], tail[1:])
-        result = '%s\n%s' % (result, self._repr_footer())
+        if footer:
+            result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
 
-    def _repr_categories_info(self):
-        """ Returns a string representation of the footer."""
-
+    def _repr_categories(self):
+        """ return the base repr for the categories """
         max_categories = (10 if get_option("display.max_categories") == 0
                     else get_option("display.max_categories"))
+        from pandas.core import format as fmt
         category_strs = fmt.format_array(self.categories.get_values(), None)
         if len(category_strs) > max_categories:
             num = max_categories // 2
             head = category_strs[:num]
             tail = category_strs[-(max_categories - num):]
             category_strs = head + ["..."] + tail
+
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
+        return category_strs
+
+    def _repr_categories_info(self):
+        """ Returns a string representation of the footer."""
+
+        category_strs = self._repr_categories()
         levheader = "Categories (%d, %s): " % (len(self.categories),
                                                self.categories.dtype)
         width, height = get_terminal_size()
-        max_width = (width if get_option("display.width") == 0
-                    else get_option("display.width"))
+        max_width = get_option("display.width") or width
         if com.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
@@ -1187,8 +1337,11 @@ class Categorical(PandasObject):
                                        len(self), self._repr_categories_info())
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
-        formatter = fmt.CategoricalFormatter(self, name=name,
-                                             length=length, na_rep=na_rep,
+        from pandas.core import format as fmt
+        formatter = fmt.CategoricalFormatter(self,
+                                             name=name,
+                                             length=length,
+                                             na_rep=na_rep,
                                              footer=footer)
         result = formatter.to_string()
         return compat.text_type(result)
@@ -1203,9 +1356,9 @@ class Categorical(PandasObject):
                                     name=True)
         else:
             result = '[], %s' % self._get_repr(name=True,
-                                                           length=False,
-                                                           footer=True,
-                                                           ).replace("\n",", ")
+                                               length=False,
+                                               footer=True,
+                                               ).replace("\n",", ")
 
         return result
 
@@ -1246,6 +1399,8 @@ class Categorical(PandasObject):
                                  "categories")
 
         rvalue = value if is_list_like(value) else [value]
+
+        from pandas import Index
         to_add = Index(rvalue).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set something to np.nan
@@ -1318,8 +1473,7 @@ class Categorical(PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+        self.check_for_ordered('min')
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].min(**kwargs)
@@ -1345,8 +1499,7 @@ class Categorical(PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
-        if not self.ordered:
-            raise TypeError("Categorical not ordered")
+        self.check_for_ordered('max')
         if numeric_only:
             good = self._codes != -1
             pointer = self._codes[good].max(**kwargs)
@@ -1406,11 +1559,27 @@ class Categorical(PandasObject):
         -------
         are_equal : boolean
         """
-        if not isinstance(other, Categorical):
-            return False
         # TODO: should this also test if name is equal?
-        return (self.categories.equals(other.categories) and self.ordered == other.ordered and
-                np.array_equal(self._codes, other._codes))
+        return self.is_dtype_equal(other) and np.array_equal(self._codes, other._codes)
+
+    def is_dtype_equal(self, other):
+        """
+        Returns True if categoricals are the same dtype
+          same categories, and same ordered
+
+        Parameters
+        ----------
+        other : Categorical
+
+        Returns
+        -------
+        are_equal : boolean
+        """
+
+        try:
+            return self.categories.equals(other.categories) and self.ordered == other.ordered
+        except (AttributeError, TypeError):
+            return False
 
     def describe(self):
         """ Describes this Categorical
@@ -1420,34 +1589,12 @@ class Categorical(PandasObject):
         description: `DataFrame`
             A dataframe with frequency and counts by category.
         """
-        # Hack?
-        from pandas.core.frame import DataFrame
-        counts = DataFrame({
-            'codes' : self._codes,
-            'values' : self._codes }
-                           ).groupby('codes').count()
-
+        counts = self.value_counts(dropna=False)
         freqs = counts / float(counts.sum())
 
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
         result.columns = ['counts','freqs']
-
-        # fill in the real categories
-        check = result.index == -1
-        if check.any():
-            # Sort -1 (=NaN) to the last position
-            index = np.arange(0, len(self.categories)+1, dtype='int64')
-            index[-1] = -1
-            result = result.reindex(index)
-            # build new index
-            categories = np.arange(0,len(self.categories)+1 ,dtype=object)
-            categories[:-1] = self.categories
-            categories[-1] = np.nan
-            result.index = categories.take(_ensure_platform_int(result.index))
-        else:
-            result.index = self.categories.take(_ensure_platform_int(result.index))
-            result = result.reindex(self.categories)
         result.index.name = 'categories'
 
         return result
@@ -1471,6 +1618,8 @@ class CategoricalAccessor(PandasDelegate):
     >>> s.cat.remove_categories(['d'])
     >>> s.cat.remove_unused_categories()
     >>> s.cat.set_categories(list('abcde'))
+    >>> s.cat.as_ordered()
+    >>> s.cat.as_unordered()
 
     """
 
@@ -1506,24 +1655,28 @@ CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                                        "add_categories",
                                                        "remove_categories",
                                                        "remove_unused_categories",
-                                                       "set_categories"],
+                                                       "set_categories",
+                                                       "as_ordered",
+                                                       "as_unordered"],
                                             typ='method')
 
 ##### utility routines #####
 
 def _get_codes_for_values(values, categories):
-    """"
+    """
     utility routine to turn values into codes given the specified categories
     """
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
-    if values.dtype != categories.dtype:
+    if not is_dtype_equal(values.dtype,categories.dtype):
         values = _ensure_object(values)
         categories = _ensure_object(categories)
+
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    t = hash_klass(len(categories))
-    t.map_locations(_values_from_object(categories))
-    return _coerce_indexer_dtype(t.lookup(values), categories)
+    (_, _), cats = _get_data_algo(categories, _hashtables)
+    t = hash_klass(len(cats))
+    t.map_locations(cats)
+    return _coerce_indexer_dtype(t.lookup(vals), cats)
 
 def _convert_to_list_like(list_like):
     if hasattr(list_like, "dtype"):

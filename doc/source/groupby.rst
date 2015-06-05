@@ -12,7 +12,11 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style='default'
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      options.display.mpl_style = 'default'
    from pandas.compat import zip
 
 *****************************
@@ -346,7 +350,7 @@ A single group can be selected using ``GroupBy.get_group()``:
 .. ipython:: python
 
    grouped.get_group('bar')
-   
+
 Or for an object grouped on multiple columns:
 
 .. ipython:: python
@@ -780,11 +784,11 @@ will be (silently) dropped. Thus, this does not pose any problems:
 
    df.groupby('A').std()
 
-NA group handling
-~~~~~~~~~~~~~~~~~
+NA and NaT group handling
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If there are any NaN values in the grouping key, these will be automatically
-excluded. So there will never be an "NA group". This was not the case in older
+If there are any NaN or NaT values in the grouping key, these will be automatically
+excluded. So there will never be an "NA group" or "NaT group". This was not the case in older
 versions of pandas, but users were generally discarding the NA group anyway
 (and supporting it was an implementation headache).
 

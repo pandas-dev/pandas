@@ -617,6 +617,7 @@ Enhancements
 
   .. code-block:: python
 
+     # note that pandas.rpy was deprecated in v0.16.0
      import pandas.rpy.common as com
      com.load_data('Titanic')
 

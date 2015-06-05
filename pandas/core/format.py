@@ -14,14 +14,13 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 import pandas.core.common as com
 import pandas.lib as lib
-from pandas.tslib import iNaT, Timestamp, Timedelta
-
+from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 import numpy as np
 
 import itertools
 import csv
-
-from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
 docstring_to_string = """
      Parameters
@@ -129,45 +128,63 @@ class CategoricalFormatter(object):
 
 class SeriesFormatter(object):
 
-    def __init__(self, series, buf=None, header=True, length=True,
-                 na_rep='NaN', name=False, float_format=None, dtype=True):
+    def __init__(self, series, buf=None, length=True, header=True,
+                 na_rep='NaN', name=False, float_format=None, dtype=True,
+                 max_rows=None):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
         self.na_rep = na_rep
-        self.length = length
         self.header = header
+        self.length = length
+        self.max_rows = max_rows
 
         if float_format is None:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
 
+        self._chk_truncate()
+
+    def _chk_truncate(self):
+        from pandas.tools.merge import concat
+        max_rows = self.max_rows
+        truncate_v = max_rows and (len(self.series) > max_rows)
+        series = self.series
+        if truncate_v:
+            if max_rows == 1:
+                row_num = max_rows
+                series = series.iloc[:max_rows]
+            else:
+                row_num = max_rows // 2
+                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+            self.tr_row_num = row_num
+        self.tr_series = series
+        self.truncate_v = truncate_v
+
     def _get_footer(self):
+        name = self.series.name
         footer = u('')
 
-        if self.name:
-            if getattr(self.series.index, 'freq', None):
-                footer += 'Freq: %s' % self.series.index.freqstr
+        if getattr(self.series.index, 'freq', None) is not None:
+            footer += 'Freq: %s' % self.series.index.freqstr
 
-            if footer and self.series.name is not None:
-                # categories have already a comma + linebreak
-                if not com.is_categorical_dtype(self.series.dtype):
-                    footer += ', '
+        if self.name is not False and name is not None:
+            if footer:
+                footer += ', '
 
-            series_name = com.pprint_thing(self.series.name,
+            series_name = com.pprint_thing(name,
                                            escape_chars=('\t', '\r', '\n'))
             footer += ("Name: %s" %
-                       series_name) if self.series.name is not None else ""
+                       series_name) if name is not None else ""
 
         if self.length:
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
 
-        # TODO: in tidy_repr, with freq index, no dtype is shown -> also include a guard here?
-        if self.dtype:
-            name = getattr(self.series.dtype, 'name', None)
+        if self.dtype is not False and self.dtype is not None:
+            name = getattr(self.tr_series.dtype, 'name', None)
             if name:
                 if footer:
                     footer += ', '
@@ -175,8 +192,8 @@ class SeriesFormatter(object):
 
         # level infos are added to the end and in a new line, like it is done for Categoricals
         # Only added when we request a name
-        if self.name and com.is_categorical_dtype(self.series.dtype):
-            level_info = self.series.values._repr_categories_info()
+        if name and com.is_categorical_dtype(self.tr_series.dtype):
+            level_info = self.tr_series.values._repr_categories_info()
             if footer:
                 footer += "\n"
             footer += level_info
@@ -184,7 +201,7 @@ class SeriesFormatter(object):
         return compat.text_type(footer)
 
     def _get_formatted_index(self):
-        index = self.series.index
+        index = self.tr_series.index
         is_multi = isinstance(index, MultiIndex)
 
         if is_multi:
@@ -196,35 +213,44 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.series.get_values(), None,
+        return format_array(self.tr_series.get_values(), None,
                             float_format=self.float_format,
                             na_rep=self.na_rep)
 
     def to_string(self):
-        series = self.series
+        series = self.tr_series
+        footer = self._get_footer()
 
         if len(series) == 0:
-            return u('')
+            return 'Series([], ' + footer + ')'
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
 
-        maxlen = max(len(x) for x in fmt_index)
+        maxlen = max(len(x) for x in fmt_index)  # max index len
         pad_space = min(maxlen, 60)
 
-        result = ['%s   %s'] * len(fmt_values)
-        for i, (k, v) in enumerate(zip(fmt_index[1:], fmt_values)):
-            idx = k.ljust(pad_space)
-            result[i] = result[i] % (idx, v)
+        if self.truncate_v:
+            n_header_rows = 0
+            row_num = self.tr_row_num
+            width = len(fmt_values[row_num-1])
+            if width > 3:
+                dot_str = '...'
+            else:
+                dot_str = '..'
+            dot_str = dot_str.center(width)
+            fmt_values.insert(row_num + n_header_rows, dot_str)
+            fmt_index.insert(row_num + 1, '')
+
+        result = adjoin(3, *[fmt_index[1:], fmt_values])
 
         if self.header and have_header:
-            result.insert(0, fmt_index[0])
+            result = fmt_index[0] + '\n' + result
 
-        footer = self._get_footer()
         if footer:
-            result.append(footer)
+            result += '\n' + footer
 
-        return compat.text_type(u('\n').join(result))
+        return compat.text_type(u('').join(result))
 
 
 def _strlen_func():
@@ -586,8 +612,12 @@ class DataFrameFormatter(TableFormatter):
             name = any(self.frame.columns.names)
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format(name=name)
-                width = len(lev2[0])
-                lev3 = [' ' * width] * clevels + lev2
+                blank = ' ' * len(lev2[0])
+                lev3 = [blank] * clevels
+                for level_idx, group in itertools.groupby(
+                        self.frame.index.labels[i]):
+                    count = len(list(group))
+                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
                 strcols.insert(i, lev3)
 
         if column_format is None:
@@ -746,6 +776,9 @@ class DataFrameFormatter(TableFormatter):
                                      formatter=fmt)
         else:
             fmt_index = [index.format(name=show_index_names, formatter=fmt)]
+        fmt_index = [tuple(_make_fixed_width(
+            list(x), justify='left', minimum=(self.col_space or 0)))
+            for x in fmt_index]
 
         adjoined = adjoin(1, *fmt_index).split('\n')
 
@@ -819,7 +852,7 @@ class HTMLFormatter(TableFormatter):
             )
         else:
             esc = {}
-        rs = com.pprint_thing(s, escape_chars=esc)
+        rs = com.pprint_thing(s, escape_chars=esc).strip()
         self.write(
             '%s%s</%s>' % (start_tag, rs, kind), indent)
 
@@ -1173,7 +1206,7 @@ class CSVFormatter(object):
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
                  tupleize_cols=False, quotechar='"', date_format=None,
-                 doublequote=True, escapechar=None):
+                 doublequote=True, escapechar=None, decimal='.'):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -1185,6 +1218,7 @@ class CSVFormatter(object):
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
+        self.decimal = decimal
 
         self.header = header
         self.index = index
@@ -1227,9 +1261,10 @@ class CSVFormatter(object):
             if isinstance(cols, Index):
                 cols = cols.to_native_types(na_rep=na_rep,
                                             float_format=float_format,
-                                            date_format=date_format)
+                                            date_format=date_format,
+                                            quoting=self.quoting)
             else:
-                cols = list(cols)
+                cols = np.asarray(list(cols))
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
@@ -1238,9 +1273,10 @@ class CSVFormatter(object):
         if isinstance(cols, Index):
             cols = cols.to_native_types(na_rep=na_rep,
                                         float_format=float_format,
-                                        date_format=date_format)
+                                        date_format=date_format,
+                                        quoting=self.quoting)
         else:
-            cols = list(cols)
+            cols = np.asarray(list(cols))
 
         # save it
         self.cols = cols
@@ -1339,8 +1375,10 @@ class CSVFormatter(object):
         values = self.obj.copy()
         values.index = data_index
         values.columns = values.columns.to_native_types(
-            na_rep=na_rep, float_format=float_format,
-            date_format=date_format)
+            na_rep=na_rep,
+            float_format=float_format,
+            date_format=date_format,
+            quoting=self.quoting)
         values = values[cols]
 
         series = {}
@@ -1511,17 +1549,22 @@ class CSVFormatter(object):
         slicer = slice(start_i, end_i)
         for i in range(len(self.blocks)):
             b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
+            d = b.to_native_types(slicer=slicer,
+                                  na_rep=self.na_rep,
                                   float_format=self.float_format,
-                                  date_format=self.date_format)
+                                  decimal=self.decimal,
+                                  date_format=self.date_format,
+                                  quoting=self.quoting)
 
             for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
 
-        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
+        ix = data_index.to_native_types(slicer=slicer,
+                                        na_rep=self.na_rep,
                                         float_format=self.float_format,
-                                        date_format=self.date_format)
+                                        date_format=self.date_format,
+                                        quoting=self.quoting)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
@@ -1967,7 +2010,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # this is pretty arbitrary for now
             has_large_values = (abs_vals > 1e8).any()
-            has_small_values = ((abs_vals < 10 ** (-self.digits)) &
+            has_small_values = ((abs_vals < 10 ** (-self.digits+1)) &
                                 (abs_vals > 0)).any()
 
             if too_long and has_large_values:
@@ -1997,15 +2040,42 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
-        formatter = (self.formatter or
-                     _get_format_datetime64_from_values(self.values,
-                                                        nat_rep=self.nat_rep,
-                                                        date_format=self.date_format))
 
-        fmt_values = [formatter(x) for x in self.values]
+        # we may have a tz, if so, then need to process element-by-element
+        # when DatetimeBlockWithTimezones is a reality this could be fixed
+        values = self.values
+        if not isinstance(values, DatetimeIndex):
+            values = DatetimeIndex(values)
+
+        if values.tz is None:
+            fmt_values = format_array_from_datetime(values.asi8.ravel(),
+                                                    format=_get_format_datetime64_from_values(values, self.date_format),
+                                                    na_rep=self.nat_rep).reshape(values.shape)
+            fmt_values = fmt_values.tolist()
+
+        else:
+
+            values = values.asobject
+            is_dates_only = _is_dates_only(values)
+            formatter = (self.formatter or _get_format_datetime64(is_dates_only, values, date_format=self.date_format))
+            fmt_values = [ formatter(x) for x in self.values ]
 
         return fmt_values
 
+
+def _is_dates_only(values):
+    # return a boolean if we are only dates (and don't have a timezone)
+    values = DatetimeIndex(values)
+    if values.tz is not None:
+        return False
+
+    values_int = values.asi8
+    consider_values = values_int != iNaT
+    one_day_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+    if even_days:
+        return True
+    return False
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
     if x is None or lib.checknull(x):
@@ -2029,22 +2099,6 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
     else:
         return x._date_repr
 
-
-def _is_dates_only(values):
-    # return a boolean if we are only dates (and don't have a timezone)
-    from pandas import DatetimeIndex
-    values = DatetimeIndex(values)
-    if values.tz is not None:
-        return False
-
-    values_int = values.asi8
-    consider_values = values_int != iNaT
-    one_day_nanos = (86400 * 1e9)
-    even_days = np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
-    if even_days:
-        return True
-    return False
-
 def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
     if is_dates_only:
@@ -2055,13 +2109,12 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(values,
-                                       nat_rep='NaT',
-                                       date_format=None):
+def _get_format_datetime64_from_values(values, date_format):
+    """ given values and a date_format, return a string format """
     is_dates_only = _is_dates_only(values)
-    return _get_format_datetime64(is_dates_only=is_dates_only,
-                                  nat_rep=nat_rep,
-                                  date_format=date_format)
+    if is_dates_only:
+        return date_format or "%Y-%m-%d"
+    return None
 
 
 class Timedelta64Formatter(GenericArrayFormatter):

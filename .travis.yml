@@ -22,6 +22,7 @@ matrix:
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - BUILD_TYPE=conda
       - JOB_NAME: "26_nslow_nnet"
+      - INSTALL_TEST=true
     - python: 2.7
       env:
       - NOSE_ARGS="slow and not network and not disabled"
@@ -30,6 +31,24 @@ matrix:
       - JOB_TAG=_LOCALE
       - BUILD_TYPE=conda
       - JOB_NAME: "27_slow_nnet_LOCALE"
+    - python: 2.7
+      env:
+      - NOSE_ARGS="not slow and not disabled"
+      - FULL_DEPS=true
+      - CLIPBOARD_GUI=gtk2
+      - BUILD_TYPE=conda
+      - JOB_NAME: "27_build_test"
+      - JOB_TAG=_BUILD_TEST
+      - BUILD_TEST=true
+    - python: 2.7
+      env:
+      - NOSE_ARGS="not slow and not disabled"
+      - FULL_DEPS=true
+      - CLIPBOARD_GUI=gtk2
+      - BUILD_TYPE=pydata
+      - JOB_NAME: "27_build_test"
+      - JOB_TAG=_BUILD_TEST
+      - BUILD_TEST=true
     - python: 2.7
       env:
       - NOSE_ARGS="not slow and not disabled"
@@ -115,6 +134,24 @@ matrix:
         - NUMPY_BUILD=master
         - BUILD_TYPE=pydata
         - PANDAS_TESTING_MODE="deprecate"
+      - python: 2.7
+        env:
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD_GUI=gtk2
+        - BUILD_TYPE=conda
+        - JOB_NAME: "27_build_test"
+        - JOB_TAG=_BUILD_TEST
+        - BUILD_TEST=true
+      - python: 2.7
+        env:
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD_GUI=gtk2
+        - BUILD_TYPE=pydata
+        - JOB_NAME: "27_build_test"
+        - JOB_TAG=_BUILD_TEST
+        - BUILD_TEST=true
 
 before_install:
   - echo "before_install"
@@ -147,6 +184,7 @@ script:
 # nothing here, or failed tests won't fail travis
 
 after_script:
+  - ci/install_test.sh
   - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml

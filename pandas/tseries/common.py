@@ -6,7 +6,7 @@ from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas import lib, tslib
+from pandas import tslib
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype, is_list_like,
                                 get_dtype_kinds)
@@ -125,7 +125,7 @@ DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
                                            accessors=DatetimeIndex._datetimelike_ops,
                                            typ='property')
 DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
-                                           accessors=["to_period","tz_localize","tz_convert"],
+                                           accessors=["to_period","tz_localize","tz_convert","normalize"],
                                            typ='method')
 
 class TimedeltaProperties(Properties):

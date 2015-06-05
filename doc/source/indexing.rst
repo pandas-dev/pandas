@@ -30,9 +30,9 @@ The axis labeling information in pandas objects serves many purposes:
 In this section, we will focus on the final point: namely, how to slice, dice,
 and generally get and set subsets of pandas objects. The primary focus will be
 on Series and DataFrame as they have received more development attention in
-this area. Expect more work to be invested higher-dimensional data structures
-(including ``Panel``) in the future, especially in label-based advanced
-indexing.
+this area. Expect more work to be invested in higher-dimensional data
+structures (including ``Panel``) in the future, especially in label-based
+advanced indexing.
 
 .. note::
 
@@ -54,7 +54,7 @@ indexing.
 
 .. warning::
 
-   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+   In 0.15.0 ``Index`` has internally been refactored to no longer subclass ``ndarray``
    but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
 
@@ -85,7 +85,7 @@ of multi-axis indexing.
 
 - ``.iloc`` is primarily integer position based (from ``0`` to
   ``length-1`` of the axis), but may also be used with a boolean
-  array.  ``.iloc`` will raise ``IndexError`` if a requested 
+  array.  ``.iloc`` will raise ``IndexError`` if a requested
   indexer is out-of-bounds, except *slice* indexers which allow
   out-of-bounds indexing.  (this conforms with python/numpy *slice*
   semantics).  Allowed inputs are:
@@ -225,9 +225,9 @@ new column.
 
    sa.a = 5
    sa
-   dfa.A = list(range(len(dfa.index)))       # ok if A already exists
+   dfa.A = list(range(len(dfa.index)))  # ok if A already exists
    dfa
-   dfa['A'] = list(range(len(dfa.index)))    # use this form to create a new column
+   dfa['A'] = list(range(len(dfa.index)))  # use this form to create a new column
    dfa
 
 .. warning::
@@ -248,6 +248,14 @@ new column.
 
 If you are using the IPython environment, you may also use tab-completion to
 see these accessible attributes.
+
+You can also assign a ``dict`` to a row of a ``DataFrame``:
+
+.. ipython:: python
+
+   x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
+   x.iloc[1] = dict(x=9, y=99)
+   x
 
 Slicing ranges
 --------------
@@ -292,8 +300,29 @@ Selection By Label
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
+.. warning::
+
+   ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
+   using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
+
+  .. ipython:: python
+
+     dfl = DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=date_range('20130101',periods=5))
+     dfl
+
+  .. code-block:: python
+
+     In [4]: dfl.loc[2:3]
+     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+
+  String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
+
+  .. ipython:: python
+
+     dfl.loc['20130102':'20130104']
+
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**at least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
@@ -479,6 +508,81 @@ A list of indexers where any element is out of bounds will raise an
 
 .. _indexing.basics.partial_setting:
 
+Selecting Random Samples
+------------------------
+.. versionadded::0.16.1
+
+A random selection of rows or columns from a Series, DataFrame, or Panel with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
+
+.. ipython :: python
+
+    s = Series([0,1,2,3,4,5])
+
+    # When no arguments are passed, returns 1 row.
+    s.sample()
+
+    # One may specify either a number of rows:
+    s.sample(n=3)
+
+    # Or a fraction of the rows:
+    s.sample(frac=0.5)
+
+By default, ``sample`` will return each row at most once, but one can also sample with replacement
+using the ``replace`` option:
+
+.. ipython :: python
+
+   s = Series([0,1,2,3,4,5])
+
+    # Without replacement (default):
+    s.sample(n=6, replace=False)
+
+    # With replacement:
+    s.sample(n=6, replace=True)
+
+
+By default, each row has an equal probability of being selected, but if you want rows
+to have different probabilities, you can pass the ``sample`` function sampling weights as
+``weights``. These weights can be a list, a numpy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:
+
+.. ipython :: python
+
+    s = Series([0,1,2,3,4,5])
+    example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
+    s.sample(n=3, weights=example_weights)
+
+    # Weights will be re-normalized automatically
+    example_weights2 = [0.5, 0, 0, 0, 0, 0]
+    s.sample(n=1, weights=example_weights2)
+
+When applied to a DataFrame, you can use a column of the DataFrame as sampling weights
+(provided you are sampling rows and not columns) by simply passing the name of the column
+as a string.
+
+.. ipython :: python
+
+    df2 = DataFrame({'col1':[9,8,7,6], 'weight_column':[0.5, 0.4, 0.1, 0]})
+    df2.sample(n = 3, weights = 'weight_column')
+
+``sample`` also allows users to sample columns instead of rows using the ``axis`` argument.
+
+.. 	ipython :: python
+
+    df3 = DataFrame({'col1':[1,2,3], 'col2':[2,3,4]})
+    df3.sample(n=1, axis=1)
+
+Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a numpy RandomState object.
+
+.. 	ipython :: python
+
+    df4 = DataFrame({'col1':[1,2,3], 'col2':[2,3,4]})
+
+    # With a given seed, the sample will always draw the same rows.
+    df4.sample(n=2, random_state=2)
+    df4.sample(n=2, random_state=2)
+
+
+
 Setting With Enlargement
 ------------------------
 
@@ -557,9 +661,10 @@ Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
 
+   s = Series(range(-3, 4))
+   s
    s[s > 0]
-   s[(s < 0) & (s > -0.5)]
-   s[(s < -1) | (s > 1 )]
+   s[(s < -1) | (s > 0.5)]
    s[~(s < 0)]
 
 You may select rows from a DataFrame using a boolean vector the same length as
@@ -1116,6 +1221,17 @@ should be taken instead.
    df2.drop_duplicates(['a','b'])
    df2.drop_duplicates(['a','b'], take_last=True)
 
+An alternative way to drop duplicates on the index is ``.groupby(level=0)`` combined with ``first()`` or ``last()``.
+
+.. ipython:: python
+
+   df3 = df2.set_index('b')
+   df3
+   df3.groupby(level=0).first()
+
+   # a bit more verbose
+   df3.reset_index().drop_duplicates(subset='b', take_last=False).set_index('b')
+
 .. _indexing.dictionarylike:
 
 Dictionary-like :meth:`~pandas.DataFrame.get` method
@@ -1486,5 +1602,3 @@ This will **not** work at all, and so should be avoided
    The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
    assignment. There may be false positives; situations where a chained assignment is inadvertantly
    reported.
-
-

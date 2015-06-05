@@ -1,6 +1,5 @@
 """ Factory methods to create N-D panels """
 
-import pandas.lib as lib
 from pandas.compat import zip
 import pandas.compat as compat
 
@@ -99,7 +98,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter',
               'dropna', 'shift']:
         def func(self, *args, **kwargs):
-            raise NotImplementedError
+            raise NotImplementedError("this operation is not supported")
         setattr(klass, f, func)
 
     # add the aggregate operations

@@ -4,7 +4,7 @@
 .. ipython:: python
    :suppress:
 
-   from datetime import datetime, timedelta
+   from datetime import datetime, timedelta, time
    import numpy as np
    np.random.seed(123456)
    from pandas import *
@@ -243,7 +243,7 @@ variety of frequency aliases. The default frequency for ``date_range`` is a
    rng = bdate_range(start, end)
    rng
 
-``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
+``date_range`` and ``bdate_range`` make it easy to generate a range of dates
 using various combinations of parameters like ``start``, ``end``,
 ``periods``, and ``freq``:
 
@@ -353,7 +353,7 @@ This specifies an **exact** stop time (and is not the same as the above)
 
    dft['2013-1':'2013-2-28 00:00:00']
 
-We are stopping on the included end-point as its part of the index
+We are stopping on the included end-point as it is part of the index
 
 .. ipython:: python
 
@@ -482,6 +482,7 @@ frequency increment. Specific offset logic like "month", "business day", or
     BYearEnd, "business year end"
     BYearBegin, "business year begin"
     FY5253, "retail (aka 52-53 week) year"
+    BusinessHour, "business hour"
     Hour, "one hour"
     Minute, "one minute"
     Second, "one second"
@@ -540,7 +541,7 @@ The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
 It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
-These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when create offset instance. If ``normalize=True``, result is normalized after the function is applied.
+These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when creating the offset instance. If ``normalize=True``, result is normalized after the function is applied.
 
 
   .. ipython:: python
@@ -563,7 +564,7 @@ Parametric offsets
 ~~~~~~~~~~~~~~~~~~
 
 Some of the offsets can be "parameterized" when created to result in different
-behavior. For example, the ``Week`` offset for generating weekly data accepts a
+behaviors. For example, the ``Week`` offset for generating weekly data accepts a
 ``weekday`` parameter which results in the generated dates always lying on a
 particular day of the week:
 
@@ -667,6 +668,102 @@ in the usual way.
     have to change to fix the timezone issues, the behaviour of the
     ``CustomBusinessDay`` class may have to change in future versions.
 
+.. _timeseries.businesshour:
+
+Business Hour
+~~~~~~~~~~~~~
+
+The ``BusinessHour`` class provides a business hour representation on ``BusinessDay``,
+allowing to use specific start and end times.
+
+By default, ``BusinessHour`` uses 9:00 - 17:00 as business hours.
+Adding ``BusinessHour`` will increment ``Timestamp`` by hourly.
+If target ``Timestamp`` is out of business hours, move to the next business hour then increment it.
+If the result exceeds the business hours end, remaining is added to the next business day.
+
+.. ipython:: python
+
+    bh = BusinessHour()
+    bh
+
+    # 2014-08-01 is Friday
+    Timestamp('2014-08-01 10:00').weekday()
+    Timestamp('2014-08-01 10:00') + bh
+
+    # Below example is the same as Timestamp('2014-08-01 09:00') + bh
+    Timestamp('2014-08-01 08:00') + bh
+
+    # If the results is on the end time, move to the next business day
+    Timestamp('2014-08-01 16:00') + bh
+
+    # Remainings are added to the next day
+    Timestamp('2014-08-01 16:30') + bh
+
+    # Adding 2 business hours
+    Timestamp('2014-08-01 10:00') + BusinessHour(2)
+
+    # Subtracting 3 business hours
+    Timestamp('2014-08-01 10:00') + BusinessHour(-3)
+
+Also, you can specify ``start`` and ``end`` time by keywords.
+Argument must be ``str`` which has ``hour:minute`` representation or ``datetime.time`` instance.
+Specifying seconds, microseconds and nanoseconds as business hour results in ``ValueError``.
+
+.. ipython:: python
+
+    bh = BusinessHour(start='11:00', end=time(20, 0))
+    bh
+
+    Timestamp('2014-08-01 13:00') + bh
+    Timestamp('2014-08-01 09:00') + bh
+    Timestamp('2014-08-01 18:00') + bh
+
+Passing ``start`` time later than ``end`` represents midnight business hour.
+In this case, business hour exceeds midnight and overlap to the next day.
+Valid business hours are distinguished by whether it started from valid ``BusinessDay``.
+
+.. ipython:: python
+
+    bh = BusinessHour(start='17:00', end='09:00')
+    bh
+
+    Timestamp('2014-08-01 17:00') + bh
+    Timestamp('2014-08-01 23:00') + bh
+
+    # Although 2014-08-02 is Satuaday,
+    # it is valid because it starts from 08-01 (Friday).
+    Timestamp('2014-08-02 04:00') + bh
+
+    # Although 2014-08-04 is Monday,
+    # it is out of business hours because it starts from 08-03 (Sunday).
+    Timestamp('2014-08-04 04:00') + bh
+
+Applying ``BusinessHour.rollforward`` and ``rollback`` to out of business hours results in
+the next business hour start or previous day's end. Different from other offsets, ``BusinessHour.rollforward``
+may output different results from ``apply`` by definition.
+
+This is because one day's business hour end is equal to next day's business hour start. For example,
+under the default business hours (9:00 - 17:00), there is no gap (0 minutes) between ``2014-08-01 17:00`` and
+``2014-08-04 09:00``.
+
+.. ipython:: python
+
+    # This adjusts a Timestamp to business hour edge
+    BusinessHour().rollback(Timestamp('2014-08-02 15:00'))
+    BusinessHour().rollforward(Timestamp('2014-08-02 15:00'))
+
+    # It is the same as BusinessHour().apply(Timestamp('2014-08-01 17:00')).
+    # And it is the same as BusinessHour().apply(Timestamp('2014-08-04 09:00'))
+    BusinessHour().apply(Timestamp('2014-08-02 15:00'))
+
+    # BusinessDay results (for reference)
+    BusinessHour().rollforward(Timestamp('2014-08-02'))
+
+    # It is the same as BusinessDay().apply(Timestamp('2014-08-01'))
+    # The result is the same as rollworward because BusinessDay never overlap.
+    BusinessHour().apply(Timestamp('2014-08-02'))
+
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -696,6 +793,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "BA", "business year end frequency"
     "AS", "year start frequency"
     "BAS", "business year start frequency"
+    "BH", "business hour frequency"
     "H", "hourly frequency"
     "T", "minutely frequency"
     "S", "secondly frequency"
@@ -806,7 +904,7 @@ strongly recommended that you switch to using the new offset aliases.
     "ms", "L"
     "us", "U"
 
-As you can see, legacy quarterly and annual frequencies are business quarter
+As you can see, legacy quarterly and annual frequencies are business quarters
 and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
@@ -910,10 +1008,9 @@ Time series-related instance methods
 Shifting / lagging
 ~~~~~~~~~~~~~~~~~~
 
-One may want to *shift* or *lag* the values in a TimeSeries back and forward in
+One may want to *shift* or *lag* the values in a time series back and forward in
 time. The method for this is ``shift``, which is available on all of the pandas
-objects. In DataFrame, ``shift`` will currently only shift along the ``index``
-and in Panel along the ``major_axis``.
+objects.
 
 .. ipython:: python
 
@@ -929,7 +1026,7 @@ The shift method accepts an ``freq`` argument which can accept a
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``TimeSeries`` objects also have a ``tshift`` convenience method that changes
+``Series`` objects also have a ``tshift`` convenience method that changes
 all the dates in the index by a specified number of offsets:
 
 .. ipython:: python
@@ -1060,8 +1157,8 @@ frequency periods.
 Note that 0.8 marks a watershed in the timeseries functionality in pandas. In
 previous versions, resampling had to be done using a combination of
 ``date_range``, ``groupby`` with ``asof``, and then calling an aggregation
-function on the grouped object. This was not nearly convenient or performant as
-the new pandas timeseries API.
+function on the grouped object. This was not nearly as convenient or performant
+as the new pandas timeseries API.
 
 .. _timeseries.periods:
 
@@ -1099,7 +1196,7 @@ frequency.
 
    p - 3
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have same freq. Otherise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherise, ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -1160,7 +1257,7 @@ objects:
    ps = Series(randn(len(prng)), prng)
    ps
 
-``PeriodIndex`` supports addition and subtraction as the same rule as ``Period``.
+``PeriodIndex`` supports addition and subtraction with the same rule as ``Period``.
 
 .. ipython:: python
 
@@ -1175,7 +1272,7 @@ objects:
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can pass in dates and strings to `Series` and `DataFrame` with `PeriodIndex`, as the same manner as `DatetimeIndex`. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
+You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
 
@@ -1185,7 +1282,7 @@ You can pass in dates and strings to `Series` and `DataFrame` with `PeriodIndex`
 
    ps['10/31/2011':'12/31/2011']
 
-Passing string represents lower frequency than `PeriodIndex` returns partial sliced data.
+Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
 
@@ -1196,7 +1293,7 @@ Passing string represents lower frequency than `PeriodIndex` returns partial sli
    dfp
    dfp['2013-01-01 10H']
 
-As the same as `DatetimeIndex`, the endpoints will be included in the result. Below example slices data starting from 10:00 to 11:59.
+As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
 
@@ -1204,7 +1301,7 @@ As the same as `DatetimeIndex`, the endpoints will be included in the result. Be
 
 Frequency Conversion and Resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The frequency of Periods and PeriodIndex can be converted via the ``asfreq``
+The frequency of ``Period`` and ``PeriodIndex`` can be converted via the ``asfreq``
 method. Let's start with the fiscal year 2011, ending in December:
 
 .. ipython:: python
@@ -1247,8 +1344,8 @@ period.
 Period conversions with anchored frequencies are particularly useful for
 working with various quarterly data common to economics, business, and other
 fields. Many organizations define quarters relative to the month in which their
-fiscal year start and ends. Thus, first quarter of 2011 could start in 2010 or
-a few months into 2011. Via anchored frequencies, pandas works all quarterly
+fiscal year starts and ends. Thus, first quarter of 2011 could start in 2010 or
+a few months into 2011. Via anchored frequencies, pandas works for all quarterly
 frequencies ``Q-JAN`` through ``Q-DEC``.
 
 ``Q-DEC`` define regular calendar quarters:
@@ -1354,7 +1451,7 @@ Time Zone Handling
 ------------------
 
 Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
-``dateutil`` support is new [in 0.14.1] and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
+``dateutil`` support is new in 0.14.1 and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
 
 Working with Time Zones
@@ -1472,7 +1569,7 @@ time zones using ``tz_convert``:
    rng_berlin[5]
    rng_eastern[5].tz_convert('Europe/Berlin')
 
-Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
+Localization of Timestamps functions just like DatetimeIndex and Series:
 
 .. ipython:: python
 
@@ -1480,8 +1577,8 @@ Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
    rng[5].tz_localize('Asia/Shanghai')
 
 
-Operations between TimeSeries in different time zones will yield UTC
-TimeSeries, aligning the data on the UTC timestamps:
+Operations between Series in different time zones will yield UTC
+Series, aligning the data on the UTC timestamps:
 
 .. ipython:: python
 

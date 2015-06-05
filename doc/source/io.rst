@@ -82,13 +82,15 @@ They can take a number of arguments:
     (including http, ftp, and S3 locations), or any object with a ``read``
     method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
-    on. `read_csv` is capable of inferring the delimiter automatically in some
-    cases by "sniffing." The separator may be specified as a regular
-    expression; for instance you may use '\|\\s*' to indicate a pipe plus
-    arbitrary whitespace.
+    on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
+    automatically in some cases by "sniffing".
+    The separator may be specified as a regular expression; for instance
+    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace.
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
+    Set to  ``'infer'`` (the default) to guess a format based on the file
+    extension.
   - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
@@ -1085,8 +1087,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module.
+comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
    :suppress:
@@ -1098,7 +1100,7 @@ class of the csv module.
 .. ipython:: python
 
     print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv')
+    pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.chunking:
 
@@ -2362,6 +2364,10 @@ for some advanced strategies
 
    As of version 0.15.0, pandas requires ``PyTables`` >= 3.0.0. Stores written with prior versions of pandas / ``PyTables`` >= 2.3 are fully compatible (this was the previous minimum ``PyTables`` required version).
 
+.. warning::
+   
+   There is a ``PyTables`` indexing bug which may appear when querying stores using an index.  If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.  Stores created previously will need to be rewritten using the updated version.
+
 .. ipython:: python
    :suppress:
    :okexcept:
@@ -3271,28 +3277,96 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
    store.append('dfss2', dfss, nan_rep='_nan_')
    store.select('dfss2')
 
+.. _io.external_compatibility:
+
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``HDFStore`` write ``table`` format objects in specific formats suitable for
+``HDFStore`` writes ``table`` format objects in specific formats suitable for
 producing loss-less round trips to pandas objects. For external
 compatibility, ``HDFStore`` can read native ``PyTables`` format
-tables. It is possible to write an ``HDFStore`` object that can easily
-be imported into ``R`` using the ``rhdf5`` library. Create a table
-format store like this:
+tables.
 
-     .. ipython:: python
+It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the
+``rhdf5`` library (`Package website`_). Create a table format store like this:
 
-        store_export = HDFStore('export.h5')
-        store_export.append('df_dc', df_dc, data_columns=df_dc.columns)
-        store_export
+.. _package website: http://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
 
-     .. ipython:: python
-        :suppress:
+.. ipython:: python
 
-        store_export.close()
-        import os
-        os.remove('export.h5')
+   np.random.seed(1)
+   df_for_r = pd.DataFrame({"first": np.random.rand(100),
+                            "second": np.random.rand(100),
+                            "class": np.random.randint(0, 2, (100,))},
+                            index=range(100))
+   df_for_r.head()
+
+   store_export = HDFStore('export.h5')
+   store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
+   store_export
+
+.. ipython:: python
+   :suppress:
+
+   store_export.close()
+   import os
+   os.remove('export.h5')
+
+In R this file can be read into a ``data.frame`` object using the ``rhdf5``
+library. The following example function reads the corresponding column names
+and data values from the values and assembles them into a ``data.frame``:
+
+.. code-block:: R
+
+   # Load values and column names for all datasets from corresponding nodes and
+   # insert them into one data.frame object.
+
+   library(rhdf5)
+
+   loadhdf5data <- function(h5File) {
+
+   listing <- h5ls(h5File)
+   # Find all data nodes, values are stored in *_values and corresponding column
+   # titles in *_items
+   data_nodes <- grep("_values", listing$name)
+   name_nodes <- grep("_items", listing$name)
+   data_paths = paste(listing$group[data_nodes], listing$name[data_nodes], sep = "/")
+   name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
+   columns = list()
+   for (idx in seq(data_paths)) {
+     # NOTE: matrices returned by h5read have to be transposed to to obtain
+     # required Fortran order!
+     data <- data.frame(t(h5read(h5File, data_paths[idx])))
+     names <- t(h5read(h5File, name_paths[idx]))
+     entry <- data.frame(data)
+     colnames(entry) <- names
+     columns <- append(columns, entry)
+   }
+
+   data <- data.frame(columns)
+
+   return(data)
+   }
+
+Now you can import the ``DataFrame`` into R:
+
+.. code-block:: R
+
+   > data = loadhdf5data("transfer.hdf5")
+   > head(data)
+            first    second class
+   1 0.4170220047 0.3266449     0
+   2 0.7203244934 0.5270581     0
+   3 0.0001143748 0.8859421     1
+   4 0.3023325726 0.3572698     1
+   5 0.1467558908 0.9085352     1
+   6 0.0923385948 0.6233601     1
+
+.. note::
+   The R function lists the entire HDF5 file's contents and assembles the
+   ``data.frame`` object from all matching nodes, so use this only as a
+   starting point if you have stored multiple ``DataFrame`` objects to a
+   single HDF5 file.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -3307,53 +3381,53 @@ method ``copy`` to take advantage of the updates. The group attribute
 number of options, please see the docstring.
 
 
-     .. ipython:: python
-        :suppress:
+.. ipython:: python
+   :suppress:
 
-        import os
-        legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
+   import os
+   legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
 
-     .. ipython:: python
+.. ipython:: python
 
-        # a legacy store
-        legacy_store = HDFStore(legacy_file_path,'r')
-        legacy_store
+   # a legacy store
+   legacy_store = HDFStore(legacy_file_path,'r')
+   legacy_store
 
-        # copy (and return the new handle)
-        new_store = legacy_store.copy('store_new.h5')
-        new_store
-        new_store.close()
+   # copy (and return the new handle)
+   new_store = legacy_store.copy('store_new.h5')
+   new_store
+   new_store.close()
 
-     .. ipython:: python
-        :suppress:
+.. ipython:: python
+   :suppress:
 
-        legacy_store.close()
-        import os
-        os.remove('store_new.h5')
+   legacy_store.close()
+   import os
+   os.remove('store_new.h5')
 
 
 Performance
 ~~~~~~~~~~~
 
-   - ``Tables`` come with a writing performance penalty as compared to
-     regular stores. The benefit is the ability to append/delete and
-     query (potentially very large amounts of data).  Write times are
-     generally longer as compared with regular stores. Query times can
-     be quite fast, especially on an indexed axis.
-   - You can pass ``chunksize=<int>`` to ``append``, specifying the
-     write chunksize (default is 50000). This will significantly lower
-     your memory usage on writing.
-   - You can pass ``expectedrows=<int>`` to the first ``append``,
-     to set the TOTAL number of expected rows that ``PyTables`` will
-     expected. This will optimize read/write performance.
-   - Duplicate rows can be written to tables, but are filtered out in
-     selection (with the last items being selected; thus a table is
-     unique on major, minor pairs)
-   - A ``PerformanceWarning`` will be raised if you are attempting to
-     store types that will be pickled by PyTables (rather than stored as
-     endemic types). See
-     `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
-     for more information and some solutions.
+- ``tables`` format come with a writing performance penalty as compared to
+  ``fixed`` stores. The benefit is the ability to append/delete and
+  query (potentially very large amounts of data).  Write times are
+  generally longer as compared with regular stores. Query times can
+  be quite fast, especially on an indexed axis.
+- You can pass ``chunksize=<int>`` to ``append``, specifying the
+  write chunksize (default is 50000). This will significantly lower
+  your memory usage on writing.
+- You can pass ``expectedrows=<int>`` to the first ``append``,
+  to set the TOTAL number of expected rows that ``PyTables`` will
+  expected. This will optimize read/write performance.
+- Duplicate rows can be written to tables, but are filtered out in
+  selection (with the last items being selected; thus a table is
+  unique on major, minor pairs)
+- A ``PerformanceWarning`` will be raised if you are attempting to
+  store types that will be pickled by PyTables (rather than stored as
+  endemic types). See
+  `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
+  for more information and some solutions.
 
 Experimental
 ~~~~~~~~~~~~
@@ -3779,15 +3853,15 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
-*Stata* data files have limited data type support; only strings with 244 or
-fewer characters, ``int8``, ``int16``, ``int32``, ``float32` and ``float64``
-can be stored
-in ``.dta`` files.  Additionally, *Stata* reserves certain values to represent
-missing data. Exporting a non-missing value that is outside of the
-permitted range in Stata for a particular data type will retype the variable
-to the next larger size.  For example, ``int8`` values are restricted to lie
-between -127 and 100 in Stata, and so variables with values above 100 will
-trigger a conversion to ``int16``. ``nan`` values in floating points data
+*Stata* data files have limited data type support; only strings with
+244 or fewer characters, ``int8``, ``int16``, ``int32``, ``float32``
+and ``float64`` can be stored in ``.dta`` files.  Additionally,
+*Stata* reserves certain values to represent missing data. Exporting a
+non-missing value that is outside of the permitted range in Stata for
+a particular data type will retype the variable to the next larger
+size.  For example, ``int8`` values are restricted to lie between -127
+and 100 in Stata, and so variables with values above 100 will trigger
+a conversion to ``int16``. ``nan`` values in floating points data
 types are stored as the basic missing data type (``.`` in *Stata*).
 
 .. note::
@@ -3810,7 +3884,7 @@ outside of this range, the variable is cast to ``int16``.
 
 .. warning::
 
-  :class:`~pandas.io.stata.StataWriter`` and
+  :class:`~pandas.io.stata.StataWriter` and
   :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
@@ -3821,28 +3895,49 @@ outside of this range, the variable is cast to ``int16``.
 Reading from Stata format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The top-level function ``read_stata`` will read a dta files
-and return a DataFrame.  Alternatively,  the class :class:`~pandas.io.stata.StataReader`
-can be used if more granular access is required. :class:`~pandas.io.stata.StataReader`
-reads the header of the dta file at initialization. The method
-:func:`~pandas.io.stata.StataReader.data` reads and converts observations to a DataFrame.
+The top-level function ``read_stata`` will read a dta file and return
+either a DataFrame or a :class:`~pandas.io.stata.StataReader` that can
+be used to read the file incrementally.
 
 .. ipython:: python
 
    pd.read_stata('stata.dta')
 
+.. versionadded:: 0.16.0
+
+Specifying a ``chunksize`` yields a
+:class:`~pandas.io.stata.StataReader` instance that can be used to
+read ``chunksize`` lines from the file at a time.  The ``StataReader``
+object can be used as an iterator.
+
+.. ipython:: python
+
+  reader = pd.read_stata('stata.dta', chunksize=3)
+  for df in reader:
+      print(df.shape)
+
+For more fine-grained control, use ``iterator=True`` and specify
+``chunksize`` with each call to
+:func:`~pandas.io.stata.StataReader.read`.
+
+.. ipython:: python
+
+  reader = pd.read_stata('stata.dta', iterator=True)
+  chunk1 = reader.read(5)
+  chunk2 = reader.read(5)
+
 Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``variable_labels``, which requires data to be
-called before use (see ``pandas.io.stata.StataReader``).
+also be retrieved by the function ``value_labels``, which requires :func:`~pandas.io.stata.StataReader.read`
+to be called before use.
 
 The parameter ``convert_missing`` indicates whether missing value
 representations in Stata should be preserved.  If ``False`` (the default),
 missing values are represented as ``np.nan``.  If ``True``, missing values are
 represented using ``StataMissingValue`` objects, and columns containing missing
-values will have ```object`` data type.
+values will have ``object`` data type.
 
 :func:`~pandas.read_stata` and :class:`~pandas.io.stata.StataReader` supports .dta
 formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
@@ -3850,7 +3945,7 @@ formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
 .. note::
 
    Setting ``preserve_dtypes=False`` will upcast to the standard pandas data types:
-   ``int64`` for all integer types and ``float64`` for floating poitn data.  By default,
+   ``int64`` for all integer types and ``float64`` for floating point data.  By default,
    the Stata data types are preserved when importing.
 
 .. ipython:: python
@@ -3904,6 +3999,24 @@ whether imported ``Categorical`` variables are ordered.
     some but not all data values. Importing a partially labeled series will produce
     a ``Categorial`` with string categories for the values that are labeled and
     numeric categories for values with no label.
+
+.. _io.other:
+
+Other file formats
+------------------
+
+pandas itself only supports IO with a limited set of file formats that map
+cleanly to its tabular data model. For reading and writing other file formats
+into and from pandas, we recommend these packages from the broader community.
+
+netCDF
+~~~~~~
+
+xray_ provides data structures inspired by the pandas DataFrame for working
+with multi-dimensional datasets, with a focus on the netCDF file format and
+easy conversion to and from pandas.
+
+.. _xray: http://xray.readthedocs.org/
 
 .. _io.perf:
 

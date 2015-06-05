@@ -254,6 +254,37 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
+    def test_dropna(self):
+        # https://github.com/pydata/pandas/issues/9443#issuecomment-73719328
+
+        tm.assert_series_equal(
+            pd.Series([True, True, False]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[True, False]))
+        tm.assert_series_equal(
+            pd.Series([True, True, False]).value_counts(dropna=False),
+            pd.Series([2, 1], index=[True, False]))
+
+        tm.assert_series_equal(
+            pd.Series([True, True, False, None]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[True, False]))
+        tm.assert_series_equal(
+            pd.Series([True, True, False, None]).value_counts(dropna=False),
+            pd.Series([2, 1, 1], index=[True, False, np.nan]))
+
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5.]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[5., 10.3]))
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5.]).value_counts(dropna=False),
+            pd.Series([2, 1], index=[5., 10.3]))
+
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5., None]).value_counts(dropna=True),
+            pd.Series([2, 1], index=[5., 10.3]))
+        tm.assert_series_equal(
+            pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
+            pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+
 def test_quantile():
     s = Series(np.random.randn(100))
 

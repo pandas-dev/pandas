@@ -18,6 +18,7 @@ from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
 from pandas.core.common import adjoin, pprint_thing
 from pandas.core.algorithms import match, unique
@@ -1782,13 +1783,13 @@ class DataCol(IndexCol):
             return self.set_atom_timedelta64(block)
 
         dtype = block.dtype.name
-        rvalues = block.values.ravel()
-        inferred_type = lib.infer_dtype(rvalues)
+        inferred_type = lib.infer_dtype(block.values)
 
         if inferred_type == 'date':
             raise TypeError(
                 "[date] is not implemented as a table column")
         elif inferred_type == 'datetime':
+            rvalues = block.values.ravel()
             if getattr(rvalues[0], 'tzinfo', None) is not None:
 
                 # if this block has more than one timezone, raise
@@ -1917,7 +1918,7 @@ class DataCol(IndexCol):
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ.type))
+        self.set_data(block.values.astype(self.typ.type, copy=False))
 
     def set_atom_categorical(self, block, items, info=None, values=None):
         # currently only supports a 1-D categorical
@@ -2016,7 +2017,7 @@ class DataCol(IndexCol):
 
                     index = DatetimeIndex(
                         self.data.ravel(), tz='UTC').tz_convert(self.tz)
-                    self.data = np.array(
+                    self.data = np.asarray(
                         index.tolist(), dtype=object).reshape(self.data.shape)
 
                 else:
@@ -2026,14 +2027,14 @@ class DataCol(IndexCol):
                 self.data = np.asarray(self.data, dtype='m8[ns]')
             elif dtype == u('date'):
                 try:
-                    self.data = np.array(
+                    self.data = np.asarray(
                         [date.fromordinal(v) for v in self.data], dtype=object)
                 except ValueError:
-                    self.data = np.array(
+                    self.data = np.asarray(
                         [date.fromtimestamp(v) for v in self.data],
                         dtype=object)
             elif dtype == u('datetime'):
-                self.data = np.array(
+                self.data = np.asarray(
                     [datetime.fromtimestamp(v) for v in self.data],
                     dtype=object)
 
@@ -2048,9 +2049,9 @@ class DataCol(IndexCol):
             else:
 
                 try:
-                    self.data = self.data.astype(dtype)
+                    self.data = self.data.astype(dtype, copy=False)
                 except:
-                    self.data = self.data.astype('O')
+                    self.data = self.data.astype('O', copy=False)
 
         # convert nans / decode
         if _ensure_decoded(self.kind) == u('string'):
@@ -2337,9 +2338,9 @@ class GenericFixed(Fixed):
                 ret = data
 
             if dtype == u('datetime64'):
-                ret = np.array(ret, dtype='M8[ns]')
+                ret = np.asarray(ret, dtype='M8[ns]')
             elif dtype == u('timedelta64'):
-                ret = np.array(ret, dtype='m8[ns]')
+                ret = np.asarray(ret, dtype='m8[ns]')
 
         if transposed:
             return ret.T
@@ -3452,6 +3453,10 @@ class Table(Fixed):
     def process_axes(self, obj, columns=None):
         """ process axes filters """
 
+        # make a copy to avoid side effects
+        if columns is not None:
+            columns = list(columns)
+
         # make sure to include levels if we have them
         if columns is not None and self.is_multi_index:
             for n in self.levels:
@@ -3509,9 +3514,10 @@ class Table(Fixed):
                            fletcher32=False, expectedrows=None):
         """ create the description of the table from the axes & values """
 
-        # expected rows estimate
+        # provided expected rows if its passed
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
+
         d = dict(name='table', expectedrows=expectedrows)
 
         # description from the axes & values
@@ -3637,7 +3643,7 @@ class LegacyTable(Table):
         if not self.read_axes(where=where, **kwargs):
             return None
 
-        factors = [Categorical.from_array(a.values) for a in self.index_axes]
+        factors = [Categorical.from_array(a.values, ordered=True) for a in self.index_axes]
         levels = [f.categories for f in factors]
         N = [len(f.categories) for f in factors]
         labels = [f.codes for f in factors]
@@ -3793,7 +3799,7 @@ class AppendableTable(LegacyTable):
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
                 mask = com.isnull(a.data).all(axis=0)
-                masks.append(mask.astype('u1'))
+                masks.append(mask.astype('u1', copy=False))
 
             # consolidate masks
             mask = masks[0]
@@ -3803,8 +3809,7 @@ class AppendableTable(LegacyTable):
 
         else:
 
-            mask = np.empty(nrows, dtype='u1')
-            mask.fill(False)
+            mask = None
 
         # broadcast the indexes if needed
         indexes = [a.cvalues for a in self.index_axes]
@@ -3833,12 +3838,13 @@ class AppendableTable(LegacyTable):
         bvalues = []
         for i, v in enumerate(values):
             new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
-            bvalues.append(values[i].ravel().reshape(new_shape))
+            bvalues.append(values[i].reshape(new_shape))
 
         # write the chunks
         if chunksize is None:
             chunksize = 100000
 
+        rows = np.empty(min(chunksize,nrows), dtype=self.dtype)
         chunks = int(nrows / chunksize) + 1
         for i in range(chunks):
             start_i = i * chunksize
@@ -3847,11 +3853,20 @@ class AppendableTable(LegacyTable):
                 break
 
             self.write_data_chunk(
+                rows,
                 indexes=[a[start_i:end_i] for a in bindexes],
-                mask=mask[start_i:end_i],
+                mask=mask[start_i:end_i] if mask is not None else None,
                 values=[v[start_i:end_i] for v in bvalues])
 
-    def write_data_chunk(self, indexes, mask, values):
+    def write_data_chunk(self, rows, indexes, mask, values):
+        """
+        Parameters
+        ----------
+        rows : an empty memory space where we are putting the chunk
+        indexes : an array of the indexes
+        mask : an array of the masks
+        values : an array of the values
+        """
 
         # 0 len
         for v in values:
@@ -3860,7 +3875,8 @@ class AppendableTable(LegacyTable):
 
         try:
             nrows = indexes[0].shape[0]
-            rows = np.empty(nrows, dtype=self.dtype)
+            if nrows != len(rows):
+                rows = np.empty(nrows, dtype=self.dtype)
             names = self.dtype.names
             nindexes = len(indexes)
 
@@ -3873,7 +3889,10 @@ class AppendableTable(LegacyTable):
                 rows[names[i + nindexes]] = v
 
             # mask
-            rows = rows[~mask.ravel().astype(bool)]
+            if mask is not None:
+                m = ~mask.ravel().astype(bool, copy=False)
+                if not m.all():
+                    rows = rows[m]
 
         except Exception as detail:
             raise Exception("cannot create row-data -> %s" % detail)
@@ -4220,6 +4239,11 @@ def _convert_index(index, encoding=None, format_type=None):
                         freq=getattr(index, 'freq', None),
                         tz=getattr(index, 'tz', None),
                         index_name=index_name)
+    elif isinstance(index, TimedeltaIndex):
+        converted = index.asi8
+        return IndexCol(converted, 'timedelta64', _tables().Int64Col(),
+                        freq=getattr(index, 'freq', None),
+                        index_name=index_name)
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
         return IndexCol(
@@ -4239,15 +4263,20 @@ def _convert_index(index, encoding=None, format_type=None):
                         freq=getattr(index, 'freq', None),
                         tz=getattr(index, 'tz', None),
                         index_name=index_name)
+    elif inferred_type == 'timedelta64':
+        converted = values.view('i8')
+        return IndexCol(converted, 'timedelta64', _tables().Int64Col(),
+                        freq=getattr(index, 'freq', None),
+                        index_name=index_name)
     elif inferred_type == 'datetime':
-        converted = np.array([(time.mktime(v.timetuple()) +
-                               v.microsecond / 1E6) for v in values],
-                             dtype=np.float64)
+        converted = np.asarray([(time.mktime(v.timetuple()) +
+                                 v.microsecond / 1E6) for v in values],
+                               dtype=np.float64)
         return IndexCol(converted, 'datetime', _tables().Time64Col(),
                         index_name=index_name)
     elif inferred_type == 'date':
-        converted = np.array([v.toordinal() for v in values],
-                             dtype=np.int32)
+        converted = np.asarray([v.toordinal() for v in values],
+                               dtype=np.int32)
         return IndexCol(converted, 'date', _tables().Time32Col(),
                         index_name=index_name)
     elif inferred_type == 'string':
@@ -4289,22 +4318,24 @@ def _unconvert_index(data, kind, encoding=None):
     kind = _ensure_decoded(kind)
     if kind == u('datetime64'):
         index = DatetimeIndex(data)
+    elif kind == u('timedelta64'):
+        index = TimedeltaIndex(data)
     elif kind == u('datetime'):
-        index = np.array([datetime.fromtimestamp(v) for v in data],
-                         dtype=object)
+        index = np.asarray([datetime.fromtimestamp(v) for v in data],
+                           dtype=object)
     elif kind == u('date'):
         try:
-            index = np.array(
+            index = np.asarray(
                 [date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
-            index = np.array(
+            index = np.asarray(
                 [date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in (u('integer'), u('float')):
-        index = np.array(data)
+        index = np.asarray(data)
     elif kind in (u('string')):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
     elif kind == u('object'):
-        index = np.array(data[0])
+        index = np.asarray(data[0])
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
@@ -4315,7 +4346,7 @@ def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     if kind == u('datetime'):
         index = lib.time64_to_datetime(data)
     elif kind in (u('integer')):
-        index = np.array(data, dtype=object)
+        index = np.asarray(data, dtype=object)
     elif kind in (u('string')):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
     else:  # pragma: no cover
@@ -4334,13 +4365,13 @@ def _convert_string_array(data, encoding, itemsize=None):
     if itemsize is None:
         itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
 
-    data = np.array(data, dtype="S%d" % itemsize)
+    data = np.asarray(data, dtype="S%d" % itemsize)
     return data
 
 def _unconvert_string_array(data, nan_rep=None, encoding=None):
     """ deserialize a string array, possibly decoding """
     shape = data.shape
-    data = np.array(data.ravel(), dtype=object)
+    data = np.asarray(data.ravel(), dtype=object)
 
     # guard against a None encoding in PY3 (because of a legacy
     # where the passed encoding is actually None)
@@ -4353,7 +4384,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
                 dtype = "U{0}".format(itemsize)
             else:
                 dtype = "S{0}".format(itemsize)
-            data = data.astype(dtype).astype(object)
+            data = data.astype(dtype, copy=False).astype(object, copy=False)
         except (Exception) as e:
             f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
             data = f(data)
@@ -4376,7 +4407,7 @@ def _maybe_convert(values, val_kind, encoding):
 def _get_converter(kind, encoding):
     kind = _ensure_decoded(kind)
     if kind == 'datetime64':
-        return lambda x: np.array(x, dtype='M8[ns]')
+        return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
         return lib.convert_timestamps
     elif kind == 'string':
@@ -4421,7 +4452,7 @@ class Selection(object):
             try:
                 inferred = lib.infer_dtype(where)
                 if inferred == 'integer' or inferred == 'boolean':
-                    where = np.array(where)
+                    where = np.asarray(where)
                     if where.dtype == np.bool_:
                         start, stop = self.start, self.stop
                         if start is None:

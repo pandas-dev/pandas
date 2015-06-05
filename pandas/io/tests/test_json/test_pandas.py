@@ -321,6 +321,18 @@ class TestPandasContainer(tm.TestCase):
         df = DataFrame([1, 2, 3])
         self.assertRaises(ValueError, df.to_json, orient="garbage")
 
+    def test_frame_empty(self):
+        df = DataFrame(columns=['jim', 'joe'])
+        self.assertFalse(df._is_mixed_type)
+        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df)
+
+    def test_frame_empty_mixedtype(self):
+        # mixed type
+        df = DataFrame(columns=['jim', 'joe'])
+        df['joe'] = df['joe'].astype('i8')
+        self.assertTrue(df._is_mixed_type)
+        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df)
+
     def test_v12_compat(self):
         df = DataFrame(
             [[1.56808523,  0.65727391,  1.81021139, -0.17251653],

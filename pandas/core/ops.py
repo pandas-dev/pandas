@@ -213,7 +213,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
 
     Parameters
     ----------
-    flex_arith_method : function (optional)
+    flex_arith_method : function
         factory for special arithmetic methods, with op string:
         f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
     radd_func :  function (optional)
@@ -571,7 +571,11 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         return result
 
-    def wrapper(self, other):
+    def wrapper(self, other, axis=None):
+        # Validate the axis parameter
+        if axis is not None:
+            self._get_axis_number(axis)
+
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
             if len(self) != len(other):
@@ -594,20 +598,26 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         mask = isnull(self)
 
-        values = self.get_values()
-        other = _index.convert_scalar(values,_values_from_object(other))
+        if com.is_categorical_dtype(self):
+            # cats are a special case as get_values() would return an ndarray, which would then
+            # not take categories ordering into account
+            # we can go directly to op, as the na_op would just test again and dispatch to it.
+            res = op(self.values, other)
+        else:
+            values = self.get_values()
+            other = _index.convert_scalar(values,_values_from_object(other))
 
-        if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
-            values = values.view('i8')
+            if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+                values = values.view('i8')
 
-        # scalars
-        res = na_op(values, other)
-        if np.isscalar(res):
-            raise TypeError('Could not compare %s type with Series'
-                            % type(other))
+            # scalars
+            res = na_op(values, other)
+            if np.isscalar(res):
+                raise TypeError('Could not compare %s type with Series'
+                                % type(other))
 
-        # always return a full value series here
-        res = _values_from_object(res)
+            # always return a full value series here
+            res = _values_from_object(res)
 
         res = pd.Series(res, index=self.index, name=self.name,
                         dtype='bool')
@@ -693,12 +703,35 @@ def _radd_compat(left, right):
 
     return output
 
+_op_descriptions = {'add': {'op': '+', 'desc': 'Addition', 'reversed': False, 'reverse': 'radd'},
+                    'sub': {'op': '-', 'desc': 'Subtraction', 'reversed': False, 'reverse': 'rsub'},
+                    'mul': {'op': '*', 'desc': 'Multiplication', 'reversed': False, 'reverse': 'rmul'},
+                    'mod': {'op': '%', 'desc': 'Modulo', 'reversed': False, 'reverse': 'rmod'},
+                    'pow': {'op': '**', 'desc': 'Exponential power', 'reversed': False, 'reverse': 'rpow'},
+                    'truediv': {'op': '/', 'desc': 'Floating division', 'reversed': False, 'reverse': 'rtruediv'},
+                    'floordiv': {'op': '//', 'desc': 'Integer division', 'reversed': False, 'reverse': 'rfloordiv'}}
+
+_op_names = list(_op_descriptions.keys())
+for k in _op_names:
+    reverse_op = _op_descriptions[k]['reverse']
+    _op_descriptions[reverse_op] = _op_descriptions[k].copy()
+    _op_descriptions[reverse_op]['reversed'] = True
+    _op_descriptions[reverse_op]['reverse'] = k
 
 def _flex_method_SERIES(op, name, str_rep, default_axis=None,
                         fill_zeros=None, **eval_kwargs):
+    op_name = name.replace('__', '')
+    op_desc = _op_descriptions[op_name]
+    if op_desc['reversed']:
+        equiv = 'other ' + op_desc['op'] + ' series'
+    else:
+        equiv = 'series ' + op_desc['op'] + ' other'
+
     doc = """
-    Binary operator %s with support to substitute a fill_value for missing data
-    in one of the inputs
+    %s of series and other, element-wise (binary operator `%s`).
+
+    Equivalent to ``%s``, but with support to substitute a fill_value for
+    missing data in one of the inputs.
 
     Parameters
     ----------
@@ -713,7 +746,11 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None,
     Returns
     -------
     result : Series
-    """ % name
+
+    See also
+    --------
+    Series.%s
+    """ % (op_desc['desc'], op_name, equiv, op_desc['reverse'])
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -803,7 +840,48 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
 
         return result
 
-    @Appender(_arith_doc_FRAME % name)
+    if name in _op_descriptions:
+        op_name = name.replace('__', '')
+        op_desc = _op_descriptions[op_name]
+        if op_desc['reversed']:
+            equiv = 'other ' + op_desc['op'] + ' dataframe'
+        else:
+            equiv = 'dataframe ' + op_desc['op'] + ' other'
+
+        doc = """
+        %s of dataframe and other, element-wise (binary operator `%s`).
+
+        Equivalent to ``%s``, but with support to substitute a fill_value for
+        missing data in one of the inputs.
+
+        Parameters
+        ----------
+        other : Series, DataFrame, or constant
+        axis : {0, 1, 'index', 'columns'}
+            For Series input, axis to match Series index on
+        fill_value : None or float value, default None
+            Fill missing (NaN) values with this value. If both DataFrame locations are
+            missing, the result will be missing
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+
+        Notes
+        -----
+        Mismatched indices will be unioned together
+
+        Returns
+        -------
+        result : DataFrame
+
+        See also
+        --------
+        DataFrame.%s
+        """ % (op_desc['desc'], op_name, equiv, op_desc['reverse'])
+    else:
+        doc = _arith_doc_FRAME % name
+
+    @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, pd.DataFrame):    # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)

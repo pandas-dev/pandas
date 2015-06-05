@@ -3,6 +3,14 @@ Easy integration of DataFrame into pyqt framework
 
 @author: Jev Kuznetsov
 '''
+
+# GH9615
+
+import warnings
+warnings.warn("The pandas.sandbox.qtpandas module is deprecated and will be "
+              "removed in a future version. We refer users to the external package "
+              "here: https://github.com/datalyze-solutions/pandas-qt")
+
 try:
     from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
     from PyQt4.QtGui import (

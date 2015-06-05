@@ -53,19 +53,6 @@ class TestPivotTable(tm.TestCase):
         expected = self.data.groupby(index + [columns])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
-    def test_pivot_table_warnings(self):
-        index = ['A', 'B']
-        columns = 'C'
-        with tm.assert_produces_warning(FutureWarning):
-            table = pivot_table(self.data, values='D', rows=index,
-                                cols=columns)
-
-        with tm.assert_produces_warning(False):
-            table2 = pivot_table(self.data, values='D', index=index,
-                                 columns=columns)
-
-        tm.assert_frame_equal(table, table2)
-
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
                         'cols': ['x', 'y', 'z'],

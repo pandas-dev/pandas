@@ -6,15 +6,10 @@
    :suppress:
 
    import numpy as np
-   import random
-   np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
    import pandas as pd
-   randn = np.random.randn
-   randint = np.random.randint
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import range, zip
+   pd.options.display.max_rows=15
 
 ******************************
 MultiIndex / Advanced Indexing
@@ -80,10 +75,10 @@ demo different ways to initialize MultiIndexes.
    tuples = list(zip(*arrays))
    tuples
 
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
    index
 
-   s = Series(randn(8), index=index)
+   s = pd.Series(np.random.randn(8), index=index)
    s
 
 When you want every pairing of the elements in two iterables, it can be easier
@@ -92,7 +87,7 @@ to use the ``MultiIndex.from_product`` function:
 .. ipython:: python
 
    iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
-   MultiIndex.from_product(iterables, names=['first', 'second'])
+   pd.MultiIndex.from_product(iterables, names=['first', 'second'])
 
 As a convenience, you can pass a list of arrays directly into Series or
 DataFrame to construct a MultiIndex automatically:
@@ -101,9 +96,9 @@ DataFrame to construct a MultiIndex automatically:
 
    arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),
              np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]
-   s = Series(randn(8), index=arrays)
+   s = pd.Series(np.random.randn(8), index=arrays)
    s
-   df = DataFrame(randn(8, 4), index=arrays)
+   df = pd.DataFrame(np.random.randn(8, 4), index=arrays)
    df
 
 All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
@@ -119,9 +114,9 @@ of the index is up to you:
 
 .. ipython:: python
 
-   df = DataFrame(randn(3, 8), index=['A', 'B', 'C'], columns=index)
+   df = pd.DataFrame(np.random.randn(3, 8), index=['A', 'B', 'C'], columns=index)
    df
-   DataFrame(randn(6, 6), index=index[:6], columns=index[:6])
+   pd.DataFrame(np.random.randn(6, 6), index=index[:6], columns=index[:6])
 
 We've "sparsified" the higher levels of the indexes to make the console output a
 bit easier on the eyes.
@@ -131,7 +126,7 @@ tuples as atomic labels on an axis:
 
 .. ipython:: python
 
-   Series(randn(8), index=tuples)
+   pd.Series(np.random.randn(8), index=tuples)
 
 The reason that the ``MultiIndex`` matters is that it can allow you to do
 grouping, selection, and reshaping operations as we will describe below and in
@@ -282,16 +277,16 @@ As usual, **both sides** of the slicers are included as this is label indexing.
    def mklbl(prefix,n):
        return ["%s%s" % (prefix,i)  for i in range(n)]
 
-   miindex = MultiIndex.from_product([mklbl('A',4),
-                                      mklbl('B',2),
-                                      mklbl('C',4),
-                                      mklbl('D',2)])
-   micolumns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
-                                       ('b','foo'),('b','bah')],
-                                        names=['lvl0', 'lvl1'])
-   dfmi = DataFrame(np.arange(len(miindex)*len(micolumns)).reshape((len(miindex),len(micolumns))),
-                    index=miindex,
-                    columns=micolumns).sortlevel().sortlevel(axis=1)
+   miindex = pd.MultiIndex.from_product([mklbl('A',4),
+                                         mklbl('B',2),
+                                         mklbl('C',4),
+                                         mklbl('D',2)])
+   micolumns = pd.MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                          ('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+   dfmi = pd.DataFrame(np.arange(len(miindex)*len(micolumns)).reshape((len(miindex),len(micolumns))),
+                       index=miindex,
+                       columns=micolumns).sortlevel().sortlevel(axis=1)
    dfmi
 
 Basic multi-index slicing using slices, lists, and labels.
@@ -418,9 +413,9 @@ instance:
 
 .. ipython:: python
 
-   midx = MultiIndex(levels=[['zero', 'one'], ['x','y']],
-                     labels=[[1,1,0,0],[1,0,1,0]])
-   df = DataFrame(randn(4,2), index=midx)
+   midx = pd.MultiIndex(levels=[['zero', 'one'], ['x','y']],
+                        labels=[[1,1,0,0],[1,0,1,0]])
+   df = pd.DataFrame(np.random.randn(4,2), index=midx)
    df
    df2 = df.mean(level=0)
    df2
@@ -471,7 +466,7 @@ labels will be sorted lexicographically!
 .. ipython:: python
 
    import random; random.shuffle(tuples)
-   s = Series(randn(8), index=MultiIndex.from_tuples(tuples))
+   s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
    s.sortlevel(0)
    s.sortlevel(1)
@@ -509,13 +504,13 @@ an exception. Here is a concrete example to illustrate this:
 .. ipython:: python
 
    tuples = [('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')]
-   idx = MultiIndex.from_tuples(tuples)
+   idx = pd.MultiIndex.from_tuples(tuples)
    idx.lexsort_depth
 
    reordered = idx[[1, 0, 3, 2]]
    reordered.lexsort_depth
 
-   s = Series(randn(4), index=reordered)
+   s = pd.Series(np.random.randn(4), index=reordered)
    s.ix['a':'a']
 
 However:
@@ -540,7 +535,7 @@ index positions. ``take`` will also accept negative integers as relative positio
 
 .. ipython:: python
 
-   index = Index(randint(0, 1000, 10))
+   index = pd.Index(np.random.randint(0, 1000, 10))
    index
 
    positions = [0, 9, 3]
@@ -548,7 +543,7 @@ index positions. ``take`` will also accept negative integers as relative positio
    index[positions]
    index.take(positions)
 
-   ser = Series(randn(10))
+   ser = pd.Series(np.random.randn(10))
 
    ser.iloc[positions]
    ser.take(positions)
@@ -558,7 +553,7 @@ row or column positions.
 
 .. ipython:: python
 
-   frm = DataFrame(randn(5, 3))
+   frm = pd.DataFrame(np.random.randn(5, 3))
 
    frm.take([1, 4, 3])
 
@@ -569,11 +564,11 @@ intended to work on boolean indices and may return unexpected results.
 
 .. ipython:: python
 
-   arr = randn(10)
+   arr = np.random.randn(10)
    arr.take([False, False, True, True])
    arr[[0, 1]]
 
-   ser = Series(randn(10))
+   ser = pd.Series(np.random.randn(10))
    ser.take([False, False, True, True])
    ser.ix[[0, 1]]
 
@@ -583,16 +578,101 @@ faster than fancy indexing.
 
 .. ipython::
 
-   arr = randn(10000, 5)
+   arr = np.random.randn(10000, 5)
    indexer = np.arange(10000)
    random.shuffle(indexer)
 
    timeit arr[indexer]
    timeit arr.take(indexer, axis=0)
 
-   ser = Series(arr[:, 0])
+   ser = pd.Series(arr[:, 0])
    timeit ser.ix[indexer]
    timeit ser.take(indexer)
+
+.. _indexing.categoricalindex:
+
+CategoricalIndex
+----------------
+
+.. versionadded:: 0.16.1
+
+We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
+and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
+setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': np.arange(6),
+                      'B': list('aabbca')})
+   df['B'] = df['B'].astype('category', categories=list('cab'))
+   df
+   df.dtypes
+   df.B.cat.categories
+
+Setting the index, will create create a ``CategoricalIndex``
+
+.. ipython:: python
+
+   df2 = df.set_index('B')
+   df2.index
+
+Indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an ``Index`` with duplicates.
+The indexers MUST be in the category or the operation will raise.
+
+.. ipython:: python
+
+   df2.loc['a']
+
+These PRESERVE the ``CategoricalIndex``
+
+.. ipython:: python
+
+   df2.loc['a'].index
+
+Sorting will order by the order of the categories
+
+.. ipython:: python
+
+   df2.sort_index()
+
+Groupby operations on the index will preserve the index nature as well
+
+.. ipython:: python
+
+   df2.groupby(level=0).sum()
+   df2.groupby(level=0).sum().index
+
+Reindexing operations, will return a resulting index based on the type of the passed
+indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+values NOT in the categories, similarly to how you can reindex ANY pandas index.
+
+.. ipython :: python
+
+   df2.reindex(['a','e'])
+   df2.reindex(['a','e']).index
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+
+.. warning::
+
+   Reshaping and Comparision operations on a ``CategoricalIndex`` must have the same categories
+   or a ``TypeError`` will be raised.
+
+   .. code-block:: python
+
+      In [9]: df3 = pd.DataFrame({'A' : np.arange(6),
+                                  'B' : pd.Series(list('aabbca')).astype('category')})
+
+      In [11]: df3 = df3.set_index('B')
+
+      In [11]: df3.index
+      Out[11]: CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
+
+      In [12]: pd.concat([df2, df3]
+      TypeError: categories must match existing categories when appending
 
 .. _indexing.float64index:
 
@@ -616,9 +696,9 @@ same.
 
 .. ipython:: python
 
-   indexf = Index([1.5, 2, 3, 4.5, 5])
+   indexf = pd.Index([1.5, 2, 3, 4.5, 5])
    indexf
-   sf = Series(range(5),index=indexf)
+   sf = pd.Series(range(5), index=indexf)
    sf
 
 Scalar selection for ``[],.ix,.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
@@ -660,17 +740,17 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
 
 .. code-block:: python
 
-   In [1]: Series(range(5))[3.5]
+   In [1]: pd.Series(range(5))[3.5]
    TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
 
-   In [1]: Series(range(5))[3.5:4.5]
+   In [1]: pd.Series(range(5))[3.5:4.5]
    TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
 
 Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
 
 .. code-block:: python
 
-   In [3]: Series(range(5))[3.0]
+   In [3]: pd.Series(range(5))[3.0]
    Out[3]: 3
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
@@ -679,12 +759,12 @@ example be millisecond offsets.
 
 .. ipython:: python
 
-   dfir = concat([DataFrame(randn(5,2),
-                     index=np.arange(5) * 250.0,
-                     columns=list('AB')),
-                  DataFrame(randn(6,2),
-                     index=np.arange(4,10) * 250.1,
-                     columns=list('AB'))])
+   dfir = pd.concat([pd.DataFrame(np.random.randn(5,2),
+                                  index=np.arange(5) * 250.0,
+                                  columns=list('AB')),
+                     pd.DataFrame(np.random.randn(6,2),
+                                  index=np.arange(4,10) * 250.1,
+                                  columns=list('AB'))])
    dfir
 
 Selection operations then will always work on a value basis, for all selection operators.
@@ -706,4 +786,3 @@ Of course if you need integer based selection, then use ``iloc``
 .. ipython:: python
 
    dfir.iloc[0:5]
-

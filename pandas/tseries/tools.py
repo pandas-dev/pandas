@@ -210,10 +210,13 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     Returns
     -------
-    ret : datetime if parsing succeeded. Return type depends on input:
+    ret : datetime if parsing succeeded.
+        Return type depends on input:
+
         - list-like: DatetimeIndex
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
+
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
         return will have datetime.datetime type (or correspoding array/Series).
@@ -383,10 +386,10 @@ def _attempt_YYYYMMDD(arg, coerce):
     return None
 
 # patterns for quarters like '4Q2005', '05Q1'
-qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
-qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
-qpat1 = re.compile(r'(\d)Q(\d\d)')
-qpat2 = re.compile(r'(\d\d)Q(\d)')
+qpat1full = re.compile(r'(\d)Q-?(\d\d\d\d)')
+qpat2full = re.compile(r'(\d\d\d\d)-?Q(\d)')
+qpat1 = re.compile(r'(\d)Q-?(\d\d)')
+qpat2 = re.compile(r'(\d\d)-?Q(\d)')
 ypat = re.compile(r'(\d\d\d\d)$')
 has_time = re.compile('(.+)([\s]|T)+(.+)')
 
@@ -424,18 +427,18 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
                                         second=0, microsecond=0)
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    if len(arg) in [4, 6]:
+    if len(arg) in [4, 5, 6, 7]:
         m = ypat.match(arg)
         if m:
             ret = default.replace(year=int(m.group(1)))
             return ret, ret, 'year'
 
         add_century = False
-        if len(arg) == 4:
+        if len(arg) > 5:
+            qpats = [(qpat1full, 1), (qpat2full, 0)]
+        else:
             add_century = True
             qpats = [(qpat1, 1), (qpat2, 0)]
-        else:
-            qpats = [(qpat1full, 1), (qpat2full, 0)]
 
         for pat, yfirst in qpats:
             qparse = pat.match(arg)

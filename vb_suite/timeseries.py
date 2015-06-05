@@ -135,6 +135,16 @@ timeseries_timestamp_downsample_mean = \
     Benchmark("ts.resample('D', how='mean')", setup,
               start_date=datetime(2012, 4, 25))
 
+# GH 7754
+setup = common_setup + """
+rng = date_range(start='2000-01-01 00:00:00',
+                    end='2000-01-01 10:00:00', freq='555000U')
+int_ts = Series(5, rng, dtype='int64')
+ts = int_ts.astype('datetime64[ns]')
+"""
+
+timeseries_resample_datetime64 = Benchmark("ts.resample('1S', how='last')", setup)
+
 #----------------------------------------------------------------------
 # to_datetime
 

@@ -25,11 +25,6 @@ from numpy.testing import assert_array_equal
 
 import pandas as pd
 from pandas.core.common import is_sequence, array_equivalent, is_list_like
-import pandas.core.index as index
-import pandas.core.series as series
-import pandas.core.frame as frame
-import pandas.core.panel as panel
-import pandas.core.panel4d as panel4d
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
@@ -38,23 +33,11 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import bdate_range
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.period import PeriodIndex
+from pandas import (bdate_range, CategoricalIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+                    Index, MultiIndex, Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
-
 from pandas import _testing
-
-
 from pandas.io.common import urlopen
-
-Index = index.Index
-MultiIndex = index.MultiIndex
-Series = series.Series
-DataFrame = frame.DataFrame
-Panel = panel.Panel
-Panel4D = panel4d.Panel4D
 
 N = 30
 K = 4
@@ -331,19 +314,21 @@ def get_locales(prefix=None, normalize=True,
         # raw_locales is "\n" seperated list of locales
         # it may contain non-decodable parts, so split
         # extract what we can and then rejoin.
-        raw_locales = []
+        raw_locales = raw_locales.split(b'\n')
+        out_locales = []
         for x in raw_locales:
-            try:
-                raw_locales.append(str(x, encoding=pd.options.display.encoding))
-            except:
-                pass
+            if compat.PY3:
+                out_locales.append(str(x, encoding=pd.options.display.encoding))
+            else:
+                out_locales.append(str(x))
+
     except TypeError:
         pass
 
     if prefix is None:
-        return _valid_locales(raw_locales, normalize)
+        return _valid_locales(out_locales, normalize)
 
-    found = re.compile('%s.*' % prefix).findall('\n'.join(raw_locales))
+    found = re.compile('%s.*' % prefix).findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -548,14 +533,16 @@ def assert_equal(a, b, msg=""):
     assert a == b, "%s: %r != %r" % (msg.format(a,b), a, b)
 
 
-def assert_index_equal(left, right):
+def assert_index_equal(left, right, exact=False, check_names=True):
     assert_isinstance(left, Index, '[index] ')
     assert_isinstance(right, Index, '[index] ')
-    if not left.equals(right):
+    if not left.equals(right) or (exact and type(left) != type(right)):
         raise AssertionError("[index] left [{0} {1}], right [{2} {3}]".format(left.dtype,
                                                                               left,
                                                                               right,
                                                                               right.dtype))
+    if check_names:
+        assert_attr_equal('names', left, right)
 
 
 def assert_attr_equal(attr, left, right):
@@ -625,6 +612,7 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(res, exp):
+
     if not array_equivalent(res.categories, exp.categories):
         raise AssertionError(
             'categories not equivalent: {0} vs {1}.'.format(res.categories,
@@ -679,7 +667,8 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
                         check_series_type=False,
                         check_less_precise=False,
-                        check_exact=False):
+                        check_exact=False,
+                        check_names=True):
     if check_series_type:
         assert_isinstance(left, type(right))
     if check_dtype:
@@ -694,7 +683,7 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_almost_equal(
             left.index.values, right.index.values, check_less_precise)
     else:
-        assert_index_equal(left.index, right.index)
+        assert_index_equal(left.index, right.index, check_names=check_names)
     if check_index_type:
         for level in range(left.index.nlevels):
             lindex = left.index.get_level_values(level)
@@ -702,6 +691,7 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_isinstance(lindex, type(rindex))
             assert_attr_equal('dtype', lindex, rindex)
             assert_attr_equal('inferred_type', lindex, rindex)
+
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
@@ -723,8 +713,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert_almost_equal(left.index, right.index)
     else:
         if not by_blocks:
-            assert_index_equal(left.columns, right.columns)
-        assert_index_equal(left.index, right.index)
+            assert_index_equal(left.columns, right.columns, check_names=check_names)
 
     # compare by blocks
     if by_blocks:
@@ -733,7 +722,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
-            assert_frame_equal(lblocks[dtype],rblocks[dtype],check_dtype=check_dtype)
+            assert_frame_equal(lblocks[dtype],rblocks[dtype], check_dtype=check_dtype)
 
     # compare by columns
     else:
@@ -745,7 +734,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                                 check_dtype=check_dtype,
                                 check_index_type=check_index_type,
                                 check_less_precise=check_less_precise,
-                                check_exact=check_exact)
+                                check_exact=check_exact,
+                                check_names=check_names)
 
     if check_index_type:
         for level in range(left.index.nlevels):
@@ -766,14 +756,15 @@ def assert_frame_equal(left, right, check_dtype=True,
 def assert_panelnd_equal(left, right,
                          check_panel_type=False,
                          check_less_precise=False,
-                         assert_func=assert_frame_equal):
+                         assert_func=assert_frame_equal,
+                         check_names=False):
     if check_panel_type:
         assert_isinstance(left, type(right))
 
     for axis in ['items', 'major_axis', 'minor_axis']:
         left_ind = getattr(left, axis)
         right_ind = getattr(right, axis)
-        assert_index_equal(left_ind, right_ind)
+        assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     for i, item in enumerate(left._get_axis(0)):
         assert item in right, "non-matching item (right) '%s'" % item
@@ -824,6 +815,11 @@ def makeStringIndex(k=10):
 
 def makeUnicodeIndex(k=10):
     return Index(randu_array(nchars=10, size=k))
+
+def makeCategoricalIndex(k=10, n=3):
+    """ make a length k index or n categories """
+    x = rands_array(nchars=4, size=n)
+    return CategoricalIndex(np.random.choice(x,k))
 
 def makeBoolIndex(k=10):
     if k == 1:
@@ -1631,7 +1627,7 @@ class _AssertRaisesContextmanager(object):
     def __init__(self, exception, regexp=None, *args, **kwargs):
         self.exception = exception
         if regexp is not None and not hasattr(regexp, "search"):
-            regexp = re.compile(regexp)
+            regexp = re.compile(regexp, re.DOTALL)
         self.regexp = regexp
 
     def __enter__(self):

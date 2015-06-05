@@ -1,10 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
-import operator
-
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 import numpy as np
-from pandas.core.base import PandasObject
-
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
@@ -22,7 +18,8 @@ from pandas._period import (
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
-                                _values_from_object, ABCSeries)
+                                _values_from_object, ABCSeries,
+                                is_integer, is_float)
 from pandas import compat
 from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
@@ -113,20 +110,20 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     Parameters
     ----------
-    data  : array-like (1-dimensional), optional
+    data : array-like (1-dimensional), optional
         Optional period-like data to construct index with
     dtype : NumPy dtype (default: i8)
-    copy  : bool
+    copy : bool
         Make a copy of input ndarray
     freq : string or period object, optional
         One of pandas period strings or corresponding objects
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
         period data.
-    periods  : int, optional, > 0
+    periods : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end value, period-like, optional
+    end : end value, period-like, optional
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
     year : int, array, or Series, default None
@@ -149,7 +146,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _typ = 'periodindex'
     _attributes = ['name','freq']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
-                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear', 'freq']
+                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear', 'freq', 'days_in_month', 'daysinmonth']
     _is_numeric_dtype = False
     freq = None
 
@@ -166,9 +163,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         freq = frequencies.get_standard_freq(freq)
 
         if periods is not None:
-            if com.is_float(periods):
+            if is_float(periods):
                 periods = int(periods)
-            elif not com.is_integer(periods):
+            elif not is_integer(periods):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
@@ -292,6 +289,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ return an array repr of this object, potentially casting to object """
         return self.asobject.values
 
+    @property
+    def _formatter_func(self):
+        return lambda x: "'%s'" % x
+
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
@@ -354,6 +355,44 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self.freq
 
     def asfreq(self, freq=None, how='E'):
+        """
+        Convert the PeriodIndex to the specified frequency `freq`.
+
+        Parameters
+        ----------
+
+        freq : str
+            a frequency
+        how : str {'E', 'S'}
+            'E', 'END', or 'FINISH' for end,
+            'S', 'START', or 'BEGIN' for start.
+            Whether the elements should be aligned to the end
+            or start within pa period. January 31st ('END') vs.
+            Janury 1st ('START') for example.
+
+        Returns
+        -------
+
+        new : PeriodIndex with the new frequency
+
+        Examples
+        --------
+        >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
+        >>> pidx
+        <class 'pandas.tseries.period.PeriodIndex'>
+        [2010, ..., 2015]
+        Length: 6, Freq: A-DEC
+
+        >>> pidx.asfreq('M')
+        <class 'pandas.tseries.period.PeriodIndex'>
+        [2010-12, ..., 2015-12]
+        Length: 6, Freq: M
+
+        >>> pidx.asfreq('M', how='S')
+        <class 'pandas.tseries.period.PeriodIndex'>
+        [2010-01, ..., 2015-01]
+        Length: 6, Freq: M
+        """
         how = _validate_end_alias(how)
 
         freq = frequencies.get_standard_freq(freq)
@@ -384,6 +423,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     dayofyear = day_of_year = _field_accessor('dayofyear', 9, "The ordinal day of the year")
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
+    days_in_month = _field_accessor('days_in_month', 11, "The number of days in the month")
+    daysinmonth = days_in_month
 
     def _get_object_array(self):
         freq = self.freq
@@ -460,7 +501,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         ----------
         n : int
             Periods to shift by
-        freq : freq string
 
         Returns
         -------
@@ -533,7 +573,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         try:
             return self._engine.get_loc(key)
         except KeyError:
-            if com.is_integer(key):
+            if is_integer(key):
                 raise
 
             try:
@@ -548,7 +588,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             except KeyError:
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side):
+    def _maybe_cast_slice_bound(self, label, side, kind):
         """
         If label is a string or a datetime, cast it to Period.ordinal according to
         resolution.
@@ -557,6 +597,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : string / None
 
         Returns
         -------
@@ -576,6 +617,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 return bounds[0 if side == 'left' else 1]
             except Exception:
                 raise KeyError(label)
+        elif is_integer(label) or is_float(label):
+            self._invalid_indexer('slice',label)
 
         return label
 
@@ -636,6 +679,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self._apply_meta(result)
 
     def _assert_can_do_setop(self, other):
+        super(PeriodIndex, self)._assert_can_do_setop(other)
+
         if not isinstance(other, PeriodIndex):
             raise ValueError('can only call with other PeriodIndex-ed objects')
 
@@ -681,7 +726,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         imask = ~mask
         values[imask] = np.array([u('%s') % dt for dt in values[imask]])
-        return values.tolist()
+        return values
 
     def __array_finalize__(self, obj):
         if not self.ndim:  # pragma: no cover
@@ -690,10 +735,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
-
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
 
     def take(self, indices, axis=None):
         """
@@ -930,8 +971,8 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
 
     Parameters
     ----------
-    start :
-    end :
+    start : starting value, period-like, optional
+    end : ending value, period-like, optional
     periods : int, default None
         Number of periods in the index
     freq : str/DateOffset, default 'D'

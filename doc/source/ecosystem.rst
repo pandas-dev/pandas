@@ -57,7 +57,7 @@ large data to thin clients.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
-Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
+Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for python users has long been missing. Although still young
@@ -136,6 +136,24 @@ PyDatastream is a Python interface to the
 `Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
 SOAP API to return indexed Pandas DataFrames or Panels with financial data. 
 This package requires valid credentials for this API (non free).
+
+`pandaSDMX <http://pandasdmx.readthedocs.org>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pandaSDMX is an extensible library to retrieve and acquire statistical data 
+and metadata disseminated in 
+`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by 
+the European statistics office (Eurostat)
+and the European Central Bank (ECB). Datasets may be returned as pandas Series 
+or multi-indexed DataFrames.   
+
+`fredapi <https://github.com/mortada/fredapi>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
+provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
+contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
+HTTP API, and also provides several conveninent methods for parsing and analyzing point-in-time data from ALFRED.
+fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
+you can obtain for free on the FRED website.
 
 
 .. _ecosystem.domain:

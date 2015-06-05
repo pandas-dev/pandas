@@ -148,6 +148,9 @@ class Holiday(object):
         >>> July3rd = Holiday('July 3rd', month=7, day=3,
                               days_of_week=(0, 1, 2, 3))
         """
+        if offset is not None and observance is not None:
+            raise NotImplementedError("Cannot use both offset and observance.")
+
         self.name = name
         self.year = year
         self.month = month
@@ -203,7 +206,10 @@ class Holiday(object):
         end_date = Timestamp(end_date)
 
         year_offset = DateOffset(years=1)
-        base_date = Timestamp(datetime(start_date.year, self.month, self.day))
+        base_date = Timestamp(
+            datetime(start_date.year, self.month, self.day),
+            tz=start_date.tz,
+        )
         dates = DatetimeIndex(start=base_date, end=end_date, freq=year_offset)
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
@@ -276,7 +282,7 @@ class AbstractHolidayCalendar(object):
     rules = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
-    _holiday_cache = None
+    _cache = None
 
     def __init__(self, name=None, rules=None):
         """
@@ -347,14 +353,6 @@ class AbstractHolidayCalendar(object):
             return holidays
         else:
             return holidays.index
-
-    @property
-    def _cache(self):
-        return self.__class__._holiday_cache
-
-    @_cache.setter
-    def _cache(self, values):
-        self.__class__._holiday_cache = values
 
     @staticmethod
     def merge_class(base, other):

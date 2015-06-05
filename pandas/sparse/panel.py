@@ -32,7 +32,7 @@ class SparsePanelAxis(object):
         value = _ensure_index(value)
 
         if isinstance(value, MultiIndex):
-            raise NotImplementedError
+            raise NotImplementedError("value cannot be a MultiIndex")
 
         for v in compat.itervalues(obj._frames):
             setattr(v, self.frame_attr, value)
@@ -68,10 +68,10 @@ class SparsePanel(Panel):
     def __init__(self, frames=None, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
                  copy=False):
-                 
+
         if frames is None:
             frames = {}
-            
+
         if isinstance(frames, np.ndarray):
             new_frames = {}
             for item, vals in zip(items, frames):
@@ -159,7 +159,7 @@ class SparsePanel(Panel):
     def _set_items(self, new_items):
         new_items = _ensure_index(new_items)
         if isinstance(new_items, MultiIndex):
-            raise NotImplementedError
+            raise NotImplementedError("itemps cannot be a MultiIndex")
 
         # need to create new frames dict
 
@@ -191,7 +191,7 @@ class SparsePanel(Panel):
 
         return self.xs(key, axis=axis)
 
-    def _slice(self, slobj, axis=0, typ=None):
+    def _slice(self, slobj, axis=0, kind=None):
         """
         for compat as we don't support Block Manager here
         """

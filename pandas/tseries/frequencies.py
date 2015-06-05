@@ -671,11 +671,11 @@ def _period_str_to_code(freqstr):
 def infer_freq(index, warn=True):
     """
     Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed
+    uncertain, a warning will be printed. 
 
     Parameters
     ----------
-    index : DatetimeIndex
+    index : DatetimeIndex or TimedeltaIndex
             if passed a Series will use the values of the series (NOT THE INDEX)
     warn : boolean, default True
 
@@ -684,6 +684,7 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
+        ValueError if there are less than three values.
     """
     import pandas as pd
 
@@ -742,7 +743,7 @@ class _FrequencyInferer(object):
     @cache_readonly
     def deltas(self):
         return tslib.unique_deltas(self.values)
-    
+
     @cache_readonly
     def deltas_asi8(self):
         return tslib.unique_deltas(self.index.asi8)
@@ -750,7 +751,7 @@ class _FrequencyInferer(object):
     @cache_readonly
     def is_unique(self):
         return len(self.deltas) == 1
-    
+
     @cache_readonly
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
@@ -763,10 +764,13 @@ class _FrequencyInferer(object):
         if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
         else:
-            # Possibly intraday frequency.  Here we use the 
+            # Business hourly, maybe. 17: one day / 65: one weekend
+            if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
+                return 'BH'
+            # Possibly intraday frequency.  Here we use the
             # original .asi8 values as the modified values
             # will not work around DST transitions.  See #8772
-            if not self.is_unique_asi8:
+            elif not self.is_unique_asi8:
                 return None
             delta = self.deltas_asi8[0]
             if _is_multiple(delta, _ONE_HOUR):
@@ -791,6 +795,10 @@ class _FrequencyInferer(object):
     @cache_readonly
     def day_deltas(self):
         return [x / _ONE_DAY for x in self.deltas]
+
+    @cache_readonly
+    def hour_deltas(self):
+        return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
     def fields(self):
@@ -927,7 +935,9 @@ class _FrequencyInferer(object):
             return None
 
         week_of_months = unique((self.index.day - 1) // 7)
-        if len(week_of_months) > 1:
+        # Only attempt to infer up to WOM-4. See #9425
+        week_of_months = week_of_months[week_of_months < 4]
+        if len(week_of_months) == 0 or len(week_of_months) > 1:
             return None
 
         # get which week
@@ -989,7 +999,7 @@ def is_subperiod(source, target):
         return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_quarterly(target):
         return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
-    elif target == 'M':
+    elif _is_monthly(target):
         return source in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_weekly(target):
         return source in [target, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
@@ -1048,7 +1058,7 @@ def is_superperiod(source, target):
         return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_quarterly(source):
         return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
-    elif source == 'M':
+    elif _is_monthly(source):
         return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
     elif _is_weekly(source):
         return target in [source, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
@@ -1093,7 +1103,12 @@ def _quarter_months_conform(source, target):
 
 def _is_quarterly(rule):
     rule = rule.upper()
-    return rule == 'Q' or rule.startswith('Q-')
+    return rule == 'Q' or rule.startswith('Q-') or rule.startswith('BQ')
+
+
+def _is_monthly(rule):
+    rule = rule.upper()
+    return rule == 'M' or rule == 'BM'
 
 
 def _is_weekly(rule):

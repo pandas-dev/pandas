@@ -1,6 +1,6 @@
 # pandas: powerful Python data analysis toolkit
 
-![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.svg)
+[![Build Status](https://travis-ci.org/pydata/pandas.svg?branch=master)](https://travis-ci.org/pydata/pandas)
 
 ## What is it
 
@@ -87,6 +87,12 @@ or  `pip`:
 pip install pandas
 ```
 
+or  `conda`:
+
+```sh
+conda install pandas
+```
+
 ## Dependencies
 - [NumPy](http://www.numpy.org): 1.7.0 or higher
 - [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
@@ -117,7 +123,7 @@ pip install pandas
      - xlrd >= 0.9.0
   - [XlsxWriter](https://pypi.python.org/pypi/XlsxWriter)
      - Alternative Excel writer.
-- [Google bq Command Line Tool](https://developers.google.com/bigquery/bq-command-line-tool/)
+- [Google bq Command Line Tool](https://cloud.google.com/bigquery/bq-command-line-tool)
   - Needed for `pandas.io.gbq`
 - [boto](https://pypi.python.org/pypi/boto): necessary for Amazon S3 access.
 - One of the following combinations of libraries is needed to use the

@@ -14,14 +14,12 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, Timestamp, MultiIndex
+from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas.core.common as com
 from pandas.util.terminal import get_terminal_size
-import pandas
-import pandas.tslib as tslib
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
@@ -110,7 +108,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.frame.ix[5] = 0
 
         fmt.set_eng_float_format()
-        result = repr(self.frame)
+        repr(self.frame)
 
         fmt.set_eng_float_format(use_eng_prefix=True)
         repr(self.frame)
@@ -126,7 +124,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         def check(null_counts, result):
             buf = StringIO()
-            r = df.info(buf=buf,null_counts=null_counts)
+            df.info(buf=buf, null_counts=null_counts)
             self.assertTrue(('non-null' in buf.getvalue()) is result)
 
         with option_context('display.max_info_rows',20,'display.max_info_columns',20):
@@ -193,10 +191,8 @@ class TestDataFrameFormatting(tm.TestCase):
             self.assertTrue(len(com.pprint_thing(lrange(1000)))< 100)
 
     def test_repr_is_valid_construction_code(self):
-        import pandas as pd
-
         # for the case of Index, where the repr is traditional rather then stylized
-        idx = pd.Index(['a','b'])
+        idx = Index(['a','b'])
         res = eval("pd."+repr(idx))
         tm.assert_series_equal(Series(res),Series(idx))
 
@@ -302,6 +298,21 @@ class TestDataFrameFormatting(tm.TestCase):
                 com.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
+    def test_str_max_colwidth(self):
+        # GH 7856
+        df = pd.DataFrame([{'a': 'foo', 'b': 'bar',
+                            'c': 'uncomfortably long line with lots of stuff',
+                            'd': 1},
+                           {'a': 'foo', 'b': 'bar', 'c': 'stuff', 'd': 1}])
+        df.set_index(['a', 'b', 'c'])
+        self.assertTrue(str(df) == '     a    b                                           c  d\n'
+                                   '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
+                                   '1  foo  bar                                       stuff  1')
+        with option_context('max_colwidth', 20):
+            self.assertTrue(str(df) == '     a    b                    c  d\n'
+                                       '0  foo  bar  uncomfortably lo...  1\n'
+                                       '1  foo  bar                stuff  1')
+
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
         fac = 1.05  # Arbitrary large factor to exceed term widht
@@ -381,7 +392,7 @@ class TestDataFrameFormatting(tm.TestCase):
         n = u("\u05d0").encode('utf-8')
 
         with option_context('display.max_rows', 1):
-            df = pd.DataFrame([1, 2], columns=[n])
+            df = DataFrame([1, 2], columns=[n])
             repr(df)
 
     def test_to_string_unicode_two(self):
@@ -471,7 +482,7 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_to_string_truncate_multilevel(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = pd.DataFrame(index=arrays,columns=arrays)
+        df = DataFrame(index=arrays,columns=arrays)
         with option_context("display.max_rows", 7,"display.max_columns", 7):
             self.assertTrue(has_doubly_truncated_repr(df))
 
@@ -515,7 +526,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                b: "<type 'str'>"},
                      'co>l2':{a: "<type 'str'>",
                               b: "<type 'str'>"}}
-        rs = pd.DataFrame(test_dict).to_html()
+        rs = DataFrame(test_dict).to_html()
         xp = """<table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -527,13 +538,13 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>str&lt;ing1 &amp;amp;</th>
-      <td> &lt;type 'str'&gt;</td>
-      <td> &lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
     </tr>
     <tr>
       <th>stri&gt;ng2 &amp;amp;</th>
-      <td> &lt;type 'str'&gt;</td>
-      <td> &lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
+      <td>&lt;type 'str'&gt;</td>
     </tr>
   </tbody>
 </table>"""
@@ -547,7 +558,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                b: "<b>bold</b>"},
                      'co>l2': {a: "<b>bold</b>",
                                b: "<b>bold</b>"}}
-        rs = pd.DataFrame(test_dict).to_html(escape=False)
+        rs = DataFrame(test_dict).to_html(escape=False)
         xp = """<table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -559,13 +570,13 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>str<ing1 &amp;</th>
-      <td> <b>bold</b></td>
-      <td> <b>bold</b></td>
+      <td><b>bold</b></td>
+      <td><b>bold</b></td>
     </tr>
     <tr>
       <th>stri>ng2 &amp;</th>
-      <td> <b>bold</b></td>
-      <td> <b>bold</b></td>
+      <td><b>bold</b></td>
+      <td><b>bold</b></td>
     </tr>
   </tbody>
 </table>"""
@@ -573,13 +584,13 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_html_multiindex_index_false(self):
         # issue 8452
-        df = pd.DataFrame({
+        df = DataFrame({
             'a': range(2),
             'b': range(3, 5),
             'c': range(5, 7),
             'd': range(3, 5)}
         )
-        df.columns = pd.MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        df.columns = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
         result = df.to_html(index=False)
         expected = """\
 <table border="1" class="dataframe">
@@ -597,16 +608,16 @@ class TestDataFrameFormatting(tm.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td> 0</td>
-      <td> 3</td>
-      <td> 5</td>
-      <td> 3</td>
+      <td>0</td>
+      <td>3</td>
+      <td>5</td>
+      <td>3</td>
     </tr>
     <tr>
-      <td> 1</td>
-      <td> 4</td>
-      <td> 6</td>
-      <td> 4</td>
+      <td>1</td>
+      <td>4</td>
+      <td>6</td>
+      <td>4</td>
     </tr>
   </tbody>
 </table>"""
@@ -614,7 +625,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_html_multiindex_sparsify_false_multi_sparse(self):
         with option_context('display.multi_sparse', False):
-            index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
+            index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                               names=['foo', None])
 
             df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
@@ -640,26 +651,26 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>0</th>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -695,33 +706,33 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>0</th>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
             self.assertEqual(result, expected)
 
     def test_to_html_multiindex_sparsify(self):
-        index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
+        index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])
 
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
@@ -746,24 +757,24 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -799,24 +810,24 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">0</th>
       <th>0</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">1</th>
       <th>0</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>1</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -840,23 +851,23 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>a</th>
-      <td> 0</td>
-      <td> 1</td>
+      <td>0</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>b</th>
-      <td> 2</td>
-      <td> 3</td>
+      <td>2</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>c</th>
-      <td> 4</td>
-      <td> 5</td>
+      <td>4</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>d</th>
-      <td> 6</td>
-      <td> 7</td>
+      <td>6</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>"""
@@ -876,7 +887,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_html_truncate(self):
         index = pd.DatetimeIndex(start='20010101',freq='D',periods=20)
-        df = pd.DataFrame(index=index,columns=range(20))
+        df = DataFrame(index=index,columns=range(20))
         fmt.set_option('display.max_rows',8)
         fmt.set_option('display.max_columns',4)
         result = df._repr_html_()
@@ -896,35 +907,35 @@ class TestDataFrameFormatting(tm.TestCase):
   <tbody>
     <tr>
       <th>2001-01-01</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-02</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-03</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-04</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>...</th>
@@ -936,35 +947,35 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
     <tr>
       <th>2001-01-17</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-18</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-19</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>2001-01-20</th>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -977,7 +988,7 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_to_html_truncate_multi_index(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = pd.DataFrame(index=arrays,columns=arrays)
+        df = DataFrame(index=arrays,columns=arrays)
         fmt.set_option('display.max_rows',7)
         fmt.set_option('display.max_columns',7)
         result = df._repr_html_()
@@ -1010,34 +1021,34 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th rowspan="2" valign="top">bar</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>baz</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>...</th>
@@ -1053,34 +1064,34 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>foo</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th rowspan="2" valign="top">qux</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -1093,7 +1104,7 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_to_html_truncate_multi_index_sparse_off(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = pd.DataFrame(index=arrays,columns=arrays)
+        df = DataFrame(index=arrays,columns=arrays)
         fmt.set_option('display.max_rows',7)
         fmt.set_option('display.max_columns',7)
         fmt.set_option('display.multi_sparse',False)
@@ -1129,68 +1140,68 @@ class TestDataFrameFormatting(tm.TestCase):
     <tr>
       <th>bar</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>bar</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>baz</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>foo</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>qux</th>
       <th>one</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
       <th>qux</th>
       <th>two</th>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
       <td>...</td>
-      <td> NaN</td>
-      <td> NaN</td>
-      <td> NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
   </tbody>
 </table>
@@ -1214,14 +1225,14 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_string_repr_encoding(self):
         filepath = tm.get_data_path('unicode_series.csv')
-        df = pandas.read_csv(filepath, header=None, encoding='latin1')
+        df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
 
     def test_repr_corner(self):
         # representing infs poses no problems
         df = DataFrame({'foo': np.inf * np.empty(10)})
-        foo = repr(df)
+        repr(df)
 
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
@@ -1309,8 +1320,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_wide_repr_multiindex(self):
         with option_context('mode.sim_interactive', True):
-            midx = pandas.MultiIndex.from_arrays(
-                tm.rands_array(5, size=(2, 10)))
+            midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)),
                            index=midx)
@@ -1333,9 +1343,9 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_wide_repr_multiindex_cols(self):
         with option_context('mode.sim_interactive', True):
             max_cols = get_option('display.max_columns')
-            midx = pandas.MultiIndex.from_arrays(
+            midx = MultiIndex.from_arrays(
                 tm.rands_array(5, size=(2, 10)))
-            mcols = pandas.MultiIndex.from_arrays(
+            mcols = MultiIndex.from_arrays(
                 tm.rands_array(3, size=(2, max_cols - 1)))
             df = DataFrame(tm.rands_array(25, (10, max_cols - 1)),
                            index=midx, columns=mcols)
@@ -1491,7 +1501,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(header=False)
         expected = "0  1  4\n1  2  5\n2  3  6"
 
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
     def test_to_string_no_index(self):
         df = DataFrame({'x': [1, 2, 3],
@@ -1500,7 +1510,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(index=False)
         expected = " x  y\n 1  4\n 2  5\n 3  6"
 
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
     def test_to_string_float_formatting(self):
         self.reset_display_options()
@@ -1524,7 +1534,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         '2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n'
                         '5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n'
                         '8 -1.00000e+06')
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string()
@@ -1532,7 +1542,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = ('          x\n'
                     '0  3234.000\n'
                     '1     0.253')
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
         self.reset_display_options()
         self.assertEqual(get_option("display.precision"), 7)
@@ -1549,7 +1559,7 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = ('              x\n'
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
     def test_to_string_small_float_values(self):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
@@ -1632,7 +1642,7 @@ c  10  11  12  13  14\
         expected = ('   x       \n'
                     '0  3234.000\n'
                     '1     0.253')
-        assert(df_s == expected)
+        self.assertEqual(df_s, expected)
 
     def test_to_string_format_na(self):
         self.reset_display_options()
@@ -1661,12 +1671,12 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
     def test_to_string_line_width(self):
-        df = pd.DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, lrange(10, 15), lrange(30))
         s = df.to_string(line_width=80)
         self.assertEqual(max(len(l) for l in s.split('\n')), 80)
 
     def test_show_dimensions(self):
-        df = pd.DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, lrange(10, 15), lrange(30))
 
         with option_context('display.max_rows', 10, 'display.max_columns', 40, 'display.width',
                             500, 'display.expand_frame_repr', 'info', 'display.show_dimensions', True):
@@ -1736,17 +1746,17 @@ c  10  11  12  13  14\
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': randn(5)})
         ashtml = x.to_html(bold_rows=False)
-        assert('<strong>' not in ashtml[ashtml.find('</thead>')])
+        self.assertFalse('<strong' in ashtml[ashtml.find("</thead>")])
 
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
         self.assertNotIn('<th>B</th>', result)
 
     def test_to_html_multiindex(self):
-        columns = pandas.MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
-                                                    np.mod(lrange(4), 2))),
-                                                names=['CL0', 'CL1'])
-        df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
+        columns = MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
+                                                     np.mod(lrange(4), 2))),
+                                            names=['CL0', 'CL1'])
+        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
         result = df.to_html(justify='left')
         expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
@@ -1766,26 +1776,26 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td> a</td>\n'
-                    '      <td> b</td>\n'
-                    '      <td> c</td>\n'
-                    '      <td> d</td>\n'
+                    '      <td>a</td>\n'
+                    '      <td>b</td>\n'
+                    '      <td>c</td>\n'
+                    '      <td>d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> e</td>\n'
-                    '      <td> f</td>\n'
-                    '      <td> g</td>\n'
-                    '      <td> h</td>\n'
+                    '      <td>e</td>\n'
+                    '      <td>f</td>\n'
+                    '      <td>g</td>\n'
+                    '      <td>h</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
 
         self.assertEqual(result, expected)
 
-        columns = pandas.MultiIndex.from_tuples(list(zip(range(4),
+        columns = MultiIndex.from_tuples(list(zip(range(4),
                                                     np.mod(lrange(4), 2))))
-        df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
+        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
 
         result = df.to_html(justify='right')
         expected = ('<table border="1" class="dataframe">\n'
@@ -1808,17 +1818,17 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td> a</td>\n'
-                    '      <td> b</td>\n'
-                    '      <td> c</td>\n'
-                    '      <td> d</td>\n'
+                    '      <td>a</td>\n'
+                    '      <td>b</td>\n'
+                    '      <td>c</td>\n'
+                    '      <td>d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> e</td>\n'
-                    '      <td> f</td>\n'
-                    '      <td> g</td>\n'
-                    '      <td> h</td>\n'
+                    '      <td>e</td>\n'
+                    '      <td>f</td>\n'
+                    '      <td>g</td>\n'
+                    '      <td>h</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
@@ -1826,10 +1836,10 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
     def test_to_html_justify(self):
-        df = pandas.DataFrame({'A': [6, 30000, 2],
-                               'B': [1, 2, 70000],
-                               'C': [223442, 0, 1]},
-                              columns=['A', 'B', 'C'])
+        df = DataFrame({'A': [6, 30000, 2],
+                           'B': [1, 2, 70000],
+                           'C': [223442, 0, 1]},
+                          columns=['A', 'B', 'C'])
         result = df.to_html(justify='left')
         expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
@@ -1843,25 +1853,24 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td>     6</td>\n'
-                    '      <td>     1</td>\n'
-                    '      <td> 223442</td>\n'
+                    '      <td>6</td>\n'
+                    '      <td>1</td>\n'
+                    '      <td>223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> 30000</td>\n'
-                    '      <td>     2</td>\n'
-                    '      <td>      0</td>\n'
+                    '      <td>30000</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>2</th>\n'
-                    '      <td>     2</td>\n'
-                    '      <td> 70000</td>\n'
-                    '      <td>      1</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>70000</td>\n'
+                    '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
-
         self.assertEqual(result, expected)
 
         result = df.to_html(justify='right')
@@ -1877,21 +1886,21 @@ c  10  11  12  13  14\
                     '  <tbody>\n'
                     '    <tr>\n'
                     '      <th>0</th>\n'
-                    '      <td>     6</td>\n'
-                    '      <td>     1</td>\n'
-                    '      <td> 223442</td>\n'
+                    '      <td>6</td>\n'
+                    '      <td>1</td>\n'
+                    '      <td>223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>1</th>\n'
-                    '      <td> 30000</td>\n'
-                    '      <td>     2</td>\n'
-                    '      <td>      0</td>\n'
+                    '      <td>30000</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
                     '      <th>2</th>\n'
-                    '      <td>     2</td>\n'
-                    '      <td> 70000</td>\n'
-                    '      <td>      1</td>\n'
+                    '      <td>2</td>\n'
+                    '      <td>70000</td>\n'
+                    '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
@@ -1899,17 +1908,17 @@ c  10  11  12  13  14\
 
     def test_to_html_index(self):
         index = ['foo', 'bar', 'baz']
-        df = pandas.DataFrame({'A': [1, 2, 3],
-                               'B': [1.2, 3.4, 5.6],
-                               'C': ['one', 'two', np.NaN]},
-                              columns=['A', 'B', 'C'],
-                              index=index)
+        df = DataFrame({'A': [1, 2, 3],
+                           'B': [1.2, 3.4, 5.6],
+                           'C': ['one', 'two', np.NaN]},
+                          columns=['A', 'B', 'C'],
+                          index=index)
         result = df.to_html(index=False)
         for i in index:
             self.assertNotIn(i, result)
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
-        df.index = pandas.MultiIndex.from_tuples(tuples)
+        df.index = MultiIndex.from_tuples(tuples)
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
             self.assertNotIn(i, result)
@@ -1946,17 +1955,17 @@ c  10  11  12  13  14\
     def test_repr_html_wide_multiindex_cols(self):
         max_cols = get_option('display.max_columns')
 
-        mcols = pandas.MultiIndex.from_product([np.arange(max_cols//2),
-                                                ['foo', 'bar']],
-                                               names=['first', 'second'])
+        mcols = MultiIndex.from_product([np.arange(max_cols//2),
+                                             ['foo', 'bar']],
+                                            names=['first', 'second'])
         df = DataFrame(tm.rands_array(25, size=(10, len(mcols))),
                        columns=mcols)
         reg_repr = df._repr_html_()
         assert '...' not in reg_repr
 
-        mcols = pandas.MultiIndex.from_product((np.arange(1+(max_cols//2)),
-                                                ['foo', 'bar']),
-                                               names=['first', 'second'])
+        mcols = MultiIndex.from_product((np.arange(1+(max_cols//2)),
+                                              ['foo', 'bar']),
+                                             names=['first', 'second'])
         df = DataFrame(tm.rands_array(25, size=(10, len(mcols))),
                        columns=mcols)
         wide_repr = df._repr_html_()
@@ -1965,13 +1974,13 @@ c  10  11  12  13  14\
     def test_repr_html_long(self):
         max_rows = get_option('display.max_rows')
         h = max_rows - 1
-        df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
+        df = DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         reg_repr = df._repr_html_()
         assert '..' not in reg_repr
         assert str(41 + max_rows // 2) in reg_repr
 
         h = max_rows + 1
-        df = pandas.DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
+        df = DataFrame({'A':np.arange(1,1+h), 'B':np.arange(41, 41+h)})
         long_repr = df._repr_html_()
         assert '..' in long_repr
         assert str(41 + max_rows // 2) not in long_repr
@@ -1981,13 +1990,13 @@ c  10  11  12  13  14\
     def test_repr_html_float(self):
         max_rows = get_option('display.max_rows')
         h = max_rows - 1
-        df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
+        df = DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         reg_repr = df._repr_html_()
         assert '..' not in reg_repr
         assert str(40 + h) in reg_repr
 
         h = max_rows + 1
-        df = pandas.DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
+        df = DataFrame({'idx':np.linspace(-10,10,h), 'A':np.arange(1,1+h), 'B': np.arange(41, 41+h) }).set_index('idx')
         long_repr = df._repr_html_()
         assert '..' in long_repr
         assert '31' not in long_repr
@@ -1999,14 +2008,14 @@ c  10  11  12  13  14\
         max_L1 = max_rows//2
 
         tuples = list(itertools.product(np.arange(max_L1), ['foo', 'bar']))
-        idx = pandas.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        idx = MultiIndex.from_tuples(tuples, names=['first', 'second'])
         df = DataFrame(np.random.randn(max_L1*2, 2), index=idx,
                        columns=['A', 'B'])
         reg_repr = df._repr_html_()
         assert '...' not in reg_repr
 
         tuples = list(itertools.product(np.arange(max_L1+1), ['foo', 'bar']))
-        idx = pandas.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        idx = MultiIndex.from_tuples(tuples, names=['first', 'second'])
         df = DataFrame(np.random.randn((max_L1+1)*2, 2), index=idx,
                        columns=['A', 'B'])
         long_repr = df._repr_html_()
@@ -2017,11 +2026,11 @@ c  10  11  12  13  14\
         max_rows = get_option('display.max_rows')
 
         h, w = max_rows-1, max_cols-1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert '...'  not in df._repr_html_()
 
         h, w = max_rows+1, max_cols+1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert '...'  in df._repr_html_()
 
     def test_info_repr(self):
@@ -2029,14 +2038,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows+1, max_cols-1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert has_vertically_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
 
         # Wide
         h, w = max_rows-1, max_cols+1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert has_horizontally_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
@@ -2062,14 +2071,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows+1, max_cols-1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert r'&lt;class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert r'&lt;class' in df._repr_html_()
 
         # Wide
         h, w = max_rows-1, max_cols+1
-        df = pandas.DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
+        df = DataFrame(dict((k,np.arange(1,1+h)) for k in np.arange(w)))
         assert '<class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert '&lt;class' in df._repr_html_()
@@ -2090,7 +2099,7 @@ c  10  11  12  13  14\
         self.reset_display_options()
 
     def test_to_html_with_classes(self):
-        df = pandas.DataFrame()
+        df = DataFrame()
         result = df.to_html(classes="sortable draggable")
         expected = dedent("""
 
@@ -2118,7 +2127,7 @@ c  10  11  12  13  14\
         class A:
             def __getitem__(self, key):
                 return 3 # obviously simplified
-        df = pandas.DataFrame([A()])
+        df = DataFrame([A()])
         repr(df) # just don't dine
 
     def test_float_trim_zeros(self):
@@ -2203,6 +2212,28 @@ x & y &  a \\
 """
         self.assertEqual(result, expected)
 
+        df = DataFrame.from_dict({
+            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+        }).T
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{llrrrr}
+\toprule
+   &   &  0 &  1 &  2 &  3 \\
+\midrule
+c1 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c2 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c3 & 0 &  0 &  1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
     def test_to_latex_escape(self):
         a = 'a'
         b = 'b'
@@ -2212,8 +2243,8 @@ x & y &  a \\
                      u('co$e^x$'): {a: "a",
                                     b: "b"}}
 
-        unescaped_result = pd.DataFrame(test_dict).to_latex(escape=False)
-        escaped_result   = pd.DataFrame(test_dict).to_latex() # default: escape=True
+        unescaped_result = DataFrame(test_dict).to_latex(escape=False)
+        escaped_result   = DataFrame(test_dict).to_latex() # default: escape=True
 
         unescaped_expected = r'''\begin{tabular}{lll}
 \toprule
@@ -2402,6 +2433,21 @@ $1$,$2$
         expected = ',col\n0,1\n1,2\n'
         self.assertEqual(df.to_csv(), expected)
 
+    def test_to_csv_decimal(self):
+        # GH 781
+        df = DataFrame({'col1' : [1], 'col2' : ['a'], 'col3' : [10.1] })
+
+        expected_default = ',col1,col2,col3\n0,1,a,10.1\n'
+        self.assertEqual(df.to_csv(), expected_default)
+
+        expected_european_excel = ';col1;col2;col3\n0;1;a;10,1\n'
+        self.assertEqual(df.to_csv(decimal=',',sep=';'), expected_european_excel)
+
+        expected_float_format_default = ',col1,col2,col3\n0,1,a,10.10\n'
+        self.assertEqual(df.to_csv(float_format = '%.2f'), expected_float_format_default)
+
+        expected_float_format = ';col1;col2;col3\n0;1;a;10,10\n'
+        self.assertEqual(df.to_csv(decimal=',',sep=';', float_format = '%.2f'), expected_float_format)
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2429,16 +2475,16 @@ class TestSeriesFormatting(tm.TestCase):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')]
+        result = [x.split()[1] for x in result.split('\n')[:-1]]
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
         # empty string
         result = self.ts[:0].to_string()
-        self.assertEqual(result, '')
+        self.assertEqual(result, 'Series([], Freq: B)')
 
         result = self.ts[:0].to_string(length=0)
-        self.assertEqual(result, '')
+        self.assertEqual(result, 'Series([], Freq: B)')
 
         # name and length
         cp = self.ts.copy()
@@ -2449,7 +2495,7 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
-                   index=pd.date_range('1/1/2000', periods=10), name=0)
+                   index=date_range('1/1/2000', periods=10), name=0)
 
         result = repr(s)
         self.assertTrue('Freq: D, Name: 0' in result)
@@ -2510,7 +2556,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_datetimeindex(self):
 
-        from pandas import date_range, NaT
         index = date_range('20130102',periods=6)
         s = Series(1,index=index)
         result = s.to_string()
@@ -2528,7 +2573,6 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_timedelta64(self):
 
-        from pandas import date_range
         from datetime import datetime, timedelta
 
         Series(np.array([1100, 20], dtype='timedelta64[ns]')).to_string()
@@ -2614,7 +2658,7 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 2):
             self.assertEqual(len(str(s).split('\n')),5)
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')),5)
+            self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 0):
             self.assertEqual(len(str(s).split('\n')),10)
 
@@ -2628,9 +2672,136 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 2):
             self.assertEqual(len(str(s).split('\n')),4)
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')),4)
+            self.assertEqual(len(str(s).split('\n')),3)
         with option_context("display.max_rows", 0):
             self.assertEqual(len(str(s).split('\n')),9)
+
+    # Make sure #8532 is fixed
+    def test_consistent_format(self):
+        s = pd.Series([1,1,1,1,1,1,1,1,1,1,0.9999,1,1]*10)
+        with option_context("display.max_rows", 10):
+            res = repr(s)
+        exp = ('0      1.0000\n1      1.0000\n2      1.0000\n3      '
+               '1.0000\n4      1.0000\n        ...  \n125    '
+               '1.0000\n126    1.0000\n127    0.9999\n128    '
+               '1.0000\n129    1.0000\ndtype: float64')
+        self.assertEqual(res, exp)
+
+    @staticmethod
+    def gen_test_series():
+        s1 = pd.Series(['a']*100)
+        s2 = pd.Series(['ab']*100)
+        s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+        s4 = s3[::-1]
+        test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+        return test_sers
+
+    def chck_ncols(self, s):
+        with option_context("display.max_rows", 10):
+            res = repr(s)
+        lines = res.split('\n')
+        lines = [line for line in repr(s).split('\n') \
+                 if not re.match('[^\.]*\.+', line)][:-1]
+        ncolsizes = len(set(len(line.strip()) for line in lines))
+        self.assertEqual(ncolsizes, 1)
+
+    def test_format_explicit(self):
+        test_sers = self.gen_test_series()
+        with option_context("display.max_rows", 4):
+            res = repr(test_sers['onel'])
+            exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
+            self.assertEqual(exp, res)
+            res = repr(test_sers['twol'])
+            exp = ('0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:'
+                   ' object')
+            self.assertEqual(exp, res)
+            res = repr(test_sers['asc'])
+            exp = ('0         a\n1        ab\n      ...  \n4     abcde\n5'
+                   '    abcdef\ndtype: object')
+            self.assertEqual(exp, res)
+            res = repr(test_sers['desc'])
+            exp = ('5    abcdef\n4     abcde\n      ...  \n1        ab\n0'
+                   '         a\ndtype: object')
+            self.assertEqual(exp, res)
+
+    def test_ncols(self):
+        test_sers = self.gen_test_series()
+        for s in test_sers.values():
+            self.chck_ncols(s)
+
+    def test_max_rows_eq_one(self):
+        s = Series(range(10),dtype='int64')
+        with option_context("display.max_rows", 1):
+            strrepr = repr(s).split('\n')
+        exp1 = ['0', '0']
+        res1 = strrepr[0].split()
+        self.assertEqual(exp1, res1)
+        exp2 = ['..']
+        res2 = strrepr[1].split()
+        self.assertEqual(exp2, res2)
+
+    def test_truncate_ndots(self):
+        def getndots(s):
+            return len(re.match('[^\.]*(\.*)', s).groups()[0])
+
+        s = Series([0, 2, 3, 6])
+        with option_context("display.max_rows", 2):
+            strrepr = repr(s).replace('\n', '')
+        self.assertEqual(getndots(strrepr), 2)
+
+        s = Series([0, 100, 200, 400])
+        with option_context("display.max_rows", 2):
+            strrepr = repr(s).replace('\n', '')
+        self.assertEqual(getndots(strrepr), 3)
+
+    def test_to_string_name(self):
+        s = Series(range(100),dtype='int64')
+        s.name = 'myser'
+        res = s.to_string(max_rows=2, name=True)
+        exp = '0      0\n      ..\n99    99\nName: myser'
+        self.assertEqual(res, exp)
+        res = s.to_string(max_rows=2, name=False)
+        exp = '0      0\n      ..\n99    99'
+        self.assertEqual(res, exp)
+
+    def test_to_string_dtype(self):
+        s = Series(range(100),dtype='int64')
+        res = s.to_string(max_rows=2, dtype=True)
+        exp = '0      0\n      ..\n99    99\ndtype: int64'
+        self.assertEqual(res, exp)
+        res = s.to_string(max_rows=2, dtype=False)
+        exp = '0      0\n      ..\n99    99'
+        self.assertEqual(res, exp)
+
+    def test_to_string_length(self):
+        s = Series(range(100),dtype='int64')
+        res = s.to_string(max_rows=2, length=True)
+        exp = '0      0\n      ..\n99    99\nLength: 100'
+        self.assertEqual(res, exp)
+
+    def test_to_string_na_rep(self):
+        s = pd.Series(index=range(100))
+        res = s.to_string(na_rep='foo', max_rows=2)
+        exp = '0    foo\n      ..\n99   foo'
+        self.assertEqual(res, exp)
+
+    def test_to_string_float_format(self):
+        s = pd.Series(range(10), dtype='float64')
+        res = s.to_string(float_format=lambda x: '{0:2.1f}'.format(x),
+                          max_rows=2)
+        exp = '0   0.0\n     ..\n9   9.0'
+        self.assertEqual(res, exp)
+
+    def test_to_string_header(self):
+        s = pd.Series(range(10),dtype='int64')
+        s.index.name = 'foo'
+        res = s.to_string(header=True, max_rows=2)
+        exp = 'foo\n0    0\n    ..\n9    9'
+        self.assertEqual(res, exp)
+        res = s.to_string(header=False, max_rows=2)
+        exp = '0    0\n    ..\n9    9'
+        self.assertEqual(res, exp)
+
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2850,6 +3021,25 @@ class TestFloatArrayFormatter(tm.TestCase):
         self.assertEqual(result[0], " 12")
         self.assertEqual(result[1], "  0")
 
+    def test_output_significant_digits(self):
+        # Issue #9764
+
+        # In case default display precision changes:
+        with pd.option_context('display.precision', 7):
+            # DataFrame example from issue #9764
+            d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
+
+            expected_output={
+                (0,6):'           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                (1,6):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                (1,8):'           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07\n6  5.000100e-07\n7  6.000000e-07',
+                (8,16):'            col1\n8   9.999000e-07\n9   1.000000e-06\n10  1.000100e-06\n11  2.000000e-06\n12  4.999000e-06\n13  5.000000e-06\n14  5.000100e-06\n15  6.000000e-06',
+                (9,16):'        col1\n9   0.000001\n10  0.000001\n11  0.000002\n12  0.000005\n13  0.000005\n14  0.000005\n15  0.000006'
+            }
+
+            for (start, stop), v in expected_output.items():
+                self.assertEqual(str(d[start:stop]), v)
+
 
 class TestRepr_timedelta64(tm.TestCase):
 
@@ -2971,22 +3161,60 @@ class TestTimedelta64Formatter(tm.TestCase):
 
 class TestDatetime64Formatter(tm.TestCase):
     def test_mixed(self):
-        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
+        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
         result = fmt.Datetime64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "2013-01-01 00:00:00")
         self.assertEqual(result[1].strip(), "2013-01-01 12:00:00")
 
     def test_dates(self):
-        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
+        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
         result = fmt.Datetime64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "2013-01-01")
         self.assertEqual(result[1].strip(), "2013-01-02")
 
     def test_date_nanos(self):
-        x = pd.Series([Timestamp(200)])
+        x = Series([Timestamp(200)])
         result = fmt.Datetime64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "1970-01-01 00:00:00.000000200")
 
+    def test_dates_display(self):
+
+        # 10170
+        # make sure that we are consistently display date formatting
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='D'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-05 09:00:00")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='s'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:04")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='ms'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='us'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000004")
+
+        x = Series(date_range('20130101 09:00:00',periods=5,freq='N'))
+        x.iloc[1] = np.nan
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
+        self.assertEqual(result[1].strip(), "NaT")
+        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
 
 class TestNaTFormatting(tm.TestCase):
     def test_repr(self):
@@ -3023,13 +3251,13 @@ class TestDatetimeIndexFormat(tm.TestCase):
 class TestDatetimeIndexUnicode(tm.TestCase):
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1)]))
-        self.assertTrue("[2013-01-01," in text)
-        self.assertTrue(", 2014-01-01]" in text)
+        self.assertTrue("['2013-01-01'," in text)
+        self.assertTrue(", '2014-01-01']" in text)
 
     def test_mixed(self):
         text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1,12), datetime(2014,1,1)]))
-        self.assertTrue("[2013-01-01 00:00:00," in text)
-        self.assertTrue(", 2014-01-01 00:00:00]" in text)
+        self.assertTrue("'2013-01-01 00:00:00'," in text)
+        self.assertTrue("'2014-01-01 00:00:00']" in text)
 
 
 class TestStringRepTimestamp(tm.TestCase):

@@ -1439,3 +1439,13 @@ int psecond(npy_int64 ordinal, int freq) {
         return INT_ERR_CODE;
     return (int)dinfo.second;
 }
+
+int pdays_in_month(npy_int64 ordinal, int freq) {
+    int days;
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    
+    days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)][dinfo.month-1];
+    return days;
+}

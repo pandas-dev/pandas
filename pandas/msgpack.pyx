@@ -112,7 +112,7 @@ cdef class Packer(object):
     * *encoding* - Convert unicode to bytes with this encoding. (default: 'utf-8')
     * *unicode_errors* - Error handler for encoding unicode. (default: 'strict')
     * *use_single_float* - Use single precision float type for float. (default: False)
-    * *autoreset* - Reset buffer after each pack and return it's content as `bytes`. (default: True).
+    * *autoreset* - Reset buffer after each pack and return its content as `bytes`. (default: True).
       If set this to false, use `bytes()` to get content and `.reset()` to clear buffer.
     """
     cdef msgpack_packer pk

@@ -244,6 +244,26 @@ class Ops(tm.TestCase):
                     else:
                         self.assertRaises(AttributeError, lambda : getattr(o,op))
 
+    def test_binary_ops_docs(self):
+        from pandas import DataFrame, Panel
+        op_map = {'add': '+',
+                  'sub': '-',
+                  'mul': '*',
+                  'mod': '%',
+                  'pow': '**',
+                  'truediv': '/',
+                  'floordiv': '//'}
+        for op_name in ['add', 'sub', 'mul', 'mod', 'pow', 'truediv', 'floordiv']:
+            for klass in [Series, DataFrame, Panel]:
+                operand1 = klass.__name__.lower()
+                operand2 = 'other'
+                op = op_map[op_name]
+                expected_str = ' '.join([operand1, op, operand2])
+                self.assertTrue(expected_str in getattr(klass, op_name).__doc__)
+
+                # reverse version of the binary ops
+                expected_str = ' '.join([operand2, op, operand1])
+                self.assertTrue(expected_str in getattr(klass, 'r' + op_name).__doc__)
 
 class TestIndexOps(Ops):
 
@@ -673,6 +693,16 @@ class TestIndexOps(Ops):
 
                 s.drop_duplicates(inplace=True)
                 tm.assert_series_equal(s, original)
+
+
+class TestFloat64HashTable(tm.TestCase):
+    def test_lookup_nan(self):
+        from pandas.hashtable import Float64HashTable
+        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        m = Float64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs)))
+
 
 if __name__ == '__main__':
     import nose
