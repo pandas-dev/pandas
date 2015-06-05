@@ -2964,6 +2964,10 @@ class CategoricalIndex(Index, PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
+    def get_values(self):
+        """ return the underlying data as an ndarray """
+        return self._data.get_values()
+
     @property
     def codes(self):
         return self._data.codes

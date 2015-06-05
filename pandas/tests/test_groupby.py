@@ -5169,6 +5169,13 @@ class TestGroupBy(tm.TestCase):
                          "ints": [1,2,1,2,1,2]}).set_index(["cat","ints"])
         tm.assert_frame_equal(res, exp)
 
+        # GH 10132
+        for key in [('a', 1), ('b', 2), ('b', 1), ('a', 2)]:
+            c, i = key
+            result = groups_double_key.get_group(key)
+            expected = test[(test.cat == c) & (test.ints == i)]
+            assert_frame_equal(result, expected)
+
         d = {'C1': [3, 3, 4, 5], 'C2': [1, 2, 3, 4], 'C3': [10, 100, 200, 34]}
         test = pd.DataFrame(d)
         values = pd.cut(test['C1'], [1, 2, 3, 6])
