@@ -47,11 +47,15 @@ Excel
 
 JSON
 ~~~~
+.. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: generated/
 
    read_json
+   json_normalize
+
+.. currentmodule:: pandas
 
 HTML
 ~~~~
