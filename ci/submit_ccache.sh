@@ -13,6 +13,11 @@ fi
 
 if [ "$IRON_TOKEN" ]; then
 
+    # install the compiler cache
+    sudo apt-get $APT_ARGS install ccache p7zip-full
+    # iron_cache, pending py3 fixes upstream
+    pip install -I --allow-external --allow-insecure git+https://github.com/iron-io/iron_cache_python.git@8a451c7d7e4d16e0c3bedffd0f280d5d9bd4fe59#egg=iron_cache
+
     rm -rf $HOME/ccache.7z
 
     tar cf - $HOME/.ccache \
