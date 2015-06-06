@@ -58,3 +58,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug where ``hist`` raises an error when a one row Series was given (:issue:`10214`)

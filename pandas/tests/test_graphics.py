@@ -3896,6 +3896,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df.groupby('def')['val'].apply(lambda x: x.plot())
         tm.close()
 
+    def test_hist_single_row(self):
+        bins = np.arange(80, 100 + 2, 1)
+        df = DataFrame({"Name": ["AAA", "BBB"], "ByCol": [1, 2], "Mark": [85, 89]})
+        df["Mark"].hist(by=df["ByCol"], bins=bins)
+        df = DataFrame({"Name": ["AAA"], "ByCol": [1], "Mark": [85]})
+        df["Mark"].hist(by=df["ByCol"], bins=bins)
+
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
