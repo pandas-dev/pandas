@@ -1170,7 +1170,9 @@ class CParserWrapper(ParserBase):
             data = self._reader.read(nrows)
         except StopIteration:
             if nrows is None:
-                return None, self.names, {}
+                return _get_empty_meta(self.orig_names,
+                                       self.index_col,
+                                       self.index_names)
             else:
                 raise
 
