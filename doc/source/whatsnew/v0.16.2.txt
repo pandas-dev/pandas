@@ -79,6 +79,8 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 .. _magrittr: https://github.com/smbache/magrittr
 .. _R: http://www.r-project.org
 
+- Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
+
 .. _whatsnew_0162.enhancements.other:
 
 Other enhancements
