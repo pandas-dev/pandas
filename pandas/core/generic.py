@@ -2045,6 +2045,68 @@ class NDFrame(PandasObject):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
+    _shared_docs['pipe'] = ("""
+        Apply func(self, *args, **kwargs)
+
+        .. versionadded:: 0.16.2
+
+        Parameters
+        ----------
+        func : function
+            function to apply to the %(klass)s.
+            ``args``, and ``kwargs`` are passed into ``func``.
+            Alternatively a ``(callable, data_keyword)`` tuple where
+            ``data_keyword`` is a string indicating the keyword of
+            ``callable`` that expects the %(klass)s.
+        args : positional arguments passed into ``func``.
+        kwargs : a dictionary of keyword arguments passed into ``func``.
+
+        Returns
+        -------
+        object : the return type of ``func``.
+
+        Notes
+        -----
+
+        Use ``.pipe`` when chaining together functions that expect
+        on Series or DataFrames. Instead of writing
+
+        >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
+
+        You can write
+
+        >>> (df.pipe(h)
+        ...    .pipe(g, arg1=a)
+        ...    .pipe(f, arg2=b, arg3=c)
+        ... )
+
+        If you have a function that takes the data as (say) the second
+        argument, pass a tuple indicating which keyword expects the
+        data. For example, suppose ``f`` takes its data as ``arg2``:
+
+        >>> (df.pipe(h)
+        ...    .pipe(g, arg1=a)
+        ...    .pipe((f, 'arg2'), arg1=a, arg3=c)
+        ...  )
+
+        See Also
+        --------
+        pandas.DataFrame.apply
+        pandas.DataFrame.applymap
+        pandas.Series.map
+    """
+    )
+    @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
+    def pipe(self, func, *args, **kwargs):
+        if isinstance(func, tuple):
+            func, target = func
+            if target in kwargs:
+                msg = '%s is both the pipe target and a keyword argument' % target
+                raise ValueError(msg)
+            kwargs[target] = self
+            return func(*args, **kwargs)
+        else:
+            return func(self, *args, **kwargs)
 
     #----------------------------------------------------------------------
     # Attribute access

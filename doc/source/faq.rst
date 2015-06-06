@@ -89,46 +89,6 @@ representation; i.e., 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
-.. _ref-monkey-patching:
-
-Adding Features to your pandas Installation
--------------------------------------------
-
-pandas is a powerful tool and already has a plethora of data manipulation
-operations implemented, most of them are very fast as well.
-It's very possible however that certain functionality that would make your
-life easier is missing. In that case you have several options:
-
-1) Open an issue on `Github <https://github.com/pydata/pandas/issues/>`__ , explain your need and the sort of functionality you would like to see implemented.
-2) Fork the repo, Implement the functionality yourself and open a PR
-   on Github.
-3) Write a method that performs the operation you are interested in and
-   Monkey-patch the pandas class as part of your IPython profile startup
-   or PYTHONSTARTUP file.
-
-   For example, here is an example of adding an ``just_foo_cols()``
-   method to the dataframe class:
-
-::
-
-   import pandas as pd
-   def just_foo_cols(self):
-       """Get a list of column names containing the string 'foo'
-
-       """
-       return [x for x in self.columns if 'foo' in x]
-
-   pd.DataFrame.just_foo_cols = just_foo_cols # monkey-patch the DataFrame class
-   df = pd.DataFrame([list(range(4))], columns=["A","foo","foozball","bar"])
-   df.just_foo_cols()
-   del pd.DataFrame.just_foo_cols # you can also remove the new method
-
-
-Monkey-patching is usually frowned upon because it makes your code
-less portable and can cause subtle bugs in some circumstances.
-Monkey-patching existing methods is usually a bad idea in that respect.
-When used with proper care, however, it's a very useful tool to have.
-
 
 .. _ref-scikits-migration:
 

@@ -624,6 +624,77 @@ We can also pass infinite values to define the bins:
 Function application
 --------------------
 
+To apply your own or another library's functions to pandas objects,
+you should be aware of the three methods below. The appropriate
+method to use depends on whether your function expects to operate
+on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
+
+1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
+2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
+3. Elementwise_ function application: :meth:`~DataFrame.applymap`
+
+.. _basics.pipe:
+
+Tablewise Function Application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.16.2
+
+``DataFrames`` and ``Series`` can of course just be passed into functions.
+However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
+Compare the following
+
+.. code-block:: python
+
+   # f, g, and h are functions taking and returning ``DataFrames``
+   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
+
+with the equivalent
+
+.. code-block:: python
+
+   >>> (df.pipe(h)
+          .pipe(g, arg1=1)
+          .pipe(f, arg2=2, arg3=3)
+       )
+
+Pandas encourages the second style, which is known as method chaining.
+``pipe`` makes it easy to use your own or another library's functions
+in method chains, alongside pandas' methods.
+
+In the example above, the functions ``f``, ``g``, and ``h`` each expected the ``DataFrame`` as the first positional argument.
+What if the function you wish to apply takes its data as, say, the second argument?
+In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
+``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
+
+For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.poisson, 'data')`` to ``pipe``:
+
+.. ipython:: python
+
+   import statsmodels.formula.api as sm
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+
+   (bb.query('h > 0')
+      .assign(ln_h = lambda df: np.log(df.h))
+      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .fit()
+      .summary()
+   )
+
+The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
+have introduced the popular ``(%>%)`` (read pipe) operator for R_.
+The implementation of ``pipe`` here is quite clean and feels right at home in python.
+We encourage you to view the source code (``pd.DataFrame.pipe??`` in IPython).
+
+.. _dplyr: https://github.com/hadley/dplyr
+.. _magrittr: https://github.com/smbache/magrittr
+.. _R: http://www.r-project.org
+
+
+Row or Column-wise Function Application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Arbitrary functions can be applied along the axes of a DataFrame or Panel
 using the :meth:`~DataFrame.apply` method, which, like the descriptive
 statistics methods, take an optional ``axis`` argument:
@@ -678,6 +749,7 @@ Series operation on each column or row:
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
+
 Finally, :meth:`~DataFrame.apply` takes an argument ``raw`` which is False by default, which
 converts each row or column into a Series before applying the function. When
 set to True, the passed function will instead receive an ndarray object, which
@@ -689,6 +761,8 @@ functionality.
    The section on :ref:`GroupBy <groupby>` demonstrates related, flexible
    functionality for grouping by some criterion, applying, and combining the
    results into a Series, DataFrame, etc.
+
+.. _Elementwise:
 
 Applying elementwise Python functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
