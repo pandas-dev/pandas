@@ -161,6 +161,8 @@ enum PANDAS_FORMAT
 //#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)
 #define PRINTMARK()
 
+int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
+
 // import_array() compat
 #if (PY_VERSION_HEX >= 0x03000000)
 void *initObjToJSON(void)
@@ -835,7 +837,10 @@ char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
   }
   else
   {
-    idx = npyarr->index[npyarr->stridedim - npyarr->inc] - 1;
+    idx = GET_TC(tc)->iterNext != PdBlock_iterNext
+        ? npyarr->index[npyarr->stridedim - npyarr->inc] - 1
+        : npyarr->index[npyarr->stridedim];
+
     NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
   }
   return NULL;
@@ -2374,7 +2379,7 @@ ISITERABLE:
       }
       goto INVALID;
     }
-    encode (tmpObj, enc, NULL, 0);
+    encode (tmpObj, (JSONObjectEncoder*) enc, NULL, 0);
     Py_DECREF(tmpObj);
     goto INVALID;
   }
