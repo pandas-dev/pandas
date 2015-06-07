@@ -318,8 +318,7 @@ class DatetimeIndexOpsMixin(object):
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        from pandas.tseries.frequencies import get_reso_string
-        return get_reso_string(self._resolution)
+        return Resolution.get_str(self._resolution)
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
