@@ -98,6 +98,8 @@ Other API Changes
 
 - ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in constructor instead of returning an incorrect result (:issue:`10217`).
 
+- Adding empty ``DataFrame``s results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`)
+
 .. _whatsnew_0162.performance:
 
 Performance Improvements
