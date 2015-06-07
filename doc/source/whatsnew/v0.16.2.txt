@@ -111,6 +111,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug where ``hist`` raises an error when a one row Series was given (:issue:`10214`)
 - Bug where read_hdf store.select modifies the passed columns list when
   multi-indexed (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
