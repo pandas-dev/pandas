@@ -2294,6 +2294,13 @@ MyColumn
         result = self.read_csv(StringIO(data), header=None)
         self.assertEqual(len(result), 2)
 
+    def test_empty_with_index(self):
+        # GH 10184
+        data = 'x,y'
+        result = self.read_csv(StringIO(data), index_col=0)
+        expected = DataFrame([], columns=['y'], index=Index([], name='x'))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
