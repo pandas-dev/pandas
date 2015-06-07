@@ -803,7 +803,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_object( struct DecoderState *ds)
       return NULL;
     }
 
-  if (!ds->dec->objectAddKey (ds->prv, newObj, itemName, itemValue)) 
+  if (!ds->dec->objectAddKey (ds->prv, newObj, itemName, itemValue))
   {
     ds->dec->releaseObject(ds->prv, newObj, ds->dec);
     ds->dec->releaseObject(ds->prv, itemName, ds->dec);
@@ -907,7 +907,7 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuf
     setlocale(LC_NUMERIC, locale);
     free(locale);
   }
-  else 
+  else
   {
     ret = decode_any (&ds);
   }
