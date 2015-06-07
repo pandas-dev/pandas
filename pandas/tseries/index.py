@@ -1349,32 +1349,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             else:
                 raise
 
-    def __getitem__(self, key):
-        getitem = self._data.__getitem__
-        if np.isscalar(key):
-            val = getitem(key)
-            return Timestamp(val, offset=self.offset, tz=self.tz)
-        else:
-            if com.is_bool_indexer(key):
-                key = np.asarray(key)
-                if key.all():
-                    key = slice(0,None,None)
-                else:
-                    key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-
-            new_offset = None
-            if isinstance(key, slice):
-                if self.offset is not None and key.step is not None:
-                    new_offset = key.step * self.offset
-                else:
-                    new_offset = self.offset
-
-            result = getitem(key)
-            if result.ndim > 1:
-                return result
-
-            return self._simple_new(result, self.name, new_offset, self.tz)
-
     # alias to offset
     def _get_freq(self):
         return self.offset

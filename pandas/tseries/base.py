@@ -69,6 +69,35 @@ class DatetimeIndexOpsMixin(object):
         except (KeyError, TypeError, ValueError):
             return False
 
+    def __getitem__(self, key):
+        getitem = self._data.__getitem__
+        if np.isscalar(key):
+            val = getitem(key)
+            return self._box_func(val)
+        else:
+            if com.is_bool_indexer(key):
+                key = np.asarray(key)
+                if key.all():
+                    key = slice(0, None, None)
+                else:
+                    key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+
+            attribs = self._get_attributes_dict()
+
+            freq = None
+            if isinstance(key, slice):
+                if self.freq is not None and key.step is not None:
+                    freq = key.step * self.freq
+                else:
+                    freq = self.freq
+            attribs['freq'] = freq
+
+            result = getitem(key)
+            if result.ndim > 1:
+                return result
+
+            return self._simple_new(result, **attribs)
+
     @property
     def freqstr(self):
         """ return the frequency object as a string if its set, otherwise None """

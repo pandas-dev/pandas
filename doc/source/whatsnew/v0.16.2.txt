@@ -150,7 +150,7 @@ Bug Fixes
 
 - Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)
 - Bug in ``SparseSeries.abs`` resets ``name`` (:issue:`10241`)
-
+- Bug in ``TimedeltaIndex`` slicing may reset freq (:issue:`10292`)
 
 - Bug in GroupBy.get_group raises ValueError when group key contains NaT (:issue:`6992`)
 - Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
