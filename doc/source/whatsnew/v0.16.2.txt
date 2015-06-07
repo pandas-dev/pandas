@@ -151,6 +151,6 @@ Bug Fixes
 - Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
 
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
-
+- Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)
 - Bug to handle masking empty ``DataFrame``(:issue:`10126`)
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)

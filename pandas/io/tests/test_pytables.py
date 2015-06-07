@@ -4640,6 +4640,35 @@ class TestHDFStore(tm.TestCase):
             df_loaded = read_hdf(path, 'df', columns=cols2load)
             self.assertTrue(cols2load_original == cols2load)
 
+    def test_to_hdf_with_object_column_names(self):
+        # GH9057
+        # Writing HDF5 table format should only work for string-like
+        # column types
+
+        types_should_fail = [ tm.makeIntIndex, tm.makeFloatIndex,
+                                tm.makeDateIndex, tm.makeTimedeltaIndex,
+                                tm.makePeriodIndex ]
+        types_should_run = [ tm.makeStringIndex, tm.makeCategoricalIndex ]
+
+        if compat.PY3:
+            types_should_run.append(tm.makeUnicodeIndex)
+        else:
+            types_should_fail.append(tm.makeUnicodeIndex)
+
+        for index in types_should_fail:
+            df = DataFrame(np.random.randn(10, 2), columns=index(2))
+            with ensure_clean_path(self.path) as path:
+                with self.assertRaises(ValueError,
+                        msg="cannot have non-object label DataIndexableCol"):
+                    df.to_hdf(path, 'df', format='table', data_columns=True)
+
+        for index in types_should_run:
+            df = DataFrame(np.random.randn(10, 2), columns=index(2))
+            with ensure_clean_path(self.path) as path:
+                df.to_hdf(path, 'df', format='table', data_columns=True)
+                result = pd.read_hdf(path, 'df', where="index = [{0}]".format(df.index[0]))
+                assert(len(result))
+
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
