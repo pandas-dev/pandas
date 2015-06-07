@@ -257,6 +257,7 @@ def _tables():
 def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
            append=None, **kwargs):
     """ store this object, close it if we opened it """
+
     if append:
         f = lambda store: store.append(key, value, **kwargs)
     else:
@@ -1535,6 +1536,12 @@ class IndexCol(StringMixin):
                 self.typ = _tables(
                 ).StringCol(itemsize=min_itemsize, pos=self.pos)
 
+    def validate(self, handler, append, **kwargs):
+        self.validate_names()
+
+    def validate_names(self):
+        pass
+
     def validate_and_set(self, handler, append, **kwargs):
         self.set_table(handler.table)
         self.validate_col()
@@ -2079,6 +2086,10 @@ class DataIndexableCol(DataCol):
 
     """ represent a data column that can be indexed """
     is_data_indexable = True
+
+    def validate_names(self):
+        if not Index(self.values).is_object():
+            raise ValueError("cannot have non-object label DataIndexableCol")
 
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
@@ -3755,6 +3766,9 @@ class AppendableTable(LegacyTable):
         self.create_axes(axes=axes, obj=obj, validate=append,
                          min_itemsize=min_itemsize,
                          **kwargs)
+
+        for a in self.axes:
+            a.validate(self, append)
 
         if not self.is_exists:
 
