@@ -1,7 +1,7 @@
 #!/bin/bash
 
-
 cd "$TRAVIS_BUILD_DIR"
+echo "inside $0"
 
 git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "rst|txt|doc"
 
@@ -16,7 +16,9 @@ if [ x"$DOC_BUILD" != x"" ]; then
 
     # we're running network tests, let's build the docs in the meantime
     echo "Will build docs"
-    pip install sphinx==1.1.3 ipython
+    conda install -n pandas sphinx=1.1.3 pygments ipython=2.4 --yes
+
+    source activate pandas
 
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
     cd /tmp/doc
@@ -24,10 +26,10 @@ if [ x"$DOC_BUILD" != x"" ]; then
     rm /tmp/doc/source/api.rst # no R
     rm /tmp/doc/source/r_interface.rst # no R
 
-    echo ############################### > /tmp/doc.log
-    echo # Log file for the doc build  # > /tmp/doc.log
-    echo ############################### > /tmp/doc.log
-    echo "" > /tmp/doc.log
+    echo ###############################
+    echo # Log file for the doc build  #
+    echo ###############################
+
     echo -e "y\n" | ./make.py --no-api 2>&1
 
     cd /tmp/doc/build/html
