@@ -333,6 +333,33 @@ class TestPandasContainer(tm.TestCase):
         self.assertTrue(df._is_mixed_type)
         assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df)
 
+    def test_frame_mixedtype_orient(self):  # GH10289
+        vals = [[10, 1, 'foo', .1, .01],
+                [20, 2, 'bar', .2, .02],
+                [30, 3, 'baz', .3, .03],
+                [40, 4, 'qux', .4, .04]]
+
+        df = DataFrame(vals, index=list('abcd'),
+                       columns=['1st', '2nd', '3rd', '4th', '5th'])
+
+        self.assertTrue(df._is_mixed_type)
+        right = df.copy()
+
+        for orient in ['split', 'index', 'columns']:
+            inp = df.to_json(orient=orient)
+            left = read_json(inp, orient=orient, convert_axes=False)
+            assert_frame_equal(left, right)
+
+        right.index = np.arange(len(df))
+        inp = df.to_json(orient='records')
+        left = read_json(inp, orient='records', convert_axes=False)
+        assert_frame_equal(left, right)
+
+        right.columns = np.arange(df.shape[1])
+        inp = df.to_json(orient='values')
+        left = read_json(inp, orient='values', convert_axes=False)
+        assert_frame_equal(left, right)
+
     def test_v12_compat(self):
         df = DataFrame(
             [[1.56808523,  0.65727391,  1.81021139, -0.17251653],

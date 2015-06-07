@@ -124,6 +124,7 @@ Bug Fixes
 
 - Bug in groupby.apply aggregation for Categorical not preserving categories (:issue:`10138`)
 - Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)
+- Bug in ``DataFrame.to_json`` with mixed data types (:issue:`10289`)
 
 - Bug in cache updating when consolidating (:issue:`10264`)
 
