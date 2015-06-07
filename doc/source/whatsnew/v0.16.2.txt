@@ -139,6 +139,7 @@ Bug Fixes
 
 - Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
 - Bug in display datetimes with mixed frequencies uniformly; display 'ms' datetimes to the proper precision. (:issue:`10170`)
+- Bug in ``setitem`` where type pormotion is applied to entire block (:issue:`10280`)
 
 - Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
 

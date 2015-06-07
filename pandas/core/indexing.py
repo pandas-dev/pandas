@@ -204,6 +204,15 @@ class _NDFrameIndexer(object):
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
+
+        # if there is only one block/type, still have to take split path
+        # unless the block is one-dimensional or it can hold the value
+        if not take_split_path and self.obj._data.blocks:
+            blk, = self.obj._data.blocks
+            if 1 < blk.ndim:  # in case of dict, keys are indices
+                val = list(value.values()) if isinstance(value,dict) else value
+                take_split_path = not blk._can_hold_element(val)
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):

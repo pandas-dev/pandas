@@ -2330,6 +2330,31 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame([{"a": 1, "c" : 'foo'}, {"a": 3, "b": 2, "c" : np.nan}])
         assert_frame_equal(df,expected)
 
+        # GH10280
+        df = DataFrame(np.arange(6).reshape(2, 3), index=list('ab'),
+                columns=['foo', 'bar', 'baz'])
+
+        for val in [3.14, 'wxyz']:
+            left = df.copy()
+            left.loc['a', 'bar'] = val
+            right = DataFrame([[0, val, 2], [3, 4, 5]], index=list('ab'),
+                    columns=['foo', 'bar', 'baz'])
+
+            assert_frame_equal(left, right)
+            self.assertTrue(com.is_integer_dtype(left['foo']))
+            self.assertTrue(com.is_integer_dtype(left['baz']))
+
+        left = DataFrame(np.arange(6).reshape(2, 3) / 10.0, index=list('ab'),
+                columns=['foo', 'bar', 'baz'])
+        left.loc['a', 'bar'] = 'wxyz'
+
+        right = DataFrame([[0, 'wxyz', .2], [.3, .4, .5]], index=list('ab'),
+                columns=['foo', 'bar', 'baz'])
+
+        assert_frame_equal(left, right)
+        self.assertTrue(com.is_float_dtype(left['foo']))
+        self.assertTrue(com.is_float_dtype(left['baz']))
+
     def test_setitem_iloc(self):
 
 
