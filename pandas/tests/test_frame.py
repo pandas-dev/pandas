@@ -5148,6 +5148,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'a': ['a', None, 'b']})
         assert_frame_equal(df + df, DataFrame({'a': ['aa', np.nan, 'bb']}))
 
+        # Test for issue #10181
+        for dtype in ('float', 'int64'):
+            frames = [
+                DataFrame(dtype=dtype),
+                DataFrame(columns=['A'], dtype=dtype),
+                DataFrame(index=[0], dtype=dtype),
+            ]
+            for df in frames:
+                self.assertTrue((df + df).equals(df))
+                assert_frame_equal(df + df, df)
+
     def test_ops_np_scalar(self):
         vals, xs = np.random.rand(5, 3), [nan, 7, -23, 2.718, -3.14, np.inf]
         f = lambda x: DataFrame(x, index=list('ABCDE'),
