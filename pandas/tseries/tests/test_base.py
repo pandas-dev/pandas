@@ -297,6 +297,38 @@ Freq: H"""
                                        ['2015', '2015', '2016'], ['2015', '2015', '2014'])):
             tm.assertIn(idx[0], idx)
 
+    def test_getitem(self):
+        idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
+        idx2 = pd.date_range('2011-01-01', '2011-01-31', freq='D', tz='Asia/Tokyo', name='idx')
+
+        for idx in [idx1, idx2]:
+            result = idx[0]
+            self.assertEqual(result, pd.Timestamp('2011-01-01', tz=idx.tz))
+
+            result = idx[0:5]
+            expected = pd.date_range('2011-01-01', '2011-01-05', freq='D',
+                                     tz=idx.tz, name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[0:10:2]
+            expected = pd.date_range('2011-01-01', '2011-01-09', freq='2D',
+                                     tz=idx.tz, name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[-20:-5:3]
+            expected = pd.date_range('2011-01-12', '2011-01-25', freq='3D',
+                                     tz=idx.tz, name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[4::-1]
+            expected = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-03',
+                                      '2011-01-02', '2011-01-01'],
+                                     freq='-1D', tz=idx.tz, name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
 
 class TestTimedeltaIndexOps(Ops):
 
@@ -742,6 +774,33 @@ Freq: D"""
         self.assertNotIn('foo',ts.__dict__.keys())
         self.assertRaises(AttributeError,lambda : ts.foo)
 
+    def test_getitem(self):
+        idx1 = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
+
+        for idx in [idx1]:
+            result = idx[0]
+            self.assertEqual(result, pd.Timedelta('1 day'))
+
+            result = idx[0:5]
+            expected = pd.timedelta_range('1 day', '5 day', freq='D', name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[0:10:2]
+            expected = pd.timedelta_range('1 day', '9 day', freq='2D', name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[-20:-5:3]
+            expected = pd.timedelta_range('12 day', '25 day', freq='3D', name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
+
+            result = idx[4::-1]
+            expected = TimedeltaIndex(['5 day', '4 day', '3 day', '2 day', '1 day'],
+                                      freq='-1D', name='idx')
+            self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, expected.freq)
 
 class TestPeriodIndexOps(Ops):
 
