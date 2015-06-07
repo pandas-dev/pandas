@@ -528,8 +528,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = frequencies._infer_period_group(reso)
-                freqn = frequencies._period_group(self.freq)
+                grp = frequencies.Resolution.get_freq_group(reso)
+                freqn = frequencies.get_freq_group(self.freq)
 
                 vals = self.values
 
@@ -655,8 +655,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         key, parsed, reso = parse_time_string(key, self.freq)
 
-        grp = frequencies._infer_period_group(reso)
-        freqn = frequencies._period_group(self.freq)
+        grp = frequencies.Resolution.get_freq_group(reso)
+        freqn = frequencies.get_freq_group(self.freq)
         if reso in ['day', 'hour', 'minute', 'second'] and not grp < freqn:
             raise KeyError(key)
 
