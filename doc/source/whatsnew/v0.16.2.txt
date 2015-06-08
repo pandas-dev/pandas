@@ -45,7 +45,7 @@ This can be rewritten as
 
      (df.pipe(h)
         .pipe(g, arg1=1)
-        .pipe(f, arg2=2)
+        .pipe(f, arg2=2, arg3=3)
      )
 
 Now both the code and the logic flow from top to bottom. Keyword arguments are next to
