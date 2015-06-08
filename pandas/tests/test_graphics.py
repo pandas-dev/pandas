@@ -3897,6 +3897,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
 
     def test_hist_single_row(self):
+        # GH10214
         bins = np.arange(80, 100 + 2, 1)
         df = DataFrame({"Name": ["AAA", "BBB"], "ByCol": [1, 2], "Mark": [85, 89]})
         df["Mark"].hist(by=df["ByCol"], bins=bins)

@@ -2846,7 +2846,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                             xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
                             **kwds)
 
-    if isinstance(axes, np.ndarray):
+    if hasattr(axes, 'ndim'):
         if axes.ndim == 1 and len(axes) == 1:
             return axes[0]
     return axes
