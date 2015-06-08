@@ -161,3 +161,4 @@ Bug Fixes
 - Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)
 - Bug to handle masking empty ``DataFrame``(:issue:`10126`)
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
+- Bug where ``read_csv`` and similar failed if making ``MultiIndex`` and ``date_parser`` returned ``datetime64`` array of other time resolution than ``[ns]``.
