@@ -633,17 +633,42 @@ def convert_timestamps(ndarray values):
 
     return out
 
-def maybe_indices_to_slice(ndarray[int64_t] indices):
+
+def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
+        int k, vstart, vlast, v
 
-    if not n or indices[0] < 0:
+    if n == 0:
+        return slice(0, 0)
+
+    vstart = indices[0]
+    if vstart < 0 or max_len <= vstart:
         return indices
 
-    for i in range(1, n):
-        if indices[i] - indices[i - 1] != 1:
-            return indices
-    return slice(indices[0], indices[n - 1] + 1)
+    if n == 1:
+        return slice(vstart, vstart + 1)
+
+    vlast = indices[n - 1]
+    if vlast < 0 or max_len <= vlast:
+        return indices
+
+    k = indices[1] - indices[0]
+    if k == 0:
+        return indices
+    else:
+        for i in range(2, n):
+            v = indices[i]
+            if v - indices[i - 1] != k:
+                return indices
+
+        if k > 0:
+            return slice(vstart, vlast + 1, k)
+        else:
+            if vlast == 0:
+                return slice(vstart, None, k)
+            else:
+                return slice(vstart, vlast - 1, k)
 
 
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
