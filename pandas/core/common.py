@@ -19,7 +19,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
 
 from pandas.core.config import get_option
 
@@ -3361,3 +3361,17 @@ def _random_state(state=None):
         return np.random.RandomState()
     else:
         raise ValueError("random_state must be an integer, a numpy RandomState, or None")
+
+def _dict_compat(d):
+    """
+    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
+
+    Parameters
+    ----------
+    d: dict like object
+
+    Returns
+    __________
+    dict
+    """
+    return dict((_maybe_box_datetimelike(key), value) for key, value in iteritems(d))

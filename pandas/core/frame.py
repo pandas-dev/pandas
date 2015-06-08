@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _maybe_box_datetimelike,
                                 is_categorical_dtype, is_object_dtype,
-                                _possibly_infer_to_datetimelike)
+                                _possibly_infer_to_datetimelike, _dict_compat)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels,
@@ -5099,14 +5099,9 @@ def _homogenize(data, index, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                if oindex is None:
-                    oindex = index.astype('O')
-                if type(v) == dict:
-                    # fast cython method
-                    v = lib.fast_multiget(v, oindex.values, default=NA)
-                else:
-                    v = lib.map_infer(oindex.values, v.get)
-
+                v = _dict_compat(v)
+                oindex = index.astype('O')
+                v = lib.fast_multiget(v, oindex.values, default=NA)
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)
 
