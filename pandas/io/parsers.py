@@ -2059,18 +2059,20 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     infer_datetime_format=infer_datetime_format
                 )
             except:
-                return lib.try_parse_dates(strs, dayfirst=dayfirst)
+                return tools.to_datetime(
+                    lib.try_parse_dates(strs, dayfirst=dayfirst))
         else:
             try:
-                result = date_parser(*date_cols)
+                result = tools.to_datetime(date_parser(*date_cols))
                 if isinstance(result, datetime.datetime):
                     raise Exception('scalar parser')
                 return result
             except Exception:
                 try:
-                    return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                               parser=date_parser,
-                                               dayfirst=dayfirst)
+                    return tools.to_datetime(
+                        lib.try_parse_dates(_concat_date_cols(date_cols),
+                                            parser=date_parser,
+                                            dayfirst=dayfirst))
                 except Exception:
                     return generic_parser(date_parser, *date_cols)
 
