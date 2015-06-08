@@ -180,6 +180,7 @@ before_script:
 
 script:
   - echo "script"
+  - ci/run_build_docs.sh &
   - ci/script.sh
 # nothing here, or failed tests won't fail travis
 
