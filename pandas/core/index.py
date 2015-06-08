@@ -2486,7 +2486,7 @@ class Index(IndexOpsMixin, PandasObject):
             if is_bool_dtype(slc):
                 slc = lib.maybe_booleans_to_slice(slc.view('u1'))
             else:
-                slc = lib.maybe_indices_to_slice(slc.astype('i8'))
+                slc = lib.maybe_indices_to_slice(slc.astype('i8'), len(self))
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     "Cannot get %s slice bound for non-unique label:"
@@ -5108,7 +5108,7 @@ class MultiIndex(Index):
             if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':
                 return loc
 
-            loc = lib.maybe_indices_to_slice(loc)
+            loc = lib.maybe_indices_to_slice(loc, len(self))
             if isinstance(loc, slice):
                 return loc
 

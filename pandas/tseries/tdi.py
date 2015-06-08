@@ -126,8 +126,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
     _engine_type = _index.TimedeltaEngine
 
-    _comparables = ['name','freq']
-    _attributes = ['name','freq']
+    _comparables = ['name', 'freq']
+    _attributes = ['name', 'freq']
     _is_numeric_dtype = True
     freq = None
 
@@ -853,7 +853,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 freq = self.freq
         else:
             if com.is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)))
+                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq

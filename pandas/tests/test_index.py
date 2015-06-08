@@ -2266,6 +2266,16 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
         idx = Float64Index([np.nan, 1, np.nan])
         self.assertEqual(idx.get_loc(1), 1)
+
+        # representable by slice [0:2:2]
+        # self.assertRaises(KeyError, idx.slice_locs, np.nan)
+        sliced = idx.slice_locs(np.nan)
+        self.assertTrue(isinstance(sliced, tuple))
+        self.assertEqual(sliced, (0, 3))
+
+        # not representable by slice
+        idx = Float64Index([np.nan, 1, np.nan, np.nan])
+        self.assertEqual(idx.get_loc(1), 1)
         self.assertRaises(KeyError, idx.slice_locs, np.nan)
 
     def test_contains_nans(self):
