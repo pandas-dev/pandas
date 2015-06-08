@@ -98,7 +98,7 @@ First we're going to need to import the cython magic function to ipython:
 
 .. ipython:: python
 
-   %load_ext Cython
+   %load_ext cythonmagic
 
 
 Now, let's simply copy our functions over to cython as is (the suffix
