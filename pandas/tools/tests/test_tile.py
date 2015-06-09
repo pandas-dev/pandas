@@ -4,7 +4,8 @@ import nose
 import numpy as np
 from pandas.compat import zip
 
-from pandas import DataFrame, Series, unique
+from pandas import (DataFrame, Series, unique, Index, Categorical, CategoricalIndex,
+                    DatetimeIndex, TimedeltaIndex)
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -96,6 +97,45 @@ class TestCut(tm.TestCase):
         ex_levels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
                      '(0.54, 0.72]']
         self.assert_numpy_array_equal(result.categories, ex_levels)
+
+    def test_label_coercion(self):
+        # GH10140
+
+        df = DataFrame({'x' : 100 * np.random.random(100)})
+        df['y'] = df.x**2
+
+        binedges = np.arange(0,110,10)
+        binlabels = np.arange(5,105,10)
+
+        # passing in an index
+        for bl, expected in [(Index(binlabels), np.dtype('int64')),
+                             (DatetimeIndex(['20130101']*len(binlabels))+TimedeltaIndex(binlabels,unit='D'),np.dtype('M8[ns]')),
+                             (TimedeltaIndex(binlabels,unit='D'),np.dtype('m8[ns]')),
+                             (Categorical(binlabels), 'category'),
+                             (Index(Index(binlabels).map(str)), 'category')]:
+            result = cut(df.x, bins=binedges, labels=bl)
+            self.assertEqual(result.dtype, expected)
+            z = df.groupby(result).y.mean()
+            self.assertEqual(z.index.dtype, expected)
+
+        # passing in a list-like
+        for bl, expected in [(Index(binlabels), np.dtype('int64')),
+                             (Index(Index(binlabels).map(str)), 'category')]:
+            bl = np.asarray(bl)
+            result = cut(df.x, bins=binedges, labels=bl)
+            self.assertEqual(result.dtype, expected)
+            z = df.groupby(result).y.mean()
+            self.assertEqual(z.index.dtype, expected)
+
+        # reversed categories
+        bl = Categorical(binlabels,categories=binlabels[::-1],ordered=True)
+        expected = Index(bl).dtype
+        result = cut(df.x, bins=binedges, labels=bl)
+        self.assertEqual(result.dtype, expected)
+        z = df.groupby(result).y.mean()
+        self.assertEqual(z.index.dtype, expected)
+        tm.assert_index_equal(z.index,
+                              CategoricalIndex(Categorical.from_codes(np.arange(len(bl)),categories=bl.categories,ordered=True),name='x'))
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)

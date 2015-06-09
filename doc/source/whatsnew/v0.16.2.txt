@@ -147,6 +147,7 @@ Bug Fixes
 - Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)
 
 - Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+- Regression in ``pd.cut` to ensure passed ``binlabels`` have a compat dtype on output (:issue:`10140`)
 
 
 - Bug in `Series.plot(label="LABEL")` not correctly setting the label (:issue:`10119`)
