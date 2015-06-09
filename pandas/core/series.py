@@ -99,7 +99,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Parameters
     ----------
     data : array-like, dict, or scalar value
-        Contains data stored in Series
+        Contains data stored in Series. If a dict and no index is provided,
+        an attempt will be made to sort the dict.
     index : array-like or Index (1d)
         Values must be unique and hashable, same length as data. Index
         object (or other iterable of same length as data) Will default to
@@ -131,6 +132,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            original_index = index
             if index is not None:
                 index = _ensure_index(index)
 
@@ -162,21 +164,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, dict):
                 if index is None:
                     if isinstance(data, OrderedDict):
-                        index = Index(data)
+                        original_index = data.keys()
                     else:
-                        index = Index(_try_sort(data))
+                        original_index = _try_sort(data)
+
+                    index = Index(original_index)
+
                 try:
-                    if isinstance(index, DatetimeIndex):
-                        # coerce back to datetime objects for lookup
-                        data = lib.fast_multiget(data, index.astype('O'),
-                                                 default=np.nan)
-                    elif isinstance(index, PeriodIndex):
-                        data = [data.get(i, nan) for i in index]
+                    # lib.fast_multiget raises TypeError if type(data) != dict
+
+                    if lib.infer_dtype(data) == lib.infer_dtype(index.values):
+                        data = lib.fast_multiget(data, index.values, default=np.nan)
                     else:
-                        data = lib.fast_multiget(data, index.values,
-                                                 default=np.nan)
-                except TypeError:
-                    data = [data.get(i, nan) for i in index]
+                        if isinstance(original_index, PeriodIndex):
+                            data = [data.get(i, np.nan) for i in original_index]
+                        else:
+                            # np.array(['z', ('a', 'b')]) raises ValueError;
+                            # this may happens with MultiIndex.
+                            data = lib.fast_multiget(data, np.array(original_index),
+                                                     default=np.nan)
+                except (TypeError, ValueError) as e:
+                    data = [data.get(i, np.nan) for i in index]
 
             elif isinstance(data, SingleBlockManager):
                 if index is None:
