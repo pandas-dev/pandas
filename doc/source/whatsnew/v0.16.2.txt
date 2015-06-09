@@ -163,6 +163,8 @@ Bug Fixes
 - Bug in GroupBy.get_group raises ValueError when group key contains NaT (:issue:`6992`)
 - Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
 
+- Bug in ``Categorical.remove_categories`` causing a ValueError when removing the ``NaN`` category if underlying dtype is floating-point (:issue:`10156`)
+
 - Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 - Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)
 - Bug to handle masking empty ``DataFrame``(:issue:`10126`)

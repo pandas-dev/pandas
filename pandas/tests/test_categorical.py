@@ -854,6 +854,28 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(c.categories , np.array(["a","b",np.nan],dtype=np.object_))
         self.assert_numpy_array_equal(c._codes , np.array([0,2,-1,0]))
 
+        # Remove null categories (GH 10156)
+        cases = [
+            ([1.0, 2.0, np.nan], [1.0, 2.0]),
+            (['a', 'b', None], ['a', 'b']),
+            ([pd.Timestamp('2012-05-01'), pd.NaT], [pd.Timestamp('2012-05-01')])
+        ]
+
+        null_values = [np.nan, None, pd.NaT]
+
+        for with_null, without in cases:
+            base = Categorical([], with_null)
+            expected = Categorical([], without)
+
+            for nullval in null_values:
+                result = base.remove_categories(nullval)
+                self.assert_categorical_equal(result, expected)
+
+        # Different null values are indistinguishable
+        for i, j in [(0, 1), (0, 2), (1, 2)]:
+            nulls = [null_values[i], null_values[j]]
+            self.assertRaises(ValueError, lambda: Categorical([], categories=nulls))
+
 
     def test_isnull(self):
         exp = np.array([False, False, True])

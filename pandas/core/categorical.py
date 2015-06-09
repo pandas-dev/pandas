@@ -749,11 +749,19 @@ class Categorical(PandasObject):
         """
         if not is_list_like(removals):
             removals = [removals]
-        removals = set(list(removals))
-        not_included = removals - set(self._categories)
+
+        removal_set = set(list(removals))
+        not_included = removal_set - set(self._categories)
+        new_categories = [ c for c in self._categories if c not in removal_set ]
+
+        # GH 10156
+        if any(isnull(removals)):
+            not_included = [x for x in not_included if notnull(x)]
+            new_categories = [x for x in new_categories if notnull(x)]
+
         if len(not_included) != 0:
             raise ValueError("removals must all be in old categories: %s" % str(not_included))
-        new_categories = [ c for c in self._categories if c not in removals ]
+
         return self.set_categories(new_categories, ordered=self.ordered, rename=False,
                                    inplace=inplace)
 
