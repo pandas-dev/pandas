@@ -1,7 +1,7 @@
 nose
 sphinx
 ipython
-dateutil
+python-dateutil
 pytz
 openpyxl
 xlsxwriter

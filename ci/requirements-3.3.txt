@@ -1,4 +1,4 @@
-dateutil
+python-dateutil
 pytz=2013b
 openpyxl=1.6.2
 xlsxwriter=0.4.6
