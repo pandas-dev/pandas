@@ -88,6 +88,19 @@ Easy to expand this to return a DataFrame using ``expand``.
 
    s2.str.split('_', expand=True)
 
+It is also possible to limit the number of splits:
+
+.. ipython:: python
+
+   s2.str.split('_', expand=True, n=1)
+
+``rsplit`` is similar to ``split`` except it works in the reverse direction,
+i.e., from the end of the string to the beginning of the string:
+
+.. ipython:: python
+
+   s2.str.rsplit('_', expand=True, n=1)
+
 Methods like ``replace`` and ``findall`` take `regular expressions
 <https://docs.python.org/2/library/re.html>`__, too:
 
@@ -239,6 +252,7 @@ Method Summary
 
     :meth:`~Series.str.cat`,Concatenate strings
     :meth:`~Series.str.split`,Split strings on delimiter
+    :meth:`~Series.str.rsplit`,Split strings on delimiter working from the end of the string
     :meth:`~Series.str.get`,Index into each element (retrieve i-th element)
     :meth:`~Series.str.join`,Join strings in each element of the Series with passed separator
     :meth:`~Series.str.contains`,Return boolean array if each string contains pattern/regex

@@ -676,6 +676,7 @@ class TestStringMethods(tm.TestCase):
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
         tm.assert_series_equal(empty_list, empty.str.split('a'))
+        tm.assert_series_equal(empty_list, empty.str.rsplit('a'))
         tm.assert_series_equal(empty_list, empty.str.partition('a', expand=False))
         tm.assert_series_equal(empty_list, empty.str.rpartition('a', expand=False))
         tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
@@ -1212,15 +1213,15 @@ class TestStringMethods(tm.TestCase):
         # mixed
         mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
                         None, 1, 2.])
-        rs = mixed.str.split('_')
-        xp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
+        result = mixed.str.split('_')
+        exp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
                      NA, NA, NA])
-        tm.assert_isinstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_isinstance(result, Series)
+        tm.assert_almost_equal(result, exp)
 
-        rs = mixed.str.split('_', expand=False)
-        tm.assert_isinstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        result = mixed.str.split('_', expand=False)
+        tm.assert_isinstance(result, Series)
+        tm.assert_almost_equal(result, exp)
 
         # unicode
         values = Series([u('a_b_c'), u('c_d_e'), NA, u('f_g_h')])
@@ -1234,12 +1235,75 @@ class TestStringMethods(tm.TestCase):
         result = values.str.split('_', expand=False)
         tm.assert_series_equal(result, exp)
 
+        # regex split
+        values = Series([u('a,b_c'), u('c_d,e'), NA, u('f,g,h')])
+        result = values.str.split('[,_]')
+        exp = Series([[u('a'), u('b'), u('c')],
+                      [u('c'), u('d'), u('e')], NA,
+                      [u('f'), u('g'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+    def test_rsplit(self):
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.rsplit('_')
+        exp = Series([['a', 'b', 'c'], ['c', 'd', 'e'], NA, ['f', 'g', 'h']])
+        tm.assert_series_equal(result, exp)
+
+        # more than one char
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        result = values.str.rsplit('__')
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rsplit('__', expand=False)
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
+                        None, 1, 2.])
+        result = mixed.str.rsplit('_')
+        exp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
+                     NA, NA, NA])
+        tm.assert_isinstance(result, Series)
+        tm.assert_almost_equal(result, exp)
+
+        result = mixed.str.rsplit('_', expand=False)
+        tm.assert_isinstance(result, Series)
+        tm.assert_almost_equal(result, exp)
+
+        # unicode
+        values = Series([u('a_b_c'), u('c_d_e'), NA, u('f_g_h')])
+        result = values.str.rsplit('_')
+        exp = Series([[u('a'), u('b'), u('c')],
+                      [u('c'), u('d'), u('e')], NA,
+                      [u('f'), u('g'), u('h')]])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rsplit('_', expand=False)
+        tm.assert_series_equal(result, exp)
+
+        # regex split is not supported by rsplit
+        values = Series([u('a,b_c'), u('c_d,e'), NA, u('f,g,h')])
+        result = values.str.rsplit('[,_]')
+        exp = Series([[u('a,b_c')],
+                      [u('c_d,e')],
+                      NA,
+                      [u('f,g,h')]])
+        tm.assert_series_equal(result, exp)
+
+        # setting max number of splits, make sure it's from reverse
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        result = values.str.rsplit('_', n=1)
+        exp = Series([['a_b', 'c'], ['c_d', 'e'], NA, ['f_g', 'h']])
+        tm.assert_series_equal(result, exp)
+
     def test_split_noargs(self):
         # #1859
         s = Series(['Wes McKinney', 'Travis  Oliphant'])
-
         result = s.str.split()
-        self.assertEqual(result[1], ['Travis', 'Oliphant'])
+        expected = ['Travis', 'Oliphant']
+        self.assertEqual(result[1], expected)
+        result = s.str.rsplit()
+        self.assertEqual(result[1], expected)
 
     def test_split_maxsplit(self):
         # re.split 0, str.split -1
@@ -1347,6 +1411,55 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
             idx.str.split('_', return_type="some_invalid_type")
+
+    def test_rsplit_to_dataframe_expand(self):
+        s = Series(['nosplit', 'alsonosplit'])
+        result = s.str.rsplit('_', expand=True)
+        exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_equal_splits', 'with_no_nans'])
+        result = s.str.rsplit('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
+                         2: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        result = s.str.rsplit('_', expand=True, n=2)
+        exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
+                         2: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        result = s.str.rsplit('_', expand=True, n=1)
+        exp = DataFrame({0: ['some_equal', 'with_no'],
+                         1: ['splits', 'nans']})
+        tm.assert_frame_equal(result, exp)
+
+        s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
+        result = s.str.rsplit('_', expand=True)
+        exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
+                        index=['preserve', 'me'])
+        tm.assert_frame_equal(result, exp)
+
+    def test_rsplit_to_multiindex_expand(self):
+        idx = Index(['nosplit', 'alsonosplit'])
+        result = idx.str.rsplit('_', expand=True)
+        exp = Index([np.array(['nosplit']), np.array(['alsonosplit'])])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 1)
+
+        idx = Index(['some_equal_splits', 'with_no_nans'])
+        result = idx.str.rsplit('_', expand=True)
+        exp = MultiIndex.from_tuples([('some', 'equal', 'splits'),
+                                      ('with', 'no', 'nans')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 3)
+
+        idx = Index(['some_equal_splits', 'with_no_nans'])
+        result = idx.str.rsplit('_', expand=True, n=1)
+        exp = MultiIndex.from_tuples([('some_equal', 'splits'),
+                                      ('with_no', 'nans')])
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.nlevels, 2)
 
     def test_partition_series(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
