@@ -340,7 +340,12 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.assertTrue(result.dtype == np.float64)
 
     def test_returned_dtype(self):
-        for dtype in [np.int16, np.int32, np.int64, np.float32, np.float64, np.float128]:
+
+        dtypes = [np.int16, np.int32, np.int64, np.float32, np.float64]
+        if hasattr(np,'float128'):
+            dtypes.append(np.float128)
+
+        for dtype in dtypes:
             s = Series(range(10), dtype=dtype)
             group_a = ['mean', 'std', 'var', 'skew', 'kurt']
             group_b = ['min', 'max']
