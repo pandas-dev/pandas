@@ -783,6 +783,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
+    def repeat(self, n):
+        """
+        Return a new Index of the values repeated n times.
+
+        See also
+        --------
+        numpy.ndarray.repeat
+        """
+        # overwrites method from DatetimeIndexOpsMixin
+        return self._shallow_copy(self.values.repeat(n))
+
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
 
