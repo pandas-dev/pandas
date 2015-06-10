@@ -1814,7 +1814,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 
 void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 {
-  PyObject *obj, *exc, *toDictFunc, *tmpObj;
+  PyObject *obj, *exc, *toDictFunc, *tmpObj, *getValuesFunc;
   TypeContext *pc;
   PyObjectEncoder *enc;
   double val;
@@ -2082,14 +2082,25 @@ ISITERABLE:
       return;
     }
 
-    PRINTMARK();
-    tc->type = JT_ARRAY;
-    pc->newObj = PyObject_GetAttrString(obj, "values");
-    pc->iterBegin = NpyArr_iterBegin;
-    pc->iterEnd = NpyArr_iterEnd;
-    pc->iterNext = NpyArr_iterNext;
-    pc->iterGetValue = NpyArr_iterGetValue;
-    pc->iterGetName = NpyArr_iterGetName;
+    PyObject* getValuesFunc = PyObject_GetAttrString(obj, "get_values");
+    if (getValuesFunc)
+    {
+      PRINTMARK();
+      tc->type = JT_ARRAY;
+      pc->newObj = PyObject_CallObject(getValuesFunc, NULL);
+      pc->iterBegin = NpyArr_iterBegin;
+      pc->iterEnd = NpyArr_iterEnd;
+      pc->iterNext = NpyArr_iterNext;
+      pc->iterGetValue = NpyArr_iterGetValue;
+      pc->iterGetName = NpyArr_iterGetName;
+
+      Py_DECREF(getValuesFunc);
+    }
+    else
+    {
+      goto INVALID;
+    }
+
     return;
   }
   else
