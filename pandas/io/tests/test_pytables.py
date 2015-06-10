@@ -13,7 +13,7 @@ import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
 
-from pandas.io.pytables import _tables
+from pandas.io.pytables import _tables, TableIterator
 try:
     _tables()
 except ImportError as e:
@@ -4669,6 +4669,54 @@ class TestHDFStore(tm.TestCase):
                 result = pd.read_hdf(path, 'df', where="index = [{0}]".format(df.index[0]))
                 assert(len(result))
 
+
+    def test_read_hdf_open_store(self):
+        # GH10330
+        # No check for non-string path_or-buf, and no test of open store
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        df.index.name = 'letters'
+        df = df.set_index(keys='E', append=True)
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='w')
+            direct = read_hdf(path, 'df')
+            store = HDFStore(path, mode='r')
+            indirect = read_hdf(store, 'df')
+            tm.assert_frame_equal(direct, indirect)
+            self.assertTrue(store.is_open)
+            store.close()
+
+    def test_read_hdf_iterator(self):
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        df.index.name = 'letters'
+        df = df.set_index(keys='E', append=True)
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='w', format='t')
+            direct = read_hdf(path, 'df')
+            iterator = read_hdf(path, 'df', iterator=True)
+            self.assertTrue(isinstance(iterator, TableIterator))
+            indirect = next(iterator.__iter__())
+            tm.assert_frame_equal(direct, indirect)
+            iterator.store.close()
+
+    def test_read_hdf_errors(self):
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+
+        with ensure_clean_path(self.path) as path:
+            self.assertRaises(IOError, read_hdf, path, 'key')
+            df.to_hdf(path, 'df')
+            store = HDFStore(path, mode='r')
+            store.close()
+            self.assertRaises(IOError, read_hdf, store, 'df')
+            with open(path, mode='r') as store:
+                self.assertRaises(NotImplementedError, read_hdf, store, 'df')
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
