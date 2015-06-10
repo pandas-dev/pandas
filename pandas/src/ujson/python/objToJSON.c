@@ -2082,7 +2082,7 @@ ISITERABLE:
       return;
     }
 
-    PyObject* getValuesFunc = PyObject_GetAttrString(obj, "get_values");
+    getValuesFunc = PyObject_GetAttrString(obj, "get_values");
     if (getValuesFunc)
     {
       PRINTMARK();
