@@ -27,7 +27,7 @@ _cat_frame = _frame.copy()
 cat = ['bah']*5 + ['bar']*5 + ['baz']*5 + ['foo']*(len(_cat_frame)-15)
 _cat_frame.index = pd.CategoricalIndex(cat,name='E')
 _cat_frame['E'] = list(reversed(cat))
-_cat_frame['sort'] = np.arange(len(_cat_frame))
+_cat_frame['sort'] = np.arange(len(_cat_frame),dtype='int64')
 
 _mixed_frame = _frame.copy()
 
