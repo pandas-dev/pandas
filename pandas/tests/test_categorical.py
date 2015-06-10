@@ -2736,7 +2736,6 @@ class TestCategoricalAsBlock(tm.TestCase):
             df.append(df_wrong_categories)
         self.assertRaises(ValueError, f)
 
-
     def test_merge(self):
         # GH 9426
 
@@ -2768,6 +2767,13 @@ class TestCategoricalAsBlock(tm.TestCase):
         cleft['b'] = cleft['b'].astype('category')
         result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
         tm.assert_frame_equal(result, expected)
+
+    def test_repeat(self):
+        #GH10183
+        cat = pd.Categorical(["a","b"], categories=["a","b"])
+        exp = pd.Categorical(["a", "a", "b", "b"], categories=["a","b"])
+        res = cat.repeat(2)
+        self.assert_categorical_equal(res, exp)
 
     def test_na_actions(self):
 

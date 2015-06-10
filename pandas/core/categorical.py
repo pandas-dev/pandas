@@ -1607,6 +1607,20 @@ class Categorical(PandasObject):
 
         return result
 
+    def repeat(self, repeats):
+        """
+        Repeat elements of a Categorical.
+
+        See also
+        --------
+        numpy.ndarray.repeat
+
+        """
+        codes = self._codes.repeat(repeats)
+        return Categorical(values=codes, categories=self.categories,
+                           ordered=self.ordered, name=self.name, fastpath=True)
+
+
 ##### The Series.cat accessor #####
 
 class CategoricalAccessor(PandasDelegate):

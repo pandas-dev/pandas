@@ -133,6 +133,14 @@ class Base(object):
         self.assertTrue("'foo'" in str(idx))
         self.assertTrue(idx.__class__.__name__ in str(idx))
 
+    def test_repr_max_seq_item_setting(self):
+        # GH10182
+        idx = self.create_index()
+        idx = idx.repeat(50)
+        with pd.option_context("display.max_seq_items", None):
+            repr(idx)
+            self.assertFalse('...' in str(idx))
+
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
@@ -2856,6 +2864,14 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         with self.assertRaisesRegexp(ValueError, 'different freq'):
             idx.asfreq('D').get_indexer(idx)
+
+    def test_repeat(self):
+        # GH10183
+        idx = pd.period_range('2000-01-01', periods=3, freq='D')
+        res = idx.repeat(3)
+        exp = PeriodIndex(idx.values.repeat(3), freq='D')
+        self.assert_index_equal(res, exp)
+        self.assertEqual(res.freqstr, 'D')
 
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
