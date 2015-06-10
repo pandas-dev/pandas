@@ -11,7 +11,7 @@ from pandas.compat import long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
-from pandas.core.common import AbstractMethodError
+from pandas.core.common import AbstractMethodError, is_categorical_dtype
 import pandas.core.common as com
 
 loads = _json.loads
@@ -60,11 +60,32 @@ class Writer(object):
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
         self.default_handler = default_handler
+        self._coerce_axes()
+        self._coerce_data()
 
-        self.is_copy = None
-        self._format_axes()
+    def _coerce_axes(self):
+        for i in range(self.obj._AXIS_LEN):
+            self._coerce_axis(i)
 
-    def _format_axes(self):
+    def _coerce_axis(self, axis):
+        """
+        Parameters
+        ----------
+        axis : axis number
+
+        if the axis needs coercion, then copy the .obj
+        and set the index
+
+        """
+
+        # GH 10317
+        # coerce CategoricalIndexes to Index dtypes
+        ax = self.obj._get_axis(axis)
+        if is_categorical_dtype(ax):
+            self.obj = self.obj.copy()
+            self.obj.set_axis(axis, np.array(ax))
+
+    def _coerce_data(self):
         raise AbstractMethodError(self)
 
     def write(self):
@@ -81,16 +102,20 @@ class Writer(object):
 class SeriesWriter(Writer):
     _default_orient = 'index'
 
-    def _format_axes(self):
+    def _coerce_axes(self):
         if not self.obj.index.is_unique and self.orient == 'index':
             raise ValueError("Series index must be unique for orient="
                              "'%s'" % self.orient)
+        super(SeriesWriter, self)._coerce_axes()
 
+    def _coerce_data(self):
+        if is_categorical_dtype(self.obj):
+            self.obj = np.array(self.obj)
 
 class FrameWriter(Writer):
     _default_orient = 'columns'
 
-    def _format_axes(self):
+    def _coerce_axes(self):
         """ try to axes if they are datelike """
         if not self.obj.index.is_unique and self.orient in (
                 'index', 'columns'):
@@ -100,7 +125,16 @@ class FrameWriter(Writer):
                 'index', 'columns', 'records'):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'%s'." % self.orient)
+        super(FrameWriter, self)._coerce_axes()
 
+    def _coerce_data(self):
+
+        is_copy = False
+        for c, col in self.obj.iteritems():
+            if is_categorical_dtype(col):
+                if not is_copy:
+                    is_copy, self.obj = True, self.obj.copy()
+                self.obj[c] = np.array(col)
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
