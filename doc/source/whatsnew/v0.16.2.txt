@@ -120,6 +120,7 @@ Bug Fixes
 - Bug where read_hdf store.select modifies the passed columns list when
   multi-indexed (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
+- Bug in ``to_json`` with certain orients and a ``CategoricalIndex`` would segfault (:issue:`10317`)
 
 - Bug where some of the nan funcs do not have consistent return dtypes (:issue:`10251`)
 
