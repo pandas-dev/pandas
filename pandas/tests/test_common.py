@@ -1018,6 +1018,16 @@ class TestMaybe(tm.TestCase):
         self.assertTrue(result.dtype == object)
 
 
+def test_dict_compat():
+    data_datetime64 = {np.datetime64('1990-03-15'): 1,
+                       np.datetime64('2015-03-15'): 2}
+    data_unchanged = {1: 2, 3: 4, 5: 6}
+    expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
+    assert(com._dict_compat(data_datetime64) == expected)
+    assert(com._dict_compat(expected) == expected)
+    assert(com._dict_compat(data_unchanged) == data_unchanged)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

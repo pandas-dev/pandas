@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name,
                                 _coerce_to_dtype, SettingWithCopyError,
-                                _maybe_box_datetimelike, ABCDataFrame)
+                                _maybe_box_datetimelike, ABCDataFrame,
+                                _dict_compat)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -168,6 +169,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 try:
                     if isinstance(index, DatetimeIndex):
                         # coerce back to datetime objects for lookup
+                        data = _dict_compat(data)
                         data = lib.fast_multiget(data, index.astype('O'),
                                                  default=np.nan)
                     elif isinstance(index, PeriodIndex):
