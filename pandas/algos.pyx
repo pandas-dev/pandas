@@ -861,14 +861,39 @@ def min_subseq(ndarray[double_t] arr):
     (s, e, m) = max_subseq(-arr)
 
     return (s, e, -m)
+#-------------------------------------------------------------------------------
+# double-double precision
+cdef class _DoubleDouble:
+    cdef:
+        double value
+        double roundoff
+
+cdef DoubleDouble_add_double(_DoubleDouble dd, double d):
+    # Shewchuk. Adaptive Precision Floating-Point Arithmetic and
+    # Fast Robust Geometric Predicates. 1997.
+    # This is not the main result of the paper. Shewchuk credits
+    # Knuth, but I was unable to find the algorithm in his Volume 2.
+    cdef double part_sum = dd.value + d
+    cdef double d_virtual = part_sum - dd.value
+    cdef double dd_virtual = part_sum - d_virtual
+    cdef double d_roundoff = d - d_virtual
+    cdef double dd_roundoff = dd.value - dd_virtual
+    cdef double roundoff = (d_roundoff + dd_roundoff) + dd.roundoff
+    dd.value = part_sum + roundoff
+    dd.roundoff = roundoff - (dd.value - part_sum)
 
 #-------------------------------------------------------------------------------
 # Rolling sum
 
-def roll_sum(ndarray[double_t] input, int win, int minp):
+def roll_sum(ndarray[double_t] input, int win, int minp,
+        bint higher_precision=False):
     cdef double val, prev, sum_x = 0
     cdef int nobs = 0, i
     cdef int N = len(input)
+    cdef _DoubleDouble sum_dd_x = _DoubleDouble()
+
+    sum_dd_x.value = 0
+    sum_dd_x.roundoff = 0
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -880,7 +905,10 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
         # Not NaN
         if val == val:
             nobs += 1
-            sum_x += val
+            if (higher_precision):
+                DoubleDouble_add_double(sum_dd_x, val)
+            else:
+                sum_x += val
 
         output[i] = NaN
 
@@ -889,16 +917,25 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
 
         if val == val:
             nobs += 1
-            sum_x += val
+            if (higher_precision):
+                DoubleDouble_add_double(sum_dd_x, val)
+            else:
+                sum_x += val
 
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
-                sum_x -= prev
+                if (higher_precision):
+                    DoubleDouble_add_double(sum_dd_x, -prev)
+                else:
+                    sum_x -= prev
                 nobs -= 1
 
         if nobs >= minp:
-            output[i] = sum_x
+            if (higher_precision):
+                output[i] = sum_dd_x.value
+            else:
+                output[i] = sum_x
         else:
             output[i] = NaN
 
@@ -908,13 +945,18 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
 # Rolling mean
 
 def roll_mean(ndarray[double_t] input,
-               int win, int minp):
+               int win, int minp, bint higher_precision=False):
     cdef:
         double val, prev, result, sum_x = 0
         Py_ssize_t nobs = 0, i, neg_ct = 0
         Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
+    cdef _DoubleDouble sum_dd_x = _DoubleDouble()
+
+    sum_dd_x.value = 0
+    sum_dd_x.roundoff = 0
+
     minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
@@ -923,7 +965,10 @@ def roll_mean(ndarray[double_t] input,
         # Not NaN
         if val == val:
             nobs += 1
-            sum_x += val
+            if (higher_precision):
+                DoubleDouble_add_double(sum_dd_x, val)
+            else:
+                sum_x += val
             if signbit(val):
                 neg_ct += 1
 
@@ -934,20 +979,29 @@ def roll_mean(ndarray[double_t] input,
 
         if val == val:
             nobs += 1
-            sum_x += val
+            if (higher_precision):
+                DoubleDouble_add_double(sum_dd_x, val)
+            else:
+                sum_x += val
             if signbit(val):
                 neg_ct += 1
 
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
-                sum_x -= prev
+                if (higher_precision):
+                    DoubleDouble_add_double(sum_dd_x, -prev)
+                else:
+                    sum_x -= prev
                 nobs -= 1
                 if signbit(prev):
                     neg_ct -= 1
 
         if nobs >= minp:
-            result = sum_x / nobs
+            if (higher_precision):
+                result = sum_dd_x.value / nobs
+            else:
+                result = sum_x / nobs
             if neg_ct == 0 and result < 0:
                 # all positive
                 output[i] = 0

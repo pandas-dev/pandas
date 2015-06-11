@@ -86,6 +86,8 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- ``rolling_mean`` and ``rolling_sum`` accept ``higher_precision`` (``True``/``False``) argument (:issue:`10319`)
+
 .. _whatsnew_0162.api:
 
 Backwards incompatible API changes
