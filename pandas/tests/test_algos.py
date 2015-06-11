@@ -307,6 +307,33 @@ def test_unique_label_indices():
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_array_equal(left, right)
 
+
+class TestNumericalAccuracy(tm.TestCase):
+
+    def test_roll_mean_accuracy(self):
+        # GH10319
+        values = [1, 0.0003, -0.0, -0.0]
+        values_expected = [x + 0 for x in values]
+        dates = pd.date_range('1999-02-03', '1999-02-06')
+        s = pd.Series(data=values, index=dates)
+
+        roll_mean = pd.rolling_mean(s, 1, higher_precision=True)
+        expected = pd.Series(data=values_expected, index=dates)
+
+        tm.assert_series_equal(roll_mean, expected, check_exact=True)
+
+    def test_roll_sum_accuracy(self):
+        # GH10319
+        values = [1, 0.0003, -0.0, -0.0]
+        values_expected = [x + 0 for x in values]
+        dates = pd.date_range('1999-02-03', '1999-02-06')
+        s = pd.Series(data=values, index=dates)
+
+        roll_sum = pd.rolling_sum(s, 1, higher_precision=True)
+        expected = pd.Series(data=values_expected, index=dates)
+
+        tm.assert_series_equal(roll_sum, expected, check_exact=True)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
