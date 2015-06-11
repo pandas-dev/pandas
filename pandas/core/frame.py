@@ -1349,7 +1349,8 @@ class DataFrame(NDFrame):
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, bold_rows=True, classes=None, escape=True,
-                max_rows=None, max_cols=None, show_dimensions=False):
+                max_rows=None, max_cols=None, show_dimensions=False,
+                urls_as_links=False):
         """
         Render a DataFrame as an HTML table.
 
@@ -1367,6 +1368,8 @@ class DataFrame(NDFrame):
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
+        urls_as_links : boolean, default False
+            Convert urls to HTML links.
 
         """
 
@@ -1387,7 +1390,8 @@ class DataFrame(NDFrame):
                                            escape=escape,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           urls_as_links=urls_as_links)
         formatter.to_html(classes=classes)
 
         if buf is None:

@@ -731,6 +731,77 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>"""
             self.assertEqual(result, expected)
 
+    def test_to_html_with_hyperlinks(self):
+        data = [
+            {
+                'foo': 0,
+                'bar': 'http://pandas.pydata.org/',
+                None: 'pydata.org',
+            },
+            {
+                'foo': 0,
+                'bar': 'http://pandas.pydata.org/?q1=a&q2=b',
+                None: 'pydata.org',
+            },
+        ]
+        df = DataFrame(data, columns=['foo', 'bar', None],
+                       index=range(len(data)))
+
+        result_no_links = df.to_html()
+        result_with_links = df.to_html(urls_as_links=True)
+        expected_no_links = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+      <th>bar</th>
+      <th>None</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>http://pandas.pydata.org/</td>
+      <td>pydata.org</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td>http://pandas.pydata.org/?q1=a&amp;q2=b</td>
+      <td>pydata.org</td>
+    </tr>
+  </tbody>
+</table>"""
+        expected_with_links = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+      <th>bar</th>
+      <th>None</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td><a href="http://pandas.pydata.org/">http://pandas.pydata.org/</a></td>
+      <td>pydata.org</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td><a href="http://pandas.pydata.org/?q1=a&q2=b">http://pandas.pydata.org/?q1=a&amp;q2=b</a></td>
+      <td>pydata.org</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result_with_links, expected_with_links)
+        self.assertEqual(result_no_links, expected_no_links)
+
     def test_to_html_multiindex_sparsify(self):
         index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])
