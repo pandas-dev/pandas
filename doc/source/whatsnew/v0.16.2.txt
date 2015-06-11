@@ -86,6 +86,8 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Removed duplicate scroll bars in DataFrame HTML representation. In pandas internal, large DataFrame's output will be wrapped with vertical and horizontal scroll bars. It is unnecessary because IPython has "toggle output scrolling" feature. In IPython below v3.0 the output is still wrapped with horizontal scroll bar because the horizontal scroll bar is not included (yet) in "toogle output scrolling" feature. In IPython v3.0 or later it is included so the output's scrollability all handled by IPython. (:issue:`10231`)
+
 .. _whatsnew_0162.api:
 
 Backwards incompatible API changes
