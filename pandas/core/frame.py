@@ -1167,6 +1167,9 @@ class DataFrame(NDFrame):
             Format string for datetime objects
         decimal: string, default '.'
             Character recognized as decimal separator. E.g. use ',' for European data
+
+            .. versionadded:: 0.16.0
+
         """
 
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -3613,6 +3616,9 @@ class DataFrame(NDFrame):
         periods : int, default 1
             Periods to shift for forming difference
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            Take difference over rows (0) or columns (1).
+
+            .. versionadded: 0.16.1
 
         Returns
         -------

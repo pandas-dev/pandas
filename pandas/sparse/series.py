@@ -670,6 +670,8 @@ class SparseSeries(Series):
         row_levels and column_levels are the names (labels) or numbers of the levels.
         {row_levels, column_levels} must be a partition of the MultiIndex level names (or numbers).
 
+        .. versionadded:: 0.16.0
+
         Parameters
         ----------
         row_levels : tuple/list
@@ -718,6 +720,8 @@ class SparseSeries(Series):
     def from_coo(cls, A, dense_index=False):
         """
         Create a SparseSeries from a scipy.sparse.coo_matrix.
+
+        .. versionadded:: 0.16.0
 
         Parameters
         ----------
