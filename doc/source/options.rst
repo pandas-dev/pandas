@@ -142,6 +142,7 @@ More information can be found in the `ipython documentation
   pd.set_option('display.max_rows', 999)
   pd.set_option('precision', 5)
 
+.. _options.frequently_used:
 
 Frequently Used Options
 -----------------------

@@ -52,10 +52,9 @@ pandas 0.16.2
 
 This is a minor release from 0.16.1 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
-A small number of API changes were necessary to fix existing bugs.
 
 See the :ref:`v0.16.2 Whatsnew <whatsnew_0162>` overview for an extensive list
-of all API changes, enhancements and bugs that have been fixed in 0.16.2.
+of all enhancements and bugs that have been fixed in 0.16.2.
 
 Thanks
 ~~~~~~
