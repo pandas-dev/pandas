@@ -959,6 +959,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     sparse : bool, default False
         Whether the returned DataFrame should be sparse or not.
 
+        .. versionadded:: 0.16.1
+
     Returns
     -------
     dummies : DataFrame

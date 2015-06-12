@@ -61,7 +61,7 @@ def apply_wraps(func):
             result = func(self, other)
             if self._adjust_dst:
                 result = tslib._localize_pydatetime(result, tz)
-            
+
             result = Timestamp(result)
             if self.normalize:
                 result = result.normalize()
@@ -387,7 +387,7 @@ class DateOffset(object):
         return fstr
 
 class SingleConstructorOffset(DateOffset):
-    
+
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
@@ -538,6 +538,9 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 class BusinessHour(BusinessMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business days
+
+    .. versionadded: 0.16.1
+
     """
     _prefix = 'BH'
     _anchor = 0
@@ -923,7 +926,7 @@ class CustomBusinessDay(BusinessDay):
 
 class MonthOffset(SingleConstructorOffset):
     _adjust_dst = True
-    
+
     @property
     def name(self):
         if self.isAnchored:
@@ -1270,9 +1273,9 @@ class WeekOfMonth(DateOffset):
         5: Saturdays
         6: Sundays
     """
-    
+
     _adjust_dst = True
-    
+
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
@@ -2210,7 +2213,7 @@ class Easter(DateOffset):
     1583-4099.
     '''
     _adjust_dst = True
-    
+
     def __init__(self, n=1, **kwds):
         super(Easter, self).__init__(n, **kwds)
 
