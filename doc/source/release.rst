@@ -45,6 +45,53 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.16.2
+-------------
+
+**Release date:** (June 12, 2015)
+
+This is a minor release from 0.16.1 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+A small number of API changes were necessary to fix existing bugs.
+
+See the :ref:`v0.16.2 Whatsnew <whatsnew_0162>` overview for an extensive list
+of all API changes, enhancements and bugs that have been fixed in 0.16.2.
+
+Thanks
+~~~~~~
+
+- Andrew Rosenfeld
+- Artemy Kolchinsky
+- Bernard Willers
+- Christer van der Meeren
+- Christian Hudon
+- Constantine Glen Evans
+- Daniel Julius Lasiman
+- Evan Wright
+- Francesco Brundu
+- Gaëtan de Menten
+- Jake VanderPlas
+- James Hiebert
+- Jeff Reback
+- Joris Van den Bossche
+- Justin Lecher
+- Ka Wo Chen
+- Mortada Mehyar
+- Morton Fox
+- Robin Wilson
+- Thomas Grainger
+- Tom Ajamian
+- Tom Augspurger
+- Yoshiki Vázquez Baeza
+- Younggun Kim
+- austinc
+- behzad nouri
+- jreback
+- lexual
+- rekcahpassyla
+- scls19fr
+- sinhrks
+
 pandas 0.16.1
 -------------
 
