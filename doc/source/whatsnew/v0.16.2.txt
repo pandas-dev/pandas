@@ -174,3 +174,5 @@ Bug Fixes
 
 - Bug in ``read_hdf`` where ``auto_close`` could not be passed (:issue:`9327`).
 - Bug in ``read_hdf`` where open stores could not be used (:issue:`10330`).
+
+- Bug in ``to_hdf`` and ``HDFStore`` which did not check that complib choices were valid (:issue:`4582`, :issue:`8874`).
