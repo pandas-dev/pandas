@@ -169,3 +169,5 @@ Bug Fixes
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
 
 - Bug in ``read_csv`` with a ``date_parser`` that returned a ``datetime64`` array of other time resolution than ``[ns]`` (:issue:`10245`)
+
+- Bug in ``Panel.apply`` when the result has ndim = 0 (:issue:`10332`)
