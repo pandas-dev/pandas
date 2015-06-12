@@ -1093,14 +1093,10 @@ class Panel(NDFrame):
         # need to assume they are the same
         if ndim is None:
             if isinstance(result,dict):
-                ndim = getattr(list(compat.itervalues(result))[0],'ndim',None)
-
-                # a saclar result
-                if ndim is None:
-                    ndim = 0
+                ndim = getattr(list(compat.itervalues(result))[0],'ndim',0)
 
                 # have a dict, so top-level is +1 dim
-                else:
+                if ndim != 0:
                     ndim += 1
 
         # scalar
