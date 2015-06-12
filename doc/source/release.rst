@@ -75,6 +75,7 @@ Thanks
 - Joris Van den Bossche
 - Justin Lecher
 - Ka Wo Chen
+- Kevin Sheppard
 - Mortada Mehyar
 - Morton Fox
 - Robin Wilson
