@@ -4718,6 +4718,13 @@ class TestHDFStore(tm.TestCase):
             with open(path, mode='r') as store:
                 self.assertRaises(NotImplementedError, read_hdf, store, 'df')
 
+    def test_invalid_complib(self):
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        with ensure_clean_path(self.path) as path:
+            self.assertRaises(ValueError, df.to_hdf, path, 'df', complib='blosc:zlib')
+
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
         return obj.reindex(sorted(obj.index))

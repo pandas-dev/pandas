@@ -389,6 +389,10 @@ class HDFStore(StringMixin):
         except ImportError as ex:  # pragma: no cover
             raise ImportError('HDFStore requires PyTables, "{ex}" problem importing'.format(ex=str(ex)))
 
+        if complib not in (None, 'blosc', 'bzip2', 'lzo', 'zlib'):
+            raise ValueError("complib only supports 'blosc', 'bzip2', lzo' "
+                             "or 'zlib' compression.")
+
         self._path = path
         if mode is None:
             mode = 'a'
