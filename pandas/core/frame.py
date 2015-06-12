@@ -34,7 +34,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels,
                                   convert_to_index_sliceable,
                                   check_bool_indexer)
-from pandas.core.internals import (BlockManager,
+from pandas.core.internals import (BlockManager, make_block,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
@@ -2739,6 +2739,69 @@ class DataFrame(NDFrame):
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
+
+    def asof(self, where, skipna='percolumn'):
+        """
+        Return last good (non-null) value for each column of DataFrame for the
+        request dates. Definition of 'good' value controlled by skipna argument.
+
+        If there is no good value, NaN is returned.
+
+        Parameters
+        ----------
+        where : date or sequence of dates
+        skipna :  {'any', 'all', 'none', 'percolumn'}, default 'percolumn'
+            * any: Ignore/skip rows where any of the columns are null.
+            * all: Ignore/skip rows where all of the columns are null.
+            * none: Don't ignore/skip any rows.
+            * percolumn:  Ignore/skip null rows for each column seperately.
+                          Equivalent to df.apply(lambda s: s.asof(where)).
+
+        Notes
+        -----
+        Dates are assumed to be sorted
+
+        Returns
+        -------
+        Series if where is a date, DataFrame if where is a sequence of dates.
+        """
+        if isinstance(where, compat.string_types):
+            where = datetools.to_datetime(where)
+
+        if skipna == 'percolumn':
+            return self.apply(lambda s: s.asof(where))
+        elif skipna == 'none':
+            row_mask = np.ones((self.shape[0],), dtype=np.bool)
+        elif skipna == 'any':
+            row_mask = ~(self.isnull().any(axis=1).values)
+        elif skipna == 'all':
+            row_mask = ~(self.isnull().all(axis=1).values)
+        else:
+            raise ValueError("skipna must be one of percolumn, none, any, all.")
+
+        if not hasattr(where, '__iter__'):
+            loc = self.index.asof_locs(Index([where]), row_mask)[0]
+            if loc == -1:
+                return Series(index=self.columns, data=np.nan)
+
+            s = self.iloc[loc, :].copy()
+            s.name = None
+            return s
+
+        locs = self.index.asof_locs(where, row_mask)
+
+        new_blocks = []
+        for block in self._data.blocks:
+            new_values = com.take_2d_multi(block.values, [None, locs])
+            # can we use make_block_same_Class? not sure how that interacts with
+            # needing to cast an int to a float once you get missings
+            #b = block.make_block_same_class(new_values, block.mgr_locs)
+            new_block = make_block(new_values, block.mgr_locs)
+            new_blocks.append(new_block)
+        new_mgr = create_block_manager_from_blocks(new_blocks,
+                                                   [self._data.axes[0], where])
+        new_df = self._constructor(new_mgr)
+        return new_df
 
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):

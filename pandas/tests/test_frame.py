@@ -2270,6 +2270,83 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assertRaisesRegexp(ValueError, 'No axis.*None', f._get_axis_name, None)
         assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, None)
 
+    def test_asof(self):
+        dates = date_range('2014/01/02', periods=4, freq='3D')
+        df = pd.DataFrame(data={'a': ["a", None, "b", "c"],
+                                'b': [1, None, 2, 3],
+                                'c': [1, None, None, 3],
+                                'd': [None, None, 2, 3]},
+                          index=dates)
+
+        test_dates = date_range('2014/01/01', periods=5, freq='3D')
+
+        # test using skipna = none, the simplest case
+        result_skipna_none = df.asof(test_dates, skipna='none')
+        # make sure the index matches
+        self.assertTrue((result_skipna_none.index == test_dates).all())
+        # compare with the expected frame
+        expected_result = pd.DataFrame(data={'a': [None, "a", None, "b", "c"],
+                                             'b': [None, 1, None, 2, 3],
+                                             'c': [None, 1, None, None, 3],
+                                             'd': [None, None, None, 2, 3]},
+                                       index=test_dates)
+        assert_frame_equal(result_skipna_none, expected_result)
+
+        # test using skipna=any
+        result_skipna_any = df.asof(test_dates, skipna='any')
+        # compare with the expected result
+        expected_result = pd.DataFrame(data={'a': [None, None, None, None, "c"],
+                                             'b': [None, None, None, None, 3],
+                                             'c': [None, None, None, None, 3],
+                                             'd': [None, None, None, None, 3]},
+                                       index=test_dates)
+        assert_frame_equal(result_skipna_any, expected_result)
+
+        result_skipna_all = df.asof(test_dates, skipna='all')
+        # compare with expected result
+        expected_result = pd.DataFrame(data={'a': [None, "a", "a", "b", "c"],
+                                             'b': [None, 1, 1, 2, 3],
+                                             'c': [None, 1, 1, None, 3],
+                                             'd': [None, None, None, 2, 3]},
+                                       index=test_dates)
+        assert_frame_equal(result_skipna_all, expected_result)
+
+        # finally the most complicated case, skipna=percolumn
+        result_skipna_percolumn = df.asof(test_dates, skipna='percolumn')
+        # compare with expected result
+        expected_result = pd.DataFrame(data={'a': [None, "a", "a", "b", "c"],
+                                             'b': [None, 1, 1, 2, 3],
+                                             'c': [None, 1, 1, 1, 3],
+                                             'd': [None, None, None, 2, 3]},
+                                       index=test_dates)
+        assert_frame_equal(result_skipna_percolumn, expected_result)
+
+        # test calling with scalar values
+        s1 = df.asof(test_dates[0], skipna='none')
+        self.assertIsNone(s1.name)
+        self.assertTrue(isnull(s1).all())
+
+        s2 = df.asof(test_dates[2], skipna='none')
+        self.assertIsNone(s2.name)
+        s2_expected = result_skipna_none.iloc[2, :]
+        s2_expected.name = None
+        assert_series_equal(s2_expected, s2)
+
+        s3 = df.asof(test_dates[2], skipna='any')
+        self.assertIsNone(s3.name)
+        self.assertTrue(isnull(s3).all())
+
+        s4 = df.asof(test_dates[2], skipna='all')
+        self.assertIsNone(s4.name)
+        s4_expected = result_skipna_all.iloc[2, :]
+        s4_expected.name = None
+        assert_series_equal(s4_expected, s4)
+
+        s5 = df.asof(test_dates[2], skipna='percolumn')
+        self.assertIsNone(s5.name)
+        s5_expected = df.apply(lambda s: s.asof(test_dates[2]))
+        assert_series_equal(s5_expected, s5)
+
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
 
