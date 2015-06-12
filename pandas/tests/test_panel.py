@@ -1233,6 +1233,25 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         expected = p.sum(0)
         assert_frame_equal(result,expected)
 
+    def test_apply_no_or_zero_ndim(self):
+        # GH10332
+        self.panel = Panel(np.random.rand(5, 5, 5))
+
+        result_int = self.panel.apply(lambda df: 0, axis=[1, 2])
+        result_float = self.panel.apply(lambda df: 0.0, axis=[1, 2])
+        result_int64 = self.panel.apply(lambda df: np.int64(0), axis=[1, 2])
+        result_float64 = self.panel.apply(lambda df: np.float64(0.0),
+                                          axis=[1, 2])
+
+        expected_int = expected_int64 = Series([0] * 5)
+        expected_float = expected_float64 = Series([0.0] * 5)
+
+        assert_series_equal(result_int, expected_int)
+        assert_series_equal(result_int64, expected_int64)
+        assert_series_equal(result_float, expected_float)
+        assert_series_equal(result_float64, expected_float64)
+
+
     def test_reindex(self):
         ref = self.panel['ItemB']
 
