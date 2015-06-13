@@ -640,34 +640,39 @@ def json_normalize(data, record_path=None, meta=None,
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
 
-    Examples
-    --------
-    data = [{'state': 'Florida',
-             'shortname': 'FL',
-             'info': {
-                  'governor': 'Rick Scott'
-             },
-             'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
-            {'state': 'Ohio',
-             'shortname': 'OH',
-             'info': {
-                  'governor': 'John Kasich'
-             },
-             'counties': [{'name': 'Summit', 'population': 1234},
-                          {'name': 'Cuyahoga', 'population': 1337}]}]
-
-    result = json_normalize(data, 'counties', ['state', 'shortname',
-                                              ['info', 'governor']])
-
-      state    governor
-    Florida  Rick Scott
-
-
     Returns
     -------
     frame : DataFrame
+
+    Examples
+    --------
+
+    >>> data = [{'state': 'Florida',
+    ...          'shortname': 'FL',
+    ...          'info': {
+    ...               'governor': 'Rick Scott'
+    ...          },
+    ...          'counties': [{'name': 'Dade', 'population': 12345},
+    ...                      {'name': 'Broward', 'population': 40000},
+    ...                      {'name': 'Palm Beach', 'population': 60000}]},
+    ...         {'state': 'Ohio',
+    ...          'shortname': 'OH',
+    ...          'info': {
+    ...               'governor': 'John Kasich'
+    ...          },
+    ...          'counties': [{'name': 'Summit', 'population': 1234},
+    ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
+    >>> from pandas.io.json import json_normalize
+    >>> result = json_normalize(data, 'counties', ['state', 'shortname',
+    ...                                           ['info', 'governor']])
+    >>> result
+             name  population info.governor    state shortname
+    0        Dade       12345    Rick Scott  Florida        FL
+    1     Broward       40000    Rick Scott  Florida        FL
+    2  Palm Beach       60000    Rick Scott  Florida        FL
+    3      Summit        1234   John Kasich     Ohio        OH
+    4    Cuyahoga        1337   John Kasich     Ohio        OH
+
     """
     def _pull_field(js, spec):
         result = js
