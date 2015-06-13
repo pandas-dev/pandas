@@ -521,6 +521,11 @@ Deprecations
 
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 
+- :meth:`Series.asof` is deprecated. Please use :meth:`Series.reindex(where, method='ffill')`
+  instead. This method does not drop missing values in the original series.
+
+  So `Series.asof(where)` is equivalent to `Series.dropna().reindex(where, method='ffill')`.
+
 .. _whatsnew_0170.prior_deprecations:
 
 Removal of prior version deprecations/changes

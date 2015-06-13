@@ -449,7 +449,6 @@ Time series-related
    :toctree: generated/
 
    Series.asfreq
-   Series.asof
    Series.shift
    Series.first_valid_index
    Series.last_valid_index
