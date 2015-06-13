@@ -1037,7 +1037,7 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if self.fmt.has_index_names:
+        if self.fmt.has_index_names and self.fmt.index:
             row = [
                 x if x is not None else '' for x in self.frame.index.names
             ] + [''] * min(len(self.columns), self.max_cols)
