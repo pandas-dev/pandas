@@ -2050,7 +2050,7 @@ class NDFrame(PandasObject):
         return self.take(locs, axis=axis)
 
     _shared_docs['pipe'] = ("""
-        Apply func(self, *args, **kwargs)
+        Apply func(self, \*args, \*\*kwargs)
 
         .. versionadded:: 0.16.2
 
