@@ -53,6 +53,11 @@ pandas 0.16.2
 This is a minor release from 0.16.1 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
 
+Highlights include:
+
+- A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
+- Documentation on how to use `numba <http://numba.pydata.org>`_ with *pandas*, see :ref:`here <enhancingperf.numba>`
+
 See the :ref:`v0.16.2 Whatsnew <whatsnew_0162>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.16.2.
 

@@ -13,7 +13,6 @@ Highlights include:
 - A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
 - Documentation on how to use numba_ with *pandas*, see :ref:`here <enhancingperf.numba>`
 
-Check the :ref:`API Changes <whatsnew_0162.api>` before updating.
 
 .. contents:: What's new in v0.16.2
     :local:
