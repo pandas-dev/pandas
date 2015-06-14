@@ -58,3 +58,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
