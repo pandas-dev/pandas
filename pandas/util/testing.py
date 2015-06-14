@@ -856,6 +856,33 @@ def makePeriodIndex(k=10):
     dr = PeriodIndex(start=dt, periods=k, freq='B')
     return dr
 
+def all_index_generator(k=10):
+    """Generator which can be iterated over to get instances of all the various
+    index classes.
+
+    Parameters
+    ----------
+    k: length of each of the index instances
+    """
+    all_make_index_funcs = [makeIntIndex, makeFloatIndex, makeStringIndex,
+                            makeUnicodeIndex, makeDateIndex, makePeriodIndex,
+                            makeTimedeltaIndex, makeBoolIndex,
+                            makeCategoricalIndex]
+    for make_index_func in all_make_index_funcs:
+        yield make_index_func(k=k)
+
+def all_timeseries_index_generator(k=10):
+    """Generator which can be iterated over to get instances of all the classes
+    which represent time-seires.
+
+    Parameters
+    ----------
+    k: length of each of the index instances
+    """
+    make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
+    for make_index_func in make_index_funcs:
+        yield make_index_func(k=k)
+
 
 # make series
 def makeFloatSeries():

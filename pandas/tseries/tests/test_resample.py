@@ -9,6 +9,7 @@ import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Index,
                     isnull, notnull, Timestamp)
 
+from pandas.core.groupby import DataError
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
@@ -659,6 +660,20 @@ class TestResample(tm.TestCase):
         xp = DataFrame()
         rs = xp.resample('A')
         assert_frame_equal(xp, rs)
+
+        # Empty series were sometimes causing a segfault (for the functions
+        # with Cython bounds-checking disabled) or an IndexError.  We just run
+        # them to ensure they no longer do.  (GH #10228)
+        for index in tm.all_timeseries_index_generator(0):
+            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
+                for how in ('count', 'mean', 'min', 'ohlc', 'last', 'prod'):
+                    empty_series = pd.Series([], index, dtype)
+                    try:
+                        empty_series.resample('d', how)
+                    except DataError:
+                        # Ignore these since some combinations are invalid
+                        # (ex: doing mean with dtype of np.object)
+                        pass
 
     def test_weekly_resample_buglet(self):
         # #1327

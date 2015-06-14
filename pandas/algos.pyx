@@ -2157,6 +2157,8 @@ def group_nth_bin_object(ndarray[object, ndim=2] out,
     nobs = np.zeros((<object> out).shape, dtype=np.float64)
     resx = np.empty((<object> out).shape, dtype=object)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -2247,6 +2249,8 @@ def group_last_bin_object(ndarray[object, ndim=2] out,
     nobs = np.zeros((<object> out).shape, dtype=np.float64)
     resx = np.empty((<object> out).shape, dtype=object)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:

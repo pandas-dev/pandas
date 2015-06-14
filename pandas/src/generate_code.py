@@ -751,6 +751,8 @@ def group_last_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
     resx = np.empty_like(out)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -797,6 +799,8 @@ def group_nth_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
     resx = np.empty_like(out)
 
+    if len(bin) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -948,6 +952,8 @@ def group_add_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1064,6 +1070,8 @@ def group_prod_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1184,6 +1192,8 @@ def group_var_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     sumx = np.zeros_like(out)
     sumxx = np.zeros_like(out)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1285,6 +1295,8 @@ def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         ndarray[int64_t, ndim=2] nobs = np.zeros((out.shape[0], out.shape[1]),
                                                  dtype=np.int64)
 
+    if len(bins) == 0:
+        return
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
     for i in range(N):
@@ -1329,6 +1341,8 @@ def group_min_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     minx = np.empty_like(out)
     minx.fill(%(inf_val)s)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1453,6 +1467,8 @@ def group_max_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     maxx = np.empty_like(out)
     maxx.fill(-%(inf_val)s)
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1629,6 +1645,8 @@ def group_mean_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     sumx = np.zeros_like(out)
 
     N, K = (<object> values).shape
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
@@ -1685,6 +1703,8 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         %(dest_type2)s vopen, vhigh, vlow, vclose, NA
         bint got_first = 0
 
+    if len(bins) == 0:
+        return
     if bins[len(bins) - 1] == len(values):
         ngroups = len(bins)
     else:
