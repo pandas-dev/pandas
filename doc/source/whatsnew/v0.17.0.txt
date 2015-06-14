@@ -468,6 +468,9 @@ Other enhancements
 - ``pd.read_csv`` can now read bz2-compressed files incrementally, and the C parser can read bz2-compressed files from AWS S3 (:issue:`11070`, :issue:`11072`).
 
 
+- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series`` that allow for functions that take a ``GroupBy`` to be composed in a clean, readable syntax.  See the :ref:`documentation <groupby.pipe>` for more.
+
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:

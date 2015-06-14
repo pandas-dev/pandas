@@ -1002,6 +1002,67 @@ See the :ref:`visualization documentation<visualization.box>` for more.
   to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>` for
   an explanation.
 
+
+.. _groupby.pipe:
+
+Piping function calls
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.17.0
+
+Similar to the funcionality provided by ``DataFrames`` and ``Series``, functions
+that take ``GroupBy`` objects can be chained together using a ``pipe`` method to
+allow for a cleaner, more readable syntax.
+
+Imagine that one had functions f, g, and h that each takes a ``DataFrameGroupBy``
+as well as a single argument and returns a ``DataFrameGroupBy``, and one wanted
+to apply these functions in succession to a grouped DataFrame.  Instead of having
+to deeply compose these functions and their arguments, such as:
+
+.. code-block:: python
+
+   >>> h(g(f(df.groupby('group'), arg1), arg2), arg4)
+
+one can write the following:
+
+.. code-block:: python
+
+  >>> (df
+         .groupby('group')
+         .pipe(f, arg1)
+         .pipe(g, arg2)
+         .pipe(h, arg3))
+
+For a more concrete example, imagine one wanted to group a DataFrame by column
+'A' and the user wanted to take the square of the difference between the maximum
+value of 'B' in each group and the overal minimum value of 'C' (across all
+groups). One could write this as a pipeline of functions applied to the original
+dataframe:
+
+.. code-block:: python
+
+    def f(dfgb):
+        """
+        Take a DataFrameGroupBy and return a Series
+        where each value corresponds to the maximum
+        value of column 'B' in each group minus the
+        global minimum of column 'C'.
+        """
+        return dfgb.B.max() - dfgb.C.min().min()
+
+    def square(srs):
+        """
+        Take a Series and transform it by
+        squaring each value.
+        """
+        return srs ** 2
+
+    res = df.groupby('A').pipe(f).pipe(square)
+
+
+For more details on pipeline functionality, see :ref:`here<basics.pipe>`.
+
+
 Examples
 --------
 
