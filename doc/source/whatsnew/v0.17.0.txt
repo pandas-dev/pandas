@@ -73,10 +73,28 @@ Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 
+
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
+
+
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
+
+
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
+
+
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
+
+
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
+
+
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
+
+
+
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
+
+
+
+- Bug that caused segfault when resampling an empty Series (:issue:`10228`)
