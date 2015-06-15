@@ -19,7 +19,7 @@ from pandas.core.datetools import (
     get_offset, get_offset_name, get_standard_freq)
 
 from pandas import Series
-from pandas.tseries.frequencies import _offset_map
+from pandas.tseries.frequencies import _offset_map, get_freq_code, _get_freq_str
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
 from pandas.tseries.tools import parse_time_string, DateParseError
 import pandas.tseries.offsets as offsets
@@ -210,6 +210,27 @@ class TestCommon(Base):
 
             self.assertTrue(NaT - offset is NaT)
             self.assertTrue((-offset).apply(NaT) is NaT)
+
+    def test_offset_n(self):
+        for offset_klass in self.offset_types:
+            offset = self._get_offset(offset_klass)
+            self.assertEqual(offset.n, 1)
+
+            neg_offset = offset * -1
+            self.assertEqual(neg_offset.n, -1)
+
+            mul_offset = offset * 3
+            self.assertEqual(mul_offset.n, 3)
+
+    def test_offset_freqstr(self):
+        for offset_klass in self.offset_types:
+            offset = self._get_offset(offset_klass)
+
+            freqstr = offset.freqstr
+            if freqstr not in ('<Easter>', "<DateOffset: kwds={'days': 1}>",
+                               'LWOM-SAT', ):
+                code = get_offset(freqstr)
+                self.assertEqual(offset.rule_code, code)
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
@@ -3695,6 +3716,12 @@ class TestOffsetAliases(tm.TestCase):
                 self.assertEqual(alias, get_offset(alias).rule_code)
                 self.assertEqual(alias, (get_offset(alias) * 5).rule_code)
 
+        lst = ['M', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
+        for k in lst:
+            code, stride = get_freq_code('3' + k)
+            self.assertTrue(isinstance(code, int))
+            self.assertEqual(stride, 3)
+            self.assertEqual(k, _get_freq_str(code))
 
 def test_apply_ticks():
     result = offsets.Hour(3).apply(offsets.Hour(4))

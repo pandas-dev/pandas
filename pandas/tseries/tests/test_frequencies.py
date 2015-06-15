@@ -132,6 +132,117 @@ def test_anchored_shortcuts():
     expected = frequencies.to_offset('Q-DEC')
     assert(result == expected)
 
+class TestFrequencyCode(tm.TestCase):
+
+    def test_freq_code(self):
+        self.assertEqual(frequencies.get_freq('A'), 1000)
+        self.assertEqual(frequencies.get_freq('3A'), 1000)
+        self.assertEqual(frequencies.get_freq('-1A'), 1000)
+
+        self.assertEqual(frequencies.get_freq('W'), 4000)
+        self.assertEqual(frequencies.get_freq('W-MON'), 4001)
+        self.assertEqual(frequencies.get_freq('W-FRI'), 4005)
+
+        for freqstr, code in compat.iteritems(frequencies._period_code_map):
+            result = frequencies.get_freq(freqstr)
+            self.assertEqual(result, code)
+
+            result = frequencies.get_freq_group(freqstr)
+            self.assertEqual(result, code // 1000 * 1000)
+
+            result = frequencies.get_freq_group(code)
+            self.assertEqual(result, code // 1000 * 1000)
+
+    def test_get_to_timestamp_base(self):
+        tsb = frequencies.get_to_timestamp_base
+
+        self.assertEqual(tsb(frequencies.get_freq_code('D')[0]),
+                         frequencies.get_freq_code('D')[0])
+        self.assertEqual(tsb(frequencies.get_freq_code('W')[0]),
+                         frequencies.get_freq_code('D')[0])
+        self.assertEqual(tsb(frequencies.get_freq_code('M')[0]),
+                         frequencies.get_freq_code('D')[0])
+
+        self.assertEqual(tsb(frequencies.get_freq_code('S')[0]),
+                         frequencies.get_freq_code('S')[0])
+        self.assertEqual(tsb(frequencies.get_freq_code('T')[0]),
+                         frequencies.get_freq_code('S')[0])
+        self.assertEqual(tsb(frequencies.get_freq_code('H')[0]),
+                         frequencies.get_freq_code('S')[0])
+
+
+    def test_freq_to_reso(self):
+        Reso = frequencies.Resolution
+
+        self.assertEqual(Reso.get_str_from_freq('A'), 'year')
+        self.assertEqual(Reso.get_str_from_freq('Q'), 'quarter')
+        self.assertEqual(Reso.get_str_from_freq('M'), 'month')
+        self.assertEqual(Reso.get_str_from_freq('D'), 'day')
+        self.assertEqual(Reso.get_str_from_freq('H'), 'hour')
+        self.assertEqual(Reso.get_str_from_freq('T'), 'minute')
+        self.assertEqual(Reso.get_str_from_freq('S'), 'second')
+        self.assertEqual(Reso.get_str_from_freq('L'), 'millisecond')
+        self.assertEqual(Reso.get_str_from_freq('U'), 'microsecond')
+        self.assertEqual(Reso.get_str_from_freq('N'), 'nanosecond')
+
+        for freq in ['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U', 'N']:
+            # check roundtrip
+            result = Reso.get_freq(Reso.get_str_from_freq(freq))
+            self.assertEqual(freq, result)
+
+        for freq in ['D', 'H', 'T', 'S', 'L', 'U']:
+            result = Reso.get_freq(Reso.get_str(Reso.get_reso_from_freq(freq)))
+            self.assertEqual(freq, result)
+
+    def test_get_freq_code(self):
+        # freqstr
+        self.assertEqual(frequencies.get_freq_code('A'),
+                         (frequencies.get_freq('A'), 1))
+        self.assertEqual(frequencies.get_freq_code('3D'),
+                         (frequencies.get_freq('D'), 3))
+        self.assertEqual(frequencies.get_freq_code('-2M'),
+                         (frequencies.get_freq('M'), -2))
+
+        # tuple
+        self.assertEqual(frequencies.get_freq_code(('D', 1)),
+                         (frequencies.get_freq('D'), 1))
+        self.assertEqual(frequencies.get_freq_code(('A', 3)),
+                         (frequencies.get_freq('A'), 3))
+        self.assertEqual(frequencies.get_freq_code(('M', -2)),
+                         (frequencies.get_freq('M'), -2))
+        # numeric tuple
+        self.assertEqual(frequencies.get_freq_code((1000, 1)), (1000, 1))
+
+        # offsets
+        self.assertEqual(frequencies.get_freq_code(offsets.Day()),
+                         (frequencies.get_freq('D'), 1))
+        self.assertEqual(frequencies.get_freq_code(offsets.Day(3)),
+                         (frequencies.get_freq('D'), 3))
+        self.assertEqual(frequencies.get_freq_code(offsets.Day(-2)),
+                         (frequencies.get_freq('D'), -2))
+
+        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd()),
+                         (frequencies.get_freq('M'), 1))
+        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd(3)),
+                         (frequencies.get_freq('M'), 3))
+        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd(-2)),
+                         (frequencies.get_freq('M'), -2))
+
+        self.assertEqual(frequencies.get_freq_code(offsets.Week()),
+                         (frequencies.get_freq('W'), 1))
+        self.assertEqual(frequencies.get_freq_code(offsets.Week(3)),
+                         (frequencies.get_freq('W'), 3))
+        self.assertEqual(frequencies.get_freq_code(offsets.Week(-2)),
+                         (frequencies.get_freq('W'), -2))
+
+        # monday is weekday=0
+        self.assertEqual(frequencies.get_freq_code(offsets.Week(weekday=1)),
+                         (frequencies.get_freq('W-TUE'), 1))
+        self.assertEqual(frequencies.get_freq_code(offsets.Week(3, weekday=0)),
+                         (frequencies.get_freq('W-MON'), 3))
+        self.assertEqual(frequencies.get_freq_code(offsets.Week(-2, weekday=4)),
+                         (frequencies.get_freq('W-FRI'), -2))
+
 
 _dti = DatetimeIndex
 
@@ -333,7 +444,6 @@ class TestFrequencyInference(tm.TestCase):
             for date_pair in date_pairs:
                 for freq in freqs:
                     idx = date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
-                    print(idx)
                     self.assertEqual(idx.inferred_freq, freq)
 
         index = date_range("2013-11-03", periods=5, freq="3H").tz_localize("America/Chicago")
