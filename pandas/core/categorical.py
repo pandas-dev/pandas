@@ -183,6 +183,7 @@ class Categorical(PandasObject):
     Categories (3, object): [a < b < c]
 
     >>> a = Categorical(['a','b','c','a','b','c'], ['c', 'b', 'a'])
+    >>> a = a.as_ordered()
     >>> a.min()
     'c'
     """
