@@ -24,3 +24,5 @@ global-exclude *.png
 # recursive-include doc/source *
 # recursive-include doc/sphinxext *
 # recursive-include LICENSES *
+include versioneer.py
+include pandas/_version.py

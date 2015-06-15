@@ -1,6 +1,6 @@
 package:
-  name: pandas
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+    name: pandas
+    version: {{ environ.get('GIT_DESCRIBE_TAG', '').replace('.dev', 'dev') }}
 
 build:
     number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
@@ -28,10 +28,9 @@ requirements:
 test:
   requires:
     - nose
-    - coverage
 
   commands:
-    - python -c "import pandas"
+    - nosetests --exe -A "not slow and not network and not disabled" pandas
 
 about:
   home: http://pandas.pydata.org
