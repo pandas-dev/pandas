@@ -1670,6 +1670,9 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     def to_dense(self):
         return self.values.to_dense().view()
 
+    def convert(self, copy=True, **kwargs):
+        return [self.copy() if copy else self]
+
     @property
     def shape(self):
         return (len(self.mgr_locs), len(self.values))
