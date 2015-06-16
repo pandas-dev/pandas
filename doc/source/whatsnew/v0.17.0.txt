@@ -38,6 +38,8 @@ Backwards incompatible API changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
+- Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 
 .. _whatsnew_0170.deprecations:
 
@@ -53,11 +55,15 @@ Removal of prior version deprecations/changes
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
 
 .. _whatsnew_0170.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
+
+
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
+- Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)

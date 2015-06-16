@@ -1246,6 +1246,9 @@ class DataFrame(NDFrame):
         >>> df1.to_excel(writer,'Sheet1')
         >>> df2.to_excel(writer,'Sheet2')
         >>> writer.save()
+
+        For compatibility with to_csv, to_excel serializes lists and dicts to
+        strings before writing.
         """
         from pandas.io.excel import ExcelWriter
         if self.columns.nlevels > 1:
