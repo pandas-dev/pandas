@@ -7,6 +7,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Index, MultiIndex, Grouper
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
+from pandas.tools.pivot import DEFAULT_MARGIN_COLUMN_NAME
 from pandas.compat import range, u, product
 import pandas.util.testing as tm
 
@@ -224,32 +225,44 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(pv, expected)
 
     def test_margins(self):
-        def _check_output(res, col, index=['A', 'B'], columns=['C']):
-            cmarg = res['All'][:-1]
-            exp = self.data.groupby(index)[col].mean()
-            tm.assert_series_equal(cmarg, exp, check_names=False)
-            self.assertEqual(cmarg.name, 'All')
+        def _check_output(result, values_col, index=['A', 'B'],
+                          columns=['C'],
+                          margins_col=DEFAULT_MARGIN_COLUMN_NAME):
+            col_margins = result.ix[:-1, margins_col]
+            expected_col_margins = self.data.groupby(index)[values_col].mean()
+            tm.assert_series_equal(col_margins, expected_col_margins,
+                                   check_names=False)
+            self.assertEqual(col_margins.name, margins_col)
 
-            res = res.sortlevel()
-            rmarg = res.xs(('All', ''))[:-1]
-            exp = self.data.groupby(columns)[col].mean()
-            tm.assert_series_equal(rmarg, exp, check_names=False)
-            self.assertEqual(rmarg.name, ('All', ''))
+            result = result.sortlevel()
+            index_margins = result.ix[(margins_col, '')].iloc[:-1]
+            expected_ix_margins = self.data.groupby(columns)[values_col].mean()
+            tm.assert_series_equal(index_margins, expected_ix_margins,
+                                   check_names=False)
+            self.assertEqual(index_margins.name, (margins_col, ''))
 
-            gmarg = res['All']['All', '']
-            exp = self.data[col].mean()
-            self.assertEqual(gmarg, exp)
+            grand_total_margins = result.loc[(margins_col, ''), margins_col]
+            expected_total_margins = self.data[values_col].mean()
+            self.assertEqual(grand_total_margins, expected_total_margins)
 
         # column specified
-        table = self.data.pivot_table('D', index=['A', 'B'], columns='C',
-                                      margins=True, aggfunc=np.mean)
-        _check_output(table, 'D')
+        result = self.data.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C',
+                                       margins=True, aggfunc=np.mean)
+        _check_output(result, 'D')
+
+        # Set a different margins_column (not 'All')
+        result = self.data.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C',
+                                       margins=True, aggfunc=np.mean,
+                                       margins_column='Totals')
+        _check_output(result, 'D', margins_col='Totals')
 
         # no column specified
         table = self.data.pivot_table(index=['A', 'B'], columns='C',
                                       margins=True, aggfunc=np.mean)
-        for valcol in table.columns.levels[0]:
-            _check_output(table[valcol], valcol)
+        for value_col in table.columns.levels[0]:
+            _check_output(table[value_col], value_col)
 
         # no col
 
@@ -257,49 +270,61 @@ class TestPivotTable(tm.TestCase):
         self.data.columns = [k * 2 for k in self.data.columns]
         table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
                                       aggfunc=np.mean)
-        for valcol in table.columns:
-            gmarg = table[valcol]['All', '']
-            self.assertEqual(gmarg, self.data[valcol].mean())
-
-        # this is OK
-        table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
-                                      aggfunc='mean')
+        for value_col in table.columns:
+            totals = table.loc[(DEFAULT_MARGIN_COLUMN_NAME, ''), value_col]
+            self.assertEqual(totals, self.data[value_col].mean())
 
         # no rows
         rtable = self.data.pivot_table(columns=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
         tm.assert_isinstance(rtable, Series)
+
+        table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
+                                      aggfunc='mean')
         for item in ['DD', 'EE', 'FF']:
-            gmarg = table[item]['All', '']
-            self.assertEqual(gmarg, self.data[item].mean())
+            totals = table.loc[(DEFAULT_MARGIN_COLUMN_NAME, ''), item]
+            self.assertEqual(totals, self.data[item].mean())
 
         # issue number #8349: pivot_table with margins and dictionary aggfunc
+        data = [
+            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2013,
+             'MONTH': 12, 'DAYS':  3, 'SALARY':  17},
+            {'JOB': 'Employ', 'NAME':
+             'Mary', 'YEAR': 2013, 'MONTH': 12, 'DAYS':  5, 'SALARY':  23},
+            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
+             'MONTH':  1, 'DAYS': 10, 'SALARY': 100},
+            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
+             'MONTH':  1, 'DAYS': 11, 'SALARY': 110},
+            {'JOB': 'Employ', 'NAME': 'Mary', 'YEAR': 2014,
+             'MONTH':  1, 'DAYS': 15, 'SALARY': 200},
+            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
+             'MONTH':  2, 'DAYS':  8, 'SALARY':  80},
+            {'JOB': 'Employ', 'NAME': 'Mary', 'YEAR': 2014,
+             'MONTH':  2, 'DAYS':  5, 'SALARY': 190},
+        ]
 
-        df=DataFrame([  {'JOB':'Worker','NAME':'Bob' ,'YEAR':2013,'MONTH':12,'DAYS': 3,'SALARY': 17},
-                        {'JOB':'Employ','NAME':'Mary','YEAR':2013,'MONTH':12,'DAYS': 5,'SALARY': 23},
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':10,'SALARY':100},
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':11,'SALARY':110},
-                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 1,'DAYS':15,'SALARY':200},
-                        {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 2,'DAYS': 8,'SALARY': 80},
-                        {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 2,'DAYS': 5,'SALARY':190} ])
+        df = DataFrame(data)
 
-        df=df.set_index(['JOB','NAME','YEAR','MONTH'],drop=False,append=False)
+        df = df.set_index(['JOB', 'NAME', 'YEAR', 'MONTH'], drop=False,
+                          append=False)
 
-        rs=df.pivot_table(  index=['JOB','NAME'],
-                            columns=['YEAR','MONTH'],
-                            values=['DAYS','SALARY'],
-                            aggfunc={'DAYS':'mean','SALARY':'sum'},
-                            margins=True)
+        result = df.pivot_table(index=['JOB', 'NAME'],
+                                columns=['YEAR', 'MONTH'],
+                                values=['DAYS', 'SALARY'],
+                                aggfunc={'DAYS': 'mean', 'SALARY': 'sum'},
+                                margins=True)
 
-        ex=df.pivot_table(index=['JOB','NAME'],columns=['YEAR','MONTH'],values=['DAYS'],aggfunc='mean',margins=True)
+        expected = df.pivot_table(index=['JOB', 'NAME'],
+                                  columns=['YEAR', 'MONTH'], values=['DAYS'],
+                                  aggfunc='mean', margins=True)
 
-        tm.assert_frame_equal(rs['DAYS'], ex['DAYS'])
+        tm.assert_frame_equal(result['DAYS'], expected['DAYS'])
 
-        ex=df.pivot_table(index=['JOB','NAME'],columns=['YEAR','MONTH'],values=['SALARY'],aggfunc='sum',margins=True)
+        expected = df.pivot_table(index=['JOB', 'NAME'],
+                                  columns=['YEAR', 'MONTH'], values=['SALARY'],
+                                  aggfunc='sum', margins=True)
 
-        tm.assert_frame_equal(rs['SALARY'], ex['SALARY'])
-
-
+        tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
@@ -401,6 +426,24 @@ class TestPivotTable(tm.TestCase):
         self.data['D'] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
         result = self.data[['A', 'B', 'C', 'D']].pivot_table(index=['A', 'B'], columns=['C', 'D'], aggfunc=len, margins=True)
         self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+
+    def test_pivot_table_with_margins_set_margin_column(self):
+        for margin_column in ['foo', 'one']:
+            with self.assertRaises(ValueError):
+                # multi-index index
+                pivot_table(self.data, values='D', index=['A', 'B'],
+                            columns=['C'], margins=True,
+                            margins_column=margin_column)
+            with self.assertRaises(ValueError):
+                # multi-index column
+                pivot_table(self.data, values='D', index=['C'],
+                            columns=['A', 'B'], margins=True,
+                            margins_column=margin_column)
+            with self.assertRaises(ValueError):
+                # non-multi-index index/column
+                pivot_table(self.data, values='D', index=['A'],
+                            columns=['B'], margins=True,
+                            margins_column=margin_column)
 
     def test_pivot_timegrouper(self):
         df = DataFrame({
@@ -678,17 +721,17 @@ class TestCrosstab(tm.TestCase):
         self.assertEqual(result.index.names, ('a',))
         self.assertEqual(result.columns.names, ['b', 'c'])
 
-        all_cols = result['All', '']
+        all_cols = result[DEFAULT_MARGIN_COLUMN_NAME, '']
         exp_cols = df.groupby(['a']).size().astype('i8')
-        exp_cols = exp_cols.append(Series([len(df)], index=['All']))
-        exp_cols.name = ('All', '')
+        exp_cols = exp_cols.append(Series([len(df)], index=[DEFAULT_MARGIN_COLUMN_NAME]))
+        exp_cols.name = (DEFAULT_MARGIN_COLUMN_NAME, '')
 
         tm.assert_series_equal(all_cols, exp_cols)
 
-        all_rows = result.ix['All']
+        all_rows = result.ix[DEFAULT_MARGIN_COLUMN_NAME]
         exp_rows = df.groupby(['b', 'c']).size().astype('i8')
-        exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
-        exp_rows.name = 'All'
+        exp_rows = exp_rows.append(Series([len(df)], index=[(DEFAULT_MARGIN_COLUMN_NAME, '')]))
+        exp_rows.name = DEFAULT_MARGIN_COLUMN_NAME
 
         exp_rows = exp_rows.reindex(all_rows.index)
         exp_rows = exp_rows.fillna(0).astype(np.int64)
