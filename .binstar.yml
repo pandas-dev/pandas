@@ -19,7 +19,7 @@ engine:
 script:
   - conda build conda.recipe --quiet
 
-iotimeout: 1800
+iotimeout: 600
 
 build_targets: conda
 
