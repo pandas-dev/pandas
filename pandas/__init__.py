@@ -61,7 +61,3 @@ from ._version import get_versions
 v = get_versions()
 __version__ = v.get('closest-tag',v['version'])
 del get_versions, v
-
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
