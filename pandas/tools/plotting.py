@@ -134,6 +134,32 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 
+    if isinstance(colors, compat.string_types):
+        import matplotlib.colors
+        conv = matplotlib.colors.ColorConverter()
+        def _maybe_valid_colors(colors):
+            try:
+                [conv.to_rgba(c) for c in colors]
+                return True
+            except ValueError:
+                return False
+
+        # check whether the string can be convertable to single color
+        maybe_single_color = _maybe_valid_colors([colors])
+        # check whether each character can be convertable to colors
+        maybe_color_cycle = _maybe_valid_colors(list(colors))
+        if maybe_single_color and maybe_color_cycle and len(colors) > 1:
+            msg = ("'{0}' can be parsed as both single color and "
+                   "color cycle. Specify each color using a list "
+                   "like ['{0}'] or {1}")
+            raise ValueError(msg.format(colors, list(colors)))
+        elif maybe_single_color:
+            colors = [colors]
+        else:
+            # ``colors`` is regarded as color cycle.
+            # mpl will raise error any of them is invalid
+            pass
+
     if len(colors) != num_colors:
         multiple = num_colors//len(colors) - 1
         mod = num_colors % len(colors)
