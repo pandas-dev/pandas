@@ -2877,6 +2877,9 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             result = first.union(case)
             self.assertTrue(tm.equalContents(result, everything))
 
+    def test_nat(self):
+        self.assertIs(DatetimeIndex([np.nan])[0], pd.NaT)
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex

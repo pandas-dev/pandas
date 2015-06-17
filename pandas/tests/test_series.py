@@ -210,7 +210,6 @@ class CheckNameIntegration(object):
 
         # GH 8689
         s = Series(date_range('20130101',periods=5,freq='D'))
-        s_orig = s.copy()
         s.iloc[2] = pd.NaT
 
         for attr in ['microsecond','nanosecond','second','minute','hour','day']:

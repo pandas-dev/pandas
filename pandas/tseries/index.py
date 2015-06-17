@@ -1392,7 +1392,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         # can't call self.map() which tries to treat func as ufunc
         # and causes recursion warnings on python 2.6
-        return self._maybe_mask_results(_algos.arrmap_object(self.asobject.values, lambda x: x.time()))
+        return self._maybe_mask_results(_algos.arrmap_object(self.asobject.values,
+                                                             lambda x: np.nan if x is tslib.NaT else x.time()))
 
     @property
     def date(self):

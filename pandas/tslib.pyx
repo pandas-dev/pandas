@@ -58,7 +58,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
-from pandas.compat import parse_date, string_types, iteritems, StringIO
+from pandas.compat import parse_date, string_types, iteritems, StringIO, callable
 
 import operator
 import collections
@@ -640,14 +640,9 @@ class NaTType(_NaT):
     def __long__(self):
         return NPY_NAT
 
-    def weekday(self):
-        return np.nan
-
-    def toordinal(self):
-        return -1
-
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
+
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
@@ -655,6 +650,50 @@ fields = ['year', 'quarter', 'month', 'day', 'hour',
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
+
+# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or return NaT
+# create functions that raise, for binding to NaTType
+def _make_error_func(func_name):
+    def f(*args, **kwargs):
+        raise ValueError("NaTType does not support " + func_name)
+    f.__name__ = func_name
+    return f
+
+def _make_nat_func(func_name):
+    def f(*args, **kwargs):
+        return NaT
+    f.__name__ = func_name
+    return f
+
+def _make_nan_func(func_name):
+    def f(*args, **kwargs):
+        return np.nan
+    f.__name__ = func_name
+    return f
+
+_nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+
+_nan_methods = ['weekday', 'isoweekday']
+
+_implemented_methods = ['to_datetime64']
+_implemented_methods.extend(_nat_methods)
+_implemented_methods.extend(_nan_methods)
+
+for _method_name in _nat_methods:
+    # not all methods exist in all versions of Python
+    if hasattr(NaTType, _method_name):
+        setattr(NaTType, _method_name, _make_nat_func(_method_name))
+
+for _method_name in _nan_methods:
+    if hasattr(NaTType, _method_name):
+        setattr(NaTType, _method_name, _make_nan_func(_method_name))
+
+for _maybe_method_name in dir(NaTType):
+    _maybe_method = getattr(NaTType, _maybe_method_name)
+    if (callable(_maybe_method)
+        and not _maybe_method_name.startswith("_")
+        and _maybe_method_name not in _implemented_methods):
+        setattr(NaTType, _maybe_method_name, _make_error_func(_maybe_method_name))
 
 def __nat_unpickle(*args):
     # return constant defined in the module
