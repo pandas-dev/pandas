@@ -59,3 +59,4 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
+- Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
