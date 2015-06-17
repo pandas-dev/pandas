@@ -232,6 +232,16 @@ Other API Changes
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
 
 
+- ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
+===========================     ==============================================================
+Behavior                        Methods  
+===========================     ==============================================================
+``return np.nan``               ``weekday``, ``isoweekday``
+``return NaT``                  ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
+``return np.datetime64('NaT')`` ``to_datetime64`` (unchanged)   
+``raise ValueError``            All other public methods (names not beginning with underscores)
+===========================     ===============================================================
+
 .. _whatsnew_0170.deprecations:
 
 Deprecations

@@ -941,12 +941,34 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear', 'days_in_month']
+                  'week', 'dayofyear', 'days_in_month', 'daysinmonth',
+                  'dayofweek']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
 
-        self.assertTrue(np.isnan(NaT.weekday()))
+    def test_NaT_methods(self):
+        # GH 9513
+        raise_methods = ['astimezone', 'combine', 'ctime', 'dst', 'fromordinal',
+                         'fromtimestamp', 'isocalendar', 'isoformat',
+                         'strftime', 'strptime',
+                         'time', 'timestamp', 'timetuple', 'timetz',
+                         'toordinal', 'tzname', 'utcfromtimestamp',
+                         'utcnow', 'utcoffset', 'utctimetuple']
+        nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+        nan_methods = ['weekday', 'isoweekday']
+
+        for method in raise_methods:
+            if hasattr(NaT, method):
+                self.assertRaises(ValueError, getattr(NaT, method))
+
+        for method in nan_methods:
+            if hasattr(NaT, method):
+                self.assertTrue(np.isnan(getattr(NaT, method)()))
+
+        for method in nat_methods:
+            if hasattr(NaT, method):
+                self.assertIs(getattr(NaT, method)(), NaT)
 
     def test_to_datetime_types(self):
 
@@ -3518,6 +3540,9 @@ class TestTimestamp(tm.TestCase):
         self.assertIs(result, NaT)
 
         result = Timestamp(NaT)
+        self.assertIs(result, NaT)
+
+        result = Timestamp('NaT')
         self.assertIs(result, NaT)
 
     def test_roundtrip(self):
