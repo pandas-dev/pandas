@@ -1480,6 +1480,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = self.series.append(app)
         assert_series_equal(s, expected)
 
+        # Test for issue #10193
+        key = pd.Timestamp('2012-01-01')
+        series = pd.Series()
+        series[key] = 47
+        expected = pd.Series(47, [key])
+        assert_series_equal(series, expected)
+
+        series = pd.Series([], pd.DatetimeIndex([], freq='D'))
+        series[key] = 47
+        expected = pd.Series(47, pd.DatetimeIndex([key], freq='D'))
+        assert_series_equal(series, expected)
+
     def test_setitem_dtypes(self):
 
         # change dtypes
