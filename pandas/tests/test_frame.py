@@ -10781,7 +10781,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         idx = self.frame.index[0:4]
         filtered = self.frame.filter(idx, axis='index')
         expected = self.frame.reindex(index=idx)
-        assert_frame_equal(filtered,expected)
+        assert_frame_equal(filtered, expected)
 
         # like
         fcopy = self.frame.copy()
@@ -10795,6 +10795,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
         filtered = df.filter(like='_')
         self.assertEqual(len(filtered.columns), 2)
+
+        # regex with ints in column names
+        # from PR #10384
+        df = DataFrame(0., index=[0, 1, 2], columns=['A1', 1, 'B', 2, 'C'])
+        expected = DataFrame(0., index=[0, 1, 2], columns=[1, 2])
+        filtered = df.filter(regex='^[0-9]+$')
+        self.assert_frame_equal(filtered, expected)
+
+        expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
+        filtered = expected.filter(regex='^[0-9]+$')  # shouldn't remove anything
+        self.assert_frame_equal(filtered, expected)
 
         # pass in None
         with assertRaisesRegexp(TypeError, 'Must pass'):
