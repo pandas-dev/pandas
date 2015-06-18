@@ -1928,7 +1928,7 @@ class NDFrame(PandasObject):
             return self.select(matchf, axis=axis_name)
         elif regex:
             matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(x) is not None,
+            return self.select(lambda x: matcher.search(str(x)) is not None,
                                axis=axis_name)
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
