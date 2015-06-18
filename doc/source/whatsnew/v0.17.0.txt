@@ -54,6 +54,8 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- 4x improvement in ``timedelta`` string parsing (:issue:`6755`)
+
 .. _whatsnew_0170.bug_fixes:
 
 Bug Fixes

@@ -12,6 +12,8 @@ from cpython cimport (
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     PyString_Check,
+    PyUnicode_Contains,
+    PyString_AsString,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
 )
 
@@ -1844,8 +1846,7 @@ class Timedelta(_Timedelta):
         if isinstance(value, Timedelta):
             value = value.value
         elif util.is_string_object(value):
-            from pandas import to_timedelta
-            value = to_timedelta(value,unit=unit,box=False)
+            value = np.timedelta64(parse_timedelta_string(value, False))
         elif isinstance(value, timedelta):
             value = convert_to_timedelta64(value,'ns',False)
         elif isinstance(value, np.timedelta64):
@@ -2201,12 +2202,274 @@ def array_to_timedelta64(ndarray[object] values, unit='ns', coerce=False):
     result = np.empty(n, dtype='m8[ns]')
     iresult = result.view('i8')
 
-    for i in range(n):
-        result[i] = convert_to_timedelta64(values[i], unit, coerce)
+    # usually we have all strings
+    # if so then we hit the fast path
+    try:
+        for i in range(n):
+            result[i] = parse_timedelta_string(values[i], coerce)
+    except:
+        for i in range(n):
+            result[i] = convert_to_timedelta64(values[i], unit, coerce)
     return iresult
+
 
 def convert_to_timedelta(object ts, object unit='ns', coerce=False):
     return convert_to_timedelta64(ts, unit, coerce)
+
+cdef dict timedelta_abbrevs = { 'd' : 'd',
+                                'days' : 'd',
+                                'day' : 'd',
+                                'hours' : 'h',
+                                'hour' : 'h',
+                                'h' : 'h',
+                                'm' : 'm',
+                                'minute' : 'm',
+                                'min' : 'm',
+                                'minutes' : 'm',
+                                's' : 's',
+                                'seconds' : 's',
+                                'sec' : 's',
+                                'second' : 's',
+                                'ms' : 'ms',
+                                'milliseconds' : 'ms',
+                                'millisecond' : 'ms',
+                                'milli' : 'ms',
+                                'millis' : 'ms',
+                                'us' : 'us',
+                                'microseconds' : 'us',
+                                'microsecond' : 'us',
+                                'micro' : 'us',
+                                'micros' : 'us',
+                                'ns' : 'ns',
+                                'nanoseconds' : 'ns',
+                                'nano' : 'ns',
+                                'nanos' : 'ns',
+                                'nanosecond' : 'ns',
+                                }
+
+cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
+    """
+
+    Parameters
+    ----------
+    value : int64_t of the timedelta value
+    neg : boolean if the a negative value
+    """
+    if neg:
+        return -value
+    return value
+
+cdef inline timedelta_from_spec(object number, object frac, object unit):
+    """
+
+    Parameters
+    ----------
+    number : a list of number digits
+    frac : a list of frac digits
+    unit : a list of unit characters
+    """
+    cdef object n
+
+    try:
+        unit = ''.join(unit)
+        unit = timedelta_abbrevs[unit.lower()]
+    except KeyError:
+        raise ValueError("invalid abbreviation: {0}".format(unit))
+
+    n = ''.join(number) + '.' + ''.join(frac)
+    return cast_from_unit(float(n), unit)
+
+cdef inline parse_timedelta_string(object ts, coerce=False):
+    """
+    Parse an regular format timedelta string
+
+    Return an int64_t or raise a ValueError on an invalid parse
+
+    if coerce, set a non-valid value to NaT
+
+    Return a ns based int64
+    """
+
+    cdef:
+        char c
+        bytes bc
+        bint neg=0, have_dot=0, have_value=0, have_hhmmss=0
+        object current_unit=None
+        Py_ssize_t i
+        int64_t result=0, m, r
+        list number=[], frac=[], unit=[]
+
+    # neg : tracks if we have a leading negative for the value
+    # have_dot : tracks if we are processing a dot (either post hhmmss or inside an expression)
+    # have_value : track if we have at least 1 leading unit
+    # have_hhmmss : tracks if we have a regular format hh:mm:ss
+
+    if ts in _nat_strings or not len(ts):
+        return iNaT
+
+    for c in PyString_AsString(ts):
+        bc = <bytes>c
+
+        # skip whitespace / commas
+        if bc == ' ' or bc == ',':
+            pass
+
+        # positive signs are ignored
+        elif bc == '+':
+            pass
+
+        # neg
+        elif bc == '-':
+
+            if neg or have_value or have_hhmmss:
+                raise ValueError("only leading negative signs are allowed")
+
+            neg = 1
+
+        # number (ascii codes)
+        elif c >= 48 and c <= 57:
+
+            if have_dot:
+
+                # we found a dot, but now its just a fraction
+                if len(unit):
+                    number.append(bc)
+                    have_dot = 0
+                else:
+                    frac.append(bc)
+
+            elif not len(unit):
+                number.append(bc)
+
+            else:
+
+                try:
+                    r = timedelta_from_spec(number, frac, unit)
+                except ValueError:
+                    if coerce:
+                        return iNaT
+                    raise
+                unit, number, frac = [], [bc], []
+
+                result += timedelta_as_neg(r, neg)
+
+        # hh:mm:ss.
+        elif bc == ':':
+
+            # we flip this off if we have a leading value
+            if have_value:
+                neg = 0
+
+            # we are in the pattern hh:mm:ss pattern
+            if len(number):
+                if current_unit is None:
+                    current_unit = 'h'
+                    m = 1000000000L * 3600
+                elif current_unit == 'h':
+                    current_unit = 'm'
+                    m = 1000000000L * 60
+                elif current_unit == 'm':
+                    current_unit = 's'
+                    m = 1000000000L
+                r = <int64_t> int(''.join(number)) * m
+                result += timedelta_as_neg(r, neg)
+                have_hhmmss = 1
+            else:
+                if coerce:
+                    return iNaT
+                raise ValueError("expecting hh:mm:ss format, received: {0}".format(ts))
+            unit, number = [], []
+
+        # after the decimal point
+        elif bc == '.':
+
+            if len(number) and current_unit is not None:
+
+                # by definition we had something like
+                # so we need to evaluate the final field from a
+                # hh:mm:ss (so current_unit is 'm')
+                if current_unit != 'm':
+                    raise ValueError("expected hh:mm:ss format before .")
+                m = 1000000000L
+                r = <int64_t> int(''.join(number)) * m
+                result += timedelta_as_neg(r, neg)
+                have_value = 1
+                unit, number, frac = [], [], []
+
+            have_dot = 1
+
+        # unit
+        else:
+            unit.append(bc)
+            have_value = 1
+            have_dot = 0
+
+
+    # we had a dot, but we have a fractional
+    # value since we have an unit
+    if have_dot and len(unit):
+        try:
+            r = timedelta_from_spec(number, frac, unit)
+            result += timedelta_as_neg(r, neg)
+        except ValueError:
+            if coerce:
+                return iNaT
+            raise
+
+    # we have a dot as part of a regular format
+    # e.g. hh:mm:ss.fffffff
+    elif have_dot:
+        if len(frac) > 0 and len(frac) <= 3:
+            m = 10**(3-len(frac)) * 1000L * 1000L
+        elif len(frac) > 3 and len(frac) <= 6:
+            m = 10**(6-len(frac)) * 1000L
+        else:
+            m = 10**(9-len(frac))
+
+        r = <int64_t> int(''.join(frac)) * m
+        result += timedelta_as_neg(r, neg)
+
+    # we have a regular format
+    # we must have seconds at this point (hence the unit is still 'm')
+    elif current_unit is not None:
+        if current_unit != 'm':
+            raise ValueError("expected hh:mm:ss format")
+        m = 1000000000L
+        r = <int64_t> int(''.join(number)) * m
+        result += timedelta_as_neg(r, neg)
+
+    # we have a last abbreviation
+    elif len(unit):
+
+        if len(number):
+            try:
+                r = timedelta_from_spec(number, frac, unit)
+                result += timedelta_as_neg(r, neg)
+            except ValueError:
+                if coerce:
+                    return iNaT
+                raise
+        else:
+            if coerce:
+                return iNaT
+            raise ValueError("unit abbreviation w/o a number")
+
+    # treat as nanoseconds
+    # but only if we don't have anything else
+    else:
+
+        if have_value:
+            raise ValueError("have leftover units")
+        if len(number):
+            try:
+                r = timedelta_from_spec(number, frac, 'ns')
+                result += timedelta_as_neg(r, neg)
+            except ValueError:
+                if coerce:
+                    return iNaT
+                raise
+
+    return result
 
 cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
     """
@@ -2257,10 +2520,7 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
     elif util.is_string_object(ts):
-        if ts in _nat_strings or coerce:
-            return np.timedelta64(iNaT)
-        else:
-            raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
+        ts = np.timedelta64(parse_timedelta_string(ts, coerce))
     elif hasattr(ts,'delta'):
         ts = np.timedelta64(_delta_to_nanoseconds(ts),'ns')
 
@@ -2558,6 +2818,9 @@ cdef inline _get_datetime64_nanos(object val):
 cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
+    cdef:
+        int64_t m
+        int p
 
     if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
