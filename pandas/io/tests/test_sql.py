@@ -703,6 +703,19 @@ class _TestSQLApi(PandasSQLTest):
         self.assertTrue('CREATE' in create_sql)
         self.assertTrue('INTEGER' in create_sql)
 
+    def test_get_schema_keys(self):
+        frame = DataFrame({'Col1':[1.1,1.2], 'Col2':[2.1,2.2]})
+        create_sql = sql.get_schema(frame, 'test', 'sqlite',
+                                    con=self.conn, keys='Col1')
+        constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("Col1")'
+        self.assertTrue(constraint_sentence in create_sql)
+
+        # multiple columns as key (GH10385)
+        create_sql = sql.get_schema(self.test_frame1, 'test', 'sqlite',
+                                    con=self.conn, keys=['A', 'B'])
+        constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
+        self.assertTrue(constraint_sentence in create_sql)
+
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list('abcde'))
         df.to_sql('test_chunksize', self.conn, index=False)
@@ -1851,7 +1864,7 @@ class TestMySQLLegacy(TestSQLiteFallback):
             df2 = DataFrame([[1, 2], [3, 4]], columns=['a', ok_name])
             c_tbl = 'test_ok_col_name%d'%ndx
             df2.to_sql(c_tbl, self.conn, flavor=self.flavor, index=False,
-                      if_exists='replace')   
+                      if_exists='replace')
             self.conn.cursor().execute("DROP TABLE `%s`" % c_tbl)
             self.conn.commit()
 
@@ -1962,7 +1975,7 @@ class TestXSQLite(tm.TestCase):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY ("A","B")' in create_sql)
+        self.assertTrue('PRIMARY KEY ("A", "B")' in create_sql)
         cur = self.db.cursor()
         cur.execute(create_sql)
 
@@ -2277,7 +2290,7 @@ class TestXMySQL(tm.TestCase):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (`A`,`B`)' in create_sql)
+        self.assertTrue('PRIMARY KEY (`A`, `B`)' in create_sql)
         cur = self.db.cursor()
         cur.execute(drop_sql)
         cur.execute(create_sql)
