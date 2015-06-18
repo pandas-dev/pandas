@@ -40,7 +40,12 @@ def to_timedelta(arg, unit='ns', box=True, coerce=False):
         elif is_integer_dtype(arg):
             value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]', copy=False)
         else:
-            value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit, coerce=coerce)
+            try:
+                value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit, coerce=coerce)
+            except:
+
+                # try to process strings fast; may need to fallback
+                value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit, coerce=coerce) for r in arg ])
             value = value.astype('timedelta64[ns]', copy=False)
 
         if box:

@@ -63,6 +63,7 @@ Performance Improvements
 
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
+=======
 
 .. _whatsnew_0170.bug_fixes:
 

@@ -17,6 +17,8 @@ from cpython cimport (
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     PyString_Check,
+    PyUnicode_Contains,
+    PyString_AsString,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
 )
 
@@ -2290,10 +2292,12 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     """
 
     cdef:
-        str c
+        char c
+        bytes bc
         bint neg=0, have_dot=0, have_value=0, have_hhmmss=0
         object current_unit=None
-        int64_t result=0, m=0, r
+        Py_ssize_t i
+        int64_t result=0, m, r
         list number=[], frac=[], unit=[]
 
     # neg : tracks if we have a leading negative for the value
@@ -2304,18 +2308,19 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     if ts in _nat_strings or not len(ts):
         return iNaT
 
-    for c in ts:
+    for c in PyString_AsString(ts):
+        bc = <bytes>c
 
         # skip whitespace / commas
-        if c == ' ' or c == ',':
+        if bc == ' ' or bc == ',':
             pass
 
         # positive signs are ignored
-        elif c == '+':
+        elif bc == '+':
             pass
 
         # neg
-        elif c == '-':
+        elif bc == '-':
 
             if neg or have_value or have_hhmmss:
                 raise ValueError("only leading negative signs are allowed")
@@ -2323,19 +2328,19 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             neg = 1
 
         # number (ascii codes)
-        elif ord(c) >= 48 and ord(c) <= 57:
+        elif c >= 48 and c <= 57:
 
             if have_dot:
 
                 # we found a dot, but now its just a fraction
                 if len(unit):
-                    number.append(c)
+                    number.append(bc)
                     have_dot = 0
                 else:
-                    frac.append(c)
+                    frac.append(bc)
 
             elif not len(unit):
-                number.append(c)
+                number.append(bc)
 
             else:
 
@@ -2345,12 +2350,12 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                     if coerce:
                         return iNaT
                     raise
-                unit, number, frac = [], [c], []
+                unit, number, frac = [], [bc], []
 
                 result += timedelta_as_neg(r, neg)
 
         # hh:mm:ss.
-        elif c == ':':
+        elif bc == ':':
 
             # we flip this off if we have a leading value
             if have_value:
@@ -2377,7 +2382,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             unit, number = [], []
 
         # after the decimal point
-        elif c == '.':
+        elif bc == '.':
 
             if len(number) and current_unit is not None:
 
@@ -2396,7 +2401,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
 
         # unit
         else:
-            unit.append(c)
+            unit.append(bc)
             have_value = 1
             have_dot = 0
 
