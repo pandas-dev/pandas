@@ -26,7 +26,8 @@ New features
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- `regex` argument to DataFrame.filter now handles numeric column names instead of raising an exception.
+  
 .. _whatsnew_0170.api:
 
 Backwards incompatible API changes
