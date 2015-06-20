@@ -2130,7 +2130,9 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
        df1.to_excel(writer, sheet_name='Sheet1')
        df2.to_excel(writer, sheet_name='Sheet2')
 
-.. note:: Wringing a little more performance out of ``read_excel``
+.. note::
+
+    Wringing a little more performance out of ``read_excel``
     Internally, Excel stores all numeric data as floats. Because this can
     produce unexpected behavior when reading in data, pandas defaults to trying
     to convert integers to floats if it doesn't lose information (``1.0 -->
@@ -2181,6 +2183,45 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
+
+Writing Excel Files to Memory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.17
+
+.. _io.excel_writing_buffer
+
+Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
+``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
+
+.. code-block:: python
+
+   # Safe import for either Python 2.x or 3.x
+   try:
+       from io import BytesIO
+   except ImportError:
+       from cStringIO import StringIO as BytesIO
+
+   bio = BytesIO()
+
+   # By setting the 'engine' in the ExcelWriter constructor.
+   writer = ExcelWriter(bio, engine='xlsxwriter')
+   df.to_excel(writer, sheet_name='Sheet1')
+
+   # Save the workbook
+   writer.save()
+
+   # Seek to the beginning and read to copy the workbook to a variable in memory
+   bio.seek(0)
+   workbook = bio.read()
+
+.. note::
+
+    ``engine`` is optional but recommended.  Setting the engine determines
+    the version of workbook produced. Setting ``engine='xlrd'`` will produce an
+    Excel 2003-format workbook (xls).  Using either ``'openpyxl'`` or
+    ``'xlsxwriter'`` will produce an Excel 2007-format workbook (xlsx). If
+    omitted, an Excel 2007-formatted workbook is produced.
 
 .. _io.clipboard:
 
