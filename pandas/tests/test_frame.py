@@ -9494,6 +9494,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.index = df.index.astype('object')
         tm.assert_frame_equal(df.reindex(i), df.iloc[j])
 
+        # GH10388
+        df = pd.DataFrame({'other':['a', 'b', np.nan, 'c'],
+                           'date':['2015-03-22', np.nan, '2012-01-08', np.nan],
+                           'amount':[2, 3, 4, 5]})
+
+        df['date'] = pd.to_datetime(df.date)
+        df['delta'] = (pd.to_datetime('2015-06-18') - df['date']).shift(1)
+
+        left = df.set_index(['delta', 'other', 'date']).reset_index()
+        right = df.reindex(columns=['delta', 'other', 'date', 'amount'])
+        assert_frame_equal(left, right)
+
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))

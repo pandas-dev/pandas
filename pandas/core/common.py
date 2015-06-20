@@ -1194,7 +1194,7 @@ def _maybe_upcast_putmask(result, mask, other):
         if result.dtype in _DATELIKE_DTYPES:
             if lib.isscalar(other):
                 if isnull(other):
-                    other = tslib.iNaT
+                    other = result.dtype.type('nat')
                 elif is_integer(other):
                     other = np.array(other, dtype=result.dtype)
             elif is_integer_dtype(other):
