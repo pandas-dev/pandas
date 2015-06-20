@@ -497,6 +497,9 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
+    time_format : string, default None
+        Format string for time objects written into Excel files
+        (e.g. 'HH:MM:SS')
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
@@ -572,7 +575,8 @@ class ExcelWriter(object):
         pass
 
     def __init__(self, path, engine=None,
-                 date_format=None, datetime_format=None, **engine_kwargs):
+                 date_format=None, datetime_format=None, time_format=None,
+                 **engine_kwargs):
         # validate that this engine can handle the extension
         ext = os.path.splitext(path)[-1]
         self.check_extension(ext)
@@ -582,13 +586,14 @@ class ExcelWriter(object):
         self.cur_sheet = None
 
         if date_format is None:
-            self.date_format = 'YYYY-MM-DD'
-        else:
-            self.date_format = date_format
+            date_format = 'YYYY-MM-DD'
+        self.date_format = date_format
         if datetime_format is None:
-            self.datetime_format = 'YYYY-MM-DD HH:MM:SS'
-        else:
-            self.datetime_format = datetime_format
+            datetime_format = 'YYYY-MM-DD HH:MM:SS'
+        self.datetime_format = datetime_format
+        if time_format is None:
+            time_format = 'HH:MM:SS'
+        self.time_format = time_format
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -678,6 +683,8 @@ class _Openpyxl1Writer(ExcelWriter):
                 xcell.style.number_format.format_code = self.datetime_format
             elif isinstance(cell.val, datetime.date):
                 xcell.style.number_format.format_code = self.date_format
+            elif isinstance(cell.val, datetime.time):
+                xcell.style.number_format.format_code = self.time_format
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 cletterstart = get_column_letter(startcol + cell.col + 1)
@@ -766,10 +773,13 @@ class _Openpyxl2Writer(_Openpyxl1Writer):
             # Apply format codes before cell.style to allow override
             if isinstance(cell.val, datetime.datetime):
                 style_kwargs.update(self._convert_to_style_kwargs({
-                        'number_format':{'format_code': self.datetime_format}}))
+                    'number_format': {'format_code': self.datetime_format}}))
             elif isinstance(cell.val, datetime.date):
                 style_kwargs.update(self._convert_to_style_kwargs({
-                        'number_format':{'format_code': self.date_format}}))
+                    'number_format': {'format_code': self.date_format}}))
+            elif isinstance(cell.val, datetime.time):
+                style_kwargs.update(self._convert_to_style_kwargs({
+                    'number_format': {'format_code': self.time_format}}))
 
             if cell.style:
                 style_kwargs.update(self._convert_to_style_kwargs(cell.style))
@@ -1167,6 +1177,7 @@ class _XlwtWriter(ExcelWriter):
         self.book = xlwt.Workbook(encoding=encoding)
         self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
         self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
+        self.fm_time = xlwt.easyxf(num_format_str=self.time_format)
 
     def save(self):
         """
@@ -1195,6 +1206,8 @@ class _XlwtWriter(ExcelWriter):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, datetime.date):
                 num_format_str = self.date_format
+            elif isinstance(cell.val, datetime.time):
+                num_format_str = self.time_format
 
             stylekey = json.dumps(cell.style)
             if num_format_str:
@@ -1280,14 +1293,15 @@ class _XlsxWriter(ExcelWriter):
     supported_extensions = ('.xlsx',)
 
     def __init__(self, path, engine=None,
-                 date_format=None, datetime_format=None, **engine_kwargs):
+                 date_format=None, datetime_format=None, time_format=None,
+                 **engine_kwargs):
         # Use the xlsxwriter module as the Excel writer.
         import xlsxwriter
 
-        super(_XlsxWriter, self).__init__(path, engine=engine,
-                                          date_format=date_format,
-                                          datetime_format=datetime_format,
-                                          **engine_kwargs)
+        super(_XlsxWriter, self).__init__(
+            path, engine=engine, date_format=date_format,
+            datetime_format=datetime_format, time_format=time_format,
+            **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 
@@ -1316,6 +1330,8 @@ class _XlsxWriter(ExcelWriter):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, datetime.date):
                 num_format_str = self.date_format
+            elif isinstance(cell.val, datetime.time):
+                num_format_str = self.time_format
 
             stylekey = json.dumps(cell.style)
             if num_format_str:
