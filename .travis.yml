@@ -86,13 +86,6 @@ matrix:
       - CLIPBOARD=xsel
       - BUILD_TYPE=conda
       - JOB_NAME: "34_slow"
-    - python: 3.2
-      env:
-      - NOSE_ARGS="not slow and not network and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD_GUI=qt4
-      - BUILD_TYPE=pydata
-      - JOB_NAME: "32_nslow"
     - python: 2.7
       env:
       - EXPERIMENTAL=true
@@ -103,13 +96,6 @@ matrix:
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
-      - python: 3.2
-        env:
-        - NOSE_ARGS="not slow and not network and not disabled"
-        - FULL_DEPS=true
-        - CLIPBOARD_GUI=qt4
-        - BUILD_TYPE=pydata
-        - JOB_NAME: "32_nslow"
       - python: 2.7
         env:
         - NOSE_ARGS="slow and not network and not disabled"

@@ -2543,9 +2543,6 @@ cdef inline _get_datetime64_nanos(object val):
         npy_datetime ival
 
     unit = get_datetime64_unit(val)
-    if unit == 3:
-        raise ValueError('NumPy 1.6.1 business freq not supported')
-
     ival = get_datetime64_value(val)
 
     if unit != PANDAS_FR_ns:
@@ -2613,9 +2610,6 @@ def cast_to_nanoseconds(ndarray arr):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
-    if unit == 3:
-        raise ValueError('NumPy 1.6.1 business freq not supported')
-
     for i in range(n):
         pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)

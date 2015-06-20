@@ -37,7 +37,6 @@ import sys
 import types
 
 PY3 = (sys.version_info[0] >= 3)
-PY3_2 = sys.version_info[:2] == (3, 2)
 PY2 = sys.version_info[0] == 2
 
 
