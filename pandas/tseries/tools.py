@@ -263,6 +263,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         if isinstance(arg, (list,tuple)):
             arg = np.array(arg, dtype='O')
 
+        # these are shortcutable
         if com.is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
@@ -271,6 +272,12 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                     pass
 
             return arg
+        elif format is None and com.is_integer_dtype(arg) and unit=='ns':
+            result = arg.astype('datetime64[ns]')
+            if box:
+                return DatetimeIndex(result, tz='utc' if utc else None)
+
+            return result
 
         arg = com._ensure_object(arg)
 
