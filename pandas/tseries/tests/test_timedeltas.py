@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, Timestamp, Timedelta, TimedeltaIndex, isnull, notnull,
                     bdate_range, date_range, timedelta_range, Int64Index)
 import pandas.core.common as com
-from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long, PY3_2
+from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
 from pandas import compat, to_timedelta, tslib
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas.util.testing import (assert_series_equal,
@@ -1040,8 +1040,6 @@ class TestTimedeltaIndex(tm.TestCase):
         self.assert_numpy_array_equal(result, exp)
 
     def test_comparisons_nat(self):
-        if PY3_2:
-            raise nose.SkipTest('nat comparisons on 3.2 broken')
 
         tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
                                     '1 day 00:00:01', '5 day 00:00:03'])
