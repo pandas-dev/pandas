@@ -7,6 +7,7 @@ common_setup = """from pandas_vb_common import *
 import os
 import pandas as pd
 from pandas.core import common as com
+from pandas.compat import BytesIO
 from random import randrange
 
 f = '__test__.msg'
@@ -206,3 +207,46 @@ df.to_stata(f, {'index': 'tc'})
 packers_read_stata_with_validation = Benchmark("pd.read_stata(f)", setup, start_date=start_date)
 
 packers_write_stata_with_validation = Benchmark("df.to_stata(f, {'index': 'tc'})", setup, cleanup="remove(f)", start_date=start_date)
+
+#----------------------------------------------------------------------
+# Excel - alternative writers
+setup = common_setup + """
+bio = BytesIO()
+"""
+
+excel_writer_bench = """
+bio.seek(0)
+writer = pd.io.excel.ExcelWriter(bio, engine='{engine}')
+df[:2000].to_excel(writer)
+writer.save()
+"""
+
+benchmark_xlsxwriter = excel_writer_bench.format(engine='xlsxwriter')
+
+packers_write_excel_xlsxwriter = Benchmark(benchmark_xlsxwriter, setup)
+
+benchmark_openpyxl = excel_writer_bench.format(engine='openpyxl')
+
+packers_write_excel_openpyxl = Benchmark(benchmark_openpyxl, setup)
+
+benchmark_xlwt = excel_writer_bench.format(engine='xlwt')
+
+packers_write_excel_xlwt = Benchmark(benchmark_xlwt, setup)
+
+
+#----------------------------------------------------------------------
+# Excel - reader
+
+setup = common_setup + """
+bio = BytesIO()
+writer = pd.io.excel.ExcelWriter(bio, engine='xlsxwriter')
+df[:2000].to_excel(writer)
+writer.save()
+"""
+
+benchmark_read_excel="""
+bio.seek(0)
+pd.read_excel(bio)
+"""
+
+packers_read_excel = Benchmark(benchmark_read_excel, setup)

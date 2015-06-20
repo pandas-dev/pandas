@@ -3,6 +3,7 @@ pytz
 openpyxl
 xlsxwriter
 xlrd
+xlwt
 html5lib
 patsy
 beautiful-soup
