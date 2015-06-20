@@ -5,6 +5,11 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
+# GH3363
+from sys import version_info
+cdef bint PY2 = version_info[0] == 2
+cdef bint PY3 = not PY2
+
 from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
@@ -12,8 +17,6 @@ from cpython cimport (
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     PyString_Check,
-    PyUnicode_Contains,
-    PyString_AsString,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
 )
 
@@ -50,14 +53,10 @@ else:
     from dateutil.tz import gettz as _dateutil_gettz
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
-from pandas.compat import parse_date, string_types, PY3, iteritems
+from pandas.compat import parse_date, string_types, iteritems
 
-from sys import version_info
 import operator
 import collections
-
-# GH3363
-cdef bint PY2 = version_info[0] == 2
 
 # initialize numpy
 import_array()
@@ -2291,12 +2290,10 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     """
 
     cdef:
-        char c
-        bytes bc
+        str c
         bint neg=0, have_dot=0, have_value=0, have_hhmmss=0
         object current_unit=None
-        Py_ssize_t i
-        int64_t result=0, m, r
+        int64_t result=0, m=0, r
         list number=[], frac=[], unit=[]
 
     # neg : tracks if we have a leading negative for the value
@@ -2307,19 +2304,18 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     if ts in _nat_strings or not len(ts):
         return iNaT
 
-    for c in PyString_AsString(ts):
-        bc = <bytes>c
+    for c in ts:
 
         # skip whitespace / commas
-        if bc == ' ' or bc == ',':
+        if c == ' ' or c == ',':
             pass
 
         # positive signs are ignored
-        elif bc == '+':
+        elif c == '+':
             pass
 
         # neg
-        elif bc == '-':
+        elif c == '-':
 
             if neg or have_value or have_hhmmss:
                 raise ValueError("only leading negative signs are allowed")
@@ -2327,19 +2323,19 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             neg = 1
 
         # number (ascii codes)
-        elif c >= 48 and c <= 57:
+        elif ord(c) >= 48 and ord(c) <= 57:
 
             if have_dot:
 
                 # we found a dot, but now its just a fraction
                 if len(unit):
-                    number.append(bc)
+                    number.append(c)
                     have_dot = 0
                 else:
-                    frac.append(bc)
+                    frac.append(c)
 
             elif not len(unit):
-                number.append(bc)
+                number.append(c)
 
             else:
 
@@ -2349,12 +2345,12 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                     if coerce:
                         return iNaT
                     raise
-                unit, number, frac = [], [bc], []
+                unit, number, frac = [], [c], []
 
                 result += timedelta_as_neg(r, neg)
 
         # hh:mm:ss.
-        elif bc == ':':
+        elif c == ':':
 
             # we flip this off if we have a leading value
             if have_value:
@@ -2381,7 +2377,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             unit, number = [], []
 
         # after the decimal point
-        elif bc == '.':
+        elif c == '.':
 
             if len(number) and current_unit is not None:
 
@@ -2400,7 +2396,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
 
         # unit
         else:
-            unit.append(bc)
+            unit.append(c)
             have_value = 1
             have_dot = 0
 
