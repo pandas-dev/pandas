@@ -3766,7 +3766,7 @@ class TestHDFStore(tm.TestCase):
             # valid
             result = store.select_column('df', 'index')
             tm.assert_almost_equal(result.values, Series(df.index).values)
-            self.assertIsInstance(result,Series)
+            self.assertIsInstance(result, Series)
 
             # not a data indexable column
             self.assertRaises(
@@ -3805,6 +3805,14 @@ class TestHDFStore(tm.TestCase):
 
             result = store.select_column('df3', 'string', start=-2, stop=2)
             tm.assert_almost_equal(result.values, df3['string'].values[-2:2])
+
+            # GH 10392 - make sure column name is preserved
+            df4 = DataFrame({'A': np.random.randn(10), 'B': 'foo'})
+            store.append('df4', df4, data_columns=True)
+            expected = df4['B']
+            result = store.select_column('df4', 'B')
+            tm.assert_series_equal(result, expected)
+
 
     def test_coordinates(self):
         df = tm.makeTimeDataFrame()
