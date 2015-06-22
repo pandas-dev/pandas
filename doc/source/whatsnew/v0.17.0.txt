@@ -7,6 +7,10 @@ This is a major release from 0.16.2 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
+.. warning::
+
+   pandas >= 0.17.0 will no longer support compatibility with Python version 3.2 (:issue:`9118`)
+
 Highlights include:
 
 
