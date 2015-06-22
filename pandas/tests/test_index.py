@@ -2690,14 +2690,6 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     def test_pickle_compat_construction(self):
         pass
 
-    def test_numeric_compat(self):
-        super(TestDatetimeIndex, self).test_numeric_compat()
-
-        if not compat.PY3_2:
-            for f in [lambda : np.timedelta64(1, 'D').astype('m8[ns]') * pd.date_range('2000-01-01', periods=3),
-                      lambda : pd.date_range('2000-01-01', periods=3) * np.timedelta64(1, 'D').astype('m8[ns]') ]:
-                self.assertRaises(TypeError, f)
-
     def test_get_loc(self):
         idx = pd.date_range('2000-01-01', periods=3)
 

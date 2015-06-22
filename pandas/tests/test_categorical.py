@@ -395,8 +395,8 @@ class TestCategorical(tm.TestCase):
         self.assertRaises(TypeError, lambda: cat_rev > a)
 
         # The following work via '__array_priority__ = 1000'
-        # works only on numpy >= 1.7.1 and not on PY3.2
-        if LooseVersion(np.__version__) > "1.7.1" and not compat.PY3_2:
+        # works only on numpy >= 1.7.1
+        if LooseVersion(np.__version__) > "1.7.1":
             self.assertRaises(TypeError, lambda: a < cat)
             self.assertRaises(TypeError, lambda: a < cat_rev)
 

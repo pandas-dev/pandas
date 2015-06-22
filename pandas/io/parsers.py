@@ -1327,10 +1327,7 @@ def _wrap_compressed(f, compression, encoding=None):
         import gzip
 
         f = gzip.GzipFile(fileobj=f)
-        if compat.PY3_2:
-            # 3.2's gzip doesn't support read1
-            f = StringIO(f.read().decode(encoding))
-        elif compat.PY3:
+        if compat.PY3:
             from io import TextIOWrapper
 
             f = TextIOWrapper(f)

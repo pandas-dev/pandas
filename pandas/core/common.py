@@ -2813,11 +2813,7 @@ def _get_handle(path, mode, encoding=None, compression=None):
         else:
             raise ValueError('Unrecognized compression type: %s' %
                              compression)
-        if compat.PY3_2:
-            # gzip and bz2 don't work with TextIOWrapper in 3.2
-            encoding = encoding or get_option('display.encoding')
-            f = StringIO(f.read().decode(encoding))
-        elif compat.PY3:
+        if compat.PY3:
             from io import TextIOWrapper
             f = TextIOWrapper(f, encoding=encoding)
         return f
