@@ -109,6 +109,9 @@ class TestTimedeltas(tm.TestCase):
         # currently invalid as it has a - on the hhmmdd part (only allowed on the days)
         self.assertRaises(ValueError, lambda : Timedelta('-10 days -1 h 1.5m 1s 3us'))
 
+        # only leading neg signs are allowed
+        self.assertRaises(ValueError, lambda : Timedelta('10 days -1 h 1.5m 1s 3us'))
+
         # roundtripping both for string and value
         for v in ['1s',
                   '-1s',
@@ -151,7 +154,7 @@ class TestTimedeltas(tm.TestCase):
                               "cannot construct a TimeDelta",
                               lambda : Timedelta())
         tm.assertRaisesRegexp(ValueError,
-                              "cannot create timedelta string convert",
+                              "unit abbreviation w/o a number",
                               lambda : Timedelta('foo'))
         tm.assertRaisesRegexp(ValueError,
                               "cannot construct a TimeDelta from the passed arguments, allowed keywords are ",
