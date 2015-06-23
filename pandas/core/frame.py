@@ -413,10 +413,17 @@ class DataFrame(NDFrame):
 
     @property
     def axes(self):
+        """
+        Return a list with the row axis labels and column axis labels as the
+        only members. They are returned in that order.
+        """
         return [self.index, self.columns]
 
     @property
     def shape(self):
+        """
+        Return a tuple representing the dimensionality of the DataFrame.
+        """
         return (len(self.index), len(self.columns))
 
     def _repr_fits_vertical_(self):
