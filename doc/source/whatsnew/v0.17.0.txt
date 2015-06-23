@@ -180,6 +180,22 @@ Other enhancements
    s.drop_duplicates(keep=False)
 
 
+- Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill`:
+
+  .. ipython:: python
+
+     df = pd.DataFrame({'x': range(5), 't': pd.date_range('2000-01-01', periods=5)})
+     df.reindex([0.1, 1.9, 3.5], method='nearest', tolerance=0.2)
+
+  When used on a ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible. This allows you to specify tolerance with a string:
+
+  .. ipython:: python
+
+     df = df.set_index('t')
+     df.reindex(pd.to_datetime(['1999-12-31']), method='nearest', tolerance='1 day')
+
+  ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:

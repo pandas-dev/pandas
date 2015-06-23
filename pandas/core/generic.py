@@ -922,7 +922,7 @@ class NDFrame(PandasObject):
             in the store wherever possible
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
-        dropna : boolean, default False. 
+        dropna : boolean, default False.
             If true, ALL nan rows will not be written to store.
 
         """
@@ -1551,7 +1551,8 @@ class NDFrame(PandasObject):
 
         return self.reindex(**{axis_name: new_axis})
 
-    def reindex_like(self, other, method=None, copy=True, limit=None):
+    def reindex_like(self, other, method=None, copy=True, limit=None,
+                     tolerance=None):
         """ return an object with matching indicies to myself
 
         Parameters
@@ -1560,7 +1561,12 @@ class NDFrame(PandasObject):
         method : string or None
         copy : boolean, default True
         limit : int, default None
-            Maximum size gap to forward or backward fill
+            Maximum number of consecutive labels to fill for inexact matches.
+        tolerance : optional
+            Maximum distance between labels of the other object and this
+            object for inexact matches.
+
+            .. versionadded:: 0.17.0
 
         Notes
         -----
@@ -1572,7 +1578,8 @@ class NDFrame(PandasObject):
         reindexed : same as input
         """
         d = other._construct_axes_dict(axes=self._AXIS_ORDERS,
-                method=method, copy=copy, limit=limit)
+                method=method, copy=copy, limit=limit,
+                tolerance=tolerance)
 
         return self.reindex(**d)
 
@@ -1736,7 +1743,13 @@ class NDFrame(PandasObject):
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
         limit : int, default None
-            Maximum size gap to forward or backward fill
+            Maximum number of consecutive elements to forward or backward fill
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            .. versionadded:: 0.17.0
 
         Examples
         --------
@@ -1758,6 +1771,7 @@ class NDFrame(PandasObject):
         level = kwargs.pop('level', None)
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
+        tolerance = kwargs.pop('tolerance', None)
         fill_value = kwargs.pop('fill_value', np.nan)
 
         if kwargs:
@@ -1782,10 +1796,11 @@ class NDFrame(PandasObject):
                 pass
 
         # perform the reindex on the axes
-        return self._reindex_axes(axes, level, limit,
+        return self._reindex_axes(axes, level, limit, tolerance,
                                   method, fill_value, copy).__finalize__(self)
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+    def _reindex_axes(self, axes, level, limit, tolerance, method,
+                      fill_value, copy):
         """ perform the reinxed for all the axes """
         obj = self
         for a in self._AXIS_ORDERS:
@@ -1795,7 +1810,8 @@ class NDFrame(PandasObject):
 
             ax = self._get_axis(a)
             new_index, indexer = ax.reindex(
-                labels, level=level, limit=limit, method=method)
+                labels, level=level, limit=limit, tolerance=tolerance,
+                method=method)
 
             axis = self._get_axis_number(a)
             obj = obj._reindex_with_indexers(
@@ -1836,7 +1852,13 @@ class NDFrame(PandasObject):
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
         limit : int, default None
-            Maximum size gap to forward or backward fill
+            Maximum number of consecutive elements to forward or backward fill
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            .. versionadded:: 0.17.0
 
         Examples
         --------
@@ -2910,7 +2932,7 @@ class NDFrame(PandasObject):
               use the actual numerical values of the index
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
               wrappers around the scipy interpolation methods of similar
-              names. These use the actual numerical values of the index. See 
+              names. These use the actual numerical values of the index. See
               the scipy documentation for more on their behavior:
               http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
               http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
