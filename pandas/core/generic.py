@@ -373,12 +373,12 @@ class NDFrame(PandasObject):
 
     @property
     def shape(self):
-        "tuple of axis dimensions"
+        "Return a tuple of axis dimensions"
         return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        "index(es) of the NDFrame"
+        "Return index label(s) of the internal NDFrame"
         # we do it this way because if we have reversed axes, then
         # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
