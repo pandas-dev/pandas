@@ -2925,47 +2925,50 @@ class NDFrame(PandasObject):
 
         if axis == 0:
             ax = self._info_axis_name
+            _maybe_transposed_self = self
         elif axis == 1:
-            self = self.T
+            _maybe_transposed_self = self.T
             ax = 1
-        ax = self._get_axis_number(ax)
+        else:
+            _maybe_transposed_self = self
+        ax = _maybe_transposed_self._get_axis_number(ax)
 
-        if self.ndim == 2:
+        if _maybe_transposed_self.ndim == 2:
             alt_ax = 1 - ax
         else:
             alt_ax = ax
 
-        if isinstance(self.index, MultiIndex) and method != 'linear':
+        if isinstance(_maybe_transposed_self.index, MultiIndex) and method != 'linear':
             raise ValueError("Only `method=linear` interpolation is supported "
                              "on MultiIndexes.")
 
-        if self._data.get_dtype_counts().get('object') == len(self.T):
+        if _maybe_transposed_self._data.get_dtype_counts().get('object') == len(_maybe_transposed_self.T):
             raise TypeError("Cannot interpolate with all NaNs.")
 
         # create/use the index
         if method == 'linear':
-            index = np.arange(len(self._get_axis(alt_ax)))  # prior default
+            index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))  # prior default
         else:
-            index = self._get_axis(alt_ax)
+            index = _maybe_transposed_self._get_axis(alt_ax)
 
         if pd.isnull(index).any():
             raise NotImplementedError("Interpolation with NaNs in the index "
                                       "has not been implemented. Try filling "
                                       "those NaNs before interpolating.")
-        new_data = self._data.interpolate(method=method,
-                                          axis=ax,
-                                          index=index,
-                                          values=self,
-                                          limit=limit,
-                                          inplace=inplace,
-                                          downcast=downcast,
-                                          **kwargs)
+        new_data = _maybe_transposed_self._data.interpolate(
+            method=method,
+            axis=ax,
+            index=index,
+            values=_maybe_transposed_self,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+            **kwargs
+        )
         if inplace:
             if axis == 1:
-                self._update_inplace(new_data)
-                self = self.T
-            else:
-                self._update_inplace(new_data)
+                new_data = self._constructor(new_data).T._data
+            self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
             if axis == 1:
