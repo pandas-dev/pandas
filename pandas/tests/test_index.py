@@ -207,9 +207,18 @@ class Base(object):
 
             if not len(ind):
                 continue
+            if isinstance(ind, MultiIndex):
+                continue
             idx = self._holder([ind[0]]*5)
             self.assertFalse(idx.is_unique)
             self.assertTrue(idx.has_duplicates)
+
+            # GH 10115
+            # preserve names
+            idx.name = 'foo'
+            result = idx.drop_duplicates()
+            self.assertEqual(result.name, 'foo')
+            self.assert_index_equal(result, Index([ind[0]],name='foo'))
 
     def test_sort(self):
         for ind in self.indices.values():
@@ -1830,9 +1839,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
     def test_duplicates(self):
 
-        idx = CategoricalIndex([0, 0, 0])
+        idx = CategoricalIndex([0, 0, 0], name='foo')
         self.assertFalse(idx.is_unique)
         self.assertTrue(idx.has_duplicates)
+
+        expected = CategoricalIndex([0], name='foo')
+        self.assert_index_equal(idx.drop_duplicates(), expected)
 
     def test_get_indexer(self):
 
@@ -4594,6 +4606,19 @@ class TestMultiIndex(Base, tm.TestCase):
                 self.assertEqual(mi.get_duplicates(), [])
                 self.assert_array_equal(mi.duplicated(),
                                         np.zeros(len(mi), dtype='bool'))
+
+    def test_duplicate_meta_data(self):
+        # GH 10115
+        index = MultiIndex(levels=[[0, 1], [0, 1, 2]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1],
+                                   [0, 1, 2, 0, 0, 1, 2]])
+        for idx in [index,
+                    index.set_names([None, None]),
+                    index.set_names([None, 'Num']),
+                    index.set_names(['Upper','Num']),
+                   ]:
+            self.assertTrue(idx.has_duplicates)
+            self.assertEqual(idx.drop_duplicates().names, idx.names)
 
     def test_tolist(self):
         result = self.index.tolist()
