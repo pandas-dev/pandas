@@ -2573,13 +2573,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, take_last=False):
-        result = super(Index, self).drop_duplicates(take_last=take_last)
-        return self._constructor(result)
+        return super(Index, self).drop_duplicates(take_last=take_last)
 
     @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, take_last=False):
         return super(Index, self).duplicated(take_last=take_last)
-
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
         raise TypeError("can only perform ops with timedelta like values")

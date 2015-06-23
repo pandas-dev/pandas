@@ -330,6 +330,20 @@ Freq: H"""
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
+    def test_drop_duplicates_metadata(self):
+        #GH 10115
+        idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
+        result = idx.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertEqual(idx.freq, result.freq)
+
+        idx_dup = idx.append(idx)
+        self.assertIsNone(idx_dup.freq)   # freq is reset
+        result = idx_dup.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertIsNone(result.freq)
+
+
 class TestTimedeltaIndexOps(Ops):
 
     def setUp(self):
@@ -802,6 +816,20 @@ Freq: D"""
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
+    def test_drop_duplicates_metadata(self):
+        #GH 10115
+        idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
+        result = idx.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertEqual(idx.freq, result.freq)
+
+        idx_dup = idx.append(idx)
+        self.assertIsNone(idx_dup.freq)   # freq is reset
+        result = idx_dup.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertIsNone(result.freq)
+
+
 class TestPeriodIndexOps(Ops):
 
     def setUp(self):
@@ -1227,6 +1255,18 @@ Freq: Q-DEC"""
         tm.assert_series_equal(idx.value_counts(dropna=False), expected)
 
         tm.assert_index_equal(idx.unique(), exp_idx)
+
+    def test_drop_duplicates_metadata(self):
+        #GH 10115
+        idx = pd.period_range('2011-01-01', '2011-01-31', freq='D', name='idx')
+        result = idx.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertEqual(idx.freq, result.freq)
+
+        idx_dup = idx.append(idx) # freq will not be reset
+        result = idx_dup.drop_duplicates()
+        self.assert_index_equal(idx, result)
+        self.assertEqual(idx.freq, result.freq)
 
 
 if __name__ == '__main__':
