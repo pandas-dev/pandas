@@ -1117,6 +1117,14 @@ class TestDataFrame(tm.TestCase, Generic):
         result['a'].interpolate(inplace=True, downcast='infer')
         assert_frame_equal(result, expected.astype('int64'))
 
+    def test_interp_inplace_row(self):
+        # GH 10395
+        result = DataFrame({'a': [1.,2.,3.,4.], 'b': [np.nan, 2., 3., 4.],
+                            'c': [3, 2, 2, 2]})
+        expected = result.interpolate(method='linear', axis=1, inplace=False)
+        result.interpolate(method='linear', axis=1, inplace=True)
+        assert_frame_equal(result, expected)
+
     def test_interp_ignore_all_good(self):
         # GH
         df = DataFrame({'A': [1, 2, np.nan, 4],
