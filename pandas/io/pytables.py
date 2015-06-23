@@ -3608,7 +3608,7 @@ class Table(Fixed):
                                                 nan_rep=self.nan_rep,
                                                 encoding=self.encoding
                                                 ).take_data(),
-                                      a.tz, True))
+                                      a.tz, True), name=column)
 
         raise KeyError("column [%s] not found in the table" % column)
 
