@@ -1,18 +1,23 @@
 .. currentmodule:: pandas
-.. _dsintro:
-
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
-   from pandas import *
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   set_option('display.precision', 4, 'display.max_columns', 8)
-   options.display.max_rows=15
    import pandas as pd
+   pd.set_option('display.precision', 4, 'display.max_columns', 8)
+   pd.options.display.max_rows = 15
 
+   import matplotlib
+   try:
+      matplotlib.style.use('ggplot')
+   except AttributeError:
+      pd.options.display.mpl_style = 'default'
+   import matplotlib.pyplot as plt
+   plt.close('all')
+
+.. _dsintro:
 
 ************************
 Intro to Data Structures
@@ -26,22 +31,13 @@ objects. To get started, import numpy and load pandas into your namespace:
 .. ipython:: python
 
    import numpy as np
-   # will use a lot in examples
-   randn = np.random.randn
-   from pandas import *
+   import pandas as pd
 
 Here is a basic tenet to keep in mind: **data alignment is intrinsic**. The link
 between labels and data will not be broken unless done so explicitly by you.
 
 We'll give a brief intro to the data structures, then consider all of the broad
 categories of functionality and methods in separate sections.
-
-When using pandas, we recommend the following import convention:
-
-.. code-block:: python
-
-   import pandas as pd
-
 
 .. _basics.series:
 
@@ -60,7 +56,7 @@ labels are collectively referred to as the **index**. The basic method to create
 
 ::
 
-    >>> s = Series(data, index=index)
+    >>> s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 
@@ -78,11 +74,11 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. ipython:: python
 
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    s
    s.index
 
-   Series(randn(5))
+   pd.Series(np.random.randn(5))
 
 .. note::
 
@@ -101,8 +97,8 @@ constructed from the sorted keys of the dict, if possible.
 .. ipython:: python
 
    d = {'a' : 0., 'b' : 1., 'c' : 2.}
-   Series(d)
-   Series(d, index=['b', 'c', 'd', 'a'])
+   pd.Series(d)
+   pd.Series(d, index=['b', 'c', 'd', 'a'])
 
 .. note::
 
@@ -113,7 +109,7 @@ provided. The value will be repeated to match the length of **index**
 
 .. ipython:: python
 
-   Series(5., index=['a', 'b', 'c', 'd', 'e'])
+   pd.Series(5., index=['a', 'b', 'c', 'd', 'e'])
 
 Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -211,7 +207,7 @@ Series can also have a ``name`` attribute:
 
 .. ipython:: python
 
-   s = Series(np.random.randn(5), name='something')
+   s = pd.Series(np.random.randn(5), name='something')
    s
    s.name
 
@@ -254,13 +250,13 @@ keys.
 
 .. ipython:: python
 
-    d = {'one' : Series([1., 2., 3.], index=['a', 'b', 'c']),
-         'two' : Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
-    df = DataFrame(d)
+    d = {'one' : pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
+         'two' : pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
+    df = pd.DataFrame(d)
     df
 
-    DataFrame(d, index=['d', 'b', 'a'])
-    DataFrame(d, index=['d', 'b', 'a'], columns=['two', 'three'])
+    pd.DataFrame(d, index=['d', 'b', 'a'])
+    pd.DataFrame(d, index=['d', 'b', 'a'], columns=['two', 'three'])
 
 The row and column labels can be accessed respectively by accessing the
 **index** and **columns** attributes:
@@ -286,8 +282,8 @@ result will be ``range(n)``, where ``n`` is the array length.
 
    d = {'one' : [1., 2., 3., 4.],
         'two' : [4., 3., 2., 1.]}
-   DataFrame(d)
-   DataFrame(d, index=['a', 'b', 'c', 'd'])
+   pd.DataFrame(d)
+   pd.DataFrame(d, index=['a', 'b', 'c', 'd'])
 
 From structured or record array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -296,12 +292,12 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2,),dtype=[('A', 'i4'),('B', 'f4'),('C', 'a10')])
-   data[:] = [(1,2.,'Hello'),(2,3.,"World")]
+   data = np.zeros((2,), dtype=[('A', 'i4'),('B', 'f4'),('C', 'a10')])
+   data[:] = [(1,2.,'Hello'), (2,3.,"World")]
 
-   DataFrame(data)
-   DataFrame(data, index=['first', 'second'])
-   DataFrame(data, columns=['C', 'A', 'B'])
+   pd.DataFrame(data)
+   pd.DataFrame(data, index=['first', 'second'])
+   pd.DataFrame(data, columns=['C', 'A', 'B'])
 
 .. note::
 
@@ -316,9 +312,9 @@ From a list of dicts
 .. ipython:: python
 
    data2 = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
-   DataFrame(data2)
-   DataFrame(data2, index=['first', 'second'])
-   DataFrame(data2, columns=['a', 'b'])
+   pd.DataFrame(data2)
+   pd.DataFrame(data2, index=['first', 'second'])
+   pd.DataFrame(data2, columns=['a', 'b'])
 
 .. _basics.dataframe.from_dict_of_tuples:
 
@@ -329,11 +325,11 @@ You can automatically create a multi-indexed frame by passing a tuples dictionar
 
 .. ipython:: python
 
-   DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
-              ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
-              ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
-              ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
-              ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
+   pd.DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
+                 ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
+                 ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
+                 ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
+                 ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
 
 .. _basics.dataframe.from_series:
 
@@ -376,7 +372,7 @@ For example:
 .. ipython:: python
 
    data
-   DataFrame.from_records(data, index='C')
+   pd.DataFrame.from_records(data, index='C')
 
 .. _basics.dataframe.from_items:
 
@@ -391,15 +387,15 @@ of columns:
 
 .. ipython:: python
 
-   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
+   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
 
 If you pass ``orient='index'``, the keys will be the row labels. But in this
 case you must also pass the desired column names:
 
 .. ipython:: python
 
-   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
-                        orient='index', columns=['one', 'two', 'three'])
+   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                           orient='index', columns=['one', 'two', 'three'])
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -465,7 +461,7 @@ derived from existing columns.
 
 .. ipython:: python
 
-   iris = read_csv('data/iris.data')
+   iris = pd.read_csv('data/iris.data')
    iris.head()
 
    (iris.assign(sepal_ratio = iris['SepalWidth'] / iris['SepalLength'])
@@ -564,8 +560,8 @@ union of the column and row labels.
 
 .. ipython:: python
 
-    df = DataFrame(randn(10, 4), columns=['A', 'B', 'C', 'D'])
-    df2 = DataFrame(randn(7, 3), columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
+    df2 = pd.DataFrame(np.random.randn(7, 3), columns=['A', 'B', 'C'])
     df + df2
 
 When doing an operation between DataFrame and Series, the default behavior is
@@ -583,8 +579,8 @@ also contains dates, the broadcasting will be column-wise:
 .. ipython:: python
    :okwarning:
 
-   index = date_range('1/1/2000', periods=8)
-   df = DataFrame(randn(8, 3), index=index, columns=list('ABC'))
+   index = pd.date_range('1/1/2000', periods=8)
+   df = pd.DataFrame(np.random.randn(8, 3), index=index, columns=list('ABC'))
    df
    type(df['A'])
    df - df['A']
@@ -619,8 +615,8 @@ Boolean operators work as well:
 
 .. ipython:: python
 
-   df1 = DataFrame({'a' : [1, 0, 1], 'b' : [0, 1, 1] }, dtype=bool)
-   df2 = DataFrame({'a' : [0, 1, 1], 'b' : [1, 1, 0] }, dtype=bool)
+   df1 = pd.DataFrame({'a' : [1, 0, 1], 'b' : [0, 1, 1] }, dtype=bool)
+   df2 = pd.DataFrame({'a' : [0, 1, 1], 'b' : [1, 1, 0] }, dtype=bool)
    df1 & df2
    df1 | df2
    df1 ^ df2
@@ -660,7 +656,7 @@ Similarly, the dot method on Series implements dot product:
 
 .. ipython:: python
 
-   s1 = Series(np.arange(5,10))
+   s1 = pd.Series(np.arange(5,10))
    s1.dot(s1)
 
 DataFrame is not intended to be a drop-in replacement for ndarray as its
@@ -682,7 +678,7 @@ R package):
 
 .. ipython:: python
 
-   baseball = read_csv('data/baseball.csv')
+   baseball = pd.read_csv('data/baseball.csv')
    print(baseball)
    baseball.info()
 
@@ -704,21 +700,21 @@ default:
 
 .. ipython:: python
 
-   DataFrame(randn(3, 12))
+   pd.DataFrame(np.random.randn(3, 12))
 
 You can change how much to print on a single row by setting the ``display.width``
 option:
 
 .. ipython:: python
 
-   set_option('display.width', 40) # default is 80
+   pd.set_option('display.width', 40) # default is 80
 
-   DataFrame(randn(3, 12))
+   pd.DataFrame(np.random.randn(3, 12))
 
 .. ipython:: python
    :suppress:
 
-   reset_option('display.width')
+   pd.reset_option('display.width')
 
 You can also disable this feature via the ``expand_frame_repr`` option.
 This will print the table in one block.
@@ -731,8 +727,8 @@ accessed like attributes:
 
 .. ipython:: python
 
-   df = DataFrame({'foo1' : np.random.randn(5),
-                   'foo2' : np.random.randn(5)})
+   df = pd.DataFrame({'foo1' : np.random.randn(5),
+                      'foo2' : np.random.randn(5)})
    df
    df.foo1
 
@@ -770,9 +766,9 @@ From 3D ndarray with optional axis labels
 
 .. ipython:: python
 
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
+   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    wp
 
 
@@ -781,9 +777,9 @@ From dict of DataFrame objects
 
 .. ipython:: python
 
-   data = {'Item1' : DataFrame(randn(4, 3)),
-           'Item2' : DataFrame(randn(4, 2))}
-   Panel(data)
+   data = {'Item1' : pd.DataFrame(np.random.randn(4, 3)),
+           'Item2' : pd.DataFrame(np.random.randn(4, 2))}
+   pd.Panel(data)
 
 Note that the values in the dict need only be **convertible to
 DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
@@ -803,7 +799,7 @@ For example, compare to the construction above:
 
 .. ipython:: python
 
-   Panel.from_dict(data, orient='minor')
+   pd.Panel.from_dict(data, orient='minor')
 
 Orient is especially useful for mixed-type DataFrames. If you pass a dict of
 DataFrame objects with mixed-type columns, all of the data will get upcasted to
@@ -811,11 +807,11 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 
 .. ipython:: python
 
-   df = DataFrame({'a': ['foo', 'bar', 'baz'],
-                   'b': np.random.randn(3)})
+   df = pd.DataFrame({'a': ['foo', 'bar', 'baz'],
+                      'b': np.random.randn(3)})
    df
    data = {'item1': df, 'item2': df}
-   panel = Panel.from_dict(data, orient='minor')
+   panel = pd.Panel.from_dict(data, orient='minor')
    panel['a']
    panel['b']
    panel['b'].dtypes
@@ -838,8 +834,8 @@ a DataFrame with a two-level index to a Panel.
 
 .. ipython:: python
 
-   midx = MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
-   df = DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
+   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
+   df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
    df.to_panel()
 
 .. _dsintro.panel_item_selection:
@@ -897,7 +893,7 @@ Another way to change the dimensionality of an object is to ``squeeze`` a 1-len 
 .. ipython:: python
 
    wp.reindex(items=['Item1']).squeeze()
-   wp.reindex(items=['Item1'],minor=['B']).squeeze()
+   wp.reindex(items=['Item1'], minor=['B']).squeeze()
 
 
 Conversion to DataFrame
@@ -910,9 +906,9 @@ method:
 
 .. ipython:: python
 
-   panel = Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
-                 major_axis=date_range('1/1/2000', periods=5),
-                 minor_axis=['a', 'b', 'c', 'd'])
+   panel = pd.Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
+                    major_axis=pd.date_range('1/1/2000', periods=5),
+                    minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()
 
 
@@ -931,7 +927,6 @@ containers.
     DataFrames
   - **minor_axis**: axis 3, it is the **columns** of each of the DataFrames
 
-
 ``Panel4D`` is a sub-class of ``Panel``, so most methods that work on Panels are
 applicable to Panel4D. The following methods are disabled:
 
@@ -944,11 +939,11 @@ From 4D ndarray with optional axis labels
 
 .. ipython:: python
 
-   p4d = Panel4D(randn(2, 2, 5, 4),
-              labels=['Label1','Label2'],
-              items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
+   p4d = pd.Panel4D(np.random.randn(2, 2, 5, 4),
+                    labels=['Label1','Label2'],
+                    items=['Item1', 'Item2'],
+                    major_axis=pd.date_range('1/1/2000', periods=5),
+                    minor_axis=['A', 'B', 'C', 'D'])
    p4d
 
 
@@ -957,9 +952,9 @@ From dict of Panel objects
 
 .. ipython:: python
 
-   data = { 'Label1' : Panel({ 'Item1' : DataFrame(randn(4, 3)) }),
-            'Label2' : Panel({ 'Item2' : DataFrame(randn(4, 2)) }) }
-   Panel4D(data)
+   data = { 'Label1' : pd.Panel({ 'Item1' : pd.DataFrame(np.random.randn(4, 3)) }),
+            'Label2' : pd.Panel({ 'Item2' : pd.DataFrame(np.random.randn(4, 2)) }) }
+   pd.Panel4D(data)
 
 Note that the values in the dict need only be **convertible to Panels**.
 Thus, they can be any of the other valid inputs to Panel as per above.
@@ -1022,7 +1017,7 @@ Here we slice to a Panel4D.
         orders  = [ 'cool', 'labels','items','major_axis','minor_axis'],
         slices  = { 'labels' : 'labels', 'items' : 'items',
 	                'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
-        slicer  = Panel4D,
+        slicer  = pd.Panel4D,
         aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
         stat_axis    = 2)
 

@@ -5,17 +5,14 @@
 .. ipython:: python
    :suppress:
 
-   import os
-   import csv
-   from pandas import DataFrame, Series
+   import numpy as np
+   np.random.seed(123456)
+   np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    pd.options.display.max_rows=15
 
-   import numpy as np
-   np.random.seed(123456)
-   randn = np.random.randn
-   randint = np.random.randint
-   np.set_printoptions(precision=4, suppress=True)
+   import os
+   import csv
 
 
 *********************
@@ -49,7 +46,10 @@ We have a DataFrame to which we want to apply a function row-wise.
 
 .. ipython:: python
 
-   df = DataFrame({'a': randn(1000), 'b': randn(1000),'N': randint(100, 1000, (1000)), 'x': 'x'})
+   df = pd.DataFrame({'a': np.random.randn(1000),
+                      'b': np.random.randn(1000),
+                      'N': np.random.randint(100, 1000, (1000)),
+                      'x': 'x'})
    df
 
 Here's the function in pure python:
@@ -94,7 +94,8 @@ hence we'll concentrate our efforts cythonizing these two functions.
 Plain cython
 ~~~~~~~~~~~~
 
-First we're going to need to import the cython magic function to ipython:
+First we're going to need to import the cython magic function to ipython (for
+cython versions >=0.21 you can use ``%load_ext Cython``):
 
 .. ipython:: python
 
@@ -335,7 +336,7 @@ We simply take the plain python code from above and annotate with the ``@jit`` d
 
     def compute_numba(df):
        result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
-       return Series(result, index=df.index, name='result')
+       return pd.Series(result, index=df.index, name='result')
 
 Similar to above, we directly pass ``numpy`` arrays directly to the numba function. Further
 we are wrapping the results to provide a nice interface by passing/returning pandas objects.
@@ -433,17 +434,12 @@ First let's create a few decent-sized arrays to play with:
 
 .. ipython:: python
 
-   import pandas as pd
-   from pandas import DataFrame, Series
-   from numpy.random import randn
-   import numpy as np
    nrows, ncols = 20000, 100
-   df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols)) for _ in range(4)]
+   df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols)) for _ in range(4)]
 
 
 Now let's compare adding them together using plain ol' Python versus
 :func:`~pandas.eval`:
-
 
 .. ipython:: python
 
@@ -467,10 +463,9 @@ Now let's do the same thing but with comparisons:
 
 :func:`~pandas.eval` also works with unaligned pandas objects:
 
-
 .. ipython:: python
 
-   s = Series(randn(50))
+   s = pd.Series(np.random.randn(50))
    %timeit df1 + df2 + df3 + df4 + s
 
 .. ipython:: python
@@ -515,7 +510,7 @@ evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
 
 .. ipython:: python
 
-   df = DataFrame(randn(5, 2), columns=['a', 'b'])
+   df = pd.DataFrame(np.random.randn(5, 2), columns=['a', 'b'])
    df.eval('a + b')
 
 Any expression that is a valid :func:`pandas.eval` expression is also a valid
@@ -530,7 +525,7 @@ it must be a valid Python identifier.
 
 .. ipython:: python
 
-   df = DataFrame(dict(a=range(5), b=range(5, 10)))
+   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
    df.eval('c = a + b')
    df.eval('d = a + b + c')
    df.eval('a = 1')
@@ -540,7 +535,7 @@ The equivalent in standard Python would be
 
 .. ipython:: python
 
-   df = DataFrame(dict(a=range(5), b=range(5, 10)))
+   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
    df['c'] = df.a + df.b
    df['d'] = df.a + df.b + df.c
    df['a'] = 1
@@ -555,8 +550,8 @@ For example,
 
 .. code-block:: python
 
-   df = DataFrame(randn(5, 2), columns=['a', 'b'])
-   newcol = randn(len(df))
+   df = pd.DataFrame(np.random.randn(5, 2), columns=['a', 'b'])
+   newcol = np.random.randn(len(df))
    df.eval('b + newcol')
 
    UndefinedVariableError: name 'newcol' is not defined
@@ -567,8 +562,8 @@ expression by placing the ``@`` character in front of the name. For example,
 
 .. ipython:: python
 
-   df = DataFrame(randn(5, 2), columns=list('ab'))
-   newcol = randn(len(df))
+   df = pd.DataFrame(np.random.randn(5, 2), columns=list('ab'))
+   newcol = np.random.randn(len(df))
    df.eval('b + @newcol')
    df.query('b < @newcol')
 
@@ -582,7 +577,7 @@ name in an expression.
 
 .. ipython:: python
 
-   a = randn()
+   a = np.random.randn()
    df.query('@a < a')
    df.loc[a < df.a]  # same as the previous expression
 
@@ -710,8 +705,8 @@ you have an expression--for example
 
 .. ipython:: python
 
-   df = DataFrame({'strings': np.repeat(list('cba'), 3),
-                   'nums': np.repeat(range(3), 3)})
+   df = pd.DataFrame({'strings': np.repeat(list('cba'), 3),
+                      'nums': np.repeat(range(3), 3)})
    df
    df.query('strings == "a" and nums == 1')
 
