@@ -1100,6 +1100,30 @@ Note that the same result could have been achieved using
 increasing or descreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
 will not make any checks on the order of the index.
 
+.. _basics.limits_on_reindex_fill:
+
+Limits on filling while reindexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``limit`` and ``tolerance`` arguments provide additional control over
+filling while reindexing. Limit specifies the maximum count of consecutive
+matches:
+
+.. ipython:: python
+
+   ts2.reindex(ts.index, method='ffill', limit=1)
+
+In contrast, tolerance specifies the maximum distance between the index and
+indexer values:
+
+.. ipython:: python
+
+   ts2.reindex(ts.index, method='ffill', tolerance='1 day')
+
+Notice that when used on a ``DatetimeIndex``, ``TimedeltaIndex`` or
+``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible.
+This allows you to specify tolerance with appropriate strings.
+
 .. _basics.drop:
 
 Dropping labels from an axis

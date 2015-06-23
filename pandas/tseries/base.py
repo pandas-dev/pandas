@@ -203,6 +203,14 @@ class DatetimeIndexOpsMixin(object):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
+    def _convert_tolerance(self, tolerance):
+        try:
+            return tslib.Timedelta(tolerance).to_timedelta64()
+        except ValueError:
+            raise ValueError('tolerance argument for %s must be convertible '
+                             'to Timedelta: %r'
+                             % (type(self).__name__, tolerance))
+
     def _maybe_mask_results(self, result, fill_value=None, convert=None):
         """
         Parameters

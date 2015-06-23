@@ -1220,6 +1220,16 @@ class TestIndex(Base, tm.TestCase):
         r2 = idx2.get_indexer(idx1[::-1], method='backfill')
         assert_almost_equal(r2, e1[::-1])
 
+    def test_get_indexer_invalid(self):
+        # GH10411
+        idx = Index(np.arange(10))
+
+        with tm.assertRaisesRegexp(ValueError, 'tolerance argument'):
+            idx.get_indexer([1, 0], tolerance=1)
+
+        with tm.assertRaisesRegexp(ValueError, 'limit argument'):
+            idx.get_indexer([1, 0], limit=1)
+
     def test_get_indexer_nearest(self):
         idx = Index(np.arange(10))
 
@@ -1228,8 +1238,18 @@ class TestIndex(Base, tm.TestCase):
             actual = idx.get_indexer([0, 5, 9], method=method)
             tm.assert_numpy_array_equal(actual, [0, 5, 9])
 
+            actual = idx.get_indexer([0, 5, 9], method=method, tolerance=0)
+            tm.assert_numpy_array_equal(actual, [0, 5, 9])
+
         for method, expected in zip(all_methods, [[0, 1, 8], [1, 2, 9], [0, 2, 9]]):
             actual = idx.get_indexer([0.2, 1.8, 8.5], method=method)
+            tm.assert_numpy_array_equal(actual, expected)
+
+            actual = idx.get_indexer([0.2, 1.8, 8.5], method=method, tolerance=1)
+            tm.assert_numpy_array_equal(actual, expected)
+
+        for method, expected in zip(all_methods, [[0, -1, -1], [-1, 2, -1], [0, 2, -1]]):
+            actual = idx.get_indexer([0.2, 1.8, 8.5], method=method, tolerance=0.2)
             tm.assert_numpy_array_equal(actual, expected)
 
         with tm.assertRaisesRegexp(ValueError, 'limit argument'):
@@ -1261,20 +1281,39 @@ class TestIndex(Base, tm.TestCase):
         with tm.assertRaises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='nearest')
 
+        with tm.assertRaises(TypeError):
+            idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
+
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
         for method in all_methods:
             self.assertEqual(idx.get_loc(1, method=method), 1)
+            if method is not None:
+                self.assertEqual(idx.get_loc(1, method=method, tolerance=0), 1)
             with tm.assertRaises(TypeError):
                 idx.get_loc([1, 2], method=method)
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             self.assertEqual(idx.get_loc(1.1, method), loc)
 
+        for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
+            self.assertEqual(idx.get_loc(1.1, method, tolerance=1), loc)
+
+        for method in ['pad', 'backfill', 'nearest']:
+            with tm.assertRaises(KeyError):
+                idx.get_loc(1.1, method, tolerance=0.05)
+
+        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+            idx.get_loc(1.1, 'nearest', tolerance='invalid')
+        with tm.assertRaisesRegexp(ValueError, 'tolerance .* valid if'):
+            idx.get_loc(1.1, tolerance=1)
+
         idx = pd.Index(['a', 'c'])
         with tm.assertRaises(TypeError):
             idx.get_loc('a', method='nearest')
+        with tm.assertRaises(TypeError):
+            idx.get_loc('a', method='pad', tolerance='invalid')
 
     def test_slice_locs(self):
         for dtype in [int, float]:
@@ -2266,12 +2305,20 @@ class TestFloat64Index(Numeric, tm.TestCase):
         idx = Float64Index([0.0, 1.0, 2.0])
         for method in [None, 'pad', 'backfill', 'nearest']:
             self.assertEqual(idx.get_loc(1, method), 1)
+            if method is not None:
+                self.assertEqual(idx.get_loc(1, method, tolerance=0), 1)
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             self.assertEqual(idx.get_loc(1.1, method), loc)
+            self.assertEqual(idx.get_loc(1.1, method, tolerance=0.9), loc)
 
         self.assertRaises(KeyError, idx.get_loc, 'foo')
         self.assertRaises(KeyError, idx.get_loc, 1.5)
+        self.assertRaises(KeyError, idx.get_loc, 1.5,
+                          method='pad', tolerance=0.1)
+
+        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+            idx.get_loc(1.4, method='nearest', tolerance='foo')
 
     def test_get_loc_na(self):
         idx = Float64Index([np.nan, 1, 2])
@@ -2838,9 +2885,27 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             self.assertEqual(idx.get_loc(idx[1], method), 1)
             self.assertEqual(idx.get_loc(idx[1].to_pydatetime(), method), 1)
             self.assertEqual(idx.get_loc(str(idx[1]), method), 1)
+            if method is not None:
+                self.assertEqual(idx.get_loc(idx[1], method,
+                                             tolerance=pd.Timedelta('0 days')),
+                                 1)
 
         self.assertEqual(idx.get_loc('2000-01-01', method='nearest'), 0)
         self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest'), 1)
+
+        self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest',
+                                     tolerance='1 day'), 1)
+        self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest',
+                                     tolerance=pd.Timedelta('1D')), 1)
+        self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest',
+                                     tolerance=np.timedelta64(1, 'D')), 1)
+        self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest',
+                                     tolerance=timedelta(1)), 1)
+        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+            idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
+        with tm.assertRaises(KeyError):
+            idx.get_loc('2000-01-01T03', method='nearest',
+                        tolerance='2 hours')
 
         self.assertEqual(idx.get_loc('2000', method='nearest'), slice(0, 3))
         self.assertEqual(idx.get_loc('2000-01', method='nearest'), slice(0, 3))
@@ -2878,6 +2943,11 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'), [-1, 0, 1])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'), [0, 1, 2])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'), [0, 1, 1])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest', tolerance=pd.Timedelta('1 hour')),
+            [0, -1, 1])
+        with tm.assertRaises(ValueError):
+            idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
     def test_roundtrip_pickle_with_tz(self):
 
@@ -2988,6 +3058,22 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
             self.assertEqual(idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method), 1)
             self.assertEqual(idx.get_loc(str(idx[1]), method), 1)
 
+        idx = pd.period_range('2000-01-01', periods=5)[::2]
+        self.assertEqual(idx.get_loc('2000-01-02T12', method='nearest',
+                                     tolerance='1 day'), 1)
+        self.assertEqual(idx.get_loc('2000-01-02T12', method='nearest',
+                                     tolerance=pd.Timedelta('1D')), 1)
+        self.assertEqual(idx.get_loc('2000-01-02T12', method='nearest',
+                                     tolerance=np.timedelta64(1, 'D')), 1)
+        self.assertEqual(idx.get_loc('2000-01-02T12', method='nearest',
+                                     tolerance=timedelta(1)), 1)
+        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+            idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
+        with tm.assertRaisesRegexp(ValueError, 'different freq'):
+            idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
+        with tm.assertRaises(KeyError):
+            idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
+
     def test_get_indexer(self):
         idx = pd.period_range('2000-01-01', periods=3).asfreq('H', how='start')
         tm.assert_numpy_array_equal(idx.get_indexer(idx), [0, 1, 2])
@@ -2997,9 +3083,15 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'), [-1, 0, 1])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'), [0, 1, 2])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'), [0, 1, 1])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest', tolerance='1 hour'),
+            [0, -1, 1])
 
         with self.assertRaisesRegexp(ValueError, 'different freq'):
-            idx.asfreq('D').get_indexer(idx)
+            idx.get_indexer(target, 'nearest', tolerance='1 minute')
+
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest', tolerance='1 day'), [0, 1, 1])
 
     def test_repeat(self):
         # GH10183
@@ -3029,6 +3121,13 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             self.assertEqual(idx.get_loc(idx[1].to_pytimedelta(), method), 1)
             self.assertEqual(idx.get_loc(str(idx[1]), method), 1)
 
+        self.assertEqual(idx.get_loc(idx[1], 'pad', tolerance=pd.Timedelta(0)), 1)
+        self.assertEqual(idx.get_loc(idx[1], 'pad', tolerance=np.timedelta64(0, 's')), 1)
+        self.assertEqual(idx.get_loc(idx[1], 'pad', tolerance=timedelta(0)), 1)
+
+        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+            idx.get_loc(idx[1], method='nearest', tolerance='foo')
+
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             self.assertEqual(idx.get_loc('1 day 1 hour', method), loc)
 
@@ -3040,6 +3139,10 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'), [-1, 0, 1])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'), [0, 1, 2])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'), [0, 1, 1])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest',
+                            tolerance=pd.Timedelta('1 hour')),
+            [0, -1, 1])
 
     def test_numeric_compat(self):
 
@@ -4059,6 +4162,8 @@ class TestMultiIndex(Base, tm.TestCase):
         midx = MultiIndex.from_tuples([('a', 1), ('b', 2)])
         with tm.assertRaises(NotImplementedError):
             midx.get_indexer(['a'], method='nearest')
+        with tm.assertRaises(NotImplementedError):
+            midx.get_indexer(['a'], method='pad', tolerance=2)
 
     def test_format(self):
         self.index.format()

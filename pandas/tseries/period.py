@@ -502,21 +502,25 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         new_data = period.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
-    def _add_delta(self, other):
+    def _maybe_convert_timedelta(self, other):
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
-                    return self.shift(nanos // offset_nanos)
+                    return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
             freqstr = frequencies.get_standard_freq(other)
             base = frequencies.get_base_alias(freqstr)
 
             if base == self.freq:
-                return self.shift(other.n)
+                return other.n
         raise ValueError("Input has different freq from PeriodIndex(freq={0})".format(self.freq))
+
+    def _add_delta(self, other):
+        ordinal_delta = self._maybe_convert_timedelta(other)
+        return self.shift(ordinal_delta)
 
     def shift(self, n):
         """
@@ -586,13 +590,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, self.freq).ordinal
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
-    def get_indexer(self, target, method=None, limit=None):
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         if hasattr(target, 'freq') and target.freq != self.freq:
             raise ValueError('target and index have different freq: '
                              '(%s, %s)' % (target.freq, self.freq))
-        return Index.get_indexer(self, target, method, limit)
+        return Index.get_indexer(self, target, method, limit, tolerance)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
@@ -614,7 +618,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
             key = Period(key, self.freq)
             try:
-                return Index.get_loc(self, key.ordinal, method=method)
+                return Index.get_loc(self, key.ordinal, method, tolerance)
             except KeyError:
                 raise KeyError(key)
 
@@ -693,6 +697,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         return slice(self.searchsorted(t1.ordinal, side='left'),
                      self.searchsorted(t2.ordinal, side='right'))
+
+    def _convert_tolerance(self, tolerance):
+        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance)
+        return self._maybe_convert_timedelta(tolerance)
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
