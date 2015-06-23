@@ -4,13 +4,11 @@
 .. ipython:: python
    :suppress:
 
-   import os
    import numpy as np
-   from pandas import *
-   options.display.max_rows=15
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import lrange
+   import pandas as pd
+   pd.options.display.max_rows=15
+
 
 *******************
 Caveats and Gotchas
@@ -27,7 +25,7 @@ what the result of
 
 .. code-block:: python
 
-    >>> if Series([False, True, False]):
+    >>> if pd.Series([False, True, False]):
          ...
 
 should be. Should it be ``True`` because it's not zero-length? ``False`` because there are ``False`` values?
@@ -64,10 +62,10 @@ To evaluate single-element pandas objects in a boolean context, use the method `
 
 .. ipython:: python
 
-   Series([True]).bool()
-   Series([False]).bool()
-   DataFrame([[True]]).bool()
-   DataFrame([[False]]).bool()
+   pd.Series([True]).bool()
+   pd.Series([False]).bool()
+   pd.DataFrame([[True]]).bool()
+   pd.DataFrame([[False]]).bool()
 
 Bitwise boolean
 ~~~~~~~~~~~~~~~
@@ -147,7 +145,7 @@ arrays. For example:
 
 .. ipython:: python
 
-   s = Series([1, 2, 3, 4, 5], index=list('abcde'))
+   s = pd.Series([1, 2, 3, 4, 5], index=list('abcde'))
    s
    s.dtype
 
@@ -228,9 +226,9 @@ following code will generate exceptions:
 
 .. code-block:: python
 
-   s = Series(range(5))
+   s = pd.Series(range(5))
    s[-1]
-   df = DataFrame(np.random.randn(5, 4))
+   df = pd.DataFrame(np.random.randn(5, 4))
    df
    df.ix[-2:]
 
@@ -255,7 +253,7 @@ consider the following Series:
 
 .. ipython:: python
 
-   s = Series(randn(6), index=list('abcdef'))
+   s = pd.Series(np.random.randn(6), index=list('abcdef'))
    s
 
 Suppose we wished to slice from ``c`` to ``e``, using integers this would be
@@ -294,8 +292,8 @@ concise means of selecting data from a pandas object:
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 4), columns=['one', 'two', 'three', 'four'],
-                  index=list('abcdef'))
+   df = pd.DataFrame(np.random.randn(6, 4), columns=['one', 'two', 'three', 'four'],
+                     index=list('abcdef'))
    df
    df.ix[['b', 'c', 'e']]
 
@@ -326,7 +324,7 @@ cases where an index contains, say, both integers and strings:
 
 .. ipython:: python
 
-   s = Series([1, 2, 3], index=['a', 0, 1])
+   s = pd.Series([1, 2, 3], index=['a', 0, 1])
    s
    s.ix[[0, 1]]
    s.reindex([0, 1])
@@ -345,10 +343,10 @@ The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
 
 .. ipython:: python
 
-   series = Series([1, 2, 3])
-   x = Series([True])
+   series = pd.Series([1, 2, 3])
+   x = pd.Series([True])
    x.dtype
-   x = Series([True]).reindex_like(series)
+   x = pd.Series([True]).reindex_like(series)
    x.dtype
 
 This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
@@ -371,10 +369,10 @@ can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
-   begin = Timestamp.min
+   begin = pd.Timestamp.min
    begin
 
-   end = Timestamp.max
+   end = pd.Timestamp.max
    end
 
 See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
@@ -404,10 +402,10 @@ of the new set of columns rather than the original ones:
    print(open('tmp.csv').read())
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-   df = read_csv('tmp.csv', header=None,
-                 parse_dates=date_spec,
-                 keep_date_col=True,
-                 index_col=0)
+   df = pd.read_csv('tmp.csv', header=None,
+                    parse_dates=date_spec,
+                    keep_date_col=True,
+                    index_col=0)
 
    # index_col=0 refers to the combined column "nominal" and not the original
    # first column of 'KORD' strings
@@ -417,6 +415,7 @@ of the new set of columns rather than the original ones:
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove('tmp.csv')
 
 
@@ -569,7 +568,7 @@ using something similar to the following:
 
    x = np.array(list(range(10)), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
-   s = Series(newx)
+   s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
 <http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more

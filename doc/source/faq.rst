@@ -8,26 +8,18 @@ Frequently Asked Questions (FAQ)
 .. ipython:: python
    :suppress:
 
-   from datetime import datetime
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
-   randn = np.random.randn
-   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
-   from dateutil.relativedelta import relativedelta
-   from pandas.tseries.api import *
-   from pandas.tseries.offsets import *
-   import matplotlib.pyplot as plt
-   plt.close('all')
+   import pandas as pd
+   pd.options.display.max_rows = 15
    import matplotlib
    try:
       matplotlib.style.use('ggplot')
    except AttributeError:
-      options.display.mpl_style = 'default'
-   from pandas.compat import lrange
-
+      pd.options.display.mpl_style = 'default'
+   import matplotlib.pyplot as plt
+   plt.close('all')
 
 .. _df-memory-usage:
 
@@ -45,11 +37,11 @@ when calling ``df.info()``:
 .. ipython:: python
 
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-               'complex128', 'object', 'bool']
+              'complex128', 'object', 'bool']
     n = 5000
     data = dict([ (t, np.random.randint(100, size=n).astype(t))
                     for t in dtypes])
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
     df.info()
@@ -126,14 +118,14 @@ pandas ``Period`` and ``PeriodIndex``:
 
 .. ipython:: python
 
-   pnow('D')  # scikits.timeseries.now()
-   Period(year=2007, month=3, day=15, freq='D')
-   p = Period('1984Q3')
+   pd.pnow('D')  # scikits.timeseries.now()
+   pd.Period(year=2007, month=3, day=15, freq='D')
+   p = pd.Period('1984Q3')
    p
    p.asfreq('D', 'start')
    p.asfreq('D', 'end')
    (p + 3).asfreq('T') + 6 * 60 + 30
-   rng = period_range('1990', '2010', freq='A')
+   rng = pd.period_range('1990', '2010', freq='A')
    rng
    rng.asfreq('B', 'end') - 3
 
@@ -173,8 +165,8 @@ works on panels (3D). Here is some code that resamples daily data to montly:
 
 .. ipython:: python
 
-   rng = period_range('Jan-2000', periods=50, freq='M')
-   data = Series(np.random.randn(50), index=rng)
+   rng = pd.period_range('Jan-2000', periods=50, freq='M')
+   data = pd.Series(np.random.randn(50), index=rng)
    data
    data.resample('A', how=np.mean)
 
@@ -186,11 +178,11 @@ adopted to pandas's data structures. For example:
 
 .. ipython:: python
 
-   rng = period_range('1987Q2', periods=10, freq='Q-DEC')
-   data = Series(np.random.randn(10), index=rng)
+   rng = pd.period_range('1987Q2', periods=10, freq='Q-DEC')
+   data = pd.Series(np.random.randn(10), index=rng)
 
    @savefig skts_ts_plot.png
-   plt.figure(); data.plot()
+   data.plot()
 
 Converting to and from period format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,8 +207,8 @@ with a DatetimeIndex to PeriodIndex:
 
 .. ipython:: python
 
-   rng = date_range('1/1/2000', periods=200, freq='D')
-   data = Series(np.random.randn(200), index=rng)
+   rng = pd.date_range('1/1/2000', periods=200, freq='D')
+   data = pd.Series(np.random.randn(200), index=rng)
    data[:10]
    data.index
    data.resample('M', kind='period')
@@ -226,8 +218,8 @@ interval (``'start'`` or ``'end'``) convention:
 
 .. ipython:: python
 
-   rng = period_range('Jan-2000', periods=50, freq='M')
-   data = Series(np.random.randn(50), index=rng)
+   rng = pd.period_range('Jan-2000', periods=50, freq='M')
+   data = pd.Series(np.random.randn(50), index=rng)
    resampled = data.resample('A', kind='timestamp', convention='end')
    resampled.index
 
@@ -244,7 +236,7 @@ using something similar to the following:
 
    x = np.array(list(range(10)), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
-   s = Series(newx)
+   s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
 <http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
