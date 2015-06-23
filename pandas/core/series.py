@@ -468,6 +468,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # indexers
     @property
     def axes(self):
+        """
+        Return a list of the row axis labels
+        """
         return [self.index]
 
     def _ixs(self, i, axis=0):
