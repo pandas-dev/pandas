@@ -765,3 +765,4 @@ Bug Fixes
 - Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
 - Bug in ``TimedeltaIndex`` formatter causing error while trying to save ``DataFrame`` with ``TimedeltaIndex`` using ``to_csv`` (:issue:`10833`)
+- Bug in ``Categorical`` hdf serialiation in presence of alternate encodings. (:issue:`10366`)

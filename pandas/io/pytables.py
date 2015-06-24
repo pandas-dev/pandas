@@ -3049,7 +3049,8 @@ class Table(Fixed):
 
         """
         values = Series(values)
-        self.parent.put(self._get_metadata_path(key), values, format='table')
+        self.parent.put(self._get_metadata_path(key), values, format='table',
+                encoding=self.encoding, nan_rep=self.nan_rep)
 
     def read_metadata(self, key):
         """ return the meta data array for this key """
@@ -4428,6 +4429,9 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
                 dtype = "U{0}".format(itemsize)
             else:
                 dtype = "S{0}".format(itemsize)
+            # fix? issue #10366
+            data = _convert_string_array(data, _ensure_encoding(encoding),
+                    itemsize=itemsize)
             data = data.astype(dtype, copy=False).astype(object, copy=False)
         except (Exception) as e:
             f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
