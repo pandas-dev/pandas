@@ -509,7 +509,7 @@ class _NDFrameIndexer(object):
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple, slice, scalar
-        if isinstance(indexer, (slice, np.ndarray, list)):
+        if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
 
         if isinstance(indexer, tuple):
@@ -1719,7 +1719,7 @@ def maybe_convert_ix(*args):
 
     ixify = True
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list, ABCSeries)):
+        if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
             ixify = False
 
     if ixify:

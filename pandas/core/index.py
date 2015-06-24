@@ -105,6 +105,7 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype = False
 
     _engine_type = _index.ObjectEngine
+    _isin_type = lib.ismember
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
@@ -1838,7 +1839,7 @@ class Index(IndexOpsMixin, PandasObject):
         value_set = set(values)
         if level is not None:
             self._validate_index_level(level)
-        return lib.ismember(np.array(self), value_set)
+        return self._isin_type(np.array(self), value_set)
 
     def _can_reindex(self, indexer):
         """
@@ -3379,6 +3380,7 @@ class Int64Index(NumericIndex):
     _outer_indexer = _algos.outer_join_indexer_int64
 
     _engine_type = _index.Int64Engine
+    _isin_type = lib.ismember_int64
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
@@ -5235,12 +5237,38 @@ class MultiIndex(Index):
             indexer = self._get_level_indexer(key, level=level)
             return indexer, maybe_droplevels(indexer, [level], drop_level)
 
-    def _get_level_indexer(self, key, level=0):
-        # return a boolean indexer or a slice showing where the key is
+    def _get_level_indexer(self, key, level=0, indexer=None):
+        # return an indexer, boolean array or a slice showing where the key is
         # in the totality of values
+        # if the indexer is provided, then use this
 
         level_index = self.levels[level]
         labels = self.labels[level]
+
+        def convert_indexer(start, stop, step, indexer=indexer, labels=labels):
+            # given the inputs and the labels/indexer, compute an indexer set
+            # if we have a provided indexer, then this need not consider
+            # the entire labels set
+
+            r = np.arange(start,stop,step)
+            if indexer is not None and len(indexer) != len(labels):
+
+                # we have an indexer which maps the locations in the labels that we
+                # have already selected (and is not an indexer for the entire set)
+                # otherwise this is wasteful
+                # so we only need to examine locations that are in this set
+                # the only magic here is that the result are the mappings to the
+                # set that we have selected
+                from pandas import Series
+                mapper = Series(indexer)
+                result = Series(Index(labels.take(indexer)).isin(r).nonzero()[0])
+                m = result.map(mapper).values
+
+            else:
+                m = np.zeros(len(labels),dtype=bool)
+                m[np.in1d(labels,r,assume_unique=True)] = True
+
+            return m
 
         if isinstance(key, slice):
             # handle a slice, returnig a slice if we can
@@ -5267,17 +5295,13 @@ class MultiIndex(Index):
                 # a partial date slicer on a DatetimeIndex generates a slice
                 # note that the stop ALREADY includes the stopped point (if
                 # it was a string sliced)
-                m = np.zeros(len(labels),dtype=bool)
-                m[np.in1d(labels,np.arange(start.start,stop.stop,step))] = True
-                return m
+                return convert_indexer(start.start,stop.stop,step)
 
             elif level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so include the stop+1 (so we include stop)
-                m = np.zeros(len(labels),dtype=bool)
-                m[np.in1d(labels,np.arange(start,stop+1,step))] = True
-                return m
+                return convert_indexer(start,stop+1,step)
             else:
                 # sorted, so can return slice object -> view
                 i = labels.searchsorted(start, side='left')
@@ -5315,59 +5339,73 @@ class MultiIndex(Index):
             raise KeyError('MultiIndex Slicing requires the index to be fully lexsorted'
                            ' tuple len ({0}), lexsort depth ({1})'.format(len(tup), self.lexsort_depth))
 
-        def _convert_indexer(r):
-            if isinstance(r, slice):
-                m = np.zeros(len(self),dtype=bool)
-                m[r] = True
-                return m
-            return r
+        # indexer
+        # this is the list of all values that we want to select
+        n = len(self)
+        indexer = None
 
-        ranges = []
+        def _convert_to_indexer(r):
+            # return an indexer
+            if isinstance(r, slice):
+                m = np.zeros(n,dtype=bool)
+                m[r] = True
+                r = m.nonzero()[0]
+            elif is_bool_indexer(r):
+                if len(r) != n:
+                    raise ValueError("cannot index with a boolean indexer that is"
+                                     " not the same length as the index")
+                r = r.nonzero()[0]
+            return Int64Index(r)
+
+        def _update_indexer(idxr, indexer=indexer):
+            if indexer is None:
+                indexer = Index(np.arange(n))
+            if idxr is None:
+                return indexer
+            return indexer & idxr
+
         for i,k in enumerate(tup):
 
             if is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
-                if len(k) != len(self):
-                    raise ValueError("cannot index with a boolean indexer that is"
-                                     " not the same length as the index")
-                ranges.append(k)
+                indexer = _update_indexer(_convert_to_indexer(k), indexer=indexer)
+
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
-                indexers = []
+                indexers = None
                 for x in k:
                     try:
-                        indexers.append(_convert_indexer(self._get_level_indexer(x, level=i)))
+                        idxrs = _convert_to_indexer(self._get_level_indexer(x, level=i, indexer=indexer))
+                        indexers = idxrs if indexers is None else indexers | idxrs
                     except (KeyError):
 
                         # ignore not founds
                         continue
-                if len(k):
-                    ranges.append(reduce(np.logical_or, indexers))
+
+                if indexers is not None:
+                    indexer = _update_indexer(indexers, indexer=indexer)
                 else:
-                    ranges.append(np.zeros(self.labels[i].shape, dtype=bool))
+
+                    # no matches we are done
+                    return Int64Index([]).values
 
             elif is_null_slice(k):
                 # empty slice
-                pass
+                indexer = _update_indexer(None, indexer=indexer)
 
             elif isinstance(k,slice):
 
                 # a slice, include BOTH of the labels
-                ranges.append(self._get_level_indexer(k,level=i))
+                indexer = _update_indexer(_convert_to_indexer(self._get_level_indexer(k,level=i,indexer=indexer)), indexer=indexer)
             else:
                 # a single label
-                ranges.append(self.get_loc_level(k,level=i,drop_level=False)[0])
+                indexer = _update_indexer(_convert_to_indexer(self.get_loc_level(k,level=i,drop_level=False)[0]), indexer=indexer)
 
-        # identity
-        if len(ranges) == 0:
-            return slice(0,len(self))
-
-        elif len(ranges) == 1:
-            return ranges[0]
-
-        # construct a boolean indexer if we have a slice or boolean indexer
-        return reduce(np.logical_and,[ _convert_indexer(r) for r in ranges ])
+        # empty indexer
+        if indexer is None:
+            return Int64Index([]).values
+        return indexer.values
 
     def truncate(self, before=None, after=None):
         """
