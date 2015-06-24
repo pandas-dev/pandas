@@ -6,7 +6,7 @@ import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
-                                is_null_slice,
+                                is_null_slice, is_full_slice,
                                 ABCSeries, ABCDataFrame, ABCPanel, is_float,
                                 _values_from_object, _infer_fill_value, is_integer)
 import numpy as np
@@ -399,10 +399,10 @@ class _NDFrameIndexer(object):
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
-                # as we have a null slice which means essentially reassign to the columns
-                # of a multi-dim object
-                # GH6149
-                if isinstance(pi, tuple) and all(is_null_slice(idx) for idx in pi):
+                # as we have a null slice or a slice with full bounds
+                # which means essentially reassign to the columns of a multi-dim object
+                # GH6149 (null slice), GH10408 (full bounds)
+                if isinstance(pi, tuple) and all(is_null_slice(idx) or is_full_slice(idx, len(self.obj)) for idx in pi):
                     s = v
                 else:
                     # set the item, possibly having a dtype change
