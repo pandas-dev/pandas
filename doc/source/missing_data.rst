@@ -158,10 +158,10 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all written to
 account for missing data. For example:
 
-  * When summing data, NA (missing) values will be treated as zero
-  * If the data are all NA, the result will be NA
-  * Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
-    in the resulting arrays
+* When summing data, NA (missing) values will be treated as zero
+* If the data are all NA, the result will be NA
+* Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
+  in the resulting arrays
 
 .. ipython:: python
 
@@ -176,7 +176,7 @@ NA values in GroupBy
 NA groups in GroupBy are automatically excluded. This behavior is consistent
 with R, for example.
 
-
+See the groupby section :ref:`here <groupby.missing>` for more information.
 
 Cleaning / filling missing data
 --------------------------------
