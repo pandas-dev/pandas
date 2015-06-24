@@ -2450,12 +2450,12 @@ def generate_range(start=None, end=None, periods=None,
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)
 
-    if end and not offset.onOffset(end):
+    elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-        if periods is None and end < start:
-            end = None
-            periods = 0
+    if periods is None and end < start:
+        end = None
+        periods = 0
 
     if end is None:
         end = start + (periods - 1) * offset
@@ -2465,7 +2465,6 @@ def generate_range(start=None, end=None, periods=None,
 
     cur = start
 
-    next_date = cur
     while cur <= end:
         yield cur
 
