@@ -112,6 +112,20 @@ class TestTimedeltas(tm.TestCase):
         # only leading neg signs are allowed
         self.assertRaises(ValueError, lambda : Timedelta('10 days -1 h 1.5m 1s 3us'))
 
+        # no units specified
+        self.assertRaises(ValueError, lambda : Timedelta('3.1415'))
+
+        # invalid construction
+        tm.assertRaisesRegexp(ValueError,
+                              "cannot construct a TimeDelta",
+                              lambda : Timedelta())
+        tm.assertRaisesRegexp(ValueError,
+                              "unit abbreviation w/o a number",
+                              lambda : Timedelta('foo'))
+        tm.assertRaisesRegexp(ValueError,
+                              "cannot construct a TimeDelta from the passed arguments, allowed keywords are ",
+                              lambda : Timedelta(day=10))
+
         # roundtripping both for string and value
         for v in ['1s',
                   '-1s',
@@ -148,17 +162,6 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(to_timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
         self.assertEqual(Timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
         self.assertEqual(Timedelta(pd.offsets.Second(2)),Timedelta('0 days, 00:00:02'))
-
-        # invalid
-        tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta",
-                              lambda : Timedelta())
-        tm.assertRaisesRegexp(ValueError,
-                              "unit abbreviation w/o a number",
-                              lambda : Timedelta('foo'))
-        tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta from the passed arguments, allowed keywords are ",
-                              lambda : Timedelta(day=10))
 
     def test_repr(self):
 
