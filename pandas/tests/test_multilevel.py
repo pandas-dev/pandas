@@ -964,6 +964,44 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.ymd.unstack(0).stack(-2)
         expected = self.ymd.unstack(0).stack(0)
 
+        # GH10417
+        def check(left, right):
+            assert_series_equal(left, right)
+            self.assertFalse(left.index.is_unique)
+            li, ri = left.index, right.index
+            for i in range(ri.nlevels):
+                tm.assert_numpy_array_equal(li.levels[i], ri.levels[i])
+                tm.assert_numpy_array_equal(li.labels[i], ri.labels[i])
+
+        df = DataFrame(np.arange(12).reshape(4, 3),
+                       index=list('abab'),
+                       columns=['1st', '2nd', '3rd'])
+
+        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd', '3rd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.tile(np.arange(3), 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
+
+        df.columns = ['1st', '2nd', '1st']
+        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.tile([0, 1, 0], 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
+
+        tpls = ('a', 2), ('b', 1), ('a', 1), ('b', 2)
+        df.index = MultiIndex.from_tuples(tpls)
+        mi = MultiIndex(levels=[['a', 'b'], [1, 2], ['1st', '2nd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.repeat([1, 0, 1], [3, 6, 3]),
+                                np.tile([0, 1, 0], 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
+
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
 Fri,Dinner,No,8.25,3.

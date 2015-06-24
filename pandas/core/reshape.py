@@ -461,6 +461,12 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
+    def factorize(index):
+        if index.is_unique:
+            return index, np.arange(len(index))
+        cat = Categorical(index, ordered=True)
+        return cat.categories, cat.codes
+
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
         if frame.columns._reference_duplicate_name(level):
@@ -475,20 +481,22 @@ def stack(frame, level=-1, dropna=True):
         return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
-        new_levels.append(frame.columns)
-
         new_labels = [lab.repeat(K) for lab in frame.index.labels]
-        new_labels.append(np.tile(np.arange(K), N).ravel())
+
+        clev, clab = factorize(frame.columns)
+        new_levels.append(clev)
+        new_labels.append(np.tile(clab, N).ravel())
 
         new_names = list(frame.index.names)
         new_names.append(frame.columns.name)
         new_index = MultiIndex(levels=new_levels, labels=new_labels,
                                names=new_names, verify_integrity=False)
     else:
-        ilabels = np.arange(N).repeat(K)
-        clabels = np.tile(np.arange(K), N).ravel()
-        new_index = MultiIndex(levels=[frame.index, frame.columns],
-                               labels=[ilabels, clabels],
+        levels, (ilab, clab) = \
+                zip(*map(factorize, (frame.index, frame.columns)))
+        labels = ilab.repeat(K), np.tile(clab, N).ravel()
+        new_index = MultiIndex(levels=levels,
+                               labels=labels,
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
