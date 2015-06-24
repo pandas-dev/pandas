@@ -2605,9 +2605,14 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 def is_null_slice(obj):
+    """ we have a null slice """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
+def is_full_slice(obj, l):
+    """ we have a full length slice """
+    return (isinstance(obj, slice) and obj.start == 0 and
+            obj.stop == l and obj.step is None)
 
 def is_hashable(arg):
     """Return True if hash(arg) will succeed, False otherwise.
