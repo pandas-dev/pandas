@@ -2400,7 +2400,6 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             have_value = 1
             have_dot = 0
 
-
     # we had a dot, but we have a fractional
     # value since we have an unit
     if have_dot and len(unit):
@@ -2415,6 +2414,10 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     # we have a dot as part of a regular format
     # e.g. hh:mm:ss.fffffff
     elif have_dot:
+
+        if (len(number) or len(frac)) and not len(unit) and current_unit is None:
+            raise ValueError("no units specified")
+
         if len(frac) > 0 and len(frac) <= 3:
             m = 10**(3-len(frac)) * 1000L * 1000L
         elif len(frac) > 3 and len(frac) <= 6:
