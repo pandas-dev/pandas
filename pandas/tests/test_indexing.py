@@ -1072,6 +1072,25 @@ class TestIndexing(tm.TestCase):
         df['x'] = 1
         assert_frame_equal(df,expected)
 
+        # .loc[:,column] setting with slice == len of the column
+        # GH10408
+        data = """Level_0,,,Respondent,Respondent,Respondent,OtherCat,OtherCat
+Level_1,,,Something,StartDate,EndDate,Yes/No,SomethingElse
+Region,Site,RespondentID,,,,,
+Region_1,Site_1,3987227376,A,5/25/2015 10:59,5/25/2015 11:22,Yes,
+Region_1,Site_1,3980680971,A,5/21/2015 9:40,5/21/2015 9:52,Yes,Yes
+Region_1,Site_2,3977723249,A,5/20/2015 8:27,5/20/2015 8:41,Yes,
+Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
+
+        df = pd.read_csv(StringIO(data),header=[0,1], index_col=[0,1,2])
+        df.loc[:,('Respondent','StartDate')] = pd.to_datetime(df.loc[:,('Respondent','StartDate')])
+        df.loc[:,('Respondent','EndDate')] = pd.to_datetime(df.loc[:,('Respondent','EndDate')])
+        df.loc[:,('Respondent','Duration')] = df.loc[:,('Respondent','EndDate')] - df.loc[:,('Respondent','StartDate')]
+
+        df.loc[:,('Respondent','Duration')] = df.loc[:,('Respondent','Duration')].astype('timedelta64[s]')
+        expected = Series([1380,720,840,2160.],index=df.index,name=('Respondent','Duration'))
+        assert_series_equal(df[('Respondent','Duration')],expected)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
@@ -2331,14 +2350,14 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df,expected)
 
         # GH10280
-        df = DataFrame(np.arange(6,dtype='int64').reshape(2, 3), 
+        df = DataFrame(np.arange(6,dtype='int64').reshape(2, 3),
                        index=list('ab'),
                        columns=['foo', 'bar', 'baz'])
 
         for val in [3.14, 'wxyz']:
             left = df.copy()
             left.loc['a', 'bar'] = val
-            right = DataFrame([[0, val, 2], [3, 4, 5]], 
+            right = DataFrame([[0, val, 2], [3, 4, 5]],
                               index=list('ab'),
                               columns=['foo', 'bar', 'baz'])
 
@@ -2346,12 +2365,12 @@ class TestIndexing(tm.TestCase):
             self.assertTrue(com.is_integer_dtype(left['foo']))
             self.assertTrue(com.is_integer_dtype(left['baz']))
 
-        left = DataFrame(np.arange(6,dtype='int64').reshape(2, 3) / 10.0, 
+        left = DataFrame(np.arange(6,dtype='int64').reshape(2, 3) / 10.0,
                          index=list('ab'),
                          columns=['foo', 'bar', 'baz'])
         left.loc['a', 'bar'] = 'wxyz'
 
-        right = DataFrame([[0, 'wxyz', .2], [.3, .4, .5]], 
+        right = DataFrame([[0, 'wxyz', .2], [.3, .4, .5]],
                           index=list('ab'),
                           columns=['foo', 'bar', 'baz'])
 
