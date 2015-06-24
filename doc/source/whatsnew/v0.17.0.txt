@@ -63,6 +63,8 @@ Performance Improvements
 
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
+- Significantly improved performance of indexing ``MultiIndex`` with slicers (:issue:`10287`)
+- Improved performance of ``Series.isin`` for datetimelike/integer Series (:issue:`10287`)
 
 .. _whatsnew_0170.bug_fixes:
 
