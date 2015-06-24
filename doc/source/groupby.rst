@@ -784,6 +784,8 @@ will be (silently) dropped. Thus, this does not pose any problems:
 
    df.groupby('A').std()
 
+.. _groupby.missing:
+
 NA and NaT group handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
