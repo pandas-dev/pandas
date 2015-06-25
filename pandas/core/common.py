@@ -1682,8 +1682,6 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                   'piecewise_polynomial', 'pchip']
     if method in sp_methods:
         new_x = new_x[firstIndex:]
-        xvalues = xvalues[firstIndex:]
-
         result[firstIndex:][invalid] = _interpolate_scipy_wrapper(
             valid_x, valid_y, new_x, method=method, fill_value=fill_value,
             bounds_error=bounds_error, order=order)
@@ -1745,6 +1743,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
+        if method == "piecewise_polynomial":
+            y = y.reshape((-1, 1))
         method = alt_methods[method]
         new_y = method(x, y, new_x)
     return new_y
