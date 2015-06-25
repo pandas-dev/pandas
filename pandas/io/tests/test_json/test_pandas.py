@@ -178,7 +178,10 @@ class TestPandasContainer(tm.TestCase):
                 self.assertTrue(df.columns.equals(unser.columns))
             elif orient == "values":
                 # index and cols are not captured in this orientation
-                assert_almost_equal(df.values, unser.values)
+                if numpy is True and df.shape == (0, 0):
+                    assert unser.shape[0] == 0
+                else:
+                    assert_almost_equal(df.values, unser.values)
             elif orient == "split":
                 # index and col labels might not be strings
                 unser.index = [str(i) for i in unser.index]
@@ -670,15 +673,20 @@ class TestPandasContainer(tm.TestCase):
     def test_misc_example(self):
 
         # parsing unordered input fails
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=True)
-        expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
-        with tm.assertRaisesRegexp(AssertionError,
-                                   '\[index\] left \[.+\], right \[.+\]'):
+        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]', numpy=True)
+        expected = DataFrame([[1,2], [1,2]], columns=['a', 'b'])
+
+        error_msg = """DataFrame\\.index are different
+
+DataFrame\\.index values are different \\(100\\.0 %\\)
+\\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
+\\[right\\]: Int64Index\\(\\[0, 1\\], dtype='int64'\\)"""
+        with tm.assertRaisesRegexp(AssertionError, error_msg):
             assert_frame_equal(result, expected)
 
         result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
-        expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
-        assert_frame_equal(result,expected)
+        expected = DataFrame([[1,2], [1,2]], columns=['a','b'])
+        assert_frame_equal(result, expected)
 
     @network
     def test_round_trip_exception_(self):
@@ -739,3 +747,9 @@ class TestPandasContainer(tm.TestCase):
             raise TypeError("raisin")
         self.assertRaises(TypeError, DataFrame({'a': [1, 2, object()]}).to_json,
                           default_handler=my_handler_raises)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
+                         '--pdb-failure', '-s'], exit=False)

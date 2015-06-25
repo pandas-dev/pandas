@@ -3371,7 +3371,10 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # make sure label setting works too
         labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
-        exp_values = np.array([(long(1), 'a')] * 6, dtype=object)
+        exp_values = np.empty((6, ), dtype=object)
+        exp_values[:] = [(long(1), 'a')] * 6
+        # must be 1d array of tuples
+        self.assertEqual(exp_values.shape, (6, ))
         new_values = mi2.set_labels(labels2).values
         # not inplace shouldn't change
         assert_almost_equal(mi2._tuples, vals2)
@@ -4772,8 +4775,20 @@ class TestMultiIndex(Base, tm.TestCase):
 
         mi = MultiIndex.from_product([list('ab'),range(3)],names=['first','second'])
         str(mi)
-        tm.assert_index_equal(eval(repr(mi)),mi,exact=True)
-
+        
+        if compat.PY3:
+            tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
+        else:
+            result = eval(repr(mi))
+            # string coerces to unicode
+            tm.assert_index_equal(result, mi, exact=False)
+            self.assertEqual(mi.get_level_values('first').inferred_type, 'string')
+            self.assertEqual(result.get_level_values('first').inferred_type, 'unicode')
+            
+        mi_u = MultiIndex.from_product([list(u'ab'),range(3)],names=['first','second'])
+        result = eval(repr(mi_u))
+        tm.assert_index_equal(result, mi_u, exact=True)            
+            
         # formatting
         if compat.PY3:
             str(mi)
@@ -4783,7 +4798,19 @@ class TestMultiIndex(Base, tm.TestCase):
         # long format
         mi = MultiIndex.from_product([list('abcdefg'),range(10)],names=['first','second'])
         result = str(mi)
-        tm.assert_index_equal(eval(repr(mi)),mi,exact=True)
+
+        if compat.PY3:
+            tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
+        else:
+            result = eval(repr(mi))
+            # string coerces to unicode
+            tm.assert_index_equal(result, mi, exact=False)
+            self.assertEqual(mi.get_level_values('first').inferred_type, 'string')
+            self.assertEqual(result.get_level_values('first').inferred_type, 'unicode')
+
+        mi = MultiIndex.from_product([list(u'abcdefg'),range(10)],names=['first','second'])
+        result = eval(repr(mi_u))
+        tm.assert_index_equal(result, mi_u, exact=True)     
 
     def test_str(self):
         # tested elsewhere
