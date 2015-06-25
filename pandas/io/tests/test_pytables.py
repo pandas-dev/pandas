@@ -4731,6 +4731,17 @@ class TestHDFStore(tm.TestCase):
                        columns=list('ABCDE'))
         with ensure_clean_path(self.path) as path:
             self.assertRaises(ValueError, df.to_hdf, path, 'df', complib='blosc:zlib')
+    # GH10443
+    def test_read_nokey(self):
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='a')
+            reread = read_hdf(path)
+            assert_frame_equal(df, reread)
+            df.to_hdf(path, 'df2', mode='a')
+            self.assertRaises(ValueError, read_hdf, path)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

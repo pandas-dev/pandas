@@ -32,6 +32,7 @@ New features
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
