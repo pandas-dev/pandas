@@ -2883,7 +2883,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # this coerces
         result = df.to_records()
         expected = np.rec.array([(0, 'a'), (1, 'b'), (2, 'c')],
-                                dtype=[('index', '<i8'), ('0', 'O')])
+                                dtype=[('index', '=i8'), ('0', 'O')])
         tm.assert_almost_equal(result, expected)
 
     def test_numeric_like_ops(self):
