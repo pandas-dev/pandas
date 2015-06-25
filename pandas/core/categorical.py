@@ -1722,6 +1722,7 @@ def _concat_compat(to_concat, axis=0):
     ----------
     to_concat : array of arrays
     axis : axis to provide concatenation
+        in the current impl this is always 0, e.g. we only have 1-d categoricals
 
     Returns
     -------
@@ -1744,7 +1745,7 @@ def _concat_compat(to_concat, axis=0):
 
         # convert to object type and perform a regular concat
         from pandas.core.common import _concat_compat
-        return _concat_compat([ np.array(x,copy=False).astype('object') for x in to_concat ],axis=axis)
+        return _concat_compat([ np.array(x,copy=False).astype('object') for x in to_concat ],axis=0)
 
     # we could have object blocks and categorical's here
     # if we only have a single cateogoricals then combine everything
@@ -1761,4 +1762,4 @@ def _concat_compat(to_concat, axis=0):
             raise ValueError("incompatible categories in categorical concat")
 
     # concat them
-    return Categorical(np.concatenate([ convert_categorical(x) for x in to_concat ],axis=axis), categories=categories)
+    return Categorical(np.concatenate([ convert_categorical(x) for x in to_concat ],axis=0), categories=categories)
