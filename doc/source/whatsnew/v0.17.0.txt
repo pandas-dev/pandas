@@ -78,3 +78,4 @@ Bug Fixes
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
+- Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
