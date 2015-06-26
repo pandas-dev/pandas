@@ -79,3 +79,4 @@ Bug Fixes
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
+- Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
