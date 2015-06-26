@@ -872,6 +872,47 @@ class TestSeries(tm.TestCase, Generic):
         expected = s
         assert_series_equal(result, expected)
 
+    def test_interp_piecewise_polynomial(self):
+        # GH 10365
+        tm._skip_if_no_scipy()
+        s1 = Series([1, 2, 3, 4, nan, 6, nan])
+        s2 = Series([nan, nan, 3, 4, nan, 6, 7])
+        result1 = s1.interpolate(method='piecewise_polynomial')
+        result2 = s2.interpolate(method='piecewise_polynomial')
+        expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
+        expected2 = Series([nan, nan, 3., 4., 5., 6., 7.])
+
+        assert_series_equal(expected1, result1)
+        assert_series_equal(expected2, result2)
+
+    def test_interp_krogh(self):
+        tm._skip_if_no_scipy()
+        s1 = Series([0, -2, 0, np.nan], index=[0, 0, 1, 5])
+        s2 = Series([nan, 0, -2, 0, np.nan], index=[-1, 0, 0, 1, 5])
+        s3 = Series([nan, 0, 0, 0, np.nan], index=[-1, 0, 0, 0, 5])
+        result1 = s1.interpolate(method='krogh')
+        result2 = s2.interpolate(method='krogh')
+        result3 = s3.interpolate(method='krogh')
+        expected1 = Series([0., -2., 0., 40.], index=[0, 0, 1, 5])
+        expected2 = Series([nan, 0., -2., 0., 40.], index=[-1, 0, 0, 1, 5])
+        expected3 = Series([nan, 0., 0., 0., 0.], index=[-1, 0, 0, 0, 5])
+
+        assert_series_equal(expected1, result1)
+        assert_series_equal(expected2, result2)
+        assert_series_equal(expected3, result3)
+
+    def test_interp_barycentric(self):
+        tm._skip_if_no_scipy()
+        s1 = Series([nan, 0, 0, 0, 0, nan])
+        s2 = Series([nan, 0, 2, 1, nan])
+        result1 = s1.interpolate(method='barycentric')
+        result2 = s2.interpolate(method='barycentric')
+        expected1 = Series([nan, 0., 0., 0., 0., 0.])
+        expected2 = Series([nan, 0., 2., 1., -3.])
+
+        assert_series_equal(expected1, result1)
+        assert_series_equal(expected2, result2)
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()
