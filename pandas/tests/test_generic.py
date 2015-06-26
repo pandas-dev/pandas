@@ -1373,6 +1373,23 @@ class TestDataFrame(tm.TestCase, Generic):
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
 
+    def test_spline_extrapolate(self):
+        tm.skip_if_no_package('scipy', '0.15', 'setting ext on scipy.interpolate.UnivariateSpline')
+        s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
+        result3 = s.interpolate(method='spline', order=1, ext=3)
+        expected3 = Series([1., 2., 3., 4., 5., 6., 6.])
+        assert_series_equal(result3, expected3)
+
+        result1 = s.interpolate(method='spline', order=1, ext=0)
+        expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
+        assert_series_equal(result1, expected1)
+
+    def test_spline_smooth(self):
+        tm._skip_if_no_scipy()
+        s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
+        self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
+                            s.interpolate(method='spline', order=3)[5])
+
     def test_metadata_propagation_indiv(self):
 
         # groupby

@@ -2896,6 +2896,7 @@ class NDFrame(PandasObject):
             Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
+        kwargs : keyword arguments to pass on to the interpolating function.
 
         Returns
         -------
