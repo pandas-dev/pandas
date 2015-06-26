@@ -174,7 +174,12 @@ NA values in GroupBy
 ~~~~~~~~~~~~~~~~~~~~
 
 NA groups in GroupBy are automatically excluded. This behavior is consistent
-with R, for example.
+with R, for example:
+
+.. ipython:: python
+
+    df
+    df.groupby('one').mean()
 
 See the groupby section :ref:`here <groupby.missing>` for more information.
 
