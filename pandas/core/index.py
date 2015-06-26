@@ -5261,7 +5261,8 @@ class MultiIndex(Index):
                 # set that we have selected
                 from pandas import Series
                 mapper = Series(indexer)
-                result = Series(Index(labels.take(indexer)).isin(r).nonzero()[0])
+                indexer = labels.take(com._ensure_platform_int(indexer))
+                result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper).values
 
             else:
