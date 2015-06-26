@@ -2540,7 +2540,7 @@ class TestPeriodIndex(tm.TestCase):
             ValueError, 'Different period frequency: H',
             lambda: pidx.searchsorted(pd.Period('2014-01-01', freq='H')))
 
-    def test_round_trip_pickle(self):
+    def test_round_trip(self):
 
         p = Period('2000Q1')
         pickle_path = os.path.join(tm.get_data_path(),
