@@ -511,13 +511,6 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_isinstance(obj, class_type_or_tuple, msg=''):
-    """asserts that obj is an instance of class_type_or_tuple"""
-    assert isinstance(obj, class_type_or_tuple), (
-        "%sExpected object to be of type %r, found %r instead" % (
-            msg, class_type_or_tuple, type(obj)))
-
-
 def assert_equal(a, b, msg=""):
     """asserts that a equals b, like nose's assert_equal, but allows custom message to start.
     Passes a and b to format string as well. So you can use '{0}' and '{1}' to display a and b.
@@ -534,8 +527,8 @@ def assert_equal(a, b, msg=""):
 
 
 def assert_index_equal(left, right, exact=False, check_names=True):
-    assert_isinstance(left, Index, '[index] ')
-    assert_isinstance(right, Index, '[index] ')
+    assertIsInstance(left, Index, '[index] ')
+    assertIsInstance(right, Index, '[index] ')
     if not left.equals(right) or (exact and type(left) != type(right)):
         raise AssertionError("[index] left [{0} {1}], right [{2} {3}]".format(left.dtype,
                                                                               left,
@@ -601,6 +594,8 @@ def assertIsInstance(obj, cls, msg=''):
         "%sExpected object to be of type %r, found %r instead" % (
             msg, cls, type(obj)))
 
+def assert_isinstance(obj, class_type_or_tuple, msg=''):
+    return deprecate('assert_isinstance', assertIsInstance)(obj, class_type_or_tuple, msg=msg)
 
 def assertNotIsInstance(obj, cls, msg=''):
     """Test that obj is not an instance of cls
@@ -670,7 +665,7 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_exact=False,
                         check_names=True):
     if check_series_type:
-        assert_isinstance(left, type(right))
+        assertIsInstance(left, type(right))
     if check_dtype:
         assert_attr_equal('dtype', left, right)
     if check_exact:
@@ -688,7 +683,7 @@ def assert_series_equal(left, right, check_dtype=True,
         for level in range(left.index.nlevels):
             lindex = left.index.get_level_values(level)
             rindex = right.index.get_level_values(level)
-            assert_isinstance(lindex, type(rindex))
+            assertIsInstance(lindex, type(rindex))
             assert_attr_equal('dtype', lindex, rindex)
             assert_attr_equal('inferred_type', lindex, rindex)
     if check_names:
@@ -711,9 +706,9 @@ def assert_frame_equal(left, right, check_dtype=True,
                        by_blocks=False,
                        check_exact=False):
     if check_frame_type:
-        assert_isinstance(left, type(right))
-    assert_isinstance(left, DataFrame)
-    assert_isinstance(right, DataFrame)
+        assertIsInstance(left, type(right))
+    assertIsInstance(left, DataFrame)
+    assertIsInstance(right, DataFrame)
 
     if check_less_precise:
         if not by_blocks:
@@ -749,11 +744,11 @@ def assert_frame_equal(left, right, check_dtype=True,
         for level in range(left.index.nlevels):
             lindex = left.index.get_level_values(level)
             rindex = right.index.get_level_values(level)
-            assert_isinstance(lindex, type(rindex))
+            assertIsInstance(lindex, type(rindex))
             assert_attr_equal('dtype', lindex, rindex)
             assert_attr_equal('inferred_type', lindex, rindex)
     if check_column_type:
-        assert_isinstance(left.columns, type(right.columns))
+        assertIsInstance(left.columns, type(right.columns))
         assert_attr_equal('dtype', left.columns, right.columns)
         assert_attr_equal('inferred_type', left.columns, right.columns)
     if check_names:
@@ -767,7 +762,7 @@ def assert_panelnd_equal(left, right,
                          assert_func=assert_frame_equal,
                          check_names=False):
     if check_panel_type:
-        assert_isinstance(left, type(right))
+        assertIsInstance(left, type(right))
 
     for axis in ['items', 'major_axis', 'minor_axis']:
         left_ind = getattr(left, axis)

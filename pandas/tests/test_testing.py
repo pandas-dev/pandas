@@ -7,15 +7,16 @@ import nose
 import numpy as np
 import sys
 from pandas import Series, DataFrame
+import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, 
-    assert_series_equal, assert_frame_equal,
+    assert_almost_equal, assertRaisesRegexp, raise_with_traceback,
+    assert_series_equal, assert_frame_equal, assert_isinstance,
     RNGContext
 )
 
 # let's get meta.
 
-class TestAssertAlmostEqual(unittest.TestCase):
+class TestAssertAlmostEqual(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def _assert_almost_equal_both(self, a, b, **kwargs):
@@ -112,7 +113,8 @@ class TestAssertAlmostEqual(unittest.TestCase):
 
         self._assert_not_almost_equal_both(np.inf, 0)
 
-class TestUtilTesting(unittest.TestCase):
+
+class TestUtilTesting(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_raise_with_traceback(self):
@@ -130,7 +132,8 @@ class TestUtilTesting(unittest.TestCase):
                 _, _, traceback = sys.exc_info()
                 raise_with_traceback(e, traceback)
 
-class TestAssertSeriesEqual(unittest.TestCase):
+
+class TestAssertSeriesEqual(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
@@ -190,7 +193,7 @@ class TestAssertSeriesEqual(unittest.TestCase):
         self._assert_not_equal(df1.c, df2.c, check_index_type=True)
 
 
-class TestAssertFrameEqual(unittest.TestCase):
+class TestAssertFrameEqual(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
@@ -221,7 +224,7 @@ class TestAssertFrameEqual(unittest.TestCase):
         df2=pd.DataFrame(columns=["col1","col2"])
         self._assert_equal(df1, df2, check_dtype=False)
         self._assert_not_equal(df1, df2, check_dtype=True)
-        
+
 
 class TestRNGContext(unittest.TestCase):
 
@@ -233,3 +236,43 @@ class TestRNGContext(unittest.TestCase):
             with RNGContext(1):
                 self.assertEqual(np.random.randn(), expected1)
             self.assertEqual(np.random.randn(), expected0)
+
+
+
+class TestDeprecatedTests(tm.TestCase):
+
+    def test_warning(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertEquals(1, 1)
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertNotEquals(1, 2)
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assert_(True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertAlmostEquals(1.0, 1.0000000001)
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertNotAlmostEquals(1, 2)
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert_isinstance(Series([1, 2]), Series, msg='xxx')
+
+
+class TestLocale(tm.TestCase):
+
+    def test_locale(self):
+        if sys.platform == 'win32':
+            raise nose.SkipTest("skipping on win platforms as locale not available")
+
+        #GH9744
+        locales = tm.get_locales()
+        self.assertTrue(len(locales) >= 1)
+
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

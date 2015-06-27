@@ -395,7 +395,7 @@ class TestDataFrameFormatting(tm.TestCase):
         buf.getvalue()
 
         result = self.frame.to_string()
-        tm.assert_isinstance(result, compat.text_type)
+        tm.assertIsInstance(result, compat.text_type)
 
     def test_to_string_utf8_columns(self):
         n = u("\u05d0").encode('utf-8')
@@ -1470,7 +1470,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, compat.string_types)
+        tm.assertIsInstance(s, compat.string_types)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1719,7 +1719,7 @@ c  10  11  12  13  14\
         self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, compat.string_types)
+        tm.assertIsInstance(s, compat.string_types)
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],

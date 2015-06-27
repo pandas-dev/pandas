@@ -117,26 +117,26 @@ class TestMultiLevel(tm.TestCase):
         multi = DataFrame(np.random.randn(4, 4),
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
         self.assertNotIsInstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[['a', 'a', 'b', 'b'],
                                    ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.columns, MultiIndex)
+        tm.assertIsInstance(multi.columns, MultiIndex)
 
     def test_series_constructor(self):
         multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
                                   np.array(['x', 'y', 'x', 'y'])])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
         multi = Series(1., index=[['a', 'a', 'b', 'b'],
                                   ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
         multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
                                         ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
         # axis=0
@@ -702,7 +702,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         s = dft['foo', 'two']
         dft['foo', 'two'] = s > s.median()
         assert_series_equal(dft['foo', 'two'], s > s.median())
-        # tm.assert_isinstance(dft._data.blocks[1].items, MultiIndex)
+        # tm.assertIsInstance(dft._data.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         assert_series_equal(reindexed['foo', 'two'], s > s.median())
@@ -798,12 +798,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
-        tm.assert_isinstance(deleveled, DataFrame)
+        tm.assertIsInstance(deleveled, DataFrame)
         self.assertEqual(len(deleveled.columns),
                          len(self.series.index.levels) + 1)
 
         deleveled = self.series.reset_index(drop=True)
-        tm.assert_isinstance(deleveled, Series)
+        tm.assertIsInstance(deleveled, Series)
 
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']
@@ -1325,7 +1325,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
-        tm.assert_isinstance(df.columns, MultiIndex)
+        tm.assertIsInstance(df.columns, MultiIndex)
         self.assertTrue((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
@@ -1994,7 +1994,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = frame.ix[:, 1]
         exp = frame.icol(1)
-        tm.assert_isinstance(result, Series)
+        tm.assertIsInstance(result, Series)
         assert_series_equal(result, exp)
 
     def test_nonunique_assignment_1750(self):

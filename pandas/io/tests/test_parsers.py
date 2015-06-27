@@ -276,7 +276,7 @@ c,3
         expected = Series([1, 2, 3], name=1, index=idx)
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
-        tm.assert_isinstance(result, Series)
+        tm.assertIsInstance(result, Series)
         tm.assert_series_equal(result, expected)
 
     def test_squeeze_no_view(self):
@@ -1016,7 +1016,7 @@ c,4,5
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
         expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
-        tm.assert_isinstance(expected['aux_date'][0], datetime)
+        tm.assertIsInstance(expected['aux_date'][0], datetime)
 
         df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=[0, 5], dayfirst=True)
@@ -1117,7 +1117,7 @@ baz,7,8,9
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        tm.assert_isinstance(df1[0].values[0], compat.text_type)
+        tm.assertIsInstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -1300,7 +1300,7 @@ baz,7,8,9
 
             treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                       iterator=True)
-            tm.assert_isinstance(treader, TextFileReader)
+            tm.assertIsInstance(treader, TextFileReader)
 
             # stopping iteration when on chunksize is specified, GH 3967
             data = """A,B,C
@@ -1601,7 +1601,7 @@ c,4,5,01/03/2009
         expected = self.read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parse_date)
 
-        tm.assert_isinstance(result['D'][0], (datetime, Timestamp))
+        tm.assertIsInstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -2727,7 +2727,7 @@ eight,1,2,3"""
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                   iterator=True)
-        tm.assert_isinstance(treader, TextFileReader)
+        tm.assertIsInstance(treader, TextFileReader)
 
         # stopping iteration when on chunksize is specified, GH 3967
         data = """A,B,C

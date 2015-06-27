@@ -79,7 +79,7 @@ def test_normalize_date():
 def test_to_m8():
     valb = datetime(2007, 10, 1)
     valu = _to_m8(valb)
-    tm.assert_isinstance(valu, np.datetime64)
+    tm.assertIsInstance(valu, np.datetime64)
     # assert valu == np.datetime64(datetime(2007,10,1))
 
 # def test_datetime64_box():

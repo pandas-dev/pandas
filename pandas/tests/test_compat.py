@@ -16,7 +16,7 @@ class TestBuiltinIterators(tm.TestCase):
     def check_result(self, actual, expected, lengths):
         for (iter_res, list_res), exp, length in zip(actual, expected, lengths):
             self.assertNotIsInstance(iter_res, list)
-            tm.assert_isinstance(list_res, list)
+            tm.assertIsInstance(list_res, list)
             iter_res = list(iter_res)
             self.assertEqual(len(list_res), length)
             self.assertEqual(len(iter_res), length)

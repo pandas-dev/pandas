@@ -821,7 +821,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
-        tm.assert_isinstance(res, Panel)
+        tm.assertIsInstance(res, Panel)
         self.assertIsNot(res, self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 

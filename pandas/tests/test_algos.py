@@ -174,13 +174,13 @@ class TestUnique(tm.TestCase):
         arr = np.random.randint(0, 100, size=50)
 
         result = algos.unique(arr)
-        tm.assert_isinstance(result, np.ndarray)
+        tm.assertIsInstance(result, np.ndarray)
 
     def test_objects(self):
         arr = np.random.randint(0, 100, size=50).astype('O')
 
         result = algos.unique(arr)
-        tm.assert_isinstance(result, np.ndarray)
+        tm.assertIsInstance(result, np.ndarray)
 
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
@@ -211,7 +211,7 @@ class TestValueCounts(tm.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        tm.assert_isinstance(factor, Categorical)
+        tm.assertIsInstance(factor, Categorical)
 
         result = algos.value_counts(factor)
         expected = algos.value_counts(np.asarray(factor))
