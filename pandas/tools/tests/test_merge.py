@@ -790,7 +790,7 @@ class TestMerge(tm.TestCase):
         nad = NotADataFrame(self.df)
         result = nad.merge(self.df2, on='key1')
 
-        tm.assert_isinstance(result, NotADataFrame)
+        tm.assertIsInstance(result, NotADataFrame)
 
     def test_append_dtype_coerce(self):
 
@@ -2535,7 +2535,7 @@ class TestOrderedMerge(tm.TestCase):
         nad = NotADataFrame(self.left)
         result = nad.merge(self.right, on='key')
 
-        tm.assert_isinstance(result, NotADataFrame)
+        tm.assertIsInstance(result, NotADataFrame)
 
 
 if __name__ == '__main__':

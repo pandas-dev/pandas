@@ -781,7 +781,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
         s = Series(objs, index=[0, 1])
-        tm.assert_isinstance(s, Series)
+        tm.assertIsInstance(s, Series)
 
     def test_constructor_sanitize(self):
         s = Series(np.array([1., 1., 8.]), dtype='i8')
@@ -1069,7 +1069,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # works
         series = self.series.copy()
         series.index = np.arange(len(series))
-        tm.assert_isinstance(series.index, Index)
+        tm.assertIsInstance(series.index, Index)
 
     def test_array_finalize(self):
         pass
@@ -1326,7 +1326,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
-        tm.assert_isinstance(value, np.float64)
+        tm.assertIsInstance(value, np.float64)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
@@ -3132,7 +3132,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # scalar Timestamp on rhs
         maxa = df['A'].max()
-        tm.assert_isinstance(maxa, Timestamp)
+        tm.assertIsInstance(maxa, Timestamp)
 
         resultb = df['A'] - df['A'].max()
         self.assertEqual(resultb.dtype, 'timedelta64[ns]')
@@ -5102,7 +5102,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = self.ts.clip(-0.5, 0.5)
         expected = np.clip(self.ts, -0.5, 0.5)
         assert_series_equal(result, expected)
-        tm.assert_isinstance(expected, Series)
+        tm.assertIsInstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
 
@@ -5798,7 +5798,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = self.series.map(lambda x: Decimal(str(x)))
         self.assertEqual(result.dtype, np.object_)
-        tm.assert_isinstance(result[0], Decimal)
+        tm.assertIsInstance(result[0], Decimal)
 
     def test_map_na_exclusion(self):
         s = Series([1.5, np.nan, 3, np.nan, 5])
@@ -5980,7 +5980,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = s.apply(str.split, args=(',',))
         self.assertEqual(result[0], ['foo', 'bar'])
-        tm.assert_isinstance(result[0], list)
+        tm.assertIsInstance(result[0], list)
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
@@ -7081,7 +7081,7 @@ class TestSeriesNonUnique(tm.TestCase):
 
         rs = s.reset_index(level=[0, 2], drop=True)
         self.assertTrue(rs.index.equals(Index(index.get_level_values(1))))
-        tm.assert_isinstance(rs, Series)
+        tm.assertIsInstance(rs, Series)
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)

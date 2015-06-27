@@ -68,8 +68,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        tm.assert_isinstance(self.dups, TimeSeries)
-        tm.assert_isinstance(self.dups.index, DatetimeIndex)
+        tm.assertIsInstance(self.dups, TimeSeries)
+        tm.assertIsInstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
         self.assertFalse(self.dups.index.is_unique)
@@ -369,13 +369,13 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng)
 
-        tm.assert_isinstance(s[5], Timestamp)
+        tm.assertIsInstance(s[5], Timestamp)
 
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng, index=rng)
-        tm.assert_isinstance(s[5], Timestamp)
+        tm.assertIsInstance(s[5], Timestamp)
 
-        tm.assert_isinstance(s.iget_value(5), Timestamp)
+        tm.assertIsInstance(s.iget_value(5), Timestamp)
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -433,9 +433,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -453,9 +453,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -473,9 +473,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -856,7 +856,7 @@ class TestTimeSeries(tm.TestCase):
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
-        tm.assert_isinstance(result2, DatetimeIndex)
+        tm.assertIsInstance(result2, DatetimeIndex)
         self.assert_numpy_array_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
@@ -2092,7 +2092,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assert_isinstance(result[0], Timestamp)
+        tm.assertIsInstance(result[0], Timestamp)
 
         # it works
         rng.join(idx, how='outer')
@@ -2357,7 +2357,7 @@ class TestDatetimeIndex(tm.TestCase):
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
-        tm.assert_isinstance(list(result.values())[0][0], Timestamp)
+        tm.assertIsInstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
         self.assertTrue(idx.equals(list(idx)))
@@ -2643,7 +2643,7 @@ class TestDatetimeIndex(tm.TestCase):
 
             for taken in [taken1, taken2]:
                 self.assertTrue(taken.equals(expected))
-                tm.assert_isinstance(taken, DatetimeIndex)
+                tm.assertIsInstance(taken, DatetimeIndex)
                 self.assertIsNone(taken.freq)
                 self.assertEqual(taken.tz, expected.tz)
                 self.assertEqual(taken.name, expected.name)
@@ -2662,7 +2662,7 @@ class TestDatetimeIndex(tm.TestCase):
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
-        tm.assert_isinstance(result.index[0], tuple)
+        tm.assertIsInstance(result.index[0], tuple)
 
     def test_append_numpy_bug_1681(self):
         # another datetime64 bug
@@ -3137,11 +3137,11 @@ class TestDatetime64(tm.TestCase):
         empty = Index([])
 
         result = dti.union(empty)
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
         self.assertIs(result, result)
 
         result = dti.join(empty)
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
 
     def test_series_set_value(self):
         # #1561
@@ -4003,8 +4003,8 @@ class TestSlicing(tm.TestCase):
 
         the_min = rng2.min()
         the_max = rng2.max()
-        tm.assert_isinstance(the_min, Timestamp)
-        tm.assert_isinstance(the_max, Timestamp)
+        tm.assertIsInstance(the_min, Timestamp)
+        tm.assertIsInstance(the_max, Timestamp)
         self.assertEqual(the_min, rng[0])
         self.assertEqual(the_max, rng[-1])
 

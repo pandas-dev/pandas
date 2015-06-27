@@ -574,7 +574,7 @@ class TestMoments(Base):
                           fill_value=None):
 
         series_result = func(self.series, 50)
-        tm.assert_isinstance(series_result, Series)
+        tm.assertIsInstance(series_result, Series)
 
         frame_result = func(self.frame, 50)
         self.assertEqual(type(frame_result), DataFrame)
@@ -782,7 +782,7 @@ class TestMoments(Base):
 
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)
-        tm.assert_isinstance(series_result, Series)
+        tm.assertIsInstance(series_result, Series)
         frame_result = func(self.frame, com=10)
         self.assertEqual(type(frame_result), DataFrame)
 
@@ -1844,7 +1844,7 @@ class TestMomentsConsistency(Base):
 
     def _check_expanding_structures(self, func):
         series_result = func(self.series)
-        tm.assert_isinstance(series_result, Series)
+        tm.assertIsInstance(series_result, Series)
         frame_result = func(self.frame)
         self.assertEqual(type(frame_result), DataFrame)
 
