@@ -431,10 +431,10 @@ class IndexOpsMixin(object):
 
         if isinstance(self, PeriodIndex):
             # preserve freq
-            result.index = self._simple_new(result.index.values, self.name,
+            result.index = self._simple_new(result.index.values,
                                             freq=self.freq)
         elif isinstance(self, DatetimeIndex):
-            result.index = self._simple_new(result.index.values, self.name,
+            result.index = self._simple_new(result.index.values,
                                             tz=getattr(self, 'tz', None))
         return result
 
