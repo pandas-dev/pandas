@@ -751,15 +751,22 @@ class TestHolidayConflictingArguments(tm.TestCase):
                         offset=[DateOffset(weekday=SA(4))], observance=next_monday)
 
 class TestDaysInMonth(tm.TestCase):
-    def test_day_not_in_month_coerce_true(self):
+    def test_day_not_in_month_coerce_true_NaT(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
         self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
         self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
         self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
-    def test_day_not_in_month_coerce_false(self):
-        self.assertRaises(ValueError, to_datetime, '2015-02-29', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-02-32', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-04-31', format="%Y-%m-%d", coerce=False)
+    def test_day_not_in_month_coerce_false_raise(self):
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='raise', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='raise', format="%Y-%m-%d", coerce=False)
+    def test_day_not_in_month_coerce_false_ignore(self):
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='ignore', coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='ignore', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='ignore', format="%Y-%m-%d", coerce=False)
+        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='ignore', format="%Y-%m-%d", coerce=False)
+
 
 if __name__ == '__main__':
     import nose
