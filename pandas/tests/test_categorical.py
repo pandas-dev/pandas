@@ -2967,6 +2967,24 @@ class TestCategoricalAsBlock(tm.TestCase):
         #
         self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
+    def test_concat_categorical(self):
+        # See GH 10177
+        df1 = pd.DataFrame(np.arange(18).reshape(6, 3), columns=["a", "b", "c"])
+
+        df2 = pd.DataFrame(np.arange(14).reshape(7, 2), columns=["a", "c"])
+        df2['h'] = pd.Series(pd.Categorical(["one", "one", "two", "one", "two", "two", "one"]))
+
+        df_concat = pd.concat((df1, df2), axis=0).reset_index(drop=True)
+
+        df_expected = pd.DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
+                                    'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                    'c': [2, 5, 8, 11, 14, 17, 1, 3, 5, 7, 9, 11, 13]})
+        df_expected['h'] = pd.Series(pd.Categorical([None, None, None, None, None, None,
+                                                     "one", "one", "two", "one", "two", "two", "one"]))
+
+        tm.assert_frame_equal(df_expected, df_concat)
+
+
 
 if __name__ == '__main__':
     import nose

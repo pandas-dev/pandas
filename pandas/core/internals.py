@@ -4133,7 +4133,7 @@ def get_empty_dtype_and_na(join_units):
         else:
             return np.dtype(np.bool_), None
     elif 'category' in upcast_classes:
-        return com.CategoricalDtype(), np.nan
+        return np.dtype(np.object_), np.nan
     elif 'float' in upcast_classes:
         return np.dtype(np.float64), np.nan
     elif 'datetime' in upcast_classes:
