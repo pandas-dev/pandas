@@ -103,4 +103,4 @@ Bug Fixes
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
 
-
+- Bug in `pandas.concat` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
