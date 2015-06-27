@@ -47,7 +47,7 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return "This method must be defined on the concrete class of " \
+        return "This method must be defined in the concrete class of " \
                + self.class_instance.__class__.__name__
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
