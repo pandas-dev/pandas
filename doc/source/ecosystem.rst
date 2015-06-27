@@ -132,19 +132,19 @@ Pandas DataFrames with timeseries indexes.
 
 `pydatastream <https://github.com/vfilimonov/pydatastream>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-PyDatastream is a Python interface to the 
+PyDatastream is a Python interface to the
 `Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
-SOAP API to return indexed Pandas DataFrames or Panels with financial data. 
+SOAP API to return indexed Pandas DataFrames or Panels with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <http://pandasdmx.readthedocs.org>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pandaSDMX is an extensible library to retrieve and acquire statistical data 
-and metadata disseminated in 
-`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by 
+pandaSDMX is an extensible library to retrieve and acquire statistical data
+and metadata disseminated in
+`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by
 the European statistics office (Eurostat)
-and the European Central Bank (ECB). Datasets may be returned as pandas Series 
-or multi-indexed DataFrames.   
+and the European Central Bank (ECB). Datasets may be returned as pandas Series
+or multi-indexed DataFrames.
 
 `fredapi <https://github.com/mortada/fredapi>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -183,8 +183,16 @@ Out-of-core
 -------------
 
 `Blaze <http://blaze.pydata.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
+
+`Odo <http://odo.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Odo provides a uniform API for moving data between different formats. It uses
+pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
+PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
+based approach is also extensible by end users for custom formats that may be
+too specific for the core of odo.
