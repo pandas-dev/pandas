@@ -431,8 +431,8 @@ class _NDFrameIndexer(object):
 
                 return False
 
-            # we need an interable, with a ndim of at least 1
-            # eg. don't pass thru np.array(0)
+            # we need an iterable, with a ndim of at least 1
+            # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value,'ndim',1) > 0:
 
                 # we have an equal len Frame

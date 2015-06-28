@@ -52,7 +52,7 @@ extensions = ['sphinx.ext.autodoc',
 
 
 with open("index.rst") as f:
-    lines = f.readlines()
+    index_rst_lines = f.readlines()
 
 # only include the slow autosummary feature if we're building the API section
 # of the docs
@@ -60,20 +60,21 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any([re.match("\s*api\s*",l) for l in lines]):
+if any([re.match("\s*api\s*",l) for l in index_rst_lines]):
     autosummary_generate = True
 
-ds = []
+files_to_delete = []
 for f in os.listdir(os.path.dirname(__file__)):
-    if (not f.endswith(('.rst'))) or (f.startswith('.')) or os.path.basename(f) == 'index.rst':
+    if not f.endswith('.rst') or f.startswith('.') or os.path.basename(f) == 'index.rst':
         continue
 
-    _f = f.split('.rst')[0]
-    if not any([re.match("\s*%s\s*$" % _f,l) for l in lines]):
-        ds.append(f)
+    _file_basename = f.split('.rst')[0]
+    _regex_to_match = "\s*{}\s*$".format(_file_basename)
+    if not any([re.match(_regex_to_match, line) for line in index_rst_lines]):
+        files_to_delete.append(f)
 
-if ds:
-    print("I'm about to DELETE the following:\n%s\n" % list(sorted(ds)))
+if files_to_delete:
+    print("I'm about to DELETE the following:\n%s\n" % list(sorted(files_to_delete)))
     sys.stdout.write("WARNING: I'd like to delete those to speed up processing (yes/no)? ")
     if PY3:
         answer = input()
@@ -81,7 +82,7 @@ if ds:
         answer = raw_input()
 
     if answer.lower().strip() in ('y','yes'):
-        for f in ds:
+        for f in files_to_delete:
             f = os.path.join(os.path.join(os.path.dirname(__file__),f))
             f= os.path.abspath(f)
             try:

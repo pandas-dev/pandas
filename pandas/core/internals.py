@@ -2121,7 +2121,7 @@ def make_block(values, placement, klass=None, ndim=None,
 class BlockManager(PandasObject):
 
     """
-    Core internal data structure to implement DataFrame
+    Core internal data structure to implement DataFrame, Series, Panel, etc.
 
     Manage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a
     lightweight blocked set of labeled data to be manipulated by the DataFrame
