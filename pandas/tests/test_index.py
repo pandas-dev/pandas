@@ -3567,6 +3567,16 @@ class TestMultiIndex(Base, tm.TestCase):
         values = index.get_level_values(0)
         self.assertEqual(values.shape, (0,))
 
+        # GH 10460
+        index = MultiIndex(levels=[CategoricalIndex(['A', 'B']),
+                                   CategoricalIndex([1, 2, 3])],
+                           labels=[np.array([0, 0, 0, 1, 1, 1]),
+                                   np.array([0, 1, 2, 0, 1, 2])])
+        exp = CategoricalIndex(['A', 'A', 'A', 'B', 'B', 'B'])
+        self.assert_index_equal(index.get_level_values(0), exp)
+        exp = CategoricalIndex([1, 2 ,3, 1, 2, 3])
+        self.assert_index_equal(index.get_level_values(1), exp)
+
     def test_reorder_levels(self):
         # this blows up
         assertRaisesRegexp(IndexError, '^Too many levels',

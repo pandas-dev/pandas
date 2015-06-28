@@ -94,7 +94,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 
-
+- Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
 
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
 

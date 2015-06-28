@@ -4238,7 +4238,7 @@ class MultiIndex(Index):
         num = self._get_level_number(level)
         unique = self.levels[num]  # .values
         labels = self.labels[num]
-        filled = com.take_1d(unique.values, labels, fill_value=unique._na_value)
+        filled = com.take_1d(unique.get_values(), labels, fill_value=unique._na_value)
         values = unique._simple_new(filled, self.names[num],
                                     freq=getattr(unique, 'freq', None),
                                     tz=getattr(unique, 'tz', None))
