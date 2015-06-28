@@ -124,8 +124,8 @@ Bug Fixes
 
 
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
-
-
+- Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
+- Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)

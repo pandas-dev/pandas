@@ -5753,6 +5753,35 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = self.ts.map(lambda x: x * 2)
         self.assert_numpy_array_equal(result, self.ts * 2)
 
+        # GH 10324
+        a = Series([1, 2, 3, 4])
+        b = Series(["even", "odd", "even", "odd"], dtype="category")
+        c = Series(["even", "odd", "even", "odd"])
+
+        exp = Series(["odd", "even", "odd", np.nan], dtype="category")
+        self.assert_series_equal(a.map(b), exp)
+        exp = Series(["odd", "even", "odd", np.nan])
+        self.assert_series_equal(a.map(c), exp)
+
+        a = Series(['a', 'b', 'c', 'd'])
+        b = Series([1, 2, 3, 4], index=pd.CategoricalIndex(['b', 'c', 'd', 'e']))
+        c = Series([1, 2, 3, 4], index=Index(['b', 'c', 'd', 'e']))
+
+        exp = Series([np.nan, 1, 2, 3])
+        self.assert_series_equal(a.map(b), exp)
+        exp = Series([np.nan, 1, 2, 3])
+        self.assert_series_equal(a.map(c), exp)
+
+        a = Series(['a', 'b', 'c', 'd'])
+        b = Series(['B', 'C', 'D', 'E'], dtype='category',
+                   index=pd.CategoricalIndex(['b', 'c', 'd', 'e']))
+        c = Series(['B', 'C', 'D', 'E'], index=Index(['b', 'c', 'd', 'e']))
+
+        exp = Series([np.nan, 'B', 'C', 'D'], dtype='category')
+        self.assert_series_equal(a.map(b), exp)
+        exp = Series([np.nan, 'B', 'C', 'D'])
+        self.assert_series_equal(a.map(c), exp)
+
     def test_map_compat(self):
         # related GH 8024
         s = Series([True,True,False],index=[1,2,3])
