@@ -3476,6 +3476,13 @@ class TestGroupBy(tm.TestCase):
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
 
+        # GH 10460
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, name='myfactor', ordered=True)
+        exp = CategoricalIndex(expc, name='myfactor')
+        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
+        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
         levels = pd.date_range('2014-01-01', periods=4)
@@ -3488,7 +3495,8 @@ class TestGroupBy(tm.TestCase):
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
-        expected.index = CategoricalIndex(expected.index,categories=expected.index,name='myfactor',ordered=True)
+        expected.index = CategoricalIndex(expected.index, categories=expected.index,
+                                          name='myfactor', ordered=True)
 
         assert_frame_equal(result, expected)
         self.assertEqual(result.index.name, cats.name)
@@ -3502,6 +3510,14 @@ class TestGroupBy(tm.TestCase):
         expected = ord_data.groupby(ord_labels, sort=False).describe()
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
+
+        # GH 10460
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, name='myfactor', ordered=True)
+        exp = CategoricalIndex(expc, name='myfactor')
+        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
+        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+
 
     def test_groupby_categorical_index(self):
 

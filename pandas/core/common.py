@@ -782,6 +782,11 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
     """
+
+    if is_categorical(arr):
+        return arr.take_nd(indexer, fill_value=fill_value,
+                           allow_fill=allow_fill)
+
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
