@@ -351,6 +351,7 @@ Bug Fixes
 
 
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
+- Bug in adding a `DataFrame` to an empty `Panel` (:issue:`10445`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
   key (:issue:`10385`).
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)

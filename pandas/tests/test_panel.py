@@ -907,6 +907,17 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         vals.fill(1)
         assert_panel_equal(wp, Panel(vals, dtype='float32'))
 
+        # test creating empty panel and then adding DataFrame (GH # 10445)
+        panel = Panel()
+        df = DataFrame(np.array([[1, 2], [3, 4]]))
+        panel['item1'] = df
+        tm.assert_frame_equal(panel['item1'], df)
+
+        panel = Panel()
+        invalid_input = 'blablabla'
+        with self.assertRaises(ValueError):
+            panel['item1'] = invalid_input
+
     def test_constructor_cast(self):
         zero_filled = self.panel.fillna(0)
 

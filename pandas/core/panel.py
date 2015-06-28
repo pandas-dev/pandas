@@ -565,7 +565,9 @@ class Panel(NDFrame):
         return self._constructor_sliced(values, **d)
 
     def __setitem__(self, key, value):
+        self._ensure_valid_major_minor_axes(value)
         shape = tuple(self.shape)
+
         if isinstance(value, self._constructor_sliced):
             value = value.reindex(
                 **self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:]))
@@ -585,6 +587,25 @@ class Panel(NDFrame):
 
         mat = mat.reshape(tuple([1]) + shape[1:])
         NDFrame._set_item(self, key, mat)
+
+    def _ensure_valid_major_minor_axes(self, value):
+        """Ensure that we add a minor or major axis if it's missing.  We can
+        create these from the passed value.  This may happen if the user
+        initializes an empty panel before adding DataFrames to it.
+        (GH #10445)
+        """
+        if len(self.major_axis) == 0 or len(self.minor_axis) == 0:
+            try:
+                value = DataFrame(value)
+            except PandasError:
+                raise ValueError("Cannot set a panel when either the major "
+                                 "axis or minor axis is missing and given a "
+                                 "value that can't be converted to a DataFrame")
+
+        if len(self.major_axis) == 0:
+            self._data = self._data.reindex_axis(value.index.copy(), axis=1)
+        if len(self.minor_axis) == 0:
+            self._data = self._data.reindex_axis(value.columns.copy(), axis=2)
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"
