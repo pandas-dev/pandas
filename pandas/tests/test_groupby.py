@@ -3476,6 +3476,13 @@ class TestGroupBy(tm.TestCase):
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
 
+        # GH 10460
+        exp = CategoricalIndex(['foo'] * 8 + ['bar'] * 8 + ['baz'] * 8 + ['qux'] * 8,
+                               name='myfactor')
+        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
+        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
         levels = pd.date_range('2014-01-01', periods=4)
