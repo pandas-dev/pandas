@@ -65,7 +65,7 @@ if any([re.match("\s*api\s*",l) for l in lines]):
 
 ds = []
 for f in os.listdir(os.path.dirname(__file__)):
-    if (not f.endswith(('.rst'))) or (f.startswith('.')) or os.path.basename(f) == 'index.rst':
+    if not f.endswith('.rst') or f.startswith('.') or os.path.basename(f) == 'index.rst':
         continue
 
     _f = f.split('.rst')[0]

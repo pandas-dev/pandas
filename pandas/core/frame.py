@@ -184,7 +184,6 @@ class DataFrame(NDFrame):
     DataFrame.from_items : from sequence of (key, value) pairs
     pandas.read_csv, pandas.read_table, pandas.read_clipboard
     """
-    _auto_consolidate = True
 
     @property
     def _constructor(self):
@@ -2169,16 +2168,11 @@ class DataFrame(NDFrame):
         ensure that if we don't have an index, that we can create one from the
         passed value
         """
-        if not len(self.index):
-
-            # GH5632, make sure that we are a Series convertible
-            if is_list_like(value):
+        # GH5632, make sure that we are a Series convertible
+        if not len(self.index) and is_list_like(value):
                 try:
                     value = Series(value)
                 except:
-                    pass
-
-                if not isinstance(value, Series):
                     raise ValueError('Cannot set a frame with no defined index '
                                      'and a value that cannot be converted to a '
                                      'Series')
@@ -2186,11 +2180,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.reindex_axis(value.index.copy(), axis=1,
                                                      fill_value=np.nan)
 
-            # we are a scalar
-            # noop
-            else:
-
-                pass
 
     def _set_item(self, key, value):
         """

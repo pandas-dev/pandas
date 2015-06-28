@@ -2613,13 +2613,7 @@ def generate_take_cython_file():
             print(generate_put_selection_template(template, use_ints=True,
                                                   use_datelikes=True,
                                                   use_objects=True),
-                  file=f)
-
-        # for template in templates_1d_datetime:
-        #     print >> f, generate_from_template_datetime(template)
-
-        # for template in templates_2d_datetime:
-        #     print >> f, generate_from_template_datetime(template, ndim=2)
+                                                  file=f)
 
         for template in nobool_1d_templates:
             print(generate_from_template(template, exclude=['bool']), file=f)
