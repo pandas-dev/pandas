@@ -6,6 +6,7 @@ during building.  To regenerate `generated.pyx`, just run:
 """
 
 from __future__ import print_function
+import os
 from pandas.compat import StringIO
 import numpy as np
 
@@ -2536,7 +2537,12 @@ take_templates = [take_1d_template,
                   take_2d_multi_template]
 
 
-def generate_take_cython_file(path='generated.pyx'):
+def generate_take_cython_file():
+    # Put `generated.pyx` in the same directory as this file
+    directory = os.path.dirname(os.path.realpath(__file__))
+    filename = 'generated.pyx'
+    path = os.path.join(directory, filename)
+
     with open(path, 'w') as f:
         print(warning_to_new_contributors, file=f)
         print(header, file=f)
