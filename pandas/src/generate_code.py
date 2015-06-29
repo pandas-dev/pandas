@@ -1147,58 +1147,43 @@ def group_prod_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
 group_var_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(dest_type2)s, ndim=2] values,
               ndarray[int64_t] labels):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        %(dest_type2)s val, ct
-        ndarray[%(dest_type2)s, ndim=2] nobs, sumx, sumxx
+        %(dest_type2)s val, ct, oldmean
+        ndarray[%(dest_type2)s, ndim=2] nobs, mean
 
     if not len(values) == len(labels):
        raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
-    sumx = np.zeros_like(out)
-    sumxx = np.zeros_like(out)
+    mean = np.zeros_like(out)
 
     N, K = (<object> values).shape
 
+    out[:, :] = 0.0
+
     with nogil:
-        if K > 1:
-            for i in range(N):
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-                lab = labels[i]
-                if lab < 0:
-                    continue
+            counts[lab] += 1
 
-                counts[lab] += 1
-
-                for j in range(K):
-                    val = values[i, j]
-
-                    # not nan
-                    if val == val:
-                        nobs[lab, j] += 1
-                        sumx[lab, j] += val
-                        sumxx[lab, j] += val * val
-        else:
-            for i in range(N):
-
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            for j in range(K):
+                val = values[i, j]
 
                 # not nan
                 if val == val:
-                    nobs[lab, 0] += 1
-                    sumx[lab, 0] += val
-                    sumxx[lab, 0] += val * val
-
+                    nobs[lab, j] += 1
+                    oldmean = mean[lab, j]
+                    mean[lab, j] += (val - oldmean) / nobs[lab, j]
+                    out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
 
         for i in range(ncounts):
             for j in range(K):
@@ -1206,8 +1191,8 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 if ct < 2:
                     out[i, j] = NAN
                 else:
-                    out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
-                                 (ct * ct - ct))
+                    out[i, j] /= (ct - 1)
+
 """
 
 group_var_bin_template = """@cython.wraparound(False)
