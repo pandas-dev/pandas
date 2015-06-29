@@ -1773,6 +1773,8 @@ class DataCol(IndexCol):
                 self.kind = 'string'
             elif dtype.startswith(u('float')):
                 self.kind = 'float'
+            elif dtype.startswith(u('complex')):
+                self.kind = 'complex'
             elif dtype.startswith(u('int')) or dtype.startswith(u('uint')):
                 self.kind = 'integer'
             elif dtype.startswith(u('date')):
@@ -1802,6 +1804,8 @@ class DataCol(IndexCol):
             return self.set_atom_datetime64(block)
         elif block.is_timedelta:
             return self.set_atom_timedelta64(block)
+        elif block.is_complex:
+            return self.set_atom_complex(block)
 
         dtype = block.dtype.name
         inferred_type = lib.infer_dtype(block.values)
@@ -1935,6 +1939,12 @@ class DataCol(IndexCol):
 
     def get_atom_data(self, block, kind=None):
         return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
+
+    def set_atom_complex(self, block):
+        self.kind = block.dtype.name
+        itemsize = int(self.kind.split('complex')[-1]) // 8
+        self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
+        self.set_data(block.values.astype(self.typ.type, copy=False))
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
@@ -3147,8 +3157,8 @@ class Table(Fixed):
     def create_index(self, columns=None, optlevel=None, kind=None):
         """
         Create a pytables index on the specified columns
-          note: cannot index Time64Col() currently; PyTables must be >= 2.3
-
+          note: cannot index Time64Col() or ComplexCol currently;
+          PyTables must be >= 3.0
 
         Paramaters
         ----------
@@ -3203,6 +3213,12 @@ class Table(Fixed):
 
                 # create the index
                 if not v.is_indexed:
+                    if v.type.startswith('complex'):
+                        raise TypeError('Columns containing complex values can be stored but cannot'
+                                        ' be indexed when using table format. Either use fixed '
+                                        'format, set index=False, or do not include the columns '
+                                        'containing complex values to data_columns when '
+                                        'initializing the table.')
                     v.create_index(**kw)
 
     def read_axes(self, where, **kwargs):
