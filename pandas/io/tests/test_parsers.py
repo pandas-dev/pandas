@@ -2301,6 +2301,20 @@ MyColumn
         expected = DataFrame([], columns=['y'], index=Index([], name='x'))
         tm.assert_frame_equal(result, expected)
 
+    def test_emtpy_with_multiindex(self):
+        # GH 10467
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=['x', 'y'])
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_index_col_false(self):
+        # GH 10413
+        data = 'x,y'
+        result = self.read_csv(StringIO(data), index_col=False)
+        expected = DataFrame([], columns=['x', 'y'])
+        tm.assert_frame_equal(result, expected)
+
     def test_float_parser(self):
         # GH 9565
         data = '45e-1,4.5,45.,inf,-inf'

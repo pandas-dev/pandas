@@ -2223,13 +2223,13 @@ def _clean_index_names(columns, index_col):
 def _get_empty_meta(columns, index_col, index_names):
     columns = list(columns)
 
-    if index_col is not None:
-        index = MultiIndex.from_arrays([[]] * len(index_col),
-                                       names=index_names)
-        for n in index_col:
-            columns.pop(n)
-    else:
+    if index_col is None or index_col is False:
         index = Index([])
+    else:
+        index_col = list(index_col)
+        index = MultiIndex.from_arrays([[]] * len(index_col), names=index_names)
+        for i, n in enumerate(index_col):
+            columns.pop(n-i)
 
     return index, columns, {}
 
