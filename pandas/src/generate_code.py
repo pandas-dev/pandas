@@ -1,15 +1,12 @@
 """This file generates `generated.pyx` which is then included in `../algos.pyx`
 during building.  To regenerate `generated.pyx`, just run:
 
-    `python2 generate_code.py`.
+    `python generate_code.py`.
 
 """
 
 from __future__ import print_function
-# we only need to be able to run this file on 2.7
-# don't introduce a pandas/pandas.compat import
-# or we get a bootstrapping problem
-from StringIO import StringIO
+from pandas.compat import StringIO
 import numpy as np
 
 _int64_max = np.iinfo(np.int64).max
