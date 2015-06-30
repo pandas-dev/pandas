@@ -1,3 +1,5 @@
+# cython: profile=False
+
 from numpy cimport ndarray
 
 from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
@@ -89,6 +91,7 @@ cdef class IndexEngine:
         self.monotonic_check = 0
 
         self.unique = 0
+        self.unique_check = 0
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
@@ -230,16 +233,12 @@ cdef class IndexEngine:
     cdef inline _do_monotonic_check(self):
         try:
             values = self._get_index_values()
-            self.monotonic_inc, self.monotonic_dec, unique = \
+            self.monotonic_inc, self.monotonic_dec = \
                 self._call_monotonic(values)
-
-            if unique is not None:
-                self.unique = unique
-                self.unique_check = 1
-
         except TypeError:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
+
         self.monotonic_check = 1
 
     cdef _get_index_values(self):

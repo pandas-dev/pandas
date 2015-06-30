@@ -1812,3 +1812,36 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
 for name, obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isfunction(obj) and name.startswith('assert'):
         setattr(TestCase, name, staticmethod(obj))
+
+def test_parallel(num_threads=2):
+    """Decorator to run the same function multiple times in parallel.
+
+    Parameters
+    ----------
+    num_threads : int, optional
+        The number of times the function is run in parallel.
+
+    Notes
+    -----
+    This decorator does not pass the return value of the decorated function.
+
+    Original from scikit-image: https://github.com/scikit-image/scikit-image/pull/1519
+
+    """
+
+    assert num_threads > 0
+    import threading
+
+    def wrapper(func):
+        @wraps(func)
+        def inner(*args, **kwargs):
+            threads = []
+            for i in range(num_threads):
+                thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+                threads.append(thread)
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        return inner
+    return wrapper
