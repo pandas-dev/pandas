@@ -584,7 +584,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel4d.set_value('l4', 'ItemE', 'foo', 'bar', 1.5)
-        tm.assert_isinstance(res, Panel4D)
+        tm.assertIsInstance(res, Panel4D)
         self.assertIsNot(res, self.panel4d)
         self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
 

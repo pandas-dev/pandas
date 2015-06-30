@@ -2068,7 +2068,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # row
         res_row = df.iloc[2,:]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assert_isinstance(res_row["cats"], compat.string_types)
+        tm.assertIsInstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.iloc[:,0]
@@ -2088,7 +2088,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # row
         res_row = df.loc["j",:]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assert_isinstance(res_row["cats"], compat.string_types)
+        tm.assertIsInstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.loc[:,"cats"]
@@ -2109,7 +2109,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # row
         res_row = df.ix["j",:]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assert_isinstance(res_row["cats"], compat.string_types)
+        tm.assertIsInstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.ix[:,"cats"]
@@ -2143,7 +2143,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # i : int, slice, or sequence of integers
         res_row = df.irow(2)
         tm.assert_series_equal(res_row, exp_row)
-        tm.assert_isinstance(res_row["cats"], compat.string_types)
+        tm.assertIsInstance(res_row["cats"], compat.string_types)
 
         res_df = df.irow(slice(2,4))
         tm.assert_frame_equal(res_df, exp_df)

@@ -463,7 +463,7 @@ class TestResample(tm.TestCase):
         bs = s.resample('B', closed='right', label='right')
         result = bs.resample('8H')
         self.assertEqual(len(result), 22)
-        tm.assert_isinstance(result.index.freq, offsets.DateOffset)
+        tm.assertIsInstance(result.index.freq, offsets.DateOffset)
         self.assertEqual(result.index.freq, offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
@@ -789,7 +789,7 @@ class TestResample(tm.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('20min', how=['mean', 'sum'])
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
 
     def test_resample_not_monotonic(self):
         rng = pd.date_range('2012-06-12', periods=200, freq='h')

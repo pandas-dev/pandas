@@ -287,7 +287,7 @@ class TestIntIndex(tm.TestCase):
             # see if survive the round trip
             xbindex = xindex.to_int_index().to_block_index()
             ybindex = yindex.to_int_index().to_block_index()
-            tm.assert_isinstance(xbindex, BlockIndex)
+            tm.assertIsInstance(xbindex, BlockIndex)
             self.assertTrue(xbindex.equals(xindex))
             self.assertTrue(ybindex.equals(yindex))
         check_cases(_check_case)

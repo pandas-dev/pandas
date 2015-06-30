@@ -814,7 +814,7 @@ class TestIndexing(tm.TestCase):
         # Regression in chained getitem indexing with embedded list-like from 0.12
         def check(result, expected):
             self.assert_numpy_array_equal(result,expected)
-            tm.assert_isinstance(result, np.ndarray)
+            tm.assertIsInstance(result, np.ndarray)
 
 
         df = DataFrame({'A': 5*[np.zeros(3)], 'B':5*[np.ones(3)]})

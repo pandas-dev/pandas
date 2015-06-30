@@ -90,7 +90,7 @@ class LegacySupport(object):
         ex_index = DatetimeIndex([], freq='B')
 
         self.assertTrue(result.index.equals(ex_index))
-        tm.assert_isinstance(result.index.freq, offsets.BDay)
+        tm.assertIsInstance(result.index.freq, offsets.BDay)
         self.assertEqual(len(result), 0)
 
     def test_arithmetic_interaction(self):
@@ -102,12 +102,12 @@ class LegacySupport(object):
 
         result = dseries + oseries
         expected = dseries * 2
-        tm.assert_isinstance(result.index, DatetimeIndex)
+        tm.assertIsInstance(result.index, DatetimeIndex)
         assert_series_equal(result, expected)
 
         result = dseries + oseries[:5]
         expected = dseries + dseries[:5]
-        tm.assert_isinstance(result.index, DatetimeIndex)
+        tm.assertIsInstance(result.index, DatetimeIndex)
         assert_series_equal(result, expected)
 
     def test_join_interaction(self):
@@ -119,7 +119,7 @@ class LegacySupport(object):
             ea, eb, ec = left.join(DatetimeIndex(right), how=how,
                                    return_indexers=True)
 
-            tm.assert_isinstance(ra, DatetimeIndex)
+            tm.assertIsInstance(ra, DatetimeIndex)
             self.assertTrue(ra.equals(ea))
 
             assert_almost_equal(rb, eb)
@@ -143,8 +143,8 @@ class LegacySupport(object):
         filepath = os.path.join(pth, 'data', 'daterange_073.pickle')
 
         rng = read_pickle(filepath)
-        tm.assert_isinstance(rng[0], datetime)
-        tm.assert_isinstance(rng.offset, offsets.BDay)
+        tm.assertIsInstance(rng[0], datetime)
+        tm.assertIsInstance(rng.offset, offsets.BDay)
         self.assertEqual(rng.values.dtype, object)
 
     def test_setops(self):
@@ -153,17 +153,17 @@ class LegacySupport(object):
 
         result = index[:5].union(obj_index[5:])
         expected = index
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
         self.assertTrue(result.equals(expected))
 
         result = index[:10].intersection(obj_index[5:])
         expected = index[5:10]
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
         self.assertTrue(result.equals(expected))
 
         result = index[:10] - obj_index[5:]
         expected = index[:5]
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
         self.assertTrue(result.equals(expected))
 
     def test_index_conversion(self):
@@ -179,7 +179,7 @@ class LegacySupport(object):
         rng = date_range('1/1/2000', periods=10)
 
         result = rng.tolist()
-        tm.assert_isinstance(result[0], Timestamp)
+        tm.assertIsInstance(result[0], Timestamp)
 
     def test_object_convert_fail(self):
         idx = DatetimeIndex([NaT])
