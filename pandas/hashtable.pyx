@@ -1,14 +1,19 @@
+# cython: profile=False
+
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
+from cpython cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 from util cimport _checknan
 cimport util
 
 import numpy as np
+nan = np.nan
 
-ONAN = np.nan
+cdef extern from "numpy/npy_math.h":
+    double NAN "NPY_NAN"
 
 cimport cython
 cimport numpy as cnp
@@ -28,33 +33,14 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
-
-def list_to_object_array(list obj):
-    '''
-    Convert list to object ndarray. Seriously can't believe I had to write this
-    function
-    '''
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] arr
-
-    n = len(obj)
-    arr = np.empty(n, dtype=object)
-
-    for i from 0 <= i < n:
-        arr[i] = obj[i]
-
-    return arr
-
-
 cdef size_t _INIT_VEC_CAP = 32
 
 cdef class ObjectVector:
 
     cdef:
+        PyObject **data
         size_t n, m
         ndarray ao
-        PyObject **data
 
     def __cinit__(self):
         self.n = 0
@@ -64,11 +50,6 @@ cdef class ObjectVector:
 
     def __len__(self):
         return self.n
-
-    def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
-        return self.ao
 
     cdef inline append(self, object o):
         if self.n == self.m:
@@ -80,71 +61,119 @@ cdef class ObjectVector:
         self.data[self.n] = <PyObject*> o
         self.n += 1
 
+    def to_array(self):
+        self.ao.resize(self.n)
+        self.m = self.n
+        return self.ao
+
+ctypedef struct Int64VectorData:
+    int64_t *data
+    size_t n, m
+
+ctypedef struct Float64VectorData:
+    float64_t *data
+    size_t n, m
+
+ctypedef fused vector_data:
+    Int64VectorData
+    Float64VectorData
+
+ctypedef fused sixty_four_bit_scalar:
+    int64_t
+    float64_t
+
+cdef bint needs_resize(vector_data *data) nogil:
+    return data.n == data.m
+
+cdef void append_data(vector_data *data, sixty_four_bit_scalar x) nogil:
+
+    # compile time specilization of the fused types
+    # as the cross-product is generated, but we cannot assign float->int
+    # the types that don't pass are pruned
+    if (vector_data is Int64VectorData and sixty_four_bit_scalar is int64_t) or (
+        vector_data is Float64VectorData and sixty_four_bit_scalar is float64_t):
+
+        data.data[data.n] = x
+        data.n += 1
 
 cdef class Int64Vector:
 
     cdef:
-        size_t n, m
+        Int64VectorData *data
         ndarray ao
-        int64_t *data
 
     def __cinit__(self):
-        self.n = 0
-        self.m = _INIT_VEC_CAP
-        self.ao = np.empty(_INIT_VEC_CAP, dtype=np.int64)
-        self.data = <int64_t*> self.ao.data
+        self.data = <Int64VectorData *>PyMem_Malloc(sizeof(Int64VectorData))
+        if not self.data:
+            raise MemoryError()
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.ao = np.empty(self.data.m, dtype=np.int64)
+        self.data.data = <int64_t*> self.ao.data
+
+    cdef resize(self):
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(self.data.m)
+        self.data.data = <int64_t*> self.ao.data
+
+    def __dealloc__(self):
+        PyMem_Free(self.data)
 
     def __len__(self):
-        return self.n
+        return self.data.n
 
     def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
+        self.ao.resize(self.data.n)
+        self.data.m = self.data.n
         return self.ao
 
-    cdef inline append(self, int64_t x):
-        if self.n == self.m:
-            self.m = max(self.m * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.m)
-            self.data = <int64_t*> self.ao.data
+    cdef inline void append(self, int64_t x):
 
-        self.data[self.n] = x
-        self.n += 1
+        if needs_resize(self.data):
+            self.resize()
+
+        append_data(self.data, x)
 
 cdef class Float64Vector:
 
     cdef:
-        size_t n, m
+        Float64VectorData *data
         ndarray ao
-        float64_t *data
 
     def __cinit__(self):
-        self.n = 0
-        self.m = _INIT_VEC_CAP
-        self.ao = np.empty(_INIT_VEC_CAP, dtype=np.float64)
-        self.data = <float64_t*> self.ao.data
+        self.data = <Float64VectorData *>PyMem_Malloc(sizeof(Float64VectorData))
+        if not self.data:
+            raise MemoryError()
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.ao = np.empty(self.data.m, dtype=np.float64)
+        self.data.data = <float64_t*> self.ao.data
+
+    cdef resize(self):
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(self.data.m)
+        self.data.data = <float64_t*> self.ao.data
+
+    def __dealloc__(self):
+        PyMem_Free(self.data)
 
     def __len__(self):
-        return self.n
+        return self.data.n
 
     def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
+        self.ao.resize(self.data.n)
+        self.data.m = self.data.n
         return self.ao
 
-    cdef inline append(self, float64_t x):
-        if self.n == self.m:
-            self.m = max(self.m * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.m)
-            self.data = <float64_t*> self.ao.data
+    cdef inline void append(self, float64_t x):
 
-        self.data[self.n] = x
-        self.n += 1
+        if needs_resize(self.data):
+            self.resize()
 
+        append_data(self.data, x)
 
 cdef class HashTable:
     pass
-
 
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table
@@ -156,9 +185,6 @@ cdef class StringHashTable(HashTable):
 
     def __dealloc__(self):
         kh_destroy_str(self.table)
-
-    cdef inline int check_type(self, object val):
-        return util.is_string_object(val)
 
     cpdef get_item(self, object val):
         cdef khiter_t k
@@ -256,110 +282,15 @@ cdef class StringHashTable(HashTable):
 
         return reverse, labels
 
-cdef class Int32HashTable(HashTable):
-    cdef kh_int32_t *table
-
-    def __init__(self, size_hint=1):
-        if size_hint is not None:
-            kh_resize_int32(self.table, size_hint)
-
-    def __cinit__(self):
-        self.table = kh_init_int32()
-
-    def __dealloc__(self):
-        kh_destroy_int32(self.table)
-
-    cdef inline int check_type(self, object val):
-        return util.is_string_object(val)
-
-    cpdef get_item(self, int32_t val):
-        cdef khiter_t k
-        k = kh_get_int32(self.table, val)
-        if k != self.table.n_buckets:
-            return self.table.vals[k]
-        else:
-            raise KeyError(val)
-
-    def get_iter_test(self, int32_t key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val=0
-        for i in range(iterations):
-            k = kh_get_int32(self.table, val)
-            if k != self.table.n_buckets:
-                val = self.table.vals[k]
-
-    cpdef set_item(self, int32_t key, Py_ssize_t val):
-        cdef:
-            khiter_t k
-            int ret = 0
-
-        k = kh_put_int32(self.table, key, &ret)
-        self.table.keys[k] = key
-        if kh_exist_int32(self.table, k):
-            self.table.vals[k] = val
-        else:
-            raise KeyError(key)
-
-    def map_locations(self, ndarray[int32_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            int32_t val
-            khiter_t k
-
-        for i in range(n):
-            val = values[i]
-            k = kh_put_int32(self.table, val, &ret)
-            self.table.vals[k] = i
-
-    def lookup(self, ndarray[int32_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int32_t val
-            khiter_t k
-            ndarray[int32_t] locs = np.empty(n, dtype=np.int64)
-
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int32(self.table, val)
-            if k != self.table.n_buckets:
-                locs[i] = self.table.vals[k]
-            else:
-                locs[i] = -1
-
-        return locs
-
-    def factorize(self, ndarray[int32_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            dict reverse = {}
-            Py_ssize_t idx, count = 0
-            int ret = 0
-            int32_t val
-            khiter_t k
-
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int32(self.table, val)
-            if k != self.table.n_buckets:
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
-                k = kh_put_int32(self.table, val, &ret)
-                self.table.vals[k] = count
-                reverse[count] = val
-                labels[i] = count
-                count += 1
-
-        return reverse, labels
-
-cdef class Int64HashTable: #(HashTable):
-    # cdef kh_int64_t *table
+cdef class Int64HashTable(HashTable):
 
     def __cinit__(self, size_hint=1):
         self.table = kh_init_int64()
         if size_hint is not None:
             kh_resize_int64(self.table, size_hint)
+
+    def __len__(self):
+        return self.table.size
 
     def __dealloc__(self):
         kh_destroy_int64(self.table)
@@ -368,9 +299,6 @@ cdef class Int64HashTable: #(HashTable):
         cdef khiter_t k
         k = kh_get_int64(self.table, key)
         return k != self.table.n_buckets
-
-    def __len__(self):
-        return self.table.size
 
     cpdef get_item(self, int64_t val):
         cdef khiter_t k
@@ -399,137 +327,166 @@ cdef class Int64HashTable: #(HashTable):
         else:
             raise KeyError(key)
 
-    def map(self, ndarray[int64_t] keys, ndarray[int64_t] values):
+    @cython.boundscheck(False)
+    def map(self, int64_t[:] keys, int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
             int64_t key
             khiter_t k
 
-        for i in range(n):
-            key = keys[i]
-            k = kh_put_int64(self.table, key, &ret)
-            self.table.vals[k] = <Py_ssize_t> values[i]
+        with nogil:
+            for i in range(n):
+                key = keys[i]
+                k = kh_put_int64(self.table, key, &ret)
+                self.table.vals[k] = <Py_ssize_t> values[i]
 
-    def map_locations(self, ndarray[int64_t] values):
+    @cython.boundscheck(False)
+    def map_locations(self, int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
             int64_t val
             khiter_t k
 
-        for i in range(n):
-            val = values[i]
-            k = kh_put_int64(self.table, val, &ret)
-            self.table.vals[k] = i
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_put_int64(self.table, val, &ret)
+                self.table.vals[k] = i
 
-    def lookup(self, ndarray[int64_t] values):
+    @cython.boundscheck(False)
+    def lookup(self, int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
             int64_t val
             khiter_t k
-            ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
 
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int64(self.table, val)
-            if k != self.table.n_buckets:
-                locs[i] = self.table.vals[k]
-            else:
-                locs[i] = -1
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_int64(self.table, val)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
 
-        return locs
+        return np.asarray(locs)
 
     def factorize(self, ndarray[object] values):
         reverse = {}
         labels = self.get_labels(values, reverse, 0)
         return reverse, labels
 
-    def get_labels(self, ndarray[int64_t] values, Int64Vector uniques,
+    @cython.boundscheck(False)
+    def get_labels(self, int64_t[:] values, Int64Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels
+            int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
             int64_t val
             khiter_t k
+            Int64VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
 
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int64(self.table, val)
-            if k != self.table.n_buckets:
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
-                k = kh_put_int64(self.table, val, &ret)
-                self.table.vals[k] = count
-                uniques.append(val)
-                labels[i] = count
-                count += 1
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_int64(self.table, val)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_int64(self.table, val, &ret)
+                    self.table.vals[k] = count
 
-        return labels
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data(ud, val)
+                    labels[i] = count
+                    count += 1
 
-    def get_labels_groupby(self, ndarray[int64_t] values):
+        return np.asarray(labels)
+
+    @cython.boundscheck(False)
+    def get_labels_groupby(self, int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels
+            int64_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
             int64_t val
             khiter_t k
             Int64Vector uniques = Int64Vector()
+            Int64VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
 
-        for i in range(n):
-            val = values[i]
+        with nogil:
+            for i in range(n):
+                val = values[i]
 
-            # specific for groupby
-            if val < 0:
-                labels[i] = -1
-                continue
+                # specific for groupby
+                if val < 0:
+                    labels[i] = -1
+                    continue
 
-            k = kh_get_int64(self.table, val)
-            if k != self.table.n_buckets:
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
-                k = kh_put_int64(self.table, val, &ret)
-                self.table.vals[k] = count
-                uniques.append(val)
-                labels[i] = count
-                count += 1
+                k = kh_get_int64(self.table, val)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_int64(self.table, val, &ret)
+                    self.table.vals[k] = count
+
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data(ud, val)
+                    labels[i] = count
+                    count += 1
 
         arr_uniques = uniques.to_array()
 
-        return labels, arr_uniques
+        return np.asarray(labels), arr_uniques
 
-    def unique(self, ndarray[int64_t] values):
+    @cython.boundscheck(False)
+    def unique(self, int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            ndarray result
             int64_t val
             khiter_t k
             Int64Vector uniques = Int64Vector()
+            Int64VectorData *ud
 
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int64(self.table, val)
-            if k == self.table.n_buckets:
-                kh_put_int64(self.table, val, &ret)
-                uniques.append(val)
+        ud = uniques.data
 
-        result = uniques.to_array()
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_int64(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_int64(self.table, val, &ret)
 
-        return result
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data(ud, val)
+
+        return uniques.to_array()
 
 
 cdef class Float64HashTable(HashTable):
+
     def __cinit__(self, size_hint=1):
         self.table = kh_init_float64()
         if size_hint is not None:
@@ -566,99 +523,124 @@ cdef class Float64HashTable(HashTable):
         k = kh_get_float64(self.table, key)
         return k != self.table.n_buckets
 
-    def factorize(self, ndarray[float64_t] values):
+    def factorize(self, float64_t[:] values):
         uniques = Float64Vector()
         labels = self.get_labels(values, uniques, 0, -1)
         return uniques.to_array(), labels
 
-    def get_labels(self, ndarray[float64_t] values,
+    @cython.boundscheck(False)
+    def get_labels(self, float64_t[:] values,
                      Float64Vector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels
+            int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
             float64_t val
             khiter_t k
+            Float64VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
 
-        for i in range(n):
-            val = values[i]
+        with nogil:
+            for i in range(n):
+                val = values[i]
 
-            if val != val:
-                labels[i] = na_sentinel
-                continue
+                if val != val:
+                    labels[i] = na_sentinel
+                    continue
 
-            k = kh_get_float64(self.table, val)
-            if k != self.table.n_buckets:
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
-                k = kh_put_float64(self.table, val, &ret)
-                self.table.vals[k] = count
-                uniques.append(val)
-                labels[i] = count
-                count += 1
-
-        return labels
-
-    def map_locations(self, ndarray[float64_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            khiter_t k
-
-        for i in range(n):
-            k = kh_put_float64(self.table, values[i], &ret)
-            self.table.vals[k] = i
-
-    def lookup(self, ndarray[float64_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            float64_t val
-            khiter_t k
-            ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
-
-        for i in range(n):
-            val = values[i]
-            k = kh_get_float64(self.table, val)
-            if k != self.table.n_buckets:
-                locs[i] = self.table.vals[k]
-            else:
-                locs[i] = -1
-
-        return locs
-
-    def unique(self, ndarray[float64_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            float64_t val
-            khiter_t k
-            Float64Vector uniques = Float64Vector()
-            bint seen_na = 0
-
-        for i in range(n):
-            val = values[i]
-
-            if val == val:
                 k = kh_get_float64(self.table, val)
-                if k == self.table.n_buckets:
-                    kh_put_float64(self.table, val, &ret)
-                    uniques.append(val)
-            elif not seen_na:
-                seen_na = 1
-                uniques.append(ONAN)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_float64(self.table, val, &ret)
+                    self.table.vals[k] = count
+
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data(ud, val)
+                    labels[i] = count
+                    count += 1
+
+        return np.asarray(labels)
+
+    @cython.boundscheck(False)
+    def map_locations(self, float64_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            khiter_t k
+
+        with nogil:
+            for i in range(n):
+                k = kh_put_float64(self.table, values[i], &ret)
+                self.table.vals[k] = i
+
+    @cython.boundscheck(False)
+    def lookup(self, float64_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            float64_t val
+            khiter_t k
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_float64(self.table, val)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
+
+        return np.asarray(locs)
+
+    @cython.boundscheck(False)
+    def unique(self, float64_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            float64_t val
+            khiter_t k
+            bint seen_na = 0
+            Float64Vector uniques = Float64Vector()
+            Float64VectorData *ud
+
+        ud = uniques.data
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+
+                if val == val:
+                    k = kh_get_float64(self.table, val)
+                    if k == self.table.n_buckets:
+                        kh_put_float64(self.table, val, &ret)
+
+                        if needs_resize(ud):
+                            with gil:
+                                uniques.resize()
+                        append_data(ud, val)
+
+                elif not seen_na:
+                    seen_na = 1
+
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data(ud, NAN)
 
         return uniques.to_array()
 
 na_sentinel = object
 
 cdef class PyObjectHashTable(HashTable):
-    # cdef kh_pymap_t *table
 
     def __init__(self, size_hint=1):
         self.table = kh_init_pymap()
@@ -740,7 +722,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         for i in range(n):
             val = values[i]
@@ -754,30 +736,13 @@ cdef class PyObjectHashTable(HashTable):
             else:
                 locs[i] = -1
 
-        return locs
-
-    def lookup2(self, ndarray[object] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            object val
-            khiter_t k
-            long hval
-            ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
-
-        # for i in range(n):
-        #     val = values[i]
-            # hval = PyObject_Hash(val)
-            # k = kh_get_pymap(self.table, <PyObject*>val)
-
-        return locs
+        return np.asarray(locs)
 
     def unique(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            ndarray result
             khiter_t k
             ObjectVector uniques = ObjectVector()
             bint seen_na = 0
@@ -792,17 +757,15 @@ cdef class PyObjectHashTable(HashTable):
                     uniques.append(val)
             elif not seen_na:
                 seen_na = 1
-                uniques.append(ONAN)
+                uniques.append(nan)
 
-        result = uniques.to_array()
-
-        return result
+        return uniques.to_array()
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels
+            int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
             object val
@@ -829,7 +792,7 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        return labels
+        return np.asarray(labels)
 
 
 cdef class Factorizer:
@@ -884,7 +847,7 @@ cdef class Int64Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[int64_t] values, sort=False,
+    def factorize(self, int64_t[:] values, sort=False,
                   na_sentinel=-1):
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel)
@@ -904,28 +867,34 @@ cdef class Int64Factorizer:
         return labels
 
 
-cdef build_count_table_int64(ndarray[int64_t] values, kh_int64_t *table):
+
+@cython.boundscheck(False)
+cdef build_count_table_int64(int64_t[:] values, kh_int64_t *table):
     cdef:
         khiter_t k
         Py_ssize_t i, n = len(values)
+        int64_t val
         int ret = 0
 
-    kh_resize_int64(table, n)
+    with nogil:
+        kh_resize_int64(table, n)
 
-    for i in range(n):
-        val = values[i]
-        k = kh_get_int64(table, val)
-        if k != table.n_buckets:
-            table.vals[k] += 1
-        else:
-            k = kh_put_int64(table, val, &ret)
-            table.vals[k] = 1
+        for i in range(n):
+            val = values[i]
+            k = kh_get_int64(table, val)
+            if k != table.n_buckets:
+                table.vals[k] += 1
+            else:
+                k = kh_put_int64(table, val, &ret)
+                table.vals[k] = 1
 
 
-cpdef value_count_int64(ndarray[int64_t] values):
+@cython.boundscheck(False)
+cpdef value_count_int64(int64_t[:] values):
     cdef:
         Py_ssize_t i
         kh_int64_t *table
+        int64_t[:] result_keys, result_counts
         int k
 
     table = kh_init_int64()
@@ -934,14 +903,16 @@ cpdef value_count_int64(ndarray[int64_t] values):
     i = 0
     result_keys = np.empty(table.n_occupied, dtype=np.int64)
     result_counts = np.zeros(table.n_occupied, dtype=np.int64)
-    for k in range(table.n_buckets):
-        if kh_exist_int64(table, k):
-            result_keys[i] = table.keys[k]
-            result_counts[i] = table.vals[k]
-            i += 1
+
+    with nogil:
+        for k in range(table.n_buckets):
+            if kh_exist_int64(table, k):
+                result_keys[i] = table.keys[k]
+                result_counts[i] = table.vals[k]
+                i += 1
     kh_destroy_int64(table)
 
-    return result_keys, result_counts
+    return np.asarray(result_keys), np.asarray(result_counts)
 
 
 cdef build_count_table_object(ndarray[object] values,
@@ -968,7 +939,7 @@ cdef build_count_table_object(ndarray[object] values,
 
 
 cpdef value_count_object(ndarray[object] values,
-                       ndarray[uint8_t, cast=True] mask):
+                         ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i
         kh_pymap_t *table
@@ -995,6 +966,7 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
         int count, max_count = 2
         int j = -1 # so you can do +=
         int k
+        ndarray[object] modes
         kh_pymap_t *table
 
     table = kh_init_pymap()
@@ -1019,35 +991,38 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
     return modes[:j+1]
 
 
-def mode_int64(ndarray[int64_t] values):
+@cython.boundscheck(False)
+def mode_int64(int64_t[:] values):
     cdef:
         int count, max_count = 2
         int j = -1 # so you can do +=
         int k
         kh_int64_t *table
+        ndarray[int64_t] modes
 
     table = kh_init_int64()
 
     build_count_table_int64(values, table)
 
     modes = np.empty(table.n_buckets, dtype=np.int64)
-    for k in range(table.n_buckets):
-        if kh_exist_int64(table, k):
-            count = table.vals[k]
 
-            if count == max_count:
-                j += 1
-            elif count > max_count:
-                max_count = count
-                j = 0
-            else:
-                continue
-            modes[j] = table.keys[k]
+    with nogil:
+        for k in range(table.n_buckets):
+            if kh_exist_int64(table, k):
+                count = table.vals[k]
+
+                if count == max_count:
+                    j += 1
+                elif count > max_count:
+                    max_count = count
+                    j = 0
+                else:
+                    continue
+                modes[j] = table.keys[k]
 
     kh_destroy_int64(table)
 
     return modes[:j+1]
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1060,14 +1035,15 @@ def duplicated_int64(ndarray[int64_t, ndim=1] values, int take_last):
 
     kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
 
-    if take_last:
-        for i from n > i >=0:
-            kh_put_int64(table, values[i], &ret)
-            out[i] = ret == 0
-    else:
-        for i from 0 <= i < n:
-            kh_put_int64(table, values[i], &ret)
-            out[i] = ret == 0
+    with nogil:
+        if take_last:
+            for i from n > i >=0:
+                kh_put_int64(table, values[i], &ret)
+                out[i] = ret == 0
+        else:
+            for i from 0 <= i < n:
+                kh_put_int64(table, values[i], &ret)
+                out[i] = ret == 0
 
     kh_destroy_int64(table)
     return out
@@ -1087,13 +1063,18 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
         kh_int64_t * table = kh_init_int64()
         Int64Vector idx = Int64Vector()
         ndarray[int64_t, ndim=1] arr
+        Int64VectorData *ud = idx.data
 
     kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
 
-    for i in range(n):
-        kh_put_int64(table, labels[i], &ret)
-        if ret != 0:
-            idx.append(i)
+    with nogil:
+        for i in range(n):
+            kh_put_int64(table, labels[i], &ret)
+            if ret != 0:
+                if needs_resize(ud):
+                    with gil:
+                        idx.resize()
+                append_data(ud, i)
 
     kh_destroy_int64(table)
 
