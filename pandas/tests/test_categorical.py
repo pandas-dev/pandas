@@ -2969,9 +2969,9 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_concat_categorical(self):
         # See GH 10177
-        df1 = pd.DataFrame(np.arange(18).reshape(6, 3), columns=["a", "b", "c"])
+        df1 = pd.DataFrame(np.arange(18, dtype='int64').reshape(6, 3), columns=["a", "b", "c"])
 
-        df2 = pd.DataFrame(np.arange(14).reshape(7, 2), columns=["a", "c"])
+        df2 = pd.DataFrame(np.arange(14, dtype='int64').reshape(7, 2), columns=["a", "c"])
         df2['h'] = pd.Series(pd.Categorical(["one", "one", "two", "one", "two", "two", "one"]))
 
         df_concat = pd.concat((df1, df2), axis=0).reset_index(drop=True)
