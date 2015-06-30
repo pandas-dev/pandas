@@ -877,7 +877,7 @@ class TestTimedeltaIndex(tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assert_isinstance(result[0], Timedelta)
+        tm.assertIsInstance(result[0], Timedelta)
 
         # it works
         rng.join(idx, how='outer')
@@ -1103,7 +1103,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         rng = timedelta_range('1 day', periods=5)
         result = rng.groupby(rng.days)
-        tm.assert_isinstance(list(result.values())[0][0], Timedelta)
+        tm.assertIsInstance(list(result.values())[0][0], Timedelta)
 
         idx = TimedeltaIndex(['3d','1d','2d'])
         self.assertTrue(idx.equals(list(idx)))
@@ -1309,7 +1309,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         for taken in [taken1, taken2]:
             self.assertTrue(taken.equals(expected))
-            tm.assert_isinstance(taken, TimedeltaIndex)
+            tm.assertIsInstance(taken, TimedeltaIndex)
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
 

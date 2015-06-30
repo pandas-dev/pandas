@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from pandas.tseries.base import DatetimeIndexOpsMixin
-from pandas.util.testing import assertRaisesRegexp, assert_isinstance
+from pandas.util.testing import assertRaisesRegexp, assertIsInstance
 from pandas.tseries.common import is_datetimelike
 from pandas import (Series, Index, Int64Index, Timestamp, DatetimeIndex, PeriodIndex,
                     TimedeltaIndex, Timedelta, timedelta_range, date_range, Float64Index)

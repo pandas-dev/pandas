@@ -8,7 +8,7 @@ import pandas as pd
 from pandas.compat import u, StringIO
 from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate
 from pandas.tseries.base import DatetimeIndexOpsMixin
-from pandas.util.testing import assertRaisesRegexp, assert_isinstance
+from pandas.util.testing import assertRaisesRegexp, assertIsInstance
 from pandas.tseries.common import is_datetimelike
 from pandas import Series, Index, Int64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex, Timedelta
 import pandas.tslib as tslib
@@ -68,7 +68,7 @@ class CheckImmutable(object):
 
     def check_result(self, result, expected, klass=None):
         klass = klass or self.klass
-        assert_isinstance(result, klass)
+        assertIsInstance(result, klass)
         self.assertEqual(result, expected)
 
 
@@ -109,12 +109,12 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
 
     def test_shallow_copying(self):
         original = self.container.copy()
-        assert_isinstance(self.container.view(), FrozenNDArray)
+        assertIsInstance(self.container.view(), FrozenNDArray)
         self.assertFalse(isinstance(self.container.view(np.ndarray), FrozenNDArray))
         self.assertIsNot(self.container.view(), self.container)
         self.assert_numpy_array_equal(self.container, original)
         # shallow copy should be the same too
-        assert_isinstance(self.container._shallow_copy(), FrozenNDArray)
+        assertIsInstance(self.container._shallow_copy(), FrozenNDArray)
         # setting should not be allowed
         def testit(container): container[0] = 16
 

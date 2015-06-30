@@ -549,7 +549,7 @@ class TestGroupBy(tm.TestCase):
             return dataf["val2"]  - dataf["val2"].mean()
 
         result = df1.groupby("val1", squeeze=True).apply(func)
-        tm.assert_isinstance(result,Series)
+        tm.assertIsInstance(result,Series)
 
         df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
                          {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
@@ -557,12 +557,12 @@ class TestGroupBy(tm.TestCase):
             return dataf["val2"]  - dataf["val2"].mean()
 
         result = df2.groupby("val1", squeeze=True).apply(func)
-        tm.assert_isinstance(result,Series)
+        tm.assertIsInstance(result,Series)
 
         # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
         df = DataFrame([[1,1],[1,1]],columns=['X','Y'])
         result = df.groupby('X',squeeze=False).count()
-        tm.assert_isinstance(result,DataFrame)
+        tm.assertIsInstance(result,DataFrame)
 
         # GH5592
         # inconcistent return type
@@ -670,7 +670,7 @@ class TestGroupBy(tm.TestCase):
         prng = period_range('2012-1-1', freq='M', periods=3)
         df = DataFrame(np.random.randn(3, 2), index=prng)
         rs = df.groupby(level=0).sum()
-        tm.assert_isinstance(rs.index, PeriodIndex)
+        tm.assertIsInstance(rs.index, PeriodIndex)
 
         # GH 3579
         index = period_range(start='1999-01', periods=5, freq='M')
@@ -912,7 +912,7 @@ class TestGroupBy(tm.TestCase):
         def aggfun(ser):
             return ser.size
         result = DataFrame().groupby(self.df.A).agg(aggfun)
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         self.assertEqual(len(result), 0)
 
     def test_agg_item_by_item_raise_typeerror(self):
@@ -1642,22 +1642,22 @@ class TestGroupBy(tm.TestCase):
 
         result = grouped['C'].agg(np.sum)
         expected = grouped.agg(np.sum).ix[:, ['A', 'C']]
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].agg(np.sum)
         expected2 = grouped2.agg(np.sum).ix[:, ['A', 'B', 'C']]
-        tm.assert_isinstance(result2, DataFrame)
+        tm.assertIsInstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         result = grouped['C'].sum()
         expected = grouped.sum().ix[:, ['A', 'C']]
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].sum()
         expected2 = grouped2.sum().ix[:, ['A', 'B', 'C']]
-        tm.assert_isinstance(result2, DataFrame)
+        tm.assertIsInstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         # corner case
@@ -2023,7 +2023,7 @@ class TestGroupBy(tm.TestCase):
 
         keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
         agged = df.groupby(keys).agg(np.mean)
-        tm.assert_isinstance(agged.columns, MultiIndex)
+        tm.assertIsInstance(agged.columns, MultiIndex)
 
         def aggfun(ser):
             if ser.name == ('foo', 'one'):
@@ -2181,7 +2181,7 @@ class TestGroupBy(tm.TestCase):
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(f)
 
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         self.assertTrue(result.index.equals(ts.index))
 
     def test_apply_series_yield_constant(self):
@@ -2779,11 +2779,11 @@ class TestGroupBy(tm.TestCase):
 
         result = grouped.agg(convert_fast)
         self.assertEqual(result.dtype, np.object_)
-        tm.assert_isinstance(result[0], Decimal)
+        tm.assertIsInstance(result[0], Decimal)
 
         result = grouped.agg(convert_force_pure)
         self.assertEqual(result.dtype, np.object_)
-        tm.assert_isinstance(result[0], Decimal)
+        tm.assertIsInstance(result[0], Decimal)
 
     def test_fast_apply(self):
         # make sure that fast apply is correctly called
@@ -3225,7 +3225,7 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)
 
-        tm.assert_isinstance(result, Series)
+        tm.assertIsInstance(result, Series)
         assert_series_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -3534,7 +3534,7 @@ class TestGroupBy(tm.TestCase):
 
         # it works!
         groups = grouped.groups
-        tm.assert_isinstance(list(groups.keys())[0], datetime)
+        tm.assertIsInstance(list(groups.keys())[0], datetime)
 
     def test_groupby_groups_datetimeindex_tz(self):
         # GH 3950
