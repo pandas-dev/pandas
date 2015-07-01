@@ -2330,7 +2330,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                 encoding=encoding,
                                 infer_datetime_format=infer_datetime_format)
         result = df.icol(0)
-        result.index.name = result.name = None
+        if header is None:
+            result.index.name = result.name = None
+
         return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='',

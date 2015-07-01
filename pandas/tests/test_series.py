@@ -4979,6 +4979,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertTrue(ts.name is None)
             self.assertTrue(ts.index.name is None)
 
+            # GH10483
+            self.ts.to_csv(path, header=True)
+            ts_h = Series.from_csv(path, header=0)
+            self.assertTrue(ts_h.name == 'ts')
+
             self.series.to_csv(path)
             series = Series.from_csv(path)
             self.assertIsNone(series.name)
@@ -4986,6 +4991,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(self.series, series, check_names=False)
             self.assertTrue(series.name is None)
             self.assertTrue(series.index.name is None)
+
+            self.series.to_csv(path, header=True)
+            series_h = Series.from_csv(path, header=0)
+            self.assertTrue(series_h.name == 'series')
 
             outfile = open(path, 'w')
             outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
